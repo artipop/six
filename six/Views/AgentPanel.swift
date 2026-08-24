@@ -46,6 +46,7 @@ struct AgentPanel: View {
                 Button("Choose…") { chooseDirectory() }
                     .controlSize(.small)
             }
+            ToolchainStatusView(agent: store.agent)
             if store.agent.id == ACPAgentDefinition.claudeCode.id {
                 TextField("Model override (ANTHROPIC_MODEL, optional)", text: $store.modelOverride)
                     .textFieldStyle(.roundedBorder)
@@ -129,6 +130,73 @@ struct AgentPanel: View {
         panel.canChooseFiles = false
         panel.directoryURL = store.workingDirectory
         if panel.runModal() == .OK, let url = panel.url { store.workingDirectory = url }
+    }
+}
+
+/// Shows whether the ACP adapter and its CLI are installed; offers to install the adapter with npm.
+private struct ToolchainStatusView: View {
+    let agent: ACPAgentDefinition
+    @Environment(AgentSessionStore.self) private var store
+    @State private var showLog = false
+
+    private var toolchain: AgentToolchain { store.toolchain }
+    private var report: AgentToolchain.Report { toolchain.report(for: agent) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                switch report.adapter {
+                case .unknown, .checking:
+                    ProgressView().controlSize(.mini)
+                    Text("Checking \(agent.binaryName)…")
+                case .installed(let path):
+                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                    Text(agent.binaryName).help(path)
+                case .installable:
+                    Image(systemName: "arrow.down.circle").foregroundStyle(.orange)
+                    Text("\(agent.binaryName) not installed (runs via npx)")
+                    Spacer()
+                    if report.isInstalling {
+                        ProgressView().controlSize(.mini)
+                    } else {
+                        Button("Install") { Task { await toolchain.install(agent) } }
+                    }
+                case .nodeMissing:
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(.red)
+                    Text("Node.js / npm not found")
+                    Spacer()
+                    Link("Install Node.js", destination: AgentToolchain.nodeInstallURL)
+                }
+                if report.adapter != .checking {
+                    Button { Task { await toolchain.refresh(agent) } } label: { Image(systemName: "arrow.clockwise") }
+                        .buttonStyle(.plain)
+                        .help("Re-check")
+                }
+            }
+            HStack(spacing: 6) {
+                if report.underlyingCLIPath != nil {
+                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                    Text("\(agent.underlyingCLI) CLI")
+                } else if report.adapter != .unknown, report.adapter != .checking {
+                    Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                    Text("\(agent.underlyingCLI) CLI not found. \(agent.loginHint)")
+                }
+            }
+            if !report.installLog.isEmpty {
+                DisclosureGroup("Install log", isExpanded: $showLog) {
+                    ScrollView {
+                        Text(report.installLog).font(.caption.monospaced()).textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .frame(maxHeight: 120)
+                }
+            }
+        }
+        .font(.caption)
+        .controlSize(.small)
+        .task(id: agent.id) {
+            if report.adapter == .unknown { await toolchain.refresh(agent) }
+        }
     }
 }
 

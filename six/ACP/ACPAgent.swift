@@ -8,6 +8,20 @@ nonisolated struct ACPAgentDefinition: Identifiable, Hashable, Codable, Sendable
     var command: String
     var arguments: [String]
     var environment: [String: String] = [:]
+    /// npm package that provides the adapter, and the executable it installs.
+    var npmPackage: String
+    var binaryName: String
+    /// The underlying CLI the adapter drives (must be installed and logged in).
+    var underlyingCLI: String
+    var loginHint: String
+
+    /// Same agent, launched through the globally installed binary instead of `npx`.
+    func usingInstalledBinary() -> ACPAgentDefinition {
+        var copy = self
+        copy.command = binaryName
+        copy.arguments = []
+        return copy
+    }
 
     var shellCommandLine: String {
         ([command] + arguments).map { arg in
@@ -15,20 +29,28 @@ nonisolated struct ACPAgentDefinition: Identifiable, Hashable, Codable, Sendable
         }.joined(separator: " ")
     }
 
-    /// Claude Code via Zed's ACP adapter (uses the local `claude` login).
+    /// Claude Code via the official ACP adapter (uses the local `claude` login).
     static let claudeCode = ACPAgentDefinition(
         id: "claude-code",
         name: "Claude Code",
         command: "npx",
-        arguments: ["-y", "@zed-industries/claude-code-acp"]
+        arguments: ["-y", "@agentclientprotocol/claude-agent-acp"],
+        npmPackage: "@agentclientprotocol/claude-agent-acp",
+        binaryName: "claude-agent-acp",
+        underlyingCLI: "claude",
+        loginHint: "Install Claude Code and run `claude` once to log in."
     )
 
-    /// OpenAI Codex via Zed's ACP adapter.
+    /// OpenAI Codex via the official ACP adapter.
     static let codex = ACPAgentDefinition(
         id: "codex",
         name: "Codex",
         command: "npx",
-        arguments: ["-y", "@zed-industries/codex-acp"]
+        arguments: ["-y", "@agentclientprotocol/codex-acp"],
+        npmPackage: "@agentclientprotocol/codex-acp",
+        binaryName: "codex-acp",
+        underlyingCLI: "codex",
+        loginHint: "Install Codex CLI and run `codex login`."
     )
 
     static let builtIn: [ACPAgentDefinition] = [.claudeCode, .codex]

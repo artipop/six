@@ -13,8 +13,8 @@ A minimal Arc-style macOS browser used as a playground for three things:
 3. **ACP (Agent Client Protocol) in Swift** — `six/ACP/` is a self-contained client: JSON-RPC over stdio,
    `initialize` / `session/new` / `session/prompt` / `session/cancel` / `session/set_mode`, streaming `session/update`,
    `session/request_permission`, and `fs/read_text_file` / `fs/write_text_file` served from the app (restricted to the
-   session cwd). Built-in agents: Claude Code (`npx @zed-industries/claude-code-acp`) and Codex
-   (`npx @zed-industries/codex-acp`). ⌘⇧A opens the agent panel (inspector).
+   session cwd). Built-in agents: Claude Code (`@agentclientprotocol/claude-agent-acp`) and Codex
+   (`@agentclientprotocol/codex-acp`). ⌘⇧A opens the agent panel (inspector).
 
 ## Layout
 
@@ -25,6 +25,28 @@ six/Assistant   ModelChoice/AssistantSettings (model selection), AssistantStore 
 six/ACP         ACPJSON, JSONRPCConnection, ACPTypes, ACPAgent (process), ACPClient (actor), AgentSessionStore (VM)
 six/Vendor      ClaudeForFoundationModels sources (see note below)
 ```
+
+## Testing ACP
+
+Adapters are plain npm packages. The agent panel checks the toolchain through your login shell:
+
+- adapter binary on PATH (`claude-agent-acp` / `codex-acp`) → used directly;
+- only `npm` available → **Install** button runs `npm install -g <adapter>`; until then the agent starts via `npx -y`;
+- no Node.js at all → link to https://nodejs.org/en/download;
+- the underlying CLI (`claude` / `codex`) must be installed and logged in — the panel warns if it's missing.
+
+Manual check from a terminal (what the panel does under the hood):
+
+```sh
+npm install -g @agentclientprotocol/claude-agent-acp @agentclientprotocol/codex-acp
+claude-agent-acp   # then paste, one line each:
+{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":1,"clientCapabilities":{"fs":{"readTextFile":true,"writeTextFile":true}}}}
+{"jsonrpc":"2.0","id":2,"method":"session/new","params":{"cwd":"/tmp","mcpServers":[]}}
+{"jsonrpc":"2.0","id":3,"method":"session/prompt","params":{"sessionId":"<id from above>","prompt":[{"type":"text","text":"hi"}]}}
+```
+
+In the app: ⌘⇧A → pick the agent → choose a working directory → send a message. Tool calls, plans and permission
+requests show up in the transcript; permission buttons answer `session/request_permission`.
 
 ## Notes / caveats
 

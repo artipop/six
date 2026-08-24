@@ -51,6 +51,8 @@ final class AgentSessionStore {
     private(set) var agentInfo: ACP.Implementation?
     private(set) var sessionId: String?
 
+    let toolchain = AgentToolchain()
+
     @ObservationIgnored private var client: ACPClient?
     @ObservationIgnored private var delegateBox: DelegateBox?
     @ObservationIgnored private var openMessageID: String?
@@ -66,7 +68,8 @@ final class AgentSessionStore {
         transcript.removeAll()
         do {
             let box = DelegateBox(store: self)
-            var definition = agent
+            if toolchain.report(for: agent).adapter == .unknown { await toolchain.refresh(agent) }
+            var definition = toolchain.launchDefinition(for: agent)
             let model = modelOverride.trimmingCharacters(in: .whitespaces)
             if !model.isEmpty { definition.environment["ANTHROPIC_MODEL"] = model }
             let client = try ACPClient(definition: definition, delegate: box)
