@@ -4,12 +4,14 @@ import SwiftUI
 struct sixApp: App {
     @State private var browser = BrowserState()
     @State private var assistant = AssistantStore()
+    @State private var agentSession = AgentSessionStore()
 
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environment(browser)
                 .environment(assistant)
+                .environment(agentSession)
                 .frame(minWidth: 800, minHeight: 500)
         }
         .commands {
@@ -27,6 +29,7 @@ struct sixApp: App {
 private struct BrowserCommands: Commands {
     @FocusedValue(\.focusAddressBar) private var focusAddressBar
     @FocusedValue(\.focusAssistant) private var focusAssistant
+    @FocusedValue(\.toggleAgentPanel) private var toggleAgentPanel
 
     var body: some Commands {
         CommandMenu("Navigate") {
@@ -36,6 +39,9 @@ private struct BrowserCommands: Commands {
             Button("Ask Assistant…") { focusAssistant?.perform() }
                 .keyboardShortcut("k")
                 .disabled(focusAssistant == nil)
+            Button("Toggle Agent Panel") { toggleAgentPanel?.perform() }
+                .keyboardShortcut("a", modifiers: [.command, .shift])
+                .disabled(toggleAgentPanel == nil)
         }
     }
 }

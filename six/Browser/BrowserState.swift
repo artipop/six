@@ -14,7 +14,7 @@ final class BrowserState {
     @ObservationIgnored private var dataStores: [UUID: WKWebsiteDataStore] = [:]
     @ObservationIgnored private let profilesKey = "six.profiles"
 
-    static let homeURL = URL(string: "https://duckduckgo.com")!
+    nonisolated static let homeURL = URL(string: "https://duckduckgo.com")!
 
     init() {
         var loaded = Profile.defaults

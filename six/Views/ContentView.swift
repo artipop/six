@@ -4,6 +4,7 @@ import WebKit
 struct ContentView: View {
     @Environment(BrowserState.self) private var browser
     @FocusState private var addressBarFocused: Bool
+    @State private var showAgentPanel = false
 
     var body: some View {
         @Bindable var browser = browser
@@ -33,7 +34,12 @@ struct ContentView: View {
                 ContentUnavailableView("No tab", systemImage: "globe")
             }
         }
+        .inspector(isPresented: $showAgentPanel) {
+            AgentPanel()
+                .inspectorColumnWidth(min: 320, ideal: 400, max: 700)
+        }
         .tint(browser.selectedProfile.color)
+        .focusedSceneValue(\.toggleAgentPanel, FocusAddressBarAction { showAgentPanel.toggle() })
         .focusedSceneValue(\.focusAddressBar, FocusAddressBarAction { addressBarFocused = true })
     }
 }
