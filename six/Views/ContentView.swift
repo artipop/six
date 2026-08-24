@@ -26,6 +26,9 @@ struct ContentView: View {
                         .background(.bar)
                     }
                     .navigationTitle(tab.title)
+                    .overlay(alignment: .bottom) {
+                        AssistantBar()
+                    }
             } else {
                 ContentUnavailableView("No tab", systemImage: "globe")
             }
