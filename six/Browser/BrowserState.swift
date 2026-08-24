@@ -1,8 +1,10 @@
 import Foundation
 import Observation
+import SwiftUI
 import WebKit
 
-/// App-wide browser model: profiles (each with an isolated data store) and tabs across all profiles, shown in one window.
+/// App-wide browser model: profiles (each with an isolated data store) and tabs across all profiles,
+/// arranged by `NiriLayout` into per-profile strips of workspaces.
 @MainActor
 @Observable
 final class BrowserState {
@@ -10,6 +12,9 @@ final class BrowserState {
     private(set) var tabs: [BrowserTab] = []
     var selectedProfileID: Profile.ID
     var selectedTabID: BrowserTab.ID?
+
+    /// niri-style layout: the focused column here is the selected tab.
+    let layout = NiriLayout()
 
     @ObservationIgnored private var dataStores: [UUID: WKWebsiteDataStore] = [:]
     @ObservationIgnored private let profilesKey = "six.profiles"
@@ -24,6 +29,7 @@ final class BrowserState {
         }
         profiles = loaded
         selectedProfileID = loaded[0].id
+        layout.activeProfileID = loaded[0].id
         newTab()
     }
 
@@ -41,11 +47,13 @@ final class BrowserState {
     }
 
     func selectProfile(_ id: Profile.ID) {
+        guard profiles.contains(where: { $0.id == id }) else { return }
         selectedProfileID = id
-        if let tab = tabs(in: id).first {
-            selectedTabID = tab.id
+        layout.activeProfileID = id
+        if layout.hasColumns {
+            syncSelection()
         } else {
-            newTab()
+            newTab(in: id)
         }
     }
 
@@ -61,6 +69,7 @@ final class BrowserState {
         for tab in tabs(in: id) { closeTab(tab.id) }
         profiles.removeAll { $0.id == id }
         dataStores[profile.dataStoreID] = nil
+        layout.removeProfile(id)
         persistProfiles()
         Task { try? await WKWebsiteDataStore.remove(forIdentifier: profile.dataStoreID) }
         if selectedProfileID == id { selectProfile(profiles[0].id) }
@@ -78,6 +87,10 @@ final class BrowserState {
         tabs.first { $0.id == selectedTabID }
     }
 
+    func tab(_ id: BrowserTab.ID) -> BrowserTab? {
+        tabs.first { $0.id == id }
+    }
+
     func tabs(in profileID: Profile.ID) -> [BrowserTab] {
         tabs.filter { $0.profileID == profileID }
     }
@@ -87,30 +100,90 @@ final class BrowserState {
         let profile = profiles.first { $0.id == profileID } ?? selectedProfile
         let tab = BrowserTab(profileID: profile.id, dataStore: dataStore(for: profile))
         tabs.append(tab)
-        selectedProfileID = profile.id
-        selectedTabID = tab.id
+        if selectedProfileID != profile.id {
+            selectedProfileID = profile.id
+            layout.activeProfileID = profile.id
+        }
+        withAnimation(NiriLayout.switchAnimation) {
+            layout.insertColumn(tabID: tab.id)
+        }
+        syncSelection()
         tab.load(url)
         return tab
     }
 
     func selectTab(_ id: BrowserTab.ID) {
         guard let tab = tabs.first(where: { $0.id == id }) else { return }
-        selectedProfileID = tab.profileID
-        selectedTabID = id
+        if selectedProfileID != tab.profileID {
+            selectedProfileID = tab.profileID
+            layout.activeProfileID = tab.profileID
+        }
+        withAnimation(NiriLayout.switchAnimation) {
+            layout.focus(tabID: id)
+        }
+        syncSelection()
     }
 
     func closeTab(_ id: BrowserTab.ID) {
         guard let index = tabs.firstIndex(where: { $0.id == id }) else { return }
         let closed = tabs.remove(at: index)
         closed.page.stopLoading()
-        if selectedTabID == id {
-            let siblings = tabs(in: closed.profileID)
-            selectedTabID = siblings.last?.id
-            if selectedTabID == nil { newTab(in: closed.profileID) }
+        let wasActive = closed.profileID == selectedProfileID
+        withAnimation(NiriLayout.switchAnimation) {
+            layout.removeColumn(tabID: id)
+        }
+        guard wasActive else { return }
+        syncSelection()
+        if selectedTabID == nil, tabs(in: closed.profileID).isEmpty {
+            newTab(in: closed.profileID)
         }
     }
 
     func closeSelectedTab() {
         if let id = selectedTabID { closeTab(id) }
+    }
+
+    // MARK: niri operations
+
+    func focusColumn(_ delta: Int) { animateLayout { layout.focusColumn(delta) } }
+    func focusColumnEdge(last: Bool) { animateLayout { layout.focusColumnEdge(last: last) } }
+    func moveColumn(_ delta: Int) { animateLayout { layout.moveColumn(delta) } }
+    func cycleColumnWidth() { animateLayout { layout.cycleColumnWidth() } }
+    func toggleFullWidth() { animateLayout { layout.toggleFullWidth() } }
+    func focusWorkspace(_ delta: Int) { animateLayout { layout.focusWorkspace(delta) } }
+    func focusWorkspace(at index: Int) { animateLayout { layout.focusWorkspace(at: index) } }
+    func moveColumnToWorkspace(_ delta: Int) { animateLayout { layout.moveColumnToWorkspace(delta) } }
+
+    /// Free strip panning is driven directly by the trackpad, so it is deliberately un-animated.
+    func panStrip(by delta: CGFloat) {
+        layout.panStrip(by: delta)
+    }
+
+    func endStripPan() {
+        animateLayout { layout.snapFocusToView() }
+    }
+
+    func toggleOverview() {
+        withAnimation(NiriLayout.switchAnimation) {
+            layout.isOverview.toggle()
+        }
+    }
+
+    func exitOverview() {
+        guard layout.isOverview else { return }
+        withAnimation(NiriLayout.switchAnimation) { layout.isOverview = false }
+    }
+
+    private func animateLayout(_ body: () -> Void) {
+        withAnimation(NiriLayout.switchAnimation) {
+            layout.verticalPreview = 0
+            body()
+        }
+        syncSelection()
+    }
+
+    /// The focused column is the selected tab — everything else (assistant, agent panel, ⌘L) keys off it.
+    private func syncSelection() {
+        selectedTabID = layout.focusedTabID
     }
 }

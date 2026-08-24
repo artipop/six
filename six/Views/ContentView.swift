@@ -3,77 +3,165 @@ import WebKit
 
 struct ContentView: View {
     @Environment(BrowserState.self) private var browser
-    @FocusState private var addressBarFocused: Bool
     @State private var showAgentPanel = false
 
     var body: some View {
-        @Bindable var browser = browser
-        NavigationSplitView {
-            SidebarView()
-                .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 360)
-        } detail: {
-            if let tab = browser.selectedTab {
-                WebView(tab.page)
-                    .webViewBackForwardNavigationGestures(.enabled)
-                    .id(tab.id)
-                    .safeAreaInset(edge: .top, spacing: 0) {
-                        HStack(spacing: 8) {
-                            NavigationButtons(tab: tab)
-                                .buttonStyle(.borderless)
-                            AddressBar(tab: tab, isFocused: $addressBarFocused)
-                        }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(.bar)
-                    }
-                    .navigationTitle(tab.title)
-                    .overlay(alignment: .bottom) {
+        VStack(spacing: 0) {
+            TopBar(showAgentPanel: $showAgentPanel)
+            NiriStripView()
+                .overlay(alignment: .bottom) {
+                    if !browser.layout.isOverview {
                         AssistantBar()
                     }
-            } else {
-                ContentUnavailableView("No tab", systemImage: "globe")
-            }
+                }
         }
+        .ignoresSafeArea(.container, edges: .top)
         .inspector(isPresented: $showAgentPanel) {
             AgentPanel()
                 .inspectorColumnWidth(min: 320, ideal: 400, max: 700)
         }
         .tint(browser.selectedProfile.color)
+        .navigationTitle(browser.selectedTab?.title ?? "six")
         .focusedSceneValue(\.toggleAgentPanel, FocusAddressBarAction { showAgentPanel.toggle() })
-        .focusedSceneValue(\.focusAddressBar, FocusAddressBarAction { addressBarFocused = true })
+        .onKeyPress(.escape) {
+            guard browser.layout.isOverview else { return .ignored }
+            browser.exitOverview()
+            return .handled
+        }
     }
 }
 
-private struct NavigationButtons: View {
-    let tab: BrowserTab
+/// Slim bar in the (hidden) title bar area: profiles on the left, workspace position on the right.
+private struct TopBar: View {
+    @Binding var showAgentPanel: Bool
+    @Environment(BrowserState.self) private var browser
+    @State private var isAddingProfile = false
 
     var body: some View {
-        Button { _ = tab.page.load(tab.page.backForwardList.backList.last) } label: {
-            Image(systemName: "chevron.left")
+        let layout = browser.layout
+        HStack(spacing: 10) {
+            Color.clear.frame(width: 68, height: 1) // room for the window buttons
+            ProfileSwitcher(isAddingProfile: $isAddingProfile)
+            Spacer(minLength: 12)
+            WorkspacePips()
+            Button { browser.toggleOverview() } label: {
+                Image(systemName: layout.isOverview ? "rectangle.grid.1x2.fill" : "rectangle.grid.1x2")
+            }
+            .buttonStyle(.borderless)
+            .help("Overview (⌥O)")
+            Button { showAgentPanel.toggle() } label: {
+                Image(systemName: "sparkles")
+            }
+            .buttonStyle(.borderless)
+            .help("Agent panel (⌘⇧A)")
         }
-        .disabled(tab.page.backForwardList.backList.isEmpty)
-        .help("Back")
-
-        Button { _ = tab.page.load(tab.page.backForwardList.forwardList.first) } label: {
-            Image(systemName: "chevron.right")
-        }
-        .disabled(tab.page.backForwardList.forwardList.isEmpty)
-        .help("Forward")
-
-        Button {
-            if tab.page.isLoading { tab.page.stopLoading() } else { _ = tab.page.reload() }
-        } label: {
-            Image(systemName: tab.page.isLoading ? "xmark" : "arrow.clockwise")
-        }
-        .help(tab.page.isLoading ? "Stop" : "Reload")
+        .padding(.horizontal, 10)
+        .frame(height: 38)
+        .background(.bar)
+        .overlay(alignment: .bottom) { Divider() }
+        .sheet(isPresented: $isAddingProfile) { NewProfileSheet() }
     }
 }
 
-private extension WebPage {
-    func load(_ item: WebPage.BackForwardList.Item?) -> Bool {
-        guard let item else { return false }
-        _ = load(item)
-        return true
+/// Vertical position in the workspace stack — niri's workspace indicator, laid out horizontally.
+private struct WorkspacePips: View {
+    @Environment(BrowserState.self) private var browser
+
+    var body: some View {
+        let layout = browser.layout
+        HStack(spacing: 4) {
+            ForEach(Array(layout.workspaces.enumerated()), id: \.element.id) { index, workspace in
+                let current = index == layout.focusedWorkspaceIndex
+                Capsule()
+                    .fill(current ? AnyShapeStyle(browser.selectedProfile.color) : AnyShapeStyle(.quaternary))
+                    .frame(width: current ? 20 : 8, height: 6)
+                    .overlay {
+                        if workspace.isEmpty && !current {
+                            Capsule().strokeBorder(.tertiary, lineWidth: 1)
+                        }
+                    }
+                    .onTapGesture { browser.focusWorkspace(at: index) }
+                    .help(workspace.isEmpty ? "Empty workspace" : "\(workspace.columns.count) window(s)")
+            }
+        }
+        .animation(NiriLayout.switchAnimation, value: layout.focusedWorkspaceIndex)
+    }
+}
+
+private struct ProfileSwitcher: View {
+    @Environment(BrowserState.self) private var browser
+    @Binding var isAddingProfile: Bool
+
+    var body: some View {
+        HStack(spacing: 6) {
+            ForEach(browser.profiles) { profile in
+                let selected = profile.id == browser.selectedProfileID
+                Button {
+                    browser.selectProfile(profile.id)
+                } label: {
+                    Circle()
+                        .fill(profile.color)
+                        .frame(width: 18, height: 18)
+                        .overlay {
+                            Circle().strokeBorder(.primary.opacity(selected ? 0.9 : 0), lineWidth: 2)
+                        }
+                        .overlay {
+                            Text(String(profile.name.prefix(1)))
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(.white)
+                        }
+                }
+                .buttonStyle(.plain)
+                .help(profile.name)
+                .contextMenu {
+                    Button("Delete Profile", role: .destructive) { browser.removeProfile(profile.id) }
+                        .disabled(browser.profiles.count == 1)
+                }
+            }
+            Button { isAddingProfile = true } label: {
+                Image(systemName: "plus.circle")
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .help("New Profile")
+        }
+    }
+}
+
+private struct NewProfileSheet: View {
+    @Environment(BrowserState.self) private var browser
+    @Environment(\.dismiss) private var dismiss
+    @State private var name = ""
+    @State private var color = Color.purple
+
+    var body: some View {
+        Form {
+            TextField("Name", text: $name)
+            ColorPicker("Color", selection: $color, supportsOpacity: false)
+        }
+        .formStyle(.grouped)
+        .frame(width: 320)
+        .safeAreaInset(edge: .bottom) {
+            HStack {
+                Button("Cancel", role: .cancel) { dismiss() }
+                Spacer()
+                Button("Create") {
+                    browser.addProfile(name: name, colorHex: color.hexString)
+                    dismiss()
+                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+            .padding()
+        }
+    }
+}
+
+private extension Color {
+    var hexString: String {
+        let resolved = resolve(in: EnvironmentValues())
+        let r = Int((resolved.red * 255).rounded()), g = Int((resolved.green * 255).rounded()), b = Int((resolved.blue * 255).rounded())
+        return String(format: "#%02X%02X%02X", max(0, min(255, r)), max(0, min(255, g)), max(0, min(255, b)))
     }
 }
 

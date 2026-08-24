@@ -12,16 +12,64 @@ struct sixApp: App {
                 .environment(browser)
                 .environment(assistant)
                 .environment(agentSession)
-                .frame(minWidth: 800, minHeight: 500)
+                .frame(minWidth: 900, minHeight: 560)
         }
+        .defaultSize(width: 1500, height: 950)
+        .windowStyle(.hiddenTitleBar)
         .commands {
             CommandGroup(replacing: .newItem) {
-                Button("New Tab") { browser.newTab() }
+                Button("New Window in Strip") { browser.newTab() }
                     .keyboardShortcut("t")
-                Button("Close Tab") { browser.closeSelectedTab() }
+                Button("Close Window") { browser.closeSelectedTab() }
                     .keyboardShortcut("w")
             }
+            LayoutCommands(browser: browser)
             BrowserCommands()
+        }
+    }
+}
+
+/// niri's bindings, with ⌥ standing in for Mod.
+private struct LayoutCommands: Commands {
+    let browser: BrowserState
+
+    var body: some Commands {
+        CommandMenu("Layout") {
+            Button("Focus Column Left") { browser.focusColumn(-1) }
+                .keyboardShortcut(.leftArrow, modifiers: .option)
+            Button("Focus Column Right") { browser.focusColumn(1) }
+                .keyboardShortcut(.rightArrow, modifiers: .option)
+            Button("Focus First Column") { browser.focusColumnEdge(last: false) }
+                .keyboardShortcut(.home, modifiers: .option)
+            Button("Focus Last Column") { browser.focusColumnEdge(last: true) }
+                .keyboardShortcut(.end, modifiers: .option)
+
+            Divider()
+
+            Button("Move Column Left") { browser.moveColumn(-1) }
+                .keyboardShortcut(.leftArrow, modifiers: [.option, .shift])
+            Button("Move Column Right") { browser.moveColumn(1) }
+                .keyboardShortcut(.rightArrow, modifiers: [.option, .shift])
+
+            Divider()
+
+            Button("Focus Workspace Up") { browser.focusWorkspace(-1) }
+                .keyboardShortcut(.upArrow, modifiers: .option)
+            Button("Focus Workspace Down") { browser.focusWorkspace(1) }
+                .keyboardShortcut(.downArrow, modifiers: .option)
+            Button("Move Column to Workspace Up") { browser.moveColumnToWorkspace(-1) }
+                .keyboardShortcut(.upArrow, modifiers: [.option, .shift])
+            Button("Move Column to Workspace Down") { browser.moveColumnToWorkspace(1) }
+                .keyboardShortcut(.downArrow, modifiers: [.option, .shift])
+
+            Divider()
+
+            Button("Switch Preset Column Width") { browser.cycleColumnWidth() }
+                .keyboardShortcut("r", modifiers: .option)
+            Button("Maximize Column") { browser.toggleFullWidth() }
+                .keyboardShortcut("f", modifiers: .option)
+            Button("Toggle Overview") { browser.toggleOverview() }
+                .keyboardShortcut("o", modifiers: .option)
         }
     }
 }

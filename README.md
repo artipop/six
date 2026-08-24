@@ -1,9 +1,10 @@
 # six
 
-A minimal Arc-style macOS browser used as a playground for three things:
+A minimal macOS browser with a [niri](https://github.com/YaLTeR/niri)-style scrollable-tiling layout, used as a
+playground for three things:
 
 1. **SwiftUI + WebKit on the macOS 26+ APIs** — `WebView` / `WebPage` (no `NSViewRepresentable`), with several profiles
-   in one window. Each profile is an isolated `WKWebsiteDataStore(forIdentifier:)`. Sidebar: profile switcher + tabs.
+   in one window. Each profile is an isolated `WKWebsiteDataStore(forIdentifier:)` and has its own strip of workspaces.
    ⌘T / ⌘W / ⌘L.
 2. **Foundation Models (macOS 27) as the single LLM API** — a Dia-style one-line assistant (⌘K) driven by
    `LanguageModelSession`, switchable between the on-device `SystemLanguageModel`, `PrivateCloudComputeLanguageModel`
@@ -16,11 +17,32 @@ A minimal Arc-style macOS browser used as a playground for three things:
    session cwd). Built-in agents: Claude Code (`@agentclientprotocol/claude-agent-acp`) and Codex
    (`@agentclientprotocol/codex-acp`). ⌘⇧A opens the agent panel (inspector).
 
-## Layout
+## The niri layout
+
+There are no tabs and no sidebar. A page is a **column**: a full-height window with its own title bar (navigation +
+address field), laid out left to right in an endlessly scrollable **strip**. A column defaults to almost the full
+width — an ordinary browser window, with the next one peeking in at the edge to be scrolled to. A strip is a **workspace**; workspaces are
+stacked vertically and exactly one is on screen at a time. The bottom workspace is always empty — move a window into it
+and a fresh empty one appears below (niri's dynamic workspaces); a workspace that runs out of windows disappears.
+
+`⌥` stands in for niri's `Mod`. Pages need plain scrolling for themselves, so the layout only reacts to `⌥`+scroll:
+
+| | |
+|---|---|
+| `⌥` + vertical scroll | one workspace up/down per gesture — deltas build up a rubber-band preview, cross the threshold and the switch commits, and the rest of the gesture (trackpad momentum included) is swallowed so a flick never skips two |
+| `⌥` + horizontal scroll | free panning of the strip; on release, focus snaps to the column nearest the middle |
+| `⌥` `←` `→` / `⌥⇧` `←` `→` | focus / move a column |
+| `⌥` `↑` `↓` / `⌥⇧` `↑` `↓` | focus a workspace / move the focused column to it |
+| `⌥R` / `⌥F` | cycle preset column widths (½, ⅔, peek, full) / maximize |
+| `⌥O`, `Esc` | overview — every workspace zoomed out; scroll needs no modifier there, a click opens a window |
+| `⌘T` / `⌘W` | new window in the strip, right of the focused one / close it |
+
+Only columns near the viewport get a real `WebView`; the rest render as cards, so a long strip stays cheap.
 
 ```
+six/Niri        NiriLayout (workspaces, columns, geometry, focus/move ops), NiriScrollMonitor (⌥+scroll gestures)
 six/Browser     Profile, BrowserTab (WebPage), BrowserState
-six/Views       ContentView, SidebarView, AddressBar, AssistantBar, AgentPanel
+six/Views       ContentView (top bar), NiriStripView (strip + overview), WindowChrome, AssistantBar, AgentPanel
 six/Assistant   ModelChoice/AssistantSettings (model selection), AssistantStore (streaming), FM compatibility probe
 six/ACP         ACPJSON, JSONRPCConnection, ACPTypes, ACPAgent (process), ACPClient (actor), AgentSessionStore (VM)
 six/Vendor      ClaudeForFoundationModels sources (see note below)
