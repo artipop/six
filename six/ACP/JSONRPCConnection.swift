@@ -4,7 +4,7 @@ import Foundation
 nonisolated struct JSONRPCError: Error, Codable, Sendable, LocalizedError {
     var code: Int
     var message: String
-    var data: JSONValue?
+    var data: ACPJSON?
 
     var errorDescription: String? { "\(message) (\(code))" }
 
@@ -22,12 +22,12 @@ nonisolated struct JSONRPCError: Error, Codable, Sendable, LocalizedError {
 /// notifications to the handlers you install. Both sides can initiate requests (ACP needs that for
 /// `session/request_permission` and `fs/*`).
 actor JSONRPCConnection {
-    typealias RequestHandler = @Sendable (_ method: String, _ params: JSONValue?) async throws -> JSONValue
-    typealias NotificationHandler = @Sendable (_ method: String, _ params: JSONValue?) async -> Void
+    typealias RequestHandler = @Sendable (_ method: String, _ params: ACPJSON?) async throws -> ACPJSON
+    typealias NotificationHandler = @Sendable (_ method: String, _ params: ACPJSON?) async -> Void
 
     private let output: FileHandle
     private var nextID = 1
-    private var pending: [Int: CheckedContinuation<JSONValue, Error>] = [:]
+    private var pending: [Int: CheckedContinuation<ACPJSON, Error>] = [:]
     private var requestHandler: RequestHandler?
     private var notificationHandler: NotificationHandler?
     private var readerTask: Task<Void, Never>?
@@ -69,11 +69,11 @@ actor JSONRPCConnection {
 
     // MARK: Outgoing
 
-    func request(_ method: String, params: JSONValue? = nil) async throws -> JSONValue {
+    func request(_ method: String, params: ACPJSON? = nil) async throws -> ACPJSON {
         guard !isClosed else { throw JSONRPCError.connectionClosed }
         let id = nextID
         nextID += 1
-        var envelope: [String: JSONValue] = ["jsonrpc": "2.0", "id": .number(Double(id)), "method": .string(method)]
+        var envelope: [String: ACPJSON] = ["jsonrpc": "2.0", "id": .number(Double(id)), "method": .string(method)]
         if let params { envelope["params"] = params }
         return try await withCheckedThrowingContinuation { continuation in
             pending[id] = continuation
@@ -86,21 +86,21 @@ actor JSONRPCConnection {
         }
     }
 
-    func notify(_ method: String, params: JSONValue? = nil) throws {
-        var envelope: [String: JSONValue] = ["jsonrpc": "2.0", "method": .string(method)]
+    func notify(_ method: String, params: ACPJSON? = nil) throws {
+        var envelope: [String: ACPJSON] = ["jsonrpc": "2.0", "method": .string(method)]
         if let params { envelope["params"] = params }
         try write(.object(envelope))
     }
 
-    private func respond(id: JSONValue, result: JSONValue) throws {
+    private func respond(id: ACPJSON, result: ACPJSON) throws {
         try write(.object(["jsonrpc": "2.0", "id": id, "result": result]))
     }
 
-    private func respond(id: JSONValue, error: JSONRPCError) throws {
-        try write(.object(["jsonrpc": "2.0", "id": id, "error": try JSONValue(encoding: error)]))
+    private func respond(id: ACPJSON, error: JSONRPCError) throws {
+        try write(.object(["jsonrpc": "2.0", "id": id, "error": try ACPJSON(encoding: error)]))
     }
 
-    private func write(_ value: JSONValue) throws {
+    private func write(_ value: ACPJSON) throws {
         var data = try JSONEncoder().encode(value)
         data.append(0x0A)
         trace?(true, String(decoding: data.dropLast(), as: UTF8.self))
@@ -113,7 +113,7 @@ actor JSONRPCConnection {
         let trimmed = line.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
         trace?(false, trimmed)
-        guard let message = try? JSONDecoder().decode(JSONValue.self, from: Data(trimmed.utf8)),
+        guard let message = try? JSONDecoder().decode(ACPJSON.self, from: Data(trimmed.utf8)),
               let object = message.objectValue else { return }
 
         if let method = object["method"]?.stringValue {

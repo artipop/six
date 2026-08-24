@@ -37,7 +37,7 @@ nonisolated enum ACP {
         }
         var loadSession: Bool?
         var promptCapabilities: PromptCapabilities?
-        var mcpCapabilities: JSONValue?
+        var mcpCapabilities: ACPJSON?
     }
 
     struct AuthMethod: Codable, Sendable, Identifiable {
@@ -245,8 +245,8 @@ nonisolated enum ACP {
         var status: ToolCallStatus?
         var content: [ToolCallContent]?
         var locations: [ToolCallLocation]?
-        var rawInput: JSONValue?
-        var rawOutput: JSONValue?
+        var rawInput: ACPJSON?
+        var rawOutput: ACPJSON?
 
         var id: String { toolCallId }
     }
@@ -264,7 +264,7 @@ nonisolated enum ACP {
     struct AvailableCommand: Codable, Sendable, Identifiable {
         var name: String
         var description: String
-        var input: JSONValue?
+        var input: ACPJSON?
         var id: String { name }
     }
 
@@ -279,9 +279,9 @@ nonisolated enum ACP {
         case plan([PlanEntry])
         case availableCommandsUpdate([AvailableCommand])
         case currentModeUpdate(modeId: String)
-        case unknown(kind: String, raw: JSONValue)
+        case unknown(kind: String, raw: ACPJSON)
 
-        init(json: JSONValue) throws {
+        init(json: ACPJSON) throws {
             let kind = json["sessionUpdate"]?.stringValue ?? ""
             switch kind {
             case "user_message_chunk": self = .userMessageChunk(try Self.content(of: json))
@@ -298,7 +298,7 @@ nonisolated enum ACP {
             }
         }
 
-        private static func content(of json: JSONValue) throws -> ContentBlock {
+        private static func content(of json: ACPJSON) throws -> ContentBlock {
             guard let content = json["content"] else { throw JSONRPCError.invalidParams("missing content") }
             return try content.decode()
         }
@@ -308,7 +308,7 @@ nonisolated enum ACP {
         var sessionId: String
         var update: SessionUpdate
 
-        init(params: JSONValue?) throws {
+        init(params: ACPJSON?) throws {
             guard let params, let sessionId = params["sessionId"]?.stringValue, let update = params["update"] else {
                 throw JSONRPCError.invalidParams("session/update")
             }
@@ -340,7 +340,7 @@ nonisolated enum ACP {
         case selected(optionId: String)
         case cancelled
 
-        var json: JSONValue {
+        var json: ACPJSON {
             switch self {
             case .selected(let id): ["outcome": ["outcome": "selected", "optionId": .string(id)]]
             case .cancelled: ["outcome": ["outcome": "cancelled"]]

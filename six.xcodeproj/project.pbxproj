@@ -6,10 +6,6 @@
 	objectVersion = 110;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		AC8977A1303CEC20008426C2 /* ClaudeForFoundationModels in Frameworks */ = {isa = PBXBuildFile; productRef = AC8977A0303CEC20008426C2 /* ClaudeForFoundationModels */; };
-/* End PBXBuildFile section */
-
 /* Begin PBXFileReference section */
 		AC897661303CEC20008426C2 /* six.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = six.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -26,7 +22,6 @@
 		AC89765E303CEC20008426C2 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
-				AC8977A1303CEC20008426C2 /* ClaudeForFoundationModels in Frameworks */,
 			);
 		};
 /* End PBXFrameworksBuildPhase section */
@@ -65,9 +60,6 @@
 				AC897663303CEC20008426C2 /* six */,
 			);
 			name = six;
-			packageProductDependencies = (
-				AC8977A0303CEC20008426C2 /* ClaudeForFoundationModels */,
-			);
 			productName = six;
 			productReference = AC897661303CEC20008426C2 /* six.app */;
 			productType = "com.apple.product-type.application";
@@ -96,9 +88,6 @@
 			);
 			mainGroup = AC897658303CEC20008426C2;
 			minimizedProjectReferenceProxies = 1;
-			packageReferences = (
-				AC89779F303CEC20008426C2 /* XCLocalSwiftPackageReference "Packages/ClaudeForFoundationModels" */,
-			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = AC897662303CEC20008426C2 /* Products */;
 			projectDirPath = "";
@@ -183,7 +172,8 @@
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
-				SDKROOT = macosx;
+				SDKROOT = /Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk;
+				OTHER_SWIFT_FLAGS = "-plugin-path $(DEVELOPER_DIR)/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -239,7 +229,8 @@
 				MACOSX_DEPLOYMENT_TARGET = 27.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
-				SDKROOT = macosx;
+				SDKROOT = /Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk;
+				OTHER_SWIFT_FLAGS = "-plugin-path $(DEVELOPER_DIR)/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins";
 				SWIFT_COMPILATION_MODE = wholemodule;
 			};
 			name = Release;
@@ -258,6 +249,8 @@
 					"-weak_framework",
 					FoundationModels,
 				);
+				SWIFT_PACKAGE_NAME = six;
+
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -293,6 +286,8 @@
 					"-weak_framework",
 					FoundationModels,
 				);
+				SWIFT_PACKAGE_NAME = six;
+
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -335,20 +330,6 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCLocalSwiftPackageReference section */
-		AC89779F303CEC20008426C2 /* XCLocalSwiftPackageReference "Packages/ClaudeForFoundationModels" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = Packages/ClaudeForFoundationModels;
-		};
-/* End XCLocalSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		AC8977A0303CEC20008426C2 /* ClaudeForFoundationModels */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = AC89779F303CEC20008426C2 /* XCLocalSwiftPackageReference "Packages/ClaudeForFoundationModels" */;
-			productName = ClaudeForFoundationModels;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = AC897659303CEC20008426C2 /* Project object */;
 	validationLevel = 1;

@@ -5,10 +5,10 @@ import Foundation
 /// Claude are compiled against the SDK's revision; if the running OS has a different one, calling
 /// them crashes on a missing symbol. FoundationModels is weak-linked so we can detect this at runtime.
 enum FoundationModelsCompatibility {
-    /// A symbol the Claude executor needs: `LanguageModelExecutorGenerationChannel.Event.response(entryID:action:)`
-    /// as mangled by the SDK this app was built with.
+    /// A symbol every third-party executor needs: `LanguageModelExecutorGenerationChannel.send(_:)`
+    /// as mangled by the SDK this app was built with (macOS 27 SDK 26A5406c, FoundationModels 2.0.68).
     private static let probeSymbol =
-        "$s16FoundationModels38LanguageModelExecutorGenerationChannelV5EventPAaC8ResponseVRszrlE8response7entryID6actionAGSSSg_AG6ActionOtFZ"
+        "$s16FoundationModels38LanguageModelExecutorGenerationChannelV4sendyyAC5EventVYaF"
 
     /// `true` when the OS's Foundation Models runtime matches the SDK's executor ABI.
     static let supportsThirdPartyModels: Bool = {

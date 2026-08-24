@@ -1,6 +1,5 @@
 import Foundation
 import FoundationModels
-import ClaudeForFoundationModels
 
 /// Which `LanguageModel` backs the assistant. All of them are driven through the same `LanguageModelSession`.
 enum ModelChoice: String, CaseIterable, Identifiable, Codable {

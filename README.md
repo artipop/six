@@ -22,20 +22,21 @@ A minimal Arc-style macOS browser used as a playground for three things:
 six/Browser     Profile, BrowserTab (WebPage), BrowserState
 six/Views       ContentView, SidebarView, AddressBar, AssistantBar, AgentPanel
 six/Assistant   ModelChoice/AssistantSettings (model selection), AssistantStore (streaming), FM compatibility probe
-six/ACP         JSONValue, JSONRPCConnection, ACPTypes, ACPAgent (process), ACPClient (actor), AgentSessionStore (VM)
-Packages/       vendored ClaudeForFoundationModels (see note below)
+six/ACP         ACPJSON, JSONRPCConnection, ACPTypes, ACPAgent (process), ACPClient (actor), AgentSessionStore (VM)
+six/Vendor      ClaudeForFoundationModels sources (see note below)
 ```
 
 ## Notes / caveats
 
-- **SDK vs OS mismatch.** As of 2026-08-25 this machine runs macOS 27 beta 6 (26A5416b) while the installed Xcode is
-  27A5209h. The Foundation Models *executor* ABI (`LanguageModelExecutorGenerationChannel`, `Transcript.CustomSegment`,
-  metadata types) differs between that SDK and the OS runtime, so any third-party `LanguageModel` compiled with this
-  SDK crashes on a missing symbol. The app weak-links FoundationModels and probes the ABI at launch
-  (`FoundationModelsCompatibility`); Claude entries are disabled with an explanation until the toolchain matches.
-  Install the Xcode whose SDK matches the OS beta, rebuild, and Claude becomes selectable.
-- `Packages/ClaudeForFoundationModels` is tag 0.1.4 with two small patches for that SDK (sampling-mode case names,
-  server-tool custom segments stripped). Swap back to the remote package once a release builds against your SDK.
+- **Toolchain.** The app is built against the macOS 27 SDK from the *Command Line Tools* beta
+  (`/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk`, build 26A5406c, FoundationModels 2.0.68 — the same
+  revision the OS runtime ships), because the installed Xcode 27A5209h carries an older SDK whose Foundation Models
+  *executor* ABI doesn't match the OS and crashes third-party `LanguageModel`s on launch. `SDKROOT` and a
+  `-plugin-path` for `SwiftUIMacros` are set in the target's build settings; drop both once Xcode's own SDK matches the
+  OS beta. `FoundationModelsCompatibility` still probes the ABI at launch and disables Claude with an explanation if
+  the runtime ever diverges again.
+- `ClaudeForFoundationModels` (`main`; tags predate the beta 5 API changes) is compiled straight into the app target
+  from `six/Vendor/` — SwiftPM targets ignore the project's `SDKROOT` override and would build against Xcode's stale SDK.
 - App Sandbox is off because the ACP layer spawns `npx`/`claude`/`codex` from the user's toolchain.
 - Claude Code refuses to run nested inside another Claude Code session; the ACP layer strips `CLAUDECODE` from the
   agent environment. If your `claude` default model isn't available through the SDK, set "Model override" in the

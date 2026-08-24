@@ -44,7 +44,7 @@ actor ACPClient {
             }
         )
         let request = ACP.InitializeRequest(clientInfo: clientInfo)
-        let result = try await connection.request("initialize", params: JSONValue(encoding: request))
+        let result = try await connection.request("initialize", params: ACPJSON(encoding: request))
         let response: ACP.InitializeResponse = try result.decode()
         guard response.protocolVersion == ACP.protocolVersion else {
             throw JSONRPCError.internalError("Unsupported ACP protocol version \(response.protocolVersion)")
@@ -67,26 +67,26 @@ actor ACPClient {
 
     func newSession(cwd: URL, mcpServers: [ACP.MCPServer] = []) async throws -> ACP.NewSessionResponse {
         let request = ACP.NewSessionRequest(cwd: cwd.path, mcpServers: mcpServers)
-        let response: ACP.NewSessionResponse = try await connection.request("session/new", params: JSONValue(encoding: request)).decode()
+        let response: ACP.NewSessionResponse = try await connection.request("session/new", params: ACPJSON(encoding: request)).decode()
         allowedRoots[response.sessionId] = cwd
         return response
     }
 
     func loadSession(id: String, cwd: URL, mcpServers: [ACP.MCPServer] = []) async throws {
         let request = ACP.LoadSessionRequest(sessionId: id, cwd: cwd.path, mcpServers: mcpServers)
-        _ = try await connection.request("session/load", params: JSONValue(encoding: request))
+        _ = try await connection.request("session/load", params: ACPJSON(encoding: request))
         allowedRoots[id] = cwd
     }
 
     func setMode(sessionId: String, modeId: String) async throws {
         let request = ACP.SetSessionModeRequest(sessionId: sessionId, modeId: modeId)
-        _ = try await connection.request("session/set_mode", params: JSONValue(encoding: request))
+        _ = try await connection.request("session/set_mode", params: ACPJSON(encoding: request))
     }
 
     /// Sends a prompt and waits for the turn to finish. Updates stream to the delegate meanwhile.
     func prompt(sessionId: String, _ blocks: [ACP.ContentBlock]) async throws -> ACP.StopReason {
         let request = ACP.PromptRequest(sessionId: sessionId, prompt: blocks)
-        let response: ACP.PromptResponse = try await connection.request("session/prompt", params: JSONValue(encoding: request)).decode()
+        let response: ACP.PromptResponse = try await connection.request("session/prompt", params: ACPJSON(encoding: request)).decode()
         return response.stopReason
     }
 
@@ -100,12 +100,12 @@ actor ACPClient {
 
     // MARK: Agent → client
 
-    private func handleNotification(method: String, params: JSONValue?) async {
+    private func handleNotification(method: String, params: ACPJSON?) async {
         guard method == "session/update", let notification = try? ACP.SessionNotification(params: params) else { return }
         await delegate?.client(self, didReceive: notification)
     }
 
-    private func handleRequest(method: String, params: JSONValue?) async throws -> JSONValue {
+    private func handleRequest(method: String, params: ACPJSON?) async throws -> ACPJSON {
         switch method {
         case "session/request_permission":
             guard let params else { throw JSONRPCError.invalidParams(method) }
@@ -114,7 +114,7 @@ actor ACPClient {
             return outcome.json
         case "fs/read_text_file":
             guard let params else { throw JSONRPCError.invalidParams(method) }
-            return try JSONValue(encoding: try readTextFile(try params.decode()))
+            return try ACPJSON(encoding: try readTextFile(try params.decode()))
         case "fs/write_text_file":
             guard let params else { throw JSONRPCError.invalidParams(method) }
             try writeTextFile(try params.decode())
