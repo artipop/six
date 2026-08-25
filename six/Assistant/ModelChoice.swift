@@ -7,8 +7,14 @@ enum ModelChoice: String, CaseIterable, Identifiable, Codable {
     case privateCloudCompute
     case claudeSonnet
     case claudeOpus
+    /// ACP agents: the same ⌘K line, answered by Claude Code / Codex through the agent session.
+    case claudeCodeAgent = "acp:claude-code"
+    case codexAgent = "acp:codex"
 
     var id: String { rawValue }
+
+    static let languageModels: [ModelChoice] = [.onDevice, .privateCloudCompute, .claudeSonnet, .claudeOpus]
+    static let agents: [ModelChoice] = [.claudeCodeAgent, .codexAgent]
 
     var title: String {
         switch self {
@@ -16,6 +22,8 @@ enum ModelChoice: String, CaseIterable, Identifiable, Codable {
         case .privateCloudCompute: "Private Cloud Compute"
         case .claudeSonnet: "Claude Sonnet 5"
         case .claudeOpus: "Claude Opus 5"
+        case .claudeCodeAgent: "Claude Code (ACP)"
+        case .codexAgent: "Codex (ACP)"
         }
     }
 
@@ -24,10 +32,20 @@ enum ModelChoice: String, CaseIterable, Identifiable, Codable {
         case .onDevice: "cpu"
         case .privateCloudCompute: "icloud"
         case .claudeSonnet, .claudeOpus: "sparkles"
+        case .claudeCodeAgent, .codexAgent: "terminal"
         }
     }
 
     var isClaude: Bool { self == .claudeSonnet || self == .claudeOpus }
+
+    /// The ACP agent behind this choice, if it is one.
+    var agentDefinition: ACPAgentDefinition? {
+        switch self {
+        case .claudeCodeAgent: .claudeCode
+        case .codexAgent: .codex
+        default: nil
+        }
+    }
 }
 
 /// User-facing assistant settings.
@@ -52,20 +70,23 @@ final class AssistantSettings {
     }
 
     /// Builds a session for the selected model. Throws a readable error when the model isn't usable.
-    func makeSession(instructions: String) throws -> LanguageModelSession {
+    /// `tools` are offered to the model (browser tools for the assistant; none for one-off jobs).
+    func makeSession(instructions: String, tools: [any Tool] = []) throws -> LanguageModelSession {
         switch model {
+        case .claudeCodeAgent, .codexAgent:
+            throw AssistantError.unavailable("\(model.title) is an agent, not a language model")
         case .onDevice:
             let system = SystemLanguageModel.default
             guard case .available = system.availability else {
                 throw AssistantError.unavailable("On-device model is not available: \(system.availability)")
             }
-            return LanguageModelSession(model: system, instructions: instructions)
+            return LanguageModelSession(model: system, tools: tools, instructions: instructions)
         case .privateCloudCompute:
             let pcc = PrivateCloudComputeLanguageModel()
             guard case .available = pcc.availability else {
                 throw AssistantError.unavailable("Private Cloud Compute is not available: \(pcc.availability)")
             }
-            return LanguageModelSession(model: pcc, instructions: instructions)
+            return LanguageModelSession(model: pcc, tools: tools, instructions: instructions)
         case .claudeSonnet, .claudeOpus:
             guard FoundationModelsCompatibility.supportsThirdPartyModels else {
                 throw AssistantError.unavailable(FoundationModelsCompatibility.mismatchExplanation)
@@ -76,7 +97,7 @@ final class AssistantSettings {
                 name: model == .claudeOpus ? .opus5 : .sonnet5,
                 auth: .apiKey(key)
             )
-            return LanguageModelSession(model: claude, instructions: instructions)
+            return LanguageModelSession(model: claude, tools: tools, instructions: instructions)
         }
     }
 }

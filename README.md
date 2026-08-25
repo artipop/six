@@ -16,6 +16,10 @@ playground for three things:
    `session/request_permission`, and `fs/read_text_file` / `fs/write_text_file` served from the app (restricted to the
    session cwd). Built-in agents: Claude Code (`@agentclientprotocol/claude-agent-acp`) and Codex
    (`@agentclientprotocol/codex-acp`). ⌘⇧A opens the agent panel (inspector).
+4. **The browser as an MCP server** — the same binary run as `six --mcp` is a stdio MCP server relaying to the
+   running app over a Unix socket. Every ACP session gets it in `mcpServers`, so agents can open windows into a
+   named workspace, read and summarize pages, move and close windows — the same tool catalog the assistant uses.
+   See [docs/mcp.md](docs/mcp.md).
 
 ## The niri layout
 
@@ -51,7 +55,8 @@ stays the page's.
 Only columns near the viewport get a real `WebView`; the rest render as cards, so a long strip stays cheap.
 
 Full reference: [docs/](docs/) — [controls](docs/controls.md), [layout](docs/layout.md),
-[architecture](docs/architecture.md), [assistant](docs/assistant.md), [agents](docs/agents.md), [build](docs/build.md).
+[architecture](docs/architecture.md), [assistant](docs/assistant.md), [agents](docs/agents.md), [MCP server](docs/mcp.md),
+[build](docs/build.md).
 
 ```
 six/Niri        NiriLayout (workspaces, columns, geometry, focus/move ops), NiriScrollMonitor (⌥+scroll gestures)
@@ -59,12 +64,14 @@ six/Browser     Profile, BrowserTab (WebPage), BrowserState, SearchEngine + Sear
 six/Views       ContentView (top bar), NiriStripView (strip + overview), WindowChrome, StartPage, AssistantBar, AgentPanel
 six/Assistant   ModelChoice/AssistantSettings (model selection), AssistantStore (streaming), FM compatibility probe
 six/ACP         ACPJSON, JSONRPCConnection, ACPTypes, ACPAgent (process), ACPClient (actor), AgentSessionStore (VM)
+six/Tools       BrowserToolCatalog (the tools, over BrowserState), BrowserModelTool (Foundation Models adapter)
+six/MCP         MCPServer + MCPHost (the catalog over a Unix socket), MCPSocket (listener), MCPStdioBridge (`six --mcp`)
 six/Vendor      ClaudeForFoundationModels sources (see note below)
 ```
 
 ## Testing ACP
 
-Adapters are plain npm packages. The agent panel checks the toolchain through your login shell:
+Adapters are plain npm packages. The agent panel checks the toolchain in your shell's environment (an interactive login `zsh`, so `.zshrc` counts):
 
 - adapter binary on PATH (`claude-agent-acp` / `codex-acp`) → used directly;
 - only `npm` available → **Install** button runs `npm install -g <adapter>`; until then the agent starts via `npx -y`;
@@ -81,7 +88,7 @@ claude-agent-acp   # then paste, one line each:
 {"jsonrpc":"2.0","id":3,"method":"session/prompt","params":{"sessionId":"<id from above>","prompt":[{"type":"text","text":"hi"}]}}
 ```
 
-In the app: ⌘⇧A → pick the agent → choose a working directory → send a message. Tool calls, plans and permission
+In the app: ⌘⇧A → pick the agent → send a message (it works in the profile's own folder unless you choose another). Tool calls, plans and permission
 requests show up in the transcript; permission buttons answer `session/request_permission`.
 
 ## Notes / caveats

@@ -1,10 +1,37 @@
 import SwiftUI
 
+/// The binary is two things: the browser, and — with `--mcp` — a stdio MCP server that relays to the
+/// running browser (see `MCPStdioBridge`). The switch happens before AppKit is touched.
 @main
+enum SixMain {
+    static func main() {
+        if MCPStdioBridge.isRequested { MCPStdioBridge.run() }
+        signal(SIGPIPE, SIG_IGN) // a vanished MCP client or agent must not kill the app
+        MainActor.assumeIsolated { sixApp.main() }
+    }
+}
+
 struct sixApp: App {
-    @State private var browser = BrowserState()
-    @State private var assistant = AssistantStore()
-    @State private var agentSession = AgentSessionStore()
+    @State private var browser: BrowserState
+    @State private var assistant: AssistantStore
+    @State private var agentSession: AgentSessionStore
+    @State private var mcp: MCPHost
+
+    init() {
+        let browser = BrowserState()
+        let assistant = AssistantStore()
+        let agentSession = AgentSessionStore()
+        agentSession.browser = browser
+        let tools = BrowserToolCatalog(browser: browser, assistant: assistant.settings)
+        assistant.tools = tools
+        assistant.agentSession = agentSession
+        let mcp = MCPHost(server: MCPServer(catalog: tools))
+        mcp.start()
+        _browser = State(initialValue: browser)
+        _assistant = State(initialValue: assistant)
+        _agentSession = State(initialValue: agentSession)
+        _mcp = State(initialValue: mcp)
+    }
 
     var body: some Scene {
         WindowGroup {
@@ -12,6 +39,7 @@ struct sixApp: App {
                 .environment(browser)
                 .environment(assistant)
                 .environment(agentSession)
+                .environment(mcp)
                 .frame(minWidth: 900, minHeight: 560)
         }
         .defaultSize(width: 1500, height: 950)

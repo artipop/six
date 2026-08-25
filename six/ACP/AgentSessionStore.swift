@@ -33,9 +33,16 @@ final class AgentSessionStore {
     var agent: ACPAgentDefinition = .claudeCode {
         didSet { if agent != oldValue { disconnect() } }
     }
-    var workingDirectory: URL = FileManager.default.homeDirectoryForCurrentUser {
-        didSet { if workingDirectory != oldValue { disconnect() } }
+    /// Set once at launch; the working directory follows the selected profile.
+    @ObservationIgnored weak var browser: BrowserState?
+
+    /// The selected profile's folder (its own under Application Support unless the user chose one).
+    var workingDirectory: URL {
+        guard let browser else { return FileManager.default.homeDirectoryForCurrentUser }
+        return browser.workingDirectory(for: browser.selectedProfile)
     }
+    /// Directory the live session was created in; a different `workingDirectory` means reconnecting.
+    @ObservationIgnored private var sessionDirectory: URL?
     /// Optional model id passed to the agent (Claude Code reads `ANTHROPIC_MODEL`; Codex ignores it).
     var modelOverride: String = UserDefaults.standard.string(forKey: "six.agent.model") ?? "" {
         didSet {
@@ -62,28 +69,44 @@ final class AgentSessionStore {
 
     // MARK: Connection
 
+    /// `SIX_ACP_TRACE=1` in the environment mirrors the connection steps and every JSON-RPC line to stderr.
+    static let traces = ProcessInfo.processInfo.environment["SIX_ACP_TRACE"] != nil
+
+    nonisolated static func trace(_ message: @autoclosure () -> String) {
+        guard traces else { return }
+        FileHandle.standardError.write(Data("[acp] \(message())\n".utf8))
+    }
+
     func connect() async {
         guard client == nil else { return }
         state = .starting
         transcript.removeAll()
+        Self.trace("connect: \(agent.id) in \(workingDirectory.path)")
         do {
             let box = DelegateBox(store: self)
             if toolchain.report(for: agent).adapter == .unknown { await toolchain.refresh(agent) }
             var definition = toolchain.launchDefinition(for: agent)
             let model = modelOverride.trimmingCharacters(in: .whitespaces)
             if !model.isEmpty { definition.environment["ANTHROPIC_MODEL"] = model }
-            let client = try ACPClient(definition: definition, delegate: box)
+            Self.trace("launching: \(definition.shellCommandLine)")
+            let client = try await ACPClient(definition: definition, delegate: box)
             self.delegateBox = box
             self.client = client
+            if Self.traces { await client.enableTrace() }
             let info = try await client.initialize()
+            Self.trace("initialized: \(info.agentInfo?.name ?? "?")")
             agentInfo = info.agentInfo
-            let session = try await client.newSession(cwd: workingDirectory)
+            // The browser itself is offered as an MCP server (`six --mcp`), so the agent can drive it.
+            let directory = workingDirectory
+            let session = try await client.newSession(cwd: directory, mcpServers: [MCPStdioBridge.acpServer])
             sessionId = session.sessionId
+            sessionDirectory = directory
             modes = session.modes
             state = .ready
             append(.status("Connected to \(info.agentInfo?.title ?? info.agentInfo?.name ?? agent.name) · \(workingDirectory.path)"))
         } catch {
             let stderr = await client?.recentStderr ?? ""
+            Self.trace("failed: \(error) \(stderr)")
             state = .failed(error.localizedDescription + (stderr.isEmpty ? "" : "\n\(stderr)"))
             disconnect(keepState: true)
         }
@@ -94,6 +117,7 @@ final class AgentSessionStore {
         Task { await client?.shutdown() }
         self.client = nil
         sessionId = nil
+        sessionDirectory = nil
         modes = nil
         permissionPrompt = nil
         if !keepState { state = .idle }
@@ -101,24 +125,51 @@ final class AgentSessionStore {
 
     // MARK: Prompting
 
+    /// What a prompt streams back to whoever asked (the ⌘K bar mirrors it).
+    enum LiveUpdate {
+        case text(String)       // the agent's message so far
+        case activity(String)   // a tool call title
+    }
+
+    enum PromptOutcome: Equatable {
+        case finished(ACP.StopReason)
+        case failed(String)
+    }
+
+    @ObservationIgnored private var liveUpdate: ((LiveUpdate) -> Void)?
+
     func send(_ text: String, context: [ACP.ContentBlock] = []) {
+        Task { await prompt(text, context: context) }
+    }
+
+    /// Sends a prompt and waits for the turn. Connects (or reconnects, when the agent or the profile
+    /// folder changed) first; streams the agent's text through `onUpdate`.
+    @discardableResult
+    func prompt(_ text: String, context: [ACP.ContentBlock] = [], onUpdate: ((LiveUpdate) -> Void)? = nil) async -> PromptOutcome {
         let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return }
-        Task {
-            if client == nil { await connect() }
-            guard let client, let sessionId, state == .ready else { return }
-            append(.user(text))
-            openMessageID = nil
-            openThoughtID = nil
-            state = .prompting
-            do {
-                let stop = try await client.prompt(sessionId: sessionId, [.text(text)] + context)
-                if stop != .endTurn { append(.status("Stopped: \(stop.rawValue)")) }
-                state = .ready
-            } catch {
-                append(.status("Error: \(error.localizedDescription)"))
-                state = .ready
-            }
+        guard !text.isEmpty else { return .failed("Empty prompt") }
+        if client != nil, let sessionDirectory, sessionDirectory != workingDirectory { disconnect() }
+        if client == nil { await connect() }
+        guard let client, let sessionId, state == .ready else {
+            Self.trace("send dropped: client=\(self.client != nil) session=\(self.sessionId ?? "nil") state=\(state)")
+            if case .failed(let message) = state { return .failed(message) }
+            return .failed("The agent is busy")
+        }
+        append(.user(text))
+        openMessageID = nil
+        openThoughtID = nil
+        liveUpdate = onUpdate
+        state = .prompting
+        defer { liveUpdate = nil }
+        do {
+            let stop = try await client.prompt(sessionId: sessionId, [.text(text)] + context)
+            if stop != .endTurn { append(.status("Stopped: \(stop.rawValue)")) }
+            state = .ready
+            return .finished(stop)
+        } catch {
+            append(.status("Error: \(error.localizedDescription)"))
+            state = .ready
+            return .failed(error.localizedDescription)
         }
     }
 
@@ -148,6 +199,9 @@ final class AgentSessionStore {
         case .agentMessageChunk(let block):
             appendChunk(block.plainText ?? "", to: &openMessageID) { .agent($0) }
             openThoughtID = nil
+            if let id = openMessageID, let item = transcript.first(where: { $0.id == id }), case .agent(let text) = item.kind {
+                liveUpdate?(.text(text))
+            }
         case .agentThoughtChunk(let block):
             appendChunk(block.plainText ?? "", to: &openThoughtID) { .thought($0) }
         case .userMessageChunk:
@@ -155,6 +209,7 @@ final class AgentSessionStore {
         case .toolCall(let call):
             openMessageID = nil
             openThoughtID = nil
+            liveUpdate?(.activity(call.title ?? call.kind?.rawValue ?? "tool"))
             if let index = transcript.firstIndex(where: { $0.id == "tool:\(call.toolCallId)" }) {
                 transcript[index].kind = .toolCall(call)
             } else {

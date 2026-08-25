@@ -35,6 +35,8 @@ actor JSONRPCConnection {
 
     /// Optional tap of every raw line in both directions, for debugging.
     var trace: (@Sendable (_ outgoing: Bool, _ line: String) -> Void)?
+    /// Runs once, when the peer goes away or `close()` is called.
+    private var onClose: (@Sendable () -> Void)?
 
     init(input: FileHandle, output: FileHandle) {
         self.output = output
@@ -46,14 +48,12 @@ actor JSONRPCConnection {
     /// Starts reading the peer's output. Call once after construction.
     func start() {
         guard readerTask == nil else { return }
-        let input = self.input
+        let lines = LineReader.lines(of: input)
         readerTask = Task { [weak self] in
-            do {
-                for try await line in input.bytes.lines {
-                    guard let self else { return }
-                    await self.receive(line: line)
-                }
-            } catch {}
+            for await line in lines {
+                guard let self else { return }
+                await self.receive(line: line)
+            }
             await self?.close()
         }
     }
@@ -65,6 +65,10 @@ actor JSONRPCConnection {
 
     func setTrace(_ trace: (@Sendable (_ outgoing: Bool, _ line: String) -> Void)?) {
         self.trace = trace
+    }
+
+    func setOnClose(_ handler: (@Sendable () -> Void)?) {
+        onClose = handler
     }
 
     // MARK: Outgoing
@@ -151,5 +155,36 @@ actor JSONRPCConnection {
         readerTask?.cancel()
         for (_, continuation) in pending { continuation.resume(throwing: JSONRPCError.connectionClosed) }
         pending.removeAll()
+        onClose?()
+        onClose = nil
+    }
+}
+
+/// Newline-delimited reader with a thread per handle. `FileHandle.bytes` would do, but Foundation
+/// serves every `AsyncBytes` in the process from one serial I/O actor with blocking `read`s — a
+/// second peer (the MCP socket next to the agent pipe) then never gets a turn.
+nonisolated enum LineReader {
+    static func lines(of handle: FileHandle) -> AsyncStream<String> {
+        AsyncStream { continuation in
+            let thread = Thread {
+                let fd = handle.fileDescriptor
+                var pending = Data()
+                var buffer = [UInt8](repeating: 0, count: 64 * 1024)
+                while true {
+                    let count = read(fd, &buffer, buffer.count)
+                    guard count > 0 else { break }
+                    pending.append(buffer, count: count)
+                    while let newline = pending.firstIndex(of: 0x0A) {
+                        let line = String(decoding: pending[pending.startIndex..<newline], as: UTF8.self)
+                        pending.removeSubrange(pending.startIndex...newline)
+                        continuation.yield(line)
+                    }
+                }
+                if !pending.isEmpty { continuation.yield(String(decoding: pending, as: UTF8.self)) }
+                continuation.finish()
+            }
+            thread.name = "six.jsonrpc.reader"
+            thread.start()
+        }
     }
 }

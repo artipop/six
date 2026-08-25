@@ -8,6 +8,9 @@ struct Profile: Identifiable, Codable, Hashable, Sendable {
     var colorHex: String
     /// Identifier of the persistent `WKWebsiteDataStore` backing this profile.
     var dataStoreID: UUID
+    /// Where agents work for this profile when the user picked a folder; nil means the profile's own
+    /// folder under Application Support (see `Profile.defaultWorkingDirectory`).
+    var workingDirectoryPath: String?
 
     init(id: UUID = UUID(), name: String, colorHex: String, dataStoreID: UUID = UUID()) {
         self.id = id
@@ -17,6 +20,20 @@ struct Profile: Identifiable, Codable, Hashable, Sendable {
     }
 
     var color: Color { Color(hex: colorHex) }
+
+    /// The folder six creates for this profile: `~/Library/Application Support/six/Profiles/<name>`.
+    var defaultWorkingDirectory: URL {
+        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let safeName = name.replacingOccurrences(of: "/", with: "-").trimmingCharacters(in: .whitespaces)
+        return support.appending(path: "six/Profiles/\(safeName.isEmpty ? id.uuidString : safeName)", directoryHint: .isDirectory)
+    }
+
+    /// The folder agents work in for this profile.
+    var workingDirectory: URL {
+        workingDirectoryPath.map { URL(fileURLWithPath: $0, isDirectory: true) } ?? defaultWorkingDirectory
+    }
+
+    var hasCustomWorkingDirectory: Bool { workingDirectoryPath != nil }
 
     static let defaults: [Profile] = [
         Profile(name: "Personal", colorHex: "#5B8DEF"),

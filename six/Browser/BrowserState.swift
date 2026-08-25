@@ -74,6 +74,20 @@ final class BrowserState {
         if selectedProfileID == id { selectProfile(profiles[0].id) }
     }
 
+    /// The profile's agent folder, created on first use. Nil (default) puts it back under Application Support.
+    func setWorkingDirectory(_ url: URL?, for id: Profile.ID) {
+        guard let index = profiles.firstIndex(where: { $0.id == id }) else { return }
+        profiles[index].workingDirectoryPath = url?.standardizedFileURL.path
+        persistProfiles()
+    }
+
+    /// Ensures the profile's working directory exists and returns it.
+    func workingDirectory(for profile: Profile) -> URL {
+        let url = profile.workingDirectory
+        try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        return url
+    }
+
     private func persistProfiles() {
         if let data = try? JSONEncoder().encode(profiles) {
             UserDefaults.standard.set(data, forKey: profilesKey)
@@ -96,19 +110,35 @@ final class BrowserState {
 
     @discardableResult
     func newTab(url: URL? = nil, in profileID: Profile.ID? = nil) -> BrowserTab {
+        newTab(url: url, in: profileID, workspace: nil, activate: true)
+    }
+
+    /// Opens a window in a specific workspace of a profile's strip. With `activate` off (an agent adding
+    /// windows in the background) nothing on screen changes — not even the profile.
+    @discardableResult
+    func newTab(url: URL?, in profileID: Profile.ID?, workspace: Int?, activate: Bool) -> BrowserTab {
         let profile = profiles.first { $0.id == profileID } ?? selectedProfile
         let tab = BrowserTab(profileID: profile.id, dataStore: dataStore(for: profile))
         tabs.append(tab)
-        if selectedProfileID != profile.id {
+        if activate, selectedProfileID != profile.id {
             selectedProfileID = profile.id
             layout.activeProfileID = profile.id
         }
         withAnimation(NiriLayout.switchAnimation) {
-            layout.insertColumn(tabID: tab.id)
+            layout.insertColumn(tabID: tab.id, in: profile.id, workspace: workspace, focus: activate)
         }
-        syncSelection()
+        if activate { syncSelection() }
         if let url { tab.load(url) }
         return tab
+    }
+
+    /// Moves a window to a workspace of its own profile's strip; the focus stays where it is.
+    func moveTab(_ id: BrowserTab.ID, toWorkspace index: Int) {
+        guard let tab = tab(id) else { return }
+        withAnimation(NiriLayout.switchAnimation) {
+            layout.moveColumn(tabID: id, in: tab.profileID, toWorkspace: index)
+        }
+        syncSelection()
     }
 
     func selectTab(_ id: BrowserTab.ID) {

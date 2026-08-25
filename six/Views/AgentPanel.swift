@@ -6,6 +6,7 @@ import WebKit
 struct AgentPanel: View {
     @Environment(AgentSessionStore.self) private var store
     @Environment(BrowserState.self) private var browser
+    @Environment(MCPHost.self) private var mcp
     @State private var input = ""
     @State private var attachPage = false
 
@@ -36,17 +37,34 @@ struct AgentPanel: View {
                 Spacer()
                 stateBadge
             }
+            // The agent works in the profile's own folder; that stays out of the way unless the user picked another.
             HStack(spacing: 6) {
                 Image(systemName: "folder")
-                Text(store.workingDirectory.path(percentEncoded: false))
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                    .font(.caption)
+                if browser.selectedProfile.hasCustomWorkingDirectory {
+                    Text(store.workingDirectory.path(percentEncoded: false))
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .font(.caption)
+                    Button { browser.setWorkingDirectory(nil, for: browser.selectedProfileID) } label: { Image(systemName: "xmark.circle.fill") }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.secondary)
+                        .help("Back to the profile's own folder")
+                } else {
+                    Text("\(browser.selectedProfile.name) folder")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .help(store.workingDirectory.path(percentEncoded: false))
+                }
                 Spacer()
                 Button("Choose…") { chooseDirectory() }
                     .controlSize(.small)
             }
             ToolchainStatusView(agent: store.agent)
+            Label("Browser tools via MCP: \(mcp.server.toolNames.joined(separator: ", "))", systemImage: "wrench.and.screwdriver")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+                .help("The agent's session gets `six --mcp` as an MCP server. \(mcp.status)")
             if store.agent.id == ACPAgentDefinition.claudeCode.id {
                 TextField("Model override (ANTHROPIC_MODEL, optional)", text: $store.modelOverride)
                     .textFieldStyle(.roundedBorder)
@@ -129,7 +147,7 @@ struct AgentPanel: View {
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.directoryURL = store.workingDirectory
-        if panel.runModal() == .OK, let url = panel.url { store.workingDirectory = url }
+        if panel.runModal() == .OK, let url = panel.url { browser.setWorkingDirectory(url, for: browser.selectedProfileID) }
     }
 }
 
@@ -288,7 +306,7 @@ private struct ToolCallRow: View {
     }
 }
 
-private struct PermissionView: View {
+struct PermissionView: View {
     let prompt: AgentPermissionPrompt
     @Environment(AgentSessionStore.self) private var store
 

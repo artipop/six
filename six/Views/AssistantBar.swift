@@ -4,8 +4,11 @@ import SwiftUI
 struct AssistantBar: View {
     @Environment(BrowserState.self) private var browser
     @Environment(AssistantStore.self) private var assistant
+    @Environment(AgentSessionStore.self) private var agentSession
     @State private var question = ""
     @FocusState private var focused: Bool
+
+    private var isAgent: Bool { assistant.settings.model.agentDefinition != nil }
 
     var body: some View {
         VStack(spacing: 8) {
@@ -15,7 +18,7 @@ struct AssistantBar: View {
             }
             HStack(spacing: 8) {
                 ModelMenu()
-                TextField("Ask about this page…", text: $question)
+                TextField(isAgent ? "Ask \(assistant.settings.model.title.replacingOccurrences(of: " (ACP)", with: ""))…" : "Ask about this page…", text: $question)
                     .textFieldStyle(.plain)
                     .focused($focused)
                     .onSubmit(submit)
@@ -48,6 +51,7 @@ struct AssistantBar: View {
 
 private struct AnswerCard: View {
     @Environment(AssistantStore.self) private var assistant
+    @Environment(AgentSessionStore.self) private var agentSession
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -55,6 +59,12 @@ private struct AnswerCard: View {
                 Label(assistant.settings.model.title, systemImage: assistant.settings.model.symbol)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                if let activity = assistant.activity {
+                    Text("· \(activity)")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                }
                 Spacer()
                 if assistant.isResponding { ProgressView().controlSize(.mini) }
                 Button { assistant.dismiss() } label: { Image(systemName: "xmark") }
@@ -71,6 +81,11 @@ private struct AnswerCard: View {
                 }
             }
             .frame(maxHeight: 260)
+            // An agent may ask before touching something; answer it right here, like in the panel.
+            if assistant.settings.model.agentDefinition != nil, let prompt = agentSession.permissionPrompt {
+                Divider()
+                PermissionView(prompt: prompt)
+            }
         }
         .padding(12)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
@@ -86,10 +101,16 @@ private struct ModelMenu: View {
         @Bindable var settings = assistant.settings
         Menu {
             Picker("Model", selection: $settings.model) {
-                ForEach(ModelChoice.allCases) { choice in
+                ForEach(ModelChoice.languageModels) { choice in
                     Label(choice.title, systemImage: choice.symbol)
                         .tag(choice)
                         .disabled(choice.isClaude && !FoundationModelsCompatibility.supportsThirdPartyModels)
+                }
+            }
+            .pickerStyle(.inline)
+            Picker("Agent", selection: $settings.model) {
+                ForEach(ModelChoice.agents) { choice in
+                    Label(choice.title, systemImage: choice.symbol).tag(choice)
                 }
             }
             .pickerStyle(.inline)

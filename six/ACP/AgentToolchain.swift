@@ -2,7 +2,7 @@ import Foundation
 import Observation
 
 /// Checks whether an ACP adapter (and the CLI behind it) is available, and installs adapters with npm.
-/// Everything runs through the login shell so nvm/homebrew PATHs apply.
+/// Everything runs with the interactive login-shell environment (`LoginShell`) so nvm/homebrew PATHs apply.
 @MainActor
 @Observable
 final class AgentToolchain {
@@ -77,13 +77,12 @@ final class AgentToolchain {
     private struct ShellResult { var status: Int32; var output: String }
 
     private static func runLoginShell(_ script: String) async throws -> ShellResult {
-        try await withCheckedThrowingContinuation { continuation in
+        let environment = await LoginShell.environment()
+        return try await withCheckedThrowingContinuation { continuation in
             let process = Process()
             process.executableURL = URL(fileURLWithPath: "/bin/zsh")
-            process.arguments = ["-l", "-c", script]
-            var env = ProcessInfo.processInfo.environment
-            env.removeValue(forKey: "CLAUDECODE")
-            process.environment = env
+            process.arguments = ["-c", script]
+            process.environment = environment
             let pipe = Pipe()
             process.standardOutput = pipe
             process.standardError = pipe
@@ -92,6 +91,55 @@ final class AgentToolchain {
                 continuation.resume(returning: ShellResult(status: process.terminationStatus, output: String(decoding: data, as: UTF8.self)))
             }
             do { try process.run() } catch { continuation.resume(throwing: error) }
+        }
+    }
+}
+
+/// The user's shell environment as a terminal would have it. A plain login shell (`zsh -l`) reads only
+/// `.zprofile`, and nvm/bun/go typically live in `.zshrc`, so the PATH is taken from an interactive
+/// login shell once and reused — commands then run in a non-interactive `zsh -c` with that environment,
+/// keeping rc-file chatter off the agent's JSON-RPC pipe.
+nonisolated enum LoginShell {
+    private static let cache = Cache()
+
+    static func environment() async -> [String: String] {
+        if let cached = cache.value { return cached }
+        let resolved = await Task.detached { resolve() }.value
+        cache.value = resolved
+        return resolved
+    }
+
+    private static func resolve() -> [String: String] {
+        var env = ProcessInfo.processInfo.environment
+        env.removeValue(forKey: "CLAUDECODE") // Claude Code refuses to run nested; the agent is its own session
+        let marker = "__SIX_ENV__"
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/zsh")
+        process.arguments = ["-l", "-i", "-c", "echo \(marker); env"]
+        process.environment = env
+        process.standardInput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        guard (try? process.run()) != nil else { return env }
+        let output = String(decoding: pipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+        process.waitUntilExit()
+        guard let range = output.range(of: marker + "\n") else { return env }
+        for line in output[range.upperBound...].split(separator: "\n") {
+            guard let eq = line.firstIndex(of: "=") else { continue }
+            let key = String(line[..<eq])
+            guard !key.isEmpty, key != "CLAUDECODE" else { continue }
+            env[key] = String(line[line.index(after: eq)...])
+        }
+        return env
+    }
+
+    private final class Cache: @unchecked Sendable {
+        private let lock = NSLock()
+        private var stored: [String: String]?
+        var value: [String: String]? {
+            get { lock.withLock { stored } }
+            set { lock.withLock { stored = newValue } }
         }
     }
 }

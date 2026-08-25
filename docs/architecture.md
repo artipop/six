@@ -1,6 +1,8 @@
 # Architecture
 
-SwiftUI, one window, `@Observable` state in the environment. Everything is `@MainActor` except the ACP transport.
+SwiftUI, one window, `@Observable` state in the environment. Everything is `@MainActor` except the ACP/MCP transports.
+The entry point is `SixMain`, not the `App`: with `--mcp` the process never touches AppKit and runs
+`MCPStdioBridge` instead (see [mcp](mcp.md)).
 
 ```
 six/Niri        NiriLayout (workspaces, columns, geometry, focus/move ops), NiriScrollMonitor (scroll gestures)
@@ -8,6 +10,8 @@ six/Browser     Profile, BrowserTab (WebPage), BrowserState, SearchEngine, Searc
 six/Views       ContentView (top bar), NiriStripView (strip + overview), WindowChrome, StartPage, AssistantBar, AgentPanel
 six/Assistant   ModelChoice/AssistantSettings, AssistantStore (streaming), FoundationModelsCompatibility
 six/ACP         ACPJSON, JSONRPCConnection, ACPTypes, ACPAgent (process), ACPClient (actor), AgentSessionStore
+six/Tools       BrowserToolCatalog (the tools, over BrowserState), BrowserModelTool (Foundation Models adapter)
+six/MCP         MCPServer + MCPHost (the catalog over a Unix socket), MCPSocket, MCPStdioBridge (`six --mcp`)
 six/Vendor      ClaudeForFoundationModels sources
 ```
 
@@ -21,8 +25,8 @@ operation, and the assistant, the agent panel and `⌘L` all key off that.
 Views never mutate `NiriLayout` directly; they call `BrowserState`, which wraps the call in the shared animation
 (`animateLayout`). Strip panning is the exception — it follows the trackpad and is deliberately un-animated.
 
-A `Profile` is a name, a colour and a `WKWebsiteDataStore(forIdentifier:)`; profiles persist to `UserDefaults`, tabs
-and layout do not (yet). Switching profiles switches `layout.activeProfileID`, which swaps the whole workspace stack.
+A `Profile` is a name, a colour, a `WKWebsiteDataStore(forIdentifier:)` and an optional working directory for agents
+(otherwise its own folder under Application Support); profiles persist to `UserDefaults`, tabs and layout do not (yet). Switching profiles switches `layout.activeProfileID`, which swaps the whole workspace stack.
 
 ## Views
 

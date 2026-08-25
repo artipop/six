@@ -3,6 +3,8 @@ import WebKit
 
 struct ContentView: View {
     @Environment(BrowserState.self) private var browser
+    @Environment(AgentSessionStore.self) private var agentSession
+    @Environment(AssistantStore.self) private var assistant
     @State private var showAgentPanel = false
 
     var body: some View {
@@ -27,6 +29,23 @@ struct ContentView: View {
             guard browser.layout.isOverview else { return .ignored }
             browser.exitOverview()
             return .handled
+        }
+        .task {
+            // Debug harness: `SIX_ACP_SELFTEST="hi"` opens the agent panel and sends the text on launch,
+            // so the ACP path can be exercised (with SIX_ACP_TRACE=1) without clicking.
+            if let text = ProcessInfo.processInfo.environment["SIX_ACP_SELFTEST"], !text.isEmpty {
+                showAgentPanel = true
+                try? await Task.sleep(for: .seconds(1))
+                agentSession.send(text)
+            }
+            // `SIX_ASSISTANT_SELFTEST="acp:claude-code:open example.com"` does the same through the ⌘K line.
+            if let spec = ProcessInfo.processInfo.environment["SIX_ASSISTANT_SELFTEST"],
+               let split = spec.range(of: ":", options: .backwards),
+               let model = ModelChoice(rawValue: String(spec[..<split.lowerBound])) {
+                assistant.settings.model = model
+                try? await Task.sleep(for: .seconds(1))
+                assistant.ask(String(spec[split.upperBound...]), about: browser.selectedTab)
+            }
         }
     }
 }

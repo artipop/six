@@ -105,10 +105,19 @@ final class NiriLayout {
     }
 
     private func mutate(_ body: (inout NiriStrip) -> Void) {
-        var s = strips[activeProfileID] ?? NiriStrip()
+        mutate(profile: activeProfileID, body)
+    }
+
+    private func mutate(profile: UUID, _ body: (inout NiriStrip) -> Void) {
+        var s = strips[profile] ?? NiriStrip()
         body(&s)
         normalize(&s)
-        strips[activeProfileID] = s
+        strips[profile] = s
+    }
+
+    /// Any profile's strip, not just the one on screen — the MCP server lists them all.
+    func strip(for profileID: UUID) -> NiriStrip {
+        strips[profileID] ?? NiriStrip()
     }
 
     /// Keeps exactly one trailing empty workspace and drops the empty ones in between — niri's
@@ -267,6 +276,65 @@ final class NiriLayout {
             ws.focus = min(index, ws.columns.count - 1)
             scrollFocusIntoView(&ws)
             s.workspaces[s.focus] = ws
+        }
+    }
+
+    /// Opens a tab in a given workspace of a given profile's strip — what an agent asks for through MCP.
+    /// `workspace` defaults to the strip's focused one; with `focus` off the window is added right of
+    /// the focused column but nothing on screen moves.
+    func insertColumn(tabID: UUID, in profileID: UUID, workspace: Int? = nil, focus: Bool = true) {
+        mutate(profile: profileID) { s in
+            let target = min(max(0, workspace ?? s.focus), s.workspaces.count - 1)
+            guard s.workspaces.indices.contains(target) else { return }
+            var ws = s.workspaces[target]
+            let index = ws.columns.isEmpty ? 0 : ws.focus + 1
+            ws.columns.insert(NiriColumn(tabID: tabID), at: min(index, ws.columns.count))
+            if focus {
+                ws.focus = min(index, ws.columns.count - 1)
+                scrollFocusIntoView(&ws)
+                s.focus = target
+            }
+            s.workspaces[target] = ws
+        }
+    }
+
+    /// Index of the workspace with this name in a profile's strip, creating it (as the trailing
+    /// empty workspace, which gets the name and so survives being empty) when there is none.
+    func workspaceIndex(named name: String, in profileID: UUID, createIfMissing: Bool) -> Int? {
+        let wanted = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !wanted.isEmpty else { return nil }
+        let existing = strip(for: profileID).workspaces
+        if let index = existing.firstIndex(where: { $0.name.caseInsensitiveCompare(wanted) == .orderedSame }) {
+            return index
+        }
+        guard createIfMissing else { return nil }
+        var created: Int?
+        mutate(profile: profileID) { s in
+            if s.workspaces.last?.isEmpty == true, s.workspaces.last?.name.isEmpty == true {
+                s.workspaces[s.workspaces.count - 1].name = wanted
+            } else {
+                s.workspaces.append(NiriWorkspace(name: wanted))
+            }
+            created = s.workspaces.count - 1
+        }
+        return created
+    }
+
+    /// Moves a column (wherever it is in the profile's strip) to a workspace by index, without changing focus.
+    func moveColumn(tabID: UUID, in profileID: UUID, toWorkspace target: Int) {
+        mutate(profile: profileID) { s in
+            guard let from = s.workspaces.firstIndex(where: { $0.columns.contains { $0.tabID == tabID } }),
+                  let at = s.workspaces[from].columns.firstIndex(where: { $0.tabID == tabID }) else { return }
+            let target = max(0, target)
+            guard target != from else { return }
+            let column = s.workspaces[from].columns.remove(at: at)
+            s.workspaces[from].focus = min(s.workspaces[from].focus, max(0, s.workspaces[from].columns.count - 1))
+            scrollFocusIntoView(&s.workspaces[from])
+            while target >= s.workspaces.count { s.workspaces.append(NiriWorkspace()) }
+            var destination = s.workspaces[target]
+            let index = destination.columns.isEmpty ? 0 : destination.focus + 1
+            destination.columns.insert(column, at: min(index, destination.columns.count))
+            s.workspaces[target] = destination
         }
     }
 

@@ -1,7 +1,7 @@
 import Foundation
 
-/// How to launch an ACP agent as a subprocess. Commands run through the login shell so PATH
-/// customisations (nvm, homebrew, cargo) apply.
+/// How to launch an ACP agent as a subprocess. Commands run with the user's shell environment
+/// (`LoginShell`) so PATH customisations (nvm, homebrew, cargo) apply.
 nonisolated struct ACPAgentDefinition: Identifiable, Hashable, Codable, Sendable {
     var id: String
     var name: String
@@ -65,15 +65,14 @@ nonisolated final class ACPAgentProcess: @unchecked Sendable {
     private(set) var stderrLog: [String] = []
     private let lock = NSLock()
 
-    init(definition: ACPAgentDefinition) throws {
+    /// `environment` is the user's shell environment (see `LoginShell`), so PATH customisations apply.
+    init(definition: ACPAgentDefinition, environment: [String: String]) throws {
         self.definition = definition
         let stdin = Pipe(), stdout = Pipe(), stderr = Pipe()
         process = Process()
         process.executableURL = URL(fileURLWithPath: "/bin/zsh")
-        process.arguments = ["-l", "-c", "exec " + definition.shellCommandLine]
-        var env = ProcessInfo.processInfo.environment
-        // Claude Code refuses to start nested inside another Claude Code session; the agent is a separate session.
-        env.removeValue(forKey: "CLAUDECODE")
+        process.arguments = ["-c", "exec " + definition.shellCommandLine]
+        var env = environment
         env.merge(definition.environment) { $1 }
         process.environment = env
         process.standardInput = stdin

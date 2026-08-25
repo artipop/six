@@ -21,14 +21,21 @@ actor ACPClient {
     /// Directories the agent is allowed to read/write through `fs/*`. Defaults to each session's cwd.
     private var allowedRoots: [String: URL] = [:]
 
-    init(definition: ACPAgentDefinition, delegate: any ACPClientDelegate) throws {
+    init(definition: ACPAgentDefinition, delegate: any ACPClientDelegate) async throws {
         self.definition = definition
         self.delegate = delegate
-        process = try ACPAgentProcess(definition: definition)
+        process = try ACPAgentProcess(definition: definition, environment: await LoginShell.environment())
         connection = process.connection
     }
 
     var recentStderr: String { process.recentStderr }
+
+    /// Mirrors every JSON-RPC line to stderr (debugging).
+    func enableTrace() async {
+        await connection.setTrace { outgoing, line in
+            FileHandle.standardError.write(Data("[acp \(outgoing ? "→" : "←")] \(line.prefix(400))\n".utf8))
+        }
+    }
 
     // MARK: Lifecycle
 
