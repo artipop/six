@@ -59,7 +59,16 @@ release focus snaps to the column nearest the middle and scrolls it fully into v
 
 Tuning lives at the top of the file: `threshold` (55 pt), `minimumCommitInterval` (0.28 s), `idleReset` (0.25 s).
 
+## Clicking
+
+A window that isn't focused is a target, not a page: the first click flies to it (and centres it) instead of reaching
+the page. The catcher has to be an AppKit view — `WKWebView` is a real `NSView` and takes the click before any SwiftUI
+overlay above it can — so `ClickCatcher` is an `NSViewRepresentable` laid over the web view of every unfocused column.
+Title bars are SwiftUI and keep their own buttons working, so a background window's close or back button still takes
+one click.
+
 ## Overview
 
 `⌥O` scales the whole canvas to 0.5 and opens the vertical spacing so neighbouring workspaces read as separate
-screens. Pages keep rendering but stop taking clicks: one click focuses a window and leaves the overview.
+screens. Pages keep rendering but stop taking clicks — the same `ClickCatcher` covers every column — so one click
+focuses a window and leaves the overview. A click on a title bar does the same.

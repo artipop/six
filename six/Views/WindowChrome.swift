@@ -52,7 +52,10 @@ struct WindowChrome: View {
         .frame(height: 32)
         .background(isFocused ? AnyShapeStyle(.bar) : AnyShapeStyle(.quaternary.opacity(0.4)))
         .contentShape(Rectangle())
-        .onTapGesture { browser.selectTab(tab.id) }
+        .onTapGesture {
+            browser.selectTab(tab.id)
+            browser.exitOverview()
+        }
         .onHover { hovering = $0 }
         .overlay(alignment: .bottom) {
             if tab.page.isLoading {

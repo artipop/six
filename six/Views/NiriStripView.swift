@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 import WebKit
 
@@ -103,19 +104,6 @@ private struct WorkspaceView: View {
                     .frame(width: frame.width, height: frame.height)
                     .offset(x: frame.minX - scroll, y: frame.minY)
                     .zIndex(isFocused ? 1 : 0)
-                    .allowsHitTesting(!layout.isOverview)
-                    .overlay {
-                        // In the overview a page is a picture, not a target; and elsewhere a click on a
-                        // background window brings it into focus instead of reaching the page under it.
-                        if layout.isOverview || !isFocused {
-                            Color.white.opacity(0.001)
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    browser.selectTab(tab.id)
-                                    browser.exitOverview()
-                                }
-                        }
-                    }
                 }
             }
         }
@@ -167,6 +155,16 @@ private struct ColumnView: View {
         browser.profiles.first { $0.id == tab.profileID }?.color ?? .accentColor
     }
 
+    /// A window that isn't the focused one is a target, not a page: the first click flies to it. Same in
+    /// the overview, where every page is just a picture. `WKWebView` is a real AppKit view and takes the
+    /// click before any SwiftUI overlay can, so the catcher has to be an AppKit view too.
+    private var capturesClicks: Bool { !isFocused || browser.layout.isOverview }
+
+    private func activate() {
+        browser.selectTab(tab.id)
+        browser.exitOverview()
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             WindowChrome(tab: tab, isFocused: isFocused, addressFocus: addressFocus)
@@ -176,8 +174,11 @@ private struct ColumnView: View {
                 WebView(tab.page)
                     .webViewBackForwardNavigationGestures(.enabled)
                     .id(tab.id)
+                    .overlay { if capturesClicks { ClickCatcher(action: activate) } }
             } else {
                 ColumnPlaceholder(tab: tab, accent: accent)
+                    .contentShape(Rectangle())
+                    .onTapGesture { if capturesClicks { activate() } }
             }
         }
         .background(.background)
@@ -234,18 +235,18 @@ private struct StripEdgeButton: View {
             if layout.canFocusColumn(direction) {
                 button(symbol: direction < 0 ? "chevron.left" : "chevron.right",
                        help: direction < 0 ? "Previous window (⌥←)" : "Next window (⌥→)",
-                       tinted: false) { browser.focusColumn(direction) }
+                       action: { browser.focusColumn(direction) })
             } else if direction > 0, layout.focusedWorkspace?.isEmpty == false {
-                button(symbol: "plus", help: "New window (⌘T)", tinted: true) { browser.newTab() }
+                button(symbol: "plus", help: "New window (⌘T)", action: { browser.newTab() })
             }
         }
     }
 
-    private func button(symbol: String, help: String, tinted: Bool, action: @escaping () -> Void) -> some View {
+    private func button(symbol: String, help: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
                 .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(tinted ? AnyShapeStyle(browser.selectedProfile.color) : AnyShapeStyle(.primary))
+                .foregroundStyle(.primary)
                 .frame(width: 30, height: 60)
                 .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
                 .overlay {
@@ -259,6 +260,32 @@ private struct StripEdgeButton: View {
         .animation(.easeOut(duration: 0.15), value: hovering)
         .help(help)
         .transition(.opacity)
+    }
+}
+
+/// Transparent AppKit view that swallows the first click on an unfocused window and reports it.
+private struct ClickCatcher: NSViewRepresentable {
+    let action: () -> Void
+
+    func makeNSView(context: Context) -> CatcherView { CatcherView(action: action) }
+
+    func updateNSView(_ view: CatcherView, context: Context) { view.action = action }
+
+    final class CatcherView: NSView {
+        var action: () -> Void
+
+        init(action: @escaping () -> Void) {
+            self.action = action
+            super.init(frame: .zero)
+        }
+
+        @available(*, unavailable)
+        required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+        /// Focus the window even when the app itself isn't frontmost, like any macOS window would.
+        override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+        override func mouseDown(with event: NSEvent) { action() }
     }
 }
 
