@@ -26,8 +26,10 @@ Widths are fractions of the working area (`widthPresets = [0.5, 2/3, 0.88, 1.0]`
 window with the next one peeking in at the edge. One gap is folded into `usableWidth`, so N columns of `1/N` fill the
 screen exactly. A strip narrower than the viewport is centred instead of pinned left.
 
-Focus moves the view as little as possible — `scrollFocusIntoView` only scrolls until the focused column is fully
-visible, which is what makes the peeking neighbour stay peeking.
+The focused column is **centred** by default (niri's `center-focused-column`), so both neighbours peek in by the same
+amount; while centring is on the strip may scroll until the first/last column reaches the middle, which is what lets
+every column get there. `⌥C` turns it off, and focus then moves the view as little as possible — `scrollFocusIntoView`
+scrolls only until the focused column is fully visible. The choice persists in `UserDefaults`.
 
 Only columns within one workspace and one viewport-width of the screen get a real `WebView`; the rest render as cards
 (`ColumnPlaceholder`), so a long strip stays cheap.

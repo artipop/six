@@ -21,7 +21,7 @@ playground for three things:
 
 There are no tabs and no sidebar. A page is a **column**: a full-height window with its own title bar (navigation +
 address field), laid out left to right in an endlessly scrollable **strip**. A column defaults to almost the full
-width — an ordinary browser window, with the next one peeking in at the edge to be scrolled to. A strip is a **workspace**; workspaces are
+width — an ordinary browser window, centred, with the neighbours peeking in at both edges to be scrolled to. A strip is a **workspace**; workspaces are
 stacked vertically and exactly one is on screen at a time. The bottom workspace is always empty — move a window into it
 and a fresh empty one appears below (niri's dynamic workspaces); a workspace that runs out of windows disappears.
 
@@ -39,6 +39,7 @@ stays the page's.
 | `⌥` `←` `→` / `⌥⇧` `←` `→` | focus / move a column |
 | `⌥` `↑` `↓` / `⌥⇧` `↑` `↓` | focus a workspace / move the focused column to it |
 | `⌥R` / `⌥F` | cycle preset column widths (½, ⅔, peek, full) / maximize |
+| `⌥C` | centre the focused window (default) or scroll the strip as little as possible |
 | `⌥O`, `Esc` | overview — every workspace zoomed out; scroll needs no modifier there, a click opens a window |
 | `⌘T` / `⌘W` | new window in the strip, right of the focused one / close it |
 

@@ -47,9 +47,15 @@ final class NiriLayout {
     static let outerGap: CGFloat = 12
     static let overviewScale: CGFloat = 0.5
     static let switchAnimation: Animation = .smooth(duration: 0.34, extraBounce: 0.05)
+    private static let centerKey = "six.layout.centerFocus"
 
     var viewport: CGSize = CGSize(width: 1280, height: 800)
     var isOverview = false
+    /// niri's `center-focused-column`: park the focused window in the middle of the screen instead of
+    /// scrolling as little as possible. Off means the strip only moves when the focus would fall off it.
+    var centersFocus: Bool = UserDefaults.standard.object(forKey: NiriLayout.centerKey) as? Bool ?? true {
+        didSet { UserDefaults.standard.set(centersFocus, forKey: NiriLayout.centerKey) }
+    }
     /// Rubber-band offset while a vertical scroll gesture is still below the switch threshold.
     var verticalPreview: CGFloat = 0
     var activeProfileID: UUID = UUID()
@@ -142,10 +148,29 @@ final class NiriLayout {
         return widths + Self.gap * CGFloat(workspace.columns.count - 1) + 2 * Self.outerGap
     }
 
-    private func clampOffset(_ offset: CGFloat, in workspace: NiriWorkspace) -> CGFloat {
+    private func centeredOffset(_ frame: CGRect) -> CGFloat {
+        frame.midX - viewport.width / 2
+    }
+
+    /// How far the strip may scroll. While centring, the ends are reached when the first/last window
+    /// sits in the middle, so every window can get there — otherwise the strip stops at its edges.
+    private func offsetBounds(in workspace: NiriWorkspace) -> ClosedRange<CGFloat> {
+        let frames = columnFrames(workspace)
+        if centersFocus, let first = frames.first, let last = frames.last {
+            let lower = centeredOffset(first)
+            return lower...max(lower, centeredOffset(last))
+        }
         let total = contentWidth(workspace)
-        guard total > viewport.width else { return (total - viewport.width) / 2 } // centred when it fits
-        return min(max(offset, 0), total - viewport.width)
+        guard total > viewport.width else {
+            let centred = (total - viewport.width) / 2 // the whole strip fits: centre it
+            return centred...centred
+        }
+        return 0...(total - viewport.width)
+    }
+
+    private func clampOffset(_ offset: CGFloat, in workspace: NiriWorkspace) -> CGFloat {
+        let bounds = offsetBounds(in: workspace)
+        return min(max(offset, bounds.lowerBound), bounds.upperBound)
     }
 
     /// Scroll position actually used for drawing.
@@ -153,20 +178,31 @@ final class NiriLayout {
         clampOffset(workspace.viewOffset, in: workspace)
     }
 
-    /// Smallest scroll that brings the focused column fully on screen.
+    /// Centres the focused column, or — with centring off — scrolls the least it can to reveal it.
     private func scrollFocusIntoView(_ workspace: inout NiriWorkspace) {
         let frames = columnFrames(workspace)
         guard frames.indices.contains(workspace.focus) else { return }
+        let frame = frames[workspace.focus]
+        if centersFocus {
+            workspace.viewOffset = clampOffset(centeredOffset(frame), in: workspace)
+            return
+        }
         let total = contentWidth(workspace)
         guard total > viewport.width else {
             workspace.viewOffset = (total - viewport.width) / 2
             return
         }
-        let frame = frames[workspace.focus]
         var offset = clampOffset(workspace.viewOffset, in: workspace)
         if frame.minX - Self.outerGap < offset { offset = frame.minX - Self.outerGap }
         if frame.maxX + Self.outerGap > offset + viewport.width { offset = frame.maxX + Self.outerGap - viewport.width }
         workspace.viewOffset = clampOffset(offset, in: workspace)
+    }
+
+    func setCentersFocus(_ value: Bool) {
+        centersFocus = value
+        mutate { s in
+            for i in s.workspaces.indices { scrollFocusIntoView(&s.workspaces[i]) }
+        }
     }
 
     func updateViewport(_ size: CGSize) {

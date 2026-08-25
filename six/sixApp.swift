@@ -70,6 +70,14 @@ private struct LayoutCommands: Commands {
                 .keyboardShortcut("f", modifiers: .option)
             Button("Toggle Overview") { browser.toggleOverview() }
                 .keyboardShortcut("o", modifiers: .option)
+
+            Divider()
+
+            Toggle("Center Focused Window", isOn: Binding(
+                get: { browser.layout.centersFocus },
+                set: { _ in browser.toggleCenterFocus() }
+            ))
+            .keyboardShortcut("c", modifiers: .option)
         }
     }
 }

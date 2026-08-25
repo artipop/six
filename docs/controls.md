@@ -12,7 +12,7 @@ Nothing needs the keyboard: every layout operation has a mouse equivalent. `⌥`
 | click a workspace pip | jump to that workspace |
 | `+` in the top bar | new window, right of the focused one |
 | right-click a window's title bar | close, cycle width, maximize, move left/right, move to the workspace above/below |
-| right-click the background | new window, workspace up/down, overview |
+| right-click the background | new window, workspace up/down, overview, centring on/off |
 | scroll over a title bar, a gap or the background | pans the strip (horizontal) / changes workspace (vertical) — over a page or a panel, scrolling stays the page's |
 | overview button (top right) | zoom out to all workspaces; a click there opens a window |
 | `×` on a title bar | close that window |
@@ -28,6 +28,7 @@ Nothing needs the keyboard: every layout operation has a mouse equivalent. `⌥`
 | `⌥↑` `⌥↓` / `⌥⇧↑` `⌥⇧↓` | focus a workspace / move the window to it |
 | `⌥Home` `⌥End` | first / last window in the strip |
 | `⌥R` / `⌥F` | cycle preset widths (½, ⅔, peek, full) / maximize |
+| `⌥C` | centre the focused window in the strip (on by default) — off means the strip moves as little as possible |
 | `⌥O`, `Esc` | overview on / off |
 | `⌘T` / `⌘W` | new window / close window |
 | `⌘L` | focus the address field |

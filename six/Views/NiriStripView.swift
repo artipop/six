@@ -255,6 +255,11 @@ private struct StripMenu: View {
         Button("Workspace Below") { browser.focusWorkspace(1) }
             .disabled(!browser.layout.canFocusWorkspace(1))
         Button(browser.layout.isOverview ? "Close Overview" : "Overview") { browser.toggleOverview() }
+        Divider()
+        Toggle("Center Focused Window", isOn: Binding(
+            get: { browser.layout.centersFocus },
+            set: { _ in browser.toggleCenterFocus() }
+        ))
     }
 }
 

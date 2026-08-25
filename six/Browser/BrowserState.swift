@@ -163,6 +163,8 @@ final class BrowserState {
         animateLayout { layout.snapFocusToView() }
     }
 
+    func toggleCenterFocus() { animateLayout { layout.setCentersFocus(!layout.centersFocus) } }
+
     func toggleOverview() {
         withAnimation(NiriLayout.switchAnimation) {
             layout.isOverview.toggle()
