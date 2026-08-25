@@ -69,6 +69,12 @@ one click.
 
 ## Overview
 
-`⌥O` scales the whole canvas to 0.5 and opens the vertical spacing so neighbouring workspaces read as separate
-screens. Pages keep rendering but stop taking clicks — the same `ClickCatcher` covers every column — so one click
-focuses a window and leaves the overview. A click on a title bar does the same.
+`⌥O` zooms the whole canvas out and opens the vertical spacing so neighbouring workspaces read as separate screens.
+The scale adapts: enough to show the focused strip end to end, never more than `overviewBaseScale` (0.5 — a short
+strip shouldn't shrink for nothing) and never past `minimumOverviewScale` (0.22), where a long strip starts scrolling
+instead of turning microscopic. Scrolling sideways pans the strip freely there; `visibleWidth` (the viewport divided by
+the scale) is what every offset is measured against, so the same clamping code serves both modes. Leaving the overview
+puts the strip back under the focused window.
+
+Pages keep rendering but stop taking clicks — the same `ClickCatcher` covers every column — so one click focuses a
+window and leaves the overview. A click on a title bar does the same.

@@ -160,20 +160,26 @@ final class BrowserState {
     }
 
     func endStripPan() {
+        guard !layout.isOverview else { return } // the overview scrolls freely, nothing to snap to
         animateLayout { layout.snapFocusToView() }
     }
 
     func toggleCenterFocus() { animateLayout { layout.setCentersFocus(!layout.centersFocus) } }
 
     func toggleOverview() {
-        withAnimation(NiriLayout.switchAnimation) {
-            layout.isOverview.toggle()
+        if layout.isOverview {
+            exitOverview()
+        } else {
+            withAnimation(NiriLayout.switchAnimation) { layout.isOverview = true }
         }
     }
 
     func exitOverview() {
         guard layout.isOverview else { return }
-        withAnimation(NiriLayout.switchAnimation) { layout.isOverview = false }
+        withAnimation(NiriLayout.switchAnimation) {
+            layout.isOverview = false
+            layout.scrollFocusIntoView() // free overview scrolling leaves the offset anywhere
+        }
     }
 
     private func animateLayout(_ body: () -> Void) {

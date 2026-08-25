@@ -11,11 +11,10 @@ Nothing needs the keyboard: every layout operation has a mouse equivalent. `⌥`
 | `+` on the right edge | at the end of the strip the right chevron becomes a `+`: a new window after the last one |
 | `⌃`/`⌄` beside the workspace pips | one workspace up/down |
 | click a workspace pip | jump to that workspace |
-| `+` in the top bar | new window, right of the focused one |
 | right-click a window's title bar | close, cycle width, maximize, move left/right, move to the workspace above/below |
 | right-click the background | new window, workspace up/down, overview, centring on/off |
 | scroll over a title bar, a gap or the background | one window sideways / one workspace up-down per gesture — over a page or a panel, scrolling stays the page's |
-| overview button (top right) | zoom out to all workspaces; a click there opens a window |
+| overview button (top right) | zoom out to all workspaces; scroll sideways to run along a strip, click a window to open it |
 | `×` on a title bar | close that window |
 | the profile dots (top left) | switch profile — each has its own strip; `+` adds one, right-click deletes |
 

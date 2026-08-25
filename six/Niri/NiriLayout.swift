@@ -48,7 +48,11 @@ final class NiriLayout {
     /// heights, buttons, corner radii — stay in points, because text and controls don't scale either.)
     static let gapFraction: CGFloat = 0.01
     static let minimumGap: CGFloat = 10
-    static let overviewScale: CGFloat = 0.5
+    /// How far the overview zooms out: enough to show the whole focused strip, but never more than
+    /// `overviewBaseScale` (a short strip shouldn't be shrunk for nothing) and never past the floor,
+    /// where a long strip starts scrolling instead of getting microscopic.
+    static let overviewBaseScale: CGFloat = 0.5
+    static let minimumOverviewScale: CGFloat = 0.22
     /// Vertical breathing room between workspaces, as a fraction of the viewport height.
     static let workspaceGapFraction: CGFloat = 0.02
     static let overviewWorkspaceGapFraction: CGFloat = 0.11
@@ -129,6 +133,18 @@ final class NiriLayout {
 
     // MARK: Geometry
 
+    /// Scale of the whole canvas: 1 normally, zoomed out in the overview.
+    var overviewScale: CGFloat {
+        guard isOverview else { return 1 }
+        guard let workspace = focusedWorkspace, !workspace.isEmpty else { return Self.overviewBaseScale }
+        let fitting = viewport.width / contentWidth(workspace)
+        return min(Self.overviewBaseScale, max(Self.minimumOverviewScale, fitting))
+    }
+
+    /// Width of what the viewport actually shows, in content points. The overview scales the canvas
+    /// down, so it shows proportionally more of the strip — and scrolls when even that isn't enough.
+    var visibleWidth: CGFloat { viewport.width / overviewScale }
+
     /// Space between two columns, and between a column and the edge of the screen.
     var gap: CGFloat { max(Self.minimumGap, (viewport.width * Self.gapFraction).rounded()) }
     var outerGap: CGFloat { gap }
@@ -162,23 +178,25 @@ final class NiriLayout {
     }
 
     private func centeredOffset(_ frame: CGRect) -> CGFloat {
-        frame.midX - viewport.width / 2
+        frame.midX - visibleWidth / 2
     }
 
     /// How far the strip may scroll. While centring, the ends are reached when the first/last window
     /// sits in the middle, so every window can get there — otherwise the strip stops at its edges.
     private func offsetBounds(in workspace: NiriWorkspace) -> ClosedRange<CGFloat> {
+        let width = visibleWidth
         let frames = columnFrames(workspace)
-        if centersFocus, let first = frames.first, let last = frames.last {
+        // The overview shows strips, not a focused window: it scrolls freely and centres what fits.
+        if centersFocus, !isOverview, let first = frames.first, let last = frames.last {
             let lower = centeredOffset(first)
             return lower...max(lower, centeredOffset(last))
         }
         let total = contentWidth(workspace)
-        guard total > viewport.width else {
-            let centred = (total - viewport.width) / 2 // the whole strip fits: centre it
+        guard total > width else {
+            let centred = (total - width) / 2 // the whole strip fits: centre it
             return centred...centred
         }
-        return 0...(total - viewport.width)
+        return 0...(total - width)
     }
 
     private func clampOffset(_ offset: CGFloat, in workspace: NiriWorkspace) -> CGFloat {
@@ -201,14 +219,23 @@ final class NiriLayout {
             return
         }
         let total = contentWidth(workspace)
-        guard total > viewport.width else {
-            workspace.viewOffset = (total - viewport.width) / 2
+        guard total > visibleWidth else {
+            workspace.viewOffset = (total - visibleWidth) / 2
             return
         }
         var offset = clampOffset(workspace.viewOffset, in: workspace)
         if frame.minX - outerGap < offset { offset = frame.minX - outerGap }
-        if frame.maxX + outerGap > offset + viewport.width { offset = frame.maxX + outerGap - viewport.width }
+        if frame.maxX + outerGap > offset + visibleWidth { offset = frame.maxX + outerGap - visibleWidth }
         workspace.viewOffset = clampOffset(offset, in: workspace)
+    }
+
+    /// Puts the strip back under the focused window — used on the way out of the overview, whose free
+    /// scrolling leaves the offset anywhere.
+    func scrollFocusIntoView() {
+        mutate { s in
+            guard s.workspaces.indices.contains(s.focus) else { return }
+            scrollFocusIntoView(&s.workspaces[s.focus])
+        }
     }
 
     func setCentersFocus(_ value: Bool) {
@@ -327,10 +354,11 @@ final class NiriLayout {
 
     // MARK: Strip scrolling
 
-    /// Free horizontal panning of the strip (Mod + horizontal scroll). Refused while centring is on:
-    /// there the strip only ever rests with the focused window in the middle.
+    /// Free horizontal panning of the strip (Mod + horizontal scroll), and of the strips in the
+    /// overview. Refused while centring is on: there the strip only ever rests with the focused window
+    /// in the middle.
     func panStrip(by delta: CGFloat) {
-        guard !centersFocus else { return }
+        guard !centersFocus || isOverview else { return }
         mutate { s in
             guard s.workspaces.indices.contains(s.focus) else { return }
             var ws = s.workspaces[s.focus]
@@ -346,7 +374,7 @@ final class NiriLayout {
             var ws = s.workspaces[s.focus]
             let frames = columnFrames(ws)
             guard !frames.isEmpty else { return }
-            let centre = resolvedOffset(ws) + viewport.width / 2
+            let centre = resolvedOffset(ws) + visibleWidth / 2
             let nearest = frames.enumerated().min { abs($0.element.midX - centre) < abs($1.element.midX - centre) }
             ws.focus = nearest?.offset ?? ws.focus
             scrollFocusIntoView(&ws) // the pan ends on a column, never between two

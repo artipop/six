@@ -20,7 +20,7 @@ struct NiriStripView: View {
                 }
             }
             .frame(width: proxy.size.width, height: proxy.size.height, alignment: .topLeading)
-            .scaleEffect(layout.isOverview ? NiriLayout.overviewScale : 1, anchor: .center)
+            .scaleEffect(layout.overviewScale, anchor: .center)
             .onChange(of: proxy.size, initial: true) { layout.updateViewport(proxy.size) }
         }
         .background(StripBackground())
@@ -54,7 +54,7 @@ struct NiriStripView: View {
                 layout.verticalPreview = preview
             }
         }
-        monitor.snapsHorizontally = { layout.centersFocus }
+        monitor.snapsHorizontally = { layout.centersFocus && !layout.isOverview }
         monitor.onPreviewColumn = { preview in
             if preview == 0 {
                 withAnimation(NiriLayout.switchAnimation) { layout.horizontalPreview = 0 }
@@ -83,12 +83,16 @@ private struct WorkspaceView: View {
         let frames = layout.columnFrames(workspace)
         let isCurrent = index == layout.focusedWorkspaceIndex
         let scroll = layout.resolvedOffset(workspace) - (isCurrent ? layout.horizontalPreview : 0)
+        // The overview scales the canvas down, so a workspace layer covers proportionally more than the
+        // window: it has to be that wide, and centred on the same point, or the strip is cut off at the
+        // window edges instead of running the full width of the screen.
+        let layerWidth = layout.visibleWidth
 
         ZStack(alignment: .topLeading) {
             Color.clear
             if workspace.isEmpty {
                 EmptyWorkspaceHint()
-                    .frame(width: size.width, height: size.height)
+                    .frame(width: layerWidth, height: size.height)
             }
             ForEach(Array(workspace.columns.enumerated()), id: \.element.id) { position, column in
                 if let tab = browser.tab(column.tabID), frames.indices.contains(position) {
@@ -107,16 +111,17 @@ private struct WorkspaceView: View {
                 }
             }
         }
-        .frame(width: size.width, height: size.height, alignment: .topLeading)
+        .frame(width: layerWidth, height: size.height, alignment: .topLeading)
         .clipped()
+        .offset(x: -(layerWidth - size.width) / 2)
         .opacity(layout.isOverview && !isCurrent ? 0.7 : 1)
     }
 
     /// Only nearby columns get a real web view; the rest are cheap cards, so a big strip stays cheap.
     private func isLive(workspaceDistance: Int, x: CGFloat, width: CGFloat, layout: NiriLayout) -> Bool {
         guard workspaceDistance <= 1 else { return false }
-        let margin = layout.viewport.width
-        return x + width > -margin && x < layout.viewport.width + margin
+        let margin = layout.visibleWidth
+        return x + width > -margin && x < layout.visibleWidth + margin
     }
 }
 
@@ -361,7 +366,7 @@ private struct OverviewChrome: View {
                     .background(.regularMaterial, in: Capsule())
                     .padding(.top, 8)
                 Spacer()
-                Text("scroll to change workspace · click a window to open it · ⌥O to close")
+                Text("scroll up/down for workspaces · sideways to run along a strip · click a window to open it · ⌥O to close")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .padding(.bottom, 12)

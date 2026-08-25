@@ -42,12 +42,6 @@ private struct TopBar: View {
         HStack(spacing: 10) {
             Color.clear.frame(width: 68, height: 1) // room for the window buttons
             ProfileSwitcher(isAddingProfile: $isAddingProfile)
-            Divider().frame(height: 16)
-            Button { browser.newTab() } label: {
-                Image(systemName: "plus")
-            }
-            .buttonStyle(.borderless)
-            .help("New Window (⌘T)")
             Spacer(minLength: 12)
             WorkspaceStepper()
             Button { browser.toggleOverview() } label: {

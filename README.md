@@ -27,7 +27,7 @@ and a fresh empty one appears below (niri's dynamic workspaces); a workspace tha
 
 Nothing needs the keyboard: click a background window to pull it in, use the `‹` `›` buttons on the screen edges —
 at the end of the strip the right one becomes a `+` that adds a window — the workspace stepper in the top bar, and a
-right-click on a title bar for the rest. Scrolling over the
+right-click on a title bar or on the background for the rest. Scrolling over the
 layout's own chrome (title bars, gaps, background) pans the strip and changes workspace too — over a page, scrolling
 stays the page's.
 
@@ -41,7 +41,7 @@ stays the page's.
 | `⌥` `↑` `↓` / `⌥⇧` `↑` `↓` | focus a workspace / move the focused column to it |
 | `⌥R` / `⌥F` | cycle preset column widths (½, ⅔, peek, full) / maximize |
 | `⌥C` | centre the focused window (default) or scroll the strip as little as possible |
-| `⌥O`, `Esc` | overview — every workspace zoomed out; scroll needs no modifier there, a click opens a window |
+| `⌥O`, `Esc` | overview — zoomed out just enough to show the focused strip end to end, scrolling sideways runs along it; no modifier needed there, a click opens a window |
 | `⌘T` / `⌘W` | new window in the strip, right of the focused one / close it |
 
 Only columns near the viewport get a real `WebView`; the rest render as cards, so a long strip stays cheap.
