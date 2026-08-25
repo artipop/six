@@ -62,8 +62,9 @@ final class NiriLayout {
     var centersFocus: Bool = UserDefaults.standard.object(forKey: NiriLayout.centerKey) as? Bool ?? true {
         didSet { UserDefaults.standard.set(centersFocus, forKey: NiriLayout.centerKey) }
     }
-    /// Rubber-band offset while a vertical scroll gesture is still below the switch threshold.
+    /// Rubber-band offsets while a scroll gesture is still below the switch threshold.
     var verticalPreview: CGFloat = 0
+    var horizontalPreview: CGFloat = 0
     var activeProfileID: UUID = UUID()
 
     private var strips: [UUID: NiriStrip] = [:]
@@ -326,8 +327,10 @@ final class NiriLayout {
 
     // MARK: Strip scrolling
 
-    /// Free horizontal panning of the strip (Mod + horizontal scroll).
+    /// Free horizontal panning of the strip (Mod + horizontal scroll). Refused while centring is on:
+    /// there the strip only ever rests with the focused window in the middle.
     func panStrip(by delta: CGFloat) {
+        guard !centersFocus else { return }
         mutate { s in
             guard s.workspaces.indices.contains(s.focus) else { return }
             var ws = s.workspaces[s.focus]
@@ -346,6 +349,7 @@ final class NiriLayout {
             let centre = resolvedOffset(ws) + viewport.width / 2
             let nearest = frames.enumerated().min { abs($0.element.midX - centre) < abs($1.element.midX - centre) }
             ws.focus = nearest?.offset ?? ws.focus
+            scrollFocusIntoView(&ws) // the pan ends on a column, never between two
             s.workspaces[s.focus] = ws
         }
     }

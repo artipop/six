@@ -179,6 +179,7 @@ final class BrowserState {
     private func animateLayout(_ body: () -> Void) {
         withAnimation(NiriLayout.switchAnimation) {
             layout.verticalPreview = 0
+            layout.horizontalPreview = 0
             body()
         }
         syncSelection()

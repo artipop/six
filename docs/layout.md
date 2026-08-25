@@ -50,8 +50,12 @@ bars, gaps, background, top bar) drives the layout.
 
 Vertical is **one workspace per gesture**: deltas accumulate into a rubber-band preview (`verticalPreview`), crossing
 the threshold commits the switch, and the rest of the gesture — trackpad momentum included — is swallowed, so a flick
-never skips two. Discrete mouse wheels have no gesture phase and are throttled by time instead. Horizontal is free
-panning; on release focus snaps to the column nearest the middle of the screen.
+never skips two. Discrete mouse wheels have no gesture phase and are throttled by time instead.
+
+Horizontal works the same way **while centring is on**: one window per gesture, with a `horizontalPreview` rubber band
+below the threshold. The strip then has no free resting position — `panStrip` refuses to move it at all, so no gesture
+can leave a window sitting half-way. With centring off (`⌥C`) horizontal scrolling pans the strip freely, and on
+release focus snaps to the column nearest the middle and scrolls it fully into view.
 
 Tuning lives at the top of the file: `threshold` (55 pt), `minimumCommitInterval` (0.28 s), `idleReset` (0.25 s).
 

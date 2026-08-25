@@ -53,6 +53,14 @@ struct NiriStripView: View {
                 layout.verticalPreview = preview
             }
         }
+        monitor.snapsHorizontally = { layout.centersFocus }
+        monitor.onPreviewColumn = { preview in
+            if preview == 0 {
+                withAnimation(NiriLayout.switchAnimation) { layout.horizontalPreview = 0 }
+            } else {
+                layout.horizontalPreview = preview
+            }
+        }
         monitor.onPan = { browser.panStrip(by: $0) }
         monitor.onPanEnded = { browser.endStripPan() }
         monitor.start()
@@ -72,8 +80,8 @@ private struct WorkspaceView: View {
     var body: some View {
         let layout = browser.layout
         let frames = layout.columnFrames(workspace)
-        let scroll = layout.resolvedOffset(workspace)
         let isCurrent = index == layout.focusedWorkspaceIndex
+        let scroll = layout.resolvedOffset(workspace) - (isCurrent ? layout.horizontalPreview : 0)
 
         ZStack(alignment: .topLeading) {
             Color.clear

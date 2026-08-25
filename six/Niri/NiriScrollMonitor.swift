@@ -21,11 +21,16 @@ final class NiriScrollMonitor {
     var onPan: (CGFloat) -> Void = { _ in }
     var onPanEnded: () -> Void = {}
     var onStepColumn: (Int) -> Void = { _ in }
+    var onPreviewColumn: (CGFloat) -> Void = { _ in }
+    /// True while the layout keeps the focused window centred. Then horizontal scrolling steps from
+    /// window to window, one per gesture, instead of panning freely — nothing can rest half-way.
+    var snapsHorizontally: () -> Bool = { false }
     /// True when the gesture works without holding Mod (the overview has no page to scroll).
     var modifierOptional: () -> Bool = { false }
 
     private var monitor: Any?
     private var accumulated: CGFloat = 0
+    private var accumulatedX: CGFloat = 0
     private var didCommit = false
     private var isPanning = false
     private var lastEventTime: TimeInterval = 0
@@ -71,11 +76,26 @@ final class NiriScrollMonitor {
         let dy = event.scrollingDeltaY
 
         if abs(dx) > abs(dy) {
-            if event.hasPreciseScrollingDeltas {
+            guard event.hasPreciseScrollingDeltas else {
+                commitStep(at: event.timestamp) { self.onStepColumn(dx < 0 ? 1 : -1) }
+                return nil
+            }
+            guard snapsHorizontally() else {
                 isPanning = true
                 onPan(-dx)
+                return nil
+            }
+            guard !didCommit else { return nil }
+            accumulatedX += dx
+            if abs(accumulatedX) >= threshold {
+                let direction = accumulatedX < 0 ? 1 : -1
+                didCommit = true
+                lastCommitTime = event.timestamp
+                accumulatedX = 0
+                onPreviewColumn(0)
+                onStepColumn(direction)
             } else {
-                commitStep(at: event.timestamp) { self.onStepColumn(dx < 0 ? 1 : -1) }
+                onPreviewColumn(accumulatedX * 0.35)
             }
             return nil
         }
@@ -123,11 +143,13 @@ final class NiriScrollMonitor {
 
     private func resetGesture() {
         accumulated = 0
+        accumulatedX = 0
         didCommit = false
     }
 
     private func endGesture() {
         if accumulated != 0 { onPreview(0) }
+        if accumulatedX != 0 { onPreviewColumn(0) }
         resetGesture()
         if isPanning {
             isPanning = false

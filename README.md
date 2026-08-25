@@ -36,7 +36,7 @@ stays the page's.
 | | |
 |---|---|
 | `⌥` + vertical scroll | one workspace up/down per gesture — deltas build up a rubber-band preview, cross the threshold and the switch commits, and the rest of the gesture (trackpad momentum included) is swallowed so a flick never skips two |
-| `⌥` + horizontal scroll | free panning of the strip; on release, focus snaps to the column nearest the middle |
+| `⌥` + horizontal scroll | one column per gesture while centring is on, so the strip never rests half-way; free panning with `⌥C` off |
 | `⌥` `←` `→` / `⌥⇧` `←` `→` | focus / move a column |
 | `⌥` `↑` `↓` / `⌥⇧` `↑` `↓` | focus a workspace / move the focused column to it |
 | `⌥R` / `⌥F` | cycle preset column widths (½, ⅔, peek, full) / maximize |
