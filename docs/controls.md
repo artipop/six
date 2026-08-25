@@ -8,6 +8,7 @@ Nothing needs the keyboard: every layout operation has a mouse equivalent. `⌥`
 |---|---|
 | click a window | focuses it and scrolls it into view — the first click on a background window never reaches the page |
 | `‹` `›` on the screen edges | one window left/right; they only appear when the strip continues that way |
+| `+` on the right edge | at the end of the strip the right chevron becomes a `+`: a new window after the last one |
 | `⌃`/`⌄` beside the workspace pips | one workspace up/down |
 | click a workspace pip | jump to that workspace |
 | `+` in the top bar | new window, right of the focused one |

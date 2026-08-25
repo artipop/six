@@ -211,8 +211,9 @@ private struct ColumnPlaceholder: View {
 
 // MARK: - Mouse controls
 
-/// Chevron parked on the left/right edge: one click scrolls the strip by one column. Hidden when
-/// there is nothing that way, so the edge itself tells you whether the strip continues.
+/// Chevron parked on the left/right edge: one click scrolls the strip by one column. At the end of the
+/// strip the right one turns into a `+`, so the way to add a window is where you run out of them; on the
+/// left there is simply nothing, and the edge itself tells you whether the strip continues.
 private struct StripEdgeButton: View {
     let direction: Int
 
@@ -221,25 +222,35 @@ private struct StripEdgeButton: View {
 
     var body: some View {
         let layout = browser.layout
-        let available = direction < 0 ? layout.canFocusColumn(-1) : layout.canFocusColumn(1)
-        if available && !layout.isOverview {
-            Button { browser.focusColumn(direction) } label: {
-                Image(systemName: direction < 0 ? "chevron.left" : "chevron.right")
-                    .font(.system(size: 15, weight: .semibold))
-                    .frame(width: 30, height: 60)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(.separator)
-                    }
+        if !layout.isOverview {
+            if layout.canFocusColumn(direction) {
+                button(symbol: direction < 0 ? "chevron.left" : "chevron.right",
+                       help: direction < 0 ? "Previous window (⌥←)" : "Next window (⌥→)",
+                       tinted: false) { browser.focusColumn(direction) }
+            } else if direction > 0, layout.focusedWorkspace?.isEmpty == false {
+                button(symbol: "plus", help: "New window (⌘T)", tinted: true) { browser.newTab() }
             }
-            .buttonStyle(.plain)
-            .padding(.horizontal, 6)
-            .opacity(hovering ? 1 : 0.45)
-            .onHover { hovering = $0 }
-            .animation(.easeOut(duration: 0.15), value: hovering)
-            .help(direction < 0 ? "Previous window (⌥←)" : "Next window (⌥→)")
-            .transition(.opacity)
         }
+    }
+
+    private func button(symbol: String, help: String, tinted: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(tinted ? AnyShapeStyle(browser.selectedProfile.color) : AnyShapeStyle(.primary))
+                .frame(width: 30, height: 60)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(.separator)
+                }
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 6)
+        .opacity(hovering ? 1 : 0.45)
+        .onHover { hovering = $0 }
+        .animation(.easeOut(duration: 0.15), value: hovering)
+        .help(help)
+        .transition(.opacity)
     }
 }
 

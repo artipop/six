@@ -43,9 +43,15 @@ final class NiriLayout {
     /// The default is "almost full": a normal browser window, with the next one peeking in at the edge.
     static let widthPresets: [CGFloat] = [0.5, 2.0 / 3.0, 0.88, 1.0]
     static let defaultWidthIndex = 2
-    static let gap: CGFloat = 12
-    static let outerGap: CGFloat = 12
+    /// Gaps are a fraction of the viewport, not a pixel count: the layout should look the same on a
+    /// laptop and on a 5K panel. The floor only guards tiny windows. (Control metrics — title bar
+    /// heights, buttons, corner radii — stay in points, because text and controls don't scale either.)
+    static let gapFraction: CGFloat = 0.01
+    static let minimumGap: CGFloat = 10
     static let overviewScale: CGFloat = 0.5
+    /// Vertical breathing room between workspaces, as a fraction of the viewport height.
+    static let workspaceGapFraction: CGFloat = 0.02
+    static let overviewWorkspaceGapFraction: CGFloat = 0.11
     static let switchAnimation: Animation = .smooth(duration: 0.34, extraBounce: 0.05)
     private static let centerKey = "six.layout.centerFocus"
 
@@ -87,7 +93,9 @@ final class NiriLayout {
 
     /// Vertical distance between two workspaces. Only visible mid-switch — and in the overview,
     /// where it is opened up so the neighbours read as separate screens.
-    var workspaceSpacing: CGFloat { isOverview ? 90 : 16 }
+    var workspaceSpacing: CGFloat {
+        viewport.height * (isOverview ? Self.overviewWorkspaceGapFraction : Self.workspaceGapFraction)
+    }
 
     private func mutate(_ body: (inout NiriStrip) -> Void) {
         var s = strips[activeProfileID] ?? NiriStrip()
@@ -120,24 +128,28 @@ final class NiriLayout {
 
     // MARK: Geometry
 
-    /// Working area, with one gap folded in so N columns of 1/N exactly fill the screen.
-    private var usableWidth: CGFloat { max(360, viewport.width - 2 * Self.outerGap + Self.gap) }
+    /// Space between two columns, and between a column and the edge of the screen.
+    var gap: CGFloat { max(Self.minimumGap, (viewport.width * Self.gapFraction).rounded()) }
+    var outerGap: CGFloat { gap }
 
-    var columnHeight: CGFloat { max(200, viewport.height - 2 * Self.outerGap) }
+    /// Working area, with one gap folded in so N columns of 1/N exactly fill the screen.
+    private var usableWidth: CGFloat { max(360, viewport.width - 2 * outerGap + gap) }
+
+    var columnHeight: CGFloat { max(200, viewport.height - 2 * outerGap) }
 
     func width(of column: NiriColumn) -> CGFloat {
         let fraction = Self.widthPresets[min(max(0, column.widthIndex), Self.widthPresets.count - 1)]
-        return max(280, usableWidth * fraction - Self.gap)
+        return max(280, usableWidth * fraction - gap)
     }
 
     /// Column rectangles in content space (x grows along the strip, origin at the strip's left edge).
     func columnFrames(_ workspace: NiriWorkspace) -> [CGRect] {
         var frames: [CGRect] = []
-        var x = Self.outerGap
+        var x = outerGap
         for column in workspace.columns {
             let w = width(of: column)
-            frames.append(CGRect(x: x, y: Self.outerGap, width: w, height: columnHeight))
-            x += w + Self.gap
+            frames.append(CGRect(x: x, y: outerGap, width: w, height: columnHeight))
+            x += w + gap
         }
         return frames
     }
@@ -145,7 +157,7 @@ final class NiriLayout {
     func contentWidth(_ workspace: NiriWorkspace) -> CGFloat {
         guard !workspace.columns.isEmpty else { return 0 }
         let widths = workspace.columns.reduce(CGFloat.zero) { $0 + width(of: $1) }
-        return widths + Self.gap * CGFloat(workspace.columns.count - 1) + 2 * Self.outerGap
+        return widths + gap * CGFloat(workspace.columns.count - 1) + 2 * outerGap
     }
 
     private func centeredOffset(_ frame: CGRect) -> CGFloat {
@@ -193,8 +205,8 @@ final class NiriLayout {
             return
         }
         var offset = clampOffset(workspace.viewOffset, in: workspace)
-        if frame.minX - Self.outerGap < offset { offset = frame.minX - Self.outerGap }
-        if frame.maxX + Self.outerGap > offset + viewport.width { offset = frame.maxX + Self.outerGap - viewport.width }
+        if frame.minX - outerGap < offset { offset = frame.minX - outerGap }
+        if frame.maxX + outerGap > offset + viewport.width { offset = frame.maxX + outerGap - viewport.width }
         workspace.viewOffset = clampOffset(offset, in: workspace)
     }
 

@@ -25,8 +25,9 @@ width — an ordinary browser window, centred, with the neighbours peeking in at
 stacked vertically and exactly one is on screen at a time. The bottom workspace is always empty — move a window into it
 and a fresh empty one appears below (niri's dynamic workspaces); a workspace that runs out of windows disappears.
 
-Nothing needs the keyboard: click a background window to pull it in, use the `‹` `›` buttons on the screen edges and
-the workspace stepper in the top bar, `+` for a new window, right-click a title bar for the rest. Scrolling over the
+Nothing needs the keyboard: click a background window to pull it in, use the `‹` `›` buttons on the screen edges —
+at the end of the strip the right one becomes a `+` that adds a window — the workspace stepper in the top bar, and a
+right-click on a title bar for the rest. Scrolling over the
 layout's own chrome (title bars, gaps, background) pans the strip and changes workspace too — over a page, scrolling
 stays the page's.
 

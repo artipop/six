@@ -22,9 +22,16 @@ Every mutation goes through `mutate { }`, which runs `normalize` afterwards, so 
 
 ## Geometry
 
-Widths are fractions of the working area (`widthPresets = [0.5, 2/3, 0.88, 1.0]`, default `0.88`): an ordinary browser
-window with the next one peeking in at the edge. One gap is folded into `usableWidth`, so N columns of `1/N` fill the
-screen exactly. A strip narrower than the viewport is centred instead of pinned left.
+**Everything here is a fraction of the viewport, never a pixel count** — the layout has to read the same on a laptop
+and on a 5K panel. Widths are fractions of the working area (`widthPresets = [0.5, 2/3, 0.88, 1.0]`, default `0.88`),
+gaps are `gapFraction` (1 % of the width), the vertical space between workspaces is `workspaceGapFraction` (2 % of the
+height). The absolute numbers left in the file are floors (`minimumGap`, the 280 pt minimum column) that only matter
+in a tiny window. Control metrics — title bar heights, button sizes, corner radii — deliberately stay in points, since
+text and controls don't scale with the screen either.
+
+So the default column keeps ~7 % of the screen visible of each neighbour at any size: 89 pt at 1280 wide, 178 pt at
+2560, 238 pt at 3440. One gap is folded into `usableWidth`, so N columns of `1/N` fill the screen exactly, and a strip
+narrower than the viewport is centred instead of pinned left.
 
 The focused column is **centred** by default (niri's `center-focused-column`), so both neighbours peek in by the same
 amount; while centring is on the strip may scroll until the first/last column reaches the middle, which is what lets
