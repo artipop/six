@@ -42,8 +42,14 @@ private struct TopBar: View {
         HStack(spacing: 10) {
             Color.clear.frame(width: 68, height: 1) // room for the window buttons
             ProfileSwitcher(isAddingProfile: $isAddingProfile)
+            Divider().frame(height: 16)
+            Button { browser.newTab() } label: {
+                Image(systemName: "plus")
+            }
+            .buttonStyle(.borderless)
+            .help("New Window (⌘T)")
             Spacer(minLength: 12)
-            WorkspacePips()
+            WorkspaceStepper()
             Button { browser.toggleOverview() } label: {
                 Image(systemName: layout.isOverview ? "rectangle.grid.1x2.fill" : "rectangle.grid.1x2")
             }
@@ -60,6 +66,26 @@ private struct TopBar: View {
         .background(.bar)
         .overlay(alignment: .bottom) { Divider() }
         .sheet(isPresented: $isAddingProfile) { NewProfileSheet() }
+    }
+}
+
+/// The workspace indicator with a chevron on each side, so the vertical stack is reachable by mouse.
+private struct WorkspaceStepper: View {
+    @Environment(BrowserState.self) private var browser
+
+    var body: some View {
+        let layout = browser.layout
+        HStack(spacing: 6) {
+            Button { browser.focusWorkspace(-1) } label: { Image(systemName: "chevron.up") }
+                .disabled(!layout.canFocusWorkspace(-1))
+                .help("Workspace above (⌥↑)")
+            WorkspacePips()
+            Button { browser.focusWorkspace(1) } label: { Image(systemName: "chevron.down") }
+                .disabled(!layout.canFocusWorkspace(1))
+                .help("Workspace below (⌥↓)")
+        }
+        .buttonStyle(.borderless)
+        .font(.caption)
     }
 }
 

@@ -1,8 +1,11 @@
 import AppKit
 import SwiftUI
+import WebKit
 
 /// Intercepts scroll wheel / trackpad events before they reach the web views so Mod + scroll drives
-/// the layout instead of the page — niri's `Mod+WheelScrollDown` bindings.
+/// the layout instead of the page — niri's `Mod+WheelScrollDown` bindings. Without Mod the same
+/// gestures work over the layout's own chrome (window title bars, the gaps, the background), which
+/// keeps plain scrolling inside pages and panels untouched.
 ///
 /// Vertical: one workspace per gesture. Deltas accumulate into a rubber-band preview; once they pass
 /// the threshold the switch is committed and everything else in that gesture (including trackpad
@@ -47,7 +50,9 @@ final class NiriScrollMonitor {
 
     private func handle(_ event: NSEvent) -> NSEvent? {
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-        guard flags == Self.modifier || (flags.isEmpty && modifierOptional()) else { return event }
+        if flags != Self.modifier {
+            guard flags.isEmpty, modifierOptional() || isOverLayoutChrome(event) else { return event }
+        }
 
         if event.timestamp - lastEventTime > idleReset { resetGesture() }
         lastEventTime = event.timestamp
@@ -95,6 +100,18 @@ final class NiriScrollMonitor {
             onPreview(accumulated * 0.35)
         }
         return nil
+    }
+
+    /// True when the pointer sits on the layout itself rather than on something that scrolls: a page,
+    /// a list, a text view. Those keep every unmodified scroll event.
+    private func isOverLayoutChrome(_ event: NSEvent) -> Bool {
+        guard let hit = event.window?.contentView?.hitTest(event.locationInWindow) else { return false }
+        var view: NSView? = hit
+        while let current = view {
+            if current is WKWebView || current is NSScrollView || current is NSTextView { return false }
+            view = current.superview
+        }
+        return true
     }
 
     /// Discrete wheels have no phase to end a gesture on, so they are throttled by time instead.

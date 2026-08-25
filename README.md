@@ -25,7 +25,12 @@ width — an ordinary browser window, with the next one peeking in at the edge t
 stacked vertically and exactly one is on screen at a time. The bottom workspace is always empty — move a window into it
 and a fresh empty one appears below (niri's dynamic workspaces); a workspace that runs out of windows disappears.
 
-`⌥` stands in for niri's `Mod`. Pages need plain scrolling for themselves, so the layout only reacts to `⌥`+scroll:
+Nothing needs the keyboard: click a background window to pull it in, use the `‹` `›` buttons on the screen edges and
+the workspace stepper in the top bar, `+` for a new window, right-click a title bar for the rest. Scrolling over the
+layout's own chrome (title bars, gaps, background) pans the strip and changes workspace too — over a page, scrolling
+stays the page's.
+
+`⌥` stands in for niri's `Mod`, and with it held the gestures work anywhere:
 
 | | |
 |---|---|
@@ -38,6 +43,9 @@ and a fresh empty one appears below (niri's dynamic workspaces); a workspace tha
 | `⌘T` / `⌘W` | new window in the strip, right of the focused one / close it |
 
 Only columns near the viewport get a real `WebView`; the rest render as cards, so a long strip stays cheap.
+
+Full reference: [docs/](docs/) — [controls](docs/controls.md), [layout](docs/layout.md),
+[architecture](docs/architecture.md), [assistant](docs/assistant.md), [agents](docs/agents.md), [build](docs/build.md).
 
 ```
 six/Niri        NiriLayout (workspaces, columns, geometry, focus/move ops), NiriScrollMonitor (⌥+scroll gestures)

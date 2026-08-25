@@ -24,7 +24,10 @@ struct NiriStripView: View {
         }
         .background(StripBackground())
         .clipped()
+        .overlay(alignment: .leading) { StripEdgeButton(direction: -1) }
+        .overlay(alignment: .trailing) { StripEdgeButton(direction: 1) }
         .overlay(alignment: .top) { OverviewChrome() }
+        .contextMenu { StripMenu() }
         .onAppear(perform: startMonitor)
         .onDisappear { monitor.stop() }
         .focusedSceneValue(\.focusAddressBar, FocusAddressBarAction {
@@ -81,20 +84,22 @@ private struct WorkspaceView: View {
             ForEach(Array(workspace.columns.enumerated()), id: \.element.id) { position, column in
                 if let tab = browser.tab(column.tabID), frames.indices.contains(position) {
                     let frame = frames[position]
+                    let isFocused = isCurrent && position == workspace.focus
                     ColumnView(
                         tab: tab,
-                        isFocused: isCurrent && position == workspace.focus,
+                        isFocused: isFocused,
                         isLive: isLive(workspaceDistance: abs(index - layout.focusedWorkspaceIndex),
                                        x: frame.minX - scroll, width: frame.width, layout: layout),
                         addressFocus: addressFocus
                     )
                     .frame(width: frame.width, height: frame.height)
                     .offset(x: frame.minX - scroll, y: frame.minY)
-                    .zIndex(isCurrent && position == workspace.focus ? 1 : 0)
+                    .zIndex(isFocused ? 1 : 0)
                     .allowsHitTesting(!layout.isOverview)
                     .overlay {
-                        if layout.isOverview {
-                            // In the overview a page is a picture, not a target: one click focuses it.
+                        // In the overview a page is a picture, not a target; and elsewhere a click on a
+                        // background window brings it into focus instead of reaching the page under it.
+                        if layout.isOverview || !isFocused {
                             Color.white.opacity(0.001)
                                 .contentShape(Rectangle())
                                 .onTapGesture {
@@ -120,16 +125,23 @@ private struct WorkspaceView: View {
 }
 
 private struct EmptyWorkspaceHint: View {
+    @Environment(BrowserState.self) private var browser
+
     var body: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 10) {
             Image(systemName: "rectangle.split.3x1")
                 .font(.system(size: 26, weight: .light))
-            Text("Empty workspace")
-                .font(.callout.weight(.medium))
-            Text("⌘T opens a window here")
+                .foregroundStyle(.tertiary)
+            Button { browser.newTab() } label: {
+                Label("New Window", systemImage: "plus")
+                    .padding(.horizontal, 6)
+            }
+            .controlSize(.large)
+            .buttonStyle(.borderedProminent)
+            Text("or ⌘T")
                 .font(.caption)
+                .foregroundStyle(.tertiary)
         }
-        .foregroundStyle(.tertiary)
     }
 }
 
@@ -150,6 +162,7 @@ private struct ColumnView: View {
     var body: some View {
         VStack(spacing: 0) {
             WindowChrome(tab: tab, isFocused: isFocused, addressFocus: addressFocus)
+                .contextMenu { ColumnMenu(tab: tab) }
             Divider()
             if isLive {
                 WebView(tab.page)
@@ -193,6 +206,75 @@ private struct ColumnPlaceholder: View {
             }
             .padding(24)
         }
+    }
+}
+
+// MARK: - Mouse controls
+
+/// Chevron parked on the left/right edge: one click scrolls the strip by one column. Hidden when
+/// there is nothing that way, so the edge itself tells you whether the strip continues.
+private struct StripEdgeButton: View {
+    let direction: Int
+
+    @Environment(BrowserState.self) private var browser
+    @State private var hovering = false
+
+    var body: some View {
+        let layout = browser.layout
+        let available = direction < 0 ? layout.canFocusColumn(-1) : layout.canFocusColumn(1)
+        if available && !layout.isOverview {
+            Button { browser.focusColumn(direction) } label: {
+                Image(systemName: direction < 0 ? "chevron.left" : "chevron.right")
+                    .font(.system(size: 15, weight: .semibold))
+                    .frame(width: 30, height: 60)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(.separator)
+                    }
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 6)
+            .opacity(hovering ? 1 : 0.45)
+            .onHover { hovering = $0 }
+            .animation(.easeOut(duration: 0.15), value: hovering)
+            .help(direction < 0 ? "Previous window (⌥←)" : "Next window (⌥→)")
+            .transition(.opacity)
+        }
+    }
+}
+
+/// Right-click on the canvas.
+private struct StripMenu: View {
+    @Environment(BrowserState.self) private var browser
+
+    var body: some View {
+        Button("New Window") { browser.newTab() }
+        Divider()
+        Button("Workspace Above") { browser.focusWorkspace(-1) }
+            .disabled(!browser.layout.canFocusWorkspace(-1))
+        Button("Workspace Below") { browser.focusWorkspace(1) }
+            .disabled(!browser.layout.canFocusWorkspace(1))
+        Button(browser.layout.isOverview ? "Close Overview" : "Overview") { browser.toggleOverview() }
+    }
+}
+
+/// Right-click on a window's title bar: everything the ⌥ bindings do, without ⌥.
+private struct ColumnMenu: View {
+    let tab: BrowserTab
+
+    @Environment(BrowserState.self) private var browser
+
+    var body: some View {
+        Button("New Window") { browser.newTab() }
+        Button("Close Window") { browser.closeTab(tab.id) }
+        Divider()
+        Button("Cycle Width") { browser.selectTab(tab.id); browser.cycleColumnWidth() }
+        Button("Full Width") { browser.selectTab(tab.id); browser.toggleFullWidth() }
+        Divider()
+        Button("Move Left") { browser.selectTab(tab.id); browser.moveColumn(-1) }
+        Button("Move Right") { browser.selectTab(tab.id); browser.moveColumn(1) }
+        Button("Move to Workspace Above") { browser.selectTab(tab.id); browser.moveColumnToWorkspace(-1) }
+        Button("Move to Workspace Below") { browser.selectTab(tab.id); browser.moveColumnToWorkspace(1) }
     }
 }
 

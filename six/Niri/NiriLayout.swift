@@ -68,6 +68,17 @@ final class NiriLayout {
     var focusedTabID: UUID? { focusedWorkspace?.focusedColumn?.tabID }
     var hasColumns: Bool { strip.workspaces.contains { !$0.isEmpty } }
 
+    /// Is there a column that way? Drives the on-screen edge buttons.
+    func canFocusColumn(_ delta: Int) -> Bool {
+        guard let ws = focusedWorkspace else { return false }
+        return ws.columns.indices.contains(ws.focus + delta)
+    }
+
+    func canFocusWorkspace(_ delta: Int) -> Bool {
+        let s = strip
+        return s.workspaces.indices.contains(s.focus + delta)
+    }
+
     /// Vertical distance between two workspaces. Only visible mid-switch — and in the overview,
     /// where it is opened up so the neighbours read as separate screens.
     var workspaceSpacing: CGFloat { isOverview ? 90 : 16 }
