@@ -5,19 +5,21 @@ Modelled on [niri](https://github.com/YaLTeR/niri). There are no tabs and no sid
 - A page is a **column**: a full-height window with its own title bar (back/forward/reload, address field, close).
 - Columns sit left to right in an endlessly scrollable **strip**. One strip is a **workspace**.
 - Workspaces are stacked **vertically**; exactly one is on screen. Each profile has its own stack.
+- A workspace can be **named** (double-click its plate in the overview). Naming is optional; an unnamed one is just
+  "Workspace N". A named workspace survives running out of windows, an unnamed one disappears — same as niri.
 
 ## Model — `six/Niri/NiriLayout.swift`
 
 ```
 NiriStrip     workspaces: [NiriWorkspace], focus: Int      // one per profile
-NiriWorkspace columns: [NiriColumn], focus: Int, viewOffset: CGFloat
+NiriWorkspace name: String, columns: [NiriColumn], focus: Int, viewOffset: CGFloat
 NiriColumn    tabID: UUID, widthIndex: Int                 // points at a BrowserTab
 ```
 
 Every mutation goes through `mutate { }`, which runs `normalize` afterwards, so the invariants hold by construction:
 
-- **Dynamic workspaces.** Exactly one empty workspace is kept at the bottom; empty ones in between are dropped. The
-  trailing workspace keeps its identity across the prune, so focus survives it.
+- **Dynamic workspaces.** Exactly one empty workspace is kept at the bottom; empty ones in between are dropped, unless
+  they are named. The trailing workspace keeps its identity across the prune, so focus survives it.
 - Column focus stays in range, and `viewOffset` stays clamped.
 
 ## Geometry

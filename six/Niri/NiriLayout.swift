@@ -14,6 +14,8 @@ struct NiriColumn: Identifiable, Hashable, Sendable {
 /// A niri workspace: an infinite horizontal strip of full-height columns.
 struct NiriWorkspace: Identifiable, Sendable {
     var id = UUID()
+    /// Optional, like niri's named workspaces. A named one survives running out of windows.
+    var name: String = ""
     var columns: [NiriColumn] = []
     /// Index of the focused column.
     var focus: Int = 0
@@ -110,11 +112,11 @@ final class NiriLayout {
     }
 
     /// Keeps exactly one trailing empty workspace and drops the empty ones in between — niri's
-    /// dynamic workspaces.
+    /// dynamic workspaces. A named workspace stays even when it is empty, also like niri.
     private func normalize(_ s: inout NiriStrip) {
         let focusedID = s.workspaces.indices.contains(s.focus) ? s.workspaces[s.focus].id : nil
-        var kept = s.workspaces.filter { !$0.isEmpty }
-        if let trailing = s.workspaces.last, trailing.isEmpty {
+        var kept = s.workspaces.filter { !$0.isEmpty || !$0.name.isEmpty }
+        if let trailing = s.workspaces.last, trailing.isEmpty, trailing.name.isEmpty {
             kept.append(trailing) // reuse its identity so focus survives the prune
         } else {
             kept.append(NiriWorkspace())
@@ -417,6 +419,21 @@ final class NiriLayout {
             scrollFocusIntoView(&destination)
             s.workspaces[target] = destination
             s.focus = target
+        }
+    }
+
+    /// The name, or the position when there is none.
+    func title(at index: Int) -> String {
+        guard workspaces.indices.contains(index), !workspaces[index].name.isEmpty else {
+            return "Workspace \(index + 1)"
+        }
+        return workspaces[index].name
+    }
+
+    func rename(workspaceAt index: Int, to name: String) {
+        mutate { s in
+            guard s.workspaces.indices.contains(index) else { return }
+            s.workspaces[index].name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         }
     }
 

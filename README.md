@@ -23,7 +23,11 @@ There are no tabs and no sidebar. A page is a **column**: a full-height window w
 address field), laid out left to right in an endlessly scrollable **strip**. A column defaults to almost the full
 width — an ordinary browser window, centred, with the neighbours peeking in at both edges to be scrolled to. A strip is a **workspace**; workspaces are
 stacked vertically and exactly one is on screen at a time. The bottom workspace is always empty — move a window into it
-and a fresh empty one appears below (niri's dynamic workspaces); a workspace that runs out of windows disappears.
+and a fresh empty one appears below (niri's dynamic workspaces); a workspace that runs out of windows disappears,
+unless you gave it a name (double-click its plate in the overview).
+
+A new window opens on six's own start page — one field for both queries and addresses, with completions from the
+search engine, so the first thing a window does isn't a network request. See [docs/start-page.md](docs/start-page.md).
 
 Nothing needs the keyboard: click a background window to pull it in, use the `‹` `›` buttons on the screen edges —
 at the end of the strip the right one becomes a `+` that adds a window — the workspace stepper in the top bar, and a
@@ -51,8 +55,8 @@ Full reference: [docs/](docs/) — [controls](docs/controls.md), [layout](docs/l
 
 ```
 six/Niri        NiriLayout (workspaces, columns, geometry, focus/move ops), NiriScrollMonitor (⌥+scroll gestures)
-six/Browser     Profile, BrowserTab (WebPage), BrowserState
-six/Views       ContentView (top bar), NiriStripView (strip + overview), WindowChrome, AssistantBar, AgentPanel
+six/Browser     Profile, BrowserTab (WebPage), BrowserState, SearchEngine + SearchSuggestions
+six/Views       ContentView (top bar), NiriStripView (strip + overview), WindowChrome, StartPage, AssistantBar, AgentPanel
 six/Assistant   ModelChoice/AssistantSettings (model selection), AssistantStore (streaming), FM compatibility probe
 six/ACP         ACPJSON, JSONRPCConnection, ACPTypes, ACPAgent (process), ACPClient (actor), AgentSessionStore (VM)
 six/Vendor      ClaudeForFoundationModels sources (see note below)

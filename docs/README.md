@@ -7,6 +7,7 @@ reference.
 |---|---|
 | [controls.md](controls.md) | every mouse and keyboard control |
 | [layout.md](layout.md) | the niri layout: model, geometry, gestures |
+| [start-page.md](start-page.md) | the start page, search and suggestions |
 | [architecture.md](architecture.md) | modules and how state flows |
 | [assistant.md](assistant.md) | the ⌘K assistant on Foundation Models |
 | [agents.md](agents.md) | the ACP client and the agent panel |

@@ -4,8 +4,8 @@ SwiftUI, one window, `@Observable` state in the environment. Everything is `@Mai
 
 ```
 six/Niri        NiriLayout (workspaces, columns, geometry, focus/move ops), NiriScrollMonitor (scroll gestures)
-six/Browser     Profile, BrowserTab (WebPage), BrowserState
-six/Views       ContentView (top bar), NiriStripView (strip + overview), WindowChrome, AssistantBar, AgentPanel
+six/Browser     Profile, BrowserTab (WebPage), BrowserState, SearchEngine, SearchSuggestions
+six/Views       ContentView (top bar), NiriStripView (strip + overview), WindowChrome, StartPage, AssistantBar, AgentPanel
 six/Assistant   ModelChoice/AssistantSettings, AssistantStore (streaming), FoundationModelsCompatibility
 six/ACP         ACPJSON, JSONRPCConnection, ACPTypes, ACPAgent (process), ACPClient (actor), AgentSessionStore
 six/Vendor      ClaudeForFoundationModels sources

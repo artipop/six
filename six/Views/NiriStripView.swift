@@ -21,13 +21,14 @@ struct NiriStripView: View {
             }
             .frame(width: proxy.size.width, height: proxy.size.height, alignment: .topLeading)
             .scaleEffect(layout.overviewScale, anchor: .center)
+            .overlay { if layout.isOverview { WorkspacePlates(size: proxy.size) } }
             .onChange(of: proxy.size, initial: true) { layout.updateViewport(proxy.size) }
         }
         .background(StripBackground())
         .clipped()
         .overlay(alignment: .leading) { StripEdgeButton(direction: -1) }
         .overlay(alignment: .trailing) { StripEdgeButton(direction: 1) }
-        .overlay(alignment: .top) { OverviewChrome() }
+        .overlay(alignment: .bottom) { OverviewHint() }
         .contextMenu { StripMenu() }
         .onAppear(perform: startMonitor)
         .onDisappear { monitor.stop() }
@@ -175,7 +176,18 @@ private struct ColumnView: View {
             WindowChrome(tab: tab, isFocused: isFocused, addressFocus: addressFocus)
                 .contextMenu { ColumnMenu(tab: tab) }
             Divider()
-            if isLive {
+            if tab.showsStartPage {
+                // Pure SwiftUI, so the plain overlay is enough to catch the first click here.
+                StartPage(tab: tab, isActive: isFocused && !browser.layout.isOverview)
+                    .allowsHitTesting(!capturesClicks)
+                    .overlay {
+                        if capturesClicks {
+                            Color.white.opacity(0.001)
+                                .contentShape(Rectangle())
+                                .onTapGesture(perform: activate)
+                        }
+                    }
+            } else if isLive {
                 WebView(tab.page)
                     .webViewBackForwardNavigationGestures(.enabled)
                     .id(tab.id)
@@ -351,27 +363,88 @@ private struct StripBackground: View {
     }
 }
 
-/// Workspace name plates, shown only while the overview is open.
-private struct OverviewChrome: View {
+/// Name plates riding above each strip in the overview. They sit outside the scaled canvas, so the
+/// text stays readable however far the overview is zoomed out — which means placing them by hand:
+/// a point `p` of the canvas lands at `centre + (p - centre) * scale` on screen.
+private struct WorkspacePlates: View {
+    let size: CGSize
+
     @Environment(BrowserState.self) private var browser
+    @State private var editing: UUID?
+    @State private var draft = ""
+    @FocusState private var focused: Bool
 
     var body: some View {
         let layout = browser.layout
-        if layout.isOverview {
-            VStack {
-                Text("Workspace \(layout.focusedWorkspaceIndex + 1) of \(layout.workspaces.count)")
-                    .font(.caption.weight(.semibold))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(.regularMaterial, in: Capsule())
-                    .padding(.top, 8)
-                Spacer()
-                Text("scroll up/down for workspaces · sideways to run along a strip · click a window to open it · ⌥O to close")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .padding(.bottom, 12)
+        let centre = size.height / 2
+        let step = size.height + layout.workspaceSpacing
+        ZStack(alignment: .topLeading) {
+            Color.clear
+            ForEach(Array(layout.workspaces.enumerated()), id: \.element.id) { index, workspace in
+                let top = CGFloat(index - layout.focusedWorkspaceIndex) * step + layout.verticalPreview
+                plate(index: index, workspace: workspace)
+                    .position(x: size.width / 2, y: max(16, centre + (top - centre) * layout.overviewScale - 16))
             }
-            .transition(.opacity)
+        }
+    }
+
+    @ViewBuilder
+    private func plate(index: Int, workspace: NiriWorkspace) -> some View {
+        let layout = browser.layout
+        let isCurrent = index == layout.focusedWorkspaceIndex
+        Group {
+            if editing == workspace.id {
+                TextField("Name", text: $draft)
+                    .textFieldStyle(.plain)
+                    .font(.caption.weight(.semibold))
+                    .frame(width: 160)
+                    .focused($focused)
+                    .onSubmit { commit(index) }
+                    .onExitCommand { editing = nil }
+            } else {
+                Text(layout.title(at: index))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(isCurrent ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
+                    .onTapGesture(count: 2) { startEditing(workspace) }
+                    .onTapGesture { browser.focusWorkspace(at: index) }
+                    .contextMenu {
+                        Button("Rename…") { startEditing(workspace) }
+                        if !workspace.name.isEmpty {
+                            Button("Clear Name") { browser.layout.rename(workspaceAt: index, to: "") }
+                        }
+                    }
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(.regularMaterial, in: Capsule())
+        .overlay { if isCurrent { Capsule().strokeBorder(browser.selectedProfile.color, lineWidth: 1.5) } }
+        .help("Double-click to rename")
+    }
+
+    private func startEditing(_ workspace: NiriWorkspace) {
+        draft = workspace.name
+        editing = workspace.id
+        focused = true
+    }
+
+    private func commit(_ index: Int) {
+        browser.layout.rename(workspaceAt: index, to: draft)
+        editing = nil
+    }
+}
+
+/// The one-line reminder along the bottom of the overview.
+private struct OverviewHint: View {
+    @Environment(BrowserState.self) private var browser
+
+    var body: some View {
+        if browser.layout.isOverview {
+            Text("scroll up/down for workspaces · sideways to run along a strip · click a window to open it · double-click a name to rename · ⌥O to close")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .padding(.bottom, 12)
+                .transition(.opacity)
         }
     }
 }

@@ -101,7 +101,7 @@ private struct WorkspacePips: View {
                         }
                     }
                     .onTapGesture { browser.focusWorkspace(at: index) }
-                    .help(workspace.isEmpty ? "Empty workspace" : "\(workspace.columns.count) window(s)")
+                    .help(layout.title(at: index) + (workspace.isEmpty ? " (empty)" : " · \(workspace.columns.count) window(s)"))
             }
         }
         .animation(NiriLayout.switchAnimation, value: layout.focusedWorkspaceIndex)

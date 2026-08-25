@@ -9,6 +9,9 @@ final class BrowserTab: Identifiable {
     let id = UUID()
     let profileID: Profile.ID
     let page: WebPage
+    /// A fresh window shows six's own start page instead of loading someone's home page. The first
+    /// navigation replaces it for good.
+    private(set) var showsStartPage = true
 
     init(profileID: Profile.ID, dataStore: WKWebsiteDataStore) {
         self.profileID = profileID
@@ -19,11 +22,13 @@ final class BrowserTab: Identifiable {
     }
 
     var title: String {
+        if showsStartPage { return "New Window" }
         if !page.title.isEmpty { return page.title }
         return page.url?.host() ?? "New Tab"
     }
 
     func load(_ url: URL) {
+        showsStartPage = false
         _ = page.load(URLRequest(url: url))
     }
 
@@ -52,8 +57,14 @@ extension URL {
         if looksLikeHost, let url = URL(string: "https://\(text)") {
             return url
         }
-        var components = URLComponents(string: "https://duckduckgo.com/")!
-        components.queryItems = [URLQueryItem(name: "q", value: text)]
-        return components.url
+        return SearchEngine.current.searchURL(for: text)
+    }
+
+    /// Does this look like something to open rather than something to search for?
+    static func looksLikeAddress(_ raw: String) -> Bool {
+        let text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty, !text.contains(" ") else { return false }
+        if let scheme = URL(string: text)?.scheme, ["http", "https", "file", "about"].contains(scheme) { return true }
+        return text.contains(".") || text.hasPrefix("localhost")
     }
 }

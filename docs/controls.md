@@ -15,6 +15,7 @@ Nothing needs the keyboard: every layout operation has a mouse equivalent. `⌥`
 | right-click the background | new window, workspace up/down, overview, centring on/off |
 | scroll over a title bar, a gap or the background | one window sideways / one workspace up-down per gesture — over a page or a panel, scrolling stays the page's |
 | overview button (top right) | zoom out to all workspaces; scroll sideways to run along a strip, click a window to open it |
+| double-click a workspace name (overview) | rename it; right-click the name to rename or clear it. A named workspace stays even when empty |
 | `×` on a title bar | close that window |
 | the profile dots (top left) | switch profile — each has its own strip; `+` adds one, right-click deletes |
 

@@ -19,7 +19,6 @@ final class BrowserState {
     @ObservationIgnored private var dataStores: [UUID: WKWebsiteDataStore] = [:]
     @ObservationIgnored private let profilesKey = "six.profiles"
 
-    nonisolated static let homeURL = URL(string: "https://duckduckgo.com")!
 
     init() {
         var loaded = Profile.defaults
@@ -96,7 +95,7 @@ final class BrowserState {
     }
 
     @discardableResult
-    func newTab(url: URL = BrowserState.homeURL, in profileID: Profile.ID? = nil) -> BrowserTab {
+    func newTab(url: URL? = nil, in profileID: Profile.ID? = nil) -> BrowserTab {
         let profile = profiles.first { $0.id == profileID } ?? selectedProfile
         let tab = BrowserTab(profileID: profile.id, dataStore: dataStore(for: profile))
         tabs.append(tab)
@@ -108,7 +107,7 @@ final class BrowserState {
             layout.insertColumn(tabID: tab.id)
         }
         syncSelection()
-        tab.load(url)
+        if let url { tab.load(url) }
         return tab
     }
 
