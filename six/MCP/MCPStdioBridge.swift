@@ -59,7 +59,7 @@ nonisolated enum MCPStdioBridge {
             guard count > 0 else { return }
             var written = 0
             while written < count {
-                let n = write(destination, buffer.withUnsafeBufferPointer { $0.baseAddress! + written }, count - written)
+                let n = buffer.withUnsafeBytes { write(destination, $0.baseAddress! + written, count - written) }
                 guard n > 0 else { return }
                 written += n
             }

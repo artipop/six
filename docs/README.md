@@ -10,6 +10,7 @@ reference.
 | [layout.md](layout.md) | the niri layout: model, geometry, gestures |
 | [start-page.md](start-page.md) | the start page, search and suggestions |
 | [architecture.md](architecture.md) | modules and how state flows |
+| [bookmarks.md](bookmarks.md) | bookmarks: readable Markdown copies per profile, on-device embeddings, search from the assistant and MCP |
 | [assistant.md](assistant.md) | the ⌘K assistant on Foundation Models |
 | [agents.md](agents.md) | the ACP client and the agent panel |
 | [mcp.md](mcp.md) | `six --mcp`: the browser as an MCP server, and its tools |

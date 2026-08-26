@@ -17,6 +17,8 @@ final class BrowserState {
     let layout = NiriLayout()
     /// Visits, per profile.
     let history: HistoryStore
+    /// Saved pages, per profile; wired at launch. Removing a profile removes its bookmarks.
+    @ObservationIgnored var bookmarks: BookmarkStore?
     @ObservationIgnored private let settings: SettingsStore
 
     @ObservationIgnored private var dataStores: [UUID: WKWebsiteDataStore] = [:]
@@ -116,6 +118,7 @@ final class BrowserState {
     func removeProfile(_ id: Profile.ID) {
         guard profiles.count > 1, let profile = profiles.first(where: { $0.id == id }) else { return }
         for tab in tabs(in: id) { closeTab(tab.id) }
+        bookmarks?.removeAll(in: id)
         profiles.removeAll { $0.id == id }
         dataStores[profile.dataStoreID] = nil
         layout.removeProfile(id)

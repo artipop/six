@@ -32,6 +32,8 @@ row is backed by a menu item or a view — the file is named so nothing here can
 | `⌘K` | focus the assistant line |
 | `⌘⇧A` | agent panel on / off |
 | `⌘Y` | history of the current profile |
+| `⌘D` | bookmark the focused page (again: remove the bookmark) |
+| `⌘⌥B` | bookmarks, searchable by meaning |
 | `Esc` | leave fullscreen, or close the overview; otherwise the page's own |
 
 ## Start page (a new window)

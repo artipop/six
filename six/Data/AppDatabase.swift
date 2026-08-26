@@ -35,6 +35,58 @@ nonisolated enum AppDatabase {
                 ) STRICT
                 """).execute(db)
         }
+        migrator.registerMigration("v2 bookmarks") { db in
+            try #sql("""
+                CREATE TABLE "bookmarks" (
+                  "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE,
+                  "profileID" TEXT NOT NULL,
+                  "url" TEXT NOT NULL,
+                  "title" TEXT NOT NULL DEFAULT '',
+                  "excerpt" TEXT NOT NULL DEFAULT '',
+                  "siteName" TEXT NOT NULL DEFAULT '',
+                  "imageURL" TEXT,
+                  "fileName" TEXT NOT NULL DEFAULT '',
+                  "language" TEXT NOT NULL DEFAULT '',
+                  "characterCount" INTEGER NOT NULL DEFAULT 0,
+                  "createdAt" TEXT NOT NULL,
+                  "indexedAt" TEXT,
+                  "embeddingModel" TEXT NOT NULL DEFAULT '',
+                  "indexError" TEXT
+                ) STRICT
+                """).execute(db)
+            try #sql("""
+                CREATE INDEX "bookmarks_by_profile_time" ON "bookmarks"("profileID", "createdAt" DESC)
+                """).execute(db)
+            try #sql("""
+                CREATE TABLE "bookmark_chunks" (
+                  "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE,
+                  "bookmarkID" TEXT NOT NULL,
+                  "ord" INTEGER NOT NULL DEFAULT 0,
+                  "text" TEXT NOT NULL
+                ) STRICT
+                """).execute(db)
+            try #sql("""
+                CREATE INDEX "bookmark_chunks_by_bookmark" ON "bookmark_chunks"("bookmarkID", "ord")
+                """).execute(db)
+            // The vector index: one unit-length float32 vector per chunk, scanned in Swift (see
+            // `BookmarkStore.vectorSearch`). Local only, rebuildable from the chunks; a BLOB in its
+            // own table, as SQLiteData's CloudKit rules want. The Apple SQLite refuses extensions —
+            // `sqlite3_auto_extension` answers SQLITE_MISUSE — so sqlite-vec would need our own SQLite
+            // build under GRDB; docs/bookmarks.md has the trade-off.
+            try #sql("""
+                CREATE TABLE "bookmark_vectors" (
+                  "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE,
+                  "chunkID" TEXT NOT NULL,
+                  "bookmarkID" TEXT NOT NULL,
+                  "profileID" TEXT NOT NULL,
+                  "model" TEXT NOT NULL,
+                  "embedding" BLOB NOT NULL
+                ) STRICT
+                """).execute(db)
+            try #sql("""
+                CREATE INDEX "bookmark_vectors_by_model_profile" ON "bookmark_vectors"("model", "profileID")
+                """).execute(db)
+        }
         try migrator.migrate(database)
         return database
     }

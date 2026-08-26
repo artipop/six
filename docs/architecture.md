@@ -7,7 +7,8 @@ The entry point is `SixMain`, not the `App`: with `--mcp` the process never touc
 ```
 six/Niri        NiriLayout (workspaces, columns, geometry, focus/move ops), NiriScrollMonitor (scroll gestures)
 six/Browser     Profile, BrowserTab (WebPage), BrowserState, History, SearchEngine, SearchSuggestions, WebSearch
-six/Views       ContentView (top bar), NiriStripView (strip + overview), WindowChrome, StartPage, AssistantBar, AgentPanel, HistoryView
+six/Bookmarks   Bookmark (tables), ReadablePage (page → Markdown), Embedder (NLContextualEmbedding), BookmarkStore (files, index, search)
+six/Views       ContentView (top bar), NiriStripView (strip + overview), WindowChrome, StartPage, AssistantBar, AgentPanel, HistoryView, BookmarksView
 six/Assistant   ModelChoice/AssistantSettings, AssistantStore (streaming), FoundationModelsCompatibility
 six/ACP         ACPJSON, JSONRPCConnection, ACPTypes, ACPAgent (process), ACPClient (actor), AgentSessionStore
 six/Tools       BrowserToolCatalog (the tools, over BrowserState), BrowserModelTool (Foundation Models adapter)
@@ -28,7 +29,7 @@ Views never mutate `NiriLayout` directly; they call `BrowserState`, which wraps 
 (`animateLayout`). Strip panning is the exception — it follows the trackpad and is deliberately un-animated.
 
 A `Profile` is a name, a colour, a `WKWebsiteDataStore(forIdentifier:)` and an optional working directory for agents
-(otherwise its own folder under Application Support). Switching profiles switches `layout.activeProfileID`, which swaps
+(otherwise its scratchpad, `Profiles/<name>/Scratchpad` under Application Support). Switching profiles switches `layout.activeProfileID`, which swaps
 the whole workspace stack.
 
 ## What six says it is
@@ -82,6 +83,10 @@ the profile's recent visits because SQLite's `LIKE`/`lower()` are ASCII-only. Th
 There is no cap any more. Clearing asks whether to drop the profile's site data too (`BrowserState.clearSiteData`: every
 `WKWebsiteDataStore` type — cookies, local storage, IndexedDB, caches — then the profile's open pages reload from origin). Removing a profile
 removes its history.
+
+Bookmarks are three more tables next to history — `bookmarks`, `bookmark_chunks`, `bookmark_vectors` — plus a
+Markdown file per page in `Profiles/<name>/Bookmarks`; [bookmarks.md](bookmarks.md) has the pipeline, the embedder and the
+search, and why the vectors are BLOBs scanned in Swift rather than `sqlite-vec`.
 
 ## Views
 

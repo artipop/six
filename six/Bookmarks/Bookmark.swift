@@ -1,0 +1,76 @@
+import Foundation
+import SQLiteData
+
+/// A saved page. The row is the record; the readable copy is a Markdown file in the profile's
+/// `Bookmarks` folder (`fileName`), and the searchable form is `bookmark_chunks` + the vectors.
+@Table("bookmarks")
+nonisolated struct Bookmark: Identifiable, Sendable, Hashable {
+    let id: UUID
+    var profileID: UUID
+    var url: URL
+    var title = ""
+    /// The page's own description, or the first paragraph.
+    var excerpt = ""
+    var siteName = ""
+    var imageURL: URL?
+    /// Name of the Markdown file inside the profile's bookmarks folder.
+    var fileName = ""
+    /// BCP-47 tag as the page declared it (or as detected), e.g. `ru`, `en`.
+    var language = ""
+    /// Length of the readable text — a hint of how much was saved.
+    var characterCount = 0
+    var createdAt: Date
+    /// When the chunks were embedded; nil until the index has caught up (or `indexError` says why not).
+    var indexedAt: Date?
+    var embeddingModel = ""
+    var indexError: String?
+
+    var displayTitle: String { title.isEmpty ? url.absoluteString : title }
+    var displayDetail: String { siteName.isEmpty ? (url.host() ?? url.absoluteString) : siteName }
+}
+
+/// One passage of a bookmark's text, in reading order. Chunk 0 is the title and excerpt, so a
+/// search for what a page is about finds it even when the body is long.
+@Table("bookmark_chunks")
+nonisolated struct BookmarkChunk: Identifiable, Sendable {
+    let id: UUID
+    var bookmarkID: UUID
+    var ord: Int
+    var text: String
+}
+
+/// A chunk's embedding: float32, unit length, little-endian, `model` naming the space it lives in.
+@Table("bookmark_vectors")
+nonisolated struct BookmarkVector: Identifiable, Sendable {
+    let id: UUID
+    var chunkID: UUID
+    var bookmarkID: UUID
+    var profileID: UUID
+    var model: String
+    var embedding: Data
+}
+
+/// Which bookmarks a search or an assistant sees: the current profile's, or everyone's.
+nonisolated enum BookmarkScope: String, CaseIterable, Identifiable, Sendable {
+    case profile
+    case all
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .profile: "This Profile"
+        case .all: "All Profiles"
+        }
+    }
+}
+
+/// A search result: the bookmark, how well it matched, and the passage that matched.
+nonisolated struct BookmarkHit: Identifiable, Sendable {
+    var bookmark: Bookmark
+    /// 0…1, higher is better. Vector hits are `1 - cosine distance / 2`; text matches are fixed.
+    var score: Double
+    var snippet: String
+
+    var id: Bookmark.ID { bookmark.id }
+}

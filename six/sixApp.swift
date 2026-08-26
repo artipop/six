@@ -18,6 +18,7 @@ struct sixApp: App {
     @State private var agentSession: AgentSessionStore
     @State private var mcp: MCPHost
     @State private var settings: SettingsStore
+    @State private var bookmarks: BookmarkStore
     @State private var window: WindowState
     @State private var persistence: StatePersistence<FileSnapshotStore<AppStateSnapshot>>
 
@@ -35,10 +36,14 @@ struct sixApp: App {
         SettingsStore.shared = settings
         let history = HistoryStore(database: database)
         let browser = BrowserState(snapshot: snapshot?.browser, history: history, settings: settings)
+        let bookmarks = BookmarkStore(database: database)
+        bookmarks.profile = { [weak browser] id in browser?.profiles.first { $0.id == id } }
+        browser.bookmarks = bookmarks
+        bookmarks.resumeIndexing()
         let assistant = AssistantStore(settings: settings)
         let agentSession = AgentSessionStore(snapshot: snapshot?.agent, settings: settings)
         agentSession.browser = browser
-        let tools = BrowserToolCatalog(browser: browser, assistant: assistant.settings)
+        let tools = BrowserToolCatalog(browser: browser, assistant: assistant.settings, bookmarks: bookmarks, settings: settings)
         assistant.tools = tools
         assistant.agentSession = agentSession
         let mcp = MCPHost(server: MCPServer(catalog: tools))
@@ -53,6 +58,7 @@ struct sixApp: App {
             MainActor.assumeIsolated { persistence.flush() }
         }
         _settings = State(initialValue: settings)
+        _bookmarks = State(initialValue: bookmarks)
         _window = State(initialValue: window)
         _persistence = State(initialValue: persistence)
         _browser = State(initialValue: browser)
@@ -79,6 +85,7 @@ struct sixApp: App {
                 .environment(agentSession)
                 .environment(mcp)
                 .environment(settings)
+                .environment(bookmarks)
                 .background(WindowObserver(state: window))
                 .frame(minWidth: 900, minHeight: 560)
         }
@@ -94,6 +101,7 @@ struct sixApp: App {
             LayoutCommands(browser: browser)
             BrowserCommands(settings: settings)
             HistoryCommands(browser: browser)
+            BookmarkCommands(browser: browser, bookmarks: bookmarks, settings: settings)
         }
     }
 }
@@ -204,6 +212,50 @@ private struct HistoryCommands: Commands {
             Divider()
             Button("Clear \(profile.name) History…") { clearHistory?.perform() }
                 .disabled(clearHistory == nil)
+        }
+    }
+}
+
+/// ⌘D saves the page; the menu lists the profile's recent bookmarks and sets what the assistant searches.
+private struct BookmarkCommands: Commands {
+    let browser: BrowserState
+    let bookmarks: BookmarkStore
+    let settings: SettingsStore
+    @FocusedValue(\.showBookmarks) private var showBookmarks
+
+    var body: some Commands {
+        CommandMenu("Bookmarks") {
+            let tab = browser.selectedTab
+            let saved = tab.map { bookmarks.isBookmarked($0) } ?? false
+            Button(saved ? "Remove Bookmark" : "Add Bookmark") {
+                guard let tab else { return }
+                if saved, let url = tab.currentURL, let existing = bookmarks.bookmark(for: url, in: tab.profileID) {
+                    bookmarks.remove(existing.id)
+                } else {
+                    Task { try? await bookmarks.add(tab) }
+                }
+            }
+            .keyboardShortcut("d")
+            .disabled(tab == nil || tab?.showsStartPage == true)
+            Button("Show Bookmarks…") { showBookmarks?.perform() }
+                .keyboardShortcut("b", modifiers: [.command, .option])
+                .disabled(showBookmarks == nil)
+            Divider()
+            @Bindable var settings = settings
+            Picker("Assistant Searches", selection: $settings.bookmarkScope) {
+                ForEach(BookmarkScope.allCases) { Text($0.title).tag($0) }
+            }
+            Divider()
+            let profile = browser.selectedProfile
+            Section(profile.name) {
+                let recent = bookmarks.entries(in: .profile, profileID: profile.id).prefix(15)
+                if recent.isEmpty {
+                    Text("No Bookmarks").disabled(true)
+                }
+                ForEach(Array(recent)) { entry in
+                    Button(entry.displayTitle) { browser.newTab(url: entry.url, in: entry.profileID) }
+                }
+            }
         }
     }
 }

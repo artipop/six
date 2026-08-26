@@ -15,6 +15,29 @@ is where the design lives.
   `.webarchive` / `.html` / `.pdf` / `.txt`. Remember the last folder and the document's own file URL.
 - Neighbour worth doing at the same time: **downloads** (`WKDownload`), which six does not handle at all yet.
 
+## Bookmarks: images
+
+Today a bookmark keeps images only as `![alt](src)` in the Markdown and `og:image` in the front matter; nothing in
+a picture is searchable. The plan, in the order it should be built ([bookmarks.md](bookmarks.md#embeddings) has what
+the SDK offers and doesn't):
+
+1. **OCR + labels, locally (Vision)** — the base. When a page is bookmarked, download its large images (≥ 120 px, at
+   most ~20 per page) into `Bookmarks/<slug>/images/`, run `RecognizeTextRequest` (multilingual OCR) and
+   `ClassifyImageRequest` (~1300 labels) on each, and store the result as chunks of a new kind —
+   `bookmark_chunks(kind: image, imageURL, text)` — embedded like any text. Screenshots, diagrams, infographics,
+   menus, tables-as-pictures become findable by their words; a photo by its labels. Don't lean on `alt` or
+   `<figcaption>` — they are usually empty or wrong; use them only as extra words when present.
+2. **Descriptions from Foundation Models** (macOS 27: the on-device model takes `Attachment<ImageAttachmentContent>`
+   — `CGImage`, `CIImage`, `CVPixelBuffer`, `imageURL:`; nothing else, no PDF). Ask for a one-line description per
+   image, in the user's language, and store it as another image chunk. Seconds per image, needs Apple Intelligence
+   assets — a budget of ~10 images per page, in the background after step 1. Decide after seeing step 1 on real pages.
+3. **A multimodal embedder** (Voyage `voyage-multimodal-3`, Cohere Embed v4) as a second `Embedder` conformer:
+   image chunks embedded as images, text as text, one space — real text→image search and cross-lingual text at the
+   same time. Remote, keyed, images leave the Mac; a setting, off by default.
+
+PDFs: the model doesn't take them; `PDFPage.string` for the text layer and page renders as images through step 1/2
+when `ReadablePage` learns to read a PDF `WebPage`.
+
 ## Picture-in-picture
 
 Two different features that both deserve the name:
@@ -49,6 +72,12 @@ and what CloudKit can and cannot carry (vectors included) in [sync.md](sync.md).
 for anything bigger than history.
 
 ## Storage: SQLite under history, with RAG in mind
+
+**Bookmarks are the first RAG slice** ([bookmarks.md](bookmarks.md)): page → Markdown file + chunks + on-device
+vectors, hybrid search, tools for the assistant and MCP. What it settled: no embedding API in Foundation Models
+(`NLContextualEmbedding` instead, per-script spaces), and no `sqlite-vec` on the system SQLite (extension loading is
+compiled out; brute-force cosine over BLOBs, an own SQLite build if that ever isn't enough). History pages would go
+through the same store.
 
 **Done for history and settings** (`six/Data/`, [architecture.md](architecture.md#persistence)) — SQLiteData over
 GRDB, schema laid down by its CloudKit rules. What remains is the step that matters:

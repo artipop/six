@@ -38,6 +38,7 @@ empty, like a named workspace in niri).
 | `move_window` | move a window to another workspace of its profile |
 | `close_window` | close a window |
 | `evaluate_javascript` | run a function body in the page, result back as JSON |
+| `list_bookmarks` `search_bookmarks` `read_bookmark` `add_bookmark` `remove_bookmark` | the profile's (or every profile's) saved pages, searched by meaning — see [bookmarks.md](bookmarks.md) |
 
 Errors that are the caller's (unknown window, bad workspace, no model) come back as MCP tool errors (`isError`),
 not JSON-RPC errors.

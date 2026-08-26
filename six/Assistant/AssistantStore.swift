@@ -33,7 +33,9 @@ final class AssistantStore {
         Answer the user's question directly, in the user's language. \
         When page content is provided, prefer it over prior knowledge. Keep answers short unless asked otherwise. \
         You have tools to look at and arrange the browser — use them when the question is about other windows \
-        or asks you to open, move or close something; the current page's text is already in the prompt.
+        or asks you to open, move or close something; the current page's text is already in the prompt. \
+        The user's bookmarks are searchable with `search_bookmarks`; reach for them when the question is about \
+        something the user saved or read before.
 
         """ + BrowserToolCatalog.instructions
 

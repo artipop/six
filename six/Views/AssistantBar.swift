@@ -104,10 +104,12 @@ private struct AnswerCard: View {
 
 private struct ModelMenu: View {
     @Environment(AssistantStore.self) private var assistant
+    @Environment(SettingsStore.self) private var store
     @State private var showingKeySheet = false
 
     var body: some View {
         @Bindable var settings = assistant.settings
+        @Bindable var store = store
         Menu {
             Picker("Model", selection: $settings.model) {
                 ForEach(ModelChoice.languageModels) { choice in
@@ -125,6 +127,10 @@ private struct ModelMenu: View {
             .pickerStyle(.inline)
             if !FoundationModelsCompatibility.supportsThirdPartyModels {
                 Text("Claude unavailable: SDK/OS Foundation Models mismatch")
+            }
+            Divider()
+            Picker("Bookmarks", selection: $store.bookmarkScope) {
+                ForEach(BookmarkScope.allCases) { Text($0.title).tag($0) }
             }
             Divider()
             Button("Anthropic API Key…") { showingKeySheet = true }

@@ -7,6 +7,7 @@ struct AgentPanel: View {
     @Environment(AgentSessionStore.self) private var store
     @Environment(BrowserState.self) private var browser
     @Environment(MCPHost.self) private var mcp
+    @Environment(SettingsStore.self) private var settings
     @State private var input = ""
     @State private var attachPage = false
 
@@ -41,7 +42,7 @@ struct AgentPanel: View {
                     .disabled(store.transcript.isEmpty || store.state == .prompting)
                     .help("New chat: forget this conversation and its session")
             }
-            // The agent works in the profile's own folder; that stays out of the way unless the user picked another.
+            // The agent works in the profile's scratchpad; that stays out of the way unless the user picked another.
             HStack(spacing: 6) {
                 Image(systemName: "folder")
                 if browser.selectedProfile.hasCustomWorkingDirectory {
@@ -52,9 +53,9 @@ struct AgentPanel: View {
                     Button { browser.setWorkingDirectory(nil, for: browser.selectedProfileID) } label: { Image(systemName: "xmark.circle.fill") }
                         .buttonStyle(.plain)
                         .foregroundStyle(.secondary)
-                        .help("Back to the profile's own folder")
+                        .help("Back to the profile's scratchpad")
                 } else {
-                    Text("\(browser.selectedProfile.name) folder")
+                    Text("\(browser.selectedProfile.name) scratchpad")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .help(store.workingDirectory.path(percentEncoded: false))
@@ -69,6 +70,21 @@ struct AgentPanel: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
                 .help("The agent's session gets `six --mcp` as an MCP server. \(mcp.status)")
+            // Which bookmarks the agent's search_bookmarks / list_bookmarks see by default.
+            @Bindable var settings = settings
+            HStack(spacing: 6) {
+                Image(systemName: "bookmark")
+                Picker("Bookmarks", selection: $settings.bookmarkScope) {
+                    ForEach(BookmarkScope.allCases) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .controlSize(.small)
+                .fixedSize()
+                Text("bookmarks").font(.caption).foregroundStyle(.secondary)
+                Spacer()
+            }
+            .help("What list_bookmarks and search_bookmarks return unless the agent names a profile")
             if store.agent.id == ACPAgentDefinition.claudeCode.id {
                 TextField("Model override (ANTHROPIC_MODEL, optional)", text: $store.modelOverride)
                     .textFieldStyle(.roundedBorder)

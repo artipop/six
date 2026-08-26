@@ -42,10 +42,14 @@ struct BrowserTool {
 final class BrowserToolCatalog {
     private let browser: BrowserState
     private let assistant: AssistantSettings
+    private let bookmarks: BookmarkStore
+    private let settings: SettingsStore
 
-    init(browser: BrowserState, assistant: AssistantSettings) {
+    init(browser: BrowserState, assistant: AssistantSettings, bookmarks: BookmarkStore, settings: SettingsStore) {
         self.browser = browser
         self.assistant = assistant
+        self.bookmarks = bookmarks
+        self.settings = settings
     }
 
     static let instructions = """
@@ -57,6 +61,15 @@ final class BrowserToolCatalog {
         1-based position; naming one that doesn't exist creates it.
 
         A strip is meant to be filled. When the user asks you to find, compare or shop for something,         search first (`web_search`), then open the several pages actually worth putting side by side —         different sites, or the same site on the different options — each in its own window, each on the         exact page for what was asked (a route, a product, a date), not a site's front page. Reading a         page yourself (`get_page_content`) is for the answer you write; the windows are what the user is         left with.
+
+        The user also keeps *bookmarks*: pages saved as readable Markdown files (outside your working directory) and \
+        indexed by meaning. `search_bookmarks` finds them by topic (any language), `list_bookmarks` lists them, \
+        `read_bookmark` returns the saved text, `add_bookmark` saves a window's page. Bookmarks belong to a \
+        profile; the user chooses in the Bookmarks menu whether the assistant sees this profile's or every \
+        profile's, and a `profile` argument (a name, or `all`) overrides that. When a question is about \
+        something the user read or saved, search the bookmarks before searching the web — `search_bookmarks` is the \
+        way in, then `read_bookmark`; don't grep or read the `Bookmarks/*.md` files (or the original page) \
+        yourself, the tools return the same text with the search already done.
         """
 
     func tools(for surface: BrowserTool.Surface) -> [BrowserTool] {
@@ -69,6 +82,9 @@ final class BrowserToolCatalog {
 
     /// Off-screen, shared by every `web_search` call.
     private lazy var search = WebSearch()
+
+    private static let bookmarkProfile = BrowserTool.Parameter(
+        name: "profile", description: "Profile name, or `all`. Default: the scope the user chose in the Bookmarks menu.")
 
     private static let windowID = BrowserTool.Parameter(
         name: "window_id", description: "Window id from list_workspaces (a prefix is enough). Default: the focused window.")
@@ -165,6 +181,65 @@ final class BrowserToolCatalog {
             }
         ),
         BrowserTool(
+            name: "list_bookmarks",
+            description: "The user's bookmarks, newest first: id, title, URL, site and when it was saved. Scope: the "
+                + "profile named in `profile`, `all` profiles, or the user's chosen scope by default.",
+            parameters: [Self.bookmarkProfile, .init(name: "limit", description: "At most this many (default 50).", type: .integer)],
+            run: { [unowned self] args in try self.listBookmarks(args) }
+        ),
+        BrowserTool(
+            name: "search_bookmarks",
+            description: "Semantic search over the saved pages (vectors over the text, plus title/URL matches): the best "
+                + "bookmarks for a topic or question, each with the matching passage. Same scope rules as list_bookmarks.",
+            parameters: [
+                .init(name: "query", description: "What to look for — a topic, a question, a phrase.", required: true),
+                Self.bookmarkProfile,
+                .init(name: "count", description: "How many results (default 8, at most 30).", type: .integer),
+            ],
+            run: { [unowned self] args in try await self.searchBookmarks(args) }
+        ),
+        BrowserTool(
+            name: "read_bookmark",
+            description: "The saved text of a bookmark as Markdown (with its front matter: title, URL, site, saved date).",
+            parameters: [
+                .init(name: "bookmark_id", description: "Bookmark id from list_bookmarks / search_bookmarks (a prefix is enough).", required: true),
+                .init(name: "max_chars", description: "Truncate to this many characters (default 30000).", type: .integer),
+            ],
+            run: { [unowned self] args in
+                let bookmark = try self.bookmarks.bookmark(matching: args["bookmark_id"]?.stringValue ?? "")
+                guard let content = self.bookmarks.content(of: bookmark) else {
+                    throw BrowserTool.Failure(message: "The file of \(bookmark.displayTitle) is missing; bookmark the page again")
+                }
+                let limit = max(500, args["max_chars"]?.intValue ?? 30_000)
+                return content.count > limit ? String(content.prefix(limit)) + "\n…[truncated, \(content.count) characters in total]" : content
+            }
+        ),
+        BrowserTool(
+            name: "add_bookmark",
+            description: "Saves a window's page as a bookmark of its profile: a readable Markdown copy on disk, indexed "
+                + "for search. Defaults to the focused window.",
+            parameters: [Self.windowID],
+            run: { [unowned self] args in
+                let tab = try self.tab(args)
+                do {
+                    let bookmark = try await self.bookmarks.add(tab)
+                    return "Bookmarked \(Self.describe(tab)) as \(bookmark.id.uuidString) (\(bookmark.characterCount) characters saved)"
+                } catch {
+                    throw BrowserTool.Failure(message: error.localizedDescription)
+                }
+            }
+        ),
+        BrowserTool(
+            name: "remove_bookmark",
+            description: "Deletes a bookmark and its saved file.",
+            parameters: [.init(name: "bookmark_id", description: "Bookmark id (a prefix is enough).", required: true)],
+            run: { [unowned self] args in
+                let bookmark = try self.bookmarks.bookmark(matching: args["bookmark_id"]?.stringValue ?? "")
+                self.bookmarks.remove(bookmark.id)
+                return "Removed bookmark \(bookmark.displayTitle) <\(bookmark.url.absoluteString)>"
+            }
+        ),
+        BrowserTool(
             name: "evaluate_javascript",
             description: "Runs JavaScript in a window's page (as a function body; `return` a value to get it back as JSON). "
                 + "Defaults to the focused window.",
@@ -224,6 +299,59 @@ final class BrowserToolCatalog {
     private func workspaceTitle(_ index: Int, in profileID: Profile.ID) -> String {
         let name = browser.layout.strip(for: profileID).workspaces[index].name
         return name.isEmpty ? "workspace \(index + 1)" : name
+    }
+
+    /// The bookmark scope a tool works in: an explicit profile, `all`, or the user's setting.
+    private func bookmarkScope(_ value: ACPJSON?) throws -> (scope: BookmarkScope, profileID: Profile.ID) {
+        if let name = value?.stringValue?.trimmingCharacters(in: .whitespaces), !name.isEmpty {
+            if name.caseInsensitiveCompare("all") == .orderedSame { return (.all, browser.selectedProfileID) }
+            return (.profile, try profile(value).id)
+        }
+        return (settings.bookmarkScope, browser.selectedProfileID)
+    }
+
+    private func describeScope(_ scope: (scope: BookmarkScope, profileID: Profile.ID)) -> String {
+        scope.scope == .all ? "all profiles" : (browser.profiles.first { $0.id == scope.profileID }?.name ?? "profile")
+    }
+
+    private static func describe(_ bookmark: Bookmark) -> String {
+        let profileTag = bookmark.profileID.uuidString
+        let date = bookmark.createdAt.formatted(date: .abbreviated, time: .omitted)
+        return "\(bookmark.displayTitle) <\(bookmark.url.absoluteString)> — \(bookmark.displayDetail), saved \(date) [\(bookmark.id.uuidString)] profile:\(profileTag.prefix(8))"
+    }
+
+    private func listBookmarks(_ args: ACPJSON) throws -> String {
+        let scope = try bookmarkScope(args["profile"])
+        let limit = max(1, args["limit"]?.intValue ?? 50)
+        let entries = bookmarks.entries(in: scope.scope, profileID: scope.profileID)
+        guard !entries.isEmpty else { return "No bookmarks in \(describeScope(scope))." }
+        let profileNames = Dictionary(browser.profiles.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
+        let lines = entries.prefix(limit).map { entry in
+            let profile = profileNames[entry.profileID] ?? "?"
+            let status = entry.indexedAt != nil ? "" : (entry.indexError.map { " (not indexed: \($0))" } ?? " (indexing)")
+            return "- \(entry.displayTitle) <\(entry.url.absoluteString)> — \(entry.displayDetail), \(profile), saved \(entry.createdAt.formatted(date: .abbreviated, time: .omitted)) [\(entry.id.uuidString)]\(status)"
+        }
+        var text = "Bookmarks in \(describeScope(scope)) (\(entries.count)):\n" + lines.joined(separator: "\n")
+        if entries.count > limit { text += "\n…and \(entries.count - limit) more" }
+        return text
+    }
+
+    private func searchBookmarks(_ args: ACPJSON) async throws -> String {
+        guard let query = args["query"]?.stringValue?.trimmingCharacters(in: .whitespaces), !query.isEmpty else {
+            throw BrowserTool.Failure(message: "query is required")
+        }
+        let scope = try bookmarkScope(args["profile"])
+        let limit = min(30, max(1, args["count"]?.intValue ?? 8))
+        let hits = await bookmarks.search(query, in: scope.scope, profileID: scope.profileID, limit: limit)
+        guard !hits.isEmpty else { return "No bookmarks match \"\(query)\" in \(describeScope(scope))." }
+        let profileNames = Dictionary(browser.profiles.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
+        let lines = hits.enumerated().map { index, hit in
+            let entry = hit.bookmark
+            var line = "\(index + 1). \(entry.displayTitle) <\(entry.url.absoluteString)> — \(profileNames[entry.profileID] ?? "?"), score \(String(format: "%.2f", hit.score)) [\(entry.id.uuidString)]"
+            if !hit.snippet.isEmpty { line += "\n   \(hit.snippet.replacingOccurrences(of: "\n", with: " "))" }
+            return line
+        }
+        return "Bookmarks for \"\(query)\" in \(describeScope(scope)):\n\n" + lines.joined(separator: "\n")
     }
 
     // MARK: Tool bodies

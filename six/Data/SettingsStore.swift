@@ -22,6 +22,7 @@ final class SettingsStore {
         case centersFocus = "layout.centersFocus"
         case agentModel = "agent.model"
         case columnWidth = "layout.columnWidth"
+        case bookmarkScope = "bookmarks.scope"
 
         /// Where the value lived before the database.
         var legacyDefaultsKey: String {
@@ -31,6 +32,7 @@ final class SettingsStore {
             case .centersFocus: "six.layout.centerFocus"
             case .agentModel: "six.agent.model"
             case .columnWidth: "six.layout.columnWidth"
+            case .bookmarkScope: "six.bookmarks.scope"
             }
         }
     }
@@ -74,6 +76,12 @@ final class SettingsStore {
     var columnWidthIndex: Int {
         get { self[.columnWidth].flatMap(Int.init) ?? NiriLayout.defaultWidthIndex }
         set { self[.columnWidth] = String(newValue) }
+    }
+
+    /// What the assistant and the agents search: this profile's bookmarks, or every profile's.
+    var bookmarkScope: BookmarkScope {
+        get { BookmarkScope(rawValue: self[.bookmarkScope] ?? "") ?? .profile }
+        set { self[.bookmarkScope] = newValue.rawValue }
     }
 
     /// Optional model id for the ACP agent (`ANTHROPIC_MODEL`).

@@ -24,7 +24,8 @@ streams the reply into the card; `cancel()` stops the stream, `resetConversation
 The language models get the browser tools too: `BrowserToolCatalog` (`six/Tools/`) describes each tool once, and
 `BrowserModelTool` wraps it as a Foundation Models `Tool` (arguments as `GeneratedContent`, schema built with
 `DynamicGenerationSchema`). The same catalog is what MCP serves to agents (see [mcp.md](mcp.md)); only
-`summarize_page` is MCP-only, since the assistant is a model already. Tool failures that are the model's fault (a
+`summarize_page` is MCP-only, since the assistant is a model already. The bookmark tools ([bookmarks.md](bookmarks.md))
+are in the same catalog; the model menu's **Bookmarks** picker sets whether they see this profile or all. Tool failures that are the model's fault (a
 bad window id) come back as text so it can retry, rather than ending the turn.
 
 `AssistantSettings` persists the model choice in `UserDefaults`. The Anthropic API key is read from the settings field

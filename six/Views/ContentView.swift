@@ -7,6 +7,7 @@ struct ContentView: View {
     @Environment(AssistantStore.self) private var assistant
     @State private var showAgentPanel = false
     @State private var showHistory = false
+    @State private var showBookmarks = false
     @State private var confirmClearHistory = false
 
     var body: some View {
@@ -32,6 +33,8 @@ struct ContentView: View {
         .focusedSceneValue(\.toggleAgentPanel, FocusAddressBarAction { showAgentPanel.toggle() })
         .focusedSceneValue(\.showHistory, FocusAddressBarAction { showHistory = true })
         .sheet(isPresented: $showHistory) { HistoryView() }
+        .focusedSceneValue(\.showBookmarks, FocusAddressBarAction { showBookmarks = true })
+        .sheet(isPresented: $showBookmarks) { BookmarksView() }
         .focusedSceneValue(\.clearHistory, FocusAddressBarAction { confirmClearHistory = true })
         .clearHistoryDialog(isPresented: $confirmClearHistory)
         .onKeyPress(.escape) {
@@ -79,6 +82,7 @@ private struct TopBar: View {
             Color.clear.frame(width: 68, height: 1) // room for the window buttons
             ProfileSwitcher(isAddingProfile: $isAddingProfile)
             Spacer(minLength: 12)
+            BookmarkButton()
             WorkspaceStepper()
             Button { browser.toggleOverview() } label: {
                 Image(systemName: layout.isOverview ? "rectangle.grid.1x2.fill" : "rectangle.grid.1x2")
@@ -96,6 +100,36 @@ private struct TopBar: View {
         .background(.bar)
         .overlay(alignment: .bottom) { Divider() }
         .sheet(isPresented: $isAddingProfile) { NewProfileSheet() }
+    }
+}
+
+/// The star: filled when the focused page is bookmarked; a click saves it (or forgets it).
+private struct BookmarkButton: View {
+    @Environment(BrowserState.self) private var browser
+    @Environment(BookmarkStore.self) private var bookmarks
+
+    var body: some View {
+        let tab = browser.selectedTab
+        let saved = tab.map { bookmarks.isBookmarked($0) } ?? false
+        let indexing = tab.flatMap { tab in tab.currentURL.flatMap { bookmarks.bookmark(for: $0, in: tab.profileID) } }.map { bookmarks.indexing.contains($0.id) } ?? false
+        Button {
+            guard let tab else { return }
+            if saved, let url = tab.currentURL, let existing = bookmarks.bookmark(for: url, in: tab.profileID) {
+                bookmarks.remove(existing.id)
+            } else {
+                Task { try? await bookmarks.add(tab) }
+            }
+        } label: {
+            if indexing {
+                ProgressView().controlSize(.mini)
+            } else {
+                Image(systemName: saved ? "bookmark.fill" : "bookmark")
+                    .foregroundStyle(saved ? AnyShapeStyle(browser.selectedProfile.color) : AnyShapeStyle(.secondary))
+            }
+        }
+        .buttonStyle(.borderless)
+        .disabled(tab == nil || tab?.showsStartPage == true)
+        .help(saved ? "Remove Bookmark (⌘D)" : "Add Bookmark (⌘D)")
     }
 }
 
