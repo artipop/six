@@ -99,3 +99,6 @@ Details that keep this honest:
   when it isn't.
 - **Same schema, same container** — one `iCloud.org.deffun.six`, one schema, two targets. Notes, chunks and
   vectors are ordinary records well under 1 MB; no assets involved.
+- **If the index is [Wax](https://github.com/christopherkarani/Wax)** ([todo.md](todo.md)) nothing above changes:
+  the `.wax` file is a per-device cache rebuilt from the synced records, on the Mac and on the phone alike. Do not
+  sync the file — it is the whole-file `CKAsset` case.
