@@ -69,3 +69,33 @@ Yes, embeddings can live in CloudKit — as data, not as an index:
 
 Recommendation for six: SQLite locally (visits, pages, chunks, vectors), CloudKit sync of visits first and chunks
 + embeddings second, whole-`.db` asset never except as an explicit "back up to iCloud" button.
+
+## Phone writes, Mac embeds, phone searches
+
+The shape that makes RAG work on an iPhone without asking it to run an embedding model: the phone is a thin client
+for vectors, a Mac is the indexing node, CloudKit is the queue.
+
+1. iPhone saves a note (`.md`) → a `documents` row with `sync_state = pending` → `CKSyncEngine` pushes it to the
+   private zone.
+2. The Mac app — the same binary, running in the menu bar or just open — has a `CKSubscription` on the zone, so
+   CloudKit sends a silent push (`aps-environment` entitlement) and the engine fetches within seconds; no polling.
+3. The Mac chunks and embeds locally (Foundation Models or whatever model is current), writes `chunks` with
+   `embedding` and `embedding_model`, marks them pending, the engine pushes them.
+4. The iPhone receives chunks with vectors, writes them to its SQLite and extends its index incrementally. It
+   never embeds.
+
+Details that keep this honest:
+
+- **One indexer.** Two Macs would embed the same note twice. Either a chunk carries `embedded_by` and a claim
+  timestamp (a duplicate is harmless — same content — only wasted work), or, simpler, one device is marked
+  *indexer* in settings and the others only read.
+- **Mac asleep or off** — the job waits. Meanwhile the phone searches by FTS (it has the text) and over whatever
+  vectors have already arrived. Degraded, not broken.
+- **Phone in the background** — CloudKit pushes reach iOS as background fetches with a limited budget; build the
+  index in a `BGProcessingTask`, or on next open. Never at first launch in one go: scan vectors from SQLite in
+  batches, not all in memory.
+- **Index on the phone** — brute-force cosine over blobs is fine to ~100k chunks × 768 float16 (~150 MB,
+  tens of ms on A17/M-series, `vDSP` if needed); `sqlite-vec` (one C file, builds into the iOS target) or USearch
+  when it isn't.
+- **Same schema, same container** — one `iCloud.org.deffun.six`, one schema, two targets. Notes, chunks and
+  vectors are ordinary records well under 1 MB; no assets involved.

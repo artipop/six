@@ -58,6 +58,29 @@ FTS5 for titles and text, vectors as blobs with a brute-force cosine pass (fine 
 ever isn't. `HistoryStore`'s interface stays; only the backend changes. The app-state snapshot stays JSON — that is
 one small document, not a table.
 
+Why SQLite and not something else — the alternatives that were actually weighed:
+
+| | what it is | verdict |
+|---|---|---|
+| Core Data / SwiftData | Apple's ORM over SQLite, free CloudKit sync via `NSPersistentCloudKitContainer` | Apple-only; no FTS, no vectors; the sync we need is custom anyway. No |
+| Realm | embeddable object database | MongoDB dropped Device Sync and is moving Realm to the community (2024); no Linux for Swift. No |
+| LMDB / RocksDB / LevelDB | key-value stores | fast, but SQL, FTS and vectors would all be built on top. No |
+| Couchbase Lite | document DB with its own replication | sync is theirs, not CloudKit; heavy SDK, paid on Linux. No |
+| DuckDB | analytical columnar engine, has vector functions and a Swift package | great for analytics, poor for many small writes (visits); no row bookkeeping for CloudKit; big binary. No |
+| LanceDB / Chroma / Qdrant | vector databases | server-side or no Swift client; overkill for ~100k on-device chunks. No |
+| USearch / Faiss | vector *indexes* | USearch (C++, Swift bindings, macOS/iOS/Linux) is the candidate for the index once brute-force / `sqlite-vec` isn't enough. Storage is still SQLite |
+| JSON / JSONL files | the current state | whole-file rewrites, everything in memory. Stopgap |
+
+Access layer: a thin wrapper over the system `SQLite3` module now (open, prepare/bind/step, `user_version`
+migrations, WAL — ~200 lines). **GRDB** (a Swift layer over SQLite: typed queries, Codable rows, migrations,
+`DatabasePool`, `ValueObservation`, FTS5; macOS/iOS/Linux) is the better wrapper, but it is a SwiftPM dependency and
+the `SDKROOT` override ([build.md](build.md)) means vendoring it as with ClaudeForFoundationModels — revisit when
+Xcode's SDK catches up with the OS.
+
+Schema to lay down once, so nothing migrates later: `profiles`, `visits(profile_id, url, title, visited_at)`,
+`pages(url, fetched_at, text)` + `pages_fts`, `chunks(page_id, ord, text, embedding BLOB, embedding_model)`, and
+`record_name` + `sync_state` on every table for [sync](sync.md).
+
 ## Smaller things
 
 - A readable maximum width for the default column on ultra-wide displays: 88 % of a 5K panel is a very long line.
