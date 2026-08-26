@@ -50,6 +50,29 @@ through the CSS Custom Highlight API and writes them into the document as `#:~:t
 Dynamically loaded pages get a re-anchor budget, not a promise; canvas text and PDFs are out of reach and should say
 so. Highlights live per URL in `highlights.json`, so they come back next week whether or not a run does.
 
+## Passkeys and passwords
+
+Sign in with a passkey (or a saved password) on any site, through the system UI. WebAuthn inside a third-party
+`WKWebView` is gated by Apple's browser entitlements, so this is as much a paperwork task as a coding one. The plan,
+the fallbacks and what to verify first are in [passkeys.md](passkeys.md). **Next up.**
+
+## Sync through CloudKit — history first
+
+History on every Mac (and later everything else that is a plain record: profiles, highlights, documents). Private
+database, `CKSyncEngine`, one record per visit — visits are immutable, so there is nothing to merge. Design, limits
+and what CloudKit can and cannot carry (vectors included) in [sync.md](sync.md). Depends on the storage move below
+for anything bigger than history.
+
+## Storage: SQLite under history, with RAG in mind
+
+`history.json` is a stopgap — the whole file is rewritten on every visit and everything sits in memory, which is why
+it is capped at 5000 entries ([architecture.md](architecture.md#persistence)). The step that matters is the one after:
+page text and embeddings for retrieval over what was read. One local store for visits, page content, chunks and
+vectors — SQLite through the system `SQLite3` module (macOS and Linux, no dependency to fight the SDK override with),
+FTS5 for titles and text, vectors as blobs with a brute-force cosine pass (fine to ~100k chunks) or `sqlite-vec` if it
+ever isn't. `HistoryStore`'s interface stays; only the backend changes. The app-state snapshot stays JSON — that is
+one small document, not a table.
+
 ## Smaller things
 
 - A readable maximum width for the default column on ultra-wide displays: 88 % of a 5K panel is a very long line.

@@ -14,4 +14,6 @@ reference.
 | [mcp.md](mcp.md) | `six --mcp`: the browser as an MCP server, and its tools |
 | [build.md](build.md) | toolchain, SDK override, sandbox |
 | [deep-research.md](deep-research.md) | plan: documents as windows, and an agent that fills a workspace |
-| [todo.md](todo.md) | what is planned and not built: documents + Save As, fullscreen, picture-in-picture |
+| [todo.md](todo.md) | what is planned and not built: passkeys, CloudKit sync, SQLite + RAG, documents + Save As, fullscreen, PiP |
+| [passkeys.md](passkeys.md) | plan: WebAuthn / passkeys and password autofill in a third-party WebKit browser |
+| [sync.md](sync.md) | plan: CloudKit sync of history and other records; what CloudKit can carry (and vectors) |
