@@ -31,7 +31,8 @@ Nothing needs the keyboard: every layout operation has a mouse equivalent. `⌥`
 | `⌥←` `⌥→` / `⌥⇧←` `⌥⇧→` | focus / move a window |
 | `⌥↑` `⌥↓` / `⌥⇧↑` `⌥⇧↓` | focus a workspace / move the window to it |
 | `⌥Home` `⌥End` | first / last window in the strip |
-| `⌥R` / `⌥F` | cycle preset widths (½, ⅔, peek, compact full) / compact width — the widest tiled one, gaps and title bar still there |
+| `⌥R` / `⌥⇧R` | wider / narrower — every window steps one preset (½, ⅔, peek, full), stopping at the ends; the Layout menu shows which is on |
+| `⌥F` | compact width — this window at the widest tiled preset, gaps and title bar still there; again to go back |
 | `⌥W` | full window: the page fills the window under the top bar — no gaps, no title bar |
 | `⌥C` | centre the focused window in the strip (on by default) — off means the strip moves as little as possible |
 | `⌥O`, `Esc` | overview on / off |

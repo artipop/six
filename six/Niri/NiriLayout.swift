@@ -459,9 +459,10 @@ final class NiriLayout {
         }
     }
 
-    /// niri's "switch preset column width" — for every window in every strip, not just the focused one.
-    func cycleColumnWidth() {
-        setPreferredWidth((preferredWidthIndex + 1) % Self.widthPresets.count)
+    /// One preset wider or narrower, for every window in every strip. Stops at the ends — no
+    /// wrapping around, so the key always does what its name says.
+    func stepColumnWidth(_ delta: Int) {
+        setPreferredWidth(preferredWidthIndex + delta)
     }
 
     /// Is the focused window at the widest preset (compact width)?

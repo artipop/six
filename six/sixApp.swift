@@ -133,8 +133,12 @@ private struct LayoutCommands: Commands {
 
             Divider()
 
-            Button("Switch Preset Column Width") { browser.cycleColumnWidth() }
+            Button("Wider Columns") { browser.stepColumnWidth(1) }
                 .keyboardShortcut("r", modifiers: .option)
+                .disabled(browser.layout.preferredWidthIndex == NiriLayout.widthPresets.count - 1)
+            Button("Narrower Columns") { browser.stepColumnWidth(-1) }
+                .keyboardShortcut("r", modifiers: [.option, .shift])
+                .disabled(browser.layout.preferredWidthIndex == 0)
             Picker("Column Width", selection: Binding(
                 get: { browser.layout.preferredWidthIndex },
                 set: { browser.setColumnWidth($0) }

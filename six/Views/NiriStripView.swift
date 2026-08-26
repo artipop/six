@@ -383,7 +383,8 @@ private struct ColumnMenu: View {
         Button("New Window") { browser.newTab() }
         Button("Close Window") { browser.closeTab(tab.id) }
         Divider()
-        Button("Cycle Width") { browser.selectTab(tab.id); browser.cycleColumnWidth() }
+        Button("Wider Columns") { browser.stepColumnWidth(1) }
+        Button("Narrower Columns") { browser.stepColumnWidth(-1) }
         Button("Compact Width") { browser.selectTab(tab.id); browser.toggleCompactWidth() }
         Button("Full Window") { browser.selectTab(tab.id); browser.toggleFullWindow() }
         Button("Fullscreen") { browser.selectTab(tab.id); browser.toggleFullscreen() }

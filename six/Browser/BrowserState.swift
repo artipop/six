@@ -246,8 +246,8 @@ final class BrowserState {
     func focusColumn(_ delta: Int) { animateLayout { layout.focusColumn(delta) } }
     func focusColumnEdge(last: Bool) { animateLayout { layout.focusColumnEdge(last: last) } }
     func moveColumn(_ delta: Int) { animateLayout { layout.moveColumn(delta) } }
-    func cycleColumnWidth() {
-        animateLayout { layout.cycleColumnWidth() }
+    func stepColumnWidth(_ delta: Int) {
+        animateLayout { layout.stepColumnWidth(delta) }
         settings.columnWidthIndex = layout.preferredWidthIndex
     }
 
