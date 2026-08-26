@@ -17,7 +17,6 @@ Nothing needs the keyboard: every layout operation has a mouse equivalent. `⌥`
 | overview button (top right) | zoom out to all workspaces; scroll sideways to run along a strip, click a window to open it |
 | double-click a workspace name (overview) | rename it; right-click the name to rename or clear it. A named workspace stays even when empty |
 | `×` on a title bar | close that window |
-| `⤢` in the top bar | full window: the page takes the whole window under the bar; press it again to come back |
 | the top edge of the screen (in fullscreen) | brings the bar back: previous/next window, workspace up/down, overview, leave fullscreen |
 | the engine chip on the start page | DuckDuckGo or Google — for queries and for the suggestions; also under Navigate → Search Engine |
 | the profile dots (top left) | switch profile — each has its own strip; `+` adds one, right-click deletes |
@@ -43,9 +42,6 @@ Nothing needs the keyboard: every layout operation has a mouse equivalent. `⌥`
 | `⌘K` | focus the assistant line |
 | `⌘⇧A` | agent panel |
 
-Because the Layout menu owns `⌥R` / `⌥F` / `⌥W` / `⌥O` / `⌥C`, those `⌥`+letter characters can't be typed into the
-address field — nor into a page: `⌥` is niri's Mod, and `NiriScrollMonitor` hands every `⌥` key to the menu bar before
-the focused web view sees it (a web view that is first responder would otherwise keep `⌥←` / `⌥→` for word movement
-and `⌥W`, and the layout keys went dead after Full Window until something else was clicked).
+Because the Layout menu owns `⌥R` / `⌥F` / `⌥W` / `⌥O`, those `⌥`+letter characters can't be typed into the address field.
 Changing `NiriScrollMonitor.modifier` and the matching `.keyboardShortcut` modifiers in `LayoutCommands` moves the
 whole binding set to another key.
