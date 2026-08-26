@@ -306,10 +306,15 @@ final class BrowserState {
         // An empty workspace has no page to show edge to edge, and hiding the chrome over nothing only
         // takes away the way back.
         guard value == .tiled || layout.focusedWorkspace?.isEmpty == false else { return }
-        animateLayout {
-            if value != .tiled { layout.isOverview = false }
-            layout.setFill(value)
-        }
+        // Deliberately not animated. Every switch resizes every live page, and a web view changing
+        // size costs a hitch you can see (~50 ms with three of them live); running that through a
+        // 0.34 s spring spreads the stutter across the whole animation instead of getting it over
+        // with. Measured over six switches: 20 dropped frames animated against 5 instant.
+        layout.verticalPreview = 0
+        layout.horizontalPreview = 0
+        if value != .tiled { layout.isOverview = false }
+        layout.setFill(value)
+        syncSelection()
     }
 
     private func animateLayout(_ body: () -> Void) {

@@ -96,6 +96,12 @@ being exactly one screen wide is what makes the alignment fall out for free: cen
 focused column lands on a whole multiple of the viewport. Changing the mode changes every width, so `setFill`
 re-centres every strip, as `⌥C` and a resize do.
 
+Switching is deliberately **not** animated, unlike everything else the layout does. Every switch resizes every live
+page, and a web view changing size costs a hitch you can see — around 50 ms with three columns live. Running that
+through the 0.34 s spring spreads the stutter over the whole animation instead of getting it over with: measured over
+six switches, 20 dropped frames animated against 5 instant. (The neighbours stay live on purpose, so stepping to the
+next full window shows a page rather than a card; that is what makes the third resize worth paying for.)
+
 Leaving: the same key again, the Layout menu, the right-click menu, the `⤢` button in the top bar (full window), or —
 for fullscreen — `⎋` and the bar's own button. `⎋` comes through the scroll monitor's key monitor rather than SwiftUI,
 because a page holds the first responder and a key press would never reach the view hierarchy; WebKit's own full-screen
