@@ -17,8 +17,8 @@ flowchart TB
         Snap["AppStateSnapshot · JSON
 tabs · strips · profiles · chats"]
         DB[("SQLite — system of record, via SQLiteData over GRDB
-visits · pages · pages_fts · chunks · embeddings
-record_name · sync_state")]
+visits · settings · bookmarks
+bookmark_chunks · bookmark_vectors")]
         RET{{"Retrieval protocol
 index chunks · search query"}}
         EMB{{"Embedder protocol
@@ -31,7 +31,8 @@ load · url · title · navigations · siteData"}}
 
     subgraph Apple["Apple-only adapters"]
         WK["WebKit WebPage / WKWebsiteDataStore"]
-        FM["Foundation Models embedder"]
+        FM["NLContextualEmbedding embedder
+(Foundation Models has none)"]
         WAX["Wax · .wax cache
 FTS5 + Metal HNSW + own embedder"]
         CK["CloudKit · CKSyncEngine
@@ -43,7 +44,7 @@ private zone · push"]
         WKGTK["WebKitGTK / CEF"]
         LEMB["llama.cpp / ONNX embedder
 same model and version"]
-        VEC["sqlite-vec → USearch
+        VEC["BLOB scan (today) → sqlite-vec / USearch
 index inside the same SQLite"]
         NOSYNC["No-op sync · or own server /
 CloudKit Web Services"]
@@ -85,19 +86,21 @@ CloudKit Web Services"]
   SQLite through GRDB (next), and four protocol seams.
 - **Dotted arrows** are implementations of the seams — Apple on the left, the Linux replacement on the right. The
   core doesn't know which one is plugged in.
-- **SQLite is the only system of record.** Wax, `sqlite-vec`, USearch are rebuildable indexes over it; losing one is
-  harmless, and the `.wax` file is never synced.
+- **SQLite is the only system of record.** `bookmark_vectors` today, Wax / `sqlite-vec` / USearch tomorrow are
+  rebuildable indexes over it; losing one is harmless, and a `.wax` file would never be synced.
 - **`Embedder` returns a model id.** That is what keeps vectors compatible across devices and platforms: a chunk
   embedded by another model is re-embedded, not silently searched.
-- **`DB`, `HistoryStore` and `SettingsStore` over it exist** (`six/Data/`, `six/Browser/History.swift`). `Retrieval`, `Embedder` and `SyncEngine` are empty
-  (or not yet there); what matters today is that `HistoryStore` and the coming `PageStore` / `ChunkStore` import no
-  Apple framework, so the seams can appear without a rewrite.
+- **What exists**: `DB`, `HistoryStore`, `SettingsStore` (`six/Data/`, `six/Browser/History.swift`), and for
+  bookmarks the `Embedder` protocol with `ContextualEmbedder` behind it and `BookmarkStore` as the retrieval layer
+  (`six/Bookmarks/`, [bookmarks.md](bookmarks.md)). `Retrieval` is not a protocol yet — the BLOB scan lives inside
+  `BookmarkStore.vectorSearch`, one function to swap. `SyncEngine` is not there. `BookmarkStore` imports
+  NaturalLanguage and Accelerate only through the embedder and the dot product; the rest is Foundation + GRDB.
 
 ## The seams, and what is still open
 
 | seam | Apple | Linux | note |
 |---|---|---|---|
 | Web | `WebPage` (exists) | WebKitGTK / CEF | the most expensive seam; a Linux front is a different UI anyway, so in practice this is "keep the model out of the views", which is already the case |
-| Embedder | Foundation Models / MiniLM inside Wax | llama.cpp, ONNX | either one cross-platform model everywhere (simpler) or model ids + re-embedding |
-| Retrieval | Wax | `sqlite-vec` → USearch | the Mac can start on `sqlite-vec` too — one implementation for all, Wax as a later upgrade |
+| Embedder | `NLContextualEmbedding` (built; per-script spaces) | llama.cpp, ONNX | model ids + re-embedding is what is built: every vector carries its model, a query only meets its own |
+| Retrieval | BLOB scan in Swift (built) | the same, then `sqlite-vec` / USearch | `sqlite-vec` needs an own SQLite build on macOS (the system one has extension loading compiled out — [bookmarks.md](bookmarks.md#the-index)); on Linux it just loads |
 | Sync | SQLiteData's `SyncEngine` over CloudKit | no-op / own server | without an Apple account a Linux build cannot reach iCloud at all; accept that |

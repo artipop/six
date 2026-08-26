@@ -51,6 +51,16 @@ row is backed by a menu item or a view — the file is named so nothing here can
 |---|---|
 | `↩` | open the address, or search for the text |
 
+## Bookmarks (`⌘⌥B`)
+
+| | |
+|---|---|
+| typing | search by meaning across the profile's (or every profile's) saved pages; the matching passage under each |
+| `↑` `↓` | walk the rows |
+| `↩` | open the selected row (or the first) in a new window |
+| `⌫` | remove the bookmark and its file |
+| `Esc` | close |
+
 ## History (`⌘Y`)
 
 | | |

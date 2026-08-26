@@ -95,7 +95,7 @@ claude-agent-acp   # then paste, one line each:
 {"jsonrpc":"2.0","id":3,"method":"session/prompt","params":{"sessionId":"<id from above>","prompt":[{"type":"text","text":"hi"}]}}
 ```
 
-In the app: ⌘⇧A → pick the agent → send a message (it works in the profile's own folder unless you choose another). Tool calls, plans and permission
+In the app: ⌘⇧A → pick the agent → send a message (it works in the profile's scratchpad, `Profiles/<name>/Scratchpad`, unless you choose another). Tool calls, plans and permission
 requests show up in the transcript; permission buttons answer `session/request_permission`.
 
 ## Notes / caveats

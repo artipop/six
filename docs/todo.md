@@ -83,8 +83,8 @@ through the same store.
 GRDB, schema laid down by its CloudKit rules. What remains is the step that matters:
 page text and embeddings for retrieval over what was read. One local store for visits, page content, chunks and
 vectors — SQLite through the system `SQLite3` module (macOS and Linux, no dependency to fight the SDK override with),
-FTS5 for titles and text, vectors as blobs with a brute-force cosine pass (fine to ~100k chunks) or `sqlite-vec` if it
-ever isn't. `HistoryStore`'s interface stays; only the backend changes. The overall shape — portable core, Apple/Linux adapters
+FTS5 for titles and text, vectors as blobs with a brute-force cosine pass (fine to ~100k chunks; `sqlite-vec` only with
+an own SQLite build, see above). `HistoryStore`'s interface stays; only the backend changes. The overall shape — portable core, Apple/Linux adapters
 behind protocol seams — is drawn in [storage.md](storage.md). The app-state snapshot stays JSON — that is
 one small document, not a table.
 
