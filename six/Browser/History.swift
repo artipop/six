@@ -78,6 +78,36 @@ final class HistoryStore {
         }
     }
 
+    /// Completions for the start page: pages of this profile matching what is typed, one per URL,
+    /// the ones visited often and recently first. A host prefix (`git` → github.com) beats a match
+    /// somewhere in the middle of a title.
+    func suggest(_ query: String, in profileID: UUID, limit: Int) -> [HistoryEntry] {
+        let needle = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !needle.isEmpty else { return [] }
+        let now = Date()
+        var best: [URL: (entry: HistoryEntry, score: Double)] = [:]
+        for entry in entries where entry.profileID == profileID {
+            let host = (entry.url.host() ?? "").lowercased()
+            let bareHost = host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
+            let title = entry.title.lowercased()
+            let address = entry.url.absoluteString.lowercased()
+            let match: Double
+            if bareHost.hasPrefix(needle) || host.hasPrefix(needle) { match = 3 }
+            else if title.hasPrefix(needle) { match = 2 }
+            else if title.contains(needle) || address.contains(needle) { match = 1 }
+            else { continue }
+            // Visits decay over a couple of weeks, so a page hammered last month doesn't outrank today's.
+            let age = now.timeIntervalSince(entry.visitedAt) / 86_400
+            let score = match * (1 + 1 / (1 + age / 14))
+            if let existing = best[entry.url] {
+                best[entry.url] = (existing.entry, existing.score + score)
+            } else {
+                best[entry.url] = (entry, score)
+            }
+        }
+        return best.values.sorted { $0.score > $1.score }.prefix(limit).map(\.entry)
+    }
+
     func remove(_ id: HistoryEntry.ID) {
         entries.removeAll { $0.id == id }
     }

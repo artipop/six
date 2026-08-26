@@ -28,6 +28,7 @@ empty, like a named workspace in niri).
 | tool | what it does |
 |---|---|
 | `list_workspaces` | every profile → workspaces → windows (`id`, `title`, `url`, `focused`, `loading`), with what is on screen |
+| `web_search` | ranked results — title, URL, snippet — without opening anything (`query`, `count`) |
 | `open_window` | `url` or `query` (search); optional `workspace`, `profile`, `activate` (false = add in the background, nothing on screen moves) |
 | `navigate` | load a URL / search in an existing window, wait for the load |
 | `get_page_content` | title, URL and `innerText` of a window (waits for loading; `max_chars`, default 20 000) |
@@ -40,6 +41,22 @@ empty, like a named workspace in niri).
 
 Errors that are the caller's (unknown window, bad workspace, no model) come back as MCP tool errors (`isError`),
 not JSON-RPC errors.
+
+The catalog's instructions tell an agent what the strip is for: search first, then open the several pages actually
+worth putting side by side — different sites, or the same site on the different options — each on the exact page for
+what was asked. Asking for flights from Novosibirsk to Kazakhstan should leave a strip of route pages open, not one
+front page. Reading a page (`get_page_content`) is for the answer the agent writes; the windows are what the user is
+left with.
+
+## Search
+
+`web_search` (`six/Browser/WebSearch.swift`) fetches results the way the browser would: a `WebPage` of its own, off
+screen, with a non-persistent data store — no window, no profile, no cookies of yours. The source is DuckDuckGo's
+HTML endpoint, the no-JavaScript result page, whose markup (`.result__a`, `.result__snippet`) has been stable for
+years and needs no API key; its links go through a redirector, so the real URL is unwrapped from `uddg`. If that
+answers with nothing — a challenge page, a layout change — the ordinary result page is tried next and read through
+its result blocks. The request carries the system's `Accept-Language`, so results come back in the language the user
+reads. The engine chip on the start page is about the human's searches; this tool is DuckDuckGo either way.
 
 ## Trying it by hand
 

@@ -55,6 +55,8 @@ final class BrowserToolCatalog {
         is on screen; its focused window is what the user is looking at. Tools default to that window, \
         workspace and profile. Window ids come from `list_workspaces`. Workspaces are addressed by name or \
         1-based position; naming one that doesn't exist creates it.
+
+        A strip is meant to be filled. When the user asks you to find, compare or shop for something,         search first (`web_search`), then open the several pages actually worth putting side by side —         different sites, or the same site on the different options — each in its own window, each on the         exact page for what was asked (a route, a product, a date), not a site's front page. Reading a         page yourself (`get_page_content`) is for the answer you write; the windows are what the user is         left with.
         """
 
     func tools(for surface: BrowserTool.Surface) -> [BrowserTool] {
@@ -65,6 +67,9 @@ final class BrowserToolCatalog {
         all.first { $0.name == name }
     }
 
+    /// Off-screen, shared by every `web_search` call.
+    private lazy var search = WebSearch()
+
     private static let windowID = BrowserTool.Parameter(
         name: "window_id", description: "Window id from list_workspaces (a prefix is enough). Default: the focused window.")
 
@@ -73,6 +78,16 @@ final class BrowserToolCatalog {
             name: "list_workspaces",
             description: "Every profile with its workspaces and the windows (id, title, URL) in each; marks what is focused and on screen.",
             run: { [unowned self] _ in try self.listWorkspaces() }
+        ),
+        BrowserTool(
+            name: "web_search",
+            description: "Searches the web and returns ranked results — title, URL and snippet — without opening or "
+                + "changing anything. The way to find pages worth opening with `open_window`.",
+            parameters: [
+                .init(name: "query", description: "What to search for.", required: true),
+                .init(name: "count", description: "How many results to return (default 8, at most 25).", type: .integer),
+            ],
+            run: { [unowned self] args in try await self.webSearch(args) }
         ),
         BrowserTool(
             name: "open_window",
@@ -241,6 +256,24 @@ final class BrowserToolCatalog {
             profiles.append(.object(entry))
         }
         return ACPJSON.object(["profiles": .array(profiles)]).description
+    }
+
+    private func webSearch(_ args: ACPJSON) async throws -> String {
+        guard let query = args["query"]?.stringValue?.trimmingCharacters(in: .whitespaces), !query.isEmpty else {
+            throw BrowserTool.Failure(message: "query is required")
+        }
+        let limit = min(25, max(1, args["count"]?.intValue ?? 8))
+        let results = try await search.search(query, limit: limit)
+        guard !results.isEmpty else {
+            throw BrowserTool.Failure(message: "No results for \"\(query)\". Try other words, or open the search page "
+                + "itself with open_window(query:) and read it with get_page_links.")
+        }
+        let lines = results.enumerated().map { index, result in
+            var line = "\(index + 1). \(result.title)\n   \(result.url.absoluteString)"
+            if !result.snippet.isEmpty { line += "\n   \(result.snippet)" }
+            return line
+        }
+        return "Results for \"\(query)\":\n\n" + lines.joined(separator: "\n")
     }
 
     private func openWindow(_ args: ACPJSON) throws -> String {

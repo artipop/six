@@ -120,10 +120,15 @@ final class BrowserState {
     }
 
     /// Wipes the profile's site data — cookies, local storage, IndexedDB, caches, everything the
-    /// `WKWebsiteDataStore` holds. Logged-in sessions end; open pages stay open.
+    /// `WKWebsiteDataStore` holds — then reloads the profile's open pages, so the screen shows the
+    /// signed-out state rather than a stale render. Restored windows that haven't loaded yet need
+    /// nothing: they load fresh when shown.
     func clearSiteData(for id: Profile.ID) async {
         guard let profile = profiles.first(where: { $0.id == id }) else { return }
         await dataStore(for: profile).removeData(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(), modifiedSince: .distantPast)
+        for tab in tabs(in: id) where !tab.showsStartPage && tab.pendingURL == nil {
+            _ = tab.page.reload(fromOrigin: true)
+        }
     }
 
     /// The profile's agent folder, created on first use. Nil (default) puts it back under Application Support.

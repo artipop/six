@@ -21,15 +21,24 @@ struct StartPage: View {
         browser.profiles.first { $0.id == tab.profileID }?.color ?? .accentColor
     }
 
+    private static let historyLimit = 4
+
     /// The address row comes first when the input looks like one — Enter should open `apple.com`,
-    /// not search for it.
+    /// not search for it. Then pages from the profile's history, then the engine's completions.
     private var rows: [Row] {
         var rows: [Row] = []
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        if URL.looksLikeAddress(trimmed) { rows.append(Row(text: trimmed, isAddress: true)) }
+        if URL.looksLikeAddress(trimmed) { rows.append(Row(text: trimmed, kind: .address)) }
+        if !trimmed.isEmpty {
+            rows += browser.history.suggest(trimmed, in: tab.profileID, limit: Self.historyLimit).map { entry in
+                Row(text: entry.title.isEmpty ? entry.url.absoluteString : entry.title,
+                    detail: entry.url.host() ?? entry.url.absoluteString,
+                    kind: .history(entry.url))
+            }
+        }
         rows += suggestions.items
             .filter { $0.caseInsensitiveCompare(trimmed) != .orderedSame }
-            .map { Row(text: $0, isAddress: false) }
+            .map { Row(text: $0, kind: .search) }
         return rows
     }
 
@@ -66,7 +75,9 @@ struct StartPage: View {
                 .textFieldStyle(.plain)
                 .font(.title3)
                 .focused($fieldFocused)
-                .onSubmit { open(rows.indices.contains(selection ?? -1) ? rows[selection!].text : text) }
+                .onSubmit {
+                    if let selection, rows.indices.contains(selection) { open(rows[selection]) } else { open(text) }
+                }
                 .onKeyPress(.downArrow) { move(1) }
                 .onKeyPress(.upArrow) { move(-1) }
                 .onKeyPress(.escape) {
@@ -113,11 +124,17 @@ struct StartPage: View {
                 ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
                     let picked = index == selection
                     HStack(spacing: 10) {
-                        Image(systemName: row.isAddress ? "arrow.up.right" : "magnifyingglass")
+                        Image(systemName: row.symbol)
                             .font(.caption)
                             .foregroundStyle(picked ? AnyShapeStyle(.white) : AnyShapeStyle(.secondary))
                         Text(row.text)
                             .lineLimit(1)
+                        if let detail = row.detail {
+                            Text(detail)
+                                .font(.callout)
+                                .lineLimit(1)
+                                .foregroundStyle(picked ? AnyShapeStyle(.white.opacity(0.8)) : AnyShapeStyle(.secondary))
+                        }
                         Spacer(minLength: 0)
                     }
                     .padding(.horizontal, 14)
@@ -125,7 +142,7 @@ struct StartPage: View {
                     .background(picked ? AnyShapeStyle(accent) : AnyShapeStyle(.clear))
                     .foregroundStyle(picked ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
                     .contentShape(Rectangle())
-                    .onTapGesture { open(row.text) }
+                    .onTapGesture { open(row) }
                     .onHover { if $0 { selection = index } }
                 }
             }
@@ -143,6 +160,15 @@ struct StartPage: View {
         return .handled
     }
 
+    private func open(_ row: Row) {
+        if case .history(let url) = row.kind {
+            suggestions.clear()
+            tab.load(url)
+        } else {
+            open(row.text)
+        }
+    }
+
     private func open(_ input: String) {
         guard !input.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         suggestions.clear()
@@ -150,7 +176,17 @@ struct StartPage: View {
     }
 
     private struct Row {
+        enum Kind { case address, history(URL), search }
         let text: String
-        let isAddress: Bool
+        var detail: String? = nil
+        let kind: Kind
+
+        var symbol: String {
+            switch kind {
+            case .address: "arrow.up.right"
+            case .history: "clock"
+            case .search: "magnifyingglass"
+            }
+        }
     }
 }

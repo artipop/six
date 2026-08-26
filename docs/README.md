@@ -11,4 +11,5 @@ reference.
 | [architecture.md](architecture.md) | modules and how state flows |
 | [assistant.md](assistant.md) | the ⌘K assistant on Foundation Models |
 | [agents.md](agents.md) | the ACP client and the agent panel |
+| [mcp.md](mcp.md) | `six --mcp`: the browser as an MCP server, and its tools |
 | [build.md](build.md) | toolchain, SDK override, sandbox |

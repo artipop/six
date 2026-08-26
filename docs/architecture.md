@@ -6,7 +6,7 @@ The entry point is `SixMain`, not the `App`: with `--mcp` the process never touc
 
 ```
 six/Niri        NiriLayout (workspaces, columns, geometry, focus/move ops), NiriScrollMonitor (scroll gestures)
-six/Browser     Profile, BrowserTab (WebPage), BrowserState, History, SearchEngine, SearchSuggestions
+six/Browser     Profile, BrowserTab (WebPage), BrowserState, History, SearchEngine, SearchSuggestions, WebSearch
 six/Views       ContentView (top bar), NiriStripView (strip + overview), WindowChrome, StartPage, AssistantBar, AgentPanel, HistoryView
 six/Assistant   ModelChoice/AssistantSettings, AssistantStore (streaming), FoundationModelsCompatibility
 six/ACP         ACPJSON, JSONRPCConnection, ACPTypes, ACPAgent (process), ACPClient (actor), AgentSessionStore
@@ -52,7 +52,7 @@ it is bigger, changes on every page and losing it is no tragedy. Each `BrowserTa
 finishes; the newest 5000 visits are kept. The **History** menu lists the selected profile's 20 most recent pages
 (a click opens a new window in the strip); ⌘Y opens `HistoryView` — the profile's whole history, searchable, by day.
 Clearing asks whether to drop the profile's site data too (`BrowserState.clearSiteData`: every
-`WKWebsiteDataStore` type — cookies, local storage, IndexedDB, caches; open windows stay). Removing a profile
+`WKWebsiteDataStore` type — cookies, local storage, IndexedDB, caches — then the profile's open pages reload from origin). Removing a profile
 removes its history.
 
 ## Views

@@ -16,7 +16,7 @@ struct ClearHistoryDialog: ViewModifier {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Site data is the profile's cookies, local storage and caches — clearing it signs you out everywhere. Open windows stay open.")
+            Text("Site data is the profile's cookies, local storage and caches — clearing it signs you out everywhere, and the profile's open pages reload.")
         }
     }
 }
