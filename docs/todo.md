@@ -55,7 +55,8 @@ it is capped at 5000 entries ([architecture.md](architecture.md#persistence)). T
 page text and embeddings for retrieval over what was read. One local store for visits, page content, chunks and
 vectors — SQLite through the system `SQLite3` module (macOS and Linux, no dependency to fight the SDK override with),
 FTS5 for titles and text, vectors as blobs with a brute-force cosine pass (fine to ~100k chunks) or `sqlite-vec` if it
-ever isn't. `HistoryStore`'s interface stays; only the backend changes. The app-state snapshot stays JSON — that is
+ever isn't. `HistoryStore`'s interface stays; only the backend changes. The overall shape — portable core, Apple/Linux adapters
+behind protocol seams — is drawn in [storage.md](storage.md). The app-state snapshot stays JSON — that is
 one small document, not a table.
 
 Why SQLite and not something else — the alternatives that were actually weighed:
