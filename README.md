@@ -61,7 +61,7 @@ stays the page's.
 
 Only columns near the viewport get a real `WebView`; the rest render as cards, so a long strip stays cheap.
 
-Full reference: [docs/](docs/) — [controls](docs/controls.md), [layout](docs/layout.md),
+Full reference: [docs/](docs/) — [controls](docs/controls.md), [hotkeys](docs/hotkeys.md), [layout](docs/layout.md),
 [architecture](docs/architecture.md), [assistant](docs/assistant.md), [agents](docs/agents.md), [MCP server](docs/mcp.md),
 [build](docs/build.md).
 
