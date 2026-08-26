@@ -35,7 +35,7 @@ struct NiriStripView: View {
         .onDisappear { monitor.stop() }
         .focusedSceneValue(\.focusAddressBar, FocusAddressBarAction {
             browser.exitOverview()
-            browser.exitFullscreen() // the address bar is part of the chrome fullscreen hides
+            browser.restoreChrome() // the address bar is part of the chrome a filled window hides
             addressFocus = browser.layout.focusedTabID
         })
     }
@@ -69,7 +69,7 @@ struct NiriStripView: View {
         monitor.onPanEnded = { browser.endStripPan() }
         monitor.onEscape = {
             if layout.isOverview { browser.exitOverview(); return true }
-            if layout.isFullscreen { browser.exitFullscreen(); return true }
+            if layout.fill == .screen { browser.exitFullscreen(); return true }
             return false
         }
         monitor.start()
@@ -173,9 +173,9 @@ private struct ColumnView: View {
     /// click before any SwiftUI overlay can, so the catcher has to be an AppKit view too.
     private var capturesClicks: Bool { !isFocused || browser.layout.isOverview }
 
-    /// Fullscreen means the page and nothing else: no title bar, no rounded corners, no border to
+    /// A filled window is the page and nothing else: no title bar, no rounded corners, no border to
     /// separate a column from a neighbour that is a whole screen away.
-    private var fullscreen: Bool { browser.layout.showsFullscreen }
+    private var fullscreen: Bool { browser.layout.fillsViewport }
 
     private func activate() {
         browser.selectTab(tab.id)
@@ -265,16 +265,25 @@ private struct StripEdgeButton: View {
 
     var body: some View {
         let layout = browser.layout
-        // Over a full-bleed page a SwiftUI button never sees the mouse (see `ClickCatcher`), so in
-        // fullscreen these give way to the bar, which is hosted in AppKit.
+        // In fullscreen these give way to the bar at the top edge, which carries the same two steps.
         if !layout.isOverview, !layout.showsFullscreen {
-            if layout.canFocusColumn(direction) {
-                button(symbol: direction < 0 ? "chevron.left" : "chevron.right",
-                       help: direction < 0 ? "Previous window (⌥←)" : "Next window (⌥→)",
-                       action: { browser.focusColumn(direction) })
-            } else if direction > 0, layout.focusedWorkspace?.isEmpty == false {
-                button(symbol: "plus", help: "New window (⌘T)", action: { browser.newTab() })
+            // Hosted in AppKit like the fullscreen bar: over a page a SwiftUI button never sees the
+            // mouse (see `ClickCatcher`), and with the window filled there is nothing but page here.
+            HostedOverlay {
+                content(layout: layout)
             }
+            .frame(width: 42, height: 60)
+        }
+    }
+
+    @ViewBuilder
+    private func content(layout: NiriLayout) -> some View {
+        if layout.canFocusColumn(direction) {
+            button(symbol: direction < 0 ? "chevron.left" : "chevron.right",
+                   help: direction < 0 ? "Previous window (⌥←)" : "Next window (⌥→)",
+                   action: { browser.focusColumn(direction) })
+        } else if direction > 0, layout.focusedWorkspace?.isEmpty == false {
+            button(symbol: "plus", help: "New window (⌘T)", action: { browser.newTab() })
         }
     }
 
@@ -337,7 +346,8 @@ private struct StripMenu: View {
         Button("Workspace Below") { browser.focusWorkspace(1) }
             .disabled(!browser.layout.canFocusWorkspace(1))
         Button(browser.layout.isOverview ? "Close Overview" : "Overview") { browser.toggleOverview() }
-        Button(browser.layout.isFullscreen ? "Leave Fullscreen" : "Fullscreen") { browser.toggleFullscreen() }
+        Button(browser.layout.fill == .window ? "Leave Full Window" : "Full Window") { browser.toggleFullWindow() }
+        Button(browser.layout.fill == .screen ? "Leave Fullscreen" : "Fullscreen") { browser.toggleFullscreen() }
         Divider()
         Toggle("Center Focused Window", isOn: Binding(
             get: { browser.layout.centersFocus },
@@ -357,7 +367,8 @@ private struct ColumnMenu: View {
         Button("Close Window") { browser.closeTab(tab.id) }
         Divider()
         Button("Cycle Width") { browser.selectTab(tab.id); browser.cycleColumnWidth() }
-        Button("Full Width") { browser.selectTab(tab.id); browser.toggleFullWidth() }
+        Button("Compact Width") { browser.selectTab(tab.id); browser.toggleCompactWidth() }
+        Button("Full Window") { browser.selectTab(tab.id); browser.toggleFullWindow() }
         Button("Fullscreen") { browser.selectTab(tab.id); browser.toggleFullscreen() }
         Divider()
         Button("Move Left") { browser.selectTab(tab.id); browser.moveColumn(-1) }

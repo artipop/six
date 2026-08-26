@@ -26,6 +26,18 @@ nonisolated struct NiriWorkspace: Identifiable, Sendable, Codable {
     var focusedColumn: NiriColumn? { columns.indices.contains(focus) ? columns[focus] : nil }
 }
 
+/// How much room the focused window is given. The widths in `widthPresets` are the tiled case; the
+/// other two step outside the tiling entirely, and the strip goes on working underneath both.
+nonisolated enum NiriFill: String, Sendable, Codable {
+    /// The strip as usual: gaps, title bars, and the width the column's preset asks for.
+    case tiled
+    /// The page fills the window under the top bar — no gaps, no title bar. The layout's own controls
+    /// stay where they are.
+    case window
+    /// Fullscreen: the top bar goes too, and only the bar hiding at the top edge comes back.
+    case screen
+}
+
 /// The vertical stack of workspaces belonging to one profile.
 nonisolated struct NiriStrip: Sendable, Codable {
     var workspaces: [NiriWorkspace] = [NiriWorkspace()]
@@ -63,11 +75,11 @@ final class NiriLayout {
 
     var viewport: CGSize = CGSize(width: 1280, height: 800)
     var isOverview = false
-    /// niri's fullscreen, as a mode rather than per-window state: the focused window fills the screen —
-    /// no gaps, no title bar, no top bar — and the strip goes on working underneath it, so ⌥←/⌥→ walks
-    /// from one full-screen page to the next. Not macOS fullscreen (the green button), and not a page
-    /// asking for `requestFullscreen`, which WebKit handles on its own inside the web view.
-    private(set) var isFullscreen = false
+    /// niri's fullscreen, as a mode rather than per-window state — and one step short of it, filling the
+    /// window instead of the screen. Either way the strip goes on working underneath, so ⌥←/⌥→ walks
+    /// from one full window to the next. Neither is macOS fullscreen (the green button), and neither is
+    /// a page asking for `requestFullscreen`, which WebKit handles on its own inside the web view.
+    private(set) var fill: NiriFill = .tiled
     /// niri's `center-focused-column`: park the focused window in the middle of the screen instead of
     /// scrolling as little as possible. Off means the strip only moves when the focus would fall off it.
     var centersFocus: Bool = UserDefaults.standard.object(forKey: NiriLayout.centerKey) as? Bool ?? true {
@@ -169,10 +181,14 @@ final class NiriLayout {
 
     // MARK: Geometry
 
-    /// The overview is another way of looking at the same strip, so fullscreen steps aside while it is
+    /// The overview is another way of looking at the same strip, so filling steps aside while it is
     /// open — with the gaps and the title bars back, the columns can be told apart — and comes back
     /// when it closes.
-    var showsFullscreen: Bool { isFullscreen && !isOverview }
+    var showsFill: NiriFill { isOverview ? .tiled : fill }
+    /// One column, one screen: no gaps and no title bars, in both filling modes.
+    var fillsViewport: Bool { showsFill != .tiled }
+    /// Only fullscreen takes the top bar with it.
+    var showsFullscreen: Bool { showsFill == .screen }
 
     /// Scale of the whole canvas: 1 normally, zoomed out in the overview.
     var overviewScale: CGFloat {
@@ -188,7 +204,7 @@ final class NiriLayout {
 
     /// Space between two columns, and between a column and the edge of the screen. Fullscreen has none:
     /// the page runs to every edge, and the next window starts exactly one screen away.
-    var gap: CGFloat { showsFullscreen ? 0 : max(Self.minimumGap, (viewport.width * Self.gapFraction).rounded()) }
+    var gap: CGFloat { fillsViewport ? 0 : max(Self.minimumGap, (viewport.width * Self.gapFraction).rounded()) }
     var outerGap: CGFloat { gap }
 
     /// Working area, with one gap folded in so N columns of 1/N exactly fill the screen.
@@ -197,9 +213,9 @@ final class NiriLayout {
     var columnHeight: CGFloat { max(200, viewport.height - 2 * outerGap) }
 
     func width(of column: NiriColumn) -> CGFloat {
-        // Fullscreen overrides the preset without touching it: the widths are all still there on the
-        // way out.
-        guard !showsFullscreen else { return viewport.width }
+        // Filling overrides the preset without touching it: the widths are all still there on the way
+        // out.
+        guard !fillsViewport else { return viewport.width }
         let fraction = Self.widthPresets[min(max(0, column.widthIndex), Self.widthPresets.count - 1)]
         return max(280, usableWidth * fraction - gap)
     }
@@ -294,9 +310,9 @@ final class NiriLayout {
     }
 
     /// Every column changes width here, so every offset that pointed at one has to be found again.
-    func setFullscreen(_ value: Bool) {
-        guard value != isFullscreen else { return }
-        isFullscreen = value
+    func setFill(_ value: NiriFill) {
+        guard value != fill else { return }
+        fill = value
         recenterStrips()
     }
 
@@ -451,8 +467,9 @@ final class NiriLayout {
         }
     }
 
-    /// niri's "maximize column": full width, or back to the default.
-    func toggleFullWidth() {
+    /// niri's "maximize column": the widest preset, or back to the default. Still tiled — the gaps and
+    /// the title bar stay, which is what makes it the compact one next to `NiriFill.window`.
+    func toggleCompactWidth() {
         mutate { s in
             guard s.workspaces.indices.contains(s.focus) else { return }
             var ws = s.workspaces[s.focus]

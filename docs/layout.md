@@ -74,33 +74,47 @@ overlay above it can — so `ClickCatcher` is an `NSViewRepresentable` laid over
 Title bars are SwiftUI and keep their own buttons working, so a background window's close or back button still takes
 one click.
 
-## Fullscreen
+## Filling the window, and the screen
 
-`⌥⇧F` gives the page the whole screen — no gaps, no title bar, no top bar — without taking it out of the strip:
-`⌥←` `⌥→` still walk from window to window, and the next one arrives full screen too, so a strip reads like a stack of
-pages. It is a mode on the layout (`isFullscreen`), not per-window state; `showsFullscreen` is what the geometry and
-the views actually ask, and it is false while the overview is open, so the overview keeps its gaps and title bars and
-fullscreen comes back when it closes.
+Three steps, each one taking away more of what is not the page:
+
+| | | |
+|---|---|---|
+| `⌥F` | **compact width** | the widest preset (`1.0`), still tiled: the outer gaps and the title bar stay |
+| `⌥W` | **full window** | the page fills the window under the top bar — no gaps, no title bar |
+| `⌥⇧F` | **fullscreen** | the top bar goes too; only a bar hiding at the top edge comes back |
+
+The last two are `NiriFill.window` and `.screen` on the layout — a mode, not per-window state. `fillsViewport` is what
+the geometry asks (both of them), `showsFullscreen` what the top bar asks (only `.screen`), and both are false while
+the overview is open, so it keeps its gaps and title bars and the mode returns when it closes. The strip goes on
+working underneath either one: `⌥←` `⌥→` walk from window to window and the next one arrives filled too, so a
+workspace reads like a stack of pages.
 
 The geometry is the ordinary one with two overrides: `gap` (and with it `outerGap`) is 0, and `width(of:)` returns the
-viewport width whatever the column's preset says — the presets are untouched, so leaving fullscreen restores them.
-Every column being exactly one screen wide is what makes the alignment fall out for free: centred or not, the resolved
-offset of the focused column lands on a whole multiple of the viewport. Changing the mode changes every width, so
-`setFullscreen` re-centres every strip, as `⌥C` and a resize do.
+viewport width whatever the column's preset says — the presets are untouched, so leaving restores them. Every column
+being exactly one screen wide is what makes the alignment fall out for free: centred or not, the resolved offset of the
+focused column lands on a whole multiple of the viewport. Changing the mode changes every width, so `setFill`
+re-centres every strip, as `⌥C` and a resize do.
 
-Leaving: `⌥⇧F`, `⎋`, the Layout menu, the right-click menu, or the bar's own button. `⎋` comes through the scroll
-monitor's key monitor rather than SwiftUI, because a page holds the first responder and a key press would never reach
-the view hierarchy; WebKit's own full-screen window (a video playing) is left alone, so `⎋` there still belongs to the
-video. Closing the last window of the workspace leaves fullscreen too — a blank wall with no chrome is a trap.
+Leaving: the same key again, the Layout menu, the right-click menu, the `⤢` button in the top bar (full window), or —
+for fullscreen — `⎋` and the bar's own button. `⎋` comes through the scroll monitor's key monitor rather than SwiftUI,
+because a page holds the first responder and a key press would never reach the view hierarchy; WebKit's own full-screen
+window (a video playing) is left alone, so `⎋` there still belongs to the video. `⎋` deliberately does not leave full
+window: that mode is ordinary browsing, where a page's own `⎋` is worth more. `⌘L` leaves whichever mode is on, since
+the address bar is part of what they hide. Closing the last window of the workspace leaves too — a blank wall with no
+chrome is a trap.
 
-The controls come back when the pointer touches the top edge of the screen: previous/next window, workspace up/down,
-the overview and the way out. That bar is hosted in an `NSHostingView` (`HostedOverlay`) rather than laid over the page
-as ordinary SwiftUI, for the reason above — over a full-bleed `WKWebView`, SwiftUI never sees the mouse. The edge
-chevrons step aside in fullscreen for the same reason, and the ⌘K line tucks itself away until it is asked for or has
-an answer to show. The window buttons stay where macOS puts them, so the bar leaves room for them.
+**Controls over a page have to be AppKit.** SwiftUI drawn over a `WKWebView` never sees the mouse (the reason
+`ClickCatcher` exists), and with the window filled there is nothing *but* page under them. So the edge chevrons and the
+fullscreen bar are hosted in `NSHostingView` (`HostedOverlay`) — which must be frame-driven (`sizingOptions = []`,
+`translatesAutoresizingMaskIntoConstraints = true`), or it publishes its size into the window's constraints and the
+update passes never settle. In fullscreen the chevrons give way to the bar at the top edge, which carries the same two
+steps plus the workspaces, the overview and the way out; the ⌘K line tucks itself away there until it is asked for or
+has an answer to show. The window buttons stay where macOS puts them, so the bar leaves room for them.
 
-Three things share the name and are not the same: this (a layout state), macOS fullscreen (the green button — the strip
-just fills a bigger window), and a page's own `requestFullscreen`, which WebKit handles inside the web view.
+Three things share the word "fullscreen" and are not the same: this (a layout state), macOS fullscreen (the green
+button — the strip just fills a bigger window), and a page's own `requestFullscreen`, which WebKit handles inside the
+web view.
 
 ## Overview
 

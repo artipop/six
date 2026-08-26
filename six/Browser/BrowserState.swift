@@ -223,8 +223,8 @@ final class BrowserState {
         withAnimation(NiriLayout.switchAnimation) {
             layout.removeColumn(tabID: id)
         }
-        // Nothing left to fill the screen with: fullscreen would be a blank wall with no way back.
-        if layout.isFullscreen, layout.focusedWorkspace?.isEmpty != false { layout.setFullscreen(false) }
+        // Nothing left to fill the screen with: a filled mode would be a blank wall with no way back.
+        if layout.fill != .tiled, layout.focusedWorkspace?.isEmpty != false { layout.setFill(.tiled) }
         guard wasActive else { return }
         syncSelection()
         if selectedTabID == nil, tabs(in: closed.profileID).isEmpty {
@@ -242,7 +242,7 @@ final class BrowserState {
     func focusColumnEdge(last: Bool) { animateLayout { layout.focusColumnEdge(last: last) } }
     func moveColumn(_ delta: Int) { animateLayout { layout.moveColumn(delta) } }
     func cycleColumnWidth() { animateLayout { layout.cycleColumnWidth() } }
-    func toggleFullWidth() { animateLayout { layout.toggleFullWidth() } }
+    func toggleCompactWidth() { animateLayout { layout.toggleCompactWidth() } }
     func focusWorkspace(_ delta: Int) { animateLayout { layout.focusWorkspace(delta) } }
     func focusWorkspace(at index: Int) { animateLayout { layout.focusWorkspace(at: index) } }
     func moveColumnToWorkspace(_ delta: Int) { animateLayout { layout.moveColumnToWorkspace(delta) } }
@@ -280,23 +280,35 @@ final class BrowserState {
         }
     }
 
+    /// The page fills the window under the top bar; the layout's own controls stay where they are.
+    func toggleFullWindow() {
+        setFill(layout.fill == .window ? .tiled : .window)
+    }
+
     /// niri's fullscreen: the focused window fills the screen and the strip keeps working under it.
     func toggleFullscreen() {
-        setFullscreen(!layout.isFullscreen)
+        setFill(layout.fill == .screen ? .tiled : .screen)
     }
 
+    /// ⎋ leaves fullscreen only: filling the window is ordinary browsing, and a page's own ⎋ is worth
+    /// more there than a second way out.
     func exitFullscreen() {
-        setFullscreen(false)
+        if layout.fill == .screen { setFill(.tiled) }
     }
 
-    private func setFullscreen(_ value: Bool) {
-        guard value != layout.isFullscreen else { return }
+    /// Back to the tiled strip, whichever mode was on — the chrome has to come back for the address bar.
+    func restoreChrome() {
+        setFill(.tiled)
+    }
+
+    private func setFill(_ value: NiriFill) {
+        guard value != layout.fill else { return }
         // An empty workspace has no page to show edge to edge, and hiding the chrome over nothing only
         // takes away the way back.
-        guard !value || layout.focusedWorkspace?.isEmpty == false else { return }
+        guard value == .tiled || layout.focusedWorkspace?.isEmpty == false else { return }
         animateLayout {
-            if value { layout.isOverview = false }
-            layout.setFullscreen(value)
+            if value != .tiled { layout.isOverview = false }
+            layout.setFill(value)
         }
     }
 

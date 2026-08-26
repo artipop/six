@@ -126,12 +126,14 @@ private struct LayoutCommands: Commands {
 
             Button("Switch Preset Column Width") { browser.cycleColumnWidth() }
                 .keyboardShortcut("r", modifiers: .option)
-            Button("Maximize Column") { browser.toggleFullWidth() }
+            Button("Compact Width") { browser.toggleCompactWidth() }
                 .keyboardShortcut("f", modifiers: .option)
+            Button(browser.layout.fill == .window ? "Leave Full Window" : "Full Window") { browser.toggleFullWindow() }
+                .keyboardShortcut("w", modifiers: .option)
+            Button(browser.layout.fill == .screen ? "Leave Fullscreen" : "Fullscreen") { browser.toggleFullscreen() }
+                .keyboardShortcut("f", modifiers: [.option, .shift])
             Button("Toggle Overview") { browser.toggleOverview() }
                 .keyboardShortcut("o", modifiers: .option)
-            Button(browser.layout.isFullscreen ? "Leave Fullscreen" : "Fullscreen") { browser.toggleFullscreen() }
-                .keyboardShortcut("f", modifiers: [.option, .shift])
 
             Divider()
 
