@@ -87,6 +87,17 @@ nonisolated enum AppDatabase {
                 CREATE INDEX "bookmark_vectors_by_model_profile" ON "bookmark_vectors"("model", "profileID")
                 """).execute(db)
         }
+        migrator.registerMigration("v3 bookmark refresh") { db in
+            try #sql("""
+                ALTER TABLE "bookmarks" ADD COLUMN "refreshedAt" TEXT
+                """).execute(db)
+            try #sql("""
+                ALTER TABLE "bookmarks" ADD COLUMN "contentHash" TEXT NOT NULL DEFAULT ''
+                """).execute(db)
+            try #sql("""
+                ALTER TABLE "bookmarks" ADD COLUMN "refreshError" TEXT
+                """).execute(db)
+        }
         try migrator.migrate(database)
         return database
     }

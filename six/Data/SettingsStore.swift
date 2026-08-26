@@ -23,6 +23,7 @@ final class SettingsStore {
         case agentModel = "agent.model"
         case columnWidth = "layout.columnWidth"
         case bookmarkScope = "bookmarks.scope"
+        case bookmarkRefreshDays = "bookmarks.refreshDays"
         case researchTemplate = "research.template"
         case researchSources = "research.sources"
 
@@ -35,6 +36,7 @@ final class SettingsStore {
             case .agentModel: "six.agent.model"
             case .columnWidth: "six.layout.columnWidth"
             case .bookmarkScope: "six.bookmarks.scope"
+            case .bookmarkRefreshDays: "six.bookmarks.refreshDays"
             case .researchTemplate: "six.research.template"
             case .researchSources: "six.research.sources"
             }
@@ -98,6 +100,12 @@ final class SettingsStore {
     var researchSources: Int {
         get { Int(self[.researchSources] ?? "") ?? ResearchPreset.defaultSources }
         set { self[.researchSources] = String(newValue) }
+    }
+
+    /// How often a saved page is re-read from its site and re-embedded if it changed; 0 is never.
+    var bookmarkRefreshDays: Int {
+        get { self[.bookmarkRefreshDays].flatMap(Int.init) ?? 7 }
+        set { self[.bookmarkRefreshDays] = String(newValue) }
     }
 
     /// Optional model id for the ACP agent (`ANTHROPIC_MODEL`).

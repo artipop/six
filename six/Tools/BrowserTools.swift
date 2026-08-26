@@ -244,6 +244,20 @@ final class BrowserToolCatalog {
             }
         ),
         BrowserTool(
+            name: "refresh_bookmark",
+            description: "Re-reads a bookmark's page from its site (off screen, with the profile's cookies) and re-indexes it "
+                + "if the text changed. Pages are also re-read on a schedule; this is for when you need it now.",
+            parameters: [.init(name: "bookmark_id", description: "Bookmark id (a prefix is enough).", required: true)],
+            run: { [unowned self] args in
+                let bookmark = try self.bookmarks.bookmark(matching: args["bookmark_id"]?.stringValue ?? "")
+                await self.bookmarks.refresh(bookmark.id)
+                guard let after = self.bookmarks.bookmark(bookmark.id) else { throw BrowserTool.Failure(message: "Bookmark vanished") }
+                if let error = after.refreshError { throw BrowserTool.Failure(message: "Refresh failed: \(error)") }
+                let changed = after.contentHash != bookmark.contentHash
+                return "\(changed ? "Updated" : "Unchanged"): \(after.displayTitle) <\(after.url.absoluteString)> (\(after.characterCount) characters)"
+            }
+        ),
+        BrowserTool(
             name: "remove_bookmark",
             description: "Deletes a bookmark and its saved file.",
             parameters: [.init(name: "bookmark_id", description: "Bookmark id (a prefix is enough).", required: true)],

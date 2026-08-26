@@ -46,7 +46,7 @@ struct BookmarksView: View {
             } else {
                 List(selection: $selection) {
                     ForEach(hits) { hit in
-                        BookmarkRow(hit: hit, showsProfile: settings.bookmarkScope == .all, indexing: bookmarks.indexing.contains(hit.id))
+                        BookmarkRow(hit: hit, showsProfile: settings.bookmarkScope == .all, busy: bookmarks.indexing.contains(hit.id) || bookmarks.refreshing.contains(hit.id))
                             .tag(hit.id)
                             .contentShape(Rectangle())
                             .onTapGesture(count: 2) { open(hit.bookmark) }
@@ -56,6 +56,7 @@ struct BookmarksView: View {
                                     NSPasteboard.general.clearContents()
                                     NSPasteboard.general.setString(hit.bookmark.url.absoluteString, forType: .string)
                                 }
+                                Button("Refresh Now") { Task { await bookmarks.refresh(hit.id) } }
                                 if let file = bookmarks.fileURL(of: hit.bookmark) {
                                     Button("Show File in Finder") { NSWorkspace.shared.activateFileViewerSelecting([file]) }
                                 }
@@ -132,7 +133,7 @@ struct BookmarksView: View {
 private struct BookmarkRow: View {
     let hit: BookmarkHit
     let showsProfile: Bool
-    let indexing: Bool
+    let busy: Bool
     @Environment(BrowserState.self) private var browser
 
     var body: some View {
@@ -152,10 +153,13 @@ private struct BookmarkRow: View {
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
                 Text(hit.bookmark.createdAt, style: .date).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
-                if indexing {
+                    .help(hit.bookmark.refreshedAt.map { "Re-read \($0.formatted(date: .abbreviated, time: .shortened))" } ?? "Saved; not re-read yet")
+                if busy {
                     ProgressView().controlSize(.mini)
                 } else if let error = hit.bookmark.indexError, hit.bookmark.indexedAt == nil {
                     Image(systemName: "exclamationmark.triangle").foregroundStyle(.orange).help(error)
+                } else if let error = hit.bookmark.refreshError {
+                    Image(systemName: "arrow.clockwise.circle").foregroundStyle(.orange).help("Last refresh failed: \(error)")
                 } else if hit.score > 0 {
                     Text(String(format: "%.0f%%", hit.score * 100)).font(.caption2.monospacedDigit()).foregroundStyle(.tertiary)
                 }

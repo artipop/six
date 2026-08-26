@@ -88,10 +88,26 @@ slow, together with `vec0`'s partition keys (a per-profile KNN instead of a filt
 [jkrukowski/SQLiteVec](https://github.com/jkrukowski/SQLiteVec) bundles its own SQLite for the same reason and would
 be a second database file, not the one under history.
 
+## Keeping them fresh
+
+Pages change, and so do our models. Two things keep the index honest:
+
+- **Re-embedding.** Every vector carries the model that made it, and every bookmark the *index signature* it was
+  embedded under — `<embedder.modelID>@<BookmarkStore.indexVersion>`. Switching the embedder or bumping
+  `indexVersion` (a chunking or pooling change) makes `resumeIndexing()` re-embed everything on the next launch.
+- **Re-reading.** On a schedule (Bookmarks → **Re-read Saved Pages**: never / daily / weekly (default) / monthly) the
+  store looks for bookmarks whose last read is older than that — thirty seconds after launch, then hourly — and
+  reloads each one off screen in a `WebPage` of its own with the profile's cookie jar, so a page behind a login is
+  read as the user sees it. One page at a time, two seconds apart, oldest first. The readable text is hashed
+  (SHA-256, `contentHash`); the same hash only stamps `refreshedAt`, a different one rewrites the file and the
+  chunks and re-embeds. A page that won't load keeps its old copy and records `refreshError` (an orange
+  arrow in the list). **Refresh Bookmark** / **Refresh *Profile* Bookmarks** in the menu, *Refresh Now* in the list
+  and the `refresh_bookmark` tool do the same on demand.
+
 ## Where it shows
 
-- **Bookmarks menu**: *Add Bookmark* `⌘D` (becomes *Remove Bookmark* on a saved page), *Show Bookmarks…* `⌘⌥B`, the
-  profile's 15 most recent, and **Assistant Searches: This Profile / All Profiles**.
+- **Bookmarks menu**: *Add Bookmark* `⌘D` (becomes *Remove Bookmark* on a saved page), *Show Bookmarks…* `⌘⌥B`,
+  **Assistant Searches: This Profile / All Profiles**, the refresh commands and interval, the profile's 15 most recent.
 - **The star** in the top bar: filled when the focused page is saved, a spinner while it is being indexed.
 - **`⌘⌥B`** (`BookmarksView`): the profile's or everyone's bookmarks, a search field that searches by meaning as you
   type (with the matching passage and a score), double-click to open, *Show File in Finder*, ⌫ to remove.
@@ -108,6 +124,7 @@ say; a `profile` argument (a name, or `all`) overrides it per call. Tools:
 | `search_bookmarks` | hybrid search; each hit with its passage and score (`query`, `profile`, `count`) |
 | `read_bookmark` | the Markdown file, front matter included (`bookmark_id` — a prefix is enough, `max_chars`) |
 | `add_bookmark` | save a window's page (`window_id`, default the focused one) |
+| `refresh_bookmark` | re-read the page now; answers *Updated* or *Unchanged* |
 | `remove_bookmark` | delete the bookmark and its file |
 
 The ⌘K assistant (on-device, PCC, Claude) gets them as Foundation Models tools and is told to search the bookmarks

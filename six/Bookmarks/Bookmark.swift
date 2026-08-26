@@ -22,8 +22,17 @@ nonisolated struct Bookmark: Identifiable, Sendable, Hashable {
     var createdAt: Date
     /// When the chunks were embedded; nil until the index has caught up (or `indexError` says why not).
     var indexedAt: Date?
+    /// The embedder and index version the vectors were made with; a change means re-embedding.
     var embeddingModel = ""
     var indexError: String?
+    /// When the page was last re-read from the site (nil: never since it was saved).
+    var refreshedAt: Date?
+    /// SHA-256 of the readable text, so a refresh that finds the same page changes nothing.
+    var contentHash = ""
+    /// Why the last refresh didn't happen — the site was down, the page has no text now.
+    var refreshError: String?
+
+    var lastReadAt: Date { refreshedAt ?? createdAt }
 
     var displayTitle: String { title.isEmpty ? url.absoluteString : title }
     var displayDetail: String { siteName.isEmpty ? (url.host() ?? url.absoluteString) : siteName }

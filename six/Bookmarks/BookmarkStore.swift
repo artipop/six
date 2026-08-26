@@ -1,4 +1,5 @@
 import Accelerate
+import CryptoKit
 import Foundation
 import NaturalLanguage
 import Observation
@@ -17,16 +18,34 @@ final class BookmarkStore {
     static let maxChunk = 1400
     /// Beyond this many passages a page is indexed only in part — and says so in `indexError`.
     static let maxChunks = 120
+    /// Bump when chunking or pooling changes: every bookmark is then re-embedded on the next launch.
+    static let indexVersion = 1
+    /// A refresh reloads the page off screen and waits this long at most for it.
+    static let refreshTimeout: TimeInterval = 30
+    /// How often the due bookmarks are looked for while the app runs.
+    static let refreshTick: TimeInterval = 3600
 
     @ObservationIgnored private let database: any DatabaseWriter
     @ObservationIgnored let embedder: any Embedder
     /// Which profile a bookmark belongs to, for its folder. Wired at launch.
     @ObservationIgnored var profile: (Profile.ID) -> Profile? = { _ in nil }
+    /// The profile's cookie jar, so a refresh sees the page the way the user does. Wired at launch.
+    @ObservationIgnored var dataStore: (Profile) -> WKWebsiteDataStore? = { _ in nil }
+    /// Days between refreshes of a page; 0 means never (`SettingsStore.bookmarkRefreshDays`).
+    @ObservationIgnored var refreshDays: () -> Int = { 7 }
     private(set) var revision = 0
     /// Bookmarks whose text is being embedded right now.
     private(set) var indexing: Set<Bookmark.ID> = []
+    /// Bookmarks whose page is being re-read right now.
+    private(set) var refreshing: Set<Bookmark.ID> = []
     @ObservationIgnored private var queue: [Bookmark.ID] = []
     @ObservationIgnored private var worker: Task<Void, Never>?
+    @ObservationIgnored private var refreshQueue: [Bookmark.ID] = []
+    @ObservationIgnored private var refreshWorker: Task<Void, Never>?
+    @ObservationIgnored private var scheduler: Task<Void, Never>?
+
+    /// What the vectors must have been made with to count as indexed.
+    var indexSignature: String { "\(embedder.modelID)@\(Self.indexVersion)" }
 
     init(database: any DatabaseWriter, embedder: any Embedder = ContextualEmbedder()) {
         self.database = database
@@ -37,7 +56,7 @@ final class BookmarkStore {
     func resumeIndexing() {
         let pending = read { db in
             try Bookmark.where { $0.indexError.is(nil) }.order { $0.createdAt.desc() }.fetchAll(db)
-        }.filter { $0.indexedAt == nil || $0.embeddingModel != embedder.modelID }
+        }.filter { $0.indexedAt == nil || $0.embeddingModel != indexSignature }
         for bookmark in pending { enqueue(bookmark.id) }
     }
 
@@ -62,19 +81,34 @@ final class BookmarkStore {
         await Self.waitForLoad(tab)
         let readable = try await ReadablePage.extract(from: tab.page)
         let existing = bookmark(for: url, in: profile.id)
+        return try await store(readable, url: url, fallbackTitle: tab.title, profile: profile, existing: existing, refreshed: existing != nil)
+    }
+
+    /// Writes the file, the row and the chunks for a page just read, and queues the embedding. Unchanged
+    /// text (same hash) on a bookmark that is already indexed keeps its vectors and only stamps the time.
+    private func store(_ readable: ReadablePage, url: URL, fallbackTitle: String, profile: Profile, existing: Bookmark?, refreshed: Bool) async throws -> Bookmark {
         let id = existing?.id ?? UUID()
-        let createdAt = existing?.createdAt ?? Date()
-        let fileName = existing?.fileName.nonEmpty ?? Self.fileName(for: readable.title.isEmpty ? tab.title : readable.title, id: id)
-        let title = readable.title.isEmpty ? tab.title : readable.title
+        let title = readable.title.isEmpty ? fallbackTitle : readable.title
+        let fileName = existing?.fileName.nonEmpty ?? Self.fileName(for: title, id: id)
         let language = readable.language.nonEmpty ?? ContextualEmbedder.language(of: readable.text).rawValue
-        let bookmark = Bookmark(
+        let hash = Self.hash(readable.text)
+        let unchanged = existing.map { $0.contentHash == hash && $0.indexedAt != nil && $0.embeddingModel == indexSignature } ?? false
+        var bookmark = Bookmark(
             id: id, profileID: profile.id, url: url, title: title, excerpt: readable.excerpt,
             siteName: readable.siteName, imageURL: readable.imageURL, fileName: fileName, language: language,
-            characterCount: readable.text.count, createdAt: createdAt, indexedAt: nil, embeddingModel: "", indexError: nil
+            characterCount: readable.text.count, createdAt: existing?.createdAt ?? Date(),
+            indexedAt: unchanged ? existing?.indexedAt : nil, embeddingModel: unchanged ? indexSignature : "", indexError: nil,
+            refreshedAt: refreshed ? Date() : nil, contentHash: hash, refreshError: nil
         )
+        if unchanged {
+            bookmark.indexError = existing?.indexError
+            try await database.write { db in try Self.upsert(bookmark, in: db) }
+            revision += 1
+            return bookmark
+        }
         try Self.write(readable, bookmark: bookmark, profile: profile, to: folder(for: profile).appending(path: fileName))
         try await database.write { db in
-            try Bookmark.insert { bookmark }.execute(db)
+            try Self.upsert(bookmark, in: db)
             try Self.dropIndex(of: id, in: db)
             let chunks = Self.chunks(title: title, excerpt: readable.excerpt, text: readable.text)
             for (ord, text) in chunks.enumerated() {
@@ -84,6 +118,95 @@ final class BookmarkStore {
         revision += 1
         enqueue(id)
         return bookmark
+    }
+
+    // MARK: Refreshing
+
+    /// Re-reads the page from its site — off screen, with the profile's cookies — and stores what
+    /// changed. A page that fails to load keeps its old copy and notes why.
+    func refresh(_ id: Bookmark.ID) async {
+        guard let bookmark = bookmark(id), let profile = profile(bookmark.profileID) else { return }
+        guard !refreshing.contains(id) else { return }
+        refreshing.insert(id)
+        defer { refreshing.remove(id) }
+        do {
+            let readable = try await Self.read(bookmark.url, dataStore: dataStore(profile))
+            _ = try await store(readable, url: bookmark.url, fallbackTitle: bookmark.title, profile: profile, existing: bookmark, refreshed: true)
+        } catch {
+            let message = error.localizedDescription
+            let now = Date()
+            try? await database.write { db in
+                try Bookmark.where { $0.id.eq(id) }.update { row in
+                    row.refreshedAt = #bind(now)
+                    row.refreshError = #bind(message)
+                }.execute(db)
+            }
+            revision += 1
+        }
+    }
+
+    /// Everything of the profile (or of everyone), now, regardless of age.
+    func refreshAll(in profileID: Profile.ID?) {
+        let entries = profileID.map { entries(in: .profile, profileID: $0) } ?? entries(in: .all, profileID: UUID())
+        for entry in entries { enqueueRefresh(entry.id) }
+    }
+
+    /// Bookmarks older than the refresh interval, oldest first — what the scheduler feeds.
+    func refreshDue() {
+        let days = refreshDays()
+        guard days > 0 else { return }
+        let cutoff = Date().addingTimeInterval(-Double(days) * 86_400)
+        let due = entries(in: .all, profileID: UUID()).filter { $0.lastReadAt < cutoff }.sorted { $0.lastReadAt < $1.lastReadAt }
+        for entry in due { enqueueRefresh(entry.id) }
+    }
+
+    /// A first look shortly after launch, then once an hour. Pages are refreshed one at a time, so a
+    /// long list takes a while and never floods anyone's site.
+    func startRefreshSchedule() {
+        scheduler?.cancel()
+        scheduler = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(30))
+            while !Task.isCancelled {
+                self?.refreshDue()
+                try? await Task.sleep(for: .seconds(Self.refreshTick))
+            }
+        }
+    }
+
+    private func enqueueRefresh(_ id: Bookmark.ID) {
+        guard !refreshQueue.contains(id), !refreshing.contains(id) else { return }
+        refreshQueue.append(id)
+        if refreshWorker == nil { refreshWorker = Task { await drainRefresh() } }
+    }
+
+    private func drainRefresh() async {
+        defer { refreshWorker = nil }
+        while !refreshQueue.isEmpty {
+            let id = refreshQueue.removeFirst()
+            await refresh(id)
+            try? await Task.sleep(for: .seconds(2)) // a breath between sites
+        }
+    }
+
+    /// Loads the URL in a `WebPage` of its own, waits for the load (and a moment for scripts), extracts.
+    private static func read(_ url: URL, dataStore: WKWebsiteDataStore?) async throws -> ReadablePage {
+        var configuration = WebPage.Configuration()
+        if let dataStore { configuration.websiteDataStore = dataStore }
+        configuration.applicationNameForUserAgent = UserAgent.applicationName
+        let page = WebPage(configuration: configuration)
+        page.load(URLRequest(url: url))
+        let deadline = Date().addingTimeInterval(refreshTimeout)
+        try? await Task.sleep(for: .milliseconds(300))
+        while page.isLoading, Date() < deadline {
+            try? await Task.sleep(for: .milliseconds(200))
+        }
+        guard !page.isLoading else { throw Failure("Timed out loading \(url.host() ?? url.absoluteString)") }
+        try? await Task.sleep(for: .seconds(1))
+        return try await ReadablePage.extract(from: page)
+    }
+
+    nonisolated static func hash(_ text: String) -> String {
+        SHA256.hash(data: Data(text.utf8)).map { String(format: "%02x", $0) }.joined()
     }
 
     func remove(_ id: Bookmark.ID) {
@@ -253,7 +376,7 @@ final class BookmarkStore {
         guard let bookmark = bookmark(id) else { return }
         let chunks = read { db in try BookmarkChunk.where { $0.bookmarkID.eq(id) }.order(by: \.ord).fetchAll(db) }
         guard !chunks.isEmpty else { return }
-        let modelID = embedder.modelID
+        let modelID = indexSignature
         let profileID = bookmark.profileID
         let now = Date()
         do {
@@ -280,6 +403,12 @@ final class BookmarkStore {
             FileHandle.standardError.write(Data("[six] bookmark index failed for \(bookmark.url): \(message)\n".utf8))
         }
         revision += 1
+    }
+
+    /// The table's `ON CONFLICT REPLACE` sits on `NOT NULL`, not on the key, so a re-save is delete + insert.
+    nonisolated private static func upsert(_ bookmark: Bookmark, in db: Database) throws {
+        try Bookmark.where { $0.id.eq(bookmark.id) }.delete().execute(db)
+        try Bookmark.insert { bookmark }.execute(db)
     }
 
     /// Everything the index holds for a bookmark: its chunks and their vectors.

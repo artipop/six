@@ -40,6 +40,9 @@ struct sixApp: App {
         let browser = BrowserState(snapshot: snapshot?.browser, history: history, settings: settings)
         let bookmarks = BookmarkStore(database: database)
         bookmarks.profile = { [weak browser] id in browser?.profiles.first { $0.id == id } }
+        bookmarks.dataStore = { [weak browser] profile in browser?.dataStore(for: profile) }
+        bookmarks.refreshDays = { [weak settings] in settings?.bookmarkRefreshDays ?? 7 }
+        bookmarks.startRefreshSchedule()
         browser.bookmarks = bookmarks
         bookmarks.resumeIndexing()
         let highlights = HighlightStore()
@@ -258,6 +261,18 @@ private struct BookmarkCommands: Commands {
             }
             Divider()
             let profile = browser.selectedProfile
+            let current = tab.flatMap { tab in tab.currentURL.flatMap { bookmarks.bookmark(for: $0, in: tab.profileID) } }
+            Button("Refresh Bookmark") { if let current { Task { await bookmarks.refresh(current.id) } } }
+                .disabled(current == nil)
+            Button("Refresh \(profile.name) Bookmarks") { bookmarks.refreshAll(in: profile.id) }
+                .disabled(bookmarks.count(in: profile.id) == 0)
+            Picker("Re-read Saved Pages", selection: $settings.bookmarkRefreshDays) {
+                Text("Never").tag(0)
+                Text("Daily").tag(1)
+                Text("Weekly").tag(7)
+                Text("Monthly").tag(30)
+            }
+            Divider()
             Section(profile.name) {
                 let recent = bookmarks.entries(in: .profile, profileID: profile.id).prefix(15)
                 if recent.isEmpty {
