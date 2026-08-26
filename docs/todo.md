@@ -41,6 +41,15 @@ Two different features that both deserve the name:
   which leaves the strip while it floats and returns to its column when closed. This is niri's floating layer, and the
   same mechanism would later serve a proper floating-window mode.
 
+## Highlights and passage links
+
+Useful on its own — a highlighter that remembers — and the part of [deep research](deep-research.md#4-highlighted-passages)
+that turns a list of links into evidence: the model picks the paragraphs that answer the question (by number, from an
+extraction six makes, so it never retypes the text), and six anchors them with Web Annotation selectors, paints them
+through the CSS Custom Highlight API and writes them into the document as `#:~:text=` links that work in any browser.
+Dynamically loaded pages get a re-anchor budget, not a promise; canvas text and PDFs are out of reach and should say
+so. Highlights live per URL in `highlights.json`, so they come back next week whether or not a run does.
+
 ## Smaller things
 
 - A readable maximum width for the default column on ultra-wide displays: 88 % of a 5K panel is a very long line.

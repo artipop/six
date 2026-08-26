@@ -22,7 +22,7 @@ A finished run should leave a workspace that looks like this:
 The agent, not the app. Claude Code / Codex already plan, call tools, retry and summarize; six should not grow a
 second planner. The app's job is to give the loop a place to work (a workspace), the tools to work with, and a
 surface to write into. A native loop over the ⌘K assistant model is a later option for people without an agent
-installed (see phase 4) — the tools are the same, only the driver differs.
+installed (see the phases below) — the tools are the same, only the driver differs.
 
 ## The pieces
 
@@ -57,7 +57,8 @@ because a document is just another column. What changes:
 | `create_document` | new document window (`title`, optional `workspace`, `profile`, initial `markdown`) → id |
 | `write_document` | `replace` the whole text, `append` to it, or replace one `## section` by heading |
 | `read_document` | the current text back, so an agent can revise what it (or the user) wrote |
-| `cite` | append a source line — title, URL, retrieved-at — from a window id, and return the `[n]` to use inline |
+| `cite` | append a source line — title, URL, retrieved-at, optionally the passage — and return the `[n]` to use inline |
+| `highlight_page` | mark the paragraphs of a window that answer a question, and hand back anchors to cite |
 
 `write_document` in sections, rather than one final dump, is what makes a run watchable: the outline appears first,
 then each section fills in while the sources are being read. The user can read the document as it grows, and can edit
@@ -75,7 +76,59 @@ is not sandboxed, so no bookmarks to keep):
 This is a browser feature, not a research feature — hence its own entry in [todo.md](todo.md). Deep research just
 needs it to exist.
 
-### 4. The run
+### 4. Highlighted passages
+
+A citation should point at the sentences that earned it, not at a page. Two halves: deciding *which* paragraphs, and
+making the mark survive being reopened.
+
+**Choosing them.** Not by asking a model to quote. A model that retypes a passage mis-types it, and then nothing
+matches. Instead six extracts the page's text as a numbered list of blocks — one entry per paragraph-ish element, with
+its text and a selector — asks the model *which numbers* answer the question, and anchors the numbers itself:
+
+```
+12: Прямые рейсы Новосибирск — Алматы выполняет S7 …
+13: Багаж 23 кг оплачивается отдельно …
+→ model returns [12, 13] with a one-line reason each
+```
+
+The model never handles the text it is marking, so it cannot corrupt it. `highlight_page` runs this pass with the
+⌘K model (on-device is enough for "which of these is about X") and returns anchors the agent can pass to `cite`.
+A human doing it by hand — select, `⌥⇧H` — makes the same kind of anchor.
+
+**Anchoring.** Store the W3C Web Annotation selectors, all of them, and re-anchor with a ladder on the way back
+(this is how Hypothesis survives the real web):
+
+1. `TextQuoteSelector` — the exact text plus ~32 characters of prefix and suffix. Survives reflow, ads, an inserted
+   paragraph. The primary.
+2. `TextPositionSelector` — character offsets into the normalized page text. Cheap, and disambiguates a quote that
+   occurs twice.
+3. `RangeSelector` — an XPath/child-index path to start and end nodes. The last resort, and the first to break.
+4. Fuzzy match — an approximate search (bitap) around the recorded position when the exact quote has drifted by a
+   word. Below a similarity threshold, give up rather than highlight the wrong sentence.
+
+**Drawing it.** The CSS Custom Highlight API (`CSS.highlights`, `::highlight()`): it paints `Range`s without touching
+the DOM, so a React page re-rendering does not tear our `<span>`s apart and the page's own scripts see nothing. Where
+it is missing, fall back to wrapping spans.
+
+**Dynamic pages** are the hard part, and the honest answer is a budget rather than a guarantee. Anchor on
+`didFinishNavigation`; if the quote is not there, watch with a `MutationObserver` for a few seconds (a lazily hydrated
+article usually lands in one) and try again on each batch; then stop. If it never anchors, the document still holds
+the quote and the link — the evidence survives even when the page does not — and the window shows a quiet note that
+the passage is no longer on the page. Never scroll somewhere approximate and call it the citation.
+
+**In the document.** A citation is written as a portable link — `[quote](url#:~:text=prefix-,start,end,-suffix)` —
+so it works in any browser that understands text fragments (WebKit does), and carries our anchor alongside it for
+the precise in-app jump. Clicking it focuses the source window and scrolls to the highlight; if the window was
+closed, it opens again with the fragment doing the work.
+
+**Storage.** Highlights are per URL, not per window, and live in a file of their own (`highlights.json`, like
+history): they should come back when the page is opened next week, whether or not the research run still exists.
+
+**What will not work, and should say so:** text drawn on a canvas (Google Docs and friends), PDFs shown by WebKit's
+own viewer, text inside cross-origin iframes, and pages that rewrite their content on every visit. Detect and report
+rather than pretend.
+
+### 5. The run
 
 A **run** is a named workspace plus a prompt preset. Starting one (a "Research…" item in the agent panel, or ⌘K
 prefixed with a question) does:
@@ -103,7 +156,8 @@ number the user can see and change beats a heuristic.
 | 2 | `create_document` / `write_document` / `read_document` / `cite`; the agent can write |
 | 3 | Save As for both kinds of window, `⌘S`, last-folder memory |
 | 4 | the run: preset, named workspace, progress, follow-ups into the same document |
-| 5 | optional — a native loop on the ⌘K model for machines with no agent; export a run as one HTML file with its sources inlined |
+| 5 | highlights: the numbered-block pass, the selector ladder, `CSS.highlights`, `highlights.json`, `⌥⇧H` by hand |
+| 6 | optional — a native loop on the ⌘K model for machines with no agent; export a run as one HTML file with its sources inlined |
 
 Phases 1–3 are useful on their own: notes in the strip and a working Save As are worth having whether or not an agent
 ever writes into them.
@@ -118,3 +172,5 @@ ever writes into them.
   line at insert time and can be undone by moving the column, which is the niri answer: nothing is special.
 - **Citations that survive.** `[n]` back to a window id is fine while the window is open. Once it is closed the link
   should still resolve — so `cite` should write the URL, not the id, and the window id is only a convenience.
+- **When the passage is gone.** Show the quote from the document and say the page changed, or try the Wayback
+  Machine for the version that was read? The second is a network call and a dependency; the first is honest and free.
