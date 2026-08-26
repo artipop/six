@@ -17,6 +17,7 @@ Nothing needs the keyboard: every layout operation has a mouse equivalent. `⌥`
 | overview button (top right) | zoom out to all workspaces; scroll sideways to run along a strip, click a window to open it |
 | double-click a workspace name (overview) | rename it; right-click the name to rename or clear it. A named workspace stays even when empty |
 | `×` on a title bar | close that window |
+| the top edge of the screen (in fullscreen) | brings the bar back: previous/next window, workspace up/down, overview, leave fullscreen |
 | the engine chip on the start page | DuckDuckGo or Google — for queries and for the suggestions; also under Navigate → Search Engine |
 | the profile dots (top left) | switch profile — each has its own strip; `+` adds one, right-click deletes |
 
@@ -32,6 +33,7 @@ Nothing needs the keyboard: every layout operation has a mouse equivalent. `⌥`
 | `⌥R` / `⌥F` | cycle preset widths (½, ⅔, peek, full) / maximize |
 | `⌥C` | centre the focused window in the strip (on by default) — off means the strip moves as little as possible |
 | `⌥O`, `Esc` | overview on / off |
+| `⌥⇧F`, `Esc` | fullscreen on / off — the page edge to edge, with `⌥←` `⌥→` still walking the strip |
 | `⌘Y` | history of the current profile (search, ↩ opens, ⌫ forgets); the History menu has the last 20 pages |
 | `⌘T` / `⌘W` | new window / close window |
 | `⌘L` | focus the address field |

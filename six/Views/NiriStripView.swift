@@ -28,12 +28,14 @@ struct NiriStripView: View {
         .clipped()
         .overlay(alignment: .leading) { StripEdgeButton(direction: -1) }
         .overlay(alignment: .trailing) { StripEdgeButton(direction: 1) }
+        .overlay(alignment: .top) { if layout.showsFullscreen { FullscreenBar() } }
         .overlay(alignment: .bottom) { OverviewHint() }
         .contextMenu { StripMenu() }
         .onAppear(perform: startMonitor)
         .onDisappear { monitor.stop() }
         .focusedSceneValue(\.focusAddressBar, FocusAddressBarAction {
             browser.exitOverview()
+            browser.exitFullscreen() // the address bar is part of the chrome fullscreen hides
             addressFocus = browser.layout.focusedTabID
         })
     }
@@ -65,6 +67,11 @@ struct NiriStripView: View {
         }
         monitor.onPan = { browser.panStrip(by: $0) }
         monitor.onPanEnded = { browser.endStripPan() }
+        monitor.onEscape = {
+            if layout.isOverview { browser.exitOverview(); return true }
+            if layout.isFullscreen { browser.exitFullscreen(); return true }
+            return false
+        }
         monitor.start()
     }
 }
@@ -166,6 +173,10 @@ private struct ColumnView: View {
     /// click before any SwiftUI overlay can, so the catcher has to be an AppKit view too.
     private var capturesClicks: Bool { !isFocused || browser.layout.isOverview }
 
+    /// Fullscreen means the page and nothing else: no title bar, no rounded corners, no border to
+    /// separate a column from a neighbour that is a whole screen away.
+    private var fullscreen: Bool { browser.layout.showsFullscreen }
+
     private func activate() {
         browser.selectTab(tab.id)
         browser.exitOverview()
@@ -173,9 +184,11 @@ private struct ColumnView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            WindowChrome(tab: tab, isFocused: isFocused, addressFocus: addressFocus)
-                .contextMenu { ColumnMenu(tab: tab) }
-            Divider()
+            if !fullscreen {
+                WindowChrome(tab: tab, isFocused: isFocused, addressFocus: addressFocus)
+                    .contextMenu { ColumnMenu(tab: tab) }
+                Divider()
+            }
             if tab.showsStartPage {
                 // Pure SwiftUI, so the plain overlay is enough to catch the first click here.
                 StartPage(tab: tab, isActive: isFocused && !browser.layout.isOverview)
@@ -200,13 +213,16 @@ private struct ColumnView: View {
             }
         }
         .background(.background)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: fullscreen ? 0 : 12, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(isFocused ? accent : Color.primary.opacity(0.12),
-                              lineWidth: isFocused ? 2.5 : 1)
+            if !fullscreen {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(isFocused ? accent : Color.primary.opacity(0.12),
+                                  lineWidth: isFocused ? 2.5 : 1)
+            }
         }
-        .shadow(color: .black.opacity(isFocused ? 0.28 : 0.16), radius: isFocused ? 18 : 10, y: 5)
+        .shadow(color: .black.opacity(fullscreen ? 0 : (isFocused ? 0.28 : 0.16)),
+                radius: fullscreen ? 0 : (isFocused ? 18 : 10), y: fullscreen ? 0 : 5)
         .animation(.easeOut(duration: 0.18), value: isFocused)
     }
 }
@@ -249,7 +265,9 @@ private struct StripEdgeButton: View {
 
     var body: some View {
         let layout = browser.layout
-        if !layout.isOverview {
+        // Over a full-bleed page a SwiftUI button never sees the mouse (see `ClickCatcher`), so in
+        // fullscreen these give way to the bar, which is hosted in AppKit.
+        if !layout.isOverview, !layout.showsFullscreen {
             if layout.canFocusColumn(direction) {
                 button(symbol: direction < 0 ? "chevron.left" : "chevron.right",
                        help: direction < 0 ? "Previous window (⌥←)" : "Next window (⌥→)",
@@ -319,6 +337,7 @@ private struct StripMenu: View {
         Button("Workspace Below") { browser.focusWorkspace(1) }
             .disabled(!browser.layout.canFocusWorkspace(1))
         Button(browser.layout.isOverview ? "Close Overview" : "Overview") { browser.toggleOverview() }
+        Button(browser.layout.isFullscreen ? "Leave Fullscreen" : "Fullscreen") { browser.toggleFullscreen() }
         Divider()
         Toggle("Center Focused Window", isOn: Binding(
             get: { browser.layout.centersFocus },
@@ -339,12 +358,89 @@ private struct ColumnMenu: View {
         Divider()
         Button("Cycle Width") { browser.selectTab(tab.id); browser.cycleColumnWidth() }
         Button("Full Width") { browser.selectTab(tab.id); browser.toggleFullWidth() }
+        Button("Fullscreen") { browser.selectTab(tab.id); browser.toggleFullscreen() }
         Divider()
         Button("Move Left") { browser.selectTab(tab.id); browser.moveColumn(-1) }
         Button("Move Right") { browser.selectTab(tab.id); browser.moveColumn(1) }
         Button("Move to Workspace Above") { browser.selectTab(tab.id); browser.moveColumnToWorkspace(-1) }
         Button("Move to Workspace Below") { browser.selectTab(tab.id); browser.moveColumnToWorkspace(1) }
     }
+}
+
+/// The strip's controls while fullscreen hides everything else: push the pointer against the top edge
+/// and the bar comes down, move away and it goes. It is hosted in an AppKit view of its own, because
+/// SwiftUI drawn over a page never sees the mouse — `WKWebView` is a real AppKit view and takes it
+/// first, the same reason `ClickCatcher` exists.
+private struct FullscreenBar: View {
+    @Environment(BrowserState.self) private var browser
+    @State private var revealed = false
+
+    var body: some View {
+        HostedOverlay {
+            // A hosted view starts a SwiftUI hierarchy of its own: nothing is inherited, so the model
+            // has to be handed over explicitly.
+            content.environment(browser)
+        }
+        .frame(height: revealed ? 40 : 6)
+    }
+
+    private var content: some View {
+        Group {
+            if revealed {
+                bar
+            } else {
+                Color.clear.contentShape(Rectangle()) // the strip of screen that brings the bar back
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onHover { hovering in
+            withAnimation(.easeOut(duration: 0.16)) { revealed = hovering }
+        }
+    }
+
+    private var bar: some View {
+        let layout = browser.layout
+        return HStack(spacing: 10) {
+            Color.clear.frame(width: 68, height: 1) // the window buttons are still there, over the page
+            button("chevron.left", "Previous window (⌥←)", enabled: layout.canFocusColumn(-1)) { browser.focusColumn(-1) }
+            button("chevron.right", "Next window (⌥→)", enabled: layout.canFocusColumn(1)) { browser.focusColumn(1) }
+            Text(browser.selectedTab?.title ?? "")
+                .font(.callout)
+                .lineLimit(1)
+                .foregroundStyle(.secondary)
+            Spacer(minLength: 12)
+            button("chevron.up", "Workspace above (⌥↑)", enabled: layout.canFocusWorkspace(-1)) { browser.focusWorkspace(-1) }
+            button("chevron.down", "Workspace below (⌥↓)", enabled: layout.canFocusWorkspace(1)) { browser.focusWorkspace(1) }
+            button("rectangle.grid.1x2", "Overview (⌥O)", enabled: true) { browser.toggleOverview() }
+            button("arrow.down.right.and.arrow.up.left", "Leave fullscreen (⌥⇧F or ⎋)", enabled: true) {
+                browser.exitFullscreen()
+            }
+        }
+        .padding(.horizontal, 10)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(.regularMaterial)
+        .overlay(alignment: .bottom) { Divider() }
+    }
+
+    private func button(_ symbol: String, _ help: String, enabled: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) { Image(systemName: symbol) }
+            .buttonStyle(.borderless)
+            .disabled(!enabled)
+            .help(help)
+    }
+}
+
+/// SwiftUI hosted in an AppKit view, so it stands *beside* a `WKWebView` in the view hierarchy instead
+/// of being drawn over it — the difference between a control that works over a page and one that looks
+/// like it should.
+private struct HostedOverlay<Content: View>: NSViewRepresentable {
+    let content: Content
+
+    init(@ViewBuilder content: () -> Content) { self.content = content() }
+
+    func makeNSView(context: Context) -> NSHostingView<Content> { NSHostingView(rootView: content) }
+
+    func updateNSView(_ view: NSHostingView<Content>, context: Context) { view.rootView = content }
 }
 
 // MARK: - Background

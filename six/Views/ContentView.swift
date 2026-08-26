@@ -11,11 +11,14 @@ struct ContentView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TopBar(showAgentPanel: $showAgentPanel)
+            // Fullscreen gives the whole window to the strip; its own bar comes back on hover.
+            if !browser.layout.showsFullscreen {
+                TopBar(showAgentPanel: $showAgentPanel)
+            }
             NiriStripView()
                 .overlay(alignment: .bottom) {
                     if !browser.layout.isOverview {
-                        AssistantBar()
+                        AssistantBar(isHidden: browser.layout.showsFullscreen)
                     }
                 }
         }
@@ -32,9 +35,17 @@ struct ContentView: View {
         .focusedSceneValue(\.clearHistory, FocusAddressBarAction { confirmClearHistory = true })
         .clearHistoryDialog(isPresented: $confirmClearHistory)
         .onKeyPress(.escape) {
-            guard browser.layout.isOverview else { return .ignored }
-            browser.exitOverview()
-            return .handled
+            // The scroll monitor usually gets there first (a page holds the focus); this is the path
+            // for when nothing in the window has taken the key.
+            if browser.layout.isOverview {
+                browser.exitOverview()
+                return .handled
+            }
+            if browser.layout.isFullscreen {
+                browser.exitFullscreen()
+                return .handled
+            }
+            return .ignored
         }
         .task {
             // Debug harness: `SIX_ACP_SELFTEST="hi"` opens the agent panel and sends the text on launch,

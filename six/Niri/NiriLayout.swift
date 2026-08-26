@@ -63,6 +63,11 @@ final class NiriLayout {
 
     var viewport: CGSize = CGSize(width: 1280, height: 800)
     var isOverview = false
+    /// niri's fullscreen, as a mode rather than per-window state: the focused window fills the screen —
+    /// no gaps, no title bar, no top bar — and the strip goes on working underneath it, so ⌥←/⌥→ walks
+    /// from one full-screen page to the next. Not macOS fullscreen (the green button), and not a page
+    /// asking for `requestFullscreen`, which WebKit handles on its own inside the web view.
+    private(set) var isFullscreen = false
     /// niri's `center-focused-column`: park the focused window in the middle of the screen instead of
     /// scrolling as little as possible. Off means the strip only moves when the focus would fall off it.
     var centersFocus: Bool = UserDefaults.standard.object(forKey: NiriLayout.centerKey) as? Bool ?? true {
@@ -164,6 +169,11 @@ final class NiriLayout {
 
     // MARK: Geometry
 
+    /// The overview is another way of looking at the same strip, so fullscreen steps aside while it is
+    /// open — with the gaps and the title bars back, the columns can be told apart — and comes back
+    /// when it closes.
+    var showsFullscreen: Bool { isFullscreen && !isOverview }
+
     /// Scale of the whole canvas: 1 normally, zoomed out in the overview.
     var overviewScale: CGFloat {
         guard isOverview else { return 1 }
@@ -176,8 +186,9 @@ final class NiriLayout {
     /// down, so it shows proportionally more of the strip — and scrolls when even that isn't enough.
     var visibleWidth: CGFloat { viewport.width / overviewScale }
 
-    /// Space between two columns, and between a column and the edge of the screen.
-    var gap: CGFloat { max(Self.minimumGap, (viewport.width * Self.gapFraction).rounded()) }
+    /// Space between two columns, and between a column and the edge of the screen. Fullscreen has none:
+    /// the page runs to every edge, and the next window starts exactly one screen away.
+    var gap: CGFloat { showsFullscreen ? 0 : max(Self.minimumGap, (viewport.width * Self.gapFraction).rounded()) }
     var outerGap: CGFloat { gap }
 
     /// Working area, with one gap folded in so N columns of 1/N exactly fill the screen.
@@ -186,6 +197,9 @@ final class NiriLayout {
     var columnHeight: CGFloat { max(200, viewport.height - 2 * outerGap) }
 
     func width(of column: NiriColumn) -> CGFloat {
+        // Fullscreen overrides the preset without touching it: the widths are all still there on the
+        // way out.
+        guard !showsFullscreen else { return viewport.width }
         let fraction = Self.widthPresets[min(max(0, column.widthIndex), Self.widthPresets.count - 1)]
         return max(280, usableWidth * fraction - gap)
     }
@@ -260,15 +274,6 @@ final class NiriLayout {
         workspace.viewOffset = clampOffset(offset, in: workspace)
     }
 
-    /// Puts the strip back under the focused window — used on the way out of the overview, whose free
-    /// scrolling leaves the offset anywhere.
-    func scrollFocusIntoView() {
-        mutate { s in
-            guard s.workspaces.indices.contains(s.focus) else { return }
-            scrollFocusIntoView(&s.workspaces[s.focus])
-        }
-    }
-
     /// Puts every workspace of one strip back under its focused window.
     private func recenterStrip(_ profileID: UUID) {
         mutate(profile: profileID) { s in
@@ -276,15 +281,22 @@ final class NiriLayout {
         }
     }
 
-    /// Every strip, not just the one on screen: the viewport and the centring switch belong to the
-    /// window, so a strip left alone would still be scrolled for the geometry it last saw.
-    private func recenterStrips() {
+    /// Every strip, not just the one on screen: the viewport, the centring switch and fullscreen all
+    /// belong to the window, so a strip left alone would still be scrolled for the geometry it last saw.
+    func recenterStrips() {
         for profileID in Array(strips.keys) { recenterStrip(profileID) }
         recenterStrip(activeProfileID)
     }
 
     func setCentersFocus(_ value: Bool) {
         centersFocus = value
+        recenterStrips()
+    }
+
+    /// Every column changes width here, so every offset that pointed at one has to be found again.
+    func setFullscreen(_ value: Bool) {
+        guard value != isFullscreen else { return }
+        isFullscreen = value
         recenterStrips()
     }
 

@@ -130,6 +130,8 @@ private struct LayoutCommands: Commands {
                 .keyboardShortcut("f", modifiers: .option)
             Button("Toggle Overview") { browser.toggleOverview() }
                 .keyboardShortcut("o", modifiers: .option)
+            Button(browser.layout.isFullscreen ? "Leave Fullscreen" : "Fullscreen") { browser.toggleFullscreen() }
+                .keyboardShortcut("f", modifiers: [.option, .shift])
 
             Divider()
 

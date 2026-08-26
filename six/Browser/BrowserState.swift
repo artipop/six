@@ -223,6 +223,8 @@ final class BrowserState {
         withAnimation(NiriLayout.switchAnimation) {
             layout.removeColumn(tabID: id)
         }
+        // Nothing left to fill the screen with: fullscreen would be a blank wall with no way back.
+        if layout.isFullscreen, layout.focusedWorkspace?.isEmpty != false { layout.setFullscreen(false) }
         guard wasActive else { return }
         syncSelection()
         if selectedTabID == nil, tabs(in: closed.profileID).isEmpty {
@@ -261,7 +263,10 @@ final class BrowserState {
         if layout.isOverview {
             exitOverview()
         } else {
-            withAnimation(NiriLayout.switchAnimation) { layout.isOverview = true }
+            withAnimation(NiriLayout.switchAnimation) {
+                layout.isOverview = true
+                layout.recenterStrips() // the overview has its own widths, and fullscreen's are not them
+            }
         }
     }
 
@@ -269,7 +274,29 @@ final class BrowserState {
         guard layout.isOverview else { return }
         withAnimation(NiriLayout.switchAnimation) {
             layout.isOverview = false
-            layout.scrollFocusIntoView() // free overview scrolling leaves the offset anywhere
+            // Free overview scrolling leaves the offset anywhere, and a strip going back to fullscreen
+            // changes every width on the way out.
+            layout.recenterStrips()
+        }
+    }
+
+    /// niri's fullscreen: the focused window fills the screen and the strip keeps working under it.
+    func toggleFullscreen() {
+        setFullscreen(!layout.isFullscreen)
+    }
+
+    func exitFullscreen() {
+        setFullscreen(false)
+    }
+
+    private func setFullscreen(_ value: Bool) {
+        guard value != layout.isFullscreen else { return }
+        // An empty workspace has no page to show edge to edge, and hiding the chrome over nothing only
+        // takes away the way back.
+        guard !value || layout.focusedWorkspace?.isEmpty == false else { return }
+        animateLayout {
+            if value { layout.isOverview = false }
+            layout.setFullscreen(value)
         }
     }
 

@@ -27,8 +27,13 @@ final class NiriScrollMonitor {
     var snapsHorizontally: () -> Bool = { false }
     /// True when the gesture works without holding Mod (the overview has no page to scroll).
     var modifierOptional: () -> Bool = { false }
+    /// ⎋ arrives through the same monitor rather than through SwiftUI: while a page is first responder
+    /// a key press never reaches the view hierarchy, and the way out of fullscreen must not depend on
+    /// where the focus happens to be. Returning true swallows the event.
+    var onEscape: () -> Bool = { false }
 
     private var monitor: Any?
+    private var keyMonitor: Any?
     private var accumulated: CGFloat = 0
     private var accumulatedX: CGFloat = 0
     private var didCommit = false
@@ -46,11 +51,27 @@ final class NiriScrollMonitor {
             guard let self else { return event }
             return MainActor.assumeIsolated { self.handle(event) }
         }
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self else { return event }
+            return MainActor.assumeIsolated { self.handleKey(event) }
+        }
     }
 
     func stop() {
         if let monitor { NSEvent.removeMonitor(monitor) }
+        if let keyMonitor { NSEvent.removeMonitor(keyMonitor) }
         monitor = nil
+        keyMonitor = nil
+    }
+
+    private static let escapeKeyCode: UInt16 = 53
+
+    private func handleKey(_ event: NSEvent) -> NSEvent? {
+        guard event.keyCode == Self.escapeKeyCode,
+              event.modifierFlags.intersection(.deviceIndependentFlagsMask).isEmpty else { return event }
+        // A video playing full screen is WebKit's own window with its own ⎋; that one is not ours to take.
+        if let window = event.window, String(describing: type(of: window)).contains("FullScreen") { return event }
+        return onEscape() ? nil : event
     }
 
     private func handle(_ event: NSEvent) -> NSEvent? {

@@ -15,21 +15,6 @@ is where the design lives.
   `.webarchive` / `.html` / `.pdf` / `.txt`. Remember the last folder and the document's own file URL.
 - Neighbour worth doing at the same time: **downloads** (`WKDownload`), which six does not handle at all yet.
 
-## Fullscreen that keeps the strip
-
-A page should be readable edge to edge — no gaps, no title bar, no top bar — *and* still be part of the strip: `⌥←`
-`⌥→` moves to the next window and shows it the same way. niri's own `fullscreen` behaves like this; it is not the same
-thing as the green button.
-
-- Layout: a `fullscreen` flag on the focused column (or a width preset beyond `1.0`) that zeroes `outerGap` and the
-  column gap, hides `WindowChrome` and the top bar, and keeps `centersFocus` doing its job.
-- Moving along the strip stays one window per gesture; the next window arrives already fullscreen, so it reads like a
-  slideshow of pages. `⌥F` is taken by "maximize"; `⌥⇧F` or `Esc` is the natural pair for enter/leave.
-- Three different things must not be confused: this (a layout state), macOS fullscreen (the green button — the strip
-  simply fills a bigger window), and a page's own `requestFullscreen` for video, which WebKit handles inside the web
-  view and which must keep working while the scroll monitor is running.
-- The overview should show a fullscreen column as it really is, so leaving the overview does not surprise anyone.
-
 ## Picture-in-picture
 
 Two different features that both deserve the name:

@@ -2,6 +2,10 @@ import SwiftUI
 
 /// Dia-style single input line pinned to the bottom of the page, with the answer floating above it.
 struct AssistantBar: View {
+    /// Fullscreen is for the page alone, so the line steps aside there — until ⌘K asks for it, or an
+    /// answer arrives. It stays in the hierarchy either way, which is what keeps ⌘K wired up.
+    var isHidden = false
+
     @Environment(BrowserState.self) private var browser
     @Environment(AssistantStore.self) private var assistant
     @Environment(AgentSessionStore.self) private var agentSession
@@ -39,9 +43,14 @@ struct AssistantBar: View {
         .padding(.horizontal, 16)
         .padding(.bottom, 12)
         .frame(maxWidth: 720)
+        .opacity(isTuckedAway ? 0 : 1)
+        .allowsHitTesting(!isTuckedAway)
         .animation(.snappy, value: assistant.isAnswerVisible)
+        .animation(.easeOut(duration: 0.16), value: isTuckedAway)
         .focusedSceneValue(\.focusAssistant, FocusAddressBarAction { focused = true })
     }
+
+    private var isTuckedAway: Bool { isHidden && !focused && !assistant.isAnswerVisible }
 
     private func submit() {
         assistant.ask(question, about: browser.selectedTab)
