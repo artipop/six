@@ -5,14 +5,14 @@ import SwiftUI
 // MARK: - Model
 
 /// One window in the strip: a tab plus its niri-style sizing.
-struct NiriColumn: Identifiable, Hashable, Sendable {
+nonisolated struct NiriColumn: Identifiable, Hashable, Sendable, Codable {
     var tabID: UUID
     var widthIndex: Int = NiriLayout.defaultWidthIndex
     var id: UUID { tabID }
 }
 
 /// A niri workspace: an infinite horizontal strip of full-height columns.
-struct NiriWorkspace: Identifiable, Sendable {
+nonisolated struct NiriWorkspace: Identifiable, Sendable, Codable {
     var id = UUID()
     /// Optional, like niri's named workspaces. A named one survives running out of windows.
     var name: String = ""
@@ -27,7 +27,7 @@ struct NiriWorkspace: Identifiable, Sendable {
 }
 
 /// The vertical stack of workspaces belonging to one profile.
-struct NiriStrip: Sendable {
+nonisolated struct NiriStrip: Sendable, Codable {
     var workspaces: [NiriWorkspace] = [NiriWorkspace()]
     /// Index of the focused workspace.
     var focus: Int = 0
@@ -44,7 +44,7 @@ final class NiriLayout {
     /// Column widths, as a fraction of the working area — same idea as niri's `preset-column-widths`.
     /// The default is "almost full": a normal browser window, with the next one peeking in at the edge.
     static let widthPresets: [CGFloat] = [0.5, 2.0 / 3.0, 0.88, 1.0]
-    static let defaultWidthIndex = 2
+    nonisolated static let defaultWidthIndex = 2
     /// Gaps are a fraction of the viewport, not a pixel count: the layout should look the same on a
     /// laptop and on a 5K panel. The floor only guards tiny windows. (Control metrics — title bar
     /// heights, buttons, corner radii — stay in points, because text and controls don't scale either.)
@@ -118,6 +118,18 @@ final class NiriLayout {
     /// Any profile's strip, not just the one on screen — the MCP server lists them all.
     func strip(for profileID: UUID) -> NiriStrip {
         strips[profileID] ?? NiriStrip()
+    }
+
+    /// Every strip, for the snapshot.
+    var allStrips: [UUID: NiriStrip] { strips }
+
+    /// Replaces every strip with saved ones (normalised, so a stale file can't leave a strip without
+    /// its trailing empty workspace or with a focus out of range).
+    func restore(strips saved: [UUID: NiriStrip]) {
+        strips = [:]
+        for (profileID, strip) in saved {
+            mutate(profile: profileID) { $0 = strip }
+        }
     }
 
     /// Keeps exactly one trailing empty workspace and drops the empty ones in between — niri's

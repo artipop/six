@@ -191,6 +191,7 @@ private struct ColumnView: View {
                 WebView(tab.page)
                     .webViewBackForwardNavigationGestures(.enabled)
                     .id(tab.id)
+                    .onAppear(perform: tab.resumeIfNeeded)
                     .overlay { if capturesClicks { ClickCatcher(action: activate) } }
             } else {
                 ColumnPlaceholder(tab: tab, accent: accent)
@@ -226,7 +227,7 @@ private struct ColumnPlaceholder: View {
                     .font(.headline)
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
-                if let host = tab.page.url?.host() {
+                if let host = tab.currentURL?.host() {
                     Text(host).font(.caption).foregroundStyle(.secondary)
                 }
             }

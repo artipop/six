@@ -6,6 +6,8 @@ struct ContentView: View {
     @Environment(AgentSessionStore.self) private var agentSession
     @Environment(AssistantStore.self) private var assistant
     @State private var showAgentPanel = false
+    @State private var showHistory = false
+    @State private var confirmClearHistory = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -25,6 +27,10 @@ struct ContentView: View {
         .tint(browser.selectedProfile.color)
         .navigationTitle(browser.selectedTab?.title ?? "six")
         .focusedSceneValue(\.toggleAgentPanel, FocusAddressBarAction { showAgentPanel.toggle() })
+        .focusedSceneValue(\.showHistory, FocusAddressBarAction { showHistory = true })
+        .sheet(isPresented: $showHistory) { HistoryView() }
+        .focusedSceneValue(\.clearHistory, FocusAddressBarAction { confirmClearHistory = true })
+        .clearHistoryDialog(isPresented: $confirmClearHistory)
         .onKeyPress(.escape) {
             guard browser.layout.isOverview else { return .ignored }
             browser.exitOverview()

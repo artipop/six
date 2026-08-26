@@ -79,10 +79,12 @@ actor ACPClient {
         return response
     }
 
-    func loadSession(id: String, cwd: URL, mcpServers: [ACP.MCPServer] = []) async throws {
+    /// Resumes a session; the agent streams its history as `session/update`s before answering.
+    func loadSession(id: String, cwd: URL, mcpServers: [ACP.MCPServer] = []) async throws -> ACP.LoadSessionResponse? {
         let request = ACP.LoadSessionRequest(sessionId: id, cwd: cwd.path, mcpServers: mcpServers)
-        _ = try await connection.request("session/load", params: ACPJSON(encoding: request))
+        let result = try await connection.request("session/load", params: ACPJSON(encoding: request))
         allowedRoots[id] = cwd
+        return try? result.decode()
     }
 
     func setMode(sessionId: String, modeId: String) async throws {

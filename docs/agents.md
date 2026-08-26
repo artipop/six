@@ -20,6 +20,16 @@ directory, which is stored on the profile (`Profile.workingDirectoryPath`), show
 to go back to the profile's own folder. Switching profiles switches the folder; the next prompt reconnects the agent
 with the new `cwd`.
 
+## Chats and sessions
+
+A conversation belongs to an agent in a folder (`AgentChat`: agent id, directory, ACP session id, transcript), so
+switching profile or agent switches the chat on show. Chats are saved with the rest of the app state (see
+[architecture](architecture.md)). On the next connect the store asks the agent for `session/load` with the saved id
+when it advertises `loadSession`; the agent replays the conversation as `session/update`s (`user_message_chunk`
+included), which replace our copy of the transcript, and the agent remembers the context. When the agent can't load
+sessions or the id is gone, a new session starts and the saved transcript stays above it as a record. ✎ in the panel
+header forgets the current chat and its session.
+
 ## Debugging
 
 `SIX_ACP_TRACE=1` mirrors the connection steps and every JSON-RPC line to stderr. `SIX_ACP_SELFTEST="hi"` opens the

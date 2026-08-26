@@ -31,6 +31,7 @@ Nothing needs the keyboard: every layout operation has a mouse equivalent. `⌥`
 | `⌥R` / `⌥F` | cycle preset widths (½, ⅔, peek, full) / maximize |
 | `⌥C` | centre the focused window in the strip (on by default) — off means the strip moves as little as possible |
 | `⌥O`, `Esc` | overview on / off |
+| `⌘Y` | history of the current profile (search, ↩ opens, ⌫ forgets); the History menu has the last 20 pages |
 | `⌘T` / `⌘W` | new window / close window |
 | `⌘L` | focus the address field |
 | `⌘K` | focus the assistant line |

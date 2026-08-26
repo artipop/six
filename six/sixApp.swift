@@ -16,21 +16,52 @@ struct sixApp: App {
     @State private var assistant: AssistantStore
     @State private var agentSession: AgentSessionStore
     @State private var mcp: MCPHost
+    @State private var persistence: StatePersistence<FileSnapshotStore<AppStateSnapshot>>
+    @State private var historyPersistence: StatePersistence<FileSnapshotStore<HistorySnapshot>>
 
     init() {
-        let browser = BrowserState()
+        let store = FileSnapshotStore<AppStateSnapshot>(fileNamed: "state.json")
+        let historyStore = FileSnapshotStore<HistorySnapshot>(fileNamed: "history.json")
+        let snapshot = Self.load(store)
+        let history = HistoryStore(snapshot: Self.load(historyStore))
+        let browser = BrowserState(snapshot: snapshot?.browser, history: history)
         let assistant = AssistantStore()
-        let agentSession = AgentSessionStore()
+        let agentSession = AgentSessionStore(snapshot: snapshot?.agent)
         agentSession.browser = browser
         let tools = BrowserToolCatalog(browser: browser, assistant: assistant.settings)
         assistant.tools = tools
         assistant.agentSession = agentSession
         let mcp = MCPHost(server: MCPServer(catalog: tools))
         mcp.start()
+        FileHandle.standardError.write(Data("[six] \(mcp.status); state at \(store.url.path)\n".utf8))
+        let persistence = StatePersistence(store: store) {
+            AppStateSnapshot(browser: browser.snapshot, agent: agentSession.snapshot)
+        }
+        persistence.start()
+        let historyPersistence = StatePersistence(store: historyStore) { history.snapshot }
+        historyPersistence.start()
+        NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: .main) { _ in
+            MainActor.assumeIsolated {
+                persistence.flush()
+                historyPersistence.flush()
+            }
+        }
+        _persistence = State(initialValue: persistence)
+        _historyPersistence = State(initialValue: historyPersistence)
         _browser = State(initialValue: browser)
         _assistant = State(initialValue: assistant)
         _agentSession = State(initialValue: agentSession)
         _mcp = State(initialValue: mcp)
+    }
+
+    /// A file that won't load starts fresh — better than not starting.
+    private static func load<S: SnapshotStore>(_ store: S) -> S.Snapshot? {
+        do {
+            return try store.load()
+        } catch {
+            FileHandle.standardError.write(Data("[six] load failed (\(S.Snapshot.self)), starting fresh: \(error)\n".utf8))
+            return nil
+        }
     }
 
     var body: some Scene {
@@ -53,6 +84,7 @@ struct sixApp: App {
             }
             LayoutCommands(browser: browser)
             BrowserCommands()
+            HistoryCommands(browser: browser)
         }
     }
 }
@@ -106,6 +138,37 @@ private struct LayoutCommands: Commands {
                 set: { _ in browser.toggleCenterFocus() }
             ))
             .keyboardShortcut("c", modifiers: .option)
+        }
+    }
+}
+
+/// The selected profile's recent pages, and ⌘Y for the whole thing.
+private struct HistoryCommands: Commands {
+    let browser: BrowserState
+    @FocusedValue(\.showHistory) private var showHistory
+    @FocusedValue(\.clearHistory) private var clearHistory
+
+    var body: some Commands {
+        CommandMenu("History") {
+            Button("Show History…") { showHistory?.perform() }
+                .keyboardShortcut("y")
+                .disabled(showHistory == nil)
+            Divider()
+            let profile = browser.selectedProfile
+            Section(profile.name) {
+                let recent = browser.history.recent(in: profile.id, limit: 20)
+                if recent.isEmpty {
+                    Text("No History").disabled(true)
+                }
+                ForEach(recent) { entry in
+                    Button(entry.title.isEmpty ? entry.url.absoluteString : entry.title) {
+                        browser.newTab(url: entry.url, in: entry.profileID)
+                    }
+                }
+            }
+            Divider()
+            Button("Clear \(profile.name) History…") { clearHistory?.perform() }
+                .disabled(clearHistory == nil)
         }
     }
 }

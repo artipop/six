@@ -36,6 +36,10 @@ struct AgentPanel: View {
                 .labelsHidden()
                 Spacer()
                 stateBadge
+                Button { store.startNewChat() } label: { Image(systemName: "square.and.pencil") }
+                    .buttonStyle(.plain)
+                    .disabled(store.transcript.isEmpty || store.state == .prompting)
+                    .help("New chat: forget this conversation and its session")
             }
             // The agent works in the profile's own folder; that stays out of the way unless the user picked another.
             HStack(spacing: 6) {

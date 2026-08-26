@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 
 /// A browsing profile: its own cookies, storage and history, isolated via a persistent `WKWebsiteDataStore`.
-struct Profile: Identifiable, Codable, Hashable, Sendable {
+nonisolated struct Profile: Identifiable, Codable, Hashable, Sendable {
     var id: UUID
     var name: String
     var colorHex: String

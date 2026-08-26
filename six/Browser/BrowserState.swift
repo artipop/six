@@ -15,21 +15,67 @@ final class BrowserState {
 
     /// niri-style layout: the focused column here is the selected tab.
     let layout = NiriLayout()
+    /// Visits, per profile.
+    let history: HistoryStore
 
     @ObservationIgnored private var dataStores: [UUID: WKWebsiteDataStore] = [:]
-    @ObservationIgnored private let profilesKey = "six.profiles"
 
-
-    init() {
-        var loaded = Profile.defaults
-        if let data = UserDefaults.standard.data(forKey: "six.profiles"),
-           let stored = try? JSONDecoder().decode([Profile].self, from: data), !stored.isEmpty {
-            loaded = stored
-        }
+    /// Starts from a snapshot when there is one; otherwise with the default profiles and one window.
+    init(snapshot: BrowserSnapshot? = nil, history: HistoryStore) {
+        self.history = history
+        var loaded = snapshot?.profiles ?? Self.legacyProfiles() ?? Profile.defaults
+        if loaded.isEmpty { loaded = Profile.defaults }
         profiles = loaded
-        selectedProfileID = loaded[0].id
-        layout.activeProfileID = loaded[0].id
-        newTab()
+        let selected = loaded.first { $0.id == snapshot?.selectedProfileID }?.id ?? loaded[0].id
+        selectedProfileID = selected
+        layout.activeProfileID = selected
+        if let snapshot { restore(snapshot) }
+        if layout.hasColumns { syncSelection() } else { newTab() }
+    }
+
+    // MARK: Snapshot
+
+    var snapshot: BrowserSnapshot {
+        BrowserSnapshot(
+            profiles: profiles,
+            selectedProfileID: selectedProfileID,
+            tabs: tabs.map { TabSnapshot(id: $0.id, profileID: $0.profileID, url: $0.showsStartPage ? nil : $0.currentURL, title: $0.title) },
+            strips: layout.allStrips
+                .map { StripSnapshot(profileID: $0.key, strip: $0.value) }
+                .sorted { $0.profileID.uuidString < $1.profileID.uuidString }
+        )
+    }
+
+    /// Rebuilds tabs and strips, dropping what doesn't line up: a column without a tab, a tab no column
+    /// points at, anything belonging to a profile that is gone. Pages load lazily (see `BrowserTab`).
+    private func restore(_ snapshot: BrowserSnapshot) {
+        let profileIDs = Set(profiles.map(\.id))
+        let saved = Dictionary(snapshot.tabs.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        var strips: [UUID: NiriStrip] = [:]
+        var placed = Set<UUID>()
+        for entry in snapshot.strips where profileIDs.contains(entry.profileID) {
+            var strip = entry.strip
+            for i in strip.workspaces.indices {
+                strip.workspaces[i].columns.removeAll { column in
+                    guard let tab = saved[column.tabID], tab.profileID == entry.profileID, !placed.contains(tab.id) else { return true }
+                    placed.insert(tab.id)
+                    return false
+                }
+            }
+            strips[entry.profileID] = strip
+        }
+        for tab in snapshot.tabs where placed.contains(tab.id) {
+            guard let profile = profiles.first(where: { $0.id == tab.profileID }) else { continue }
+            tabs.append(makeTab(id: tab.id, profile: profile, restoring: tab.url, title: tab.title))
+        }
+        layout.restore(strips: strips)
+    }
+
+    /// Profiles used to live in `UserDefaults`; read them once for the first launch with a snapshot file.
+    private static func legacyProfiles() -> [Profile]? {
+        guard let data = UserDefaults.standard.data(forKey: "six.profiles"),
+              let stored = try? JSONDecoder().decode([Profile].self, from: data), !stored.isEmpty else { return nil }
+        return stored
     }
 
     // MARK: Profiles
@@ -59,7 +105,6 @@ final class BrowserState {
     func addProfile(name: String, colorHex: String) {
         let profile = Profile(name: name, colorHex: colorHex)
         profiles.append(profile)
-        persistProfiles()
         selectProfile(profile.id)
     }
 
@@ -69,16 +114,22 @@ final class BrowserState {
         profiles.removeAll { $0.id == id }
         dataStores[profile.dataStoreID] = nil
         layout.removeProfile(id)
-        persistProfiles()
+        history.clear(profileID: id)
         Task { try? await WKWebsiteDataStore.remove(forIdentifier: profile.dataStoreID) }
         if selectedProfileID == id { selectProfile(profiles[0].id) }
+    }
+
+    /// Wipes the profile's site data — cookies, local storage, IndexedDB, caches, everything the
+    /// `WKWebsiteDataStore` holds. Logged-in sessions end; open pages stay open.
+    func clearSiteData(for id: Profile.ID) async {
+        guard let profile = profiles.first(where: { $0.id == id }) else { return }
+        await dataStore(for: profile).removeData(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(), modifiedSince: .distantPast)
     }
 
     /// The profile's agent folder, created on first use. Nil (default) puts it back under Application Support.
     func setWorkingDirectory(_ url: URL?, for id: Profile.ID) {
         guard let index = profiles.firstIndex(where: { $0.id == id }) else { return }
         profiles[index].workingDirectoryPath = url?.standardizedFileURL.path
-        persistProfiles()
     }
 
     /// Ensures the profile's working directory exists and returns it.
@@ -86,12 +137,6 @@ final class BrowserState {
         let url = profile.workingDirectory
         try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
         return url
-    }
-
-    private func persistProfiles() {
-        if let data = try? JSONEncoder().encode(profiles) {
-            UserDefaults.standard.set(data, forKey: profilesKey)
-        }
     }
 
     // MARK: Tabs
@@ -118,7 +163,7 @@ final class BrowserState {
     @discardableResult
     func newTab(url: URL?, in profileID: Profile.ID?, workspace: Int?, activate: Bool) -> BrowserTab {
         let profile = profiles.first { $0.id == profileID } ?? selectedProfile
-        let tab = BrowserTab(profileID: profile.id, dataStore: dataStore(for: profile))
+        let tab = makeTab(profile: profile)
         tabs.append(tab)
         if activate, selectedProfileID != profile.id {
             selectedProfileID = profile.id
@@ -129,6 +174,18 @@ final class BrowserState {
         }
         if activate { syncSelection() }
         if let url { tab.load(url) }
+        return tab
+    }
+
+    private func makeTab(id: UUID = UUID(), profile: Profile, restoring url: URL? = nil, title: String = "") -> BrowserTab {
+        let tab = BrowserTab(id: id, profileID: profile.id, dataStore: dataStore(for: profile), restoring: url, title: title)
+        tab.onNavigation = { [weak self] tab, outcome in
+            guard let self, let url = tab.page.url else { return }
+            switch outcome {
+            case .committed: history.record(url, title: tab.page.title, in: tab.profileID)
+            case .finished: history.updateTitle(tab.page.title, for: url, in: tab.profileID)
+            }
+        }
         return tab
     }
 
@@ -156,7 +213,7 @@ final class BrowserState {
     func closeTab(_ id: BrowserTab.ID) {
         guard let index = tabs.firstIndex(where: { $0.id == id }) else { return }
         let closed = tabs.remove(at: index)
-        closed.page.stopLoading()
+        closed.close()
         let wasActive = closed.profileID == selectedProfileID
         withAnimation(NiriLayout.switchAnimation) {
             layout.removeColumn(tabID: id)

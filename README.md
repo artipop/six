@@ -21,6 +21,9 @@ playground for three things:
    named workspace, read and summarize pages, move and close windows — the same tool catalog the assistant uses.
    See [docs/mcp.md](docs/mcp.md).
 
+Windows, workspaces, profiles and agent chats survive a relaunch: one JSON snapshot under Application Support, autosaved
+on change, ACP sessions resumed with `session/load`. See [docs/architecture.md](docs/architecture.md#persistence).
+
 ## The niri layout
 
 There are no tabs and no sidebar. A page is a **column**: a full-height window with its own title bar (navigation +
@@ -51,6 +54,7 @@ stays the page's.
 | `⌥C` | centre the focused window (default) or scroll the strip as little as possible |
 | `⌥O`, `Esc` | overview — zoomed out just enough to show the focused strip end to end, scrolling sideways runs along it; no modifier needed there, a click opens a window |
 | `⌘T` / `⌘W` | new window in the strip, right of the focused one / close it |
+| `⌘Y` | the profile's history — searchable; the History menu lists the last 20 pages |
 
 Only columns near the viewport get a real `WebView`; the rest render as cards, so a long strip stays cheap.
 

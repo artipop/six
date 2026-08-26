@@ -2,8 +2,8 @@ import Foundation
 import Observation
 
 /// One rendered item in the agent transcript.
-struct AgentTranscriptItem: Identifiable {
-    enum Kind {
+nonisolated struct AgentTranscriptItem: Identifiable, Sendable, Codable {
+    enum Kind: Sendable {
         case user(String)
         case agent(String)
         case thought(String)
@@ -13,6 +13,41 @@ struct AgentTranscriptItem: Identifiable {
     }
     let id: String
     var kind: Kind
+
+    init(id: String, kind: Kind) {
+        self.id = id
+        self.kind = kind
+    }
+
+    // Stored as `{id, type, text | toolCall | plan}`.
+    private enum CodingKeys: String, CodingKey { case id, type, text, toolCall, plan }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        switch try c.decode(String.self, forKey: .type) {
+        case "user": kind = .user(try c.decode(String.self, forKey: .text))
+        case "agent": kind = .agent(try c.decode(String.self, forKey: .text))
+        case "thought": kind = .thought(try c.decode(String.self, forKey: .text))
+        case "toolCall": kind = .toolCall(try c.decode(ACP.ToolCall.self, forKey: .toolCall))
+        case "plan": kind = .plan(try c.decode([ACP.PlanEntry].self, forKey: .plan))
+        case "status": kind = .status(try c.decode(String.self, forKey: .text))
+        case let other: throw DecodingError.dataCorruptedError(forKey: .type, in: c, debugDescription: "Unknown transcript item \(other)")
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        switch kind {
+        case .user(let text): try c.encode("user", forKey: .type); try c.encode(text, forKey: .text)
+        case .agent(let text): try c.encode("agent", forKey: .type); try c.encode(text, forKey: .text)
+        case .thought(let text): try c.encode("thought", forKey: .type); try c.encode(text, forKey: .text)
+        case .status(let text): try c.encode("status", forKey: .type); try c.encode(text, forKey: .text)
+        case .toolCall(let call): try c.encode("toolCall", forKey: .type); try c.encode(call, forKey: .toolCall)
+        case .plan(let entries): try c.encode("plan", forKey: .type); try c.encode(entries, forKey: .plan)
+        }
+    }
 }
 
 /// A pending `session/request_permission` waiting for the user.
@@ -23,6 +58,10 @@ struct AgentPermissionPrompt: Identifiable {
 }
 
 /// View model: owns one `ACPClient` + one session, turns updates into a transcript.
+///
+/// A conversation belongs to an agent in a folder (`AgentChat`): switching profile or agent switches
+/// the chat on show, and every chat keeps its ACP session id so the agent can pick it up again with
+/// `session/load` after a relaunch.
 @MainActor
 @Observable
 final class AgentSessionStore {
@@ -32,6 +71,46 @@ final class AgentSessionStore {
 
     var agent: ACPAgentDefinition = .claudeCode {
         didSet { if agent != oldValue { disconnect() } }
+    }
+
+    init(snapshot: AgentSnapshot? = nil) {
+        guard let snapshot else { return }
+        if let saved = ACPAgentDefinition.builtIn.first(where: { $0.id == snapshot.agentID }) { agent = saved }
+        chats = Dictionary(snapshot.chats.map { ($0.key, $0) }, uniquingKeysWith: { first, _ in first })
+    }
+
+    var snapshot: AgentSnapshot {
+        AgentSnapshot(agentID: agent.id, chats: chats.values.sorted { $0.key < $1.key })
+    }
+
+    // MARK: Chats
+
+    /// Every conversation, by `AgentChat.key`.
+    private(set) var chats: [String: AgentChat] = [:]
+    /// The chat of the selected agent in the selected profile's folder — what the panel shows.
+    var currentChatKey: String { AgentChat.key(agentID: agent.id, directoryPath: workingDirectory.path) }
+    var transcript: [AgentTranscriptItem] { chats[currentChatKey]?.transcript ?? [] }
+    /// The chat the live session writes to; the user may have switched profiles mid-turn.
+    @ObservationIgnored private var liveChatKey: String?
+    /// While `session/load` replays the history the agent's copy replaces ours.
+    @ObservationIgnored private var isReplaying = false
+
+    private var liveTranscript: [AgentTranscriptItem] {
+        get { chats[liveChatKey ?? currentChatKey]?.transcript ?? [] }
+        set { chats[chatKeyForWriting()]?.transcript = newValue }
+    }
+
+    private func chatKeyForWriting() -> String {
+        let key = liveChatKey ?? currentChatKey
+        if chats[key] == nil { chats[key] = AgentChat(agentID: agent.id, directoryPath: workingDirectory.path) }
+        return key
+    }
+
+    /// Forgets the current chat and its session; the next prompt starts from nothing.
+    func startNewChat() {
+        let key = currentChatKey
+        if liveChatKey == key { disconnect() }
+        chats[key] = nil
     }
     /// Set once at launch; the working directory follows the selected profile.
     @ObservationIgnored weak var browser: BrowserState?
@@ -52,7 +131,6 @@ final class AgentSessionStore {
     }
 
     private(set) var state: State = .idle
-    private(set) var transcript: [AgentTranscriptItem] = []
     private(set) var permissionPrompt: AgentPermissionPrompt?
     private(set) var modes: ACP.SessionModeState?
     private(set) var agentInfo: ACP.Implementation?
@@ -64,6 +142,7 @@ final class AgentSessionStore {
     @ObservationIgnored private var delegateBox: DelegateBox?
     @ObservationIgnored private var openMessageID: String?
     @ObservationIgnored private var openThoughtID: String?
+    @ObservationIgnored private var openUserID: String?
 
     var isConnected: Bool { client != nil && sessionId != nil }
 
@@ -80,7 +159,8 @@ final class AgentSessionStore {
     func connect() async {
         guard client == nil else { return }
         state = .starting
-        transcript.removeAll()
+        let key = chatKeyForWriting()
+        liveChatKey = key
         Self.trace("connect: \(agent.id) in \(workingDirectory.path)")
         do {
             let box = DelegateBox(store: self)
@@ -98,17 +178,50 @@ final class AgentSessionStore {
             agentInfo = info.agentInfo
             // The browser itself is offered as an MCP server (`six --mcp`), so the agent can drive it.
             let directory = workingDirectory
-            let session = try await client.newSession(cwd: directory, mcpServers: [MCPStdioBridge.acpServer])
-            sessionId = session.sessionId
+            let servers = [MCPStdioBridge.acpServer]
+            let agentName = info.agentInfo?.title ?? info.agentInfo?.name ?? agent.name
+            let savedSession = chats[key]?.sessionID
+            if let savedSession, await resumeSession(savedSession, client: client, capabilities: info.agentCapabilities, cwd: directory, mcpServers: servers) {
+                append(.status("Resumed session with \(agentName) · \(directory.path)"))
+            } else {
+                let session = try await client.newSession(cwd: directory, mcpServers: servers)
+                sessionId = session.sessionId
+                modes = session.modes
+                chats[key]?.sessionID = session.sessionId
+                append(.status(savedSession == nil
+                    ? "Connected to \(agentName) · \(directory.path)"
+                    : "Previous session couldn't be resumed; new session with \(agentName) · \(directory.path)"))
+            }
             sessionDirectory = directory
-            modes = session.modes
             state = .ready
-            append(.status("Connected to \(info.agentInfo?.title ?? info.agentInfo?.name ?? agent.name) · \(workingDirectory.path)"))
         } catch {
             let stderr = await client?.recentStderr ?? ""
             Self.trace("failed: \(error) \(stderr)")
             state = .failed(error.localizedDescription + (stderr.isEmpty ? "" : "\n\(stderr)"))
             disconnect(keepState: true)
+        }
+    }
+
+    /// `session/load` with the saved id: the agent replays the conversation as `session/update`s, which
+    /// replace our copy of the transcript. False when the agent can't load sessions or the id is gone
+    /// (the saved transcript stays as a record of it).
+    private func resumeSession(_ id: String, client: ACPClient, capabilities: ACP.AgentCapabilities?, cwd: URL, mcpServers: [ACP.MCPServer]) async -> Bool {
+        guard capabilities?.loadSession == true, let key = liveChatKey else { return false }
+        Self.trace("loading session \(id)")
+        let backup = chats[key]?.transcript ?? []
+        chats[key]?.transcript = []
+        sessionId = id // updates for it arrive during the call
+        isReplaying = true
+        defer { isReplaying = false; openUserID = nil; openMessageID = nil; openThoughtID = nil }
+        do {
+            let response = try await client.loadSession(id: id, cwd: cwd, mcpServers: mcpServers)
+            if let loaded = response?.modes { modes = loaded }
+            return true
+        } catch {
+            Self.trace("load failed: \(error)")
+            chats[key]?.transcript = backup
+            sessionId = nil
+            return false
         }
     }
 
@@ -118,6 +231,7 @@ final class AgentSessionStore {
         self.client = nil
         sessionId = nil
         sessionDirectory = nil
+        liveChatKey = nil
         modes = nil
         permissionPrompt = nil
         if !keepState { state = .idle }
@@ -158,6 +272,7 @@ final class AgentSessionStore {
         append(.user(text))
         openMessageID = nil
         openThoughtID = nil
+        openUserID = nil
         liveUpdate = onUpdate
         state = .prompting
         defer { liveUpdate = nil }
@@ -199,26 +314,33 @@ final class AgentSessionStore {
         case .agentMessageChunk(let block):
             appendChunk(block.plainText ?? "", to: &openMessageID) { .agent($0) }
             openThoughtID = nil
-            if let id = openMessageID, let item = transcript.first(where: { $0.id == id }), case .agent(let text) = item.kind {
+            openUserID = nil
+            if let id = openMessageID, let item = liveTranscript.first(where: { $0.id == id }), case .agent(let text) = item.kind {
                 liveUpdate?(.text(text))
             }
         case .agentThoughtChunk(let block):
             appendChunk(block.plainText ?? "", to: &openThoughtID) { .thought($0) }
-        case .userMessageChunk:
-            break
+            openUserID = nil
+        case .userMessageChunk(let block):
+            // Only the history replay of `session/load` carries these; a live prompt is appended by `prompt`.
+            guard isReplaying else { break }
+            appendChunk(block.plainText ?? "", to: &openUserID) { .user($0) }
+            openMessageID = nil
+            openThoughtID = nil
         case .toolCall(let call):
             openMessageID = nil
             openThoughtID = nil
+            openUserID = nil
             liveUpdate?(.activity(call.title ?? call.kind?.rawValue ?? "tool"))
-            if let index = transcript.firstIndex(where: { $0.id == "tool:\(call.toolCallId)" }) {
-                transcript[index].kind = .toolCall(call)
+            if let index = liveTranscript.firstIndex(where: { $0.id == "tool:\(call.toolCallId)" }) {
+                liveTranscript[index].kind = .toolCall(call)
             } else {
-                transcript.append(.init(id: "tool:\(call.toolCallId)", kind: .toolCall(call)))
+                liveTranscript.append(.init(id: "tool:\(call.toolCallId)", kind: .toolCall(call)))
             }
         case .toolCallUpdate(let update):
-            guard let index = transcript.firstIndex(where: { $0.id == "tool:\(update.toolCallId)" }),
-                  case .toolCall(var existing) = transcript[index].kind else {
-                transcript.append(.init(id: "tool:\(update.toolCallId)", kind: .toolCall(update)))
+            guard let index = liveTranscript.firstIndex(where: { $0.id == "tool:\(update.toolCallId)" }),
+                  case .toolCall(var existing) = liveTranscript[index].kind else {
+                liveTranscript.append(.init(id: "tool:\(update.toolCallId)", kind: .toolCall(update)))
                 return
             }
             if let v = update.title { existing.title = v }
@@ -228,12 +350,12 @@ final class AgentSessionStore {
             if let v = update.locations { existing.locations = v }
             if let v = update.rawInput { existing.rawInput = v }
             if let v = update.rawOutput { existing.rawOutput = v }
-            transcript[index].kind = .toolCall(existing)
+            liveTranscript[index].kind = .toolCall(existing)
         case .plan(let entries):
-            if let index = transcript.lastIndex(where: { if case .plan = $0.kind { return true }; return false }) {
-                transcript[index].kind = .plan(entries)
+            if let index = liveTranscript.lastIndex(where: { if case .plan = $0.kind { return true }; return false }) {
+                liveTranscript[index].kind = .plan(entries)
             } else {
-                transcript.append(.init(id: "plan:\(UUID().uuidString)", kind: .plan(entries)))
+                liveTranscript.append(.init(id: "plan:\(UUID().uuidString)", kind: .plan(entries)))
             }
         case .currentModeUpdate(let modeId):
             modes?.currentModeId = modeId
@@ -254,21 +376,22 @@ final class AgentSessionStore {
 
     private func appendChunk(_ text: String, to openID: inout String?, make: (String) -> AgentTranscriptItem.Kind) {
         guard !text.isEmpty else { return }
-        if let id = openID, let index = transcript.firstIndex(where: { $0.id == id }) {
-            switch transcript[index].kind {
-            case .agent(let existing): transcript[index].kind = .agent(existing + text)
-            case .thought(let existing): transcript[index].kind = .thought(existing + text)
+        if let id = openID, let index = liveTranscript.firstIndex(where: { $0.id == id }) {
+            switch liveTranscript[index].kind {
+            case .agent(let existing): liveTranscript[index].kind = .agent(existing + text)
+            case .thought(let existing): liveTranscript[index].kind = .thought(existing + text)
+            case .user(let existing): liveTranscript[index].kind = .user(existing + text)
             default: break
             }
         } else {
             let id = UUID().uuidString
-            transcript.append(.init(id: id, kind: make(text)))
+            liveTranscript.append(.init(id: id, kind: make(text)))
             openID = id
         }
     }
 
     private func append(_ kind: AgentTranscriptItem.Kind) {
-        transcript.append(.init(id: UUID().uuidString, kind: kind))
+        liveTranscript.append(.init(id: UUID().uuidString, kind: kind))
     }
 }
 

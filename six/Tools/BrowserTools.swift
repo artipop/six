@@ -165,14 +165,17 @@ final class BrowserToolCatalog {
 
     // MARK: Lookups
 
+    /// A tool looking at a window counts as showing it: a restored one starts loading here.
     private func tab(_ args: ACPJSON) throws -> BrowserTab {
         guard let raw = args["window_id"]?.stringValue?.trimmingCharacters(in: .whitespaces), !raw.isEmpty else {
             guard let tab = browser.selectedTab else { throw BrowserTool.Failure(message: "No focused window") }
+            tab.resumeIfNeeded()
             return tab
         }
         let matches = browser.tabs.filter { $0.id.uuidString.lowercased().hasPrefix(raw.lowercased()) }
         guard let tab = matches.first else { throw BrowserTool.Failure(message: "No window with id \(raw); call list_workspaces") }
         guard matches.count == 1 else { throw BrowserTool.Failure(message: "Window id \(raw) is ambiguous") }
+        tab.resumeIfNeeded()
         return tab
     }
 
@@ -222,7 +225,7 @@ final class BrowserToolCatalog {
                     var window: [String: ACPJSON] = [
                         "id": .string(tab.id.uuidString),
                         "title": .string(tab.title),
-                        "url": .string(tab.showsStartPage ? "about:start" : tab.page.url?.absoluteString ?? ""),
+                        "url": .string(tab.showsStartPage ? "about:start" : tab.currentURL?.absoluteString ?? ""),
                     ]
                     if tab.page.isLoading { window["loading"] = true }
                     if position == workspace.focus { window["focused"] = true }
@@ -309,7 +312,7 @@ final class BrowserToolCatalog {
     // MARK: Page helpers
 
     private static func describe(_ tab: BrowserTab) -> String {
-        "\(tab.title) <\(tab.showsStartPage ? "about:start" : tab.page.url?.absoluteString ?? "")> [\(tab.id.uuidString)]"
+        "\(tab.title) <\(tab.showsStartPage ? "about:start" : tab.currentURL?.absoluteString ?? "")> [\(tab.id.uuidString)]"
     }
 
     /// Lets a navigation settle before reading the page, bounded so a spinner never blocks an agent.

@@ -84,11 +84,11 @@ struct WindowChrome: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 3)
         .background(.quaternary.opacity(isEditing ? 0.8 : 0.45), in: RoundedRectangle(cornerRadius: 7))
-        .onChange(of: tab.page.url, initial: true) { _, url in
+        .onChange(of: tab.currentURL, initial: true) { _, url in
             if !isEditing { text = displayString(for: url) }
         }
         .onChange(of: isEditing) { _, editing in
-            text = editing ? (tab.page.url?.absoluteString ?? "") : displayString(for: tab.page.url)
+            text = editing ? (tab.currentURL?.absoluteString ?? "") : displayString(for: tab.currentURL)
         }
     }
 

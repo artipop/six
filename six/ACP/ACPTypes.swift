@@ -93,6 +93,10 @@ nonisolated enum ACP {
         var mcpServers: [MCPServer] = []
     }
 
+    struct LoadSessionResponse: Codable, Sendable {
+        var modes: SessionModeState?
+    }
+
     struct SetSessionModeRequest: Codable, Sendable {
         var sessionId: String
         var modeId: String
