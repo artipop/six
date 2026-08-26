@@ -465,6 +465,11 @@ final class NiriLayout {
         setPreferredWidth(preferredWidthIndex + delta)
     }
 
+    /// Is this window at the widest preset (compact width)?
+    func isFullWidth(tabID: UUID) -> Bool {
+        strip.workspaces.lazy.flatMap(\.columns).first { $0.tabID == tabID }?.widthIndex == Self.widthPresets.count - 1
+    }
+
     /// Is the focused window at the widest preset (compact width)?
     var focusedColumnIsFullWidth: Bool {
         focusedWorkspace?.focusedColumn?.widthIndex == Self.widthPresets.count - 1

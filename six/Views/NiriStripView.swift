@@ -362,14 +362,33 @@ private struct StripMenu: View {
             .disabled(!browser.layout.canFocusWorkspace(-1))
         Button("Workspace Below") { browser.focusWorkspace(1) }
             .disabled(!browser.layout.canFocusWorkspace(1))
-        Button(browser.layout.isOverview ? "Close Overview" : "Overview") { browser.toggleOverview() }
-        Button(browser.layout.fill == .window ? "Leave Full Window" : "Full Window") { browser.toggleFullWindow() }
-        Button(browser.layout.fill == .screen ? "Leave Fullscreen" : "Fullscreen") { browser.toggleFullscreen() }
+        Toggle("Overview", isOn: Binding(get: { browser.layout.isOverview }, set: { _ in browser.toggleOverview() }))
+        Toggle("Full Window", isOn: Binding(get: { browser.layout.fill == .window }, set: { _ in browser.toggleFullWindow() }))
+        Toggle("Fullscreen", isOn: Binding(get: { browser.layout.fill == .screen }, set: { _ in browser.toggleFullscreen() }))
+        Divider()
+        ColumnWidthPicker()
         Divider()
         Toggle("Center Focused Window", isOn: Binding(
             get: { browser.layout.centersFocus },
             set: { _ in browser.toggleCenterFocus() }
         ))
+    }
+}
+
+/// The shared width preset, with the current one checked — the same list as in the Layout menu.
+private struct ColumnWidthPicker: View {
+    @Environment(BrowserState.self) private var browser
+
+    var body: some View {
+        Picker("Column Width", selection: Binding(
+            get: { browser.layout.preferredWidthIndex },
+            set: { browser.setColumnWidth($0) }
+        )) {
+            ForEach(Array(NiriLayout.widthPresetTitles.enumerated()), id: \.offset) { index, title in
+                Text(title).tag(index)
+            }
+        }
+        .pickerStyle(.inline)
     }
 }
 
@@ -383,11 +402,20 @@ private struct ColumnMenu: View {
         Button("New Window") { browser.newTab() }
         Button("Close Window") { browser.closeTab(tab.id) }
         Divider()
-        Button("Wider Columns") { browser.stepColumnWidth(1) }
-        Button("Narrower Columns") { browser.stepColumnWidth(-1) }
-        Button("Compact Width") { browser.selectTab(tab.id); browser.toggleCompactWidth() }
-        Button("Full Window") { browser.selectTab(tab.id); browser.toggleFullWindow() }
-        Button("Fullscreen") { browser.selectTab(tab.id); browser.toggleFullscreen() }
+        ColumnWidthPicker()
+        Divider()
+        Toggle("Compact Width", isOn: Binding(
+            get: { browser.layout.isFullWidth(tabID: tab.id) },
+            set: { _ in browser.selectTab(tab.id); browser.toggleCompactWidth() }
+        ))
+        Toggle("Full Window", isOn: Binding(
+            get: { browser.layout.fill == .window && browser.selectedTabID == tab.id },
+            set: { _ in browser.selectTab(tab.id); browser.toggleFullWindow() }
+        ))
+        Toggle("Fullscreen", isOn: Binding(
+            get: { browser.layout.fill == .screen && browser.selectedTabID == tab.id },
+            set: { _ in browser.selectTab(tab.id); browser.toggleFullscreen() }
+        ))
         Divider()
         Button("Move Left") { browser.selectTab(tab.id); browser.moveColumn(-1) }
         Button("Move Right") { browser.selectTab(tab.id); browser.moveColumn(1) }
