@@ -71,7 +71,14 @@ final class NiriLayout {
     /// Rubber-band offsets while a scroll gesture is still below the switch threshold.
     var verticalPreview: CGFloat = 0
     var horizontalPreview: CGFloat = 0
-    var activeProfileID: UUID = UUID()
+    /// The strip on screen. Switching to another profile shows a strip that was last laid out at
+    /// whatever the viewport was then, so it gets put back under its focused window on the way in.
+    var activeProfileID: UUID = UUID() {
+        didSet {
+            guard activeProfileID != oldValue else { return }
+            recenterStrip(activeProfileID)
+        }
+    }
 
     private var strips: [UUID: NiriStrip] = [:]
 
@@ -130,6 +137,7 @@ final class NiriLayout {
         for (profileID, strip) in saved {
             mutate(profile: profileID) { $0 = strip }
         }
+        recenterStrips() // the offsets on disk were written for whatever viewport wrote them
     }
 
     /// Keeps exactly one trailing empty workspace and drops the empty ones in between — niri's
@@ -261,19 +269,29 @@ final class NiriLayout {
         }
     }
 
-    func setCentersFocus(_ value: Bool) {
-        centersFocus = value
-        mutate { s in
+    /// Puts every workspace of one strip back under its focused window.
+    private func recenterStrip(_ profileID: UUID) {
+        mutate(profile: profileID) { s in
             for i in s.workspaces.indices { scrollFocusIntoView(&s.workspaces[i]) }
         }
+    }
+
+    /// Every strip, not just the one on screen: the viewport and the centring switch belong to the
+    /// window, so a strip left alone would still be scrolled for the geometry it last saw.
+    private func recenterStrips() {
+        for profileID in Array(strips.keys) { recenterStrip(profileID) }
+        recenterStrip(activeProfileID)
+    }
+
+    func setCentersFocus(_ value: Bool) {
+        centersFocus = value
+        recenterStrips()
     }
 
     func updateViewport(_ size: CGSize) {
         guard size.width > 1, size.height > 1, size != viewport else { return }
         viewport = size
-        mutate { s in
-            for i in s.workspaces.indices { scrollFocusIntoView(&s.workspaces[i]) }
-        }
+        recenterStrips()
     }
 
     // MARK: Columns

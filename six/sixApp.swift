@@ -174,6 +174,7 @@ private struct HistoryCommands: Commands {
 }
 
 private struct BrowserCommands: Commands {
+    @AppStorage(SearchEngine.defaultsKey) private var engine: SearchEngine = .duckDuckGo
     @FocusedValue(\.focusAddressBar) private var focusAddressBar
     @FocusedValue(\.focusAssistant) private var focusAssistant
     @FocusedValue(\.toggleAgentPanel) private var toggleAgentPanel
@@ -189,6 +190,14 @@ private struct BrowserCommands: Commands {
             Button("Toggle Agent Panel") { toggleAgentPanel?.perform() }
                 .keyboardShortcut("a", modifiers: [.command, .shift])
                 .disabled(toggleAgentPanel == nil)
+
+            Divider()
+
+            Picker("Search Engine", selection: $engine) {
+                ForEach(SearchEngine.allCases) { engine in
+                    Text(engine.title).tag(engine)
+                }
+            }
         }
     }
 }

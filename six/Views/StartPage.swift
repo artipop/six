@@ -13,6 +13,9 @@ struct StartPage: View {
     @State private var selection: Int?
     @State private var suggestions = SearchSuggestions()
     @FocusState private var fieldFocused: Bool
+    /// `AppStorage`, not a local copy: `SearchEngine.current` reads the same key, and every other
+    /// start page redraws when this one switches engines.
+    @AppStorage(SearchEngine.defaultsKey) private var engine: SearchEngine = .duckDuckGo
 
     private var accent: Color {
         browser.profiles.first { $0.id == tab.profileID }?.color ?? .accentColor
@@ -53,13 +56,13 @@ struct StartPage: View {
             selection = nil
             suggestions.update(for: value)
         }
+        .onChange(of: engine) { _, _ in suggestions.update(for: text) }
     }
 
     private var field: some View {
         HStack(spacing: 10) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
-            TextField("Search \(SearchEngine.current.title) or enter address", text: $text)
+            enginePicker
+            TextField("Search or enter address", text: $text)
                 .textFieldStyle(.plain)
                 .font(.title3)
                 .focused($fieldFocused)
@@ -77,6 +80,30 @@ struct StartPage: View {
         .padding(.vertical, 12)
         .background(.regularMaterial, in: Capsule())
         .overlay { Capsule().strokeBorder(fieldFocused ? AnyShapeStyle(accent) : AnyShapeStyle(.separator), lineWidth: fieldFocused ? 2 : 1) }
+    }
+
+    /// Which engine answers the field, in the one place where it matters — next to the field.
+    private var enginePicker: some View {
+        Menu {
+            Picker("Search Engine", selection: $engine) {
+                ForEach(SearchEngine.allCases) { engine in
+                    Text(engine.title).tag(engine)
+                }
+            }
+            .pickerStyle(.inline)
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: "magnifyingglass")
+                Text(engine.title)
+                Image(systemName: "chevron.down")
+                    .font(.caption2)
+            }
+            .foregroundStyle(.secondary)
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .help("Where a query goes, and where the suggestions come from")
     }
 
     @ViewBuilder

@@ -40,6 +40,11 @@ amount; while centring is on the strip may scroll until the first/last column re
 every column get there. `⌥C` turns it off, and focus then moves the view as little as possible — `scrollFocusIntoView`
 scrolls only until the focused column is fully visible. The choice persists in `UserDefaults`.
 
+Offsets are stored per workspace but the geometry that produced them is global, so a strip that was laid out at another
+viewport — the other profile's, or one restored from `state.json` — would come back scrolled off centre. `recenterStrips`
+puts every strip back under its focused window whenever the viewport or `⌥C` changes, and switching `activeProfileID`
+does the same for the strip coming on screen.
+
 Only columns within one workspace and one viewport-width of the screen get a real `WebView`; the rest render as cards
 (`ColumnPlaceholder`), so a long strip stays cheap.
 

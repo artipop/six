@@ -17,6 +17,7 @@ Nothing needs the keyboard: every layout operation has a mouse equivalent. `⌥`
 | overview button (top right) | zoom out to all workspaces; scroll sideways to run along a strip, click a window to open it |
 | double-click a workspace name (overview) | rename it; right-click the name to rename or clear it. A named workspace stays even when empty |
 | `×` on a title bar | close that window |
+| the engine chip on the start page | DuckDuckGo or Google — for queries and for the suggestions; also under Navigate → Search Engine |
 | the profile dots (top left) | switch profile — each has its own strip; `+` adds one, right-click deletes |
 
 ## Keyboard
