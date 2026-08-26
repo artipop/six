@@ -483,7 +483,10 @@ final class NiriLayout {
             var ws = s.workspaces[s.focus]
             guard ws.columns.indices.contains(ws.focus) else { return }
             let full = Self.widthPresets.count - 1
-            ws.columns[ws.focus].widthIndex = ws.columns[ws.focus].widthIndex == full ? preferredWidthIndex : full
+            // Back to the shared preset — unless that is the full width itself, then to the default,
+            // so the toggle always has somewhere to go.
+            let narrow = preferredWidthIndex == full ? Self.defaultWidthIndex : preferredWidthIndex
+            ws.columns[ws.focus].widthIndex = ws.columns[ws.focus].widthIndex == full ? narrow : full
             scrollFocusIntoView(&ws)
             s.workspaces[s.focus] = ws
         }
