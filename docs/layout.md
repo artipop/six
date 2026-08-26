@@ -45,8 +45,12 @@ viewport — the other profile's, or one restored from `state.json` — would co
 puts every strip back under its focused window whenever the viewport or `⌥C` changes, and switching `activeProfileID`
 does the same for the strip coming on screen.
 
-Only columns within one workspace and one viewport-width of the screen get a real `WebView`; the rest render as cards
-(`ColumnPlaceholder`), so a long strip stays cheap.
+Only columns of the workspace on screen, within one viewport-width of it, get a real `WebView`; the rest render as
+cards (`ColumnPlaceholder`), so a long strip stays cheap. Restricting that to the *current* workspace is not only about
+cost: a web view is a real AppKit view, SwiftUI's clipping does not reach it, and one parked a screen above still
+answers the mouse over the top bar — which is how clicking a button up there could fly you to the workspace above. Off
+screen, it must not exist. The neighbours come back while a gesture is peeking at them (`verticalPreview != 0`) and in
+the overview, where every workspace is on screen; a column of another workspace never captures clicks outside it.
 
 ## Gestures — `six/Niri/NiriScrollMonitor.swift`
 

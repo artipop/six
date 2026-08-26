@@ -114,6 +114,7 @@ private struct WorkspaceView: View {
                     ColumnView(
                         tab: tab,
                         isFocused: isFocused,
+                        isCurrentWorkspace: isCurrent,
                         isLive: isLive(workspaceDistance: abs(index - layout.focusedWorkspaceIndex),
                                        x: frame.minX - scroll, width: frame.width, layout: layout),
                         addressFocus: addressFocus
@@ -131,8 +132,14 @@ private struct WorkspaceView: View {
     }
 
     /// Only nearby columns get a real web view; the rest are cheap cards, so a big strip stays cheap.
+    ///
+    /// A workspace that is not on screen gets none at all, and that is not only about cost: a web view
+    /// is a real AppKit view, SwiftUI's clipping does not reach it, and one sitting a screen above
+    /// still answers the mouse over the top bar. Off screen it must not exist. The neighbours come
+    /// back while a gesture is peeking at them, and in the overview, where they are all on screen.
     private func isLive(workspaceDistance: Int, x: CGFloat, width: CGFloat, layout: NiriLayout) -> Bool {
-        guard workspaceDistance <= 1 else { return false }
+        let visibleWorkspace = workspaceDistance == 0 || layout.isOverview || layout.verticalPreview != 0
+        guard visibleWorkspace, workspaceDistance <= 1 else { return false }
         let margin = layout.visibleWidth
         return x + width > -margin && x < layout.visibleWidth + margin
     }
@@ -164,6 +171,9 @@ private struct EmptyWorkspaceHint: View {
 private struct ColumnView: View {
     let tab: BrowserTab
     let isFocused: Bool
+    /// Columns of another workspace are off screen entirely (except in the overview): their AppKit
+    /// views are still there — SwiftUI's clipping doesn't reach them — but they must not be targets.
+    let isCurrentWorkspace: Bool
     let isLive: Bool
     var addressFocus: FocusState<UUID?>.Binding
 
@@ -176,7 +186,9 @@ private struct ColumnView: View {
     /// A window that isn't the focused one is a target, not a page: the first click flies to it. Same in
     /// the overview, where every page is just a picture. `WKWebView` is a real AppKit view and takes the
     /// click before any SwiftUI overlay can, so the catcher has to be an AppKit view too.
-    private var capturesClicks: Bool { !isFocused || browser.layout.isOverview }
+    private var capturesClicks: Bool {
+        browser.layout.isOverview || (isCurrentWorkspace && !isFocused)
+    }
 
     /// A filled window is the page and nothing else: no title bar, no rounded corners, no border to
     /// separate a column from a neighbour that is a whole screen away.
@@ -444,27 +456,6 @@ private struct FullscreenBar: View {
             .disabled(!enabled)
             .help(help)
     }
-}
-
-/// SwiftUI hosted in an AppKit view, so it stands *beside* a `WKWebView` in the view hierarchy instead
-/// of being drawn over it — the difference between a control that works over a page and one that looks
-/// like it should.
-private struct HostedOverlay<Content: View>: NSViewRepresentable {
-    let content: Content
-
-    init(@ViewBuilder content: () -> Content) { self.content = content() }
-
-    func makeNSView(context: Context) -> NSHostingView<Content> {
-        let view = NSHostingView(rootView: content)
-        // Frame-driven, never constraint-driven. A hosting view that publishes its own size inside a
-        // SwiftUI window feeds constraints back into it, and the window's update passes never settle:
-        // "marked as needing another Update Constraints in Window pass" — and then it throws.
-        view.sizingOptions = []
-        view.translatesAutoresizingMaskIntoConstraints = true
-        return view
-    }
-
-    func updateNSView(_ view: NSHostingView<Content>, context: Context) { view.rootView = content }
 }
 
 // MARK: - Background
