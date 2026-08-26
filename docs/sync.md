@@ -23,9 +23,9 @@
   we implement `nextRecordZoneChangeBatch` (what to send) and `handleEvent` (what came in). Far less code than raw
   `CKModifyRecordsOperation`, and it is what Apple uses in its own apps now.
 - **Local store is the source of truth**, sync is a mirror: every local row keeps `recordName` and a `pending`
-  flag; the engine reads the pending rows, and writes fetched records back into the store. This is why the SQLite
-  move ([todo.md](todo.md#storage-sqlite-under-history-with-rag-in-mind)) comes first for anything beyond history —
-  a JSON file has no per-row bookkeeping.
+  flag; the engine reads the pending rows, and writes fetched records back into the store. SQLite is in place and
+  its schema already follows SQLiteData's CloudKit rules, so this is a matter of adding the columns and opting
+  tables into its `SyncEngine`.
 - **Portability**: everything CloudKit lives behind a `SyncEngine` protocol in `six/Sync/`; CloudKit is
   Apple-only (there is a JS/REST *CloudKit Web Services* API, but it needs a web sign-in and is not a client SDK for
   Linux). A Linux build gets a no-op engine, or a different backend behind the same protocol.

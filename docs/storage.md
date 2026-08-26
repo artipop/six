@@ -1,8 +1,8 @@
 # Storage and the portability seams — plan
 
-*Where data lives, what is portable, and what is an Apple-only adapter behind a protocol. The next step is the
-SQLite move ([todo.md](todo.md#storage-sqlite-under-history-with-rag-in-mind)); the rest of the diagram is the
-shape that step must not break. Related: [sync.md](sync.md), [passkeys.md](passkeys.md).*
+*Where data lives, what is portable, and what is an Apple-only adapter behind a protocol. SQLite (SQLiteData over
+GRDB) is built; the diagram is the shape the remaining seams must fit
+([todo.md](todo.md#storage-history-pages-and-retrieval)). Related: [sync.md](sync.md), [passkeys.md](passkeys.md).*
 
 ```mermaid
 flowchart TB
@@ -82,8 +82,8 @@ CloudKit Web Services"]
 
 ## Reading it
 
-- **Solid arrows** are the portable core. Everything there builds on Linux as it is: the JSON snapshot (already),
-  SQLite through GRDB (next), and four protocol seams.
+- **Solid arrows** are the portable core: the JSON snapshot, SQLite through GRDB, and four protocol seams. Only
+  the Linux build of SQLiteData itself is unverified.
 - **Dotted arrows** are implementations of the seams — Apple on the left, the Linux replacement on the right. The
   core doesn't know which one is plugged in.
 - **SQLite is the only system of record.** `bookmark_vectors` today, Wax / `sqlite-vec` / USearch tomorrow are

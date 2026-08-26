@@ -2,18 +2,11 @@
 
 What is planned but not built. Ordered by how much it is missed, not by effort.
 
-## Document windows and Save As
+## Save As: web archives and downloads
 
-A column that holds text instead of a page, and the browser's oldest command — **Save As…** — for both kinds. Notes
-and documents are useful on their own; they are also the half that [deep research](deep-research.md) is missing, which
-is where the design lives.
-
-- `TabContent` on `BrowserTab`: `.web(WebPage)` or `.document(TextDocument)`; the layout does not care which.
-- Markdown source in a `TextEditor`, rendered preview through a `WebPage` — export to HTML and PDF then comes free.
-- Documents in `~/Library/Application Support/six/Documents/<id>.md`, the snapshot keeping id, title and column.
-- `⌘S` / **Save As…** over `NSSavePanel` (the app is not sandboxed): documents as `.md` / `.html` / `.pdf`, pages as
-  `.webarchive` / `.html` / `.pdf` / `.txt`. Remember the last folder and the document's own file URL.
-- Neighbour worth doing at the same time: **downloads** (`WKDownload`), which six does not handle at all yet.
+Document windows, Save As and highlights are built ([deep-research.md](deep-research.md)). What Save As still
+lacks: `.webarchive` for pages — `WebPage` has no `createWebArchiveData` today, so a page saves as `.html` (its
+source), `.pdf` or `.txt` — and **downloads** (`WKDownload`), which six does not handle at all yet.
 
 ## Bookmarks: images
 
@@ -49,15 +42,6 @@ Two different features that both deserve the name:
   which leaves the strip while it floats and returns to its column when closed. This is niri's floating layer, and the
   same mechanism would later serve a proper floating-window mode.
 
-## Highlights and passage links
-
-Useful on its own — a highlighter that remembers — and the part of [deep research](deep-research.md#4-highlighted-passages)
-that turns a list of links into evidence: the model picks the paragraphs that answer the question (by number, from an
-extraction six makes, so it never retypes the text), and six anchors them with Web Annotation selectors, paints them
-through the CSS Custom Highlight API and writes them into the document as `#:~:text=` links that work in any browser.
-Dynamically loaded pages get a re-anchor budget, not a promise; canvas text and PDFs are out of reach and should say
-so. Highlights live per URL in `highlights.json`, so they come back next week whether or not a run does.
-
 ## Passkeys and passwords
 
 Sign in with a passkey (or a saved password) on any site, through the system UI. WebAuthn inside a third-party
@@ -68,65 +52,43 @@ the fallbacks and what to verify first are in [passkeys.md](passkeys.md). **Next
 
 History on every Mac (and later everything else that is a plain record: profiles, highlights, documents). Private
 database, `CKSyncEngine`, one record per visit — visits are immutable, so there is nothing to merge. Design, limits
-and what CloudKit can and cannot carry (vectors included) in [sync.md](sync.md). Depends on the storage move below
-for anything bigger than history.
+and what CloudKit can and cannot carry (vectors included) in [sync.md](sync.md). The store is ready for it — see the sync
+columns under Storage below.
 
-## Storage: SQLite under history, with RAG in mind
+## Storage: history pages and retrieval
 
-**Bookmarks are the first RAG slice** ([bookmarks.md](bookmarks.md)): page → Markdown file + chunks + on-device
-vectors, hybrid search, tools for the assistant and MCP. What it settled: no embedding API in Foundation Models
-(`NLContextualEmbedding` instead, per-script spaces), and no `sqlite-vec` on the system SQLite (extension loading is
-compiled out; brute-force cosine over BLOBs, an own SQLite build if that ever isn't enough). History pages would go
-through the same store.
+SQLite is the system of record — chosen and built: SQLiteData over GRDB for `visits`, `settings`, bookmarks and
+their chunks and vectors (`six/Data/`, `six/Bookmarks/`, [architecture.md](architecture.md#persistence),
+[bookmarks.md](bookmarks.md)). The app-state snapshot stays JSON — one small document, not a table. What is left:
 
-**Done for history and settings** (`six/Data/`, [architecture.md](architecture.md#persistence)) — SQLiteData over
-GRDB, schema laid down by its CloudKit rules. What remains is the step that matters:
-page text and embeddings for retrieval over what was read. One local store for visits, page content, chunks and
-vectors — SQLite through the system `SQLite3` module (macOS and Linux, no dependency to fight the SDK override with),
-FTS5 for titles and text, vectors as blobs with a brute-force cosine pass (fine to ~100k chunks; `sqlite-vec` only with
-an own SQLite build, see above). `HistoryStore`'s interface stays; only the backend changes. The overall shape — portable core, Apple/Linux adapters
-behind protocol seams — is drawn in [storage.md](storage.md). The app-state snapshot stays JSON — that is
-one small document, not a table.
+- **History pages through the same store.** Bookmarks are the first RAG slice; history is the second: `pages(url,
+  fetchedAt, text)` + FTS5 for visited pages, chunks and vectors like bookmarks, retrieval over what was *read*, not
+  only what was saved. Decide when a visit is worth its text (dwell time, scroll, explicit "remember this").
+- **`Retrieval` as a protocol.** The brute-force cosine scan lives inside `BookmarkStore.vectorSearch` — one
+  function to swap. Lift it behind a seam before a second index appears ([storage.md](storage.md)).
+- **A real index when the scan isn't enough** (~100k chunks): `sqlite-vec` only with an own SQLite build (the system
+  one has extension loading compiled out), or USearch (C++, Swift bindings, macOS/iOS/Linux). Storage stays SQLite.
+- **Prototypes worth an afternoon**, both caches over SQLite, never systems of record:
+  [Wax](https://github.com/christopherkarani/Wax) — one `.wax` file with FTS5 + Metal HNSW, hybrid search in one
+  query, own embedder and an MCP server; Apple Silicon first, single writer, v0.2. VecturaKit — embed + index +
+  BM25 hybrid in one Swift API over MLX; Apple-only, own files.
+- **Linux build of the data layer.** SQLiteData isn't declared for Linux in its `Package.swift`; its core is
+  `#if canImport(CloudKit)`-free and GRDB/StructuredQueries build there. Verify early, fall back to plain GRDB.
+- `record_name` / `sync_state` columns for [sync](sync.md) when it comes; the schema already follows SQLiteData's
+  CloudKit rules (UUID text keys with `ON CONFLICT REPLACE`, no other `UNIQUE`, no column drops, BLOBs in their own
+  tables), so nothing migrates.
 
-Why SQLite and not something else — the alternatives that were actually weighed:
-
-| | what it is | verdict |
-|---|---|---|
-| Core Data / SwiftData | Apple's ORM over SQLite, free CloudKit sync via `NSPersistentCloudKitContainer` | Apple-only; no FTS, no vectors; the sync we need is custom anyway. No |
-| Realm | embeddable object database | MongoDB dropped Device Sync and is moving Realm to the community (2024); no Linux for Swift. No |
-| LMDB / RocksDB / LevelDB | key-value stores | fast, but SQL, FTS and vectors would all be built on top. No |
-| Couchbase Lite | document DB with its own replication | sync is theirs, not CloudKit; heavy SDK, paid on Linux. No |
-| DuckDB | analytical columnar engine, has vector functions and a Swift package | great for analytics, poor for many small writes (visits); no row bookkeeping for CloudKit; big binary. No |
-| LanceDB / Chroma / Qdrant | vector databases | server-side or no Swift client; overkill for ~100k on-device chunks. No |
-| USearch / Faiss | vector *indexes* | USearch (C++, Swift bindings, macOS/iOS/Linux) is the candidate for the index once brute-force / `sqlite-vec` isn't enough. Storage is still SQLite |
-| Turso / libSQL | SQLite fork with native vectors (`F32_BLOB`, `vector_distance_cos`, DiskANN index) and a Swift SDK over a Rust core | the tempting "one database for everything": SQLite + FTS5 + vectors, no extension. Young Swift SDK, not the system `sqlite3` (GRDB doesn't sit on it without a custom build), Linux through the Rust library. **Try the build** alongside GRDB |
-| ObjectBox | object database with HNSW vector search on device, native Swift SDK | a replacement for SQLite, not an addition; closed core, no Linux for Swift. No |
-| [Wax](https://github.com/christopherkarani/Wax) | local-first shared memory for AI agents: one `.wax` file (WAL, LZ4 frames) embedding SQLite FTS5 for text and a Metal HNSW for vectors, hybrid BM25 + vector search in one query, EAV facts, its own embedder (MiniLM / Foundation Models) and an MCP server; Swift 6, Apache 2.0, ~6 ms p95 | **first candidate for the retrieval and agent-memory layer**: a page read goes in, an agent asks over MCP what was read about X. Not a system of record — single file, single writer, Apple Silicon first, Linux text-only, v0.2 — so it is a *rebuildable cache over SQLite*, and it syncs as records that each device feeds into its own `.wax` (iOS 18+ works), never as the file itself. Prototype next to the SQLite move |
-| VecturaKit | small Swift-native on-device vector store: embeds and searches in one API (MLX / Foundation Models embeddings), hybrid with BM25, persisted to disk | interesting for the *retrieval* layer — it does embed + index + hybrid search together, which is exactly the RAG step. Apple-only (MLX), young, and its store is its own files, so it would sit next to SQLite as a cache, not replace it. Worth a prototype for the search side |
-| PGlite | Postgres compiled to WASM, pgvector included | needs a WASM runtime or a hidden web view and a JS bridge; data in IndexedDB, unreachable from `six --mcp`, nothing on iOS in the background. No |
-| Qdrant / Milvus / Weaviate / Chroma | server-side vector databases | the Swift libraries are clients to a running server (Qdrant's is gRPC); no embedded mode, nothing on a phone. Only if the index ever moves off the device |
-| JSON / JSONL files | the current state | whole-file rewrites, everything in memory. Stopgap |
-
-Access layer, as built: **[SQLiteData](https://github.com/pointfreeco/sqlite-data)** (Point-Free, MIT) — `@Table`
-structs, typed queries and `#sql` from StructuredQueries, GRDB underneath, and a ready `SyncEngine` over
-`CKSyncEngine` with per-column last-write-wins, opt-in tables and sharing. Its schema rules are ours now: UUID text
-primary keys with `ON CONFLICT REPLACE`, no `UNIQUE` on other columns, no column removal or renaming, BLOBs in their
-own tables (every BLOB column becomes a `CKAsset` — so embeddings go either into a local-only table or as text).
-Not declared for Linux in its `Package.swift`; the core is `#if canImport(CloudKit)`-free and GRDB/StructuredQueries
-do build there, so verify early and fall back to plain GRDB if it doesn't. Underneath: **GRDB** (a Swift layer over SQLite: typed queries, Codable rows, migrations, `DatabasePool` with WAL,
-`ValueObservation`, FTS5; macOS/iOS/Linux). It is a SwiftPM dependency, and the `SDKROOT` override
-([build.md](build.md)) is *not* the obstacle it was for ClaudeForFoundationModels: that library touches the
-FoundationModels executor ABI, GRDB touches only Foundation and the system `sqlite3`, both stable across two
-revisions of the same SDK. Add the package, build, and only vendor if something actually breaks. A hand-written
-wrapper (~200 lines) is the fallback, not the plan.
-
-Schema to lay down once, so nothing migrates later: `profiles`, `visits(profile_id, url, title, visited_at)`,
-`pages(url, fetched_at, text)` + `pages_fts`, `chunks(page_id, ord, text, embedding BLOB, embedding_model)`, and
-`record_name` + `sync_state` on every table for [sync](sync.md).
+Rejected, so it isn't re-litigated: Core Data / SwiftData (Apple-only, no FTS or vectors), Realm (sync dropped, no
+Linux Swift), LMDB/RocksDB (everything built on top), Couchbase Lite (its own sync), DuckDB (poor for many small
+writes), libSQL / Turso (native vectors, but not the system `sqlite3`, young Swift SDK), ObjectBox (closed core, no
+Linux), PGlite (WASM runtime, data unreachable from `six --mcp`), Qdrant / Milvus / Weaviate / Chroma (server
+clients, nothing embedded).
 
 ## Smaller things
 
 - A readable maximum width for the default column on ultra-wide displays: 88 % of a 5K panel is a very long line.
+- Deep research without an agent: a native loop over the ⌘K model for machines with no Claude Code / Codex, and
+  exporting a run as one HTML file with its sources inlined ([deep-research.md](deep-research.md), phase 6).
 - A way back to the start page after navigating (a "home" affordance, or `⌘⇧H`).
 - Downloads UI once `WKDownload` exists: where a file went, and a way to open it.
 - Forget one site: drop a single host's cookies and storage (`WKWebsiteDataStore.fetchDataRecords` →
