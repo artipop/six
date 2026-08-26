@@ -27,7 +27,7 @@ final class BrowserTab: Identifiable {
         self.profileID = profileID
         var configuration = WebPage.Configuration()
         configuration.websiteDataStore = dataStore
-        configuration.applicationNameForUserAgent = "Six/1.0"
+        configuration.applicationNameForUserAgent = UserAgent.applicationName
         self.page = WebPage(configuration: configuration, navigationDecider: TabNavigationDecider())
         if let url {
             showsStartPage = false

@@ -30,6 +30,23 @@ A `Profile` is a name, a colour, a `WKWebsiteDataStore(forIdentifier:)` and an o
 (otherwise its own folder under Application Support). Switching profiles switches `layout.activeProfileID`, which swaps
 the whole workspace stack.
 
+## What six says it is
+
+`WKWebView`'s default user agent stops at the application name — `… AppleWebKit/605.1.15 (KHTML, like Gecko)
+Six/1.0` — and contains no `Version/… Safari/…`. That token is what browser-sniffing scripts look for, so without it
+they fall through to "unknown, probably ancient": Aviasales and Yandex both answer a fresh WebKit with *your browser
+is out of date*.
+
+`UserAgent` (`six/Browser/UserAgent.swift`) sets `applicationNameForUserAgent` to Safari's own tail instead, so the
+string six sends is identical to the Safari installed on the machine — the version is read from
+`/Applications/Safari.app` at launch (falling back to the macOS major version), so the claim ages with the system
+rather than with this file. It is not a disguise: the engine, the JavaScript and the quirks really are that Safari's.
+Naming ourselves in the same string is what broke it, so we don't.
+
+`WebPage.customUserAgent` can override the string per page, which is where per-site quirks would go if a site ever
+needs a different answer. Nothing that is not in the user agent is faked: `navigator.userAgentData` stays absent (it
+is Chromium's), and a site that insists on it will simply not recognise us.
+
 ## Persistence
 
 Everything that makes up a session — profiles, the selected one, every tab (URL + title) and every profile's strip

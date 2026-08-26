@@ -55,3 +55,7 @@ so. Highlights live per URL in `highlights.json`, so they come back next week wh
 - A readable maximum width for the default column on ultra-wide displays: 88 % of a 5K panel is a very long line.
 - A way back to the start page after navigating (a "home" affordance, or `⌘⇧H`).
 - Downloads UI once `WKDownload` exists: where a file went, and a way to open it.
+- Forget one site: drop a single host's cookies and storage (`WKWebsiteDataStore.fetchDataRecords` →
+  `remove(ofTypes:for:)`). Clearing a whole profile is the only option today, and it takes every login with it.
+- Per-site user-agent overrides through `WebPage.customUserAgent`, for sites that sniff wrongly even at Safari's
+  string.

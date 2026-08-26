@@ -28,7 +28,7 @@ final class WebSearch {
     private lazy var page: WebPage = {
         var configuration = WebPage.Configuration()
         configuration.websiteDataStore = .nonPersistent()
-        configuration.applicationNameForUserAgent = "Six/1.0"
+        configuration.applicationNameForUserAgent = UserAgent.applicationName
         return WebPage(configuration: configuration)
     }()
 
