@@ -26,6 +26,7 @@ final class BrowserState {
         self.history = history
         self.settings = settings
         layout.centersFocus = settings.centersFocus
+        layout.preferredWidthIndex = settings.columnWidthIndex
         var loaded = snapshot?.profiles ?? Self.legacyProfiles() ?? Profile.defaults
         if loaded.isEmpty { loaded = Profile.defaults }
         profiles = loaded
@@ -33,6 +34,7 @@ final class BrowserState {
         selectedProfileID = selected
         layout.activeProfileID = selected
         if let snapshot { restore(snapshot) }
+        layout.setPreferredWidth(settings.columnWidthIndex) // one width everywhere, whatever the file says
         if layout.hasColumns { syncSelection() } else { newTab() }
     }
 
@@ -244,7 +246,10 @@ final class BrowserState {
     func focusColumn(_ delta: Int) { animateLayout { layout.focusColumn(delta) } }
     func focusColumnEdge(last: Bool) { animateLayout { layout.focusColumnEdge(last: last) } }
     func moveColumn(_ delta: Int) { animateLayout { layout.moveColumn(delta) } }
-    func cycleColumnWidth() { animateLayout { layout.cycleColumnWidth() } }
+    func cycleColumnWidth() {
+        animateLayout { layout.cycleColumnWidth() }
+        settings.columnWidthIndex = layout.preferredWidthIndex
+    }
     func toggleCompactWidth() { animateLayout { layout.toggleCompactWidth() } }
     func focusWorkspace(_ delta: Int) { animateLayout { layout.focusWorkspace(delta) } }
     func focusWorkspace(at index: Int) { animateLayout { layout.focusWorkspace(at: index) } }

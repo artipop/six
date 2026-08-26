@@ -21,6 +21,7 @@ final class SettingsStore {
         case assistantModel = "assistant.model"
         case centersFocus = "layout.centersFocus"
         case agentModel = "agent.model"
+        case columnWidth = "layout.columnWidth"
 
         /// Where the value lived before the database.
         var legacyDefaultsKey: String {
@@ -29,6 +30,7 @@ final class SettingsStore {
             case .assistantModel: "six.assistant.model"
             case .centersFocus: "six.layout.centerFocus"
             case .agentModel: "six.agent.model"
+            case .columnWidth: "six.layout.columnWidth"
             }
         }
     }
@@ -66,6 +68,12 @@ final class SettingsStore {
     var centersFocus: Bool {
         get { self[.centersFocus].map { $0 == "1" } ?? true }
         set { self[.centersFocus] = newValue ? "1" : "0" }
+    }
+
+    /// Index into `NiriLayout.widthPresets` used by every window.
+    var columnWidthIndex: Int {
+        get { self[.columnWidth].flatMap(Int.init) ?? NiriLayout.defaultWidthIndex }
+        set { self[.columnWidth] = String(newValue) }
     }
 
     /// Optional model id for the ACP agent (`ANTHROPIC_MODEL`).

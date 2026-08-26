@@ -25,7 +25,9 @@ Every mutation goes through `mutate { }`, which runs `normalize` afterwards, so 
 ## Geometry
 
 **Everything here is a fraction of the viewport, never a pixel count** — the layout has to read the same on a laptop
-and on a 5K panel. Widths are fractions of the working area (`widthPresets = [0.5, 2/3, 0.88, 1.0]`, default `0.88`),
+and on a 5K panel. Widths are fractions of the working area (`widthPresets = [0.5, 2/3, 0.88, 1.0]`, default `0.88`). The
+preset is one value for the whole app (`preferredWidthIndex`, kept in settings): `⌥R` cycles it for every window in every
+strip, and new windows open with it — unlike niri, where each column has its own; a strip of mixed widths reads as a mess.
 gaps are `gapFraction` (1 % of the width), the vertical space between workspaces is `workspaceGapFraction` (2 % of the
 height). The absolute numbers left in the file are floors (`minimumGap`, the 280 pt minimum column) that only matter
 in a tiny window. Control metrics — title bar heights, button sizes, corner radii — deliberately stay in points, since

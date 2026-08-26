@@ -83,6 +83,10 @@ final class NiriLayout {
     /// scrolling as little as possible. Off means the strip only moves when the focus would fall off it.
     /// Set from settings by `BrowserState`, which also writes the toggle back.
     var centersFocus = true
+    /// The preset every window uses (⌥R cycles it for all of them at once); new windows open with
+    /// it. Unlike niri this is one value for the whole app, not per column — a strip where each
+    /// window has its own width reads as a mess. Compact width (⌥F) still widens one window against it.
+    var preferredWidthIndex = NiriLayout.defaultWidthIndex
     /// Rubber-band offsets while a scroll gesture is still below the switch threshold.
     var verticalPreview: CGFloat = 0
     var horizontalPreview: CGFloat = 0
@@ -328,7 +332,7 @@ final class NiriLayout {
             guard s.workspaces.indices.contains(s.focus) else { return }
             var ws = s.workspaces[s.focus]
             let index = ws.columns.isEmpty ? 0 : ws.focus + 1
-            ws.columns.insert(NiriColumn(tabID: tabID), at: min(index, ws.columns.count))
+            ws.columns.insert(NiriColumn(tabID: tabID, widthIndex: preferredWidthIndex), at: min(index, ws.columns.count))
             ws.focus = min(index, ws.columns.count - 1)
             scrollFocusIntoView(&ws)
             s.workspaces[s.focus] = ws
@@ -344,7 +348,7 @@ final class NiriLayout {
             guard s.workspaces.indices.contains(target) else { return }
             var ws = s.workspaces[target]
             let index = ws.columns.isEmpty ? 0 : ws.focus + 1
-            ws.columns.insert(NiriColumn(tabID: tabID), at: min(index, ws.columns.count))
+            ws.columns.insert(NiriColumn(tabID: tabID, widthIndex: preferredWidthIndex), at: min(index, ws.columns.count))
             if focus {
                 ws.focus = min(index, ws.columns.count - 1)
                 scrollFocusIntoView(&ws)
@@ -453,15 +457,21 @@ final class NiriLayout {
         }
     }
 
-    /// niri's "switch preset column width".
+    /// niri's "switch preset column width" — for every window in every strip, not just the focused one.
     func cycleColumnWidth() {
-        mutate { s in
-            guard s.workspaces.indices.contains(s.focus) else { return }
-            var ws = s.workspaces[s.focus]
-            guard ws.columns.indices.contains(ws.focus) else { return }
-            ws.columns[ws.focus].widthIndex = (ws.columns[ws.focus].widthIndex + 1) % Self.widthPresets.count
-            scrollFocusIntoView(&ws)
-            s.workspaces[s.focus] = ws
+        setPreferredWidth((preferredWidthIndex + 1) % Self.widthPresets.count)
+    }
+
+    /// Applies a preset to every window everywhere (a restored setting, or ⌥R).
+    func setPreferredWidth(_ index: Int) {
+        preferredWidthIndex = min(max(0, index), Self.widthPresets.count - 1)
+        for profile in strips.keys {
+            mutate(profile: profile) { s in
+                for w in s.workspaces.indices {
+                    for c in s.workspaces[w].columns.indices { s.workspaces[w].columns[c].widthIndex = preferredWidthIndex }
+                    scrollFocusIntoView(&s.workspaces[w])
+                }
+            }
         }
     }
 
@@ -473,7 +483,7 @@ final class NiriLayout {
             var ws = s.workspaces[s.focus]
             guard ws.columns.indices.contains(ws.focus) else { return }
             let full = Self.widthPresets.count - 1
-            ws.columns[ws.focus].widthIndex = ws.columns[ws.focus].widthIndex == full ? Self.defaultWidthIndex : full
+            ws.columns[ws.focus].widthIndex = ws.columns[ws.focus].widthIndex == full ? preferredWidthIndex : full
             scrollFocusIntoView(&ws)
             s.workspaces[s.focus] = ws
         }
