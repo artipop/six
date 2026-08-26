@@ -8,6 +8,9 @@ struct NiriStripView: View {
     @Environment(BrowserState.self) private var browser
     @FocusState private var addressFocus: UUID?
     @State private var monitor = NiriScrollMonitor()
+    /// Where the strip sits in the window, for the scroll monitor: what is above it is the top bar,
+    /// and scrolling there is nobody's layout gesture.
+    @State private var stripFrame: CGRect = .infinite
 
     var body: some View {
         let layout = browser.layout
@@ -23,6 +26,7 @@ struct NiriStripView: View {
             .scaleEffect(layout.overviewScale, anchor: .center)
             .overlay { if layout.isOverview { WorkspacePlates(size: proxy.size) } }
             .onChange(of: proxy.size, initial: true) { layout.updateViewport(proxy.size) }
+            .onChange(of: proxy.frame(in: .global), initial: true) { _, frame in stripFrame = frame }
         }
         .background(StripBackground())
         .clipped()
@@ -47,6 +51,7 @@ struct NiriStripView: View {
 
     private func startMonitor() {
         let layout = browser.layout
+        monitor.stripFrame = { stripFrame }
         monitor.modifierOptional = { layout.isOverview }
         monitor.onStepWorkspace = { browser.focusWorkspace($0) }
         monitor.onStepColumn = { browser.focusColumn($0) }

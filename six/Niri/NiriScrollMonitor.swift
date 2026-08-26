@@ -25,6 +25,11 @@ final class NiriScrollMonitor {
     /// True while the layout keeps the focused window centred. Then horizontal scrolling steps from
     /// window to window, one per gesture, instead of panning freely — nothing can rest half-way.
     var snapsHorizontally: () -> Bool = { false }
+    /// Where the strip is, in SwiftUI's window coordinates. Layout gestures without Mod belong to the
+    /// strip and to nothing else: the top bar is chrome too, and treating it as the layout's own made
+    /// a click on one of its buttons a gamble — a hair of finger travel on a trackpad and the
+    /// workspace switched under the cursor.
+    var stripFrame: () -> CGRect = { .infinite }
     /// True when the gesture works without holding Mod (the overview has no page to scroll).
     var modifierOptional: () -> Bool = { false }
     /// ⎋ arrives through the same monitor rather than through SwiftUI: while a page is first responder
@@ -77,7 +82,7 @@ final class NiriScrollMonitor {
     private func handle(_ event: NSEvent) -> NSEvent? {
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         if flags != Self.modifier {
-            guard flags.isEmpty, modifierOptional() || isOverLayoutChrome(event) else { return event }
+            guard flags.isEmpty, isOverStrip(event), modifierOptional() || isOverLayoutChrome(event) else { return event }
         }
 
         if event.timestamp - lastEventTime > idleReset { resetGesture() }
@@ -145,6 +150,14 @@ final class NiriScrollMonitor {
 
     /// True when the pointer sits on the layout itself rather than on something that scrolls: a page,
     /// a list, a text view. Those keep every unmodified scroll event.
+    /// `NSEvent` measures from the bottom left of the window, SwiftUI from the top left of the same
+    /// content view, so the flip is all that stands between the two.
+    private func isOverStrip(_ event: NSEvent) -> Bool {
+        guard let content = event.window?.contentView else { return true }
+        let point = event.locationInWindow
+        return stripFrame().contains(CGPoint(x: point.x, y: content.bounds.height - point.y))
+    }
+
     private func isOverLayoutChrome(_ event: NSEvent) -> Bool {
         guard let hit = event.window?.contentView?.hitTest(event.locationInWindow) else { return false }
         var view: NSView? = hit

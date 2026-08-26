@@ -53,7 +53,12 @@ Only columns within one workspace and one viewport-width of the screen get a rea
 A local `NSEvent` monitor sees scroll events before WebKit does. It acts on them when `⌥` is held, when the overview is
 open, or — unmodified — when the pointer is over the layout's own chrome. "Chrome" is decided by hit-testing the event
 point: anything inside a `WKWebView`, `NSScrollView` or `NSTextView` keeps its own scrolling, everything else (title
-bars, gaps, background, top bar) drives the layout.
+bars, gaps, background) drives the layout.
+
+Without `⌥` the pointer must also be **inside the strip** (`stripFrame`, published by the view in SwiftUI's window
+coordinates and flipped in the monitor, which measures from the bottom of the window). The top bar is chrome too, and
+letting it drive the layout made clicking one of its buttons a gamble: a hair of finger travel on a trackpad switched
+the workspace under the cursor. Held `⌥` still works anywhere — then it is an explicit layout gesture.
 
 Vertical is **one workspace per gesture**: deltas accumulate into a rubber-band preview (`verticalPreview`), crossing
 the threshold commits the switch, and the rest of the gesture — trackpad momentum included — is swallowed, so a flick
