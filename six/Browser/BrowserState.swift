@@ -17,12 +17,15 @@ final class BrowserState {
     let layout = NiriLayout()
     /// Visits, per profile.
     let history: HistoryStore
+    @ObservationIgnored private let settings: SettingsStore
 
     @ObservationIgnored private var dataStores: [UUID: WKWebsiteDataStore] = [:]
 
     /// Starts from a snapshot when there is one; otherwise with the default profiles and one window.
-    init(snapshot: BrowserSnapshot? = nil, history: HistoryStore) {
+    init(snapshot: BrowserSnapshot? = nil, history: HistoryStore, settings: SettingsStore) {
         self.history = history
+        self.settings = settings
+        layout.centersFocus = settings.centersFocus
         var loaded = snapshot?.profiles ?? Self.legacyProfiles() ?? Profile.defaults
         if loaded.isEmpty { loaded = Profile.defaults }
         profiles = loaded
@@ -257,7 +260,10 @@ final class BrowserState {
         animateLayout { layout.snapFocusToView() }
     }
 
-    func toggleCenterFocus() { animateLayout { layout.setCentersFocus(!layout.centersFocus) } }
+    func toggleCenterFocus() {
+        animateLayout { layout.setCentersFocus(!layout.centersFocus) }
+        settings.centersFocus = layout.centersFocus
+    }
 
     func toggleOverview() {
         if layout.isOverview {

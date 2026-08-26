@@ -73,7 +73,8 @@ final class AgentSessionStore {
         didSet { if agent != oldValue { disconnect() } }
     }
 
-    init(snapshot: AgentSnapshot? = nil) {
+    init(snapshot: AgentSnapshot? = nil, settings: SettingsStore) {
+        self.settings = settings
         guard let snapshot else { return }
         if let saved = ACPAgentDefinition.builtIn.first(where: { $0.id == snapshot.agentID }) { agent = saved }
         chats = Dictionary(snapshot.chats.map { ($0.key, $0) }, uniquingKeysWith: { first, _ in first })
@@ -122,11 +123,14 @@ final class AgentSessionStore {
     }
     /// Directory the live session was created in; a different `workingDirectory` means reconnecting.
     @ObservationIgnored private var sessionDirectory: URL?
+    @ObservationIgnored private let settings: SettingsStore
     /// Optional model id passed to the agent (Claude Code reads `ANTHROPIC_MODEL`; Codex ignores it).
-    var modelOverride: String = UserDefaults.standard.string(forKey: "six.agent.model") ?? "" {
-        didSet {
-            UserDefaults.standard.set(modelOverride, forKey: "six.agent.model")
-            if modelOverride != oldValue { disconnect() }
+    var modelOverride: String {
+        get { settings.agentModel }
+        set {
+            guard newValue != settings.agentModel else { return }
+            settings.agentModel = newValue
+            disconnect()
         }
     }
 

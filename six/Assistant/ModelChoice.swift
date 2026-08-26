@@ -53,18 +53,22 @@ enum ModelChoice: String, CaseIterable, Identifiable, Codable {
 @Observable
 final class AssistantSettings {
     @ObservationIgnored private let defaults = UserDefaults.standard
+    @ObservationIgnored private let store: SettingsStore
 
+    /// Lives in the settings table with the other preferences.
     var model: ModelChoice {
-        didSet { defaults.set(model.rawValue, forKey: "six.assistant.model") }
+        get { store.assistantModel }
+        set { store.assistantModel = newValue }
     }
 
-    /// Development-only credential. For shipping, use `AuthMode.appAttest` or a proxy — never bundle a key.
+    /// Development-only credential, kept out of the database (which may sync one day): `UserDefaults`
+    /// for now, the Keychain later. For shipping, use `AuthMode.appAttest` or a proxy — never bundle a key.
     var anthropicAPIKey: String {
         didSet { defaults.set(anthropicAPIKey, forKey: "six.assistant.anthropicKey") }
     }
 
-    init() {
-        model = ModelChoice(rawValue: defaults.string(forKey: "six.assistant.model") ?? "") ?? .onDevice
+    init(store: SettingsStore) {
+        self.store = store
         anthropicAPIKey = defaults.string(forKey: "six.assistant.anthropicKey")
             ?? ProcessInfo.processInfo.environment["ANTHROPIC_API_KEY"] ?? ""
     }

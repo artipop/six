@@ -1,3 +1,4 @@
+import SQLiteData
 import SwiftUI
 
 /// The binary is two things: the browser, and — with `--mcp` — a stdio MCP server that relays to the
@@ -16,17 +17,25 @@ struct sixApp: App {
     @State private var assistant: AssistantStore
     @State private var agentSession: AgentSessionStore
     @State private var mcp: MCPHost
+    @State private var settings: SettingsStore
     @State private var persistence: StatePersistence<FileSnapshotStore<AppStateSnapshot>>
-    @State private var historyPersistence: StatePersistence<FileSnapshotStore<HistorySnapshot>>
 
     init() {
         let store = FileSnapshotStore<AppStateSnapshot>(fileNamed: "state.json")
-        let historyStore = FileSnapshotStore<HistorySnapshot>(fileNamed: "history.json")
         let snapshot = Self.load(store)
-        let history = HistoryStore(snapshot: Self.load(historyStore))
-        let browser = BrowserState(snapshot: snapshot?.browser, history: history)
-        let assistant = AssistantStore()
-        let agentSession = AgentSessionStore(snapshot: snapshot?.agent)
+        // The database is the app's ground: without it there is nothing to run on.
+        let database: any DatabaseWriter
+        do {
+            database = try AppDatabase.open()
+        } catch {
+            fatalError("six: cannot open \(AppDatabase.url.path): \(error)")
+        }
+        let settings = SettingsStore(database: database)
+        SettingsStore.shared = settings
+        let history = HistoryStore(database: database)
+        let browser = BrowserState(snapshot: snapshot?.browser, history: history, settings: settings)
+        let assistant = AssistantStore(settings: settings)
+        let agentSession = AgentSessionStore(snapshot: snapshot?.agent, settings: settings)
         agentSession.browser = browser
         let tools = BrowserToolCatalog(browser: browser, assistant: assistant.settings)
         assistant.tools = tools
@@ -38,16 +47,11 @@ struct sixApp: App {
             AppStateSnapshot(browser: browser.snapshot, agent: agentSession.snapshot)
         }
         persistence.start()
-        let historyPersistence = StatePersistence(store: historyStore) { history.snapshot }
-        historyPersistence.start()
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: .main) { _ in
-            MainActor.assumeIsolated {
-                persistence.flush()
-                historyPersistence.flush()
-            }
+            MainActor.assumeIsolated { persistence.flush() }
         }
+        _settings = State(initialValue: settings)
         _persistence = State(initialValue: persistence)
-        _historyPersistence = State(initialValue: historyPersistence)
         _browser = State(initialValue: browser)
         _assistant = State(initialValue: assistant)
         _agentSession = State(initialValue: agentSession)
@@ -71,6 +75,7 @@ struct sixApp: App {
                 .environment(assistant)
                 .environment(agentSession)
                 .environment(mcp)
+                .environment(settings)
                 .frame(minWidth: 900, minHeight: 560)
         }
         .defaultSize(width: 1500, height: 950)
@@ -83,7 +88,7 @@ struct sixApp: App {
                     .keyboardShortcut("w")
             }
             LayoutCommands(browser: browser)
-            BrowserCommands()
+            BrowserCommands(settings: settings)
             HistoryCommands(browser: browser)
         }
     }
@@ -178,7 +183,7 @@ private struct HistoryCommands: Commands {
 }
 
 private struct BrowserCommands: Commands {
-    @AppStorage(SearchEngine.defaultsKey) private var engine: SearchEngine = .duckDuckGo
+    let settings: SettingsStore
     @FocusedValue(\.focusAddressBar) private var focusAddressBar
     @FocusedValue(\.focusAssistant) private var focusAssistant
     @FocusedValue(\.toggleAgentPanel) private var toggleAgentPanel
@@ -197,7 +202,8 @@ private struct BrowserCommands: Commands {
 
             Divider()
 
-            Picker("Search Engine", selection: $engine) {
+            @Bindable var settings = settings
+            Picker("Search Engine", selection: $settings.searchEngine) {
                 ForEach(SearchEngine.allCases) { engine in
                     Text(engine.title).tag(engine)
                 }

@@ -6,6 +6,10 @@
 	objectVersion = 110;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		AC8977A0303CEC22008426C2 /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = AC89779F303CEC22008426C2 /* SQLiteData */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		AC897661303CEC20008426C2 /* six.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = six.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -22,6 +26,7 @@
 		AC89765E303CEC20008426C2 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
+				AC8977A0303CEC22008426C2 /* SQLiteData in Frameworks */,
 			);
 		};
 /* End PBXFrameworksBuildPhase section */
@@ -60,6 +65,9 @@
 				AC897663303CEC20008426C2 /* six */,
 			);
 			name = six;
+			packageProductDependencies = (
+				AC89779F303CEC22008426C2 /* SQLiteData */,
+			);
 			productName = six;
 			productReference = AC897661303CEC20008426C2 /* six.app */;
 			productType = "com.apple.product-type.application";
@@ -88,6 +96,9 @@
 			);
 			mainGroup = AC897658303CEC20008426C2;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				AC89779E303CEC22008426C2 /* XCRemoteSwiftPackageReference "sqlite-data" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = AC897662303CEC20008426C2 /* Products */;
 			projectDirPath = "";
@@ -113,6 +124,25 @@
 			);
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		AC89779E303CEC22008426C2 /* XCRemoteSwiftPackageReference "sqlite-data" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/pointfreeco/sqlite-data";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.11.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		AC89779F303CEC22008426C2 /* SQLiteData */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AC89779E303CEC22008426C2 /* XCRemoteSwiftPackageReference "sqlite-data" */;
+			productName = SQLiteData;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin XCBuildConfiguration section */
 		AC89766A303CEC22008426C2 /* Debug configuration for PBXProject "six" */ = {

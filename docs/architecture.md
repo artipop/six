@@ -13,6 +13,7 @@ six/ACP         ACPJSON, JSONRPCConnection, ACPTypes, ACPAgent (process), ACPCli
 six/Tools       BrowserToolCatalog (the tools, over BrowserState), BrowserModelTool (Foundation Models adapter)
 six/MCP         MCPServer + MCPHost (the catalog over a Unix socket), MCPSocket, MCPStdioBridge (`six --mcp`)
 six/Persistence AppStateSnapshot (the Codable shape), SnapshotStore (a versioned JSON file), StatePersistence (autosave)
+six/Data        AppDatabase (the SQLite file, migrations), SettingsStore (the settings table)
 six/Vendor      ClaudeForFoundationModels sources
 ```
 
@@ -60,15 +61,23 @@ are; only the mapping to the live objects (`BrowserState.snapshot` / `init(snaps
 page's URL, a column moving, a chat line — schedules a debounced (1 s) write off the main thread; `NSApplication`'s
 `willTerminate` flushes synchronously. On restore, a `BrowserTab` is created with its saved URL but doesn't load until
 it first comes on screen (or a tool looks at it) — relaunching with a hundred windows fires no requests.
-Restore drops anything that doesn't line up (a column whose tab is gone, a tab no column points at). Settings
-(search engine, assistant model, API key, `⌥C`, agent model override) stay in `UserDefaults`.
+Restore drops anything that doesn't line up (a column whose tab is gone, a tab no column points at). Only the API key
+stays in `UserDefaults`; the other settings are in the database (below).
 
-History is its own file, `history.json` (`HistoryStore`, same store and autosave, generic over the snapshot type):
-it is bigger, changes on every page and losing it is no tragedy. Each `BrowserTab` feeds `WebPage.navigations` to
-`BrowserState`, which records the committed URL under the tab's profile and fills in the title when the load
-finishes; the newest 5000 visits are kept. The **History** menu lists the selected profile's 20 most recent pages
+History and settings live in SQLite — `~/Library/Application Support/six/six.sqlite`, opened by `AppDatabase`
+through [SQLiteData](https://github.com/pointfreeco/sqlite-data) (GRDB + StructuredQueries; `@Table` structs, typed
+queries, `#sql` for the schema). Tables follow SQLiteData's CloudKit rules from the start — UUID text primary keys,
+no `UNIQUE` elsewhere, columns only ever added — so turning its `SyncEngine` on later is configuration
+([storage.md](storage.md), [sync.md](sync.md)). `visits(id, profileID, url, title, visitedAt)` is history:
+each `BrowserTab` feeds `WebPage.navigations` to `BrowserState`, which records the committed URL under the tab's
+profile and fills in the title when the load finishes. `settings(key, value)` holds the preferences (search engine,
+assistant model, `⌥C`, agent model override) behind the typed `SettingsStore`; the Anthropic API key stays in
+`UserDefaults` — a credential has no business in a table that may sync. On first launch with the database the
+old `history.json` and the `UserDefaults` keys are imported once. `HistoryStore` keeps a `revision` that every write
+bumps, so a view reading through it under observation re-queries on change; searching and ranking run in Swift over
+the profile's recent visits because SQLite's `LIKE`/`lower()` are ASCII-only. The **History** menu lists the selected profile's 20 most recent pages
 (a click opens a new window in the strip); ⌘Y opens `HistoryView` — the profile's whole history, searchable, by day.
-Clearing asks whether to drop the profile's site data too (`BrowserState.clearSiteData`: every
+There is no cap any more. Clearing asks whether to drop the profile's site data too (`BrowserState.clearSiteData`: every
 `WKWebsiteDataStore` type — cookies, local storage, IndexedDB, caches — then the profile's open pages reload from origin). Removing a profile
 removes its history.
 

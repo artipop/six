@@ -16,7 +16,7 @@ flowchart TB
         AS["AgentSessionStore / ACP / MCP"]
         Snap["AppStateSnapshot · JSON
 tabs · strips · profiles · chats"]
-        DB[("SQLite — system of record, via GRDB
+        DB[("SQLite — system of record, via SQLiteData over GRDB
 visits · pages · pages_fts · chunks · embeddings
 record_name · sync_state")]
         RET{{"Retrieval protocol
@@ -89,7 +89,7 @@ CloudKit Web Services"]
   harmless, and the `.wax` file is never synced.
 - **`Embedder` returns a model id.** That is what keeps vectors compatible across devices and platforms: a chunk
   embedded by another model is re-embedded, not silently searched.
-- **Only `DB` and `HistoryStore` over it are being built now.** `Retrieval`, `Embedder` and `SyncEngine` are empty
+- **`DB`, `HistoryStore` and `SettingsStore` over it exist** (`six/Data/`, `six/Browser/History.swift`). `Retrieval`, `Embedder` and `SyncEngine` are empty
   (or not yet there); what matters today is that `HistoryStore` and the coming `PageStore` / `ChunkStore` import no
   Apple framework, so the seams can appear without a rewrite.
 
@@ -100,4 +100,4 @@ CloudKit Web Services"]
 | Web | `WebPage` (exists) | WebKitGTK / CEF | the most expensive seam; a Linux front is a different UI anyway, so in practice this is "keep the model out of the views", which is already the case |
 | Embedder | Foundation Models / MiniLM inside Wax | llama.cpp, ONNX | either one cross-platform model everywhere (simpler) or model ids + re-embedding |
 | Retrieval | Wax | `sqlite-vec` → USearch | the Mac can start on `sqlite-vec` too — one implementation for all, Wax as a later upgrade |
-| Sync | CloudKit | no-op / own server | without an Apple account a Linux build cannot reach iCloud at all; accept that |
+| Sync | SQLiteData's `SyncEngine` over CloudKit | no-op / own server | without an Apple account a Linux build cannot reach iCloud at all; accept that |

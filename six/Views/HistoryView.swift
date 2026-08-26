@@ -62,7 +62,7 @@ struct HistoryView: View {
                 Text("\(results.count) visits").font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 Button("Clear \(profile.name) History…", role: .destructive) { confirmClear = true }
-                    .disabled(browser.history.entries(in: profile.id).isEmpty)
+                    .disabled(browser.history.count(in: profile.id) == 0)
                     .controlSize(.small)
             }
             .padding(10)

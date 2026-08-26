@@ -1,12 +1,14 @@
 import Foundation
 import Observation
+import SQLiteData
 
 /// One visit. History is per profile, like everything else the profile isolates.
-nonisolated struct HistoryEntry: Codable, Identifiable, Sendable, Hashable {
-    var id = UUID()
+@Table("visits")
+nonisolated struct Visit: Identifiable, Sendable, Hashable {
+    let id: UUID
     var profileID: UUID
     var url: URL
-    var title: String
+    var title = ""
     var visitedAt: Date
 
     /// What to call the visit: a search results page is its query, anything else its title (or address).
@@ -22,69 +24,91 @@ nonisolated struct HistoryEntry: Codable, Identifiable, Sendable, Hashable {
     }
 }
 
-/// What `history.json` holds.
-nonisolated struct HistorySnapshot: VersionedSnapshot {
-    static let currentVersion = 1
-    var version = HistorySnapshot.currentVersion
-    var entries: [HistoryEntry]
-}
+typealias HistoryEntry = Visit
 
-/// Browsing history for every profile, newest first. Kept apart from the app-state snapshot: it is
-/// bigger, changes on every page, and losing it is no tragedy.
+/// Browsing history for every profile, in the `visits` table. Readers see a `revision` that every
+/// write bumps, so a view that reads through this store under observation re-queries on change.
 @MainActor
 @Observable
 final class HistoryStore {
-    static let capacity = 5000
+    /// How far back the start page and the search look, per profile. Beyond this the history is
+    /// still there, just not in the ranking.
+    static let rankingWindow = 5000
 
-    private(set) var entries: [HistoryEntry] = []
+    @ObservationIgnored private let database: any DatabaseWriter
+    private(set) var revision = 0
 
-    init(snapshot: HistorySnapshot? = nil) {
-        entries = snapshot?.entries ?? []
+    init(database: any DatabaseWriter) {
+        self.database = database
+        importLegacyFile()
     }
 
-    var snapshot: HistorySnapshot { HistorySnapshot(entries: entries) }
+    // MARK: Writing
 
     /// A committed navigation. Reloading or re-visiting the page you're already on doesn't stack up.
     func record(_ url: URL, title: String, in profileID: UUID) {
         guard Self.isRecordable(url) else { return }
-        if let last = entries.first(where: { $0.profileID == profileID }), last.url == url {
-            if let index = entries.firstIndex(where: { $0.id == last.id }) {
-                entries[index].visitedAt = Date()
-                if !title.isEmpty { entries[index].title = title }
+        write { db in
+            let last = try Visit.where { $0.profileID.eq(profileID) }.order { $0.visitedAt.desc() }.limit(1).fetchOne(db)
+            if let last, last.url == url {
+                try Visit.where { $0.id.eq(last.id) }
+                    .update { row in
+                        row.visitedAt = Date()
+                        if !title.isEmpty { row.title = title }
+                    }
+                    .execute(db)
+            } else {
+                try Visit.insert { Visit(id: UUID(), profileID: profileID, url: url, title: title, visitedAt: Date()) }.execute(db)
             }
-            return
         }
-        entries.insert(HistoryEntry(profileID: profileID, url: url, title: title, visitedAt: Date()), at: 0)
-        if entries.count > Self.capacity { entries.removeLast(entries.count - Self.capacity) }
     }
 
     /// Titles usually arrive after the navigation commits; update the latest visit of that page.
     func updateTitle(_ title: String, for url: URL, in profileID: UUID) {
-        guard !title.isEmpty,
-              let index = entries.firstIndex(where: { $0.profileID == profileID && $0.url == url }) else { return }
-        entries[index].title = title
+        guard !title.isEmpty else { return }
+        write { db in
+            let latest = Visit.where { $0.profileID.eq(profileID) && $0.url.eq(url) }.order { $0.visitedAt.desc() }.limit(1)
+            guard let last = try latest.fetchOne(db) else { return }
+            try Visit.where { $0.id.eq(last.id) }.update { $0.title = title }.execute(db)
+        }
     }
 
-    func entries(in profileID: UUID) -> [HistoryEntry] {
-        entries.filter { $0.profileID == profileID }
+    func remove(_ id: Visit.ID) {
+        write { db in try Visit.where { $0.id.eq(id) }.delete().execute(db) }
+    }
+
+    func clear(profileID: UUID) {
+        write { db in try Visit.where { $0.profileID.eq(profileID) }.delete().execute(db) }
+    }
+
+    // MARK: Reading
+
+    /// Every visit of the profile, newest first.
+    func entries(in profileID: UUID) -> [Visit] {
+        read { db in try Visit.where { $0.profileID.eq(profileID) }.order { $0.visitedAt.desc() }.fetchAll(db) }
+    }
+
+    func count(in profileID: UUID) -> Int {
+        read { db in try Visit.where { $0.profileID.eq(profileID) }.count().fetchOne(db) ?? 0 }
     }
 
     /// The most recent visit per page — what a menu shows.
-    func recent(in profileID: UUID, limit: Int) -> [HistoryEntry] {
+    func recent(in profileID: UUID, limit: Int) -> [Visit] {
         var seen = Set<URL>()
-        var result: [HistoryEntry] = []
-        for entry in entries where entry.profileID == profileID && seen.insert(entry.url).inserted {
+        var result: [Visit] = []
+        for entry in window(profileID, limit: limit * 10) where seen.insert(entry.url).inserted {
             result.append(entry)
             if result.count == limit { break }
         }
         return result
     }
 
-    func search(_ query: String, in profileID: UUID) -> [HistoryEntry] {
+    /// Substring search over title and address. In Swift rather than SQL: SQLite's `LIKE` and
+    /// `lower()` only know ASCII, and history is in every language.
+    func search(_ query: String, in profileID: UUID) -> [Visit] {
         let terms = query.split(whereSeparator: \.isWhitespace).map { $0.lowercased() }
         guard !terms.isEmpty else { return entries(in: profileID) }
-        return entries.filter { entry in
-            guard entry.profileID == profileID else { return false }
+        return entries(in: profileID).filter { entry in
             let haystack = (entry.title + " " + entry.url.absoluteString).lowercased()
             return terms.allSatisfy { haystack.contains($0) }
         }
@@ -93,12 +117,12 @@ final class HistoryStore {
     /// Completions for the start page: pages of this profile matching what is typed, one per URL,
     /// the ones visited often and recently first. A host prefix (`git` → github.com) beats a match
     /// somewhere in the middle of a title.
-    func suggest(_ query: String, in profileID: UUID, limit: Int) -> [HistoryEntry] {
+    func suggest(_ query: String, in profileID: UUID, limit: Int) -> [Visit] {
         let needle = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !needle.isEmpty else { return [] }
         let now = Date()
-        var best: [URL: (entry: HistoryEntry, score: Double)] = [:]
-        for entry in entries where entry.profileID == profileID {
+        var best: [URL: (entry: Visit, score: Double)] = [:]
+        for entry in window(profileID, limit: Self.rankingWindow) {
             let host = (entry.url.host() ?? "").lowercased()
             let bareHost = host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
             let title = entry.title.lowercased()
@@ -120,16 +144,58 @@ final class HistoryStore {
         return best.values.sorted { $0.score > $1.score }.prefix(limit).map(\.entry)
     }
 
-    func remove(_ id: HistoryEntry.ID) {
-        entries.removeAll { $0.id == id }
+    // MARK: Plumbing
+
+    private func window(_ profileID: UUID, limit: Int) -> [Visit] {
+        read { db in try Visit.where { $0.profileID.eq(profileID) }.order { $0.visitedAt.desc() }.limit(limit).fetchAll(db) }
     }
 
-    func clear(profileID: UUID) {
-        entries.removeAll { $0.profileID == profileID }
+    private func read<T>(_ body: (Database) throws -> T) -> T where T: ExpressibleByArrayLiteral {
+        _ = revision // observed: any write re-runs the caller
+        do { return try database.read(body) } catch {
+            FileHandle.standardError.write(Data("[six] history read failed: \(error)\n".utf8))
+            return []
+        }
+    }
+
+    private func read(_ body: (Database) throws -> Int) -> Int {
+        _ = revision
+        do { return try database.read(body) } catch { return 0 }
+    }
+
+    private func write(_ body: (Database) throws -> Void) {
+        do {
+            try database.write(body)
+            revision += 1
+        } catch {
+            FileHandle.standardError.write(Data("[six] history write failed: \(error)\n".utf8))
+        }
     }
 
     private static func isRecordable(_ url: URL) -> Bool {
         guard let scheme = url.scheme?.lowercased() else { return false }
         return scheme == "http" || scheme == "https" || scheme == "file"
+    }
+
+    /// History used to be `history.json`; import it once and set the file aside.
+    private func importLegacyFile() {
+        let url = AppDatabase.url.deletingLastPathComponent().appending(path: "history.json")
+        guard FileManager.default.fileExists(atPath: url.path) else { return }
+        struct Legacy: Decodable {
+            struct Entry: Decodable { var id: UUID; var profileID: UUID; var url: URL; var title: String; var visitedAt: Date }
+            var entries: [Entry]
+        }
+        do {
+            let legacy = try JSONDecoder().decode(Legacy.self, from: Data(contentsOf: url))
+            try database.write { db in
+                for e in legacy.entries {
+                    try Visit.insert { Visit(id: e.id, profileID: e.profileID, url: e.url, title: e.title, visitedAt: e.visitedAt) }.execute(db)
+                }
+            }
+            try FileManager.default.moveItem(at: url, to: url.appendingPathExtension("imported"))
+            revision += 1
+        } catch {
+            FileHandle.standardError.write(Data("[six] history.json import failed: \(error)\n".utf8))
+        }
     }
 }

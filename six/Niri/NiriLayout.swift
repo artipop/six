@@ -71,7 +71,6 @@ final class NiriLayout {
     static let workspaceGapFraction: CGFloat = 0.02
     static let overviewWorkspaceGapFraction: CGFloat = 0.11
     static let switchAnimation: Animation = .smooth(duration: 0.34, extraBounce: 0.05)
-    private static let centerKey = "six.layout.centerFocus"
 
     var viewport: CGSize = CGSize(width: 1280, height: 800)
     var isOverview = false
@@ -82,9 +81,8 @@ final class NiriLayout {
     private(set) var fill: NiriFill = .tiled
     /// niri's `center-focused-column`: park the focused window in the middle of the screen instead of
     /// scrolling as little as possible. Off means the strip only moves when the focus would fall off it.
-    var centersFocus: Bool = UserDefaults.standard.object(forKey: NiriLayout.centerKey) as? Bool ?? true {
-        didSet { UserDefaults.standard.set(centersFocus, forKey: NiriLayout.centerKey) }
-    }
+    /// Set from settings by `BrowserState`, which also writes the toggle back.
+    var centersFocus = true
     /// Rubber-band offsets while a scroll gesture is still below the switch threshold.
     var verticalPreview: CGFloat = 0
     var horizontalPreview: CGFloat = 0

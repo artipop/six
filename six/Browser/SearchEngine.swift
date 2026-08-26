@@ -15,13 +15,10 @@ nonisolated enum SearchEngine: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// Shared with the `@AppStorage` bindings behind the switchers, so picking an engine anywhere
-    /// moves `current` too — and every open start page notices.
-    static let defaultsKey = "six.searchEngine"
-
-    static var current: SearchEngine {
-        get { SearchEngine(rawValue: UserDefaults.standard.string(forKey: defaultsKey) ?? "") ?? .duckDuckGo }
-        set { UserDefaults.standard.set(newValue.rawValue, forKey: defaultsKey) }
+    /// The engine in settings — one value for the address bar, every start page and the tools.
+    @MainActor static var current: SearchEngine {
+        get { SettingsStore.shared?.searchEngine ?? .duckDuckGo }
+        set { SettingsStore.shared?.searchEngine = newValue }
     }
 
     func searchURL(for query: String) -> URL? {

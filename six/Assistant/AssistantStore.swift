@@ -7,7 +7,11 @@ import WebKit
 @MainActor
 @Observable
 final class AssistantStore {
-    let settings = AssistantSettings()
+    let settings: AssistantSettings
+
+    init(settings: SettingsStore) {
+        self.settings = AssistantSettings(store: settings)
+    }
 
     private(set) var answer = ""
     /// What the agent is doing right now (a tool call), shown under the answer while it works.

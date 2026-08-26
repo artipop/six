@@ -50,8 +50,8 @@ for anything bigger than history.
 
 ## Storage: SQLite under history, with RAG in mind
 
-`history.json` is a stopgap — the whole file is rewritten on every visit and everything sits in memory, which is why
-it is capped at 5000 entries ([architecture.md](architecture.md#persistence)). The step that matters is the one after:
+**Done for history and settings** (`six/Data/`, [architecture.md](architecture.md#persistence)) — SQLiteData over
+GRDB, schema laid down by its CloudKit rules. What remains is the step that matters:
 page text and embeddings for retrieval over what was read. One local store for visits, page content, chunks and
 vectors — SQLite through the system `SQLite3` module (macOS and Linux, no dependency to fight the SDK override with),
 FTS5 for titles and text, vectors as blobs with a brute-force cosine pass (fine to ~100k chunks) or `sqlite-vec` if it
@@ -78,7 +78,13 @@ Why SQLite and not something else — the alternatives that were actually weighe
 | Qdrant / Milvus / Weaviate / Chroma | server-side vector databases | the Swift libraries are clients to a running server (Qdrant's is gRPC); no embedded mode, nothing on a phone. Only if the index ever moves off the device |
 | JSON / JSONL files | the current state | whole-file rewrites, everything in memory. Stopgap |
 
-Access layer: **GRDB** (a Swift layer over SQLite: typed queries, Codable rows, migrations, `DatabasePool` with WAL,
+Access layer, as built: **[SQLiteData](https://github.com/pointfreeco/sqlite-data)** (Point-Free, MIT) — `@Table`
+structs, typed queries and `#sql` from StructuredQueries, GRDB underneath, and a ready `SyncEngine` over
+`CKSyncEngine` with per-column last-write-wins, opt-in tables and sharing. Its schema rules are ours now: UUID text
+primary keys with `ON CONFLICT REPLACE`, no `UNIQUE` on other columns, no column removal or renaming, BLOBs in their
+own tables (every BLOB column becomes a `CKAsset` — so embeddings go either into a local-only table or as text).
+Not declared for Linux in its `Package.swift`; the core is `#if canImport(CloudKit)`-free and GRDB/StructuredQueries
+do build there, so verify early and fall back to plain GRDB if it doesn't. Underneath: **GRDB** (a Swift layer over SQLite: typed queries, Codable rows, migrations, `DatabasePool` with WAL,
 `ValueObservation`, FTS5; macOS/iOS/Linux). It is a SwiftPM dependency, and the `SDKROOT` override
 ([build.md](build.md)) is *not* the obstacle it was for ClaudeForFoundationModels: that library touches the
 FoundationModels executor ABI, GRDB touches only Foundation and the system `sqlite3`, both stable across two

@@ -13,9 +13,9 @@ struct StartPage: View {
     @State private var selection: Int?
     @State private var suggestions = SearchSuggestions()
     @FocusState private var fieldFocused: Bool
-    /// `AppStorage`, not a local copy: `SearchEngine.current` reads the same key, and every other
-    /// start page redraws when this one switches engines.
-    @AppStorage(SearchEngine.defaultsKey) private var engine: SearchEngine = .duckDuckGo
+    @Environment(SettingsStore.self) private var settings
+    /// From settings, not a local copy: every other start page redraws when this one switches engines.
+    private var engine: SearchEngine { settings.searchEngine }
 
     private var accent: Color {
         browser.profiles.first { $0.id == tab.profileID }?.color ?? .accentColor
@@ -100,8 +100,9 @@ struct StartPage: View {
 
     /// Which engine answers the field, in the one place where it matters — next to the field.
     private var enginePicker: some View {
-        Menu {
-            Picker("Search Engine", selection: $engine) {
+        @Bindable var settings = settings
+        return Menu {
+            Picker("Search Engine", selection: $settings.searchEngine) {
                 ForEach(SearchEngine.allCases) { engine in
                     Text(engine.title).tag(engine)
                 }
