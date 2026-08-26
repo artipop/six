@@ -163,7 +163,7 @@ private struct HistoryCommands: Commands {
                     Text("No History").disabled(true)
                 }
                 ForEach(recent) { entry in
-                    Button(entry.title.isEmpty ? entry.url.absoluteString : entry.title) {
+                    Button(SearchEngine.search(from: entry.url).map { "\($0.query) — \($0.engine.title) Search" } ?? entry.displayTitle) {
                         browser.newTab(url: entry.url, in: entry.profileID)
                     }
                 }

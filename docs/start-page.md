@@ -9,8 +9,11 @@ One field takes both a query and an address, the same rule the address bar uses 
 - an **address row** first when the input looks like one (`apple.com`, `localhost:3000`, anything with a scheme), so
   Enter opens it rather than searching for it;
 - then up to four **pages from the profile's history** (`HistoryStore.suggest`: a host prefix beats a title prefix
-  beats a substring; repeat visits add up, and visits decay over a couple of weeks) — title and host, opened directly;
-- then **completions** from the search engine.
+  beats a substring; repeat visits add up, and visits decay over a couple of weeks) — title and host, opened directly.
+  A results page of DuckDuckGo or Google shows as the query it was with "*Engine* Search" beside it, the way Chrome
+  does, instead of the page's own title;
+- then **completions** from the search engine, each labelled "*Engine* Search" so it is clear where Enter goes;
+  completions already shown from history are not repeated.
 
 `↑` `↓` walk the rows, `Enter` opens the selected one (or the raw input when nothing is selected), `Esc` clears the
 field, and a click opens a row directly.

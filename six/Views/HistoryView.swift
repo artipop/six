@@ -126,8 +126,8 @@ private struct HistoryRow: View {
                 .foregroundStyle(.secondary)
                 .frame(width: 52, alignment: .trailing)
             VStack(alignment: .leading, spacing: 1) {
-                Text(entry.title.isEmpty ? entry.url.absoluteString : entry.title).lineLimit(1)
-                Text(entry.url.host() ?? entry.url.absoluteString).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                Text(entry.displayTitle).lineLimit(1)
+                Text(entry.displayDetail).font(.caption).foregroundStyle(.secondary).lineLimit(1)
             }
         }
         .padding(.vertical, 2)

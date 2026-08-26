@@ -8,6 +8,18 @@ nonisolated struct HistoryEntry: Codable, Identifiable, Sendable, Hashable {
     var url: URL
     var title: String
     var visitedAt: Date
+
+    /// What to call the visit: a search results page is its query, anything else its title (or address).
+    var displayTitle: String {
+        if let search = SearchEngine.search(from: url) { return search.query }
+        return title.isEmpty ? url.absoluteString : title
+    }
+
+    /// Where it went: the engine for a search, the host for a page.
+    var displayDetail: String {
+        if let search = SearchEngine.search(from: url) { return "\(search.engine.title) Search" }
+        return url.host() ?? url.absoluteString
+    }
 }
 
 /// What `history.json` holds.
