@@ -393,9 +393,9 @@ private struct FullscreenBar: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onHover { hovering in
-            withAnimation(.easeOut(duration: 0.16)) { revealed = hovering }
-        }
+        // Deliberately not animated: the hosted view's height changes with it, and an animation turns
+        // one resize into a hundred, each one a layout pass through the window.
+        .onHover { revealed = $0 }
     }
 
     private var bar: some View {
@@ -438,7 +438,15 @@ private struct HostedOverlay<Content: View>: NSViewRepresentable {
 
     init(@ViewBuilder content: () -> Content) { self.content = content() }
 
-    func makeNSView(context: Context) -> NSHostingView<Content> { NSHostingView(rootView: content) }
+    func makeNSView(context: Context) -> NSHostingView<Content> {
+        let view = NSHostingView(rootView: content)
+        // Frame-driven, never constraint-driven. A hosting view that publishes its own size inside a
+        // SwiftUI window feeds constraints back into it, and the window's update passes never settle:
+        // "marked as needing another Update Constraints in Window pass" — and then it throws.
+        view.sizingOptions = []
+        view.translatesAutoresizingMaskIntoConstraints = true
+        return view
+    }
 
     func updateNSView(_ view: NSHostingView<Content>, context: Context) { view.rootView = content }
 }
