@@ -6,38 +6,52 @@ shape that step must not break. Related: [sync.md](sync.md), [passkeys.md](passk
 
 ```mermaid
 flowchart TB
-    subgraph UI["UI / views  (SwiftUI — Apple; Linux later: another front)"]
-        Views[ContentView · HistoryView · StartPage · AgentPanel]
+    subgraph UI["UI / views — SwiftUI on Apple, another front on Linux"]
+        Views["ContentView · HistoryView · StartPage · AgentPanel"]
     end
 
     subgraph Core["Portable core — Foundation + Observation, no Apple API"]
-        BS[BrowserState / NiriLayout]
-        HS[HistoryStore]
-        AS[AgentSessionStore / ACP / MCP]
-        Snap[AppStateSnapshot · JSON<br/>tabs · strips · profiles · chats]
-        DB[(SQLite — system of record<br/>GRDB<br/>visits · pages · pages_fts · chunks · embeddings<br/>record_name · sync_state)]
-        RET{{Retrieval protocol<br/>index(chunks) · search(query)}}
-        EMB{{Embedder protocol<br/>embed(text) → vector · model id}}
-        SYNC{{SyncEngine protocol<br/>push(pending) · pull() → records}}
-        WEB{{WebEngine protocol<br/>load · url · title · navigations · siteData}}
+        BS["BrowserState / NiriLayout"]
+        HS["HistoryStore"]
+        AS["AgentSessionStore / ACP / MCP"]
+        Snap["AppStateSnapshot · JSON
+tabs · strips · profiles · chats"]
+        DB[("SQLite — system of record, via GRDB
+visits · pages · pages_fts · chunks · embeddings
+record_name · sync_state")]
+        RET{{"Retrieval protocol
+index chunks · search query"}}
+        EMB{{"Embedder protocol
+embed text → vector + model id"}}
+        SYNC{{"SyncEngine protocol
+push pending · pull records"}}
+        WEB{{"WebEngine protocol
+load · url · title · navigations · siteData"}}
     end
 
     subgraph Apple["Apple-only adapters"]
-        WK[WebKit WebPage / WKWebsiteDataStore]
-        FM[Foundation Models embedder]
-        WAX[Wax · .wax cache<br/>FTS5 + Metal HNSW + own embedder]
-        CK[CloudKit · CKSyncEngine<br/>private zone · push]
-        PK[Passkeys via browser entitlement]
+        WK["WebKit WebPage / WKWebsiteDataStore"]
+        FM["Foundation Models embedder"]
+        WAX["Wax · .wax cache
+FTS5 + Metal HNSW + own embedder"]
+        CK["CloudKit · CKSyncEngine
+private zone · push"]
+        PK["Passkeys via browser entitlement"]
     end
 
-    subgraph Linux["Linux adapters (interchangeable)"]
-        WKGTK[WebKitGTK / CEF]
-        LEMB[llama.cpp / ONNX embedder<br/>same model and version]
-        VEC[sqlite-vec → USearch<br/>index inside the same SQLite]
-        NOSYNC[No-op sync · or own server /<br/>CloudKit Web Services]
+    subgraph Linux["Linux adapters — interchangeable"]
+        WKGTK["WebKitGTK / CEF"]
+        LEMB["llama.cpp / ONNX embedder
+same model and version"]
+        VEC["sqlite-vec → USearch
+index inside the same SQLite"]
+        NOSYNC["No-op sync · or own server /
+CloudKit Web Services"]
     end
 
-    Views --> BS & HS & AS
+    Views --> BS
+    Views --> HS
+    Views --> AS
     BS --> Snap
     BS --> WEB
     HS --> DB
