@@ -61,7 +61,9 @@ are; only the mapping to the live objects (`BrowserState.snapshot` / `init(snaps
 page's URL, a column moving, a chat line — schedules a debounced (1 s) write off the main thread; `NSApplication`'s
 `willTerminate` flushes synchronously. On restore, a `BrowserTab` is created with its saved URL but doesn't load until
 it first comes on screen (or a tool looks at it) — relaunching with a hundred windows fires no requests.
-Restore drops anything that doesn't line up (a column whose tab is gone, a tab no column points at). Only the API key
+The window itself — frame and fullscreen — is in the snapshot too (`WindowState`, fed by `NSWindow`
+notifications and applied once when the content view lands in its window; a saved frame off every screen is
+ignored). Restore drops anything that doesn't line up (a column whose tab is gone, a tab no column points at). Only the API key
 stays in `UserDefaults`; the other settings are in the database (below).
 
 History and settings live in SQLite — `~/Library/Application Support/six/six.sqlite`, opened by `AppDatabase`

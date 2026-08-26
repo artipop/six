@@ -11,6 +11,8 @@ nonisolated struct AppStateSnapshot: VersionedSnapshot {
     var version = AppStateSnapshot.currentVersion
     var browser: BrowserSnapshot
     var agent: AgentSnapshot
+    /// The window's frame and fullscreen state; absent in files from before it was kept.
+    var window: WindowSnapshot?
 }
 
 /// Profiles, the windows in them and where each sits in its profile's strip.

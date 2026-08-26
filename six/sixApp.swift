@@ -18,6 +18,7 @@ struct sixApp: App {
     @State private var agentSession: AgentSessionStore
     @State private var mcp: MCPHost
     @State private var settings: SettingsStore
+    @State private var window: WindowState
     @State private var persistence: StatePersistence<FileSnapshotStore<AppStateSnapshot>>
 
     init() {
@@ -43,14 +44,16 @@ struct sixApp: App {
         let mcp = MCPHost(server: MCPServer(catalog: tools))
         mcp.start()
         FileHandle.standardError.write(Data("[six] \(mcp.status); state at \(store.url.path)\n".utf8))
+        let window = WindowState(snapshot: snapshot?.window)
         let persistence = StatePersistence(store: store) {
-            AppStateSnapshot(browser: browser.snapshot, agent: agentSession.snapshot)
+            AppStateSnapshot(browser: browser.snapshot, agent: agentSession.snapshot, window: window.snapshot)
         }
         persistence.start()
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: .main) { _ in
             MainActor.assumeIsolated { persistence.flush() }
         }
         _settings = State(initialValue: settings)
+        _window = State(initialValue: window)
         _persistence = State(initialValue: persistence)
         _browser = State(initialValue: browser)
         _assistant = State(initialValue: assistant)
@@ -76,6 +79,7 @@ struct sixApp: App {
                 .environment(agentSession)
                 .environment(mcp)
                 .environment(settings)
+                .background(WindowObserver(state: window))
                 .frame(minWidth: 900, minHeight: 560)
         }
         .defaultSize(width: 1500, height: 950)
