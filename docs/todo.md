@@ -69,13 +69,19 @@ Why SQLite and not something else — the alternatives that were actually weighe
 | DuckDB | analytical columnar engine, has vector functions and a Swift package | great for analytics, poor for many small writes (visits); no row bookkeeping for CloudKit; big binary. No |
 | LanceDB / Chroma / Qdrant | vector databases | server-side or no Swift client; overkill for ~100k on-device chunks. No |
 | USearch / Faiss | vector *indexes* | USearch (C++, Swift bindings, macOS/iOS/Linux) is the candidate for the index once brute-force / `sqlite-vec` isn't enough. Storage is still SQLite |
+| Turso / libSQL | SQLite fork with native vectors (`F32_BLOB`, `vector_distance_cos`, DiskANN index) and a Swift SDK over a Rust core | the tempting "one database for everything": SQLite + FTS5 + vectors, no extension. Young Swift SDK, not the system `sqlite3` (GRDB doesn't sit on it without a custom build), Linux through the Rust library. **Try the build** alongside GRDB |
+| ObjectBox | object database with HNSW vector search on device, native Swift SDK | a replacement for SQLite, not an addition; closed core, no Linux for Swift. No |
+| VecturaKit | small Swift-native on-device vector store: embeds and searches in one API (MLX / Foundation Models embeddings), hybrid with BM25, persisted to disk | interesting for the *retrieval* layer — it does embed + index + hybrid search together, which is exactly the RAG step. Apple-only (MLX), young, and its store is its own files, so it would sit next to SQLite as a cache, not replace it. Worth a prototype for the search side |
+| PGlite | Postgres compiled to WASM, pgvector included | needs a WASM runtime or a hidden web view and a JS bridge; data in IndexedDB, unreachable from `six --mcp`, nothing on iOS in the background. No |
+| Qdrant / Milvus / Weaviate / Chroma | server-side vector databases | the Swift libraries are clients to a running server (Qdrant's is gRPC); no embedded mode, nothing on a phone. Only if the index ever moves off the device |
 | JSON / JSONL files | the current state | whole-file rewrites, everything in memory. Stopgap |
 
-Access layer: a thin wrapper over the system `SQLite3` module now (open, prepare/bind/step, `user_version`
-migrations, WAL — ~200 lines). **GRDB** (a Swift layer over SQLite: typed queries, Codable rows, migrations,
-`DatabasePool`, `ValueObservation`, FTS5; macOS/iOS/Linux) is the better wrapper, but it is a SwiftPM dependency and
-the `SDKROOT` override ([build.md](build.md)) means vendoring it as with ClaudeForFoundationModels — revisit when
-Xcode's SDK catches up with the OS.
+Access layer: **GRDB** (a Swift layer over SQLite: typed queries, Codable rows, migrations, `DatabasePool` with WAL,
+`ValueObservation`, FTS5; macOS/iOS/Linux). It is a SwiftPM dependency, and the `SDKROOT` override
+([build.md](build.md)) is *not* the obstacle it was for ClaudeForFoundationModels: that library touches the
+FoundationModels executor ABI, GRDB touches only Foundation and the system `sqlite3`, both stable across two
+revisions of the same SDK. Add the package, build, and only vendor if something actually breaks. A hand-written
+wrapper (~200 lines) is the fallback, not the plan.
 
 Schema to lay down once, so nothing migrates later: `profiles`, `visits(profile_id, url, title, visited_at)`,
 `pages(url, fetched_at, text)` + `pages_fts`, `chunks(page_id, ord, text, embedding BLOB, embedding_model)`, and
