@@ -80,13 +80,6 @@ private struct TopBar: View {
             ProfileSwitcher(isAddingProfile: $isAddingProfile)
             Spacer(minLength: 12)
             WorkspaceStepper()
-            Button { browser.toggleFullWindow() } label: {
-                Image(systemName: layout.fill == .window
-                      ? "arrow.down.right.and.arrow.up.left"
-                      : "arrow.up.left.and.arrow.down.right")
-            }
-            .buttonStyle(.borderless)
-            .help(layout.fill == .window ? "Leave full window (⌥W)" : "Full window (⌥W)")
             Button { browser.toggleOverview() } label: {
                 Image(systemName: layout.isOverview ? "rectangle.grid.1x2.fill" : "rectangle.grid.1x2")
             }
