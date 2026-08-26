@@ -43,6 +43,9 @@ Nothing needs the keyboard: every layout operation has a mouse equivalent. `⌥`
 | `⌘K` | focus the assistant line |
 | `⌘⇧A` | agent panel |
 
-Because the Layout menu owns `⌥R` / `⌥F` / `⌥W` / `⌥O`, those `⌥`+letter characters can't be typed into the address field.
+Because the Layout menu owns `⌥R` / `⌥F` / `⌥W` / `⌥O` / `⌥C`, those `⌥`+letter characters can't be typed into the
+address field — nor into a page: `⌥` is niri's Mod, and `NiriScrollMonitor` hands every `⌥` key to the menu bar before
+the focused web view sees it (a web view that is first responder would otherwise keep `⌥←` / `⌥→` for word movement
+and `⌥W`, and the layout keys went dead after Full Window until something else was clicked).
 Changing `NiriScrollMonitor.modifier` and the matching `.keyboardShortcut` modifiers in `LayoutCommands` moves the
 whole binding set to another key.

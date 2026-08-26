@@ -72,8 +72,16 @@ final class NiriScrollMonitor {
     private static let escapeKeyCode: UInt16 = 53
 
     private func handleKey(_ event: NSEvent) -> NSEvent? {
-        guard event.keyCode == Self.escapeKeyCode,
-              event.modifierFlags.intersection(.deviceIndependentFlagsMask).isEmpty else { return event }
+        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        // Mod + key is the layout's, wherever the focus is. A web view that is first responder gets
+        // key equivalents before the menu bar and keeps ⌥← / ⌥→ (word movement) and the like for
+        // itself, so after Full Window the layout's own keys went dead until something else was
+        // clicked. Offer the menu first; a page only sees what no menu item wanted.
+        if flags.contains(Self.modifier), flags.isDisjoint(with: [.command, .control]),
+           let menu = NSApp.mainMenu, menu.performKeyEquivalent(with: event) {
+            return nil
+        }
+        guard event.keyCode == Self.escapeKeyCode, flags.isEmpty else { return event }
         // A video playing full screen is WebKit's own window with its own ⎋; that one is not ours to take.
         if let window = event.window, String(describing: type(of: window)).contains("FullScreen") { return event }
         return onEscape() ? nil : event
