@@ -8,6 +8,10 @@
 
 /* Begin PBXBuildFile section */
 		AC8977A0303CEC22008426C2 /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = AC89779F303CEC22008426C2 /* SQLiteData */; };
+		C4E57E1CA358AD438C0F5731 /* SQLiteVecData in Frameworks */ = {isa = PBXBuildFile; productRef = 82F43A23555A3254647ADAE5 /* SQLiteVecData */; };
+		6129C17CC7CD1BD468139EF8 /* MLXEmbedders in Frameworks */ = {isa = PBXBuildFile; productRef = ABD000B7AE7299C48D5CC4DD /* MLXEmbedders */; };
+		A271466D26DE9D05E6A5B285 /* HuggingFace in Frameworks */ = {isa = PBXBuildFile; productRef = FF7BC8AD7FB5289836E41C75 /* HuggingFace */; };
+		5CD2470091CF7AE5F73D25A5 /* Tokenizers in Frameworks */ = {isa = PBXBuildFile; productRef = E4D3C02313C636C3B360B52A /* Tokenizers */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -27,6 +31,10 @@
 			isa = PBXFrameworksBuildPhase;
 			files = (
 				AC8977A0303CEC22008426C2 /* SQLiteData in Frameworks */,
+				C4E57E1CA358AD438C0F5731 /* SQLiteVecData in Frameworks */,
+				6129C17CC7CD1BD468139EF8 /* MLXEmbedders in Frameworks */,
+				A271466D26DE9D05E6A5B285 /* HuggingFace in Frameworks */,
+				5CD2470091CF7AE5F73D25A5 /* Tokenizers in Frameworks */,
 			);
 		};
 /* End PBXFrameworksBuildPhase section */
@@ -67,6 +75,10 @@
 			name = six;
 			packageProductDependencies = (
 				AC89779F303CEC22008426C2 /* SQLiteData */,
+				82F43A23555A3254647ADAE5 /* SQLiteVecData */,
+				ABD000B7AE7299C48D5CC4DD /* MLXEmbedders */,
+				FF7BC8AD7FB5289836E41C75 /* HuggingFace */,
+				E4D3C02313C636C3B360B52A /* Tokenizers */,
 			);
 			productName = six;
 			productReference = AC897661303CEC20008426C2 /* six.app */;
@@ -98,6 +110,10 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				AC89779E303CEC22008426C2 /* XCRemoteSwiftPackageReference "sqlite-data" */,
+				1101D959FF8C08C0D4171221 /* XCRemoteSwiftPackageReference "sqlite-vec-data" */,
+				0491713B9D1CDF6B8B095255 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */,
+				9202E564C34651D6970C63AD /* XCRemoteSwiftPackageReference "swift-huggingface" */,
+				F6FD676108E197A94959A73D /* XCRemoteSwiftPackageReference "swift-transformers" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = AC897662303CEC20008426C2 /* Products */;
@@ -348,6 +364,38 @@
 				minimumVersion = 1.11.0;
 			};
 		};
+		1101D959FF8C08C0D4171221 /* XCRemoteSwiftPackageReference "sqlite-vec-data" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/mhayes853/sqlite-vec-data";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.5.0;
+			};
+		};
+		0491713B9D1CDF6B8B095255 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ml-explore/mlx-swift-lm";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.31.3;
+			};
+		};
+		9202E564C34651D6970C63AD /* XCRemoteSwiftPackageReference "swift-huggingface" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/huggingface/swift-huggingface";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.9.0;
+			};
+		};
+		F6FD676108E197A94959A73D /* XCRemoteSwiftPackageReference "swift-transformers" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/huggingface/swift-transformers";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.3.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -355,6 +403,26 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AC89779E303CEC22008426C2 /* XCRemoteSwiftPackageReference "sqlite-data" */;
 			productName = SQLiteData;
+		};
+		82F43A23555A3254647ADAE5 /* SQLiteVecData */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1101D959FF8C08C0D4171221 /* XCRemoteSwiftPackageReference "sqlite-vec-data" */;
+			productName = SQLiteVecData;
+		};
+		ABD000B7AE7299C48D5CC4DD /* MLXEmbedders */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0491713B9D1CDF6B8B095255 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
+			productName = MLXEmbedders;
+		};
+		FF7BC8AD7FB5289836E41C75 /* HuggingFace */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9202E564C34651D6970C63AD /* XCRemoteSwiftPackageReference "swift-huggingface" */;
+			productName = HuggingFace;
+		};
+		E4D3C02313C636C3B360B52A /* Tokenizers */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F6FD676108E197A94959A73D /* XCRemoteSwiftPackageReference "swift-transformers" */;
+			productName = Tokenizers;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

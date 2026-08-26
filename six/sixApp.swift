@@ -38,13 +38,16 @@ struct sixApp: App {
         SettingsStore.shared = settings
         let history = HistoryStore(database: database)
         let browser = BrowserState(snapshot: snapshot?.browser, history: history, settings: settings)
-        let bookmarks = BookmarkStore(database: database)
+        let bookmarks = BookmarkStore(database: database, embedder: MLXEmbedder(modelsDirectory: AppDatabase.url.deletingLastPathComponent().appending(path: "Models", directoryHint: .isDirectory)))
         bookmarks.profile = { [weak browser] id in browser?.profiles.first { $0.id == id } }
         bookmarks.dataStore = { [weak browser] profile in browser?.dataStore(for: profile) }
         bookmarks.refreshDays = { [weak settings] in settings?.bookmarkRefreshDays ?? 7 }
         bookmarks.startRefreshSchedule()
         browser.bookmarks = bookmarks
         bookmarks.resumeIndexing()
+        if ProcessInfo.processInfo.environment["SIX_EMBED_SELFTEST"] != nil, let mlx = bookmarks.embedder as? MLXEmbedder {
+            Task { FileHandle.standardError.write(Data("[six] embed selftest:\n\(await mlx.diagnostics())\n".utf8)) }
+        }
         let highlights = HighlightStore()
         browser.highlights = highlights
         let assistant = AssistantStore(settings: settings)

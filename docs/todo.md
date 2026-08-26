@@ -64,10 +64,12 @@ their chunks and vectors (`six/Data/`, `six/Bookmarks/`, [architecture.md](archi
 - **History pages through the same store.** Bookmarks are the first RAG slice; history is the second: `pages(url,
   fetchedAt, text)` + FTS5 for visited pages, chunks and vectors like bookmarks, retrieval over what was *read*, not
   only what was saved. Decide when a visit is worth its text (dwell time, scroll, explicit "remember this").
-- **`Retrieval` as a protocol.** The brute-force cosine scan lives inside `BookmarkStore.vectorSearch` — one
-  function to swap. Lift it behind a seam before a second index appears ([storage.md](storage.md)).
-- **A real index when the scan isn't enough** (~100k chunks): `sqlite-vec` only with an own SQLite build (the system
-  one has extension loading compiled out), or USearch (C++, Swift bindings, macOS/iOS/Linux). Storage stays SQLite.
+- **`Retrieval` as a protocol.** The sqlite-vec KNN lives inside `BookmarkStore.vectorSearch` — one function to
+  swap. Lift it behind a seam before a second index appears ([storage.md](storage.md)).
+- **A bigger embedder when small isn't enough.** `multilingual-e5-small` ranks well within a language and passably
+  across; `multilingual-e5-base` / `bge-m3` are one line in `MLXEmbedder.configuration` (and a bigger download) if
+  cross-lingual questions keep missing. An ANN index (USearch) only past ~100k chunks — `vec0` is brute force too,
+  just in C.
 - **Prototypes worth an afternoon**, both caches over SQLite, never systems of record:
   [Wax](https://github.com/christopherkarani/Wax) — one `.wax` file with FTS5 + Metal HNSW, hybrid search in one
   query, own embedder and an MCP server; Apple Silicon first, single writer, v0.2. VecturaKit — embed + index +

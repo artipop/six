@@ -31,8 +31,8 @@ load · url · title · navigations · siteData"}}
 
     subgraph Apple["Apple-only adapters"]
         WK["WebKit WebPage / WKWebsiteDataStore"]
-        FM["NLContextualEmbedding embedder
-(Foundation Models has none)"]
+        FM["MLX · multilingual-e5-small
+(Foundation Models has no embedder)"]
         WAX["Wax · .wax cache
 FTS5 + Metal HNSW + own embedder"]
         CK["CloudKit · CKSyncEngine
@@ -44,7 +44,7 @@ private zone · push"]
         WKGTK["WebKitGTK / CEF"]
         LEMB["llama.cpp / ONNX embedder
 same model and version"]
-        VEC["BLOB scan (today) → sqlite-vec / USearch
+        VEC["sqlite-vec vec0 (built) → USearch
 index inside the same SQLite"]
         NOSYNC["No-op sync · or own server /
 CloudKit Web Services"]
@@ -86,21 +86,20 @@ CloudKit Web Services"]
   the Linux build of SQLiteData itself is unverified.
 - **Dotted arrows** are implementations of the seams — Apple on the left, the Linux replacement on the right. The
   core doesn't know which one is plugged in.
-- **SQLite is the only system of record.** `bookmark_vectors` today, Wax / `sqlite-vec` / USearch tomorrow are
-  rebuildable indexes over it; losing one is harmless, and a `.wax` file would never be synced.
+- **SQLite is the only system of record.** The `vec0` tables (sqlite-vec) are rebuildable indexes over it, as Wax or
+  USearch would be; losing one is harmless, and a `.wax` file would never be synced.
 - **`Embedder` returns a model id.** That is what keeps vectors compatible across devices and platforms: a chunk
   embedded by another model is re-embedded, not silently searched.
 - **What exists**: `DB`, `HistoryStore`, `SettingsStore` (`six/Data/`, `six/Browser/History.swift`), and for
-  bookmarks the `Embedder` protocol with `ContextualEmbedder` behind it and `BookmarkStore` as the retrieval layer
-  (`six/Bookmarks/`, [bookmarks.md](bookmarks.md)). `Retrieval` is not a protocol yet — the BLOB scan lives inside
-  `BookmarkStore.vectorSearch`, one function to swap. `SyncEngine` is not there. `BookmarkStore` imports
-  NaturalLanguage and Accelerate only through the embedder and the dot product; the rest is Foundation + GRDB.
+  bookmarks the `Embedder` protocol with `MLXEmbedder` (and `ContextualEmbedder`) behind it and `BookmarkStore` as
+  the retrieval layer over sqlite-vec (`six/Bookmarks/`, [bookmarks.md](bookmarks.md)). `Retrieval` is not a protocol
+  yet — the KNN lives inside `BookmarkStore.vectorSearch`, one function to swap. `SyncEngine` is not there.
 
 ## The seams, and what is still open
 
 | seam | Apple | Linux | note |
 |---|---|---|---|
 | Web | `WebPage` (exists) | WebKitGTK / CEF | the most expensive seam; a Linux front is a different UI anyway, so in practice this is "keep the model out of the views", which is already the case |
-| Embedder | `NLContextualEmbedding` (built; per-script spaces) | llama.cpp, ONNX | model ids + re-embedding is what is built: every vector carries its model, a query only meets its own |
-| Retrieval | BLOB scan in Swift (built) | the same, then `sqlite-vec` / USearch | `sqlite-vec` needs an own SQLite build on macOS (the system one has extension loading compiled out — [bookmarks.md](bookmarks.md#the-index)); on Linux it just loads |
+| Embedder | multilingual-e5-small over MLX (built); `NLContextualEmbedding` as the no-download alternative | the same model over llama.cpp / ONNX | model ids + re-embedding is what is built: every vector carries its model, a query only meets its own |
+| Retrieval | sqlite-vec `vec0` (built) | the same; `sqlite3_auto_extension` works there | on macOS the extension is entered per connection (`sqlite3_vec_init`), since the system SQLite has extension loading compiled out — [bookmarks.md](bookmarks.md#the-index) |
 | Sync | SQLiteData's `SyncEngine` over CloudKit | no-op / own server | without an Apple account a Linux build cannot reach iCloud at all; accept that |

@@ -95,7 +95,9 @@ struct BookmarksView: View {
         let pending = hits.filter { $0.bookmark.indexedAt == nil && $0.bookmark.indexError == nil }.count
         var text = "\(hits.count) bookmarks"
         if pending > 0 { text += " · \(pending) indexing" }
-        return text + " · \(bookmarks.embedder.modelID), on device"
+        text += " · \(bookmarks.embedder.modelID), on device"
+        if !bookmarks.embedderStatus.isEmpty, bookmarks.embedderStatus != "ready" { text += " · \(bookmarks.embedderStatus)" }
+        return text
     }
 
     private func search() async {

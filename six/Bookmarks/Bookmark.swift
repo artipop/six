@@ -48,17 +48,6 @@ nonisolated struct BookmarkChunk: Identifiable, Sendable {
     var text: String
 }
 
-/// A chunk's embedding: float32, unit length, little-endian, `model` naming the space it lives in.
-@Table("bookmark_vectors")
-nonisolated struct BookmarkVector: Identifiable, Sendable {
-    let id: UUID
-    var chunkID: UUID
-    var bookmarkID: UUID
-    var profileID: UUID
-    var model: String
-    var embedding: Data
-}
-
 /// Which bookmarks a search or an assistant sees: the current profile's, or everyone's.
 nonisolated enum BookmarkScope: String, CaseIterable, Identifiable, Sendable {
     case profile

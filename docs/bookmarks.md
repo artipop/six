@@ -54,39 +54,52 @@ removing the profile removes the folder. The database is the system of record; t
 
 ## Embeddings
 
-**Foundation Models has no embedding API** (checked in the macOS 27 SDK, 26A5406c: nothing in the framework's interface
-mentions embeddings). What Apple does ship, on device, is `NLContextualEmbedding` in NaturalLanguage: BERT-style
-sentence models, 512 dimensions, no network, no key — one model per *script* (Latin, Cyrillic, CJK), each multilingual
-within its script. `ContextualEmbedder` (`six/Bookmarks/Embedder.swift`) detects the text's language, picks the
-model, mean-pools the token vectors and normalises the result.
+**Foundation Models has no embedding API** (checked in the macOS 27 SDK, 26A5406c). The embedder is
+`intfloat/multilingual-e5-small` run through **MLX** (`MLXEmbedder`, `six/Bookmarks/MLXEmbedder.swift`, over
+[mlx-swift-lm](https://github.com/ml-explore/mlx-swift-lm)'s `MLXEmbedders`): 118 M parameters, 384 dimensions, about a
+hundred languages in *one* space — «плов» and *pilaf* land next to each other, which is the whole point. The weights
+(~470 MB, fp32 safetensors) come from the Hugging Face Hub on first use into `~/Library/Application Support/six/Models`
+and never leave the Mac afterwards; the download shows in the bookmarks window's footer and in the `list_bookmarks`
+status. Three things E5 needs, all in `MLXEmbedder`: a role prefix on every text (`query: ` for a question,
+`passage: ` for a chunk — hence `EmbeddingRole` on the `Embedder` protocol), **mean pooling** (set explicitly: the
+snapshot's `1_Pooling/config.json` doesn't reach the factory, and the CLS pooler it falls back to puts every sentence
+within a few percent of every other), and L2 normalisation. Texts are cut at 510 tokens, batched by 16.
 
-The consequence: **the spaces are not aligned across scripts**. A Russian query finds Russian passages and an English
-one English passages; «плов» does not find the Pilaf article. The model id is stored with every vector and a query
-only searches vectors of its own model, so nothing is silently compared across spaces. The `Embedder` protocol
-(`modelID`, `dimension`, `embed(_:)`) is the seam: a cross-lingual remote embedder (Voyage, OpenAI) is a second
-conformer, and `BookmarkStore.resumeIndexing()` re-embeds everything whose `embeddingModel` differs from the current
-one. Multimodal (search by image) is not there — there is no on-device text–image model in the SDK; the `image` in the
-front matter is what a remote multimodal embedder would pick up later.
+The hub client and the tokenizer are adapted by hand (`HubDownloader`, `TransformersTokenizerLoader`) rather than
+through mlx-swift-lm's `MLXHuggingFace` macros — those pull in `MLXFoundationModels`, a third-party
+`LanguageModel`, which is exactly what the SDK override is protecting us from ([build.md](build.md)).
 
-Assets for a script are downloaded by the system on first use (`requestAssets`); until then, or on a Mac without
-Apple Intelligence assets, the bookmark shows *not indexed* with the reason and text search still works.
+`ContextualEmbedder` — Apple's `NLContextualEmbedding`, 512 dimensions, no download — stays as the zero-dependency
+alternative, but its models are per *script* (Latin, Cyrillic, CJK) in unaligned spaces: a Russian query never finds
+an English page. That is what it was replaced for. Both are `Embedder` conformers; every vector carries its model id
+and every bookmark the *index signature* (`<modelID>@<indexVersion>`), so switching embedders re-embeds everything.
+
+Small has a price: within a language the ranking is right, across languages it is right for topics and shaky for
+details (an English question about a Russian paragraph's sugar can lose to an unrelated English page). The next
+model up is one line — `MLXEmbedder.configuration` to `multilingual-e5-base` or `bge-m3` — at 2–4× the download.
+
+`SIX_EMBED_SELFTEST=1` on launch prints the tokenizer's view of a few sentences, the pooling strategy and pairwise
+cosines to stderr — the way the CLS-pooling bug was found.
 
 ## The index
 
-Vectors sit in `bookmark_vectors` as float32 BLOBs, one row per passage, keyed by profile and model. Search
-(`BookmarkStore.search`) is hybrid: substring matches over title, address and excerpt, merged with a vector pass —
-every vector of the query's model (and profile, when scoped) is read and scored by dot product (`vDSP_dotpr`); the best
-passage of each bookmark is its hit and its snippet. That is a brute-force scan, and it is fine into the tens of
-thousands of passages (a passage is 2 KB; 10 000 of them are 20 MB and a few milliseconds).
+Vectors live in **sqlite-vec** `vec0` tables inside `six.sqlite`, one per vector dimension — `bookmark_vec_384` —
+with `chunk_id TEXT PRIMARY KEY`, `profile_id` as a **partition key** (a per-profile search is a filtered KNN, not a
+post-filter), `model` as metadata and `distance_metric=cosine`. `BookmarkStore` creates the table on first use for
+whatever dimension the embedder has. The search is hybrid: the query vector's KNN (`WHERE embedding MATCH ? AND k = ?
+AND model = ? [AND profile_id = ?]`), the best passage of each bookmark as its hit and snippet, merged with a
+substring pass over title, address and excerpt — every word of three letters or more has to be there, so a stray «в»
+or *in* doesn't count — that nudges a bookmark the two agree on. The score shown is `1 − cosine distance`; E5 keeps
+everything above ~0.7, so the *ranking* is the signal, not the number.
 
-**Why not sqlite-vec.** It was the plan, and it was tried: the extension compiles into the app, but the SQLite that
-ships with macOS is built with `SQLITE_OMIT_LOAD_EXTENSION`, and there `sqlite3_auto_extension` answers `SQLITE_MISUSE`
-— no `vec0` module, on any connection. Getting it means compiling SQLite ourselves (the amalgamation, with the flags
-GRDB expects — `COLUMN_METADATA`, `FTS5`, `SNAPSHOT`, …) into the app so GRDB binds to it instead of `/usr/lib`, which
-is the route [swift-sqlcipher](https://github.com/skiptools/swift-sqlcipher) takes. Worth it once the scan is too
-slow, together with `vec0`'s partition keys (a per-profile KNN instead of a filter); the schema change is one table.
-[jkrukowski/SQLiteVec](https://github.com/jkrukowski/SQLiteVec) bundles its own SQLite for the same reason and would
-be a second database file, not the one under history.
+**How sqlite-vec got in.** The SQLite that ships with macOS is built with `SQLITE_OMIT_LOAD_EXTENSION`:
+`sqlite3_auto_extension` answers `SQLITE_MISUSE` and there is no `load_extension`. What does work is calling the
+extension's entry point on each connection by hand — `sqlite3_vec_init(db, …)` — which is what
+[sqlite-vec-data](https://github.com/mhayes853/sqlite-vec-data) (a SQLiteData/StructuredQueries companion that
+vendors `sqlite-vec.c`) does in `Database.loadSQLiteVecExtension()`; `AppDatabase` runs it from GRDB's
+`prepareDatabase`. The package's typed `Vec0` tables aren't used — the table name depends on the embedder's
+dimension, so the KNN is plain SQL through GRDB — but the loader and the vendored C are its. The earlier float32-BLOB
+table scanned with `vDSP` is gone (migration v4 drops it; the index is rebuilt from the chunks).
 
 ## Keeping them fresh
 

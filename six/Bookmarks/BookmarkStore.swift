@@ -1,6 +1,6 @@
-import Accelerate
 import CryptoKit
 import Foundation
+import GRDB
 import NaturalLanguage
 import Observation
 import SQLiteData
@@ -19,7 +19,7 @@ final class BookmarkStore {
     /// Beyond this many passages a page is indexed only in part — and says so in `indexError`.
     static let maxChunks = 120
     /// Bump when chunking or pooling changes: every bookmark is then re-embedded on the next launch.
-    static let indexVersion = 1
+    static let indexVersion = 2
     /// A refresh reloads the page off screen and waits this long at most for it.
     static let refreshTimeout: TimeInterval = 30
     /// How often the due bookmarks are looked for while the app runs.
@@ -47,9 +47,33 @@ final class BookmarkStore {
     /// What the vectors must have been made with to count as indexed.
     var indexSignature: String { "\(embedder.modelID)@\(Self.indexVersion)" }
 
+    /// What the model is doing — downloading, ready, failed — for the bookmarks window.
+    private(set) var embedderStatus = ""
+    /// The `vec0` table for this embedder's dimension: `bookmark_vec_384`. One table per dimension,
+    /// created on first use; the model column keeps different embedders apart inside it.
+    @ObservationIgnored let vectorTable: String
+
     init(database: any DatabaseWriter, embedder: any Embedder = ContextualEmbedder()) {
         self.database = database
         self.embedder = embedder
+        vectorTable = "bookmark_vec_\(embedder.dimension)"
+        do {
+            try database.write { db in
+                try db.execute(sql: """
+                    CREATE VIRTUAL TABLE IF NOT EXISTS "\(vectorTable)" USING vec0(
+                      chunk_id TEXT PRIMARY KEY,
+                      profile_id TEXT PARTITION KEY,
+                      model TEXT,
+                      embedding FLOAT[\(embedder.dimension)] distance_metric=cosine
+                    )
+                    """)
+            }
+        } catch {
+            FileHandle.standardError.write(Data("[six] vector table failed: \(error)\n".utf8))
+        }
+        if let mlx = embedder as? MLXEmbedder {
+            Task { await mlx.setStatusHandler { [weak self] status in Task { @MainActor in self?.embedderStatus = status } } }
+        }
     }
 
     /// Finishes what an earlier run left unindexed (and re-embeds after a change of embedder).
@@ -107,9 +131,10 @@ final class BookmarkStore {
             return bookmark
         }
         try Self.write(readable, bookmark: bookmark, profile: profile, to: folder(for: profile).appending(path: fileName))
+        let table = vectorTable
         try await database.write { db in
             try Self.upsert(bookmark, in: db)
-            try Self.dropIndex(of: id, in: db)
+            try Self.dropIndex(of: id, from: table, in: db)
             let chunks = Self.chunks(title: title, excerpt: readable.excerpt, text: readable.text)
             for (ord, text) in chunks.enumerated() {
                 try BookmarkChunk.insert { BookmarkChunk(id: UUID(), bookmarkID: id, ord: ord, text: text) }.execute(db)
@@ -212,8 +237,9 @@ final class BookmarkStore {
     func remove(_ id: Bookmark.ID) {
         guard let bookmark = read({ db in try Bookmark.where { $0.id.eq(id) }.fetchAll(db) }).first else { return }
         if let url = fileURL(of: bookmark) { try? FileManager.default.removeItem(at: url) }
+        let table = vectorTable
         write { db in
-            try Self.dropIndex(of: id, in: db)
+            try Self.dropIndex(of: id, from: table, in: db)
             try Bookmark.where { $0.id.eq(id) }.delete().execute(db)
         }
     }
@@ -221,8 +247,9 @@ final class BookmarkStore {
     /// A profile is going away, and its bookmarks and folder with it.
     func removeAll(in profileID: Profile.ID) {
         let ids = read { db in try Bookmark.where { $0.profileID.eq(profileID) }.select(\.id).fetchAll(db) }
+        let table = vectorTable
         write { db in
-            for id in ids { try Self.dropIndex(of: id, in: db) }
+            for id in ids { try Self.dropIndex(of: id, from: table, in: db) }
             try Bookmark.where { $0.profileID.eq(profileID) }.delete().execute(db)
         }
         if let profile = profile(profileID) { try? FileManager.default.removeItem(at: folder(for: profile)) }
@@ -283,19 +310,21 @@ final class BookmarkStore {
         let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return entries(in: scope, profileID: profileID).prefix(limit).map { BookmarkHit(bookmark: $0, score: 0, snippet: $0.excerpt) } }
         var hits: [Bookmark.ID: BookmarkHit] = [:]
-        // Text first: cheap, and the fallback when there is no model.
-        let terms = query.split(whereSeparator: \.isWhitespace).map { $0.lowercased() }
-        for bookmark in entries(in: scope, profileID: profileID) {
-            let haystack = (bookmark.title + " " + bookmark.url.absoluteString + " " + bookmark.excerpt).lowercased()
-            let matched = terms.filter { haystack.contains($0) }.count
-            guard matched > 0 else { continue }
-            let score = 0.55 + 0.3 * Double(matched) / Double(terms.count)
-            hits[bookmark.id] = BookmarkHit(bookmark: bookmark, score: score, snippet: bookmark.excerpt)
+        // Text first: cheap, and the fallback when there is no model. Every word of three letters or
+        // more has to be there — a stray «в» or "in" must not count as a match.
+        let terms = query.split(whereSeparator: \.isWhitespace).map { $0.lowercased() }.filter { $0.count >= 3 }
+        if !terms.isEmpty {
+            for bookmark in entries(in: scope, profileID: profileID) {
+                let haystack = (bookmark.title + " " + bookmark.url.absoluteString + " " + bookmark.excerpt).lowercased()
+                guard terms.allSatisfy({ haystack.contains($0) }) else { continue }
+                hits[bookmark.id] = BookmarkHit(bookmark: bookmark, score: 0.7, snippet: bookmark.excerpt)
+            }
         }
         if let vectorHits = try? await vectorSearch(query, in: scope, profileID: profileID, k: limit * 3) {
             for hit in vectorHits {
                 if let existing = hits[hit.bookmark.id] {
-                    hits[hit.bookmark.id] = BookmarkHit(bookmark: hit.bookmark, score: min(1, max(existing.score, hit.score) + 0.1), snippet: hit.snippet)
+                    // Both agree: a small nudge over the vector score, so an exact title still wins a tie.
+                    hits[hit.bookmark.id] = BookmarkHit(bookmark: hit.bookmark, score: min(1, max(existing.score, hit.score) + 0.03), snippet: hit.snippet)
                 } else {
                     hits[hit.bookmark.id] = hit
                 }
@@ -304,52 +333,38 @@ final class BookmarkStore {
         return hits.values.sorted { $0.score > $1.score }.prefix(limit).map { $0 }
     }
 
-    /// A brute-force pass: every vector of the query's model (and profile, when scoped) is read and
-    /// scored by dot product — the vectors are unit length, so that is the cosine. Fine into the
-    /// tens of thousands of passages; an ANN index is the step after that.
+    /// A KNN query against the `vec0` table: cosine distance, the query's model only, and the
+    /// profile as the partition when scoped — sqlite-vec then never looks at other profiles' rows.
     private func vectorSearch(_ query: String, in scope: BookmarkScope, profileID: Profile.ID, k: Int) async throws -> [BookmarkHit] {
-        guard let embedding = try await embedder.embed([query]).first else { return [] }
+        guard let embedding = try await embedder.embed([query], as: .query).first else { return [] }
+        let table = vectorTable
+        let blob = Self.blob(embedding.vector)
         let model = embedding.model
-        let vectors = try await database.read { db in
-            switch scope {
-            case .profile: try BookmarkVector.where { $0.model.eq(model) && $0.profileID.eq(profileID) }.fetchAll(db)
-            case .all: try BookmarkVector.where { $0.model.eq(model) }.fetchAll(db)
+        let rows: [(chunkID: UUID, distance: Double)] = try await database.read { db in
+            var sql = "SELECT chunk_id, distance FROM \"\(table)\" WHERE embedding MATCH ? AND k = ? AND model = ?"
+            var arguments: StatementArguments = [blob, k * 4, model]
+            if scope == .profile {
+                sql += " AND profile_id = ?"
+                arguments += [profileID.uuidString]
             }
+            return try Row.fetchAll(db, sql: sql + " ORDER BY distance", arguments: arguments)
+                .compactMap { row in UUID(uuidString: row["chunk_id"]).map { ($0, row["distance"] as Double) } }
         }
-        guard !vectors.isEmpty else { return [] }
-        let query = embedding.vector
-        var scored: [(chunkID: UUID, bookmarkID: UUID, similarity: Double)] = []
-        scored.reserveCapacity(vectors.count)
-        for vector in vectors {
-            guard let similarity = Self.dot(query, vector.embedding) else { continue }
-            scored.append((vector.chunkID, vector.bookmarkID, similarity))
-        }
-        scored.sort { $0.similarity > $1.similarity }
-        // The best passage of each bookmark, up to k bookmarks.
-        var best: [Bookmark.ID: (chunkID: UUID, similarity: Double)] = [:]
-        for entry in scored where best[entry.bookmarkID] == nil {
-            best[entry.bookmarkID] = (entry.chunkID, entry.similarity)
+        guard !rows.isEmpty else { return [] }
+        let chunks = try await database.read { db in try BookmarkChunk.where { $0.id.in(rows.map(\.chunkID)) }.fetchAll(db) }
+        let byID = Dictionary(chunks.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        // The best passage of each bookmark, up to k bookmarks; rows come back nearest first.
+        var best: [Bookmark.ID: (chunk: BookmarkChunk, distance: Double)] = [:]
+        for row in rows {
+            guard let chunk = byID[row.chunkID], best[chunk.bookmarkID] == nil else { continue }
+            best[chunk.bookmarkID] = (chunk, row.distance)
             if best.count == k { break }
         }
-        let chunkIDs = best.values.map(\.chunkID)
-        let chunks = try await database.read { db in try BookmarkChunk.where { $0.id.in(chunkIDs) }.fetchAll(db) }
-        let snippets = Dictionary(chunks.map { ($0.id, $0.text) }, uniquingKeysWith: { first, _ in first })
         let bookmarks = read { db in try Bookmark.where { $0.id.in(Array(best.keys)) }.fetchAll(db) }
         return bookmarks.compactMap { bookmark in
             guard let match = best[bookmark.id] else { return nil }
-            // Cosine similarity −1…1 → 0…1.
-            return BookmarkHit(bookmark: bookmark, score: max(0, min(1, (match.similarity + 1) / 2)), snippet: String((snippets[match.chunkID] ?? "").prefix(300)))
-        }
-    }
-
-    /// Dot product of a query and a stored blob; nil when the blob isn't a vector of the same size.
-    nonisolated private static func dot(_ query: [Float], _ blob: Data) -> Double? {
-        guard blob.count == query.count * MemoryLayout<Float>.size else { return nil }
-        return blob.withUnsafeBytes { raw -> Double in
-            let stored = raw.bindMemory(to: Float.self)
-            var result: Float = 0
-            vDSP_dotpr(query, 1, stored.baseAddress!, 1, &result, vDSP_Length(query.count))
-            return Double(result)
+            // Cosine similarity: 1 − distance. E5 keeps everything above ~0.7; the ranking is what counts.
+            return BookmarkHit(bookmark: bookmark, score: max(0, min(1, 1 - match.distance)), snippet: String(match.chunk.text.prefix(300)))
         }
     }
 
@@ -380,13 +395,15 @@ final class BookmarkStore {
         let profileID = bookmark.profileID
         let now = Date()
         do {
-            let embeddings = try await embedder.embed(chunks.map(\.text))
+            let embeddings = try await embedder.embed(chunks.map(\.text), as: .passage)
+            let table = vectorTable
             try await database.write { db in
-                try BookmarkVector.where { $0.bookmarkID.eq(id) }.delete().execute(db)
+                try Self.dropVectors(of: chunks.map(\.id), from: table, in: db)
                 for (chunk, embedding) in zip(chunks, embeddings) {
-                    try BookmarkVector.insert {
-                        BookmarkVector(id: UUID(), chunkID: chunk.id, bookmarkID: id, profileID: profileID, model: embedding.model, embedding: Self.blob(embedding.vector))
-                    }.execute(db)
+                    try db.execute(
+                        sql: "INSERT INTO \"\(table)\"(chunk_id, profile_id, model, embedding) VALUES (?, ?, ?, ?)",
+                        arguments: [chunk.id.uuidString, profileID.uuidString, embedding.model, Self.blob(embedding.vector)]
+                    )
                 }
                 let note: String? = chunks.count >= Self.maxChunks ? "Indexed the first \(Self.maxChunks) passages only" : nil
                 try Bookmark.where { $0.id.eq(id) }.update { row in
@@ -412,9 +429,16 @@ final class BookmarkStore {
     }
 
     /// Everything the index holds for a bookmark: its chunks and their vectors.
-    nonisolated private static func dropIndex(of id: Bookmark.ID, in db: Database) throws {
-        try BookmarkVector.where { $0.bookmarkID.eq(id) }.delete().execute(db)
+    nonisolated private static func dropIndex(of id: Bookmark.ID, from table: String, in db: Database) throws {
+        let chunkIDs = try BookmarkChunk.where { $0.bookmarkID.eq(id) }.select(\.id).fetchAll(db)
+        try dropVectors(of: chunkIDs, from: table, in: db)
         try BookmarkChunk.where { $0.bookmarkID.eq(id) }.delete().execute(db)
+    }
+
+    nonisolated private static func dropVectors(of chunkIDs: [BookmarkChunk.ID], from table: String, in db: Database) throws {
+        for chunkID in chunkIDs {
+            try db.execute(sql: "DELETE FROM \"\(table)\" WHERE chunk_id = ?", arguments: [chunkID.uuidString])
+        }
     }
 
     /// Title and excerpt first, then the text in paragraph-sized passages.

@@ -1,5 +1,7 @@
 import Foundation
+import GRDB
 import SQLiteData
+import SQLiteVecData
 
 /// The one SQLite file: `~/Library/Application Support/six/six.sqlite`. Opened once at launch,
 /// migrated forward only. Tables follow SQLiteData's CloudKit rules from day one (see
@@ -13,7 +15,11 @@ nonisolated enum AppDatabase {
 
     static func open() throws -> any DatabaseWriter {
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-        let database = try defaultDatabase(path: url.path)
+        // sqlite-vec goes into every connection by hand (`sqlite3_vec_init` on the handle): the Apple
+        // SQLite has extension loading compiled out, so `sqlite3_auto_extension` is refused there.
+        var configuration = GRDB.Configuration()
+        configuration.prepareDatabase { db in try db.loadSQLiteVecExtension() }
+        let database = try defaultDatabase(path: url.path, configuration: configuration)
         var migrator = DatabaseMigrator()
         migrator.registerMigration("v1 visits, settings") { db in
             try #sql("""
@@ -96,6 +102,13 @@ nonisolated enum AppDatabase {
                 """).execute(db)
             try #sql("""
                 ALTER TABLE "bookmarks" ADD COLUMN "refreshError" TEXT
+                """).execute(db)
+        }
+        migrator.registerMigration("v4 vectors in vec0") { db in
+            // The float32-BLOB table scanned in Swift gave way to sqlite-vec's `vec0` tables, which
+            // `BookmarkStore` creates per vector dimension; the index is rebuilt from the chunks.
+            try #sql("""
+                DROP TABLE IF EXISTS "bookmark_vectors"
                 """).execute(db)
         }
         try migrator.migrate(database)

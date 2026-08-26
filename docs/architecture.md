@@ -7,7 +7,7 @@ The entry point is `SixMain`, not the `App`: with `--mcp` the process never touc
 ```
 six/Niri        NiriLayout (workspaces, columns, geometry, focus/move ops), NiriScrollMonitor (scroll gestures)
 six/Browser     Profile, BrowserTab (WebPage), BrowserState, History, SearchEngine, SearchSuggestions, WebSearch
-six/Bookmarks   Bookmark (tables), ReadablePage (page → Markdown), Embedder (NLContextualEmbedding), BookmarkStore (files, index, search)
+six/Bookmarks   Bookmark (tables), ReadablePage (page → Markdown), Embedder + MLXEmbedder (multilingual-e5 over MLX), BookmarkStore (files, vec0 index, search)
 six/Views       ContentView (top bar), NiriStripView (strip + overview), WindowChrome, StartPage, AssistantBar, AgentPanel, HistoryView, BookmarksView
 six/Assistant   ModelChoice/AssistantSettings, AssistantStore (streaming), FoundationModelsCompatibility
 six/ACP         ACPJSON, JSONRPCConnection, ACPTypes, ACPAgent (process), ACPClient (actor), AgentSessionStore
@@ -91,7 +91,7 @@ removes its history.
 
 Bookmarks are three more tables next to history — `bookmarks`, `bookmark_chunks`, `bookmark_vectors` — plus a
 Markdown file per page in `Profiles/<name>/Bookmarks`; [bookmarks.md](bookmarks.md) has the pipeline, the embedder and the
-search, and why the vectors are BLOBs scanned in Swift rather than `sqlite-vec`.
+search, and how sqlite-vec is loaded into the Apple SQLite.
 
 ## Views
 

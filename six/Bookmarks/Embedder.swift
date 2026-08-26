@@ -8,13 +8,20 @@ nonisolated struct Embedding: Sendable {
     var model: String
 }
 
-/// The embedding seam (docs/storage.md): text in, vectors out. `ContextualEmbedder` is the local
-/// implementation; a remote one (Voyage, OpenAI) would be another conformer with the same shape.
+/// What a text is for. Asymmetric models (E5) embed a question and a passage differently.
+nonisolated enum EmbeddingRole: Sendable {
+    case query
+    case passage
+}
+
+/// The embedding seam (docs/storage.md): text in, vectors out. `MLXEmbedder` is the one in use;
+/// `ContextualEmbedder` is Apple's on-device alternative; a remote one (Voyage, OpenAI) would be
+/// another conformer with the same shape.
 nonisolated protocol Embedder: Sendable {
     /// Family of models behind this embedder, stored on the bookmark; a change means re-indexing.
     var modelID: String { get }
     var dimension: Int { get }
-    func embed(_ texts: [String]) async throws -> [Embedding]
+    func embed(_ texts: [String], as role: EmbeddingRole) async throws -> [Embedding]
 }
 
 nonisolated enum EmbedderError: LocalizedError {
@@ -36,14 +43,15 @@ nonisolated enum EmbedderError: LocalizedError {
 /// passages; the spaces are not aligned across scripts. That is the price of local; a cross-lingual
 /// remote embedder is the upgrade path, behind the same protocol.
 ///
-/// Foundation Models has no embedding API in this SDK (macOS 27, 26A5406c); this is Apple's.
+/// Foundation Models has no embedding API in this SDK (macOS 27, 26A5406c); this is Apple's. Not the
+/// default any more — `MLXEmbedder` is — but kept as the zero-download fallback.
 actor ContextualEmbedder: Embedder {
     nonisolated let modelID = "NLContextualEmbedding"
     nonisolated let dimension = 512
 
     private var models: [String: NLContextualEmbedding] = [:]
 
-    func embed(_ texts: [String]) async throws -> [Embedding] {
+    func embed(_ texts: [String], as role: EmbeddingRole) async throws -> [Embedding] {
         var result: [Embedding] = []
         result.reserveCapacity(texts.count)
         for text in texts {
