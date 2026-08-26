@@ -59,10 +59,30 @@ struct WindowChrome: View {
         .onHover { hovering = $0 }
         .overlay(alignment: .bottom) {
             if tab.page.isLoading {
-                ProgressView(value: tab.page.estimatedProgress)
-                    .progressViewStyle(.linear)
-                    .frame(height: 2)
+                LoadingLine(progress: tab.page.estimatedProgress, accent: accent)
             }
+        }
+    }
+
+    private var accent: Color {
+        browser.profiles.first { $0.id == tab.profileID }?.color ?? .accentColor
+    }
+
+    /// The loading line, drawn by hand: a linear `ProgressView` brings a track and a thickness of its
+    /// own, and a browser wants a hairline the page seems to push along, not a control.
+    private struct LoadingLine: View {
+        let progress: Double
+        let accent: Color
+
+        var body: some View {
+            GeometryReader { proxy in
+                Capsule()
+                    .fill(accent)
+                    .frame(width: max(3, proxy.size.width * min(max(progress, 0.03), 1)))
+                    .animation(.easeOut(duration: 0.25), value: progress)
+            }
+            .frame(height: 1.5)
+            .transition(.opacity)
         }
     }
 
