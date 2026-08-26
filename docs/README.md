@@ -13,3 +13,5 @@ reference.
 | [agents.md](agents.md) | the ACP client and the agent panel |
 | [mcp.md](mcp.md) | `six --mcp`: the browser as an MCP server, and its tools |
 | [build.md](build.md) | toolchain, SDK override, sandbox |
+| [deep-research.md](deep-research.md) | plan: documents as windows, and an agent that fills a workspace |
+| [todo.md](todo.md) | what is planned and not built: documents + Save As, fullscreen, picture-in-picture |
