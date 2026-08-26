@@ -250,6 +250,11 @@ final class BrowserState {
         animateLayout { layout.cycleColumnWidth() }
         settings.columnWidthIndex = layout.preferredWidthIndex
     }
+
+    func setColumnWidth(_ index: Int) {
+        animateLayout { layout.setPreferredWidth(index) }
+        settings.columnWidthIndex = layout.preferredWidthIndex
+    }
     func toggleCompactWidth() { animateLayout { layout.toggleCompactWidth() } }
     func focusWorkspace(_ delta: Int) { animateLayout { layout.focusWorkspace(delta) } }
     func focusWorkspace(at index: Int) { animateLayout { layout.focusWorkspace(at: index) } }

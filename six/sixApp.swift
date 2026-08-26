@@ -135,12 +135,30 @@ private struct LayoutCommands: Commands {
 
             Button("Switch Preset Column Width") { browser.cycleColumnWidth() }
                 .keyboardShortcut("r", modifiers: .option)
-            Button("Compact Width") { browser.toggleCompactWidth() }
-                .keyboardShortcut("f", modifiers: .option)
-            Button(browser.layout.fill == .window ? "Leave Full Window" : "Full Window") { browser.toggleFullWindow() }
-                .keyboardShortcut("w", modifiers: .option)
-            Button(browser.layout.fill == .screen ? "Leave Fullscreen" : "Fullscreen") { browser.toggleFullscreen() }
-                .keyboardShortcut("f", modifiers: [.option, .shift])
+            Picker("Column Width", selection: Binding(
+                get: { browser.layout.preferredWidthIndex },
+                set: { browser.setColumnWidth($0) }
+            )) {
+                ForEach(Array(NiriLayout.widthPresets.enumerated()), id: \.offset) { index, fraction in
+                    Text(NiriLayout.widthPresetTitles[index]).tag(index)
+                }
+            }
+            .pickerStyle(.inline)
+            Toggle("Compact Width", isOn: Binding(
+                get: { browser.layout.focusedColumnIsFullWidth },
+                set: { _ in browser.toggleCompactWidth() }
+            ))
+            .keyboardShortcut("f", modifiers: .option)
+            Toggle("Full Window", isOn: Binding(
+                get: { browser.layout.fill == .window },
+                set: { _ in browser.toggleFullWindow() }
+            ))
+            .keyboardShortcut("w", modifiers: .option)
+            Toggle("Fullscreen", isOn: Binding(
+                get: { browser.layout.fill == .screen },
+                set: { _ in browser.toggleFullscreen() }
+            ))
+            .keyboardShortcut("f", modifiers: [.option, .shift])
             Button("Toggle Overview") { browser.toggleOverview() }
                 .keyboardShortcut("o", modifiers: .option)
 

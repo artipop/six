@@ -56,6 +56,8 @@ final class NiriLayout {
     /// Column widths, as a fraction of the working area — same idea as niri's `preset-column-widths`.
     /// The default is "almost full": a normal browser window, with the next one peeking in at the edge.
     static let widthPresets: [CGFloat] = [0.5, 2.0 / 3.0, 0.88, 1.0]
+    /// Menu names for the presets, in the same order.
+    static let widthPresetTitles = ["Half", "Two Thirds", "Peek", "Full"]
     nonisolated static let defaultWidthIndex = 2
     /// Gaps are a fraction of the viewport, not a pixel count: the layout should look the same on a
     /// laptop and on a 5K panel. The floor only guards tiny windows. (Control metrics — title bar
@@ -460,6 +462,11 @@ final class NiriLayout {
     /// niri's "switch preset column width" — for every window in every strip, not just the focused one.
     func cycleColumnWidth() {
         setPreferredWidth((preferredWidthIndex + 1) % Self.widthPresets.count)
+    }
+
+    /// Is the focused window at the widest preset (compact width)?
+    var focusedColumnIsFullWidth: Bool {
+        focusedWorkspace?.focusedColumn?.widthIndex == Self.widthPresets.count - 1
     }
 
     /// Applies a preset to every window everywhere (a restored setting, or ⌥R).
