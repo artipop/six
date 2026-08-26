@@ -19,6 +19,12 @@ final class BrowserState {
     let history: HistoryStore
     /// Saved pages, per profile; wired at launch. Removing a profile removes its bookmarks.
     @ObservationIgnored var bookmarks: BookmarkStore?
+    /// The Markdown files behind document windows.
+    @ObservationIgnored let documents = DocumentStore()
+    /// Highlights per URL; wired at launch.
+    @ObservationIgnored var highlights: HighlightStore?
+    /// Deep-research runs (see `ResearchRun`).
+    var research: [ResearchRun] = []
     @ObservationIgnored private let settings: SettingsStore
 
     @ObservationIgnored private var dataStores: [UUID: WKWebsiteDataStore] = [:]
@@ -36,6 +42,8 @@ final class BrowserState {
         selectedProfileID = selected
         layout.activeProfileID = selected
         if let snapshot { restore(snapshot) }
+        research = (snapshot?.research ?? []).filter { run in tabs.contains { $0.id == run.documentTabID } }
+        for i in research.indices { research[i].isRunning = false } // nothing survives a relaunch mid-turn
         layout.setPreferredWidth(settings.columnWidthIndex) // one width everywhere, whatever the file says
         if layout.hasColumns { syncSelection() } else { newTab() }
     }
@@ -46,11 +54,24 @@ final class BrowserState {
         BrowserSnapshot(
             profiles: profiles,
             selectedProfileID: selectedProfileID,
-            tabs: tabs.map { TabSnapshot(id: $0.id, profileID: $0.profileID, url: $0.showsStartPage ? nil : $0.currentURL, title: $0.title) },
+            tabs: tabs.map { tab in
+                var entry = TabSnapshot(id: tab.id, profileID: tab.profileID, url: tab.showsStartPage ? nil : tab.currentURL, title: tab.title)
+                if let document = tab.document {
+                    entry.document = DocumentSnapshot(id: document.id, title: document.title, modifiedAt: document.modifiedAt,
+                                                      fileURL: document.fileURL, showsPreview: document.showsPreview)
+                }
+                return entry
+            },
             strips: layout.allStrips
                 .map { StripSnapshot(profileID: $0.key, strip: $0.value) }
-                .sorted { $0.profileID.uuidString < $1.profileID.uuidString }
+                .sorted { $0.profileID.uuidString < $1.profileID.uuidString },
+            research: research
         )
+    }
+
+    /// Document text is autosaved on its own; this is for the way out.
+    func flushDocuments() {
+        documents.flush(tabs.compactMap(\.document))
     }
 
     /// Rebuilds tabs and strips, dropping what doesn't line up: a column without a tab, a tab no column
@@ -73,7 +94,13 @@ final class BrowserState {
         }
         for tab in snapshot.tabs where placed.contains(tab.id) {
             guard let profile = profiles.first(where: { $0.id == tab.profileID }) else { continue }
-            tabs.append(makeTab(id: tab.id, profile: profile, restoring: tab.url, title: tab.title))
+            if let saved = tab.document {
+                let text = documents.load(id: saved.id) ?? "# \(saved.title)\n"
+                let document = TextDocument(id: saved.id, text: text, modifiedAt: saved.modifiedAt, fileURL: saved.fileURL, showsPreview: saved.showsPreview)
+                tabs.append(makeDocumentTab(id: tab.id, profile: profile, document: document))
+            } else {
+                tabs.append(makeTab(id: tab.id, profile: profile, restoring: tab.url, title: tab.title))
+            }
         }
         layout.restore(strips: strips)
     }
@@ -196,10 +223,87 @@ final class BrowserState {
             guard let self, let url = tab.page.url else { return }
             switch outcome {
             case .committed: history.record(url, title: tab.page.title, in: tab.profileID)
-            case .finished: history.updateTitle(tab.page.title, for: url, in: tab.profileID)
+            case .finished:
+                history.updateTitle(tab.page.title, for: url, in: tab.profileID)
+                highlights?.apply(to: tab)
             }
         }
         return tab
+    }
+
+    // MARK: Documents
+
+    /// Opens a document window — a column of text next to the pages. Same placement rules as `newTab`.
+    @discardableResult
+    func newDocument(text: String = "", in profileID: Profile.ID? = nil, workspace: Int? = nil, activate: Bool = true) -> BrowserTab {
+        let profile = profiles.first { $0.id == profileID } ?? selectedProfile
+        let document = TextDocument(text: text)
+        let tab = makeDocumentTab(profile: profile, document: document)
+        documents.save(document)
+        tabs.append(tab)
+        if activate, selectedProfileID != profile.id {
+            selectedProfileID = profile.id
+            layout.activeProfileID = profile.id
+        }
+        withAnimation(NiriLayout.switchAnimation) {
+            layout.insertColumn(tabID: tab.id, in: profile.id, workspace: workspace, focus: activate)
+        }
+        if activate { syncSelection() }
+        return tab
+    }
+
+    private func makeDocumentTab(id: UUID = UUID(), profile: Profile, document: TextDocument) -> BrowserTab {
+        let tab = BrowserTab(id: id, profileID: profile.id, document: document)
+        documents.watch(document)
+        tab.onDocumentLink = { [weak self] tab, url in self?.open(url, from: tab) }
+        return tab
+    }
+
+    /// A link from a document: the window that already shows the page (fragment and all) if there is
+    /// one in the profile, otherwise a new window next to the document. A `#:~:text=` fragment is
+    /// what makes the page scroll to the cited passage.
+    func open(_ url: URL, from tab: BrowserTab) {
+        let target = url.absoluteString.split(separator: "#", maxSplits: 1).first.map(String.init) ?? url.absoluteString
+        if let existing = tabs(in: tab.profileID).first(where: { candidate in
+            guard !candidate.isDocument, let current = candidate.currentURL else { return false }
+            return current.absoluteString.split(separator: "#", maxSplits: 1).first.map(String.init) == target
+        }) {
+            selectTab(existing.id)
+            existing.resumeIfNeeded()
+            if url.fragment() != nil { existing.load(url) }
+            highlights?.scroll(existing, toHighlightMatching: url)
+            return
+        }
+        newTab(url: url, in: tab.profileID)
+    }
+
+    // MARK: Research
+
+    func run(forWorkspace workspaceID: UUID) -> ResearchRun? {
+        research.first { $0.workspaceID == workspaceID }
+    }
+
+    func run(forDocument tabID: UUID) -> ResearchRun? {
+        research.first { $0.documentTabID == tabID }
+    }
+
+    /// The run the focused workspace belongs to, if any.
+    var focusedRun: ResearchRun? {
+        guard let workspace = layout.focusedWorkspace else { return nil }
+        return run(forWorkspace: workspace.id)
+    }
+
+    func update(_ run: ResearchRun) {
+        if let index = research.firstIndex(where: { $0.id == run.id }) { research[index] = run } else { research.append(run) }
+    }
+
+    /// A window opened into a workspace with a live run is one of its sources.
+    func noteSource(_ tab: BrowserTab, workspace index: Int) {
+        let strip = layout.strip(for: tab.profileID)
+        guard strip.workspaces.indices.contains(index), var run = run(forWorkspace: strip.workspaces[index].id),
+              !run.sourceWindowIDs.contains(tab.id) else { return }
+        run.sourceWindowIDs.append(tab.id)
+        update(run)
     }
 
     /// Moves a window to a workspace of its own profile's strip; the focus stays where it is.
@@ -227,6 +331,10 @@ final class BrowserState {
         guard let index = tabs.firstIndex(where: { $0.id == id }) else { return }
         let closed = tabs.remove(at: index)
         closed.close()
+        if let document = closed.document {
+            documents.remove(id: document.id)
+            research.removeAll { $0.documentTabID == closed.id }
+        }
         let wasActive = closed.profileID == selectedProfileID
         withAnimation(NiriLayout.switchAnimation) {
             layout.removeColumn(tabID: id)

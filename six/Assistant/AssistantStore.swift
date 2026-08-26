@@ -23,6 +23,7 @@ final class AssistantStore {
     /// Wired at launch: browser tools for the language models, the agent session for the ACP choices.
     @ObservationIgnored var tools: BrowserToolCatalog?
     @ObservationIgnored var agentSession: AgentSessionStore?
+    @ObservationIgnored var research: ResearchCoordinator?
 
     @ObservationIgnored private var session: LanguageModelSession?
     @ObservationIgnored private var sessionModel: ModelChoice?
@@ -48,6 +49,12 @@ final class AssistantStore {
         errorMessage = nil
         isAnswerVisible = true
         isResponding = true
+
+        // `research: …` starts a deep-research run: a workspace, a document, and the agent at work.
+        if let research, let topic = ResearchCoordinator.question(fromCommand: question) {
+            task = Task { await runResearch(research, question: topic) }
+            return
+        }
 
         if let agent = settings.model.agentDefinition {
             task = Task { await askAgent(agent, question: question, about: tab) }
@@ -90,6 +97,19 @@ final class AssistantStore {
         guard !Task.isCancelled else { return }
         if case .failed(let message) = outcome { errorMessage = message }
         AgentSessionStore.trace("assistant/agent outcome: \(outcome) answer: \(answer.prefix(200))")
+    }
+
+    private func runResearch(_ research: ResearchCoordinator, question: String) async {
+        defer { isResponding = false; activity = nil }
+        let agent = settings.model.agentDefinition ?? agentSession?.agent
+        let outcome = await research.start(question, agent: agent) { [weak self] update in
+            switch update {
+            case .text(let text): self?.answer = text; self?.activity = nil
+            case .activity(let title): self?.activity = title
+            }
+        }
+        guard !Task.isCancelled else { return }
+        if case .failed(let message) = outcome { errorMessage = message }
     }
 
     func cancel() {

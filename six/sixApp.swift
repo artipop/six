@@ -20,6 +20,8 @@ struct sixApp: App {
     @State private var settings: SettingsStore
     @State private var bookmarks: BookmarkStore
     @State private var window: WindowState
+    @State private var highlights: HighlightStore
+    @State private var research: ResearchCoordinator
     @State private var persistence: StatePersistence<FileSnapshotStore<AppStateSnapshot>>
 
     init() {
@@ -40,12 +42,16 @@ struct sixApp: App {
         bookmarks.profile = { [weak browser] id in browser?.profiles.first { $0.id == id } }
         browser.bookmarks = bookmarks
         bookmarks.resumeIndexing()
+        let highlights = HighlightStore()
+        browser.highlights = highlights
         let assistant = AssistantStore(settings: settings)
         let agentSession = AgentSessionStore(snapshot: snapshot?.agent, settings: settings)
         agentSession.browser = browser
-        let tools = BrowserToolCatalog(browser: browser, assistant: assistant.settings, bookmarks: bookmarks, settings: settings)
+        let research = ResearchCoordinator(browser: browser, agentSession: agentSession, settings: settings)
+        let tools = BrowserToolCatalog(browser: browser, assistant: assistant.settings, bookmarks: bookmarks, settings: settings, highlights: highlights)
         assistant.tools = tools
         assistant.agentSession = agentSession
+        assistant.research = research
         let mcp = MCPHost(server: MCPServer(catalog: tools))
         mcp.start()
         FileHandle.standardError.write(Data("[six] \(mcp.status); state at \(store.url.path)\n".utf8))
@@ -55,7 +61,7 @@ struct sixApp: App {
         }
         persistence.start()
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: .main) { _ in
-            MainActor.assumeIsolated { persistence.flush() }
+            MainActor.assumeIsolated { persistence.flush(); browser.flushDocuments() }
         }
         _settings = State(initialValue: settings)
         _bookmarks = State(initialValue: bookmarks)
@@ -65,6 +71,8 @@ struct sixApp: App {
         _assistant = State(initialValue: assistant)
         _agentSession = State(initialValue: agentSession)
         _mcp = State(initialValue: mcp)
+        _highlights = State(initialValue: highlights)
+        _research = State(initialValue: research)
     }
 
     /// A file that won't load starts fresh — better than not starting.
@@ -86,6 +94,8 @@ struct sixApp: App {
                 .environment(mcp)
                 .environment(settings)
                 .environment(bookmarks)
+                .environment(highlights)
+                .environment(research)
                 .background(WindowObserver(state: window))
                 .frame(minWidth: 900, minHeight: 560)
         }
@@ -98,6 +108,7 @@ struct sixApp: App {
                 Button("Close Window") { browser.closeSelectedTab() }
                     .keyboardShortcut("w")
             }
+            FileCommands(browser: browser, highlights: highlights)
             LayoutCommands(browser: browser)
             BrowserCommands(settings: settings)
             HistoryCommands(browser: browser)

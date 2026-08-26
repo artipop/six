@@ -122,6 +122,12 @@ private struct WorkspaceView: View {
                     .frame(width: frame.width, height: frame.height)
                     .offset(x: frame.minX - scroll, y: frame.minY)
                     .zIndex(isFocused ? 1 : 0)
+                    // A new window slides in from beside its neighbour and settles; a closed one fades
+                    // out where it stood. The slide is a fraction of the column, not a point count.
+                    .transition(.asymmetric(
+                        insertion: .offset(x: frame.width * 0.35).combined(with: .opacity).combined(with: .scale(scale: 0.94, anchor: .leading)),
+                        removal: .opacity.combined(with: .scale(scale: 0.96))
+                    ))
                 }
             }
         }
@@ -217,6 +223,11 @@ private struct ColumnView: View {
                                 .onTapGesture(perform: activate)
                         }
                     }
+            } else if let document = tab.document, isLive {
+                // The editor is SwiftUI, the preview is a web view: the AppKit catcher covers both.
+                DocumentView(tab: tab, document: document, isActive: isFocused && !browser.layout.isOverview)
+                    .allowsHitTesting(!capturesClicks)
+                    .overlay { if capturesClicks { ClickCatcher(action: activate) } }
             } else if isLive {
                 WebView(tab.page)
                     .webViewBackForwardNavigationGestures(.enabled)
@@ -253,7 +264,7 @@ private struct ColumnPlaceholder: View {
             LinearGradient(colors: [accent.opacity(0.16), accent.opacity(0.04)],
                            startPoint: .topLeading, endPoint: .bottomTrailing)
             VStack(spacing: 8) {
-                Image(systemName: "globe")
+                Image(systemName: tab.isDocument ? "doc.text" : "globe")
                     .font(.system(size: 30, weight: .light))
                     .foregroundStyle(accent)
                 Text(tab.title)
@@ -357,6 +368,7 @@ private struct StripMenu: View {
 
     var body: some View {
         Button("New Window") { browser.newTab() }
+        Button("New Document") { browser.newDocument() }
         Divider()
         Button("Workspace Above") { browser.focusWorkspace(-1) }
             .disabled(!browser.layout.canFocusWorkspace(-1))
@@ -400,6 +412,7 @@ private struct ColumnMenu: View {
 
     var body: some View {
         Button("New Window") { browser.newTab() }
+        Button("New Document") { browser.newDocument() }
         Button("Close Window") { browser.closeTab(tab.id) }
         Divider()
         ColumnWidthPicker()

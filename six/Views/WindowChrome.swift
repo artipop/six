@@ -16,26 +16,36 @@ struct WindowChrome: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            Button { _ = tab.page.load(tab.page.backForwardList.backList.last) } label: {
-                Image(systemName: "chevron.left")
-            }
-            .disabled(tab.page.backForwardList.backList.isEmpty)
-            .help("Back")
+            if let document = tab.document {
+                documentControls(document)
+            } else {
+                Button { _ = tab.page.load(tab.page.backForwardList.backList.last) } label: {
+                    Image(systemName: "chevron.left")
+                }
+                .disabled(tab.page.backForwardList.backList.isEmpty)
+                .help("Back")
 
-            Button { _ = tab.page.load(tab.page.backForwardList.forwardList.first) } label: {
-                Image(systemName: "chevron.right")
-            }
-            .disabled(tab.page.backForwardList.forwardList.isEmpty)
-            .help("Forward")
+                Button { _ = tab.page.load(tab.page.backForwardList.forwardList.first) } label: {
+                    Image(systemName: "chevron.right")
+                }
+                .disabled(tab.page.backForwardList.forwardList.isEmpty)
+                .help("Forward")
 
-            Button {
-                if tab.page.isLoading { tab.page.stopLoading() } else { _ = tab.page.reload() }
-            } label: {
-                Image(systemName: tab.page.isLoading ? "xmark" : "arrow.clockwise")
-            }
-            .help(tab.page.isLoading ? "Stop" : "Reload")
+                Button {
+                    if tab.page.isLoading { tab.page.stopLoading() } else { _ = tab.page.reload() }
+                } label: {
+                    Image(systemName: tab.page.isLoading ? "xmark" : "arrow.clockwise")
+                }
+                .help(tab.page.isLoading ? "Stop" : "Reload")
 
-            address
+                address
+
+                if let note = tab.highlightNote {
+                    Image(systemName: "highlighter")
+                        .foregroundStyle(.orange)
+                        .help(note)
+                }
+            }
 
             Button { browser.closeTab(tab.id) } label: {
                 Image(systemName: "xmark")
@@ -58,10 +68,60 @@ struct WindowChrome: View {
         }
         .onHover { hovering = $0 }
         .overlay(alignment: .bottom) {
-            if tab.page.isLoading {
+            if !tab.isDocument, tab.page.isLoading {
                 LoadingLine(progress: tab.page.estimatedProgress, accent: accent)
             }
         }
+    }
+
+    /// A document's bar: edit/preview, the title, and — while a research run writes into it — what
+    /// the agent is up to.
+    @ViewBuilder
+    private func documentControls(_ document: TextDocument) -> some View {
+        @Bindable var document = document
+        Picker("View", selection: $document.showsPreview) {
+            Image(systemName: "pencil").tag(false).help("Edit the Markdown")
+            Image(systemName: "doc.richtext").tag(true).help("Preview")
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .controlSize(.mini)
+        .fixedSize()
+        HStack(spacing: 5) {
+            Image(systemName: "doc.text")
+                .foregroundStyle(.secondary)
+                .font(.system(size: 9))
+            Text(document.title)
+                .font(.caption)
+                .lineLimit(1)
+                .truncationMode(.tail)
+            if let run = browser.run(forDocument: tab.id) {
+                if run.isRunning {
+                    ProgressView().controlSize(.mini)
+                    Text(run.status.isEmpty ? "researching…" : run.status)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                } else if !run.status.isEmpty {
+                    Image(systemName: "checkmark.circle")
+                        .foregroundStyle(.secondary)
+                        .font(.system(size: 9))
+                        .help(run.status)
+                }
+            }
+            Spacer(minLength: 0)
+            if let url = document.fileURL {
+                Text(url.lastPathComponent)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+                    .help(url.path(percentEncoded: false))
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .frame(maxWidth: .infinity)
+        .background(.quaternary.opacity(0.45), in: RoundedRectangle(cornerRadius: 7))
     }
 
     private var accent: Color {

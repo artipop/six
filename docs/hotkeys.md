@@ -2,7 +2,7 @@
 
 Every key binding in six, in one place. `⌥` stands in for niri's `Mod`; `⌘` bindings are the browser's own. Each
 row is backed by a menu item or a view — the file is named so nothing here can drift from the code:
-`LayoutCommands` / `BrowserCommands` / `HistoryCommands` in `six/sixApp.swift`, the rest in `six/Views/`.
+`LayoutCommands` / `BrowserCommands` / `HistoryCommands` in `six/sixApp.swift`, `FileCommands` in `six/Documents/Export.swift`, the rest in `six/Views/`.
 
 ## Layout (`⌥` — Layout menu)
 
@@ -27,7 +27,11 @@ row is backed by a menu item or a view — the file is named so nothing here can
 | | |
 |---|---|
 | `⌘T` | new window in the strip, right of the focused one |
+| `⌘⇧N` | new document — a Markdown column next to the pages (edit / preview in its title bar) |
 | `⌘W` | close the focused window |
+| `⌘S` | save — a document that has a file goes back to it; otherwise Save As |
+| `⌘⇧S` | save as… — a document as `.md` / `.html` / `.pdf`, a page as `.html` / `.pdf` / `.txt`; the folder is remembered |
+| `⌥⇧H` | highlight the selection on the page; it comes back when the page is opened again (File → Remove Highlights on This Page to clear) |
 | `⌘L` | focus the address field |
 | `⌘K` | focus the assistant line |
 | `⌘⇧A` | agent panel on / off |

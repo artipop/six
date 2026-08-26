@@ -12,6 +12,9 @@ six/Views       ContentView (top bar), NiriStripView (strip + overview), WindowC
 six/Assistant   ModelChoice/AssistantSettings, AssistantStore (streaming), FoundationModelsCompatibility
 six/ACP         ACPJSON, JSONRPCConnection, ACPTypes, ACPAgent (process), ACPClient (actor), AgentSessionStore
 six/Tools       BrowserToolCatalog (the tools, over BrowserState), BrowserModelTool (Foundation Models adapter)
+six/Documents   TextDocument + DocumentStore (Markdown files behind document windows), Markdown (→ HTML for the preview), Export (Save As, File menu)
+six/Highlights  Highlight (the selectors), HighlightStore (highlights.json, re-anchoring on load), HighlightScript (the page-side JS)
+six/Research    ResearchRun + ResearchPreset (the snapshot shape and the prompt), ResearchCoordinator (workspace + document + agent)
 six/MCP         MCPServer + MCPHost (the catalog over a Unix socket), MCPSocket, MCPStdioBridge (`six --mcp`)
 six/Persistence AppStateSnapshot (the Codable shape), SnapshotStore (a versioned JSON file), StatePersistence (autosave)
 six/Data        AppDatabase (the SQLite file, migrations), SettingsStore (the settings table)
@@ -20,7 +23,9 @@ six/Vendor      ClaudeForFoundationModels sources
 
 ## State
 
-`BrowserState` owns the profiles and the flat list of `BrowserTab`s; `NiriLayout` owns where they sit. A tab exists
+`BrowserState` owns the profiles and the flat list of `BrowserTab`s; `NiriLayout` owns where they sit. A tab's
+`content` is `.web(WebPage)` or `.document(TextDocument)` — a document window is a column like any other, with a
+`WebPage` of its own that renders the Markdown preview (and exports it); see [deep-research.md](deep-research.md). A tab exists
 because a column points at it — `newTab` appends a tab and inserts a column, `closeTab` removes both. **The focused
 column is the selected tab**: `syncSelection()` copies `layout.focusedTabID` into `selectedTabID` after every layout
 operation, and the assistant, the agent panel and `⌘L` all key off that.

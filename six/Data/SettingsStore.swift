@@ -23,6 +23,8 @@ final class SettingsStore {
         case agentModel = "agent.model"
         case columnWidth = "layout.columnWidth"
         case bookmarkScope = "bookmarks.scope"
+        case researchTemplate = "research.template"
+        case researchSources = "research.sources"
 
         /// Where the value lived before the database.
         var legacyDefaultsKey: String {
@@ -33,6 +35,8 @@ final class SettingsStore {
             case .agentModel: "six.agent.model"
             case .columnWidth: "six.layout.columnWidth"
             case .bookmarkScope: "six.bookmarks.scope"
+            case .researchTemplate: "six.research.template"
+            case .researchSources: "six.research.sources"
             }
         }
     }
@@ -82,6 +86,18 @@ final class SettingsStore {
     var bookmarkScope: BookmarkScope {
         get { BookmarkScope(rawValue: self[.bookmarkScope] ?? "") ?? .profile }
         set { self[.bookmarkScope] = newValue.rawValue }
+    }
+
+    /// The deep-research preset as edited by the user; empty means the built-in one.
+    var researchTemplate: String {
+        get { self[.researchTemplate] ?? "" }
+        set { self[.researchTemplate] = newValue.isEmpty ? nil : newValue }
+    }
+
+    /// How many sources a research run opens.
+    var researchSources: Int {
+        get { Int(self[.researchSources] ?? "") ?? ResearchPreset.defaultSources }
+        set { self[.researchSources] = String(newValue) }
     }
 
     /// Optional model id for the ACP agent (`ANTHROPIC_MODEL`).

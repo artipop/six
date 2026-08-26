@@ -10,6 +10,7 @@ struct AgentPanel: View {
     @Environment(SettingsStore.self) private var settings
     @State private var input = ""
     @State private var attachPage = false
+    @State private var showResearch = false
 
     var body: some View {
         @Bindable var store = store
@@ -145,12 +146,17 @@ struct AgentPanel: View {
             HStack {
                 Toggle("Attach page", isOn: $attachPage).toggleStyle(.checkbox).controlSize(.small)
                 Spacer()
+                Button("Research…") { showResearch = true }
+                    .controlSize(.small)
+                    .disabled(store.state == .prompting)
+                    .help("Deep research: a workspace of sources and a document the agent writes into")
                 Button("Send", action: send)
                     .keyboardShortcut(.return, modifiers: .command)
                     .disabled(input.trimmingCharacters(in: .whitespaces).isEmpty || store.state == .prompting)
             }
         }
         .padding(10)
+        .sheet(isPresented: $showResearch) { ResearchSheet() }
     }
 
     private func send() {
@@ -350,6 +356,69 @@ struct PermissionView: View {
         }
         .padding(10)
         .background(.yellow.opacity(0.1))
+    }
+}
+
+/// Starting a run by hand: the question, how many sources, and the preset itself for anyone who wants
+/// to change the rules. A follow-up into the run of the focused workspace is the same sheet.
+struct ResearchSheet: View {
+    @Environment(ResearchCoordinator.self) private var research
+    @Environment(AgentSessionStore.self) private var store
+    @Environment(BrowserState.self) private var browser
+    @Environment(\.dismiss) private var dismiss
+    @State private var question = ""
+    @State private var showPreset = false
+
+    var body: some View {
+        @Bindable var research = research
+        let existing = browser.focusedRun
+        VStack(alignment: .leading, spacing: 12) {
+            Text(existing == nil ? "Deep research" : "Follow-up").font(.headline)
+            if let existing {
+                Text("Continues \"\(existing.question)\" in this workspace's document.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                Text("A workspace named after the question, a document the agent writes into, and the sources it read open next to it.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            TextField("Question", text: $question, axis: .vertical)
+                .lineLimit(2...5)
+                .textFieldStyle(.roundedBorder)
+            HStack {
+                Stepper("Sources to open: \(research.sourceCount)", value: $research.sourceCount, in: 1...20)
+                    .controlSize(.small)
+                Spacer()
+                Toggle("Edit preset", isOn: $showPreset).toggleStyle(.checkbox).controlSize(.small)
+            }
+            if showPreset {
+                TextEditor(text: $research.template)
+                    .font(.system(.caption, design: .monospaced))
+                    .frame(minHeight: 200)
+                    .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(.separator))
+                HStack {
+                    Text("{question} {workspace} {document} {profile} {sources} are filled in.")
+                        .font(.caption2).foregroundStyle(.tertiary)
+                    Spacer()
+                    Button("Reset") { research.template = ResearchPreset.defaultTemplate }.controlSize(.small)
+                }
+            }
+            HStack {
+                Text("Agent: \(store.agent.name)").font(.caption).foregroundStyle(.secondary)
+                Spacer()
+                Button("Cancel", role: .cancel) { dismiss() }
+                Button(existing == nil ? "Start" : "Ask") {
+                    let text = question
+                    dismiss()
+                    Task { await research.start(text) }
+                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(question.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+        }
+        .padding(16)
+        .frame(width: 520)
     }
 }
 

@@ -44,12 +44,14 @@ final class BrowserToolCatalog {
     private let assistant: AssistantSettings
     private let bookmarks: BookmarkStore
     private let settings: SettingsStore
+    private let highlights: HighlightStore
 
-    init(browser: BrowserState, assistant: AssistantSettings, bookmarks: BookmarkStore, settings: SettingsStore) {
+    init(browser: BrowserState, assistant: AssistantSettings, bookmarks: BookmarkStore, settings: SettingsStore, highlights: HighlightStore) {
         self.browser = browser
         self.assistant = assistant
         self.bookmarks = bookmarks
         self.settings = settings
+        self.highlights = highlights
     }
 
     static let instructions = """
@@ -70,6 +72,15 @@ final class BrowserToolCatalog {
         something the user read or saved, search the bookmarks before searching the web — `search_bookmarks` is the \
         way in, then `read_bookmark`; don't grep or read the `Bookmarks/*.md` files (or the original page) \
         yourself, the tools return the same text with the search already done.
+
+        A *document* is a window that holds Markdown instead of a page — the place to write an answer so it \
+        sits in the strip next to the sources it came from, and stays. `create_document` opens one, \
+        `write_document` writes into it (whole text, appended, or one `## section` by heading — write the \
+        outline first and fill sections in as you read, so the user can watch it grow; never overwrite a \
+        section the user is editing), `read_document` reads it back, `cite` adds a numbered source line and \
+        returns the `[n]` to use inline. `highlight_page` marks the paragraphs of a page that answer a \
+        question and returns links to them (`#:~:text=`) for citations that point at the sentences, not the \
+        page. Documents appear in `list_workspaces` with `kind: document`; their id is a window id.
         """
 
     func tools(for surface: BrowserTool.Surface) -> [BrowserTool] {
@@ -88,6 +99,9 @@ final class BrowserToolCatalog {
 
     private static let windowID = BrowserTool.Parameter(
         name: "window_id", description: "Window id from list_workspaces (a prefix is enough). Default: the focused window.")
+
+    private static let documentID = BrowserTool.Parameter(
+        name: "document_id", description: "The document window's id (a prefix is enough). Default: the research run's document in the on-screen workspace, or the only document there.")
 
     private lazy var all: [BrowserTool] = [
         BrowserTool(
@@ -240,6 +254,127 @@ final class BrowserToolCatalog {
             }
         ),
         BrowserTool(
+            name: "create_document",
+            description: "Opens a document window — Markdown text in a column of the strip, next to the pages. Goes into the "
+                + "on-screen workspace of the current profile unless `workspace` / `profile` say otherwise. Returns its id.",
+            parameters: [
+                .init(name: "title", description: "The document's title (becomes the `# ` heading)."),
+                .init(name: "markdown", description: "Initial text; overrides `title` when given."),
+                .init(name: "workspace", description: "Workspace name or 1-based index. Default: the on-screen workspace."),
+                .init(name: "profile", description: "Profile name. Default: the current profile."),
+                .init(name: "activate", description: "Focus the new window (default true).", type: .boolean),
+            ],
+            run: { [unowned self] args in
+                let profile = try self.profile(args["profile"])
+                let index = try self.workspaceIndex(args["workspace"], in: profile.id)
+                var text = args["markdown"]?.stringValue ?? ""
+                if text.isEmpty, let title = args["title"]?.stringValue?.trimmingCharacters(in: .whitespaces), !title.isEmpty { text = "# \(title)\n" }
+                let tab = self.browser.newDocument(text: text, in: profile.id, workspace: index, activate: args["activate"]?.boolValue ?? true)
+                return "Created document \(tab.id.uuidString) in \(self.workspaceTitle(index, in: profile.id)) of \(profile.name)"
+            }
+        ),
+        BrowserTool(
+            name: "write_document",
+            description: "Writes into a document window. `mode` is `replace` (the whole text), `append` (below the end), or "
+                + "`section` (replace the body of the `## section` whose heading matches `section`, keeping the heading; a "
+                + "heading that doesn't exist is added at the end). Write the outline first, then fill the sections in.",
+            parameters: [
+                Self.documentID,
+                .init(name: "markdown", description: "The Markdown to write.", required: true),
+                .init(name: "mode", description: "`replace`, `append` or `section` (default `append`)."),
+                .init(name: "section", description: "Heading text of the section to replace, for `mode: section`."),
+            ],
+            run: { [unowned self] args in try self.writeDocument(args) }
+        ),
+        BrowserTool(
+            name: "read_document",
+            description: "The current Markdown of a document window, so what was written (by you or the user) can be revised.",
+            parameters: [Self.documentID],
+            run: { [unowned self] args in
+                let (tab, document) = try self.documentTab(args)
+                let sections = document.sections.map { "\(String(repeating: "#", count: $0.level)) \($0.heading)" }
+                return "\(Self.describe(tab))\n\(document.text.count) characters; sections: \(sections.isEmpty ? "none" : sections.joined(separator: " · "))\n\n\(document.text)"
+            }
+        ),
+        BrowserTool(
+            name: "cite",
+            description: "Adds a source to the document's `## Sources` list — title, URL, retrieved-at and optionally the passage — "
+                + "and returns the `[n]` to put inline. Point it at a window (`window_id`, default: the focused page) or give "
+                + "`url` and `title` directly; a `highlight_id` from highlight_page makes the source line link to the passage.",
+            parameters: [
+                Self.documentID,
+                Self.windowID,
+                .init(name: "url", description: "Source URL, when not citing a window."),
+                .init(name: "title", description: "Source title, when not citing a window."),
+                .init(name: "passage", description: "The sentences that earned the citation, quoted."),
+                .init(name: "highlight_id", description: "A highlight from highlight_page; its link becomes the source's URL."),
+            ],
+            run: { [unowned self] args in try self.cite(args) }
+        ),
+        BrowserTool(
+            name: "highlight_page",
+            description: "Marks the paragraphs of a window's page that answer `question` (the browser's own model picks them by "
+                + "number from the page's blocks, so nothing is retyped) and returns each as a highlight: id, the exact text, and a "
+                + "`#:~:text=` link that scrolls to it in any browser. Highlights persist per URL and are painted again when the "
+                + "page is reopened. `blocks` picks paragraphs by number yourself instead (from list_page_blocks).",
+            parameters: [
+                Self.windowID,
+                .init(name: "question", description: "What the passages should answer."),
+                .init(name: "blocks", description: "Comma-separated block numbers to mark directly (skips the model)."),
+                .init(name: "max", description: "At most this many passages (default 3).", type: .integer),
+            ],
+            run: { [unowned self] args in try await self.highlightPage(args) }
+        ),
+        BrowserTool(
+            name: "list_page_blocks",
+            description: "The paragraph-ish blocks of a window's page, numbered, with their text — what highlight_page chooses "
+                + "from. For picking passages yourself and passing the numbers as `blocks`.",
+            parameters: [Self.windowID, .init(name: "max_chars", description: "Truncate the listing to this many characters (default 20000).", type: .integer)],
+            run: { [unowned self] args in
+                let tab = try self.webTab(args)
+                await Self.waitForLoad(tab)
+                let (unsupported, blocks) = try await self.pageBlocks(tab)
+                if let unsupported { throw BrowserTool.Failure(message: unsupported) }
+                let limit = max(500, args["max_chars"]?.intValue ?? 20_000)
+                let text = blocks.map { "\($0.n): \($0.text)" }.joined(separator: "\n")
+                return "\(Self.describe(tab))\n\n" + (text.count > limit ? String(text.prefix(limit)) + "\n…[truncated]" : text)
+            }
+        ),
+        BrowserTool(
+            name: "list_highlights",
+            description: "The highlights stored for a window's page (or for `url`): id, text, note and the `#:~:text=` link.",
+            parameters: [Self.windowID, .init(name: "url", description: "A page URL, instead of a window.")],
+            run: { [unowned self] args in
+                let url: URL
+                var heading: String
+                if let raw = args["url"]?.stringValue, let parsed = URL(string: raw) {
+                    url = parsed
+                    heading = parsed.absoluteString
+                } else {
+                    let tab = try self.webTab(args)
+                    guard let current = tab.currentURL else { throw BrowserTool.Failure(message: "Nothing is loaded in this window") }
+                    url = current
+                    heading = Self.describe(tab)
+                }
+                let stored = self.highlights.highlights(for: url)
+                guard !stored.isEmpty else { return "No highlights on \(heading)" }
+                return "Highlights on \(heading):\n\n" + stored.map(Self.describe).joined(separator: "\n\n")
+            }
+        ),
+        BrowserTool(
+            name: "remove_highlight",
+            description: "Deletes a highlight.",
+            parameters: [.init(name: "highlight_id", description: "Highlight id (a prefix is enough).", required: true)],
+            run: { [unowned self] args in
+                let highlight = try self.highlights.highlight(matching: args["highlight_id"]?.stringValue ?? "")
+                self.highlights.remove(highlight.id)
+                for tab in self.browser.tabs where tab.currentURL.map({ Highlight.key(for: $0) }) == highlight.url {
+                    _ = try? await tab.page.callJavaScript(HighlightScript.remove, arguments: ["id": highlight.id.uuidString])
+                }
+                return "Removed highlight \(highlight.id.uuidString)"
+            }
+        ),
+        BrowserTool(
             name: "evaluate_javascript",
             description: "Runs JavaScript in a window's page (as a function body; `return` a value to get it back as JSON). "
                 + "Defaults to the focused window.",
@@ -267,6 +402,28 @@ final class BrowserToolCatalog {
         guard matches.count == 1 else { throw BrowserTool.Failure(message: "Window id \(raw) is ambiguous") }
         tab.resumeIfNeeded()
         return tab
+    }
+
+    /// A window that is a page, for the tools that read or drive one.
+    private func webTab(_ args: ACPJSON) throws -> BrowserTab {
+        let tab = try tab(args)
+        guard !tab.isDocument else { throw BrowserTool.Failure(message: "\(Self.describe(tab)) is a document, not a page; use read_document / write_document") }
+        return tab
+    }
+
+    /// The document window a tool works on: `document_id` (a window id), or the run's document in the
+    /// focused workspace, or the only document on screen.
+    private func documentTab(_ args: ACPJSON) throws -> (BrowserTab, TextDocument) {
+        if let raw = args["document_id"]?.stringValue?.trimmingCharacters(in: .whitespaces), !raw.isEmpty {
+            let tab = try tab(["window_id": .string(raw)])
+            guard let document = tab.document else { throw BrowserTool.Failure(message: "\(Self.describe(tab)) is a page, not a document") }
+            return (tab, document)
+        }
+        if let run = browser.focusedRun, let tab = browser.tab(run.documentTabID), let document = tab.document { return (tab, document) }
+        let visible = browser.layout.focusedWorkspace?.columns.compactMap { browser.tab($0.tabID) }.filter(\.isDocument) ?? []
+        if visible.count == 1, let document = visible[0].document { return (visible[0], document) }
+        if let selected = browser.selectedTab, let document = selected.document { return (selected, document) }
+        throw BrowserTool.Failure(message: visible.isEmpty ? "No document window; call create_document first" : "Several documents are open; pass document_id")
     }
 
     private func profile(_ value: ACPJSON?) throws -> Profile {
@@ -370,7 +527,11 @@ final class BrowserToolCatalog {
                         "title": .string(tab.title),
                         "url": .string(tab.showsStartPage ? "about:start" : tab.currentURL?.absoluteString ?? ""),
                     ]
-                    if tab.page.isLoading { window["loading"] = true }
+                    if let document = tab.document {
+                        window["kind"] = "document"
+                        window["url"] = .string("six://document/\(document.id.uuidString)")
+                        window["characters"] = .number(Double(document.text.count))
+                    } else if tab.page.isLoading { window["loading"] = true }
                     if position == workspace.focus { window["focused"] = true }
                     return .object(window)
                 }
@@ -416,12 +577,13 @@ final class BrowserToolCatalog {
             url = SearchEngine.current.searchURL(for: query)
         }
         let tab = browser.newTab(url: url, in: profile.id, workspace: index, activate: activate)
+        browser.noteSource(tab, workspace: index)
         let place = "\(workspaceTitle(index, in: profile.id)) of \(profile.name)"
         return "Opened window \(tab.id.uuidString) in \(place)" + (url.map { " → \($0.absoluteString)" } ?? " (start page)")
     }
 
     private func navigate(_ args: ACPJSON) async throws -> String {
-        let tab = try tab(args)
+        let tab = try webTab(args)
         guard let raw = args["url"]?.stringValue, let url = URL.fromUserInput(raw) else { throw BrowserTool.Failure(message: "url is required") }
         tab.load(url)
         await Self.waitForLoad(tab)
@@ -430,6 +592,7 @@ final class BrowserToolCatalog {
 
     private func pageContent(_ args: ACPJSON) async throws -> String {
         let tab = try tab(args)
+        if let document = tab.document { return "\(Self.describe(tab))\n\n\(document.text)" }
         let limit = max(200, args["max_chars"]?.intValue ?? 20_000)
         guard !tab.showsStartPage else { return "\(Self.describe(tab))\n\nThis window shows six's start page; nothing is loaded yet." }
         await Self.waitForLoad(tab)
@@ -439,7 +602,7 @@ final class BrowserToolCatalog {
     }
 
     private func pageLinks(_ args: ACPJSON) async throws -> String {
-        let tab = try tab(args)
+        let tab = try webTab(args)
         let limit = max(1, args["max_links"]?.intValue ?? 200)
         await Self.waitForLoad(tab)
         let script = """
@@ -454,7 +617,7 @@ final class BrowserToolCatalog {
     }
 
     private func summarize(_ args: ACPJSON) async throws -> String {
-        let tab = try tab(args)
+        let tab = try webTab(args)
         guard !tab.showsStartPage else { throw BrowserTool.Failure(message: "This window shows the start page; nothing to summarize") }
         await Self.waitForLoad(tab)
         let limit = assistant.model == .onDevice ? 6_000 : 24_000
@@ -470,10 +633,157 @@ final class BrowserToolCatalog {
         return "\(Self.describe(tab))\n\n\(response.content)"
     }
 
+    // MARK: Documents
+
+    private func writeDocument(_ args: ACPJSON) throws -> String {
+        let (tab, document) = try documentTab(args)
+        guard let markdown = args["markdown"]?.stringValue else { throw BrowserTool.Failure(message: "markdown is required") }
+        let mode = args["mode"]?.stringValue?.lowercased() ?? "append"
+        switch mode {
+        case "replace":
+            document.text = markdown.hasSuffix("\n") ? markdown : markdown + "\n"
+        case "append":
+            document.append(markdown)
+        case "section":
+            guard let section = args["section"]?.stringValue?.trimmingCharacters(in: .whitespaces), !section.isEmpty else {
+                throw BrowserTool.Failure(message: "section (the heading text) is required for mode: section")
+            }
+            let existed = document.section(named: section) != nil
+            document.replaceSection(section, with: markdown)
+            return "\(existed ? "Replaced" : "Added") section \"\(section)\" of \(Self.describe(tab)); \(document.text.count) characters now"
+        default:
+            throw BrowserTool.Failure(message: "mode must be replace, append or section")
+        }
+        return "Wrote \(markdown.count) characters (\(mode)) into \(Self.describe(tab)); \(document.text.count) characters now"
+    }
+
+    private func cite(_ args: ACPJSON) throws -> String {
+        let (tab, document) = try documentTab(args)
+        var url: URL?
+        var title = args["title"]?.stringValue ?? ""
+        var passage = args["passage"]?.stringValue
+        if let raw = args["highlight_id"]?.stringValue, !raw.isEmpty {
+            let highlight = try highlights.highlight(matching: raw)
+            url = URL(string: highlight.textFragmentURL) ?? URL(string: highlight.url)
+            if title.isEmpty { title = highlight.pageTitle }
+            if passage == nil || passage?.isEmpty == true { passage = highlight.exact }
+        } else if let raw = args["url"]?.stringValue, let parsed = URL(string: raw) {
+            url = parsed
+        } else {
+            let source = try webTab(args)
+            guard let current = source.currentURL else { throw BrowserTool.Failure(message: "\(Self.describe(source)) has nothing loaded to cite") }
+            url = current
+            if title.isEmpty { title = source.title }
+        }
+        guard let url else { throw BrowserTool.Failure(message: "Give a window_id, a url or a highlight_id") }
+        if title.isEmpty { title = url.host() ?? url.absoluteString }
+        let number = document.cite(title: title, url: url, passage: passage)
+        return "[\(number)] — \(title) <\(url.absoluteString)> in \(Self.describe(tab)). Use [\(number)] inline."
+    }
+
+    // MARK: Highlights
+
+    private struct PageBlock { var n: Int; var text: String }
+
+    private func pageBlocks(_ tab: BrowserTab) async throws -> (unsupported: String?, blocks: [PageBlock]) {
+        let value = try await tab.page.callJavaScript(HighlightScript.blocks)
+        guard let object = value as? [String: Any] else { throw BrowserTool.Failure(message: "The page didn't answer") }
+        let unsupported = (object["unsupported"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+        let blocks = (object["blocks"] as? [[String: Any]] ?? []).compactMap { entry -> PageBlock? in
+            guard let n = entry["n"] as? Int, let text = entry["text"] as? String else { return nil }
+            return PageBlock(n: n, text: text)
+        }
+        return (unsupported, blocks)
+    }
+
+    private func highlightPage(_ args: ACPJSON) async throws -> String {
+        let tab = try webTab(args)
+        guard let url = tab.currentURL else { throw BrowserTool.Failure(message: "Nothing is loaded in this window") }
+        await Self.waitForLoad(tab)
+        let (unsupported, blocks) = try await pageBlocks(tab)
+        if let unsupported { throw BrowserTool.Failure(message: unsupported) }
+        guard !blocks.isEmpty else { throw BrowserTool.Failure(message: "The page has no paragraphs to highlight") }
+        let limit = max(1, min(10, args["max"]?.intValue ?? 3))
+        let question = args["question"]?.stringValue?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        var chosen: [(n: Int, reason: String)] = []
+        if let raw = args["blocks"]?.stringValue, !raw.isEmpty {
+            chosen = raw.split(whereSeparator: { $0 == "," || $0 == " " }).compactMap { Int($0) }.prefix(limit).map { ($0, question) }
+        } else {
+            guard !question.isEmpty else { throw BrowserTool.Failure(message: "question (or blocks) is required") }
+            chosen = try await chooseBlocks(blocks, question: question, limit: limit)
+        }
+        let valid = chosen.filter { pick in blocks.contains { $0.n == pick.n } }
+        guard !valid.isEmpty else { return "\(Self.describe(tab))\n\nNo passage on this page answers \"\(question)\"." }
+        let selectors = try await tab.page.callJavaScript(HighlightScript.blockSelectors, arguments: ["numbers": valid.map(\.n)]) as? [[String: Any]] ?? []
+        var made: [Highlight] = []
+        for entry in selectors {
+            let n = entry["n"] as? Int
+            let note = valid.first { $0.n == n }?.reason ?? question
+            // The same passage marked twice stays one highlight.
+            if let existing = highlights.highlights(for: url).first(where: { $0.exact == entry["exact"] as? String }) {
+                made.append(existing)
+                continue
+            }
+            guard let highlight = Highlight(url: Highlight.key(for: url), script: entry, note: note, pageTitle: tab.title) else { continue }
+            highlights.add(highlight)
+            highlights.paint(highlight, in: tab)
+            made.append(highlight)
+        }
+        guard !made.isEmpty else { throw BrowserTool.Failure(message: "The chosen blocks could not be anchored on the page") }
+        return "\(Self.describe(tab))\n\n" + made.map(Self.describe).joined(separator: "\n\n")
+    }
+
+    /// The numbered-block pass: the model sees the numbers and the text and answers with numbers.
+    /// It never handles the text it is choosing, so it cannot corrupt it.
+    private func chooseBlocks(_ blocks: [PageBlock], question: String, limit: Int) async throws -> [(n: Int, reason: String)] {
+        let budget = assistant.model == .onDevice || assistant.model.agentDefinition != nil ? 6_000 : 30_000
+        var listing = ""
+        for block in blocks {
+            let line = "\(block.n): \(block.text.prefix(300))\n"
+            if listing.count + line.count > budget { break }
+            listing += line
+        }
+        let instructions = """
+            You pick the numbered paragraphs of a web page that answer a question. Answer with the numbers only, \
+            most relevant first, at most \(limit), one per line as `N: reason` where the reason is a few words. \
+            Answer `none` if nothing on the page answers it. Never quote the paragraphs.
+            """
+        // "Which of these is about X" is within the on-device model's reach, so when ⌘K is set to an agent
+        // (not a language model) or its model isn't usable, that is the fallback.
+        let session: LanguageModelSession
+        if assistant.model.agentDefinition == nil, let chosen = try? assistant.makeSession(instructions: instructions) {
+            session = chosen
+        } else {
+            let system = SystemLanguageModel.default
+            guard case .available = system.availability else {
+                throw BrowserTool.Failure(message: "No model to choose passages with: the on-device model is not available (\(system.availability)); pass `blocks` from list_page_blocks instead")
+            }
+            session = LanguageModelSession(model: system, instructions: instructions)
+        }
+        let response = try await session.respond(to: "Question: \(question)\n\nParagraphs:\n\(listing)")
+        var picks: [(n: Int, reason: String)] = []
+        for line in response.content.split(whereSeparator: \.isNewline) {
+            let parts = line.split(separator: ":", maxSplits: 1)
+            guard let first = parts.first, let n = Int(first.trimmingCharacters(in: CharacterSet(charactersIn: " -*[]."))) else { continue }
+            let reason = parts.count > 1 ? parts[1].trimmingCharacters(in: .whitespaces) : ""
+            if !picks.contains(where: { $0.n == n }) { picks.append((n, reason)) }
+            if picks.count == limit { break }
+        }
+        return picks
+    }
+
+    private static func describe(_ highlight: Highlight) -> String {
+        var text = "- [\(highlight.id.uuidString)] \"\(highlight.exact.prefix(300))\""
+        if !highlight.note.isEmpty { text += "\n  note: \(highlight.note)" }
+        text += "\n  link: \(highlight.textFragmentURL)"
+        return text
+    }
+
     // MARK: Page helpers
 
     private static func describe(_ tab: BrowserTab) -> String {
-        "\(tab.title) <\(tab.showsStartPage ? "about:start" : tab.currentURL?.absoluteString ?? "")> [\(tab.id.uuidString)]"
+        if let document = tab.document { return "\(document.title) <six://document/\(document.id.uuidString)> [\(tab.id.uuidString)]" }
+        return "\(tab.title) <\(tab.showsStartPage ? "about:start" : tab.currentURL?.absoluteString ?? "")> [\(tab.id.uuidString)]"
     }
 
     /// Lets a navigation settle before reading the page, bounded so a spinner never blocks an agent.

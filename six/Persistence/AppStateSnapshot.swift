@@ -21,6 +21,8 @@ nonisolated struct BrowserSnapshot: Codable, Sendable {
     var selectedProfileID: UUID
     var tabs: [TabSnapshot]
     var strips: [StripSnapshot]
+    /// Deep-research runs, absent in files from before them.
+    var research: [ResearchRun]? = nil
 }
 
 nonisolated struct TabSnapshot: Codable, Sendable {
@@ -29,6 +31,17 @@ nonisolated struct TabSnapshot: Codable, Sendable {
     /// Nil is the start page.
     var url: URL?
     var title: String
+    /// A document window: the id of its Markdown file under `Documents/`; the text lives there.
+    var document: DocumentSnapshot? = nil
+}
+
+/// What the snapshot keeps of a document — everything but the text.
+nonisolated struct DocumentSnapshot: Codable, Sendable {
+    var id: UUID
+    var title: String
+    var modifiedAt: Date
+    var fileURL: URL?
+    var showsPreview: Bool
 }
 
 /// One profile's workspace stack; `NiriStrip` itself is the stored shape.
