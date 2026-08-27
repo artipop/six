@@ -239,6 +239,7 @@ final class BookmarkStore {
     }
 
     func remove(_ id: Bookmark.ID) {
+        queue.removeAll { $0 == id } // not yet embedded: never will be
         guard let bookmark = read({ db in try Bookmark.where { $0.id.eq(id) }.fetchAll(db) }).first else { return }
         if let url = fileURL(of: bookmark) { try? FileManager.default.removeItem(at: url) }
         let table = vectorTable
@@ -392,7 +393,9 @@ final class BookmarkStore {
     }
 
     private func enqueue(_ id: Bookmark.ID) {
-        guard !queue.contains(id), !indexing.contains(id) else { return }
+        // Being indexed right now is no reason to skip: the page may have been re-saved with new chunks,
+        // and the run in flight will notice and leave them to this one.
+        guard !queue.contains(id) else { return }
         queue.append(id)
         indexing.insert(id)
         if worker == nil { worker = Task { await drain() } }
@@ -422,13 +425,18 @@ final class BookmarkStore {
             FileHandle.standardError.write(Data("[six] embedded \(chunks.count) passages of \(bookmark.displayTitle) in \(elapsed)\n".utf8))
             let table = vectorTable
             try await database.write { db in
+                // Seconds have passed: the bookmark may be gone, or re-saved with new chunks. Only what
+                // is still in the tables gets a vector, in the same transaction that checks.
+                let live = Set(try BookmarkChunk.where { $0.bookmarkID.eq(id) }.select(\.id).fetchAll(db))
+                guard try Bookmark.where { $0.id.eq(id) }.count().fetchOne(db) ?? 0 > 0, !live.isEmpty else { return }
                 try Self.dropVectors(of: chunks.map(\.id), from: table, in: db)
-                for (chunk, embedding) in zip(chunks, embeddings) {
+                for (chunk, embedding) in zip(chunks, embeddings) where live.contains(chunk.id) {
                     try db.execute(
                         sql: "INSERT INTO \"\(table)\"(chunk_id, profile_id, model, embedding) VALUES (?, ?, ?, ?)",
                         arguments: [chunk.id.uuidString.lowercased(), profileID.uuidString.lowercased(), embedding.model, Self.blob(embedding.vector)]
                     )
                 }
+                guard live == Set(chunks.map(\.id)) else { return } // re-saved meanwhile: the new chunks are queued on their own
                 let note: String? = chunks.count >= Self.maxChunks ? "Indexed the first \(Self.maxChunks) passages only" : nil
                 try Bookmark.where { $0.id.eq(id) }.update { row in
                     row.indexedAt = #bind(now)
