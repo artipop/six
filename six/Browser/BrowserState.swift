@@ -28,10 +28,23 @@ final class BrowserState {
     @ObservationIgnored let documents = DocumentStore()
     /// Highlights per URL; wired at launch.
     @ObservationIgnored var highlights: HighlightStore?
-    /// Ad and tracker blocking; wired at launch. Every window gets its content controller from here.
-    @ObservationIgnored var blocker: ContentBlocker?
+    /// Ad and tracker blocking. Assigning it reaches the windows that already exist — a window
+    /// restored from the snapshot is built before anything is wired, and an unprotected window is
+    /// exactly what the blocker is for.
+    @ObservationIgnored var blocker: ContentBlocker? {
+        didSet { for tab in tabs { tab.blocker = blocker } }
+    }
     /// Browser extensions, one controller per profile; see `ExtensionStore`.
-    @ObservationIgnored var extensions: ExtensionStore?
+    @ObservationIgnored var extensions: ExtensionStore? {
+        didSet { for tab in tabs { tab.extensions = extensions } }
+    }
+    /// The `WKUserContentController` of every open window — the blocker's rules and the devtools
+    /// hooks go into it (`PageControllers`).
+    @ObservationIgnored let pageControllers: PageControllers
+    /// Console and network capture, and Web Inspector; wired at launch.
+    @ObservationIgnored var devTools: DevToolsStore? {
+        didSet { for tab in tabs { tab.devTools = devTools } }
+    }
     /// Deep-research runs (see `ResearchRun`).
     var research: [ResearchRun] = []
     @ObservationIgnored private let settings: SettingsStore
@@ -42,9 +55,17 @@ final class BrowserState {
     @ObservationIgnored private var tabsByID: [UUID: BrowserTab] = [:]
 
     /// Starts from a snapshot when there is one; otherwise with the default profiles and one window.
-    init(snapshot: BrowserSnapshot? = nil, history: HistoryStore, settings: SettingsStore) {
+    /// `pageControllers`, `blocker` and `devTools` are arguments rather than properties assigned
+    /// afterwards because this initializer *builds and loads* the first windows: anything wired later
+    /// would arrive after that page had already started loading.
+    init(snapshot: BrowserSnapshot? = nil, history: HistoryStore, settings: SettingsStore,
+         pageControllers: PageControllers? = nil, blocker: ContentBlocker? = nil,
+         devTools: DevToolsStore? = nil) {
         self.history = history
         self.settings = settings
+        self.pageControllers = pageControllers ?? PageControllers()
+        self.blocker = blocker
+        self.devTools = devTools
         layout.centersFocus = settings.centersFocus
         layout.preferredWidthIndex = settings.columnWidthIndex
         var loaded = snapshot?.profiles ?? Self.legacyProfiles() ?? Profile.defaults
@@ -304,6 +325,8 @@ final class BrowserState {
         tab.thumbnails = thumbnails
         tab.blocker = blocker
         tab.extensions = extensions
+        tab.pageControllers = pageControllers
+        tab.devTools = devTools
         extensions?.noteOpened(tab)
         tabs.append(tab)
         tabsByID[tab.id] = tab
@@ -475,6 +498,8 @@ final class BrowserState {
         closed.close() // drops its page, its place in the budget and its picture
         blocker?.forget(id)
         extensions?.noteClosed(closed)
+        devTools?.forget(id)
+        pageControllers.forget(id)
         if let document = closed.document {
             documents.remove(id: document.id)
             research.removeAll { $0.documentTabID == closed.id }

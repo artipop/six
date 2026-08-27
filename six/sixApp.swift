@@ -27,6 +27,7 @@ struct sixApp: App {
     @State private var persistence: StatePersistence<FileSnapshotStore<AppStateSnapshot>>
     @State private var blocker: ContentBlocker
     @State private var extensions: ExtensionStore
+    @State private var devTools: DevToolsStore
 
     init() {
         let store = FileSnapshotStore<AppStateSnapshot>(fileNamed: "state.json")
@@ -41,7 +42,15 @@ struct sixApp: App {
         let settings = SettingsStore(database: database)
         SettingsStore.shared = settings
         let history = HistoryStore(database: database)
-        let browser = BrowserState(snapshot: snapshot?.browser, history: history, settings: settings)
+        // Built before the browser, and handed to it: `BrowserState.init` builds and loads the
+        // windows it restores, and a page is built once with what it was given.
+        let pageControllers = PageControllers()
+        let blocker = ContentBlocker(settings: settings, controllers: pageControllers)
+        let devTools = DevToolsStore(settings: settings, controllers: pageControllers)
+        let browser = BrowserState(snapshot: snapshot?.browser, history: history, settings: settings,
+                                   pageControllers: pageControllers, blocker: blocker, devTools: devTools)
+        blocker.startRefreshSchedule()
+        devTools.browser = browser
         let bookmarks = BookmarkStore(database: database, embedder: MLXEmbedder(modelsDirectory: AppDatabase.url.deletingLastPathComponent().appending(path: "Models", directoryHint: .isDirectory)))
         bookmarks.profile = { [weak browser] id in browser?.profiles.first { $0.id == id } }
         bookmarks.dataStore = { [weak browser] profile in browser?.dataStore(for: profile) }
@@ -52,15 +61,13 @@ struct sixApp: App {
         if ProcessInfo.processInfo.environment["SIX_EMBED_SELFTEST"] != nil, let mlx = bookmarks.embedder as? MLXEmbedder {
             Task { FileHandle.standardError.write(Data("[six] embed selftest:\n\(await mlx.diagnostics())\n".utf8)) }
         }
-        // Blocking is wired before any window is built: a window asks for its content controller as
-        // it materialises, and a window built without one would load its first page unfiltered.
-        let blocker = ContentBlocker(settings: settings)
-        browser.blocker = blocker
-        blocker.startRefreshSchedule()
         let extensions = ExtensionStore(settings: settings)
         extensions.browser = browser
         browser.extensions = extensions
         extensions.start()
+        // An extension already installed reaches the restored windows the same way it reaches a new
+        // install: the page's configuration is fixed when the page is built.
+        if !extensions.installed.filter(\.isEnabled).isEmpty { browser.rebuildLivePages() }
         // A development shortcut: install an unpacked folder at launch, no dialog.
         if let path = ProcessInfo.processInfo.environment["SIX_EXTENSION"], !path.isEmpty {
             Task { await extensions.installFromEnvironment(path) }
@@ -73,6 +80,7 @@ struct sixApp: App {
         agentSession.browser = browser
         let research = ResearchCoordinator(browser: browser, agentSession: agentSession, settings: settings)
         let tools = BrowserToolCatalog(browser: browser, assistant: assistant.settings, bookmarks: bookmarks, settings: settings, highlights: highlights)
+        tools.devTools = devTools
         assistant.tools = tools
         assistant.agentSession = agentSession
         assistant.research = research
@@ -103,6 +111,7 @@ struct sixApp: App {
         _research = State(initialValue: research)
         _blocker = State(initialValue: blocker)
         _extensions = State(initialValue: extensions)
+        _devTools = State(initialValue: devTools)
     }
 
     /// A file that won't load starts fresh — better than not starting.
@@ -128,6 +137,7 @@ struct sixApp: App {
                 .environment(research)
                 .environment(blocker)
                 .environment(extensions)
+                .environment(devTools)
                 .background(WindowObserver(state: window))
                 // six is one window: every page in the strip is a `WebPage`, and a second window would
                 // put the same objects into a second `WebView` — WebKit traps on that. Without this,
@@ -162,6 +172,7 @@ struct sixApp: App {
             BrowserCommands(settings: settings)
             PrivacyCommands(browser: browser, blocker: blocker)
             ExtensionCommands(browser: browser, extensions: extensions)
+            DevelopCommands(devTools: devTools)
             HistoryCommands(browser: browser)
             BookmarkCommands(browser: browser, bookmarks: bookmarks, settings: settings)
         }
@@ -405,6 +416,33 @@ private struct ExtensionCommands: Commands {
                     .disabled(!pair.action.isEnabled)
                 }
             }
+        }
+    }
+}
+
+/// Developer tools: Safari's inspector on six's pages, and the capture the agent tools read.
+private struct DevelopCommands: Commands {
+    let devTools: DevToolsStore
+
+    var body: some Commands {
+        CommandMenu("Develop") {
+            @Bindable var devTools = devTools
+            // six has no inspector window of its own — WebKit lets an app allow inspection, not open
+            // it. Where to attach from is in the help tag and in devtools.md, not in the menu.
+            Toggle("Web Inspector", isOn: $devTools.isInspectable)
+                .help("Then attach from Safari: Develop › \(DevToolsStore.machineName) › six")
+            if devTools.isInspectable {
+                Button("Open Safari to Attach") {
+                    if let safari = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.Safari") {
+                        NSWorkspace.shared.openApplication(at: safari, configuration: NSWorkspace.OpenConfiguration())
+                    }
+                }
+            }
+            Toggle("Capture Console and Network", isOn: $devTools.isCapturing)
+                .help("For list_console_messages and list_network_requests; runs a hook in the page's own world")
+            Divider()
+            Button("Clear Captured Logs") { devTools.clear() }
+                .disabled(!devTools.isCapturing)
         }
     }
 }

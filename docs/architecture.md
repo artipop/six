@@ -228,8 +228,10 @@ guest of the page's own scripts. The DOM is shared, the JavaScript is not:
   over it) and `Range`s in `CSS.highlights`, both DOM objects and both shared. `<mark>` wrappers and a `<style>` element
   exist only as fallbacks for engines without those APIs.
 
-The one deliberate exception is the `evaluate_javascript` tool, which runs in the page's world because that is what
-it is for. Its result is the page's word, not six's. What isolation does not change: page text still reaches the
+There are two deliberate exceptions. The `evaluate_javascript` tool runs in the page's world because that is what
+it is for. The devtools capture ([devtools.md](devtools.md)) does too, and has to: `console.log` and `fetch` are the
+page's own globals, so wrapping them anywhere else would wrap nothing. It is off by default, and what it returns is
+described as the page's account of itself rather than the browser's. Its result is the page's word, not six's. What isolation does not change: page text still reaches the
 model — that is the task, not an injection — and the defence there is the agent's (permission prompts, treating page
 content as data).
 

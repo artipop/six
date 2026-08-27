@@ -49,6 +49,53 @@ Smaller things that follow once the boundary moves (or that are worth doing anyw
 window rather than one window per profile strip, `commands` bound to real keys, `menus` in the page context menu,
 and extension pages (options, new-tab override) as ordinary columns rather than plain windows.
 
+## Someday: six's own WebKit build
+
+Two separate walls in this document are the same wall — WebKit can do the thing, the macOS SDK does not expose it:
+
+- `WKWebExtensionTab.webView(for:)` needs a tab's `WKWebView`, and `WebPage` keeps its own private, so an
+  extension's content scripts run but cannot talk to it ([extensions.md](extensions.md));
+- there is no public way to *open* Web Inspector on your own page — the whole word "Inspector" appears in exactly
+  one public header, as `WKWebView.isInspectable` — so six can only let Safari attach ([devtools.md](devtools.md)).
+
+Neither is a WebKit limitation. WebKit's inspector frontend is in the open-source tree, and the GTK port hands it to
+applications as ordinary public API (`webkit_web_view_get_inspector`, `webkit_web_inspector_show`). Orion has
+in-window developer tools on macOS, which means either SPI or a build of its own; Playwright ships a patched WebKit
+precisely to reach the inspector protocol.
+
+So the escape hatch, if the walls ever start costing more than they are worth: **build WebKit ourselves and embed
+it.** What it would buy, in the order it matters — the inspector in six's own window, the inspector protocol behind
+the MCP devtools tools (real network with headers and bodies, a DOM snapshot, interactions), and whatever
+`WebPage` refuses to hand over, including the backing view an extension tab needs.
+
+What it costs, so this is not written down as if it were free: hours of build time and tens of gigabytes per
+revision; the WebContent XPC services to embed, sign and sandbox; the size of the app; and — the real price —
+**security updates become ours**. System WebKit is patched with the OS; a private copy is patched when we get
+around to it, on a browser that runs other people's JavaScript. Every macOS release is also a chance for the build
+to break.
+
+Before that, two cheaper things should be tried, in order: **file the bugs** (nothing on bugs.webkit.org mentions
+`WKWebExtension` with `WebPage`, and the inspector ask is a request for parity with a port that already has it),
+and watch whether Safari's own MCP server (Safari 27 / STP 247) turns out to be reachable by other apps — it is the
+same capability from the other end.
+
+## Developer tools: the half Chrome's devtools MCP has and six does not
+
+Web Inspector and capture are built ([devtools.md](devtools.md)): console, network, screenshots, over MCP. What an
+agent still cannot do is *act* on a page except through `evaluate_javascript`, and cannot measure it:
+
+- **A snapshot with stable ids** — Chrome's `take_snapshot` returns the accessibility tree with a uid per node, and
+  every interaction tool takes one. six has `list_page_blocks` for reading; the same idea with uids, over the
+  accessibility tree rather than paragraphs, is what `click`, `fill` and `hover` would address.
+- **Interactions as tools** rather than hand-written JavaScript: click, type, hover, select, drag, upload, and
+  `wait_for(text)`. All of it is expressible through the page world today, which is why it is not urgent — but a
+  tool that returns "the button was not there" beats a script that throws.
+- **Performance traces and emulation** (CPU/network throttling, a device viewport). WebKit exposes none of this to
+  an app; it would need the Web Inspector protocol, which is not reachable from the app hosting the page. Worth
+  saying so in the docs and stopping there.
+- **Request bodies and headers**, and request interception. The page-world hooks see status and timing only; going
+  further means either the inspector protocol or a `WKURLSchemeHandler`-shaped proxy, and neither is cheap.
+
 ## Blocking: the advanced rules
 
 [Content blocking](blocking.md) converts what WebKit's JSON can express and drops the rest — ~12 000 rules of

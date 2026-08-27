@@ -32,6 +32,8 @@ final class SettingsStore {
         case blockingAllowlist = "blocking.allowlist"
         case blockingRefreshDays = "blocking.refreshDays"
         case installedExtensions = "extensions.installed"
+        case devToolsInspector = "devtools.inspector"
+        case devToolsCapture = "devtools.capture"
 
         /// Where the value lived before the database.
         var legacyDefaultsKey: String {
@@ -51,6 +53,8 @@ final class SettingsStore {
             case .blockingAllowlist: "six.blocking.allowlist"
             case .blockingRefreshDays: "six.blocking.refreshDays"
             case .installedExtensions: "six.extensions.installed"
+            case .devToolsInspector: "six.devtools.inspector"
+            case .devToolsCapture: "six.devtools.capture"
             }
         }
     }
@@ -178,6 +182,20 @@ final class SettingsStore {
             guard let data = try? JSONEncoder().encode(newValue) else { return }
             self[.installedExtensions] = String(decoding: data, as: UTF8.self)
         }
+    }
+
+    /// Web Inspector: Safari's Develop menu can attach to six's pages. Off by default — an
+    /// inspectable page is one another process on the machine can attach to.
+    var devToolsInspector: Bool {
+        get { self[.devToolsInspector].map { $0 == "1" } ?? false }
+        set { self[.devToolsInspector] = newValue ? "1" : "0" }
+    }
+
+    /// Console and network capture, for the agent tools. Off by default: it runs a hook in the
+    /// page's own world (`PageInstrumentation`).
+    var devToolsCapture: Bool {
+        get { self[.devToolsCapture].map { $0 == "1" } ?? false }
+        set { self[.devToolsCapture] = newValue ? "1" : "0" }
     }
 
     /// Optional model id for the ACP agent (`ANTHROPIC_MODEL`).

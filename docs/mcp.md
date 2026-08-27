@@ -37,6 +37,9 @@ empty, like a named workspace in niri).
 | `focus_window` | switch to the window's profile and workspace and scroll to it |
 | `move_window` | move a window to another workspace of its profile |
 | `close_window` | close a window |
+| `list_console_messages` | what a window's page logged since it last navigated (`level`, `limit`); needs Develop › Capture Console and Network — see [devtools.md](devtools.md) |
+| `list_network_requests` | the requests a page made — method, status, duration, size, kind (`failed_only`, `limit`); same switch |
+| `take_screenshot` | writes a PNG of the whole page under `Application Support/six/Screenshots/` and returns the path |
 | `evaluate_javascript` | run a function body in the page — in the *page's* world, unlike every other tool ([architecture.md](architecture.md#page-side-scripts)); result back as JSON |
 | `create_document` | a document window (Markdown in a column) — `title` or `markdown`, optional `workspace`, `profile`, `activate` → id |
 | `write_document` | `mode`: `replace` the text, `append`, or `section` — replace the body of one `## heading` (added when missing); `document_id` defaults to the run's document in the on-screen workspace |

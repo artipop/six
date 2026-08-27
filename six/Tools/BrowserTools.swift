@@ -45,6 +45,8 @@ final class BrowserToolCatalog {
     private let bookmarks: BookmarkStore
     private let settings: SettingsStore
     private let highlights: HighlightStore
+    /// Console and network capture; the devtools tools say so plainly when it is off.
+    var devTools: DevToolsStore?
 
     init(browser: BrowserState, assistant: AssistantSettings, bookmarks: BookmarkStore, settings: SettingsStore, highlights: HighlightStore) {
         self.browser = browser
@@ -159,6 +161,37 @@ final class BrowserToolCatalog {
             parameters: [Self.windowID, .init(name: "focus", description: "What the summary should concentrate on, if anything.")],
             surfaces: .mcp,
             run: { [unowned self] args in try await self.summarize(args) }
+        ),
+        BrowserTool(
+            name: "list_console_messages",
+            description: "What a window's page logged — console messages and uncaught errors, oldest first, since it last "
+                + "navigated. Needs Develop › Capture Console and Network to be on; the tool says so if it is not.",
+            parameters: [
+                Self.windowID,
+                .init(name: "level", description: "Only this level: log, info, warn, error or debug."),
+                .init(name: "limit", description: "At most this many, most recent (default 100).", type: .integer),
+            ],
+            surfaces: .mcp,
+            run: { [unowned self] args in try self.consoleMessages(args) }
+        ),
+        BrowserTool(
+            name: "list_network_requests",
+            description: "The requests a window's page made since it last navigated — URL, method, status, duration — as the "
+                + "page itself saw them. Needs Develop › Capture Console and Network to be on.",
+            parameters: [
+                Self.windowID,
+                .init(name: "failed_only", description: "Only requests that failed or answered 4xx/5xx.", type: .boolean),
+                .init(name: "limit", description: "At most this many, most recent (default 100).", type: .integer),
+            ],
+            surfaces: .mcp,
+            run: { [unowned self] args in try self.networkRequests(args) }
+        ),
+        BrowserTool(
+            name: "take_screenshot",
+            description: "Writes a PNG of a window's page to disk and returns the path — what the page looks like right now.",
+            parameters: [Self.windowID],
+            surfaces: .mcp,
+            run: { [unowned self] args in try await self.screenshot(args) }
         ),
         BrowserTool(
             name: "focus_window",
@@ -611,6 +644,56 @@ final class BrowserToolCatalog {
         tab.load(url)
         await Self.waitForLoad(tab)
         return "\(Self.describe(tab))" + (tab.isLoading ? " (still loading)" : "")
+    }
+
+    // MARK: Developer tools
+
+    private func requireCapture() throws -> DevToolsStore {
+        guard let devTools else { throw BrowserTool.Failure(message: "Developer tools are not available in this build.") }
+        guard devTools.isCapturing else {
+            throw BrowserTool.Failure(message: "Console and network capture is off. Turn on Develop › Capture Console and Network, "
+                + "then reload the page — the hooks run from the start of a load.")
+        }
+        return devTools
+    }
+
+    private func consoleMessages(_ args: ACPJSON) throws -> String {
+        let tab = try webTab(args)
+        let devTools = try requireCapture()
+        let limit = max(1, args["limit"]?.intValue ?? 100)
+        let messages = devTools.consoleMessages(for: tab.id, level: args["level"]?.stringValue, limit: limit)
+        guard !messages.isEmpty else { return "\(Self.describe(tab))\n\nNothing logged since this window last navigated." }
+        let lines = messages.map { "[\($0.level)] \($0.text)" }
+        return "\(Self.describe(tab))\n\n" + lines.joined(separator: "\n")
+    }
+
+    private func networkRequests(_ args: ACPJSON) throws -> String {
+        let tab = try webTab(args)
+        let devTools = try requireCapture()
+        let limit = max(1, args["limit"]?.intValue ?? 100)
+        let failedOnly = args["failed_only"]?.boolValue ?? false
+        let requests = devTools.networkRequests(for: tab.id, failedOnly: failedOnly, limit: limit)
+        guard !requests.isEmpty else {
+            return "\(Self.describe(tab))\n\n\(failedOnly ? "No failed requests" : "No requests") since this window last navigated."
+        }
+        let lines = requests.map { entry in
+            "\(entry.method) \(entry.statusText) \(entry.milliseconds) ms\(entry.sizeText) [\(entry.kind)] \(entry.url)"
+        }
+        return "\(Self.describe(tab))\n\n" + lines.joined(separator: "\n")
+    }
+
+    private func screenshot(_ args: ACPJSON) async throws -> String {
+        let tab = try webTab(args)
+        await Self.waitForLoad(tab)
+        // The whole page, not the part on screen — a screenshot of a column is not what was asked for.
+        guard let data = try? await tab.page.exported(as: .image(region: .contents, snapshotWidth: 1200)) else {
+            throw BrowserTool.Failure(message: "Could not take a picture of this window.")
+        }
+        try? FileManager.default.createDirectory(at: DevToolsStore.screenshotFolder, withIntermediateDirectories: true)
+        let stamp = Date.now.formatted(.iso8601.year().month().day().time(includingFractionalSeconds: false).timeSeparator(.omitted))
+        let file = DevToolsStore.screenshotFolder.appending(path: "\(stamp)-\(tab.id.uuidString.prefix(8)).png")
+        try data.write(to: file)
+        return "\(Self.describe(tab))\n\nWrote \(data.count / 1024) KB to \(file.path)"
     }
 
     private func pageContent(_ args: ACPJSON) async throws -> String {

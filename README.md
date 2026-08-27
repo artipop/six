@@ -19,7 +19,10 @@ playground for three things:
 4. **The browser as an MCP server** — the same binary run as `six --mcp` is a stdio MCP server relaying to the
    running app over a Unix socket. Every ACP session gets it in `mcpServers`, so agents can open windows into a
    named workspace, read and summarize pages, move and close windows — the same tool catalog the assistant uses.
-   See [docs/mcp.md](docs/mcp.md).
+   With **Develop › Capture Console and Network** on, that catalog also answers what a page logged and what it
+   requested (`list_console_messages`, `list_network_requests`, `take_screenshot`) — Chrome's devtools-MCP moves, on
+   WebKit. `WebPage.isInspectable` puts six's pages in Safari's own Develop menu.
+   See [docs/mcp.md](docs/mcp.md) and [docs/devtools.md](docs/devtools.md).
 
 Windows, workspaces, profiles and agent chats survive a relaunch: one JSON snapshot under Application Support, autosaved
 on change, ACP sessions resumed with `session/load`. See [docs/architecture.md](docs/architecture.md#persistence).
@@ -87,12 +90,14 @@ stays the page's.
 Only columns near the viewport get a real `WebView`; the rest render as cards, so a long strip stays cheap.
 
 Full reference: [docs/](docs/) — [controls](docs/controls.md), [hotkeys](docs/hotkeys.md), [layout](docs/layout.md),
-[architecture](docs/architecture.md), [blocking](docs/blocking.md), [extensions](docs/extensions.md), [assistant](docs/assistant.md),
+[architecture](docs/architecture.md), [blocking](docs/blocking.md), [extensions](docs/extensions.md),
+[devtools](docs/devtools.md), [assistant](docs/assistant.md),
 [agents](docs/agents.md), [MCP server](docs/mcp.md), [build](docs/build.md).
 
 ```
 six/Niri        NiriLayout (workspaces, columns, geometry, focus/move ops), NiriScrollMonitor (⌥+scroll gestures)
 six/Browser     Profile, BrowserTab (WebPage), BrowserState, SearchEngine + SearchSuggestions
+six/DevTools    DevToolsStore (Web Inspector + capture), PageInstrumentation (the page-world hooks)
 six/Extensions  ExtensionStore (a controller per profile), ExtensionInstaller (+ the compatibility verdict), adapters
 six/Blocking    ContentBlocker (compiles + attaches rules), FilterList/FilterListStore (the lists), RuleConversion
 six/Views       ContentView (top bar), NiriStripView (strip + overview), WindowChrome, StartPage, AssistantBar, AgentPanel

@@ -113,6 +113,8 @@ The whole "does not work" table is one missing method. The routes out, in the or
    one whose limits are known and stated.
 3. **A `WKWebView` per tab**, which is what every other WebKit browser with extension support does — and which is
    exactly the thing six exists not to do.
+4. **A WebKit build of six's own**, which would also close the devtools wall and costs accordingly — the price is
+   written down in [todo.md](todo.md#someday-sixs-own-webkit-build).
 
 ## Installing from a file
 

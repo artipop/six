@@ -15,6 +15,7 @@ reference.
 | [bookmarks.md](bookmarks.md) | bookmarks: readable Markdown copies per profile, on-device embeddings, search from the assistant and MCP |
 | [assistant.md](assistant.md) | the ⌘K assistant on Foundation Models |
 | [agents.md](agents.md) | the ACP client and the agent panel |
+| [devtools.md](devtools.md) | Web Inspector on six's pages, and the console/network capture the agent tools read |
 | [mcp.md](mcp.md) | `six --mcp`: the browser as an MCP server, and its tools |
 | [build.md](build.md) | toolchain, SDK override, sandbox |
 | [deep-research.md](deep-research.md) | deep research: document windows, the run, the writing tools, Save As, highlighted passages |

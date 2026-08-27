@@ -38,6 +38,11 @@ final class BrowserTab: Identifiable {
     /// Extensions: the profile's controller goes into the page's configuration, which is what makes
     /// this window visible to them at all. Nil for a private profile, which runs none.
     @ObservationIgnored weak var extensions: ExtensionStore?
+    /// This window's `WKUserContentController` — the blocker's rules and the devtools hooks live in
+    /// it; set by `BrowserState`.
+    @ObservationIgnored weak var pageControllers: PageControllers?
+    /// Console and network capture, and whether the page is inspectable; set by `BrowserState`.
+    @ObservationIgnored weak var devTools: DevToolsStore?
 
     /// The live page, when there is one. Read it to *draw* the window; anything that needs to talk to
     /// the page uses `page`, which builds one.
@@ -112,6 +117,11 @@ final class BrowserTab: Identifiable {
     /// The size the strip last drew this window at, for the thumbnail.
     @ObservationIgnored var displaySize: CGSize = CGSize(width: 900, height: 700)
 
+    /// Web Inspector, turned on or off while the window is open.
+    func applyInspectable(_ isInspectable: Bool) {
+        livePage?.isInspectable = isInspectable
+    }
+
     /// Set by `HighlightStore` when a stored passage could not be found on the page again.
     var highlightNote: String?
     /// Committed navigations go here (the profile's history); set by `BrowserState`.
@@ -159,12 +169,15 @@ final class BrowserTab: Identifiable {
                 self.onDocumentLink?(self, url)
             }
             page = WebPage(configuration: configuration, navigationDecider: decider)
+            page.isInspectable = devTools?.isInspectable ?? false
         } else {
             configuration.websiteDataStore = dataStore ?? .nonPersistent()
             configuration.applicationNameForUserAgent = UserAgent.applicationName
-            if let blocker {
-                blocker.note(id, showing: pendingURL ?? savedURL)
-                configuration.userContentController = blocker.controller(for: id)
+            // The blocker is told where the window is going before its controller is built: the
+            // controller is configured on creation, and what it gets depends on the address.
+            blocker?.note(id, showing: pendingURL ?? savedURL)
+            if let controller = pageControllers?.controller(for: id) {
+                configuration.userContentController = controller
             }
             configuration.webExtensionController = extensions?.controller(for: profileID)
             let decider = TabNavigationDecider()
@@ -246,6 +259,8 @@ final class BrowserTab: Identifiable {
                         // Redirects and history moves never go through the decider.
                         blocker?.note(id, showing: page.url)
                         extensions?.noteChanged(self, [.URL, .loading])
+                        // What was captured belonged to the page being left.
+                        devTools?.noteNavigation(id)
                         onNavigation?(self, .committed)
                     case .finished:
                         savedURL = page.url ?? savedURL

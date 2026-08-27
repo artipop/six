@@ -7,12 +7,13 @@ import WebKit
 /// the network layer of the content process drops the request, which is why this costs nothing at
 /// page time and cannot be seen by the site's own scripts.
 ///
-/// **One `WKUserContentController` per window.** The obvious arrangement — one per profile, shared
-/// by every page — makes the per-site allowlist expensive: WebKit evaluates each rule list on its
-/// own, so an "unblock this site" rule in a second list does *not* undo a block from the first, and
-/// the only honest way to allow a site would be to compile the exception into every list again (ten
-/// seconds of work for one click). A window has a controller of its own instead: a window showing an
-/// allowed site simply has no rule lists attached, and turning the shield off is instant.
+/// **One `WKUserContentController` per window** (they live in `PageControllers`). The obvious
+/// arrangement — one per profile, shared by every page — makes the per-site allowlist expensive:
+/// WebKit evaluates each rule list on its own, so an "unblock this site" rule in a second list does
+/// *not* undo a block from the first, and the only honest way to allow a site would be to compile the
+/// exception into every list again (ten seconds of work for one click). A window has a controller of
+/// its own instead: a window showing an allowed site simply has no rule lists attached, and turning
+/// the shield off is instant.
 ///
 /// **Off means off.** With `isEnabled` false nothing is attached, nothing is downloaded and nothing
 /// is compiled — the point of the switch is that someone who brings their own blocker is not paying
@@ -59,8 +60,8 @@ final class ContentBlocker {
 
     /// Compiled lists, by list id.
     @ObservationIgnored private var compiled: [String: WKContentRuleList] = [:]
-    /// A controller per window, and what that window is showing — the pair decides what is attached.
-    @ObservationIgnored private var controllers: [UUID: WKUserContentController] = [:]
+    /// The windows' controllers, and what each window is showing — the pair decides what is attached.
+    @ObservationIgnored private let controllers: PageControllers
     @ObservationIgnored private var hosts: [UUID: String] = [:]
     @ObservationIgnored private var refreshTask: Task<Void, Never>?
 
@@ -76,28 +77,19 @@ final class ContentBlocker {
         }
     }
 
-    init(settings: SettingsStore) {
+    init(settings: SettingsStore, controllers: PageControllers) {
         self.settings = settings
+        self.controllers = controllers
         self.isEnabled = settings.blockingEnabled
         self.lists = FilterList.merge(stored: settings.blockingLists)
         self.allowlist = Set(settings.blockingAllowlist)
+        controllers.onController { [weak self] windowID, _ in self?.apply(to: windowID) }
     }
 
     // MARK: What a window gets
 
-    /// The window's content controller, built on first ask and kept for as long as the window is
-    /// open — a page rebuilt after a discard is handed the same one.
-    func controller(for windowID: UUID) -> WKUserContentController {
-        if let controller = controllers[windowID] { return controller }
-        let controller = WKUserContentController()
-        controllers[windowID] = controller
-        apply(to: windowID)
-        return controller
-    }
-
     /// The window closed for good.
     func forget(_ windowID: UUID) {
-        controllers[windowID] = nil
         hosts[windowID] = nil
     }
 
@@ -278,7 +270,7 @@ final class ContentBlocker {
     }
 
     private func apply(to windowID: UUID) {
-        guard let controller = controllers[windowID] else { return }
+        guard let controller = controllers.existing(windowID) else { return }
         controller.removeAllContentRuleLists()
         guard isEnabled else { return }
         if let host = hosts[windowID], isAllowed(host) { return }
@@ -286,7 +278,7 @@ final class ContentBlocker {
     }
 
     private func applyToAllWindows() {
-        for windowID in controllers.keys { apply(to: windowID) }
+        controllers.forEach { windowID, _ in apply(to: windowID) }
     }
 
     // MARK: Housekeeping
