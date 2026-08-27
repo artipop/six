@@ -31,6 +31,13 @@ final class BrowserTab: Identifiable {
     @ObservationIgnored weak var cache: LivePageCache?
     /// Where the window's picture is kept between launches; set by `BrowserState`.
     @ObservationIgnored weak var thumbnails: PageThumbnails?
+    /// Ad and tracker blocking. The window has a content controller of its own (see
+    /// `ContentBlocker`), so what is attached follows the address this window is showing; set by
+    /// `BrowserState`.
+    @ObservationIgnored weak var blocker: ContentBlocker?
+    /// Extensions: the profile's controller goes into the page's configuration, which is what makes
+    /// this window visible to them at all. Nil for a private profile, which runs none.
+    @ObservationIgnored weak var extensions: ExtensionStore?
 
     /// The live page, when there is one. Read it to *draw* the window; anything that needs to talk to
     /// the page uses `page`, which builds one.
@@ -155,7 +162,19 @@ final class BrowserTab: Identifiable {
         } else {
             configuration.websiteDataStore = dataStore ?? .nonPersistent()
             configuration.applicationNameForUserAgent = UserAgent.applicationName
-            page = WebPage(configuration: configuration, navigationDecider: TabNavigationDecider())
+            if let blocker {
+                blocker.note(id, showing: pendingURL ?? savedURL)
+                configuration.userContentController = blocker.controller(for: id)
+            }
+            configuration.webExtensionController = extensions?.controller(for: profileID)
+            let decider = TabNavigationDecider()
+            // Before the load, not after: a site on the allowlist must never have the rules applied
+            // to it in the first place, and one that isn't must have them from its first request.
+            decider.onNavigate = { [weak self] url in
+                guard let self else { return }
+                self.blocker?.note(self.id, showing: url)
+            }
+            page = WebPage(configuration: configuration, navigationDecider: decider)
         }
         livePage = page
         generation += 1
@@ -224,10 +243,14 @@ final class BrowserTab: Identifiable {
                     switch event {
                     case .committed:
                         savedURL = page.url ?? savedURL
+                        // Redirects and history moves never go through the decider.
+                        blocker?.note(id, showing: page.url)
+                        extensions?.noteChanged(self, [.URL, .loading])
                         onNavigation?(self, .committed)
                     case .finished:
                         savedURL = page.url ?? savedURL
                         savedTitle = page.title
+                        extensions?.noteChanged(self, [.title, .loading])
                         restoreScrollIfNeeded(page)
                         onNavigation?(self, .finished)
                         // Only to give a window that has never been drawn something to show. The
@@ -412,9 +435,17 @@ final class BrowserTab: Identifiable {
 }
 
 /// Keeps navigation inside the tab; opens `target=_blank` links in the same page.
-private struct TabNavigationDecider: WebPage.NavigationDeciding {
+@MainActor
+private final class TabNavigationDecider: WebPage.NavigationDeciding {
+    /// Where the window is going, told before the request leaves — the one moment early enough to
+    /// decide whether this page is blocked (`ContentBlocker`).
+    var onNavigate: ((URL) -> Void)?
+
     func decidePolicy(for action: WebPage.NavigationAction, preferences: inout WebPage.NavigationPreferences) async -> WKNavigationActionPolicy {
-        .allow
+        if action.request.url?.scheme?.hasPrefix("http") == true, let url = action.request.url {
+            onNavigate?(url)
+        }
+        return .allow
     }
 }
 

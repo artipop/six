@@ -10,6 +10,7 @@
 		5CD2470091CF7AE5F73D25A5 /* Tokenizers in Frameworks */ = {isa = PBXBuildFile; productRef = E4D3C02313C636C3B360B52A /* Tokenizers */; };
 		6129C17CC7CD1BD468139EF8 /* MLXEmbedders in Frameworks */ = {isa = PBXBuildFile; productRef = ABD000B7AE7299C48D5CC4DD /* MLXEmbedders */; };
 		A271466D26DE9D05E6A5B285 /* HuggingFace in Frameworks */ = {isa = PBXBuildFile; productRef = FF7BC8AD7FB5289836E41C75 /* HuggingFace */; };
+		AC11A8513040444B007E3F9B /* ContentBlockerConverter in Frameworks */ = {isa = PBXBuildFile; productRef = AD01B10D4E2F7A6390D5C442 /* ContentBlockerConverter */; };
 		AC8977A0303CEC22008426C2 /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = AC89779F303CEC22008426C2 /* SQLiteData */; };
 		C4E57E1CA358AD438C0F5731 /* SQLiteVecData in Frameworks */ = {isa = PBXBuildFile; productRef = 82F43A23555A3254647ADAE5 /* SQLiteVecData */; };
 /* End PBXBuildFile section */
@@ -30,6 +31,7 @@
 		AC89765E303CEC20008426C2 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
+				AC11A8513040444B007E3F9B /* ContentBlockerConverter in Frameworks */,
 				AC8977A0303CEC22008426C2 /* SQLiteData in Frameworks */,
 				C4E57E1CA358AD438C0F5731 /* SQLiteVecData in Frameworks */,
 				6129C17CC7CD1BD468139EF8 /* MLXEmbedders in Frameworks */,
@@ -79,6 +81,7 @@
 				ABD000B7AE7299C48D5CC4DD /* MLXEmbedders */,
 				FF7BC8AD7FB5289836E41C75 /* HuggingFace */,
 				E4D3C02313C636C3B360B52A /* Tokenizers */,
+				AD01B10D4E2F7A6390D5C442 /* ContentBlockerConverter */,
 			);
 			productName = six;
 			productReference = AC897661303CEC20008426C2 /* six.app */;
@@ -114,6 +117,7 @@
 				0491713B9D1CDF6B8B095255 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */,
 				9202E564C34651D6970C63AD /* XCRemoteSwiftPackageReference "swift-huggingface" */,
 				F6FD676108E197A94959A73D /* XCRemoteSwiftPackageReference "swift-transformers" */,
+				AD01B10C4E2F7A6390D5C441 /* XCRemoteSwiftPackageReference "SafariConverterLib" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = AC897662303CEC20008426C2 /* Products */;
@@ -390,6 +394,14 @@
 				minimumVersion = 1.11.0;
 			};
 		};
+		AD01B10C4E2F7A6390D5C441 /* XCRemoteSwiftPackageReference "SafariConverterLib" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/AdguardTeam/SafariConverterLib";
+			requirement = {
+				kind = exactVersion;
+				version = 4.3.0;
+			};
+		};
 		F6FD676108E197A94959A73D /* XCRemoteSwiftPackageReference "swift-transformers" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/huggingface/swift-transformers";
@@ -415,6 +427,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AC89779E303CEC22008426C2 /* XCRemoteSwiftPackageReference "sqlite-data" */;
 			productName = SQLiteData;
+		};
+		AD01B10D4E2F7A6390D5C442 /* ContentBlockerConverter */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AD01B10C4E2F7A6390D5C441 /* XCRemoteSwiftPackageReference "SafariConverterLib" */;
+			productName = ContentBlockerConverter;
 		};
 		E4D3C02313C636C3B360B52A /* Tokenizers */ = {
 			isa = XCSwiftPackageProductDependency;

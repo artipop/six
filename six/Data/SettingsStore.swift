@@ -27,6 +27,11 @@ final class SettingsStore {
         case researchTemplate = "research.template"
         case researchSources = "research.sources"
         case livePages = "browser.livePages"
+        case blockingEnabled = "blocking.enabled"
+        case blockingLists = "blocking.lists"
+        case blockingAllowlist = "blocking.allowlist"
+        case blockingRefreshDays = "blocking.refreshDays"
+        case installedExtensions = "extensions.installed"
 
         /// Where the value lived before the database.
         var legacyDefaultsKey: String {
@@ -41,6 +46,11 @@ final class SettingsStore {
             case .researchTemplate: "six.research.template"
             case .researchSources: "six.research.sources"
             case .livePages: "six.browser.livePages"
+            case .blockingEnabled: "six.blocking.enabled"
+            case .blockingLists: "six.blocking.lists"
+            case .blockingAllowlist: "six.blocking.allowlist"
+            case .blockingRefreshDays: "six.blocking.refreshDays"
+            case .installedExtensions: "six.extensions.installed"
             }
         }
     }
@@ -115,6 +125,59 @@ final class SettingsStore {
     var bookmarkRefreshDays: Int {
         get { self[.bookmarkRefreshDays].flatMap(Int.init) ?? 7 }
         set { self[.bookmarkRefreshDays] = String(newValue) }
+    }
+
+    /// Ad and tracker blocking, on out of the box. Off means off: no lists fetched, nothing
+    /// compiled, no rules attached — the switch is there for people who bring their own blocker.
+    var blockingEnabled: Bool {
+        get { self[.blockingEnabled].map { $0 == "1" } ?? true }
+        set { self[.blockingEnabled] = newValue ? "1" : "0" }
+    }
+
+    /// The filter lists and what the user chose about each. Healed against the built-in catalogue
+    /// on read, so a list added in a later version of six appears by itself (`FilterList.merge`).
+    var blockingLists: [FilterList] {
+        get {
+            guard let json = self[.blockingLists], let data = json.data(using: .utf8),
+                  let stored = try? JSONDecoder().decode([FilterList].self, from: data) else { return [] }
+            return stored
+        }
+        set {
+            guard let data = try? JSONEncoder().encode(newValue) else { return }
+            self[.blockingLists] = String(decoding: data, as: UTF8.self)
+        }
+    }
+
+    /// Sites the user asked six to leave alone, as bare hostnames.
+    var blockingAllowlist: [String] {
+        get {
+            guard let json = self[.blockingAllowlist], let data = json.data(using: .utf8),
+                  let stored = try? JSONDecoder().decode([String].self, from: data) else { return [] }
+            return stored
+        }
+        set {
+            guard let data = try? JSONEncoder().encode(newValue) else { return }
+            self[.blockingAllowlist] = String(decoding: data, as: UTF8.self)
+        }
+    }
+
+    /// How often filter lists are fetched again; 0 is never (what is on disk keeps blocking).
+    var blockingRefreshDays: Int {
+        get { self[.blockingRefreshDays].flatMap(Int.init) ?? 3 }
+        set { self[.blockingRefreshDays] = String(newValue) }
+    }
+
+    /// The extensions six has unpacked, and what the user decided about each.
+    var installedExtensions: [InstalledExtension] {
+        get {
+            guard let json = self[.installedExtensions], let data = json.data(using: .utf8),
+                  let stored = try? JSONDecoder().decode([InstalledExtension].self, from: data) else { return [] }
+            return stored
+        }
+        set {
+            guard let data = try? JSONEncoder().encode(newValue) else { return }
+            self[.installedExtensions] = String(decoding: data, as: UTF8.self)
+        }
     }
 
     /// Optional model id for the ACP agent (`ANTHROPIC_MODEL`).

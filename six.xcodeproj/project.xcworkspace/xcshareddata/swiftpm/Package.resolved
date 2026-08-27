@@ -1,5 +1,5 @@
 {
-  "originHash" : "82e9d4a65b8c69917e6054c7b59b4dee8fe816d24c8e77f333bae1ec1013afe8",
+  "originHash" : "c674498582c16d18c8448e509e92dfb84fdb0fd12c2c8a023a018841ac1e4dac",
   "pins" : [
     {
       "identity" : "combine-schedulers",
@@ -47,6 +47,24 @@
       }
     },
     {
+      "identity" : "punycodeswift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/gumob/PunycodeSwift.git",
+      "state" : {
+        "revision" : "30a462bdb4398ea835a3585472229e0d74b36ba5",
+        "version" : "3.0.0"
+      }
+    },
+    {
+      "identity" : "safariconverterlib",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/AdguardTeam/SafariConverterLib",
+      "state" : {
+        "revision" : "7a2e93f0afa70479cc59985f332025236c3f0c39",
+        "version" : "4.3.0"
+      }
+    },
+    {
       "identity" : "sqlite-data",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/sqlite-data",
@@ -69,8 +87,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-argument-parser",
       "state" : {
-        "revision" : "6a52f3251125d74daf04fcbd5e6f08a75d074382",
-        "version" : "1.8.2"
+        "revision" : "41982a3656a71c768319979febd796c6fd111d5c",
+        "version" : "1.5.0"
       }
     },
     {
@@ -188,6 +206,15 @@
       "state" : {
         "revision" : "de219a1cf34e958134e75a9ebb134cf09bf52fc6",
         "version" : "2.0.11"
+      }
+    },
+    {
+      "identity" : "swift-psl",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ameshkov/swift-psl",
+      "state" : {
+        "revision" : "2d1f3b17e77744279cc4cfca83ee88afd1a0800b",
+        "version" : "1.1.164"
       }
     },
     {

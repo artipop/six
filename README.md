@@ -31,6 +31,19 @@ itself, and builds the same page again when you come back to it. Coming back is 
 the whole app, so stepping out to another workspace and back finds the pages still warm.
 See [docs/architecture.md](docs/architecture.md#live-pages).
 
+Ads and trackers are blocked out of the box, by WebKit itself: filter lists are converted to WebKit's content-blocker
+JSON and compiled into `WKContentRuleList`s, so a blocked request never leaves the content process and nothing runs
+inside the page. Every window has its own content controller, which is what makes the per-site allowlist — the shield
+in the address field — a reload rather than a ten-second recompile. The **Privacy** menu has the switch (off means
+off: nothing fetched, nothing compiled), the lists and the sites left alone.
+See [docs/blocking.md](docs/blocking.md).
+
+Browser extensions run too, on `WKWebExtension` — installed from a folder, a `.zip`, a `.crx` or an `.xpi`, one
+controller per profile, never in a private window. There is one thing six cannot give them: a tab's `WKWebView`,
+which `WebPage` does not hand out, so a content script runs but cannot message its extension. That boundary is
+measured rather than guessed, and every install says what it costs *that* extension before it runs.
+See [docs/extensions.md](docs/extensions.md).
+
 six registers with macOS as a browser: it claims `http`/`https` and the usual web file types, so it can be picked in
 System Settings › Desktop & Dock › Default web browser (or from **Set six as Default Browser…** in the six menu), and
 links or `.html` files opened from other apps land as windows in the strip.
@@ -74,12 +87,14 @@ stays the page's.
 Only columns near the viewport get a real `WebView`; the rest render as cards, so a long strip stays cheap.
 
 Full reference: [docs/](docs/) — [controls](docs/controls.md), [hotkeys](docs/hotkeys.md), [layout](docs/layout.md),
-[architecture](docs/architecture.md), [assistant](docs/assistant.md), [agents](docs/agents.md), [MCP server](docs/mcp.md),
-[build](docs/build.md).
+[architecture](docs/architecture.md), [blocking](docs/blocking.md), [extensions](docs/extensions.md), [assistant](docs/assistant.md),
+[agents](docs/agents.md), [MCP server](docs/mcp.md), [build](docs/build.md).
 
 ```
 six/Niri        NiriLayout (workspaces, columns, geometry, focus/move ops), NiriScrollMonitor (⌥+scroll gestures)
 six/Browser     Profile, BrowserTab (WebPage), BrowserState, SearchEngine + SearchSuggestions
+six/Extensions  ExtensionStore (a controller per profile), ExtensionInstaller (+ the compatibility verdict), adapters
+six/Blocking    ContentBlocker (compiles + attaches rules), FilterList/FilterListStore (the lists), RuleConversion
 six/Views       ContentView (top bar), NiriStripView (strip + overview), WindowChrome, StartPage, AssistantBar, AgentPanel
 six/Assistant   ModelChoice/AssistantSettings (model selection), AssistantStore (streaming), FM compatibility probe
 six/ACP         ACPJSON, JSONRPCConnection, ACPTypes, ACPAgent (process), ACPClient (actor), AgentSessionStore (VM)

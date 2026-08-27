@@ -31,6 +31,13 @@ because a column points at it — `newTab` appends a tab and inserts a column, `
 column is the selected tab**: `syncSelection()` copies `layout.focusedTabID` into `selectedTabID` after every layout
 operation, and the assistant, the agent panel and `⌘L` all key off that.
 
+Every window also has a `WKUserContentController` of its own, handed to its page as it is built and kept while the
+window lives — that is what carries the compiled ad-blocking rules, and per *window* rather than per profile so the
+per-site allowlist is a reload instead of a recompile. See [blocking.md](blocking.md). The page's
+`webExtensionController` comes from the same moment, and is the profile's — see [extensions.md](extensions.md).
+Both are fixed when the page is built, which is why anything that changes them goes through
+`rebuildLivePages()`.
+
 Views never mutate `NiriLayout` directly; they call `BrowserState`, which wraps the call in the shared animation
 (`animateLayout`). Strip panning is the exception — it follows the trackpad and is deliberately un-animated.
 

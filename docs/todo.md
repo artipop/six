@@ -31,6 +31,34 @@ the SDK offers and doesn't):
 PDFs: the model doesn't take them; `PDFPage.string` for the text layer and page renders as images through step 1/2
 when `ReadablePage` learns to read a PDF `WebPage`.
 
+## Extensions: the tab a content script cannot see
+
+Hosting is built ([extensions.md](extensions.md)): install from a folder or an archive, a controller per profile,
+actions in the top bar, permission prompts, and a compatibility verdict shown before anything runs. What is left is
+the one gap behind it — `WKWebExtensionTab.webView(for:)` needs the live `WKWebView` and `WebPage` does not hand its
+own out — which costs messaging between a content script and its extension, `scripting.executeScript` and
+`insertCSS`, and (as far as can be told) uBlock Origin Lite's per-tab logic.
+
+Reflection into `WebPage`'s private storage would close it and is deliberately not used. The move that might
+actually close it is upstream: nothing on bugs.webkit.org mentions `WKWebExtension` and `WebPage` together, so this
+wants a bug (and a Feedback) asking for the backing view — or for a way to associate a `WebPage` with a tab — with
+the measurements from [extensions.md](extensions.md) as the case. `WebPage.isInspectable` is the precedent: something
+that lives on `WKWebView`, lifted into the new API.
+
+Smaller things that follow once the boundary moves (or that are worth doing anyway): a workspace per extension
+window rather than one window per profile strip, `commands` bound to real keys, `menus` in the page context menu,
+and extension pages (options, new-tab override) as ordinary columns rather than plain windows.
+
+## Blocking: the advanced rules
+
+[Content blocking](blocking.md) converts what WebKit's JSON can express and drops the rest — ~12 000 rules of
+AdGuard Base alone. Scriptlets (`##+js(...)`) and extended CSS (`:has-text()`, `:xpath()`) need a JavaScript engine
+inside every page: SafariConverterLib already returns them as `advancedRulesText`, and AdGuard's own
+`@adguard/extended-css` + `@adguard/scriptlets` are the engines meant to run them. six has the isolated world to run
+them in ([architecture.md](architecture.md#page-side-scripts)), so the work is a bundled JS payload, a per-site rule
+lookup at document start, and a way to keep both cheap on a page that is already loading. Anti-adblock
+circumvention comes with it, and only with it.
+
 ## Picture-in-picture
 
 Two different features that both deserve the name:

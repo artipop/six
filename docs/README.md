@@ -10,6 +10,8 @@ reference.
 | [layout.md](layout.md) | the niri layout: model, geometry, gestures |
 | [start-page.md](start-page.md) | the start page, search and suggestions |
 | [architecture.md](architecture.md) | modules and how state flows |
+| [extensions.md](extensions.md) | browser extensions: installing from a file, a controller per profile, and the measured boundary of what a `WebPage` browser can host |
+| [blocking.md](blocking.md) | ads and trackers: filter lists, `WKContentRuleList`, the shield and the per-site allowlist |
 | [bookmarks.md](bookmarks.md) | bookmarks: readable Markdown copies per profile, on-device embeddings, search from the assistant and MCP |
 | [assistant.md](assistant.md) | the ⌘K assistant on Foundation Models |
 | [agents.md](agents.md) | the ACP client and the agent panel |

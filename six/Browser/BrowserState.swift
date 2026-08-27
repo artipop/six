@@ -28,6 +28,10 @@ final class BrowserState {
     @ObservationIgnored let documents = DocumentStore()
     /// Highlights per URL; wired at launch.
     @ObservationIgnored var highlights: HighlightStore?
+    /// Ad and tracker blocking; wired at launch. Every window gets its content controller from here.
+    @ObservationIgnored var blocker: ContentBlocker?
+    /// Browser extensions, one controller per profile; see `ExtensionStore`.
+    @ObservationIgnored var extensions: ExtensionStore?
     /// Deep-research runs (see `ResearchRun`).
     var research: [ResearchRun] = []
     @ObservationIgnored private let settings: SettingsStore
@@ -298,6 +302,9 @@ final class BrowserState {
     private func add(_ tab: BrowserTab) {
         tab.cache = pages
         tab.thumbnails = thumbnails
+        tab.blocker = blocker
+        tab.extensions = extensions
+        extensions?.noteOpened(tab)
         tabs.append(tab)
         tabsByID[tab.id] = tab
     }
@@ -431,6 +438,7 @@ final class BrowserState {
 
     func selectTab(_ id: BrowserTab.ID) {
         guard let tab = tabs.first(where: { $0.id == id }) else { return }
+        extensions?.noteActivated(tab)
         if selectedProfileID != tab.profileID {
             selectedProfileID = tab.profileID
             layout.activeProfileID = tab.profileID
@@ -442,11 +450,31 @@ final class BrowserState {
         syncSelection()
     }
 
+    /// Every window gives its page back and builds it again. A page's configuration is fixed when the
+    /// page is built — its content controller, its extension controller — so anything that changes
+    /// what a page should be built *with* has to go through here. Windows keep their address, their
+    /// history and their picture, as they do for any other discard.
+    func rebuildLivePages() {
+        for tab in tabs where tab.hasLivePage { tab.discard() }
+        selectedTab?.prepareForDisplay()
+    }
+
+    /// The shield in this window's address field: allow ads on the site it is showing, or block
+    /// them again. The rules move with the next load, so the window reloads to show the difference.
+    func setBlockingAllowed(_ allowed: Bool, for tab: BrowserTab) {
+        guard let blocker, let url = tab.currentURL else { return }
+        blocker.setAllowed(allowed, for: url)
+        blocker.note(tab.id, showing: url)
+        _ = tab.page.reload()
+    }
+
     func closeTab(_ id: BrowserTab.ID) {
         guard let index = tabs.firstIndex(where: { $0.id == id }) else { return }
         let closed = tabs.remove(at: index)
         tabsByID[id] = nil
         closed.close() // drops its page, its place in the budget and its picture
+        blocker?.forget(id)
+        extensions?.noteClosed(closed)
         if let document = closed.document {
             documents.remove(id: document.id)
             research.removeAll { $0.documentTabID == closed.id }

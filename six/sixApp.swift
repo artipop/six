@@ -1,5 +1,6 @@
 import SQLiteData
 import SwiftUI
+import WebKit
 
 /// The binary is two things: the browser, and — with `--mcp` — a stdio MCP server that relays to the
 /// running browser (see `MCPStdioBridge`). The switch happens before AppKit is touched.
@@ -24,6 +25,8 @@ struct sixApp: App {
     @State private var highlights: HighlightStore
     @State private var research: ResearchCoordinator
     @State private var persistence: StatePersistence<FileSnapshotStore<AppStateSnapshot>>
+    @State private var blocker: ContentBlocker
+    @State private var extensions: ExtensionStore
 
     init() {
         let store = FileSnapshotStore<AppStateSnapshot>(fileNamed: "state.json")
@@ -48,6 +51,19 @@ struct sixApp: App {
         bookmarks.resumeIndexing()
         if ProcessInfo.processInfo.environment["SIX_EMBED_SELFTEST"] != nil, let mlx = bookmarks.embedder as? MLXEmbedder {
             Task { FileHandle.standardError.write(Data("[six] embed selftest:\n\(await mlx.diagnostics())\n".utf8)) }
+        }
+        // Blocking is wired before any window is built: a window asks for its content controller as
+        // it materialises, and a window built without one would load its first page unfiltered.
+        let blocker = ContentBlocker(settings: settings)
+        browser.blocker = blocker
+        blocker.startRefreshSchedule()
+        let extensions = ExtensionStore(settings: settings)
+        extensions.browser = browser
+        browser.extensions = extensions
+        extensions.start()
+        // A development shortcut: install an unpacked folder at launch, no dialog.
+        if let path = ProcessInfo.processInfo.environment["SIX_EXTENSION"], !path.isEmpty {
+            Task { await extensions.installFromEnvironment(path) }
         }
         let highlights = HighlightStore()
         highlights.isPrivate = { [weak browser] id in browser?.isPrivate(id) ?? false }
@@ -85,6 +101,8 @@ struct sixApp: App {
         _mcp = State(initialValue: mcp)
         _highlights = State(initialValue: highlights)
         _research = State(initialValue: research)
+        _blocker = State(initialValue: blocker)
+        _extensions = State(initialValue: extensions)
     }
 
     /// A file that won't load starts fresh — better than not starting.
@@ -108,6 +126,8 @@ struct sixApp: App {
                 .environment(bookmarks)
                 .environment(highlights)
                 .environment(research)
+                .environment(blocker)
+                .environment(extensions)
                 .background(WindowObserver(state: window))
                 // six is one window: every page in the strip is a `WebPage`, and a second window would
                 // put the same objects into a second `WebView` — WebKit traps on that. Without this,
@@ -140,6 +160,8 @@ struct sixApp: App {
             FileCommands(browser: browser, highlights: highlights)
             LayoutCommands(browser: browser)
             BrowserCommands(settings: settings)
+            PrivacyCommands(browser: browser, blocker: blocker)
+            ExtensionCommands(browser: browser, extensions: extensions)
             HistoryCommands(browser: browser)
             BookmarkCommands(browser: browser, bookmarks: bookmarks, settings: settings)
         }
@@ -324,6 +346,63 @@ private struct BookmarkCommands: Commands {
                 }
                 ForEach(Array(recent)) { entry in
                     Button(entry.displayTitle) { browser.newTab(url: entry.url, in: entry.profileID) }
+                }
+            }
+        }
+    }
+}
+
+/// Blocking, and the two things a person actually does with it: let this site through, and look at
+/// the lists.
+private struct PrivacyCommands: Commands {
+    let browser: BrowserState
+    let blocker: ContentBlocker
+    @FocusedValue(\.showFilterLists) private var showFilterLists
+
+    var body: some Commands {
+        CommandMenu("Privacy") {
+            @Bindable var blocker = blocker
+            Toggle("Block Ads and Trackers", isOn: $blocker.isEnabled)
+            let tab = browser.selectedTab
+            let url = tab?.currentURL
+            let host = url?.host() ?? ""
+            let allowed = url.map { blocker.allows($0) && blocker.isEnabled } ?? false
+            Button(allowed ? "Block Ads on \(host)" : "Allow Ads on \(host)") {
+                guard let tab else { return }
+                browser.setBlockingAllowed(!allowed, for: tab)
+            }
+            .disabled(!blocker.isEnabled || url == nil || host.isEmpty)
+            Divider()
+            Button("Update Filter Lists Now") { Task { await blocker.updateNow() } }
+                .disabled(!blocker.isEnabled || blocker.isWorking)
+            Button("Filter Lists…") { showFilterLists?.perform() }
+                .disabled(showFilterLists == nil)
+        }
+    }
+}
+
+/// Extensions: the panel, and each extension's own action for the focused window.
+private struct ExtensionCommands: Commands {
+    let browser: BrowserState
+    let extensions: ExtensionStore
+    @FocusedValue(\.showExtensions) private var showExtensions
+
+    var body: some Commands {
+        CommandMenu("Extensions") {
+            Button("Manage Extensions…") { showExtensions?.perform() }
+                .disabled(showExtensions == nil)
+            Divider()
+            let tab = browser.selectedTab
+            let actions = tab.map { extensions.actions(for: $0) } ?? []
+            if actions.isEmpty {
+                Text(extensions.installed.isEmpty ? "None installed" : "Nothing for this window")
+            } else {
+                ForEach(actions, id: \.record.id) { pair in
+                    Button(pair.action.label ?? pair.record.name) {
+                        guard let tab else { return }
+                        extensions.performAction(pair.record, for: tab, anchor: nil)
+                    }
+                    .disabled(!pair.action.isEnabled)
                 }
             }
         }

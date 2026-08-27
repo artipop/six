@@ -8,6 +8,8 @@ struct ContentView: View {
     @State private var showAgentPanel = false
     @State private var showHistory = false
     @State private var showBookmarks = false
+    @State private var showFilterLists = false
+    @State private var showExtensions = false
     @State private var confirmClearHistory = false
 
     var body: some View {
@@ -39,6 +41,10 @@ struct ContentView: View {
         .sheet(isPresented: $showHistory) { HistoryView() }
         .focusedSceneValue(\.showBookmarks, FocusAddressBarAction { showBookmarks = true })
         .sheet(isPresented: $showBookmarks) { BookmarksView() }
+        .focusedSceneValue(\.showFilterLists, FocusAddressBarAction { showFilterLists = true })
+        .sheet(isPresented: $showFilterLists) { BlockingView() }
+        .focusedSceneValue(\.showExtensions, FocusAddressBarAction { showExtensions = true })
+        .sheet(isPresented: $showExtensions) { ExtensionsView() }
         .focusedSceneValue(\.clearHistory, FocusAddressBarAction { confirmClearHistory = true })
         .clearHistoryDialog(isPresented: $confirmClearHistory)
         .onKeyPress(.escape) {
@@ -87,6 +93,7 @@ private struct TopBar: View {
             ProfileSwitcher(isAddingProfile: $isAddingProfile)
             Spacer(minLength: 12)
             BookmarkButton()
+            ExtensionActionBar()
             WorkspaceStepper()
             Button { browser.toggleOverview() } label: {
                 Image(systemName: layout.isOverview ? "rectangle.grid.1x2.fill" : "rectangle.grid.1x2")

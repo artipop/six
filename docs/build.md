@@ -33,9 +33,14 @@ SwiftPM dependency would ignore the `SDKROOT` override, and that library touches
 Ordinary packages are fine — [SQLiteData](https://github.com/pointfreeco/sqlite-data) (GRDB, StructuredQueries and
 the rest of its tree), [sqlite-vec-data](https://github.com/mhayes853/sqlite-vec-data),
 [mlx-swift-lm](https://github.com/ml-explore/mlx-swift-lm) (`MLXEmbedders`, with mlx-swift underneath),
-[swift-huggingface](https://github.com/huggingface/swift-huggingface) and
-[swift-transformers](https://github.com/huggingface/swift-transformers) (`Tokenizers`) are normal SwiftPM dependencies
-of the target and build under the override without trouble. mlx-swift-lm's `MLXHuggingFace` product is deliberately
+[swift-huggingface](https://github.com/huggingface/swift-huggingface),
+[swift-transformers](https://github.com/huggingface/swift-transformers) (`Tokenizers`) and
+[SafariConverterLib](https://github.com/AdguardTeam/SafariConverterLib) (`ContentBlockerConverter`, for
+[content blocking](blocking.md)) are normal SwiftPM dependencies of the target and build under the override without
+trouble. SafariConverterLib pins `swift-argument-parser` to exactly 1.5.0 for a command-line target six does not
+link, which pulls the resolved version down from 1.8.2; nothing in the tree needs the newer one. Its converter also
+prints a line per unconvertible rule on stdout in **Debug** builds only (its own `#if DEBUG`), which is a few hundred
+lines at first launch and silence in Release. mlx-swift-lm's `MLXHuggingFace` product is deliberately
 *not* linked: it depends on `MLXFoundationModels`, a third-party `LanguageModel` over the executor ABI.
 
 ## A DMG to install from

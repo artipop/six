@@ -9,10 +9,39 @@ struct WindowChrome: View {
     var addressFocus: FocusState<UUID?>.Binding
 
     @Environment(BrowserState.self) private var browser
+    @Environment(ContentBlocker.self) private var blocker
+    @FocusedValue(\.showFilterLists) private var showFilterLists
     @State private var text = ""
     @State private var hovering = false
 
     private var isEditing: Bool { addressFocus.wrappedValue == tab.id }
+
+    private var isWebPage: Bool { tab.currentURL?.scheme?.hasPrefix("http") == true }
+    /// Is this site being left alone — either because the switch is off, or because the user said so?
+    private var isAllowed: Bool { blocker.allows(tab.currentURL) }
+
+    /// The state of blocking on this page, and the two things to do about it. Filled shield: the
+    /// rules are on this page. Crossed out: they are not.
+    private var shield: some View {
+        Menu {
+            Button(isAllowed ? "Block Ads on This Site" : "Allow Ads on This Site") {
+                browser.setBlockingAllowed(!isAllowed, for: tab)
+            }
+            .disabled(!blocker.isEnabled)
+            Button("Filter Lists…") { showFilterLists?.perform() }
+                .disabled(showFilterLists == nil)
+        } label: {
+            Image(systemName: isAllowed ? "shield.slash" : "shield.lefthalf.filled")
+                .font(.system(size: 9))
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .foregroundStyle(isAllowed ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.tint))
+        .help(blocker.isEnabled
+              ? (isAllowed ? "Ads are allowed on this site" : "Ads and trackers are blocked here")
+              : "Blocking is off")
+    }
 
     var body: some View {
         HStack(spacing: 6) {
@@ -152,6 +181,7 @@ struct WindowChrome: View {
             Image(systemName: tab.currentURL?.scheme == "https" ? "lock.fill" : "globe")
                 .foregroundStyle(.secondary)
                 .font(.system(size: 9))
+            if isWebPage { shield }
             TextField("Search or enter address", text: $text)
                 .textFieldStyle(.plain)
                 .font(.caption)
