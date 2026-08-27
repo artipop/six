@@ -86,6 +86,36 @@ writes), libSQL / Turso (native vectors, but not the system `sqlite3`, young Swi
 Linux), PGlite (WASM runtime, data unreachable from `six --mcp`), Qdrant / Milvus / Weaviate / Chroma (server
 clients, nothing embedded).
 
+## iOS: the data layer travels, the embedder is the question
+
+What a port needs to know, so that nothing built now has to be undone ([sync.md](sync.md) has the phone-as-thin-client
+flow this leans on).
+
+**Goes as it is.** There is no custom SQLite: the iOS `libsqlite3` is used the way the macOS one is, and sqlite-vec is a
+C file compiled into the app and entered per connection (`sqlite3_vec_init` from `prepareDatabase`) — the one way that
+works when the system library has extension loading compiled out, which iOS has too. sqlite-vec-data declares
+iOS 16 / tvOS / watchOS and builds the C with NEON on ARM; GRDB and SQLiteData are native there; the schema, the `vec0`
+tables and a copied `six.sqlite` work unchanged. Statically compiled C is fine for the App Store — nothing is loaded
+dynamically. `WebPage` exists on iOS 26, so `ReadablePage` and the refresh path port too; the hourly refresh becomes a
+`BGProcessingTask` on Wi-Fi and power.
+
+**Decide: which model, and for what.**
+
+- The cheap path, and the one the architecture was built for: **the Mac indexes, the phone searches.** Chunks and
+  vectors sync through CloudKit (one record per chunk, 384 float32 = 1.5 KB); the phone writes them into its own
+  `vec0` and never embeds a page. It still has to embed the *query*, and that must be the **same model**
+  (`multilingual-e5-small`) or the spaces don't line up — a query is a few milliseconds on an A17, so the model's only
+  cost on the phone is its size.
+- Size: `mlx-swift` runs on iOS 17+, but 470 MB of fp32 weights is a lot to ship or download to a phone. Take an
+  fp16 (~235 MB) or 4-bit (~70 MB) conversion from `mlx-community`, or quantise once on the Mac; the model id in
+  every vector means a quantised query model against fp32 passage vectors is a measurable choice, not a guess.
+- `NLContextualEmbedding` (Apple, iOS 17+, no download) is the no-MLX fallback and stays per-script, i.e. not
+  cross-lingual — already rejected on the Mac for that reason; on the phone it would only make sense if the Mac
+  used it too.
+- Embedding *pages* on the phone (a bookmark saved on the go) is the open question: run e5-small in an
+  `NSExtension`/background task with a passage budget, or mark the bookmark *pending* and let the Mac embed it when
+  it syncs. Start with the latter.
+
 ## Smaller things
 
 - A readable maximum width for the default column on ultra-wide displays: 88 % of a 5K panel is a very long line.
