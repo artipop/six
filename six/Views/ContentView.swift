@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 import WebKit
 
@@ -281,13 +282,4 @@ private extension Color {
         return String(format: "#%02X%02X%02X", max(0, min(255, r)), max(0, min(255, g)), max(0, min(255, b)))
     }
 }
-
-// MARK: - Focus plumbing for ⌘L
-
-struct FocusAddressBarAction {
-    let perform: () -> Void
-}
-
-extension FocusedValues {
-    @Entry var focusAddressBar: FocusAddressBarAction?
-}
+#endif

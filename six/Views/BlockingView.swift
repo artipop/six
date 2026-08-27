@@ -1,4 +1,3 @@
-import AppKit
 import SwiftUI
 
 /// The filter lists, what each one costs, and the sites left alone. Opened from the Privacy menu or
@@ -34,8 +33,7 @@ struct BlockingView: View {
                                     Button("Remove List", role: .destructive) { blocker.removeList(list.id) }
                                 }
                                 Button("Copy Address") {
-                                    NSPasteboard.general.clearContents()
-                                    NSPasteboard.general.setString(list.source.absoluteString, forType: .string)
+                                    Platform.copy(list.source.absoluteString)
                                 }
                             }
                     }
@@ -108,7 +106,7 @@ struct BlockingView: View {
 
     /// Relative to the screen, like the rest of the layout.
     private var sheetSize: CGSize {
-        let screen = NSScreen.main?.visibleFrame.size ?? CGSize(width: 1440, height: 900)
+        let screen = Platform.screenSize
         return CGSize(width: (screen.width * 0.36).rounded(), height: (screen.height * 0.58).rounded())
     }
 }

@@ -1,3 +1,4 @@
+#if os(macOS)
 import AppKit
 import SwiftUI
 
@@ -21,3 +22,4 @@ struct HostedOverlay<Content: View>: NSViewRepresentable {
 
     func updateNSView(_ view: NSHostingView<Content>, context: Context) { view.rootView = content }
 }
+#endif

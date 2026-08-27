@@ -1,3 +1,4 @@
+#if os(macOS)
 import AppKit
 import SwiftUI
 import WebKit
@@ -73,18 +74,13 @@ final class NiriScrollMonitor {
                 let point = event.locationInWindow
                 let hit = event.window?.contentView?.hitTest(point)
                 let flipped = (event.window?.contentView?.bounds.height ?? 0) - point.y
-                Self.trace("click at (\(Int(point.x)), \(Int(flipped))) → \(hit.map { String(describing: type(of: $0)) } ?? "nothing")")
+                NiriLayout.trace("click at (\(Int(point.x)), \(Int(flipped))) → \(hit.map { String(describing: type(of: $0)) } ?? "nothing")")
             }
             return event
         }
     }
 
-    static let tracesClicks = ProcessInfo.processInfo.environment["SIX_UI_DEBUG"] == "1"
-
-    static func trace(_ message: @autoclosure () -> String) {
-        guard tracesClicks else { return }
-        FileHandle.standardError.write(Data("[six] ui: \(message())\n".utf8))
-    }
+    static var tracesClicks: Bool { NiriLayout.tracesUI }
 
     func stop() {
         if let monitor { NSEvent.removeMonitor(monitor) }
@@ -217,3 +213,4 @@ final class NiriScrollMonitor {
         }
     }
 }
+#endif

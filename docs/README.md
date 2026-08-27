@@ -10,6 +10,7 @@ reference.
 | [layout.md](layout.md) | the niri layout: model, geometry, gestures |
 | [start-page.md](start-page.md) | the start page, search and suggestions |
 | [architecture.md](architecture.md) | modules and how state flows |
+| [platforms.md](platforms.md) | the macOS and iOS targets, and what differs |
 | [extensions.md](extensions.md) | browser extensions: installing from a file, a controller per profile, and the measured boundary of what a `WebPage` browser can host |
 | [blocking.md](blocking.md) | ads and trackers: filter lists, `WKContentRuleList`, the shield and the per-site allowlist |
 | [permissions.md](permissions.md) | site permissions: the camera and microphone per site, the page's own dialogs, and what a `WebPage` browser still cannot ask for |

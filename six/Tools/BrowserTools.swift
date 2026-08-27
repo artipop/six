@@ -875,7 +875,7 @@ final class BrowserToolCatalog {
     /// The numbered-block pass: the model sees the numbers and the text and answers with numbers.
     /// It never handles the text it is choosing, so it cannot corrupt it.
     private func chooseBlocks(_ blocks: [PageBlock], question: String, limit: Int) async throws -> [(n: Int, reason: String)] {
-        let budget = assistant.model == .onDevice || assistant.model.agentDefinition != nil ? 6_000 : 30_000
+        let budget = assistant.model == .onDevice || assistant.model.isAgent ? 6_000 : 30_000
         var listing = ""
         for block in blocks {
             let line = "\(block.n): \(block.text.prefix(300))\n"
@@ -890,7 +890,7 @@ final class BrowserToolCatalog {
         // "Which of these is about X" is within the on-device model's reach, so when ⌘K is set to an agent
         // (not a language model) or its model isn't usable, that is the fallback.
         let session: LanguageModelSession
-        if assistant.model.agentDefinition == nil, let chosen = try? assistant.makeSession(instructions: instructions) {
+        if !assistant.model.isAgent, let chosen = try? assistant.makeSession(instructions: instructions) {
             session = chosen
         } else {
             let system = SystemLanguageModel.default

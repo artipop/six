@@ -1,4 +1,6 @@
+#if os(macOS)
 import AppKit
+#endif
 import Foundation
 import Observation
 import WebKit
@@ -51,9 +53,11 @@ final class ExtensionStore {
     @ObservationIgnored private var runtimes: [Profile.ID: Runtime] = [:]
     @ObservationIgnored private var adapters: [UUID: ExtensionTabAdapter] = [:]
     /// Where the popup should point: the toolbar button's frame, in the window's coordinates.
-    @ObservationIgnored var popupAnchor: NSRect?
+    @ObservationIgnored var popupAnchor: CGRect?
+    #if os(macOS)
     /// Holds a popup that WebKit did not wrap in a popover of its own (see the delegate).
     @ObservationIgnored var popupPanel: NSPanel?
+    #endif
 
     init(settings: SettingsStore) {
         self.settings = settings
@@ -264,7 +268,7 @@ final class ExtensionStore {
 
     /// A click on one of those buttons: the extension decides what it means — a popup, or a message
     /// to its background.
-    func performAction(_ record: InstalledExtension, for tab: BrowserTab, anchor: NSRect?) {
+    func performAction(_ record: InstalledExtension, for tab: BrowserTab, anchor: CGRect?) {
         guard let runtime = runtimes[tab.profileID], let context = runtime.contexts[record.id] else { return }
         popupAnchor = anchor
         context.userGesturePerformed(in: adapter(for: tab))
@@ -325,6 +329,10 @@ final class ExtensionDelegate: NSObject, WKWebExtensionControllerDelegate {
     /// that was clicked.
     func webExtensionController(_ controller: WKWebExtensionController, presentActionPopup action: WKWebExtension.Action, for context: WKWebExtensionContext) async throws {
         guard let store else { return }
+        #if !os(macOS)
+        // TODO: the phone has no popover to hang this on — it wants a sheet over the strip.
+        store.log("popup for \(action.label ?? "an extension") is not presented on this platform")
+        #else
         let anchor = { (content: NSView) in
             store.popupAnchor ?? NSRect(x: content.bounds.midX, y: content.bounds.maxY - 40, width: 1, height: 1)
         }
@@ -348,6 +356,7 @@ final class ExtensionDelegate: NSObject, WKWebExtensionControllerDelegate {
         panel.center()
         panel.orderFrontRegardless()
         store.popupPanel = panel
+        #endif
     }
 
     /// Anything the extension did not ask for at install time is asked for now.
@@ -374,11 +383,18 @@ final class ExtensionDelegate: NSObject, WKWebExtensionControllerDelegate {
     }
 
     private static func ask(title: String, body: String, allow: String) -> Bool {
+        #if !os(macOS)
+        // TODO: route this through the same question the page permissions use; until then the phone
+        // grants nothing an extension did not already have at install time.
+        FileHandle.standardError.write(Data("[six] extensions: denied without asking — \(title)\n".utf8))
+        return false
+        #else
         let alert = NSAlert()
         alert.messageText = title
         alert.informativeText = body
         alert.addButton(withTitle: allow)
         alert.addButton(withTitle: "Deny")
         return alert.runModal() == .alertFirstButtonReturn
+        #endif
     }
 }

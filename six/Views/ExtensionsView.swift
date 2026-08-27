@@ -1,4 +1,6 @@
+#if os(macOS)
 import AppKit
+#endif
 import SwiftUI
 import WebKit
 
@@ -70,6 +72,10 @@ struct ExtensionsView: View {
     }
 
     private func pickExtension() {
+        #if !os(macOS)
+        // TODO: the phone wants `.fileImporter` here; a modal panel is a Mac thing.
+        failure = String(localized: "Installing an extension from a file is not available on this device yet.")
+        #else
         let panel = NSOpenPanel()
         panel.canChooseFiles = true
         panel.canChooseDirectories = true
@@ -87,10 +93,11 @@ struct ExtensionsView: View {
                 failure = error.localizedDescription
             }
         }
+        #endif
     }
 
     private var sheetSize: CGSize {
-        let screen = NSScreen.main?.visibleFrame.size ?? CGSize(width: 1440, height: 900)
+        let screen = Platform.screenSize
         return CGSize(width: (screen.width * 0.36).rounded(), height: (screen.height * 0.56).rounded())
     }
 }
@@ -129,7 +136,9 @@ private struct ExtensionRow: View {
                 if let url = extensions.optionsPageURL(for: record) {
                     Button("Open Options Page") { extensions.browser?.newTab(url: url) }
                 }
+                #if os(macOS)
                 Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([record.folder]) }
+                #endif
                 Divider()
                 Button("Remove", role: .destructive) { extensions.remove(record.id) }
             } label: {
@@ -152,7 +161,7 @@ private struct InstallSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
                 if let icon = install.ext.icon(for: CGSize(width: 32, height: 32)) {
-                    Image(nsImage: icon).resizable().frame(width: 32, height: 32)
+                    Image(platform: icon).resizable().frame(width: 32, height: 32)
                 } else {
                     Image(systemName: "puzzlepiece.extension").font(.title)
                 }
@@ -238,7 +247,7 @@ private struct ExtensionActionButton: View {
     let record: InstalledExtension
     let action: WKWebExtension.Action
     let tab: BrowserTab?
-    @State private var frame: NSRect = .zero
+    @State private var frame: CGRect = .zero
 
     var body: some View {
         Button {
@@ -247,7 +256,7 @@ private struct ExtensionActionButton: View {
         } label: {
             ZStack(alignment: .topTrailing) {
                 if let icon = action.icon(for: CGSize(width: 16, height: 16)) {
-                    Image(nsImage: icon).resizable().frame(width: 16, height: 16)
+                    Image(platform: icon).resizable().frame(width: 16, height: 16)
                 } else {
                     Image(systemName: "puzzlepiece.extension")
                 }
@@ -265,6 +274,7 @@ private struct ExtensionActionButton: View {
         .disabled(!action.isEnabled || tab == nil)
         .help(action.label ?? record.name)
         .background {
+            #if os(macOS)
             // The popup is WebKit's own `NSPopover`; all six has to do is say where it points.
             GeometryReader { proxy in
                 Color.clear.onChange(of: proxy.frame(in: .global), initial: true) { _, rect in
@@ -273,6 +283,7 @@ private struct ExtensionActionButton: View {
                     frame = flipped
                 }
             }
+            #endif
         }
     }
 }

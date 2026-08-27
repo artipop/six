@@ -76,6 +76,15 @@ final class NiriLayout {
     static let overviewWorkspaceGapFraction: CGFloat = 0.11
     static let switchAnimation: Animation = .smooth(duration: 0.34, extraBounce: 0.05)
 
+    /// `SIX_UI_DEBUG=1`: what the layout was asked to do, and what it thought it was doing. A gesture
+    /// that does nothing is either not arriving or not meaning what it looks like, and this says which.
+    static let tracesUI = ProcessInfo.processInfo.environment["SIX_UI_DEBUG"] == "1"
+
+    static func trace(_ message: @autoclosure () -> String) {
+        guard tracesUI else { return }
+        FileHandle.standardError.write(Data("[six] ui: \(message())\n".utf8))
+    }
+
     var viewport: CGSize = CGSize(width: 1280, height: 800)
     var isOverview = false
     /// niri's fullscreen, as a mode rather than per-window state — and one step short of it, filling the

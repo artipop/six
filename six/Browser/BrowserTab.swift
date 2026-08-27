@@ -1,4 +1,8 @@
+#if os(macOS)
 import AppKit
+#else
+import UIKit
+#endif
 import Foundation
 import Observation
 import WebKit
@@ -96,7 +100,7 @@ final class BrowserTab: Identifiable {
     @ObservationIgnored private var pendingScroll: Double?
     /// The page as it last looked. Stands in for it in the strip and while a rebuilt page loads, so
     /// coming back to a discarded window shows the page rather than a white rectangle.
-    private(set) var thumbnail: NSImage?
+    private(set) var thumbnail: PlatformImage?
     @ObservationIgnored private var lastThumbnailAt = Date.distantPast
     @ObservationIgnored private var loadStartedAt = Date.distantPast
     /// Lets go of the picture — the oldest ones do, so a long strip's cards are not a memory leak of
@@ -494,7 +498,7 @@ final class BrowserTab: Identifiable {
             let clock = ContinuousClock()
             let started = clock.now
             guard let data = try? await page.exported(as: configuration),
-                  let image = NSImage(data: data), image.size.width > 1 else {
+                  let image = PlatformImage(data: data), image.size.width > 1 else {
                 LivePageCache.log("no picture of \(self.title)")
                 return
             }

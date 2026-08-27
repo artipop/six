@@ -1,21 +1,5 @@
 import Foundation
 
-/// Error returned by the peer, or raised when the transport fails.
-nonisolated struct JSONRPCError: Error, Codable, Sendable, LocalizedError {
-    var code: Int
-    var message: String
-    var data: ACPJSON?
-
-    var errorDescription: String? { "\(message) (\(code))" }
-
-    static let parseError = JSONRPCError(code: -32700, message: "Parse error")
-    static let invalidRequest = JSONRPCError(code: -32600, message: "Invalid request")
-    static func methodNotFound(_ method: String) -> JSONRPCError { .init(code: -32601, message: "Method not found: \(method)") }
-    static func invalidParams(_ detail: String) -> JSONRPCError { .init(code: -32602, message: "Invalid params: \(detail)") }
-    static func internalError(_ detail: String) -> JSONRPCError { .init(code: -32603, message: detail) }
-    static let connectionClosed = JSONRPCError(code: -32000, message: "Connection closed")
-}
-
 /// A JSON-RPC 2.0 peer over newline-delimited JSON — the ACP transport.
 ///
 /// Owns the outgoing request ids and the pending continuations; delivers incoming requests and

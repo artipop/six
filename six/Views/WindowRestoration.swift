@@ -1,5 +1,9 @@
-import AppKit
+import Foundation
+import Observation
 import SwiftUI
+#if os(macOS)
+import AppKit
+#endif
 
 /// What the snapshot keeps about the window itself.
 nonisolated struct WindowSnapshot: Codable, Sendable {
@@ -7,15 +11,19 @@ nonisolated struct WindowSnapshot: Codable, Sendable {
     var isFullScreen: Bool
 }
 
-/// The main window's frame and fullscreen state, mirrored from AppKit notifications so the
-/// autosave sees changes, and applied back once when the window first appears.
+/// The main window's frame and fullscreen state, mirrored from AppKit notifications so the autosave
+/// sees changes, and applied back once when the window first appears. A phone's window is the screen
+/// and never moves: the state is still read and written back, so a file the Mac wrote survives a
+/// launch on the phone unchanged, but there is nothing to follow.
 @MainActor
 @Observable
 final class WindowState {
     var frame: CGRect?
     var isFullScreen = false
+    #if os(macOS)
     @ObservationIgnored private var restored = false
     @ObservationIgnored private var observers: [any NSObjectProtocol] = []
+    #endif
 
     init(snapshot: WindowSnapshot?) {
         frame = snapshot?.frame
@@ -26,6 +34,7 @@ final class WindowState {
         frame.map { WindowSnapshot(frame: $0, isFullScreen: isFullScreen) }
     }
 
+#if os(macOS)
     /// Called when the content view lands in its window: restore, then follow.
     func attach(_ window: NSWindow) {
         guard !restored else { return }
@@ -61,8 +70,10 @@ final class WindowState {
     deinit {
         for token in observers { NotificationCenter.default.removeObserver(token) }
     }
+#endif
 }
 
+#if os(macOS)
 /// Finds the `NSWindow` behind a SwiftUI hierarchy and hands it to `WindowState`.
 struct WindowObserver: NSViewRepresentable {
     let state: WindowState
@@ -84,3 +95,4 @@ struct WindowObserver: NSViewRepresentable {
         }
     }
 }
+#endif

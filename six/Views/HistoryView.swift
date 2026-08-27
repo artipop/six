@@ -1,4 +1,3 @@
-import AppKit
 import SwiftUI
 
 /// ⌘Y: the selected profile's history, searchable, grouped by day. A click opens the page in a new
@@ -44,8 +43,7 @@ struct HistoryView: View {
                                     .contextMenu {
                                         Button("Open in New Window") { open(entry) }
                                         Button("Copy Address") {
-                                            NSPasteboard.general.clearContents()
-                                            NSPasteboard.general.setString(entry.url.absoluteString, forType: .string)
+                                            Platform.copy(entry.url.absoluteString)
                                         }
                                         Divider()
                                         Button("Forget", role: .destructive) { browser.history.remove(entry.id) }
@@ -54,7 +52,9 @@ struct HistoryView: View {
                         }
                     }
                 }
+                #if os(macOS)
                 .onDeleteCommand { if let selection { browser.history.remove(selection) } }
+                #endif
                 .onKeyPress(.return) { openSelectedOrFirst(); return .handled }
             }
             Divider()
@@ -74,7 +74,7 @@ struct HistoryView: View {
 
     /// Relative to the screen, like the layout — a fixed point size is tiny on a 5K panel.
     private var sheetSize: CGSize {
-        let screen = NSScreen.main?.visibleFrame.size ?? CGSize(width: 1440, height: 900)
+        let screen = Platform.screenSize
         return CGSize(width: (screen.width * 0.38).rounded(), height: (screen.height * 0.62).rounded())
     }
 

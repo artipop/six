@@ -565,7 +565,7 @@ final class BrowserState {
     }
 
     func toggleOverview() {
-        NiriScrollMonitor.trace("toggleOverview (was \(layout.isOverview ? "open" : "closed"))")
+        NiriLayout.trace("toggleOverview (was \(layout.isOverview ? "open" : "closed"))")
         if layout.isOverview {
             exitOverview()
         } else {
@@ -577,7 +577,7 @@ final class BrowserState {
     }
 
     func exitOverview() {
-        NiriScrollMonitor.trace("exitOverview (isOverview \(layout.isOverview))")
+        NiriLayout.trace("exitOverview (isOverview \(layout.isOverview))")
         guard layout.isOverview else { return }
         withAnimation(NiriLayout.switchAnimation) {
             layout.isOverview = false

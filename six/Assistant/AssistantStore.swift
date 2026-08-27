@@ -22,8 +22,10 @@ final class AssistantStore {
 
     /// Wired at launch: browser tools for the language models, the agent session for the ACP choices.
     @ObservationIgnored var tools: BrowserToolCatalog?
+    #if os(macOS)
     @ObservationIgnored var agentSession: AgentSessionStore?
     @ObservationIgnored var research: ResearchCoordinator?
+    #endif
 
     @ObservationIgnored private var session: LanguageModelSession?
     @ObservationIgnored private var sessionModel: ModelChoice?
@@ -50,6 +52,7 @@ final class AssistantStore {
         isAnswerVisible = true
         isResponding = true
 
+        #if os(macOS)
         // `research: …` starts a deep-research run: a workspace, a document, and the agent at work.
         if let research, let topic = ResearchCoordinator.question(fromCommand: question) {
             task = Task { await runResearch(research, question: topic) }
@@ -60,6 +63,7 @@ final class AssistantStore {
             task = Task { await askAgent(agent, question: question, about: tab) }
             return
         }
+        #endif
 
         task = Task {
             defer { isResponding = false }
@@ -78,6 +82,7 @@ final class AssistantStore {
         }
     }
 
+    #if os(macOS)
     /// The ⌘K line answered by an ACP agent: the same session as the agent panel, so the transcript,
     /// permissions and the profile's working directory are shared.
     private func askAgent(_ agent: ACPAgentDefinition, question: String, about tab: BrowserTab?) async {
@@ -111,10 +116,13 @@ final class AssistantStore {
         guard !Task.isCancelled else { return }
         if case .failed(let message) = outcome { errorMessage = message }
     }
+    #endif
 
     func cancel() {
         task?.cancel()
+        #if os(macOS)
         if settings.model.agentDefinition != nil { agentSession?.cancel() }
+        #endif
         isResponding = false
         activity = nil
     }

@@ -1,4 +1,8 @@
+#if os(macOS)
 import AppKit
+#else
+import UIKit
+#endif
 import Foundation
 
 /// The pictures of the pages, on disk — one PNG per window, named by its id.
@@ -41,11 +45,11 @@ final class PageThumbnails {
 
     /// The picture of a window from an earlier launch, if there is one. Nil the second time it is
     /// asked for a window that has none.
-    func read(_ id: UUID) async -> NSImage? {
+    func read(_ id: UUID) async -> PlatformImage? {
         guard !missing.contains(id) else { return nil }
         let url = Self.url(for: id)
         let data = await Task.detached(priority: .utility) { try? Data(contentsOf: url) }.value
-        guard let data, let image = NSImage(data: data), image.size.width > 1 else {
+        guard let data, let image = PlatformImage(data: data), image.size.width > 1 else {
             missing.insert(id)
             return nil
         }

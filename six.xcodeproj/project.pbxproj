@@ -13,15 +13,78 @@
 		AC11A8513040444B007E3F9B /* ContentBlockerConverter in Frameworks */ = {isa = PBXBuildFile; productRef = AD01B10D4E2F7A6390D5C442 /* ContentBlockerConverter */; };
 		AC8977A0303CEC22008426C2 /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = AC89779F303CEC22008426C2 /* SQLiteData */; };
 		C4E57E1CA358AD438C0F5731 /* SQLiteVecData in Frameworks */ = {isa = PBXBuildFile; productRef = 82F43A23555A3254647ADAE5 /* SQLiteVecData */; };
+		AC9001010000000000000020 /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = AC9001010000000000000010 /* SQLiteData */; };
+		AC9001010000000000000021 /* SQLiteVecData in Frameworks */ = {isa = PBXBuildFile; productRef = AC9001010000000000000011 /* SQLiteVecData */; };
+		AC9001010000000000000022 /* MLXEmbedders in Frameworks */ = {isa = PBXBuildFile; productRef = AC9001010000000000000012 /* MLXEmbedders */; };
+		AC9001010000000000000023 /* HuggingFace in Frameworks */ = {isa = PBXBuildFile; productRef = AC9001010000000000000013 /* HuggingFace */; };
+		AC9001010000000000000024 /* Tokenizers in Frameworks */ = {isa = PBXBuildFile; productRef = AC9001010000000000000014 /* Tokenizers */; };
+		AC9001010000000000000025 /* ContentBlockerConverter in Frameworks */ = {isa = PBXBuildFile; productRef = AC9001010000000000000015 /* ContentBlockerConverter */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		AC897661303CEC20008426C2 /* six.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = six.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AC9001010000000000000008 /* six.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = six.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		AC9001010000000000000009 /* Exceptions for "six" folder in "six-iOS" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"ACP/ACPAgent.swift",
+				"ACP/ACPClient.swift",
+				"ACP/AgentSessionStore.swift",
+				"ACP/AgentToolName.swift",
+				"ACP/AgentToolchain.swift",
+				"ACP/JSONRPCConnection.swift",
+				"MCP/MCPServer.swift",
+				"MCP/MCPSocket.swift",
+				"MCP/MCPStdioBridge.swift",
+				"Research/ResearchCoordinator.swift",
+				"Vendor/ClaudeForFoundationModels/ClaudeAPI/APIError.swift",
+				"Vendor/ClaudeForFoundationModels/ClaudeAPI/ClaudeClient.swift",
+				"Vendor/ClaudeForFoundationModels/ClaudeAPI/Configuration.swift",
+				"Vendor/ClaudeForFoundationModels/ClaudeAPI/ContentAssembler.swift",
+				"Vendor/ClaudeForFoundationModels/ClaudeAPI/ContentBlock.swift",
+				"Vendor/ClaudeForFoundationModels/ClaudeAPI/HTTPTransport.swift",
+				"Vendor/ClaudeForFoundationModels/ClaudeAPI/JSONValue.swift",
+				"Vendor/ClaudeForFoundationModels/ClaudeAPI/Message.swift",
+				"Vendor/ClaudeForFoundationModels/ClaudeAPI/MessagesRequest.swift",
+				"Vendor/ClaudeForFoundationModels/ClaudeAPI/MessagesResponse.swift",
+				"Vendor/ClaudeForFoundationModels/ClaudeAPI/SSEParser.swift",
+				"Vendor/ClaudeForFoundationModels/ClaudeAPI/StreamEvent.swift",
+				"Vendor/ClaudeForFoundationModels/ClaudeAPI/Telemetry.swift",
+				"Vendor/ClaudeForFoundationModels/ClaudeAPI/ThinkingConfig.swift",
+				"Vendor/ClaudeForFoundationModels/ClaudeAPI/ToolDefinition.swift",
+				"Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/AppAttestSession.swift",
+				"Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/AppAttestStore.swift",
+				"Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/AttestationService.swift",
+				"Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/AuthMode.swift",
+				"Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ClaudeError.swift",
+				"Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ClaudeExecutor.swift",
+				"Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ClaudeImage.swift",
+				"Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ClaudeLanguageModel.swift",
+				"Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ClaudeModel.swift",
+				"Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ClaudeServerTool.swift",
+				"Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ClaudeServerToolActivity.swift",
+				"Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ErrorMapper.swift",
+				"Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/EventTranslator.swift",
+				"Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/RequestBuilder.swift",
+				"Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ServerToolWire.swift",
+				"Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/TurnRecord.swift",
+				"Vendor/ClaudeForFoundationModels/LICENSE",
+				"Vendor/ClaudeForFoundationModels/VENDORED.md",
+				"Views/AgentPanel.swift",
+			);
+			target = AC9001010000000000000001 /* six-iOS */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		AC897663303CEC20008426C2 /* six */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				AC9001010000000000000009 /* Exceptions for "six" folder in "six-iOS" target */,
+			);
 			path = six;
 			sourceTree = "<group>";
 		};
@@ -39,6 +102,17 @@
 				5CD2470091CF7AE5F73D25A5 /* Tokenizers in Frameworks */,
 			);
 		};
+		AC9001010000000000000006 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+				AC9001010000000000000020 /* SQLiteData in Frameworks */,
+				AC9001010000000000000021 /* SQLiteVecData in Frameworks */,
+				AC9001010000000000000022 /* MLXEmbedders in Frameworks */,
+				AC9001010000000000000023 /* HuggingFace in Frameworks */,
+				AC9001010000000000000024 /* Tokenizers in Frameworks */,
+				AC9001010000000000000025 /* ContentBlockerConverter in Frameworks */,
+			);
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -54,6 +128,7 @@
 			isa = PBXGroup;
 			children = (
 				AC897661303CEC20008426C2 /* six.app */,
+				AC9001010000000000000008 /* six.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -87,6 +162,32 @@
 			productReference = AC897661303CEC20008426C2 /* six.app */;
 			productType = "com.apple.product-type.application";
 		};
+		AC9001010000000000000001 /* six-iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AC9001010000000000000002 /* Build configuration list for PBXNativeTarget "six-iOS" */;
+			buildPhases = (
+				AC9001010000000000000005 /* Sources */,
+				AC9001010000000000000006 /* Frameworks */,
+				AC9001010000000000000007 /* Resources */,
+			);
+			buildRules = (
+			);
+			fileSystemSynchronizedGroups = (
+				AC897663303CEC20008426C2 /* six */,
+			);
+			name = "six-iOS";
+			packageProductDependencies = (
+				AC9001010000000000000010 /* SQLiteData */,
+				AC9001010000000000000011 /* SQLiteVecData */,
+				AC9001010000000000000012 /* MLXEmbedders */,
+				AC9001010000000000000013 /* HuggingFace */,
+				AC9001010000000000000014 /* Tokenizers */,
+				AC9001010000000000000015 /* ContentBlockerConverter */,
+			);
+			productName = six;
+			productReference = AC9001010000000000000008 /* six.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -98,6 +199,9 @@
 				LastUpgradeCheck = 2700;
 				TargetAttributes = {
 					AC897660303CEC20008426C2 = {
+						CreatedOnToolsVersion = 27.0;
+					};
+					AC9001010000000000000001 = {
 						CreatedOnToolsVersion = 27.0;
 					};
 				};
@@ -126,6 +230,7 @@
 			projectRoot = "";
 			targets = (
 				AC897660303CEC20008426C2 /* six */,
+				AC9001010000000000000001 /* six-iOS */,
 			);
 		};
 /* End PBXProject section */
@@ -136,10 +241,20 @@
 			files = (
 			);
 		};
+		AC9001010000000000000007 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		AC89765D303CEC20008426C2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		AC9001010000000000000005 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
 			);
@@ -341,6 +456,86 @@
 			};
 			name = Release;
 		};
+		AC9001010000000000000003 /* Debug configuration for PBXNativeTarget "six-iOS" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Info.plist;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleDefault;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-weak_framework",
+					FoundationModels,
+				);
+				OTHER_SWIFT_FLAGS = "";
+				PRODUCT_BUNDLE_IDENTIFIER = org.deffun.six;
+				PRODUCT_NAME = six;
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_PACKAGE_NAME = six;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		AC9001010000000000000004 /* Release configuration for PBXNativeTarget "six-iOS" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Info.plist;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleDefault;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-weak_framework",
+					FoundationModels,
+				);
+				OTHER_SWIFT_FLAGS = "";
+				PRODUCT_BUNDLE_IDENTIFIER = org.deffun.six;
+				PRODUCT_NAME = six;
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_PACKAGE_NAME = six;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -357,6 +552,14 @@
 			buildConfigurations = (
 				AC89766D303CEC22008426C2 /* Debug configuration for PBXNativeTarget "six" */,
 				AC89766E303CEC22008426C2 /* Release configuration for PBXNativeTarget "six" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		AC9001010000000000000002 /* Build configuration list for PBXNativeTarget "six-iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AC9001010000000000000003 /* Debug configuration for PBXNativeTarget "six-iOS" */,
+				AC9001010000000000000004 /* Release configuration for PBXNativeTarget "six-iOS" */,
 			);
 			defaultConfigurationName = Release;
 		};
@@ -443,6 +646,36 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 9202E564C34651D6970C63AD /* XCRemoteSwiftPackageReference "swift-huggingface" */;
 			productName = HuggingFace;
+		};
+		AC9001010000000000000010 /* SQLiteData */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AC89779E303CEC22008426C2 /* XCRemoteSwiftPackageReference "sqlite-data" */;
+			productName = SQLiteData;
+		};
+		AC9001010000000000000011 /* SQLiteVecData */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1101D959FF8C08C0D4171221 /* XCRemoteSwiftPackageReference "sqlite-vec-data" */;
+			productName = SQLiteVecData;
+		};
+		AC9001010000000000000012 /* MLXEmbedders */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0491713B9D1CDF6B8B095255 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
+			productName = MLXEmbedders;
+		};
+		AC9001010000000000000013 /* HuggingFace */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9202E564C34651D6970C63AD /* XCRemoteSwiftPackageReference "swift-huggingface" */;
+			productName = HuggingFace;
+		};
+		AC9001010000000000000014 /* Tokenizers */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F6FD676108E197A94959A73D /* XCRemoteSwiftPackageReference "swift-transformers" */;
+			productName = Tokenizers;
+		};
+		AC9001010000000000000015 /* ContentBlockerConverter */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AD01B10C4E2F7A6390D5C441 /* XCRemoteSwiftPackageReference "SafariConverterLib" */;
+			productName = ContentBlockerConverter;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

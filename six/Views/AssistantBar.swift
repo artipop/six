@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 
 /// Dia-style single input line pinned to the bottom of the page, with the answer floating above it.
@@ -176,3 +177,4 @@ private struct APIKeySheet: View {
 extension FocusedValues {
     @Entry var focusAssistant: FocusAddressBarAction?
 }
+#endif

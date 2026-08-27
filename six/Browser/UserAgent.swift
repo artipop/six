@@ -1,4 +1,6 @@
+#if os(macOS)
 import AppKit
+#endif
 import Foundation
 
 /// What six tells the web it is.
@@ -25,10 +27,15 @@ enum UserAgent {
     /// instead of with this file. Safari's major version has tracked macOS's since 26, which is what
     /// the fallback leans on when Safari can't be found or answers with something odd.
     private static let safariVersion: String = {
+        #if os(macOS)
         guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.Safari"),
               let version = Bundle(url: url)?.infoDictionary?["CFBundleShortVersionString"] as? String,
               version.range(of: "^[0-9]+(\\.[0-9]+)*$", options: .regularExpression) != nil
         else { return "\(ProcessInfo.processInfo.operatingSystemVersion.majorVersion).0" }
         return version
+        #else
+        // iOS has no readable Safari bundle; its major version is the system's own.
+        return "\(ProcessInfo.processInfo.operatingSystemVersion.majorVersion).0"
+        #endif
     }()
 }

@@ -1,3 +1,4 @@
+#if os(macOS)
 import AppKit
 import SwiftUI
 import WebKit
@@ -308,7 +309,7 @@ private struct ColumnPlaceholder: View {
             LinearGradient(colors: [accent.opacity(0.16), accent.opacity(0.04)],
                            startPoint: .topLeading, endPoint: .bottomTrailing)
             if showsPicture, let image = tab.thumbnail {
-                Image(nsImage: image)
+                Image(platform: image)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -673,3 +674,4 @@ private struct OverviewHint: View {
         }
     }
 }
+#endif

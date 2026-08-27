@@ -21,7 +21,7 @@ struct DocumentView: View {
                     WebView(page)
                         .id(tab.generation)
                 } else {
-                    Color(nsColor: .textBackgroundColor)
+                    Color.documentBackground
                 }
             } else {
                 Editor(document: document, isActive: isActive)
@@ -57,7 +57,7 @@ struct DocumentView: View {
                 .scrollContentBackground(.hidden)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
-                .background(Color(nsColor: .textBackgroundColor))
+                .background(Color.documentBackground)
                 .focused($focused)
                 .onAppear { if isActive, document.text.isEmpty { focused = true } }
         }

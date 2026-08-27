@@ -1,4 +1,6 @@
+#if os(macOS)
 import AppKit
+#endif
 import SwiftUI
 
 /// ⌘⌥B: the bookmarks — this profile's or everyone's — searched by meaning. Double-click opens the
@@ -53,27 +55,32 @@ struct BookmarksView: View {
                             .contextMenu {
                                 Button("Open in New Window") { open(hit.bookmark) }
                                 Button("Copy Address") {
-                                    NSPasteboard.general.clearContents()
-                                    NSPasteboard.general.setString(hit.bookmark.url.absoluteString, forType: .string)
+                                    Platform.copy(hit.bookmark.url.absoluteString)
                                 }
                                 Button("Refresh Now") { Task { await bookmarks.refresh(hit.id) } }
                                 if let file = bookmarks.fileURL(of: hit.bookmark) {
+                                    #if os(macOS)
                                     Button("Show File in Finder") { NSWorkspace.shared.activateFileViewerSelecting([file]) }
+                                    #endif
                                 }
                                 Divider()
                                 Button("Remove", role: .destructive) { bookmarks.remove(hit.id) }
                             }
                     }
                 }
+                #if os(macOS)
                 .onDeleteCommand { if let selection { bookmarks.remove(selection) } }
+                #endif
                 .onKeyPress(.return) { openSelectedOrFirst(); return .handled }
             }
             Divider()
             HStack {
                 Text(footer).font(.caption).foregroundStyle(.secondary)
                 Spacer()
+                #if os(macOS)
                 Button("Show Folder in Finder") { NSWorkspace.shared.activateFileViewerSelecting([bookmarks.folder(for: profile)]) }
                     .controlSize(.small)
+                #endif
             }
             .padding(10)
         }
@@ -114,7 +121,7 @@ struct BookmarksView: View {
 
     /// Relative to the screen, like the history sheet.
     private var sheetSize: CGSize {
-        let screen = NSScreen.main?.visibleFrame.size ?? CGSize(width: 1440, height: 900)
+        let screen = Platform.screenSize
         return CGSize(width: (screen.width * 0.42).rounded(), height: (screen.height * 0.62).rounded())
     }
 
