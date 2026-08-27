@@ -28,7 +28,7 @@ actor MLXEmbedder: Embedder {
     private let hub: HubClient
     private var container: EmbedderModelContainer?
     private var loading: Task<EmbedderModelContainer, Error>?
-    /// What is happening with the model — "downloading 42 %", "ready", an error — for whoever asked.
+    /// What is happening with the model — "downloading 42 %", an error — for whoever asked. Empty means ready.
     private var statusHandler: (@Sendable (String) -> Void)?
 
     /// - Parameter modelsDirectory: where downloaded weights live (`~/Library/Application Support/six/Models`).
@@ -118,16 +118,16 @@ actor MLXEmbedder: Embedder {
         if let container { return container }
         if let loading { return try await loading.value }
         let task = Task { [hub, statusHandler] () throws -> EmbedderModelContainer in
-            statusHandler?("loading model")
+            statusHandler?(String(localized: "loading model"))
             let container = try await EmbedderModelFactory.shared.loadContainer(
                 from: HubDownloader(hub),
                 using: TransformersTokenizerLoader(),
                 configuration: Self.configuration
             ) { progress in
                 let percent = Int(progress.fractionCompleted * 100)
-                statusHandler?(percent < 100 ? "downloading model \(percent) %" : "loading model")
+                statusHandler?(percent < 100 ? String(localized: "downloading model \(percent) %") : String(localized: "loading model"))
             }
-            statusHandler?("ready")
+            statusHandler?("") // ready: nothing left to say about the model
             return container
         }
         loading = task
@@ -137,7 +137,7 @@ actor MLXEmbedder: Embedder {
             self.container = container
             return container
         } catch {
-            statusHandler?("model unavailable: \(error.localizedDescription)")
+            statusHandler?(String(localized: "model unavailable: \(error.localizedDescription)"))
             throw EmbedderError.unavailable("Embedding model unavailable: \(error.localizedDescription)")
         }
     }

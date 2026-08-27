@@ -16,7 +16,31 @@ agent ──stdio──▶ six --mcp ──unix socket──▶ six.app (MCPHost
   themselves live in `BrowserToolCatalog` (`six/Tools/`), shared with the ⌘K assistant (see [assistant.md](assistant.md)).
 - The agent panel passes the server to every ACP session (`session/new` → `mcpServers: [{name: "six",
   command: <this binary>, args: ["--mcp"]}]`), so Claude Code sees the tools as `mcp__six__*` and asks for permission
-  through the panel as for any other tool.
+  through the panel as for any other tool — the panel says them differently, see [names](#names).
+
+## Names
+
+A tool has two of them. `name` is the identifier on the wire: `open_window`, ASCII, no spaces — the spec allows
+`A–Z a–z 0–9 _ - .` and nothing else. `title` is the optional human-readable one a client is meant to show instead;
+six fills it in for every tool (`BrowserTool.title`, localized — the client showing it is the user's own, see
+[localization.md](localization.md)), so a client that reads it says *Open Window* rather than `open_window`.
+
+What no client can read is `mcp__six__open_window`. That mangling is not in the protocol: the spec only says an
+aggregating client **SHOULD** disambiguate colliding names "such as prefixing tool names with a server identifier"
+and leaves the shape of the prefix to the client. Claude Code chose `mcp__<server>__<tool>`, and over ACP that is
+what arrives in the tool call's title, so six takes it apart again: `AgentToolName.display` drops the `mcp__` and
+turns the `__` into a space, and the panel, the permission prompt and the ⌘K activity line all say
+
+```
+six open_window
+```
+
+— the server, a space, the method. A title an agent wrote itself (`Read`, `Bash`, a sentence) is left alone. The
+rewrite happens once, in `AgentSessionStore.handle`, so the saved transcript keeps the readable form too.
+
+There is no localization in MCP itself: no locale negotiation, no translated `title` or `description` — a server
+returns one string for every caller. six's tools are localized because six *is* the server and the client is on the
+same machine as the person reading it.
 
 ## Tools
 
@@ -74,7 +98,7 @@ reads. The engine chip on the start page is about the human's searches; this too
 six=/path/to/six.app/Contents/MacOS/six
 $six --mcp   # then paste, one line each:
 {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"me","version":"0"}}}
-{"jsonrpc":"2.0","id":2,"method":"tools/list"}
+{"jsonrpc":"2.0","id":2,"method":"tools/list"}   # every tool comes back with `name`, `title` and `description`
 {"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"open_window","arguments":{"url":"example.com","workspace":"Research"}}}
 {"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"get_page_content","arguments":{}}}
 ```

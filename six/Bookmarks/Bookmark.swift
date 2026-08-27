@@ -57,8 +57,8 @@ nonisolated enum BookmarkScope: String, CaseIterable, Identifiable, Sendable {
 
     var title: String {
         switch self {
-        case .profile: "This Profile"
-        case .all: "All Profiles"
+        case .profile: String(localized: "This Profile")
+        case .all: String(localized: "All Profiles")
         }
     }
 }

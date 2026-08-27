@@ -76,8 +76,8 @@ struct ExtensionsView: View {
         panel.allowsMultipleSelection = false
         panel.allowedFileTypes = ExtensionInstaller.acceptedTypes
         panel.allowsOtherFileTypes = false
-        panel.message = "Choose an unpacked extension folder, or a .zip / .crx / .xpi archive."
-        panel.prompt = "Choose"
+        panel.message = String(localized: "Choose an unpacked extension folder, or a .zip / .crx / .xpi archive.")
+        panel.prompt = String(localized: "Choose")
         guard panel.runModal() == .OK, let url = panel.url else { return }
         Task {
             do {

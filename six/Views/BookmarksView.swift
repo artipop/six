@@ -93,10 +93,10 @@ struct BookmarksView: View {
 
     private var footer: String {
         let pending = hits.filter { $0.bookmark.indexedAt == nil && $0.bookmark.indexError == nil }.count
-        var text = "\(hits.count) bookmarks"
-        if pending > 0 { text += " · \(pending) indexing" }
-        text += " · \(bookmarks.embedder.modelID), on device"
-        if !bookmarks.embedderStatus.isEmpty, bookmarks.embedderStatus != "ready" { text += " · \(bookmarks.embedderStatus)" }
+        var text = String(localized: "\(hits.count) bookmarks")
+        if pending > 0 { text += String(localized: " · \(pending) indexing") }
+        text += String(localized: " · \(bookmarks.embedder.modelID), on device")
+        if !bookmarks.embedderStatus.isEmpty { text += " · \(bookmarks.embedderStatus)" }
         return text
     }
 

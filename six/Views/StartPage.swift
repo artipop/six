@@ -33,7 +33,7 @@ struct StartPage: View {
             rows += browser.history.suggest(trimmed, in: tab.profileID, limit: Self.historyLimit).map { entry in
                 // A results page is shown as the query it was, with where it went — like Chrome does.
                 if let search = SearchEngine.search(from: entry.url) {
-                    return Row(text: search.query, detail: "\(search.engine.title) Search", kind: .history(entry.url))
+                    return Row(text: search.query, detail: String(localized: "\(search.engine.title) Search"), kind: .history(entry.url))
                 }
                 return Row(text: entry.title.isEmpty ? entry.url.absoluteString : entry.title,
                            detail: entry.url.host() ?? entry.url.absoluteString,
@@ -43,7 +43,7 @@ struct StartPage: View {
         let shown = Set(rows.map { $0.text.lowercased() })
         rows += suggestions.items
             .filter { $0.caseInsensitiveCompare(trimmed) != .orderedSame && !shown.contains($0.lowercased()) }
-            .map { Row(text: $0, detail: "\(engine.title) Search", kind: .search) }
+            .map { Row(text: $0, detail: String(localized: "\(engine.title) Search"), kind: .search) }
         return rows
     }
 

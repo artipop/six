@@ -71,7 +71,7 @@ enum Exporter {
         panel.isExtensionHidden = false
         panel.nameFieldStringValue = suggestedName(for: tab) + "." + (formats[0].type.preferredFilenameExtension ?? "txt")
         panel.directoryURL = tab.document?.fileURL?.deletingLastPathComponent() ?? lastFolder
-        panel.title = "Save As"
+        panel.title = String(localized: "Save As")
         guard panel.runModal() == .OK, let url = panel.url else { return }
         lastFolder = url.deletingLastPathComponent()
         do {

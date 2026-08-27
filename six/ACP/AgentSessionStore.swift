@@ -186,15 +186,15 @@ final class AgentSessionStore {
             let agentName = info.agentInfo?.title ?? info.agentInfo?.name ?? agent.name
             let savedSession = chats[key]?.sessionID
             if let savedSession, await resumeSession(savedSession, client: client, capabilities: info.agentCapabilities, cwd: directory, mcpServers: servers) {
-                append(.status("Resumed session with \(agentName) · \(directory.path)"))
+                append(.status(String(localized: "Resumed session with \(agentName) · \(directory.path)")))
             } else {
                 let session = try await client.newSession(cwd: directory, mcpServers: servers)
                 sessionId = session.sessionId
                 modes = session.modes
                 chats[key]?.sessionID = session.sessionId
                 append(.status(savedSession == nil
-                    ? "Connected to \(agentName) · \(directory.path)"
-                    : "Previous session couldn't be resumed; new session with \(agentName) · \(directory.path)"))
+                    ? String(localized: "Connected to \(agentName) · \(directory.path)")
+                    : String(localized: "Previous session couldn't be resumed; new session with \(agentName) · \(directory.path)")))
             }
             sessionDirectory = directory
             state = .ready
@@ -265,13 +265,13 @@ final class AgentSessionStore {
     @discardableResult
     func prompt(_ text: String, context: [ACP.ContentBlock] = [], onUpdate: ((LiveUpdate) -> Void)? = nil) async -> PromptOutcome {
         let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return .failed("Empty prompt") }
+        guard !text.isEmpty else { return .failed(String(localized: "Empty prompt")) }
         if client != nil, let sessionDirectory, sessionDirectory != workingDirectory { disconnect() }
         if client == nil { await connect() }
         guard let client, let sessionId, state == .ready else {
             Self.trace("send dropped: client=\(self.client != nil) session=\(self.sessionId ?? "nil") state=\(state)")
             if case .failed(let message) = state { return .failed(message) }
-            return .failed("The agent is busy")
+            return .failed(String(localized: "The agent is busy"))
         }
         append(.user(text))
         openMessageID = nil
@@ -282,11 +282,11 @@ final class AgentSessionStore {
         defer { liveUpdate = nil }
         do {
             let stop = try await client.prompt(sessionId: sessionId, [.text(text)] + context)
-            if stop != .endTurn { append(.status("Stopped: \(stop.rawValue)")) }
+            if stop != .endTurn { append(.status(String(localized: "Stopped: \(stop.rawValue)"))) }
             state = .ready
             return .finished(stop)
         } catch {
-            append(.status("Error: \(error.localizedDescription)"))
+            append(.status(String(localized: "Error: \(error.localizedDescription)")))
             state = .ready
             return .failed(error.localizedDescription)
         }
@@ -331,17 +331,20 @@ final class AgentSessionStore {
             appendChunk(block.plainText ?? "", to: &openUserID) { .user($0) }
             openMessageID = nil
             openThoughtID = nil
-        case .toolCall(let call):
+        case .toolCall(let raw):
             openMessageID = nil
             openThoughtID = nil
             openUserID = nil
+            // `mcp__six__open_window` is the wire's name for the tool; the panel shows `six open_window`.
+            let call = Self.renamed(raw)
             liveUpdate?(.activity(call.title ?? call.kind?.rawValue ?? "tool"))
             if let index = liveTranscript.firstIndex(where: { $0.id == "tool:\(call.toolCallId)" }) {
                 liveTranscript[index].kind = .toolCall(call)
             } else {
                 liveTranscript.append(.init(id: "tool:\(call.toolCallId)", kind: .toolCall(call)))
             }
-        case .toolCallUpdate(let update):
+        case .toolCallUpdate(let rawUpdate):
+            let update = Self.renamed(rawUpdate)
             guard let index = liveTranscript.firstIndex(where: { $0.id == "tool:\(update.toolCallId)" }),
                   case .toolCall(var existing) = liveTranscript[index].kind else {
                 liveTranscript.append(.init(id: "tool:\(update.toolCallId)", kind: .toolCall(update)))
@@ -368,8 +371,10 @@ final class AgentSessionStore {
         }
     }
 
-    fileprivate func requestPermission(_ request: ACP.RequestPermissionRequest) async -> ACP.RequestPermissionOutcome {
-        await withCheckedContinuation { continuation in
+    fileprivate func requestPermission(_ raw: ACP.RequestPermissionRequest) async -> ACP.RequestPermissionOutcome {
+        var request = raw
+        request.toolCall = Self.renamed(raw.toolCall)
+        return await withCheckedContinuation { continuation in
             let resumed = LockedFlag()
             permissionPrompt = AgentPermissionPrompt(request: request) { outcome in
                 guard resumed.trySet() else { return }
@@ -392,6 +397,14 @@ final class AgentSessionStore {
             liveTranscript.append(.init(id: id, kind: make(text)))
             openID = id
         }
+    }
+
+    /// The tool's name as the panel says it: the MCP mangling undone (`AgentToolName`).
+    private static func renamed(_ call: ACP.ToolCall) -> ACP.ToolCall {
+        guard let title = call.title else { return call }
+        var copy = call
+        copy.title = AgentToolName.display(title)
+        return copy
     }
 
     private func append(_ kind: AgentTranscriptItem.Kind) {

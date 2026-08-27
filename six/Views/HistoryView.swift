@@ -97,7 +97,9 @@ struct HistoryView: View {
             byDay[day, default: []].append(entry)
         }
         return order.map { day in
-            let label = calendar.isDateInToday(day) ? "Today" : calendar.isDateInYesterday(day) ? "Yesterday" : formatter.string(from: day)
+            let label = calendar.isDateInToday(day) ? String(localized: "Today")
+                : calendar.isDateInYesterday(day) ? String(localized: "Yesterday")
+                : formatter.string(from: day)
             return DayGroup(day: day, label: label, entries: byDay[day] ?? [])
         }
     }

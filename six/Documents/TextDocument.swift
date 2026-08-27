@@ -36,14 +36,14 @@ final class TextDocument: Identifiable {
             }
             return String(line.prefix(80))
         }
-        return "Untitled"
+        return String(localized: "Untitled")
     }
 
     /// A file name for exports: the title, made safe.
     var suggestedFileName: String {
         let base = title.replacingOccurrences(of: "[/:\\\\]", with: "-", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        return base.isEmpty ? "Untitled" : String(base.prefix(80))
+        return base.isEmpty ? String(localized: "Untitled") : String(base.prefix(80))
     }
 
     // MARK: Section-level writes (an agent writing while the user reads)

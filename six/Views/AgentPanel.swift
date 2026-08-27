@@ -66,7 +66,8 @@ struct AgentPanel: View {
                     .controlSize(.small)
             }
             ToolchainStatusView(agent: store.agent)
-            Label("Browser tools via MCP: \(mcp.server.toolNames.joined(separator: ", "))", systemImage: "wrench.and.screwdriver")
+            // The agent calls them `\(MCPStdioBridge.acpServer.name) <method>` — see `AgentToolName`.
+            Label("Browser tools of \(MCPStdioBridge.acpServer.name): \(mcp.server.toolNames.joined(separator: ", "))", systemImage: "wrench.and.screwdriver")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(2)

@@ -72,7 +72,7 @@ final class MCPHost {
 
     init(server: MCPServer) {
         self.server = server
-        status = "not started"
+        status = String(localized: "not started")
     }
 
     func start() {
@@ -80,7 +80,7 @@ final class MCPHost {
             try listener.start { [weak self] handle in
                 Task { @MainActor [weak self] in self?.attach(handle) }
             }
-            status = "listening at \(listener.path)"
+            status = String(localized: "listening at \(listener.path)")
         } catch {
             status = error.localizedDescription
         }

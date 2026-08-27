@@ -142,19 +142,19 @@ enum ExtensionInstaller {
         let talksToPages = ext.hasInjectedContent && ext.hasBackgroundContent
 
         if ext.hasInjectedContent {
-            details.append("Its content scripts run in pages, but cannot message the extension — and it cannot message them.")
+            details.append(String(localized: "Its content scripts run in pages, but cannot message the extension — and it cannot message them."))
         }
         if wantsScripting {
-            details.append("`scripting.executeScript` and `scripting.insertCSS` fail here; scripts it registers do run.")
+            details.append(String(localized: "`scripting.executeScript` and `scripting.insertCSS` fail here; scripts it registers do run."))
         }
         if wantsWebRequest {
-            details.append("`webRequest` is not available in WebKit at all.")
+            details.append(String(localized: "`webRequest` is not available in WebKit at all."))
         }
         if ext.hasContentModificationRules {
-            details.append("Its declarativeNetRequest rules work — those block for real.")
+            details.append(String(localized: "Its declarativeNetRequest rules work — those block for real."))
         }
         if ext.hasBackgroundContent {
-            details.append("Background, storage, alarms, tabs and its popup work.")
+            details.append(String(localized: "Background, storage, alarms, tabs and its popup work."))
         }
 
         let verdict: ExtensionCompatibility.Verdict
@@ -162,20 +162,20 @@ enum ExtensionInstaller {
         switch (talksToPages || wantsWebRequest, ext.hasInjectedContent || wantsScripting) {
         case (true, _):
             verdict = .partial
-            summary = "Works partly — anything it does inside a page will be broken."
+            summary = String(localized: "Works partly — anything it does inside a page will be broken.")
         case (false, true):
             verdict = .partial
-            summary = "Works partly — its content scripts run, but it cannot reach into pages beyond them."
+            summary = String(localized: "Works partly — its content scripts run, but it cannot reach into pages beyond them.")
         default:
             verdict = .full
-            summary = "Works — nothing it asks for depends on reaching into a page."
+            summary = String(localized: "Works — nothing it asks for depends on reaching into a page.")
         }
 
         // An extension that is *only* content scripts has nothing left when they go deaf.
         if ext.hasInjectedContent, !ext.hasBackgroundContent, !ext.hasContentModificationRules {
             return ExtensionCompatibility(
                 verdict: .partial,
-                summary: "Works partly — it is content scripts, which run but cannot be configured or updated by it.",
+                summary: String(localized: "Works partly — it is content scripts, which run but cannot be configured or updated by it."),
                 details: details)
         }
         return ExtensionCompatibility(verdict: verdict, summary: summary, details: details)

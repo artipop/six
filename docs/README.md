@@ -17,6 +17,7 @@ reference.
 | [agents.md](agents.md) | the ACP client and the agent panel |
 | [devtools.md](devtools.md) | Web Inspector on six's pages, and the console/network capture the agent tools read |
 | [mcp.md](mcp.md) | `six --mcp`: the browser as an MCP server, and its tools |
+| [localization.md](localization.md) | the String Catalogs, English and Russian, and the line between what a person reads and what a model reads |
 | [build.md](build.md) | toolchain, SDK override, sandbox |
 | [deep-research.md](deep-research.md) | deep research: document windows, the run, the writing tools, Save As, highlighted passages |
 | [todo.md](todo.md) | what is planned and not built: passkeys, CloudKit sync, SQLite + RAG, documents + Save As, fullscreen, PiP |

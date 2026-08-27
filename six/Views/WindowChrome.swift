@@ -128,7 +128,7 @@ struct WindowChrome: View {
             if let run = browser.run(forDocument: tab.id) {
                 if run.isRunning {
                     ProgressView().controlSize(.mini)
-                    Text(run.status.isEmpty ? "researching…" : run.status)
+                    Text(run.status.isEmpty ? String(localized: "researching…") : run.status)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)

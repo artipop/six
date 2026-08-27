@@ -37,14 +37,14 @@ nonisolated struct FilterList: Identifiable, Codable, Sendable, Hashable {
         let prefersRussian = languages.contains { $0.hasPrefix("ru") }
         return [
             FilterList(id: "adguard-base", title: "AdGuard Base",
-                       detail: "Ads on most of the web", source: adGuard(2), isBuiltIn: true),
+                       detail: String(localized: "Ads on most of the web"), source: adGuard(2), isBuiltIn: true),
             FilterList(id: "adguard-privacy", title: "AdGuard Tracking Protection",
-                       detail: "Trackers, analytics and beacons", source: adGuard(3), isBuiltIn: true),
+                       detail: String(localized: "Trackers, analytics and beacons"), source: adGuard(3), isBuiltIn: true),
             FilterList(id: "adguard-annoyances", title: "AdGuard Annoyances",
-                       detail: "Cookie notices, in-page overlays, widgets", source: adGuard(14),
+                       detail: String(localized: "Cookie notices, in-page overlays, widgets"), source: adGuard(14),
                        isBuiltIn: true, isEnabled: false),
             FilterList(id: "adguard-russian", title: "AdGuard Russian",
-                       detail: "Ads on Russian-language sites", source: adGuard(1),
+                       detail: String(localized: "Ads on Russian-language sites"), source: adGuard(1),
                        isBuiltIn: true, isEnabled: prefersRussian),
         ]
     }

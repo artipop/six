@@ -284,7 +284,7 @@ final class BrowserTab: Identifiable {
 
     var title: String {
         if let document { return document.title }
-        if showsStartPage { return "New Window" }
+        if showsStartPage { return String(localized: "New Window") }
         if let live = livePage, !live.title.isEmpty { return live.title }
         if !savedTitle.isEmpty { return savedTitle }
         return currentURL?.host() ?? "New Tab"

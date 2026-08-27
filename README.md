@@ -47,6 +47,12 @@ which `WebPage` does not hand out, so a content script runs but cannot message i
 measured rather than guessed, and every install says what it costs *that* extension before it runs.
 See [docs/extensions.md](docs/extensions.md).
 
+The interface speaks English and Russian: one String Catalog for the app, another for what the system shows on its
+behalf (the camera prompt, the document types in the Finder), plural forms and all. What a *model* reads — the tool
+catalog's instructions, every tool description, the research preset — stays English, because that is a prompt rather
+than an interface.
+See [docs/localization.md](docs/localization.md).
+
 six registers with macOS as a browser: it claims `http`/`https` and the usual web file types, so it can be picked in
 System Settings › Desktop & Dock › Default web browser (or from **Set six as Default Browser…** in the six menu), and
 links or `.html` files opened from other apps land as windows in the strip.

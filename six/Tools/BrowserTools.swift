@@ -24,6 +24,10 @@ struct BrowserTool {
     }
 
     var name: String
+    /// The spec's `title`: the human-readable name a client shows instead of `name`
+    /// (https://modelcontextprotocol.io/specification/latest/server/tools). Localized — the client
+    /// showing it is the user's own.
+    var title: String = ""
     var description: String
     var parameters: [Parameter] = []
     var surfaces: Surface = .all
@@ -108,11 +112,13 @@ final class BrowserToolCatalog {
     private lazy var all: [BrowserTool] = [
         BrowserTool(
             name: "list_workspaces",
+            title: String(localized: "List Workspaces"),
             description: "Every profile with its workspaces and the windows (id, title, URL) in each; marks what is focused and on screen.",
             run: { [unowned self] _ in try self.listWorkspaces() }
         ),
         BrowserTool(
             name: "web_search",
+            title: String(localized: "Search the Web"),
             description: "Searches the web and returns ranked results — title, URL and snippet — without opening or "
                 + "changing anything. The way to find pages worth opening with `open_window`.",
             parameters: [
@@ -123,6 +129,7 @@ final class BrowserToolCatalog {
         ),
         BrowserTool(
             name: "open_window",
+            title: String(localized: "Open Window"),
             description: "Opens a new window with a URL, or a web search for `query`. Goes into the on-screen workspace of the "
                 + "current profile unless `workspace` (name or 1-based index; a new name creates the workspace) and/or "
                 + "`profile` (name) say otherwise. Returns the new window id.",
@@ -138,24 +145,28 @@ final class BrowserToolCatalog {
         ),
         BrowserTool(
             name: "navigate",
+            title: String(localized: "Go to Address"),
             description: "Loads a URL (or a search query) in an existing window and waits for the page to finish loading.",
             parameters: [Self.windowID, .init(name: "url", description: "Address or search text.", required: true)],
             run: { [unowned self] args in try await self.navigate(args) }
         ),
         BrowserTool(
             name: "get_page_content",
+            title: String(localized: "Read Page"),
             description: "The visible text of a window's page (waits for loading to finish), with title and URL. Defaults to the focused window.",
             parameters: [Self.windowID, .init(name: "max_chars", description: "Truncate the text to this many characters (default 20000).", type: .integer)],
             run: { [unowned self] args in try await self.pageContent(args) }
         ),
         BrowserTool(
             name: "get_page_links",
+            title: String(localized: "Page Links"),
             description: "Links on a window's page as `text — URL` lines, in document order. Defaults to the focused window.",
             parameters: [Self.windowID, .init(name: "max_links", description: "At most this many links (default 200).", type: .integer)],
             run: { [unowned self] args in try await self.pageLinks(args) }
         ),
         BrowserTool(
             name: "summarize_page",
+            title: String(localized: "Summarize Page"),
             description: "Summarizes a window's page with the browser's own assistant model (the one chosen in ⌘K: on-device, "
                 + "Private Cloud Compute or Claude). `focus` narrows the summary to a question or aspect.",
             parameters: [Self.windowID, .init(name: "focus", description: "What the summary should concentrate on, if anything.")],
@@ -164,6 +175,7 @@ final class BrowserToolCatalog {
         ),
         BrowserTool(
             name: "list_console_messages",
+            title: String(localized: "Console Messages"),
             description: "What a window's page logged — console messages and uncaught errors, oldest first, since it last "
                 + "navigated. Needs Develop › Capture Console and Network to be on; the tool says so if it is not.",
             parameters: [
@@ -176,6 +188,7 @@ final class BrowserToolCatalog {
         ),
         BrowserTool(
             name: "list_network_requests",
+            title: String(localized: "Network Requests"),
             description: "The requests a window's page made since it last navigated — URL, method, status, duration — as the "
                 + "page itself saw them. Needs Develop › Capture Console and Network to be on.",
             parameters: [
@@ -188,6 +201,7 @@ final class BrowserToolCatalog {
         ),
         BrowserTool(
             name: "take_screenshot",
+            title: String(localized: "Take Screenshot"),
             description: "Writes a PNG of a window's page to disk and returns the path — what the page looks like right now.",
             parameters: [Self.windowID],
             surfaces: .mcp,
@@ -195,6 +209,7 @@ final class BrowserToolCatalog {
         ),
         BrowserTool(
             name: "focus_window",
+            title: String(localized: "Focus Window"),
             description: "Brings a window on screen: switches to its profile and workspace and scrolls the strip to it.",
             parameters: [.init(name: "window_id", description: "Window id from list_workspaces (a prefix is enough).", required: true)],
             run: { [unowned self] args in
@@ -205,6 +220,7 @@ final class BrowserToolCatalog {
         ),
         BrowserTool(
             name: "move_window",
+            title: String(localized: "Move Window"),
             description: "Moves a window to another workspace of its profile (name or 1-based index; a new name creates the workspace).",
             parameters: [
                 .init(name: "window_id", description: "Window id from list_workspaces (a prefix is enough).", required: true),
@@ -219,6 +235,7 @@ final class BrowserToolCatalog {
         ),
         BrowserTool(
             name: "close_window",
+            title: String(localized: "Close Window"),
             description: "Closes a window.",
             parameters: [.init(name: "window_id", description: "Window id from list_workspaces (a prefix is enough).", required: true)],
             run: { [unowned self] args in
@@ -230,6 +247,7 @@ final class BrowserToolCatalog {
         ),
         BrowserTool(
             name: "list_bookmarks",
+            title: String(localized: "List Bookmarks"),
             description: "The user's bookmarks, newest first: id, title, URL, site and when it was saved. Scope: the "
                 + "profile named in `profile`, `all` profiles, or the user's chosen scope by default.",
             parameters: [Self.bookmarkProfile, .init(name: "limit", description: "At most this many (default 50).", type: .integer)],
@@ -237,6 +255,7 @@ final class BrowserToolCatalog {
         ),
         BrowserTool(
             name: "search_bookmarks",
+            title: String(localized: "Search Bookmarks"),
             description: "Semantic search over the saved pages (vectors over the text, plus title/URL matches): the best "
                 + "bookmarks for a topic or question, each with the matching passage. Same scope rules as list_bookmarks.",
             parameters: [
@@ -248,6 +267,7 @@ final class BrowserToolCatalog {
         ),
         BrowserTool(
             name: "read_bookmark",
+            title: String(localized: "Read Bookmark"),
             description: "The saved text of a bookmark as Markdown (with its front matter: title, URL, site, saved date).",
             parameters: [
                 .init(name: "bookmark_id", description: "Bookmark id from list_bookmarks / search_bookmarks (a prefix is enough).", required: true),
@@ -264,6 +284,7 @@ final class BrowserToolCatalog {
         ),
         BrowserTool(
             name: "add_bookmark",
+            title: String(localized: "Add Bookmark"),
             description: "Saves a window's page as a bookmark of its profile: a readable Markdown copy on disk, indexed "
                 + "for search. Defaults to the focused window.",
             parameters: [Self.windowID],
@@ -279,6 +300,7 @@ final class BrowserToolCatalog {
         ),
         BrowserTool(
             name: "refresh_bookmark",
+            title: String(localized: "Refresh Bookmark"),
             description: "Re-reads a bookmark's page from its site (off screen, with the profile's cookies) and re-indexes it "
                 + "if the text changed. Pages are also re-read on a schedule; this is for when you need it now.",
             parameters: [.init(name: "bookmark_id", description: "Bookmark id (a prefix is enough).", required: true)],
@@ -293,6 +315,7 @@ final class BrowserToolCatalog {
         ),
         BrowserTool(
             name: "remove_bookmark",
+            title: String(localized: "Remove Bookmark"),
             description: "Deletes a bookmark and its saved file.",
             parameters: [.init(name: "bookmark_id", description: "Bookmark id (a prefix is enough).", required: true)],
             run: { [unowned self] args in
@@ -303,6 +326,7 @@ final class BrowserToolCatalog {
         ),
         BrowserTool(
             name: "create_document",
+            title: String(localized: "New Document"),
             description: "Opens a document window — Markdown text in a column of the strip, next to the pages. Goes into the "
                 + "on-screen workspace of the current profile unless `workspace` / `profile` say otherwise. Returns its id.",
             parameters: [
@@ -323,6 +347,7 @@ final class BrowserToolCatalog {
         ),
         BrowserTool(
             name: "write_document",
+            title: String(localized: "Write Document"),
             description: "Writes into a document window. `mode` is `replace` (the whole text), `append` (below the end), or "
                 + "`section` (replace the body of the `## section` whose heading matches `section`, keeping the heading; a "
                 + "heading that doesn't exist is added at the end). Write the outline first, then fill the sections in.",
@@ -336,6 +361,7 @@ final class BrowserToolCatalog {
         ),
         BrowserTool(
             name: "read_document",
+            title: String(localized: "Read Document"),
             description: "The current Markdown of a document window, so what was written (by you or the user) can be revised.",
             parameters: [Self.documentID],
             run: { [unowned self] args in
@@ -346,6 +372,7 @@ final class BrowserToolCatalog {
         ),
         BrowserTool(
             name: "cite",
+            title: String(localized: "Cite a Source"),
             description: "Adds a source to the document's `## Sources` list — title, URL, retrieved-at and optionally the passage — "
                 + "and returns the `[n]` to put inline. Point it at a window (`window_id`, default: the focused page) or give "
                 + "`url` and `title` directly; a `highlight_id` from highlight_page makes the source line link to the passage.",
@@ -361,6 +388,7 @@ final class BrowserToolCatalog {
         ),
         BrowserTool(
             name: "highlight_page",
+            title: String(localized: "Highlight Page"),
             description: "Marks the paragraphs of a window's page that answer `question` (the browser's own model picks them by "
                 + "number from the page's blocks, so nothing is retyped) and returns each as a highlight: id, the exact text, and a "
                 + "`#:~:text=` link that scrolls to it in any browser. Highlights persist per URL and are painted again when the "
@@ -375,6 +403,7 @@ final class BrowserToolCatalog {
         ),
         BrowserTool(
             name: "list_page_blocks",
+            title: String(localized: "List Page Blocks"),
             description: "The paragraph-ish blocks of a window's page, numbered, with their text — what highlight_page chooses "
                 + "from. For picking passages yourself and passing the numbers as `blocks`.",
             parameters: [Self.windowID, .init(name: "max_chars", description: "Truncate the listing to this many characters (default 20000).", type: .integer)],
@@ -390,6 +419,7 @@ final class BrowserToolCatalog {
         ),
         BrowserTool(
             name: "list_highlights",
+            title: String(localized: "List Highlights"),
             description: "The highlights stored for a window's page (or for `url`): id, text, note and the `#:~:text=` link.",
             parameters: [Self.windowID, .init(name: "url", description: "A page URL, instead of a window.")],
             run: { [unowned self] args in
@@ -411,6 +441,7 @@ final class BrowserToolCatalog {
         ),
         BrowserTool(
             name: "remove_highlight",
+            title: String(localized: "Remove Highlight"),
             description: "Deletes a highlight.",
             parameters: [.init(name: "highlight_id", description: "Highlight id (a prefix is enough).", required: true)],
             run: { [unowned self] args in
@@ -424,6 +455,7 @@ final class BrowserToolCatalog {
         ),
         BrowserTool(
             name: "evaluate_javascript",
+            title: String(localized: "Run JavaScript"),
             description: "Runs JavaScript in a window's page (as a function body; `return` a value to get it back as JSON). "
                 + "Defaults to the focused window.",
             parameters: [Self.windowID, .init(name: "script", description: "JavaScript function body.", required: true)],
@@ -976,7 +1008,7 @@ extension BrowserTool {
         for parameter in parameters {
             properties[parameter.name] = ["type": .string(parameter.type.rawValue), "description": .string(parameter.description)]
         }
-        return [
+        var descriptor: [String: ACPJSON] = [
             "name": .string(name),
             "description": .string(description),
             "inputSchema": [
@@ -986,5 +1018,7 @@ extension BrowserTool {
                 "additionalProperties": false,
             ],
         ]
+        if !title.isEmpty { descriptor["title"] = .string(title) }
+        return .object(descriptor)
     }
 }

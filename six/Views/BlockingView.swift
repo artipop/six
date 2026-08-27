@@ -92,11 +92,11 @@ struct BlockingView: View {
     }
 
     private var footnote: String {
-        guard blocker.isEnabled else { return "Blocking is off — nothing is fetched or attached to a page." }
+        guard blocker.isEnabled else { return String(localized: "Blocking is off — nothing is fetched or attached to a page.") }
         let ready = blocker.lists.filter { blocker.status[$0.id]?.isReady == true }
         let rules = ready.reduce(0) { $0 + (blocker.status[$1.id]?.rules ?? 0) }
-        guard rules > 0 else { return "Preparing filter lists…" }
-        return "\(ready.count) \(ready.count == 1 ? "list" : "lists") blocking, \(rules.formatted()) rules"
+        guard rules > 0 else { return String(localized: "Preparing filter lists…") }
+        return String(localized: "\(String(localized: "\(ready.count) lists blocking")), \(String(localized: "\(rules) rules"))")
     }
 
     private func addList() {
@@ -140,18 +140,18 @@ private struct FilterListRow: View {
     }
 
     private var state: String {
-        guard list.isEnabled else { return "Off" }
+        guard list.isEnabled else { return String(localized: "Off") }
         switch status?.phase {
-        case .updating: return "Updating…"
-        case .compiling: return "Compiling…"
-        case .failed(let message): return "Last update failed: \(message)"
+        case .updating: return String(localized: "Updating…")
+        case .compiling: return String(localized: "Compiling…")
+        case .failed(let message): return String(localized: "Last update failed: \(message)")
         default: break
         }
-        guard let status, status.isReady else { return "Waiting" }
-        var line = "\(status.rules.formatted()) rules"
-        if status.dropped > 0 { line += ", \(status.dropped.formatted()) over WebKit's limit" }
+        guard let status, status.isReady else { return String(localized: "Waiting") }
+        var line = String(localized: "\(status.rules) rules")
+        if status.dropped > 0 { line += String(localized: ", \(status.dropped.formatted()) over WebKit's limit") }
         if let updatedAt = status.updatedAt {
-            line += " · updated \(updatedAt.formatted(.relative(presentation: .named)))"
+            line += String(localized: " · updated \(updatedAt.formatted(.relative(presentation: .named)))")
         }
         return line
     }

@@ -44,21 +44,21 @@ final class ResearchCoordinator {
     @discardableResult
     func start(_ question: String, agent: ACPAgentDefinition? = nil, onUpdate: ((AgentSessionStore.LiveUpdate) -> Void)? = nil) async -> AgentSessionStore.PromptOutcome {
         let question = question.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !question.isEmpty else { return .failed("Empty question") }
+        guard !question.isEmpty else { return .failed(String(localized: "Empty question")) }
         if let existing = browser.focusedRun, browser.tab(existing.documentTabID) != nil {
             return await followUp(existing, question: question, agent: agent, onUpdate: onUpdate)
         }
         let profile = browser.selectedProfile
         let name = uniqueWorkspaceName(ResearchRun.workspaceName(for: question), in: profile.id)
         guard let index = browser.layout.workspaceIndex(named: name, in: profile.id, createIfMissing: true) else {
-            return .failed("Couldn't create a workspace")
+            return .failed(String(localized: "Couldn't create a workspace"))
         }
         let documentTab = browser.newDocument(text: ResearchPreset.initialText(question: question), in: profile.id, workspace: index, activate: true)
         documentTab.document?.showsPreview = true
         let workspaceID = browser.layout.strip(for: profile.id).workspaces[index].id
         var run = ResearchRun(question: question, profileID: profile.id, workspaceID: workspaceID, documentTabID: documentTab.id)
         run.isRunning = true
-        run.status = "starting…"
+        run.status = String(localized: "starting…")
         browser.update(run)
         let prompt = ResearchPreset.prompt(template: template, question: question, workspace: name, document: documentTab.id,
                                            profile: profile.name, sources: sourceCount)
@@ -69,7 +69,7 @@ final class ResearchCoordinator {
         var run = existing
         run.followUps.append(question)
         run.isRunning = true
-        run.status = "follow-up…"
+        run.status = String(localized: "follow-up…")
         browser.update(run)
         let strip = browser.layout.strip(for: run.profileID)
         let workspace = strip.workspaces.first { $0.id == run.workspaceID }?.name ?? ResearchRun.workspaceName(for: run.question)
@@ -90,13 +90,15 @@ final class ResearchCoordinator {
         if var current = browser.research.first(where: { $0.id == id }) {
             current.isRunning = false
             switch outcome {
-            case .finished(let stop): current.status = stop == .endTurn ? "done \(Date().formatted(date: .omitted, time: .shortened))" : "stopped: \(stop.rawValue)"
-            case .failed(let message): current.status = "failed: \(message.prefix(80))"
+            case .finished(let stop): current.status = stop == .endTurn
+                ? String(localized: "done \(Date().formatted(date: .omitted, time: .shortened))")
+                : String(localized: "stopped: \(stop.rawValue)")
+            case .failed(let message): current.status = String(localized: "failed: \(message.prefix(80))")
             }
             browser.update(current)
             // A document that still says "Researching…" after a failed run should say what happened.
             if case .failed = outcome, let document = browser.tab(current.documentTabID)?.document, document.text.contains("_Researching…_") {
-                document.text = document.text.replacingOccurrences(of: "_Researching…_", with: "_The run failed: \(current.status)_")
+                document.text = document.text.replacingOccurrences(of: "_Researching…_", with: String(localized: "_The run failed: \(current.status)_"))
             }
         }
         return outcome

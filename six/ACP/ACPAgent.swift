@@ -38,7 +38,7 @@ nonisolated struct ACPAgentDefinition: Identifiable, Hashable, Codable, Sendable
         npmPackage: "@agentclientprotocol/claude-agent-acp",
         binaryName: "claude-agent-acp",
         underlyingCLI: "claude",
-        loginHint: "Install Claude Code and run `claude` once to log in."
+        loginHint: String(localized: "Install Claude Code and run `claude` once to log in.")
     )
 
     /// OpenAI Codex via the official ACP adapter.
@@ -50,7 +50,7 @@ nonisolated struct ACPAgentDefinition: Identifiable, Hashable, Codable, Sendable
         npmPackage: "@agentclientprotocol/codex-acp",
         binaryName: "codex-acp",
         underlyingCLI: "codex",
-        loginHint: "Install Codex CLI and run `codex login`."
+        loginHint: String(localized: "Install Codex CLI and run `codex login`.")
     )
 
     static let builtIn: [ACPAgentDefinition] = [.claudeCode, .codex]

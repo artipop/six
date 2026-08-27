@@ -82,7 +82,7 @@ final class AssistantStore {
     /// permissions and the profile's working directory are shared.
     private func askAgent(_ agent: ACPAgentDefinition, question: String, about tab: BrowserTab?) async {
         defer { isResponding = false; activity = nil }
-        guard let agentSession else { errorMessage = "Agent session is not available"; return }
+        guard let agentSession else { errorMessage = String(localized: "Agent session is not available"); return }
         if agentSession.agent != agent { agentSession.agent = agent }
         var context: [ACP.ContentBlock] = []
         if let tab, !tab.showsStartPage, let url = tab.currentURL {

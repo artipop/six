@@ -12,6 +12,16 @@ over stdio to an adapter process.
   `session/new` also hands the agent the browser itself as an MCP server (`six --mcp`, see [mcp](mcp.md)), so it can
   open windows, read and summarize pages.
 
+## What a tool call is called
+
+An agent namespaces the tools it got from an MCP server: Claude Code hands them to the model — and to us — as
+`mcp__six__open_window`. That prefix is the client's own disambiguation, not the protocol's, so the panel takes it
+apart before showing anything: `AgentToolName.display` drops `mcp__` and turns `__` into a space, leaving
+**`six open_window`** — the server, then the method. The rewrite happens once, where the notification lands
+(`AgentSessionStore.handle`, and the permission request beside it), so the transcript, the permission prompt, the
+⌘K activity line and the saved chat all agree. Titles an agent wrote itself (`Read`, `Bash`, a whole sentence) pass
+through untouched. See [mcp.md](mcp.md#names) for the naming on the wire.
+
 ## Working directory
 
 Each profile has a folder of its own — `~/Library/Application Support/six/Profiles/<name>` — and the agent works in

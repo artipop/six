@@ -19,6 +19,7 @@ six/MCP         MCPServer + MCPHost (the catalog over a Unix socket), MCPSocket,
 six/Persistence AppStateSnapshot (the Codable shape), SnapshotStore (a versioned JSON file), StatePersistence (autosave)
 six/Data        AppDatabase (the SQLite file, migrations), SettingsStore (the settings table)
 six/Vendor      ClaudeForFoundationModels sources
+six/*.xcstrings Localizable + InfoPlist String Catalogs (English source, Russian) — see [localization](localization.md)
 ```
 
 ## State

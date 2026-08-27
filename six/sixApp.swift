@@ -295,7 +295,7 @@ private struct HistoryCommands: Commands {
                     Text("No History").disabled(true)
                 }
                 ForEach(recent) { entry in
-                    Button(SearchEngine.search(from: entry.url).map { "\($0.query) — \($0.engine.title) Search" } ?? entry.displayTitle) {
+                    Button(SearchEngine.search(from: entry.url).map { String(localized: "\($0.query) — \($0.engine.title) Search") } ?? entry.displayTitle) {
                         browser.newTab(url: entry.url, in: entry.profileID)
                     }
                 }

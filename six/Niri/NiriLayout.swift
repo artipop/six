@@ -57,7 +57,9 @@ final class NiriLayout {
     /// The default is "almost full": a normal browser window, with the next one peeking in at the edge.
     static let widthPresets: [CGFloat] = [0.5, 2.0 / 3.0, 0.88, 1.0]
     /// Menu names for the presets, in the same order.
-    static let widthPresetTitles = ["Half", "Two Thirds", "Peek", "Full"]
+    static var widthPresetTitles: [String] {
+        [String(localized: "Half"), String(localized: "Two Thirds"), String(localized: "Peek"), String(localized: "Full")]
+    }
     nonisolated static let defaultWidthIndex = 2
     /// Gaps are a fraction of the viewport, not a pixel count: the layout should look the same on a
     /// laptop and on a 5K panel. The floor only guards tiny windows. (Control metrics — title bar
@@ -597,7 +599,7 @@ final class NiriLayout {
     /// The name, or the position when there is none.
     func title(at index: Int) -> String {
         guard workspaces.indices.contains(index), !workspaces[index].name.isEmpty else {
-            return "Workspace \(index + 1)"
+            return String(localized: "Workspace \(index + 1)")
         }
         return workspaces[index].name
     }

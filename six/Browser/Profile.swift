@@ -64,8 +64,8 @@ nonisolated struct Profile: Identifiable, Codable, Hashable, Sendable {
     var hasCustomWorkingDirectory: Bool { workingDirectoryPath != nil }
 
     static let defaults: [Profile] = [
-        Profile(name: "Personal", colorHex: "#5B8DEF"),
-        Profile(name: "Work", colorHex: "#E8743B"),
+        Profile(name: String(localized: "Personal"), colorHex: "#5B8DEF"),
+        Profile(name: String(localized: "Work"), colorHex: "#E8743B"),
     ]
 }
 
