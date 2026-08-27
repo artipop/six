@@ -37,6 +37,27 @@ the rest of its tree), [sqlite-vec-data](https://github.com/mhayes853/sqlite-vec
 of the target and build under the override without trouble. mlx-swift-lm's `MLXHuggingFace` product is deliberately
 *not* linked: it depends on `MLXFoundationModels`, a third-party `LanguageModel` over the executor ABI.
 
+## A DMG to install from
+
+```sh
+./scripts/dmg.sh
+```
+
+Builds the Release configuration into `dist/DerivedData` (kept out of the shared one so the artefacts are the ones
+that go into the image), stages `six.app` next to a symlink to `/Applications`, and writes `dist/six-<version>.dmg`.
+The version is `MARKETING_VERSION` read out of the project. Mount it, drag six across, done.
+
+There is no signing identity on this machine (`security find-identity -v -p codesigning` finds none), so the app is
+signed ad-hoc — the same "Sign to Run Locally" a Debug build gets. That is enough to install and run it *here*:
+a DMG made locally carries no quarantine flag.
+
+Giving the image to someone else is a different matter. Ad-hoc code has no team behind it, so Gatekeeper on their
+machine refuses it outright — they would have to right-click › Open, or `xattr -dr com.apple.quarantine
+/Applications/six.app`. Doing it properly means a Developer ID Application certificate, `ENABLE_HARDENED_RUNTIME`
+(with the entitlements the ACP layer needs to keep spawning `npx` — `com.apple.security.cs.allow-jit` and
+`disable-library-validation` are the usual suspects), `codesign --options runtime --deep` and
+`xcrun notarytool submit … --wait` followed by `xcrun stapler staple`. None of that is set up yet.
+
 ## Sandbox
 
 App Sandbox is off — the ACP layer spawns `npx` / `claude` / `codex` from the user's toolchain.

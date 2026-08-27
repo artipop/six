@@ -54,6 +54,31 @@ Naming ourselves in the same string is what broke it, so we don't.
 needs a different answer. Nothing that is not in the user agent is faked: `navigator.userAgentData` stays absent (it
 is Chromium's), and a site that insists on it will simply not recognise us.
 
+## Being a browser
+
+macOS decides what an app *is* from its `Info.plist`, and Xcode's generated one says "an app". `Info.plist` at the
+repo root fills the gap and `GENERATE_INFOPLIST_FILE` stays on, so the generator's keys (bundle name, version,
+`NSPrincipalClass`) are merged into it at build time. It sits at the root rather than in `six/` because that folder
+is a file-system-synchronized group: anything inside it is added to the target, and the plist would be copied into
+`Resources` as well.
+
+What it declares: `CFBundleURLTypes` for `http`/`https` as a Viewer — the key that puts six in System Settings ›
+Desktop & Dock › Default web browser — and for `file`; `CFBundleDocumentTypes` for HTML, web archives, `.webloc`,
+PDF, images and text, all `Alternate` so Preview and TextEdit keep their files; `NSUserActivityTypes` for Handoff;
+camera, microphone and location usage strings, without which a site's permission prompt has nothing to say and the
+request is denied; and `NSAllowsArbitraryLoadsInWebContent`, which is for page content only, not for what six fetches
+itself. The app menu's **Set six as Default Browser…** calls `NSWorkspace.setDefaultApplication` for both schemes;
+macOS puts up its own confirmation, as it should — an app cannot promote itself silently.
+
+`ExternalOpen.swift` is the receiving end. A link handed to six from another app arrives as a `GetURL` Apple Event,
+and six takes that event itself instead of letting it reach `application(_:open:)`: SwiftUI answers an external open
+by asking `AppWindowsController` for a *window*, and a second window would put the same `WebPage`s into a second
+`WebView` — WebKit traps and the process dies. (`handlesExternalEvents(preferring:allowing:)` with `"*"` on the
+content view says the one window takes everything, but only the event we never hand over is reliably ours.) The
+handler is registered in `applicationWillFinishLaunching`, before AppKit delivers the event the app was *launched*
+with, and again after SwiftUI has had its turn; URLs that land before `sixApp.init` has built the browser wait in a
+queue. A `.webloc` is resolved to the URL inside it rather than opened as a file.
+
 ## Persistence
 
 Everything that makes up a session — profiles, the selected one, every tab (URL + title) and every profile's strip

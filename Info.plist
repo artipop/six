@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	  What makes macOS treat six as a browser rather than an app that happens to show web pages.
+	  The generated keys (bundle name, version, principal class) are merged in at build time —
+	  GENERATE_INFOPLIST_FILE stays on, this file only adds what the generator cannot express.
+	-->
+
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.productivity</string>
+
+	<!-- The one that matters: claiming http/https as a Viewer is what puts six in
+	     System Settings › Desktop & Dock › Default web browser. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>Web site URL</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>http</string>
+				<string>https</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>Local file URL</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>file</string>
+			</array>
+		</dict>
+	</array>
+
+	<!-- Files a browser is expected to open. Rank Owner only where six is a plausible
+	     first choice; the rest stay Alternate so Preview and TextEdit keep their files. -->
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>HTML Document</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.html</string>
+				<string>public.xhtml</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Web Archive</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.apple.webarchive</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Internet Location</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.apple.web-internet-location</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>PDF Document</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.adobe.pdf</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Image</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.image</string>
+				<string>public.svg-image</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Text</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+				<array>
+				<string>public.plain-text</string>
+				<string>net.daringfireball.markdown</string>
+			</array>
+		</dict>
+	</array>
+
+	<!-- Handoff: a page open on another device is offered to six. -->
+	<key>NSUserActivityTypes</key>
+	<array>
+		<string>NSUserActivityTypeBrowsingWeb</string>
+	</array>
+
+	<!-- The web is still partly plaintext; the exemption is for page content only,
+	     not for anything six itself fetches. -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoadsInWebContent</key>
+		<true/>
+	</dict>
+
+	<!-- Without these the site permission prompt has nothing to say and the request is denied. -->
+	<key>NSCameraUsageDescription</key>
+	<string>A site you are visiting is asking to use the camera.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>A site you are visiting is asking to use the microphone.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>A site you are visiting is asking for your location.</string>
+</dict>
+</plist>

@@ -24,6 +24,11 @@ playground for three things:
 Windows, workspaces, profiles and agent chats survive a relaunch: one JSON snapshot under Application Support, autosaved
 on change, ACP sessions resumed with `session/load`. See [docs/architecture.md](docs/architecture.md#persistence).
 
+six registers with macOS as a browser: it claims `http`/`https` and the usual web file types, so it can be picked in
+System Settings › Desktop & Dock › Default web browser (or from **Set six as Default Browser…** in the six menu), and
+links or `.html` files opened from other apps land as windows in the strip.
+See [docs/architecture.md](docs/architecture.md#being-a-browser).
+
 ## The niri layout
 
 There are no tabs and no sidebar. A page is a **column**: a full-height window with its own title bar (navigation +

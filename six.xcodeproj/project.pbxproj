@@ -7,11 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		AC8977A0303CEC22008426C2 /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = AC89779F303CEC22008426C2 /* SQLiteData */; };
-		C4E57E1CA358AD438C0F5731 /* SQLiteVecData in Frameworks */ = {isa = PBXBuildFile; productRef = 82F43A23555A3254647ADAE5 /* SQLiteVecData */; };
+		5CD2470091CF7AE5F73D25A5 /* Tokenizers in Frameworks */ = {isa = PBXBuildFile; productRef = E4D3C02313C636C3B360B52A /* Tokenizers */; };
 		6129C17CC7CD1BD468139EF8 /* MLXEmbedders in Frameworks */ = {isa = PBXBuildFile; productRef = ABD000B7AE7299C48D5CC4DD /* MLXEmbedders */; };
 		A271466D26DE9D05E6A5B285 /* HuggingFace in Frameworks */ = {isa = PBXBuildFile; productRef = FF7BC8AD7FB5289836E41C75 /* HuggingFace */; };
-		5CD2470091CF7AE5F73D25A5 /* Tokenizers in Frameworks */ = {isa = PBXBuildFile; productRef = E4D3C02313C636C3B360B52A /* Tokenizers */; };
+		AC8977A0303CEC22008426C2 /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = AC89779F303CEC22008426C2 /* SQLiteData */; };
+		C4E57E1CA358AD438C0F5731 /* SQLiteVecData in Frameworks */ = {isa = PBXBuildFile; productRef = 82F43A23555A3254647ADAE5 /* SQLiteVecData */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -275,6 +275,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -311,6 +312,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -356,12 +358,12 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		AC89779E303CEC22008426C2 /* XCRemoteSwiftPackageReference "sqlite-data" */ = {
+		0491713B9D1CDF6B8B095255 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/pointfreeco/sqlite-data";
+			repositoryURL = "https://github.com/ml-explore/mlx-swift-lm";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 1.11.0;
+				minimumVersion = 3.31.3;
 			};
 		};
 		1101D959FF8C08C0D4171221 /* XCRemoteSwiftPackageReference "sqlite-vec-data" */ = {
@@ -372,20 +374,20 @@
 				minimumVersion = 0.5.0;
 			};
 		};
-		0491713B9D1CDF6B8B095255 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/ml-explore/mlx-swift-lm";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 3.31.3;
-			};
-		};
 		9202E564C34651D6970C63AD /* XCRemoteSwiftPackageReference "swift-huggingface" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/huggingface/swift-huggingface";
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 0.9.0;
+			};
+		};
+		AC89779E303CEC22008426C2 /* XCRemoteSwiftPackageReference "sqlite-data" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/pointfreeco/sqlite-data";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.11.0;
 			};
 		};
 		F6FD676108E197A94959A73D /* XCRemoteSwiftPackageReference "swift-transformers" */ = {
@@ -399,11 +401,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		AC89779F303CEC22008426C2 /* SQLiteData */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = AC89779E303CEC22008426C2 /* XCRemoteSwiftPackageReference "sqlite-data" */;
-			productName = SQLiteData;
-		};
 		82F43A23555A3254647ADAE5 /* SQLiteVecData */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 1101D959FF8C08C0D4171221 /* XCRemoteSwiftPackageReference "sqlite-vec-data" */;
@@ -414,15 +411,20 @@
 			package = 0491713B9D1CDF6B8B095255 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
 			productName = MLXEmbedders;
 		};
-		FF7BC8AD7FB5289836E41C75 /* HuggingFace */ = {
+		AC89779F303CEC22008426C2 /* SQLiteData */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 9202E564C34651D6970C63AD /* XCRemoteSwiftPackageReference "swift-huggingface" */;
-			productName = HuggingFace;
+			package = AC89779E303CEC22008426C2 /* XCRemoteSwiftPackageReference "sqlite-data" */;
+			productName = SQLiteData;
 		};
 		E4D3C02313C636C3B360B52A /* Tokenizers */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = F6FD676108E197A94959A73D /* XCRemoteSwiftPackageReference "swift-transformers" */;
 			productName = Tokenizers;
+		};
+		FF7BC8AD7FB5289836E41C75 /* HuggingFace */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9202E564C34651D6970C63AD /* XCRemoteSwiftPackageReference "swift-huggingface" */;
+			productName = HuggingFace;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

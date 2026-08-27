@@ -13,6 +13,7 @@ enum SixMain {
 }
 
 struct sixApp: App {
+    @NSApplicationDelegateAdaptor(ExternalOpenDelegate.self) private var externalOpen
     @State private var browser: BrowserState
     @State private var assistant: AssistantStore
     @State private var agentSession: AgentSessionStore
@@ -61,6 +62,10 @@ struct sixApp: App {
         let mcp = MCPHost(server: MCPServer(catalog: tools))
         mcp.start()
         FileHandle.standardError.write(Data("[six] \(mcp.status); state at \(store.url.path)\n".utf8))
+        // Links handed to six from outside land in a new window in the strip.
+        ExternalOpenDelegate.handler = { [weak browser] url in
+            browser?.newTab(url: url)
+        }
         let window = WindowState(snapshot: snapshot?.window)
         let persistence = StatePersistence(store: store) {
             AppStateSnapshot(browser: browser.snapshot, agent: agentSession.snapshot, window: window.snapshot)
@@ -103,11 +108,24 @@ struct sixApp: App {
                 .environment(highlights)
                 .environment(research)
                 .background(WindowObserver(state: window))
+                // six is one window: every page in the strip is a `WebPage`, and a second window would
+                // put the same objects into a second `WebView` — WebKit traps on that. Without this,
+                // SwiftUI answers an external open by building a window instead of using the one that
+                // is up. `"*"` is the wildcard: this window takes every external event.
+                .handlesExternalEvents(preferring: ["*"], allowing: ["*"])
                 .frame(minWidth: 900, minHeight: 560)
         }
         .defaultSize(width: 1500, height: 950)
         .windowStyle(.hiddenTitleBar)
         .commands {
+            CommandGroup(after: .appInfo) {
+                // Read once, when the menus are built: if six already holds http/https there is
+                // nothing to ask macOS for.
+                Button("Set six as Default Browser…") {
+                    Task { await DefaultBrowser.makeDefault() }
+                }
+                .disabled(DefaultBrowser.isDefault)
+            }
             CommandGroup(replacing: .newItem) {
                 Button("New Window in Strip") { browser.newTab() }
                     .keyboardShortcut("t")

@@ -90,7 +90,7 @@ clients, nothing embedded).
 
 - A readable maximum width for the default column on ultra-wide displays: 88 % of a 5K panel is a very long line.
 - Deep research without an agent: a native loop over the ⌘K model for machines with no Claude Code / Codex, and
-  exporting a run as one HTML file with its sources inlined ([deep-research.md](deep-research.md), phase 6).
+  exporting a run as one HTML file with its sources inlined ([deep-research.md](deep-research.md)).
 - A way back to the start page after navigating (a "home" affordance, or `⌘⇧H`).
 - Downloads UI once `WKDownload` exists: where a file went, and a way to open it.
 - Forget one site: drop a single host's cookies and storage (`WKWebsiteDataStore.fetchDataRecords` →

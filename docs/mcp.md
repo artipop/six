@@ -42,7 +42,7 @@ empty, like a named workspace in niri).
 | `write_document` | `mode`: `replace` the text, `append`, or `section` — replace the body of one `## heading` (added when missing); `document_id` defaults to the run's document in the on-screen workspace |
 | `read_document` | the document's Markdown and its section list |
 | `cite` | adds `[n]: url "title" — retrieved …` (+ the passage) to the document's `## Sources` and returns `[n]`; from a window, a `url`, or a `highlight_id` (then the URL carries the `#:~:text=` fragment) |
-| `highlight_page` | marks the paragraphs that answer `question` — the ⌘K model (on-device when ⌘K is an agent) picks *numbers* from `list_page_blocks`, six anchors them — or `blocks` given by hand; returns id, text and a text-fragment link per passage — see [deep-research.md](deep-research.md#4-highlighted-passages) |
+| `highlight_page` | marks the paragraphs that answer `question` — the ⌘K model (on-device when ⌘K is an agent) picks *numbers* from `list_page_blocks`, six anchors them — or `blocks` given by hand; returns id, text and a text-fragment link per passage — see [deep-research.md](deep-research.md#highlighted-passages) |
 | `list_page_blocks` `list_highlights` `remove_highlight` | the numbered paragraphs of a page; the highlights stored for a page; delete one |
 | `list_bookmarks` `search_bookmarks` `read_bookmark` `add_bookmark` `refresh_bookmark` `remove_bookmark` | the profile's (or every profile's) saved pages, searched by meaning — see [bookmarks.md](bookmarks.md) |
 

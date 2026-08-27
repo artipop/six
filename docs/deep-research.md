@@ -1,14 +1,8 @@
 # Deep research
 
-*Built: phases 1–5 below. Phase 6 (a native loop without an agent, one-file export) is in [todo.md](todo.md).
-The design is kept as written; **How it is built** at the end says where each piece landed.*
-
-Deep research is what the strip is already for. An agent asked to research something opens the sources side by side —
-that part works today ([mcp.md](mcp.md)) — but the answer it writes lands in the agent panel, a chat log that scrolls
-away. The missing half is a place to write: **a document that is a window in the strip**, next to the sources it came
-from, saved with everything else and exportable like a page.
-
-A finished run should leave a workspace that looks like this:
+Deep research is what the strip is for. An agent asked to research something opens the sources side by side, and
+the answer it writes is **a document that is a window in the strip** — next to the pages it came from, saved with
+everything else, exportable like a page, with citations that point at the sentences that earned them.
 
 ```
 ┌──────────────┬──────────────┬──────────────┬──────────────┐
@@ -20,216 +14,143 @@ A finished run should leave a workspace that looks like this:
 
 ## Who runs the loop
 
-The agent, not the app. Claude Code / Codex already plan, call tools, retry and summarize; six should not grow a
-second planner. The app's job is to give the loop a place to work (a workspace), the tools to work with, and a
-surface to write into. A native loop over the ⌘K assistant model is a later option for people without an agent
-installed (see the phases below) — the tools are the same, only the driver differs.
+The agent, not the app. Claude Code / Codex already plan, call tools, retry and summarize; six does not grow a second
+planner. The app gives the loop a place to work (a workspace), the tools to work with, and a surface to write into.
+A native loop over the ⌘K model for machines without an agent is in [todo.md](todo.md).
 
-## The pieces
+## Starting a run
 
-### 1. Document windows
+- **Research…** in the agent panel (`⌘⇧A`): the question, how many sources to open, and the preset itself — editable,
+  with a reset; both live in settings.
+- `research: …` or `/research …` on the `⌘K` line.
 
-A column whose content is text rather than a page. `BrowserTab` grows a content case instead of always owning a
-`WebPage`:
+`ResearchCoordinator.start` (`six/Research/`) creates a workspace named after the question (unique within the
+profile), a document window in it with the question as its `# ` title and the preview on, and a `ResearchRun` —
+question, profile, workspace id, document tab id, source window ids, running flag, status, follow-ups — kept in
+`BrowserState.research` and so in the snapshot (`isRunning` is reset on relaunch; nothing survives a turn). Then it
+sends the preset to the agent session the panel uses.
 
-```swift
-enum TabContent {
-    case web(WebPage)
-    case document(TextDocument)   // markdown source + a WebPage for the rendered preview
-}
-```
+The preset asks the agent to `web_search` first, open the sources worth comparing in *this* workspace with
+`activate: false` (the user's screen does not jump), write the outline into the document, then fill it in section by
+section, citing as it goes, and leave every window open — the workspace is the record. The bounds (how many sources,
+how deep) are words in the preset, where the user can see and change them, not numbers in code.
 
-Everything the layout does — widths, focus, moving between workspaces, the overview, persistence — keeps working,
-because a document is just another column. What changes:
+While it runs, tool-call titles stream into `run.status`, shown with a spinner in the document's title bar; the end
+writes `done <time>`, `stopped` or `failed` (and replaces the document's "Researching…" line when it failed).
+`open_window` into the run's workspace records the window as a source. A question asked while the focused workspace
+belongs to a run is a **follow-up**: the follow-up preset points the agent at `read_document` and the same document.
 
-- `TextDocument`: markdown source, a title (first heading, or "Untitled"), a modified date, an optional file URL once
-  it has been saved. `@Observable`, so autosave and the title bar follow it.
-- The view: `TextEditor` for the source, a `WebPage` for the preview (markdown → HTML with a small bundled
-  stylesheet). Editing and preview swap in place — the document window keeps its column. Rendering through WebKit
-  costs nothing extra (it is a browser) and makes export to HTML and PDF fall out of the same path.
-- Persistence: documents live in `~/Library/Application Support/six/Documents/<id>.md`, and the snapshot keeps the id,
-  the title and the column it sits in. Big text does not belong in `state.json`, which is rewritten on every change.
-- History records nothing for a document window; it has no URL.
+## Document windows
 
-### 2. Tools for writing
+`BrowserTab.content` is `.web(WebPage)` or `.document(TextDocument)` (`six/Documents/`). A document is a column like
+any other — widths, focus, moving between workspaces, the overview and persistence all work unchanged. `tab.page`
+exists for both kinds: for a document it is a non-persistent `WebPage` that renders the preview and produces the
+HTML and PDF export.
+
+- `TextDocument` (`@Observable`): the Markdown, a title read off the first heading (else the first line, else
+  "Untitled"), `modifiedAt`, `fileURL` after the first save, and whether the column shows the editor or the preview.
+  Sections are `## heading` ranges (code fences skipped), which is what `write_document` works on.
+- `DocumentStore` writes the text to `~/Library/Application Support/six/Documents/<id>.md` a second after every edit
+  and on quit. The snapshot keeps only `DocumentSnapshot` (id, title, dates, file URL, preview flag) — a long
+  document does not ride along in `state.json` on every keystroke. Closing the window deletes the file; Save As is
+  for what is worth keeping. History records nothing for a document: it has no URL.
+- The preview is `Markdown.page(title:markdown:)`, a renderer of our own: headings, paragraphs, lists (nested,
+  checkboxes), quotes, fenced code, tables, rules, links, images, emphasis, and `[n]` citations against
+  `[n]: url "title"` definitions, inside a small stylesheet that follows the system appearance. No bundled
+  JavaScript library, and no editing inside the rendered view — the editor and the preview swap in place.
+- A link clicked in the preview never navigates the document: `DocumentNavigationDecider` cancels it and
+  `BrowserState.open(_:from:)` focuses the window that already shows the page (loading the `#:~:text=` fragment so
+  it scrolls to the passage) or opens one next to the document.
+- Ways to get one: `⌘⇧N`, **New Document** in the strip's and a column's context menu, or `create_document`.
+
+### Two writers
+
+The user types while the agent appends. Section-level writes and "never rewrite a section the user has edited"
+(in the preset) are enough for one user and one agent; there is no CRDT.
+
+## Tools
+
+In `BrowserToolCatalog`, so the ⌘K assistant and MCP get the same ones; the full table is in [mcp.md](mcp.md#tools).
 
 | tool | what it does |
 |---|---|
-| `create_document` | new document window (`title`, optional `workspace`, `profile`, initial `markdown`) → id |
-| `write_document` | `replace` the whole text, `append` to it, or replace one `## section` by heading |
-| `read_document` | the current text back, so an agent can revise what it (or the user) wrote |
-| `cite` | append a source line — title, URL, retrieved-at, optionally the passage — and return the `[n]` to use inline |
-| `highlight_page` | mark the paragraphs of a window that answer a question, and hand back anchors to cite |
+| `create_document` | new document window (`title` or `markdown`; optional `workspace`, `profile`, `activate`) → id |
+| `write_document` | `mode: replace` the whole text, `append`, or `section` — replace the body of one `## heading`, keeping the heading, or add the section when the heading is new |
+| `read_document` | the current Markdown and its section list |
+| `cite` | adds `[n]: url "title" — retrieved <date>` (+ the passage as an indented quote) to `## Sources` and returns `[n]`; from a window, a `url`, or a `highlight_id` |
+| `highlight_page` | marks the paragraphs that answer a question; returns each as id, text and a `#:~:text=` link |
+| `list_page_blocks` `list_highlights` `remove_highlight` | the numbered paragraphs of a page; the highlights stored for a page; delete one |
 
-`write_document` in sections, rather than one final dump, is what makes a run watchable: the outline appears first,
-then each section fills in while the sources are being read. The user can read the document as it grows, and can edit
-it — the agent appends below the cursor's section rather than overwriting a paragraph the user is typing in.
+`document_id` is optional everywhere: the default is the run's document in the on-screen workspace, else the only
+document there, else the focused one. The same URL cited twice keeps its number. `list_workspaces` marks documents
+with `kind: document` and `six://document/<id>` as the URL.
 
-### 3. Save As
+Writing in sections rather than one final dump is what makes a run watchable: the outline appears first, then each
+section fills in while the sources are being read.
 
-A document is worth nothing if it can only live in the app. `⌘S` / **File → Save As…** over an `NSSavePanel` (the app
-is not sandboxed, so no bookmarks to keep):
+## Save As
 
-- document window → `.md` (the source), `.html` or `.pdf` (through the preview page)
-- web window → `.webarchive` (`createWebArchiveData`), `.html` (source), `.pdf` (`WebPage`'s PDF), `.txt`
-- remembering the last folder, and the document's file URL after the first save, so `⌘S` is a plain re-save afterwards
+`Exporter` and `FileCommands` (`six/Documents/Export.swift`). `⌘S` re-saves a document that has a file; otherwise
+`⌘S` and `⌘⇧S` both run an `NSSavePanel` (the app is not sandboxed — no bookmarks to keep) with the formats the
+window supports:
 
-This is a browser feature, not a research feature — hence its own entry in [todo.md](todo.md). Deep research just
-needs it to exist.
+- document → `.md` (the source), `.html` (the preview page), `.pdf` (`WebPage.exported(as: .pdf())` of the preview)
+- page → `.html` (`outerHTML`), `.pdf`, `.txt` (the visible text)
 
-### 4. Highlighted passages
+The last folder is remembered in `UserDefaults`, the document's file URL on the document. No `.webarchive`:
+`WebPage` has no API for one ([todo.md](todo.md)).
+
+## Highlighted passages
 
 A citation should point at the sentences that earned it, not at a page. Two halves: deciding *which* paragraphs, and
-making the mark survive being reopened.
+making the mark survive being reopened. Everything is in `six/Highlights/`.
 
-**Choosing them.** Not by asking a model to quote. A model that retypes a passage mis-types it, and then nothing
-matches. Instead six extracts the page's text as a numbered list of blocks — one entry per paragraph-ish element, with
-its text and a selector — asks the model *which numbers* answer the question, and anchors the numbers itself:
+**Choosing them.** Not by asking a model to quote — a model that retypes a passage mis-types it, and then nothing
+matches. `HighlightScript.blocks` lists the page's paragraph-ish elements as a numbered list (text and an XPath);
+the ⌘K model — the on-device model when ⌘K is set to an agent, since "which of these is about X" is within its reach —
+answers with *numbers* and a few words of reason; six anchors those blocks itself. The model never handles the text
+it is marking, so it cannot corrupt it. `blocks: "12, 13"` skips the model; `⌥⇧H` does the same for a selection by
+hand.
 
-```
-12: Прямые рейсы Новосибирск — Алматы выполняет S7 …
-13: Багаж 23 кг оплачивается отдельно …
-→ model returns [12, 13] with a one-line reason each
-```
+**Anchoring.** The script builds a *text index* — every visible text node under `<body>`, in order — and computes
+all three W3C Web Annotation selectors from it, stored together on the `Highlight`:
 
-The model never handles the text it is marking, so it cannot corrupt it. `highlight_page` runs this pass with the
-⌘K model (on-device is enough for "which of these is about X") and returns anchors the agent can pass to `cite`.
-A human doing it by hand — select, `⌥⇧H` — makes the same kind of anchor.
+1. `TextQuoteSelector` — the exact text plus 32 characters of prefix and suffix, kept inside the passage's own
+   block so a prefix never glues two paragraphs' words into one no page contains. The primary.
+2. `TextPositionSelector` — character offsets into the index. Disambiguates a quote that occurs twice.
+3. `RangeSelector` — XPaths to the start and end text nodes with offsets. The last resort, and the first to break.
 
-**Anchoring.** Store the W3C Web Annotation selectors, all of them, and re-anchor with a ladder on the way back
-(this is how Hypothesis survives the real web):
+Re-anchoring (`anchor()`) is a ladder: the exact quote, disambiguated by context and by distance from the recorded
+position; the XPath range if what it spans still reads ≥ 0.8 similar; then a fuzzy pass — Levenshtein over candidate
+windows seeded by the quote's first distinctive words, near the recorded position on long pages — that gives up
+below 0.75 rather than highlight the wrong sentence. This is how Hypothesis survives the real web.
 
-1. `TextQuoteSelector` — the exact text plus ~32 characters of prefix and suffix. Survives reflow, ads, an inserted
-   paragraph. The primary.
-2. `TextPositionSelector` — character offsets into the normalized page text. Cheap, and disambiguates a quote that
-   occurs twice.
-3. `RangeSelector` — an XPath/child-index path to start and end nodes. The last resort, and the first to break.
-4. Fuzzy match — an approximate search (bitap) around the recorded position when the exact quote has drifted by a
-   word. Below a similarity threshold, give up rather than highlight the wrong sentence.
+**Drawing.** The CSS Custom Highlight API: one `Highlight` registered as `six-highlight`, painted through
+`::highlight()` from an injected `<style>`. It paints `Range`s without touching the DOM, so a React page
+re-rendering does not tear anything apart and the page's own scripts see no new nodes. Where the API is missing,
+`<mark>` wrappers.
 
-**Drawing it.** The CSS Custom Highlight API (`CSS.highlights`, `::highlight()`): it paints `Range`s without touching
-the DOM, so a React page re-rendering does not tear our `<span>`s apart and the page's own scripts see nothing. Where
-it is missing, fall back to wrapping spans.
+**Dynamic pages.** `HighlightStore.apply` runs after every `didFinishNavigation`. What does not anchor at once is
+retried on a `MutationObserver` for five seconds (a lazily hydrated article usually lands in one), then the page
+stops; Swift asks for the outcome afterwards and puts a note on the tab — an orange highlighter in the title bar
+with the reason: the passage is gone, a PDF in WebKit's viewer, text drawn on a canvas. The document still holds the
+quote and the link, so the evidence survives even when the page does not. Never scroll somewhere approximate and
+call it the citation.
 
-**Dynamic pages** are the hard part, and the honest answer is a budget rather than a guarantee. Anchor on
-`didFinishNavigation`; if the quote is not there, watch with a `MutationObserver` for a few seconds (a lazily hydrated
-article usually lands in one) and try again on each batch; then stop. If it never anchors, the document still holds
-the quote and the link — the evidence survives even when the page does not — and the window shows a quiet note that
-the passage is no longer on the page. Never scroll somewhere approximate and call it the citation.
+**In the document.** `Highlight.textFragmentURL` writes `url#:~:text=prefix-,exact,-suffix` (a long quote becomes a
+`start,end` range of its first and last words), which any browser that understands text fragments follows; `cite`
+with a `highlight_id` puts that link in the source line. Clicking it focuses the source window; WebKit scrolls to
+the fragment and `HighlightStore.scroll` lands on the painted range.
 
-**In the document.** A citation is written as a portable link — `[quote](url#:~:text=prefix-,start,end,-suffix)` —
-so it works in any browser that understands text fragments (WebKit does), and carries our anchor alongside it for
-the precise in-app jump. Clicking it focuses the source window and scrolls to the highlight; if the window was
-closed, it opens again with the fragment doing the work.
+**Storage.** `~/Library/Application Support/six/highlights.json`, keyed by URL without its fragment — per page, not
+per window, so highlights come back next week whether or not the run still exists. **File → Remove Highlights on
+This Page** clears one page's.
 
-**Storage.** Highlights are per URL, not per window, and live in a file of their own (`highlights.json`, like
-history): they should come back when the page is opened next week, whether or not the research run still exists.
+**What will not work, and says so:** PDFs shown by WebKit's viewer, text on a canvas (Google Docs and friends),
+text inside cross-origin iframes, pages that rewrite their content on every visit.
 
-**What will not work, and should say so:** text drawn on a canvas (Google Docs and friends), PDFs shown by WebKit's
-own viewer, text inside cross-origin iframes, and pages that rewrite their content on every visit. Detect and report
-rather than pretend.
+## Page-side scripts
 
-### 5. The run
-
-A **run** is a named workspace plus a prompt preset. Starting one (a "Research…" item in the agent panel, or ⌘K
-prefixed with a question) does:
-
-1. Create the workspace, named after the question, in the current profile; create the document window in it.
-2. Hand the agent a preset that says: `web_search` first, open the sources worth comparing in *this* workspace with
-   `activate: false` (the user's strip does not jump while it works), read them, write the outline into the document,
-   then fill it in section by section, citing as you go.
-3. Leave everything open. The workspace is the record: sources on the right, the answer on the left, and the strip
-   scrolls through exactly what the agent looked at.
-
-State to keep on the run (in the snapshot, so it survives a relaunch): the question, the workspace, the document id,
-the source window ids, and whether it is still going. That is enough to show a progress line in the document's title
-bar and to let a follow-up question continue the same document instead of starting a new one.
-
-Bounds belong in the preset, not in the code: how many sources to open, how deep to follow links, when to stop. A
-number the user can see and change beats a heuristic.
-
-## Phases
-
-| phase | what ships | |
-|---|---|---|
-| 0 | `web_search`, page reading, workspaces, the agent panel with MCP | done |
-| 1 | document windows: `TabContent`, `TextDocument`, editor + preview, persistence | done |
-| 2 | `create_document` / `write_document` / `read_document` / `cite`; the agent can write | done |
-| 3 | Save As for both kinds of window, `⌘S`, last-folder memory | done |
-| 4 | the run: preset, named workspace, progress, follow-ups into the same document | done |
-| 5 | highlights: the numbered-block pass, the selector ladder, `CSS.highlights`, `highlights.json`, `⌥⇧H` by hand | done |
-| 6 | optional — a native loop on the ⌘K model for machines with no agent; export a run as one HTML file with its sources inlined | not built |
-
-Phases 1–3 are useful on their own: notes in the strip and a working Save As are worth having whether or not an agent
-ever writes into them.
-
-## Open questions
-
-- **Markdown rendering.** A small renderer of our own, or markdown → HTML in the preview page? The preview page wins
-  on effort and on export, and loses if the document ever needs live editing *inside* the rendered view.
-- **Two writers.** The user types while the agent appends. Section-level writes and "never touch the section the
-  cursor is in" is probably enough; a real CRDT is not worth it for one user and one agent.
-- **Where the document sits.** Pinned to the left end of its workspace, or wherever the user drags it? Pinning is one
-  line at insert time and can be undone by moving the column, which is the niri answer: nothing is special.
-- **Citations that survive.** `[n]` back to a window id is fine while the window is open. Once it is closed the link
-  should still resolve — so `cite` should write the URL, not the id, and the window id is only a convenience.
-- **When the passage is gone.** Show the quote from the document and say the page changed, or try the Wayback
-  Machine for the version that was read? The second is a network call and a dependency; the first is honest and free.
-
-## How it is built
-
-**Document windows** (`six/Documents/`). `BrowserTab.content` is `.web(WebPage)` or `.document(TextDocument)`;
-`tab.page` exists for both — for a document it is a non-persistent `WebPage` that renders the preview and produces
-the HTML/PDF export. `TextDocument` is `@Observable`: the text, a title read off the first heading, `modifiedAt`,
-`fileURL` after the first save, and whether the column shows the editor or the preview. `DocumentStore` writes the
-text to `~/Library/Application Support/six/Documents/<id>.md` a second after every edit (and on quit); the snapshot
-keeps only `DocumentSnapshot` (id, title, dates, file URL, preview flag) on the `TabSnapshot`. Closing the window
-deletes the file — Save As is for what is worth keeping. The preview is `Markdown.page(title:markdown:)`, a renderer
-of our own (headings, lists, quotes, fenced code, tables, links, images, emphasis, `[n]` citations against
-`[n]: url "title"` definitions) inside a small stylesheet that follows the system appearance. The open question was
-answered the cheap way: the preview page wins, and there is no editing inside the rendered view. A link clicked in
-the preview never navigates the document — `DocumentNavigationDecider` cancels it and `BrowserState.open(_:from:)`
-focuses the window that already shows the page (loading the `#:~:text=` fragment so it scrolls to the passage) or
-opens one next to the document. `⌘⇧N`, the strip's and a column's context menu, or `create_document` open one.
-
-**Tools** — in `BrowserToolCatalog`, so the ⌘K assistant and MCP get the same ones; the table is in
-[mcp.md](mcp.md#tools). `write_document` works on `## sections` through `TextDocument.sections` (heading ranges,
-fences skipped); `mode: section` keeps the heading and replaces the body, or appends the section when the heading
-is new — the outline-first, fill-as-you-read shape the preset asks for. `document_id` is optional: the default is
-the run's document in the on-screen workspace, else the only document there. `cite` writes to `## Sources` as
-`[n]: url "title" — retrieved <date>` with the passage as an indented quote underneath; the same URL cited twice
-keeps its number. `list_workspaces` marks documents with `kind: document`.
-
-**Save As** (`Exporter`, `FileCommands`). `⌘S` re-saves a document that has a file, otherwise both `⌘S` and `⌘⇧S`
-run an `NSSavePanel` with the formats the window supports — a document as `.md` (source), `.html` (the preview
-page) or `.pdf` (`WebPage.exported(as: .pdf())` of the preview); a page as `.html` (`outerHTML`), `.pdf` or `.txt`.
-The last folder is in `UserDefaults`. No `.webarchive`: `WebPage` has no API for one ([todo.md](todo.md)).
-
-**The run** (`six/Research/`). `ResearchCoordinator.start(question)` creates a workspace named after the question
-(unique within the profile), a document window in it (preview on, `# question` as its title), a `ResearchRun` in
-`BrowserState.research` (question, profile, workspace id, document tab id, source window ids, running flag, status,
-follow-ups — saved in the snapshot, `isRunning` reset on relaunch), and sends the preset to the ACP session the
-agent panel uses. Tool-call titles stream into `run.status`, shown in the document's title bar with a spinner; the
-end writes `done <time>` / `stopped` / `failed`. `open_window` into the run's workspace records the window as a
-source. A question asked while the focused workspace belongs to a run is a follow-up: the follow-up preset points the
-agent at `read_document` and the same document. Ways in: **Research…** in the agent panel (question, source count,
-the preset itself editable and reset-able; both live in settings), or `research: …` / `/research …` on the ⌘K line.
-
-**Highlights** (`six/Highlights/`). `HighlightScript` is one JavaScript library run as function bodies through
-`callJavaScript` (no `await` there — the API runs a plain function). It builds a *text index* — every visible text
-node under `<body>` in order — and computes all three selectors from it: `TextQuoteSelector` (exact + 32
-characters of context, kept inside the passage's own block so a prefix never glues two paragraphs' words together),
-`TextPositionSelector` (offsets into the index) and `RangeSelector` (XPaths to the start and end nodes). `anchor()`
-is the ladder: exact quote, disambiguated by context and by distance from the recorded position; the XPath range if
-it still reads ≥ 0.8 similar; then a fuzzy pass (Levenshtein over candidate windows seeded by the quote's first
-words, near the recorded position on long pages) that gives up below 0.75. Painting is `CSS.highlights` under one
-`Highlight` named `six-highlight` (`::highlight()` in an injected `<style>`), `<mark>` wrapping only where the API is
-missing. `HighlightStore` keeps `~/Library/Application Support/six/highlights.json` keyed by URL-without-fragment
-and re-applies on every `didFinishNavigation`; the page keeps retrying missing ones on a `MutationObserver` for five
-seconds, the store asks for the outcome afterwards and puts a note on the tab (an orange highlighter in the title
-bar with the reason) — a passage that is gone, a PDF in WebKit's viewer, text on a canvas. `highlight_page` runs
-the numbered-block pass: `blocks()` lists paragraph-ish elements with their text and an XPath, the ⌘K model (or the
-on-device model when ⌘K is set to an agent) answers with numbers, six anchors those blocks. `⌥⇧H` does the same
-for a selection. `Highlight.textFragmentURL` writes the `#:~:text=prefix-,exact,-suffix` link (a long quote becomes
-a `start,end` range); `cite` with a `highlight_id` puts that link in the source line, so the citation points at the
-sentences in any browser and the in-app jump (`HighlightStore.scroll`) lands on the painted range.
+`ReadablePage` (bookmarks), `BrowserToolCatalog.pageText` and `HighlightScript` all run through
+`WebPage.callJavaScript` as function bodies — a plain function, no `await` — in the page's world. They read the DOM;
+the only writes are the highlight registry, the `<style>` for it, and `<mark>` wrappers where the registry is missing.
