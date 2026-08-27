@@ -25,7 +25,10 @@ struct ContentView: View {
             NiriStripView()
                 .overlay(alignment: .bottom) {
                     if !browser.layout.isOverview {
-                        AssistantBar(isHidden: browser.layout.showsFullscreen)
+                        // Tucked away always, not just in fullscreen: a bar resting over the bottom of
+                        // every page is in the way of the page — a video's controls sit exactly there.
+                        // ⌘K brings it back (and an answer keeps it up), which is what it was for.
+                        AssistantBar(isHidden: true)
                     }
                 }
         }

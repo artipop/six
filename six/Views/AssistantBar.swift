@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Dia-style single input line pinned to the bottom of the page, with the answer floating above it.
 struct AssistantBar: View {
-    /// Fullscreen is for the page alone, so the line steps aside there — until ⌘K asks for it, or an
+    /// The page is what the window is for, so the line steps aside — until ⌘K asks for it, or an
     /// answer arrives. It stays in the hierarchy either way, which is what keeps ⌘K wired up.
     var isHidden = false
 

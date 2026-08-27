@@ -1,0 +1,285 @@
+-------------------------------------
+Translated Report (Full Report Below)
+-------------------------------------
+Process:             six [61865]
+Path:                /Users/USER/Library/Developer/Xcode/DerivedData/six-gpnapvnurnoahkexxoekssorhfif/Build/Products/Debug/six.app/Contents/MacOS/six
+Identifier:          org.deffun.six
+Version:             1.0 (1)
+Code Type:           ARM-64 (Native)
+Role:                Background
+Parent Process:      launchd [1]
+Coalition:           org.deffun.six [7076]
+User ID:             501
+
+Date/Time:           2026-08-26 18:07:55.1294 +0700
+Launch Time:         2026-08-26 18:07:54.6166 +0700
+Hardware Model:      Mac14,7
+OS Version:          macOS 27.0 (26A5421a)
+Release Type:        User
+
+Crash Reporter Key:  FED1EA39-91CE-7A18-640A-84F0A99A76E9
+Incident Identifier: E8BF0475-7CF9-4518-867D-0DCAD09564FA
+
+Time Awake Since Boot: 78000 seconds
+
+System Integrity Protection: enabled
+
+Triggered by Thread: 0, Dispatch Queue: com.apple.main-thread
+
+Exception Type:    EXC_BREAKPOINT (SIGTRAP)
+Exception Codes:   0x0000000000000001, 0x00000001a4127d4c
+
+Termination Reason:  Namespace SIGNAL, Code 5, Trace/BPT trap: 5
+Terminating Process: exc handler [61865]
+
+
+Thread 0 Crashed::  Dispatch queue: com.apple.main-thread
+0   libswiftCore.dylib            	       0x1a4127d4c _assertionFailure(_:_:file:line:flags:) + 216
+1   six.debug.dylib               	       0x1046b7228 sixApp.init() + 4536 (sixApp.swift:33)
+2   six.debug.dylib               	       0x1046ba7e8 protocol witness for App.init() in conformance sixApp + 28
+3   SwiftUI                       	       0x1c86fc6ec static App.main() + 208
+4   six.debug.dylib               	       0x1046b457c closure #1 in static SixMain.main() + 48 (sixApp.swift:11)
+5   six.debug.dylib               	       0x1044a55fc thunk for @callee_guaranteed () -> (@out A, @error @owned Error) + 24
+6   six.debug.dylib               	       0x1044a5698 partial apply for thunk for @callee_guaranteed () -> (@out A, @error @owned Error) + 40
+7   six.debug.dylib               	       0x1044a56c4 closure #1 in static MainActor.assumeIsolated<A>(_:file:line:) + 28
+8   six.debug.dylib               	       0x1044a26d8 static MainActor.assumeIsolated<A>(_:file:line:) + 424
+9   six.debug.dylib               	       0x1046b452c static SixMain.main() + 152 (sixApp.swift:11)
+10  six.debug.dylib               	       0x1046b459c static SixMain.$main() + 12
+11  six.debug.dylib               	       0x1046c51e8 __debug_main_executable_dylib_entry_point + 12
+12  dyld                          	       0x18f6fbe88 start + 6688
+
+Thread 1:
+
+
+Thread 0 crashed with ARM Thread State (64-bit):
+    x0: 0x00000001020e39a8   x1: 0x0000000200000003   x2: 0x0000000000001042   x3: 0x0000000000000025
+    x4: 0x00000001020e4480   x5: 0x0000000000000013   x6: 0x0000000000000020   x7: 0x00000001024c8280
+    x8: 0xfffffffe00000000   x9: 0x0000000000000103  x10: 0x00000001020e4420  x11: 0x00000001020c4070
+   x12: 0x00013fb20a22ac06  x13: 0x0000000000001e12  x14: 0x0000000000000082  x15: 0x0000000000010000
+   x16: 0x0000000200000003  x17: 0x0000000000000003  x18: 0x0000000000000000  x19: 0x000000016dd69ed0
+   x20: 0x000000016dd6a670  x21: 0x0000007ab50e8000  x22: 0x000000016dd6acb0  x23: 0x00000001f55e0e30
+   x24: 0x00000001f55e0e20  x25: 0x000000016dd6ad68  x26: 0x0000000000000001  x27: 0x000000000000ffff
+   x28: 0x0000000102534000   fp: 0x000000016dd69de0   lr: 0x00000001a4127d4c
+    sp: 0x000000016dd69dc0   pc: 0x00000001a4127d4c cpsr: 0x60001000
+   far: 0x0000000000000000  esr: 0xf2000001 (Breakpoint) brk 1
+
+Binary Images:
+       0x102094000 -        0x102097fff org.deffun.six (1.0) <a9e2aa6e-cd7a-31d6-acdc-6bc50762ab93> /Users/USER/Library/Developer/Xcode/DerivedData/six-gpnapvnurnoahkexxoekssorhfif/Build/Products/Debug/six.app/Contents/MacOS/six
+       0x104340000 -        0x104fdbfff six.debug.dylib (*) <6a8006cf-da11-347a-8eb8-c037d095ac8d> /Users/USER/Library/Developer/Xcode/DerivedData/six-gpnapvnurnoahkexxoekssorhfif/Build/Products/Debug/six.app/Contents/MacOS/six.debug.dylib
+       0x1a3fc7000 -        0x1a455fe2f libswiftCore.dylib (*) <dde3caba-5ed6-3ec8-b0b0-d5c43b95c767> /usr/lib/swift/libswiftCore.dylib
+       0x1c7f0d000 -        0x1c97619a7 com.apple.SwiftUI (8.0.84.1.406) <44dcc7da-45bd-3a18-8db9-3f1c8fbcc442> /System/Library/Frameworks/SwiftUI.framework/Versions/A/SwiftUI
+       0x18f6ca000 -        0x18f78966f dyld (*) <b6c0f697-046b-3606-96f7-042154b70ab9> /usr/lib/dyld
+               0x0 - 0xffffffffffffffff ??? (*) <00000000-0000-0000-0000-000000000000> ???
+
+External Modification Summary:
+  Calls made by other processes targeting this process:
+    task_for_pid: 0
+    thread_create: 0
+    thread_set_state: 0
+  Calls made by this process:
+    task_for_pid: 0
+    thread_create: 0
+    thread_set_state: 0
+  Calls made by all processes on this machine:
+    task_for_pid: 72
+    thread_create: 0
+    thread_set_state: 3818
+
+VM Region Summary:
+ReadOnly portion of Libraries: Total=2.6G resident=0K(0%) swapped_out_or_unallocated=2.6G(100%)
+Writable regions: Total=99.0M written=465K(0%) resident=465K(0%) swapped_out=0K(0%) unallocated=98.5M(100%)
+
+                                VIRTUAL   REGION 
+REGION TYPE                        SIZE    COUNT (non-coalesced) 
+===========                     =======  ======= 
+Activity Tracing                   256K        1 
+Deferred Reclaim                  64.0M        1 
+Guard                            385.0G        1 
+Malloc                            25.3M       12 
+Malloc Guard Page                 4080K        4 
+OS Alloc Once                       32K        1 
+Stack                             8720K        2 
+Stack Guard                       56.0M        2 
+Untagged                            16K        1 
+__AUTH                            4389K      399 
+__AUTH_CONST                      67.5M      673 
+__CTF                               824        1 
+__DATA                            27.0M      682 
+__DATA_CONST                      29.9M      678 
+__DATA_DIRTY                       9.9M      592 
+__FONT_DATA                        2352        1 
+__LINKEDIT                         1.6G        3 
+__OBJC_RO                        117.7M        1 
+__OBJC_RW                         2732K        1 
+__TEXT                             1.0G      761 
+__TPRO_CONST                       132K        4 
+mapped file                         80K        1 
+page table in kernel               465K        1 
+shared memory                      656K        6 
+===========                     =======  ======= 
+TOTAL                            388.0G     3829 
+
+
+-----------
+Full Report
+-----------
+
+{"app_name":"six","timestamp":"2026-08-26 18:08:00.00 +0700","app_version":"1.0","slice_uuid":"a9e2aa6e-cd7a-31d6-acdc-6bc50762ab93","build_version":"1","platform":1,"bundleID":"org.deffun.six","share_with_app_devs":0,"is_first_party":0,"bug_type":"309","os_version":"macOS 27.0 (26A5421a)","roots_installed":0,"name":"six","incident_id":"E8BF0475-7CF9-4518-867D-0DCAD09564FA"}
+{
+  "uptime" : 78000,
+  "procRole" : "Background",
+  "version" : 2,
+  "userID" : 501,
+  "deployVersion" : 210,
+  "modelCode" : "Mac14,7",
+  "coalitionID" : 7076,
+  "osVersion" : {
+    "train" : "macOS 27.0",
+    "build" : "26A5421a",
+    "releaseType" : "User"
+  },
+  "captureTime" : "2026-08-26 18:07:55.1294 +0700",
+  "codeSigningMonitor" : 2,
+  "incident" : "E8BF0475-7CF9-4518-867D-0DCAD09564FA",
+  "pid" : 61865,
+  "translated" : false,
+  "cpuType" : "ARM-64",
+  "procLaunch" : "2026-08-26 18:07:54.6166 +0700",
+  "procStartAbsTime" : 1885868967503,
+  "procExitAbsTime" : 1885878868192,
+  "procName" : "six",
+  "procPath" : "\/Users\/USER\/Library\/Developer\/Xcode\/DerivedData\/six-gpnapvnurnoahkexxoekssorhfif\/Build\/Products\/Debug\/six.app\/Contents\/MacOS\/six",
+  "bundleInfo" : {"CFBundleShortVersionString":"1.0","CFBundleVersion":"1","CFBundleIdentifier":"org.deffun.six"},
+  "storeInfo" : {"deviceIdentifierForVendor":"29547E76-00CF-5869-AF6F-FA45FC0CECB3","thirdParty":true},
+  "parentProc" : "launchd",
+  "parentPid" : 1,
+  "coalitionName" : "org.deffun.six",
+  "crashReporterKey" : "FED1EA39-91CE-7A18-640A-84F0A99A76E9",
+  "chargingStatus" : {"externalSourceConnected":true,"chargeMode":"chargingWired"},
+  "developerMode" : 1,
+  "bootProgressRegister" : "0x2f000000",
+  "codeSigningID" : "org.deffun.six",
+  "codeSigningTeamID" : "",
+  "codeSigningFlags" : 570425861,
+  "codeSigningValidationCategory" : 10,
+  "codeSigningTrustLevel" : 4294967295,
+  "codeSigningAuxiliaryInfo" : 0,
+  "instructionByteStream" : {"beforePC":"IAAg1MEF+LfpAwC54gMDquMDBKrkAwWq5QMGquYDB6rnAwiqlQIAlA==","atPC":"IAAg1CgAgFLoEwC5iBKAUugHAPlIAIBS6AMAOSAaALAAECORIxoAsA=="},
+  "bootSessionUUID" : "7E169675-8258-4EFE-872C-AE2E831D1A12",
+  "sip" : "enabled",
+  "exception" : {"codes":"0x0000000000000001, 0x00000001a4127d4c","rawCodes":[1,7047642444],"type":"EXC_BREAKPOINT","signal":"SIGTRAP"},
+  "termination" : {"flags":0,"code":5,"namespace":"SIGNAL","indicator":"Trace\/BPT trap: 5","byProc":"exc handler","byPid":61865},
+  "os_fault" : {"process":"six"},
+  "extMods" : {"caller":{"thread_create":0,"thread_set_state":0,"task_for_pid":0},"system":{"thread_create":0,"thread_set_state":3818,"task_for_pid":72},"targeted":{"thread_create":0,"thread_set_state":0,"task_for_pid":0},"warnings":0},
+  "faultingThread" : 0,
+  "threads" : [{"triggered":true,"id":1087220,"threadState":{"x":[{"value":4329453992},{"value":8589934595},{"value":4162},{"value":37},{"value":4329456768},{"value":19},{"value":32},{"value":4333535872},{"value":18446744065119617024},{"value":259},{"value":4329456672},{"value":4329324656},{"value":351508883483654},{"value":7698},{"value":130},{"value":65536},{"value":8589934595},{"value":3},{"value":0},{"value":6137749200},{"value":6137751152},{"value":527023636480},{"value":6137752752},{"value":8411549232,"symbolLocation":0,"symbol":"vm_page_mask"},{"value":8411549216,"symbolLocation":0,"symbol":"mach_task_self_"},{"value":6137752936},{"value":1},{"value":65535},{"value":4333977600}],"flavor":"ARM_THREAD_STATE64","lr":{"value":7047642444},"cpsr":{"value":1610616832},"fp":{"value":6137748960},"sp":{"value":6137748928},"esr":{"value":4060086273,"description":"(Breakpoint) brk 1"},"pc":{"value":7047642444,"matchesCrashFrame":1},"far":{"value":0}},"queue":"com.apple.main-thread","frames":[{"imageOffset":1445196,"symbol":"_assertionFailure(_:_:file:line:flags:)","symbolLocation":216,"imageIndex":2},{"imageOffset":3633704,"sourceLine":33,"sourceFile":"sixApp.swift","symbol":"sixApp.init()","imageIndex":1,"symbolLocation":4536},{"imageOffset":3647464,"sourceFile":"\/<compiler-generated>","symbol":"protocol witness for App.init() in conformance sixApp","symbolLocation":28,"imageIndex":1},{"imageOffset":8320748,"symbol":"static App.main()","symbolLocation":208,"imageIndex":3},{"imageOffset":3622268,"sourceLine":11,"sourceFile":"sixApp.swift","symbol":"closure #1 in static SixMain.main()","imageIndex":1,"symbolLocation":48},{"imageOffset":1463804,"sourceFile":"\/<compiler-generated>","symbol":"thunk for @callee_guaranteed () -> (@out A, @error @owned Error)","symbolLocation":24,"imageIndex":1},{"imageOffset":1463960,"sourceFile":"\/<compiler-generated>","symbol":"partial apply for thunk for @callee_guaranteed () -> (@out A, @error @owned Error)","symbolLocation":40,"imageIndex":1},{"imageOffset":1464004,"sourceFile":"\/<compiler-generated>","symbol":"closure #1 in static MainActor.assumeIsolated<A>(_:file:line:)","symbolLocation":28,"imageIndex":1},{"imageOffset":1451736,"sourceFile":"\/<compiler-generated>","symbol":"static MainActor.assumeIsolated<A>(_:file:line:)","symbolLocation":424,"imageIndex":1},{"imageOffset":3622188,"sourceLine":11,"sourceFile":"sixApp.swift","symbol":"static SixMain.main()","imageIndex":1,"symbolLocation":152},{"imageOffset":3622300,"sourceFile":"\/<compiler-generated>","symbol":"static SixMain.$main()","symbolLocation":12,"imageIndex":1},{"imageOffset":3690984,"sourceFile":"sixApp.swift","symbol":"__debug_main_executable_dylib_entry_point","symbolLocation":12,"imageIndex":1},{"imageOffset":204424,"symbol":"start","symbolLocation":6688,"imageIndex":4}]},{"id":1087240,"frames":[],"threadState":{"x":[{"value":6138310656},{"value":5379},{"value":6137774080},{"value":0},{"value":409604},{"value":18446744073709551615},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0}],"flavor":"ARM_THREAD_STATE64","lr":{"value":0},"cpsr":{"value":4096},"fp":{"value":0},"sp":{"value":6138310656},"esr":{"value":1442840704,"description":"(Syscall)"},"pc":{"value":6705433816},"far":{"value":0}}}],
+  "usedImages" : [
+  {
+    "source" : "P",
+    "arch" : "arm64",
+    "base" : 4329127936,
+    "CFBundleShortVersionString" : "1.0",
+    "CFBundleIdentifier" : "org.deffun.six",
+    "size" : 16384,
+    "uuid" : "a9e2aa6e-cd7a-31d6-acdc-6bc50762ab93",
+    "path" : "\/Users\/USER\/Library\/Developer\/Xcode\/DerivedData\/six-gpnapvnurnoahkexxoekssorhfif\/Build\/Products\/Debug\/six.app\/Contents\/MacOS\/six",
+    "name" : "six",
+    "CFBundleVersion" : "1"
+  },
+  {
+    "source" : "P",
+    "arch" : "arm64",
+    "base" : 4365484032,
+    "size" : 13221888,
+    "uuid" : "6a8006cf-da11-347a-8eb8-c037d095ac8d",
+    "path" : "\/Users\/USER\/Library\/Developer\/Xcode\/DerivedData\/six-gpnapvnurnoahkexxoekssorhfif\/Build\/Products\/Debug\/six.app\/Contents\/MacOS\/six.debug.dylib",
+    "name" : "six.debug.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "arm64e",
+    "base" : 7046197248,
+    "size" : 5869104,
+    "uuid" : "dde3caba-5ed6-3ec8-b0b0-d5c43b95c767",
+    "path" : "\/usr\/lib\/swift\/libswiftCore.dylib",
+    "name" : "libswiftCore.dylib"
+  },
+  {
+    "source" : "P",
+    "arch" : "arm64e",
+    "base" : 7649415168,
+    "CFBundleShortVersionString" : "8.0.84.1.406",
+    "CFBundleIdentifier" : "com.apple.SwiftUI",
+    "size" : 25512360,
+    "uuid" : "44dcc7da-45bd-3a18-8db9-3f1c8fbcc442",
+    "path" : "\/System\/Library\/Frameworks\/SwiftUI.framework\/Versions\/A\/SwiftUI",
+    "name" : "SwiftUI",
+    "CFBundleVersion" : "8.0.84.1.406"
+  },
+  {
+    "source" : "P",
+    "arch" : "arm64e",
+    "base" : 6701228032,
+    "size" : 783984,
+    "uuid" : "b6c0f697-046b-3606-96f7-042154b70ab9",
+    "path" : "\/usr\/lib\/dyld",
+    "name" : "dyld"
+  },
+  {
+    "size" : 0,
+    "source" : "A",
+    "base" : 0,
+    "uuid" : "00000000-0000-0000-0000-000000000000"
+  }
+],
+  "sharedCache" : {
+  "base" : 6696484864,
+  "size" : 7530954752,
+  "uuid" : "f111743c-7e97-36ff-969c-889ebc56bba3"
+},
+  "vmSummary" : "ReadOnly portion of Libraries: Total=2.6G resident=0K(0%) swapped_out_or_unallocated=2.6G(100%)\nWritable regions: Total=99.0M written=465K(0%) resident=465K(0%) swapped_out=0K(0%) unallocated=98.5M(100%)\n\n                                VIRTUAL   REGION \nREGION TYPE                        SIZE    COUNT (non-coalesced) \n===========                     =======  ======= \nActivity Tracing                   256K        1 \nDeferred Reclaim                  64.0M        1 \nGuard                            385.0G        1 \nMalloc                            25.3M       12 \nMalloc Guard Page                 4080K        4 \nOS Alloc Once                       32K        1 \nStack                             8720K        2 \nStack Guard                       56.0M        2 \nUntagged                            16K        1 \n__AUTH                            4389K      399 \n__AUTH_CONST                      67.5M      673 \n__CTF                               824        1 \n__DATA                            27.0M      682 \n__DATA_CONST                      29.9M      678 \n__DATA_DIRTY                       9.9M      592 \n__FONT_DATA                        2352        1 \n__LINKEDIT                         1.6G        3 \n__OBJC_RO                        117.7M        1 \n__OBJC_RW                         2732K        1 \n__TEXT                             1.0G      761 \n__TPRO_CONST                       132K        4 \nmapped file                         80K        1 \npage table in kernel               465K        1 \nshared memory                      656K        6 \n===========                     =======  ======= \nTOTAL                            388.0G     3829 \n",
+  "legacyInfo" : {
+  "threadTriggered" : {
+    "queue" : "com.apple.main-thread"
+  }
+},
+  "logWritingSignature" : "6537a617ce700cbd304ec3ecd02e6f8627293382",
+  "roots_installed" : 0,
+  "bug_type" : "309",
+  "trmStatus" : 1,
+  "trialInfo" : {
+  "rollouts" : [
+    {
+      "rolloutId" : "61675b89201f677a9a4cbd65",
+      "factorPackIds" : [
+        "65a855f5f087695cfac03d1f"
+      ],
+      "deploymentId" : 250000274
+    },
+    {
+      "rolloutId" : "642da32dea3b2418c750f848",
+      "factorPackIds" : [
+        "66d8b2f77cd4b62688efd2cf"
+      ],
+      "deploymentId" : 250000010
+    }
+  ],
+  "experiments" : [
+
+  ]
+}
+}
+
+Model: Mac14,7, BootROM 20457.1.29, proc 8:0:4:4 processors, 8 GB, SMC 
+Graphics: Apple M2, Apple M2, Built-In
+Display: Color LCD, 2560 x 1600 Retina, Main, MirrorOff, Online
+Memory Module: LPDDR5, Micron
+AirPort: spairport_wireless_card_type_wifi (0x14E4, 0x4378), wl0: Jul  1 2026 23:27:39 version 18.20.510.0.7.8.206 FWID 01-deb1eb7a
+IO80211_driverkit-1585.79 "IO80211_driverkit-1585.79" Aug  9 2026 22:24:35
+AirPort: 
+Bluetooth: Version (null), 0 services, 0 devices, 0 incoming serial ports
+Network Service: Wi-Fi, AirPort, en0
+Network Service: BlancVPN, VPN (com.blancvpn.app), utun4
+Thunderbolt Bus: MacBook Pro, Apple Inc.
+Thunderbolt Bus: MacBook Pro, Apple Inc.
+
