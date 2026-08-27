@@ -6,7 +6,7 @@ The entry point is `SixMain`, not the `App`: with `--mcp` the process never touc
 
 ```
 six/Niri        NiriLayout (workspaces, columns, geometry, focus/move ops), NiriScrollMonitor (scroll gestures)
-six/Browser     Profile, BrowserTab (WebPage), LivePageCache (the live-page budget), BrowserState, History, SearchEngine, SearchSuggestions, WebSearch
+six/Browser     Profile, BrowserTab (WebPage), LivePageCache (the live-page budget), BrowserState, History, SitePermissions + PageDialogs (camera/microphone per site, the page's own dialogs), SearchEngine, SearchSuggestions, WebSearch
 six/Bookmarks   Bookmark (tables), ReadablePage (page → Markdown), Embedder + MLXEmbedder (multilingual-e5 over MLX), BookmarkStore (files, vec0 index, search)
 six/Views       ContentView (top bar), NiriStripView (strip + overview), WindowChrome, StartPage, AssistantBar, AgentPanel, HistoryView, BookmarksView
 six/Assistant   ModelChoice/AssistantSettings, AssistantStore (streaming), FoundationModelsCompatibility
@@ -37,7 +37,10 @@ window lives — that is what carries the compiled ad-blocking rules, and per *w
 per-site allowlist is a reload instead of a recompile. See [blocking.md](blocking.md). The page's
 `webExtensionController` comes from the same moment, and is the profile's — see [extensions.md](extensions.md).
 Both are fixed when the page is built, which is why anything that changes them goes through
-`rebuildLivePages()`.
+`rebuildLivePages()`. So is the page's `deviceSensorAuthorization` — the closure that routes "may this site use the
+camera?" to `SitePermissions` and suspends the page until the window's own bar is answered — and its
+`dialogPresenter`, which is what makes `alert()` and `<input type="file">` work at all. See
+[permissions.md](permissions.md).
 
 Views never mutate `NiriLayout` directly; they call `BrowserState`, which wraps the call in the shared animation
 (`animateLayout`). Strip panning is the exception — it follows the trackpad and is deliberately un-animated.

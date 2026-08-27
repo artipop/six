@@ -43,6 +43,9 @@ final class BrowserTab: Identifiable {
     @ObservationIgnored weak var pageControllers: PageControllers?
     /// Console and network capture, and whether the page is inspectable; set by `BrowserState`.
     @ObservationIgnored weak var devTools: DevToolsStore?
+    /// What sites were allowed to use the camera, the microphone and the motion sensors. The page's
+    /// `deviceSensorAuthorization` is this window's question routed here; set by `BrowserState`.
+    @ObservationIgnored weak var permissions: SitePermissions?
 
     /// The live page, when there is one. Read it to *draw* the window; anything that needs to talk to
     /// the page uses `page`, which builds one.
@@ -122,6 +125,43 @@ final class BrowserTab: Identifiable {
         livePage?.isInspectable = isInspectable
     }
 
+    // MARK: The camera and the microphone
+
+    /// What this window's page is doing with the devices right now. `WebPage` publishes both, so the
+    /// title bar's indicator follows the page without polling it — and reads `livePage`, never
+    /// `page`, so drawing a title bar never builds one.
+    var cameraCapture: WKMediaCaptureState { livePage?.cameraCaptureState ?? .none }
+    var microphoneCapture: WKMediaCaptureState { livePage?.microphoneCaptureState ?? .none }
+    var isCapturing: Bool { cameraCapture != .none || microphoneCapture != .none }
+    /// Muted only counts while something is actually on: a window using nothing is not a quiet one.
+    var isCaptureMuted: Bool {
+        isCapturing && cameraCapture != .active && microphoneCapture != .active
+    }
+
+    /// The mute switch behind the indicator. Muted is not stopped — the call stays up and the page
+    /// knows it was muted, which is what a call expects when you press the button in the toolbar.
+    func setCaptureMuted(_ muted: Bool) {
+        guard let page = livePage else { return }
+        let state: WKMediaCaptureState = muted ? .muted : .active
+        Task {
+            if page.cameraCaptureState != .none { await page.setCameraCaptureState(state) }
+            if page.microphoneCaptureState != .none { await page.setMicrophoneCaptureState(state) }
+        }
+    }
+
+    /// Takes a device away for good. Blocking a site that is already looking through the camera has
+    /// to close the shutter now; an answer that only applies to the next call is not an answer.
+    func stopCapture(_ permission: SitePermission) {
+        guard let page = livePage else { return }
+        Task {
+            switch permission {
+            case .camera: await page.setCameraCaptureState(.none)
+            case .microphone: await page.setMicrophoneCaptureState(.none)
+            case .motion: break
+            }
+        }
+    }
+
     /// Set by `HighlightStore` when a stored passage could not be found on the page again.
     var highlightNote: String?
     /// Committed navigations go here (the profile's history); set by `BrowserState`.
@@ -163,6 +203,9 @@ final class BrowserTab: Identifiable {
         let page: WebPage
         if isDocument {
             configuration.websiteDataStore = .nonPersistent()
+            // A preview renders Markdown six itself wrote out; there is no site here to grant
+            // anything to, so the question is answered before it can be asked.
+            configuration.deviceSensorAuthorization = .init(decision: .deny)
             let decider = DocumentNavigationDecider()
             decider.onLink = { [weak self] url in
                 guard let self else { return }
@@ -187,7 +230,18 @@ final class BrowserTab: Identifiable {
                 guard let self else { return }
                 self.blocker?.note(self.id, showing: url)
             }
-            page = WebPage(configuration: configuration, navigationDecider: decider)
+            // The page suspends inside this closure while the bar is up, which is the whole point:
+            // WebKit's own answer (`.prompt`) puts up a popover six can neither remember nor undo.
+            let windowID = id
+            let profileID = profileID
+            let permissions = permissions
+            configuration.deviceSensorAuthorization = .init { [weak permissions] permission, _, origin in
+                guard let permissions else { return .deny }
+                return await permissions.decide(permission, origin: origin,
+                                                in: windowID, profileID: profileID)
+            }
+            page = WebPage(configuration: configuration, navigationDecider: decider,
+                           dialogPresenter: PageDialogs())
         }
         livePage = page
         generation += 1
@@ -227,6 +281,8 @@ final class BrowserTab: Identifiable {
         if !showsStartPage, !isDocument, let url = page.url { pendingURL = url }
         navigationTask?.cancel()
         navigationTask = nil
+        // A question belongs to the page that asked it. This one is going.
+        permissions?.forget(id)
         page.stopLoading()
         livePage = nil
         generation += 1
@@ -241,6 +297,7 @@ final class BrowserTab: Identifiable {
         navigationTask?.cancel()
         onNavigation = nil
         onDocumentLink = nil
+        permissions?.forget(id)
         livePage?.stopLoading()
         livePage = nil
         thumbnail = nil

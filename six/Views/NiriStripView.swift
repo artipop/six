@@ -209,6 +209,7 @@ private struct ColumnView: View {
     var addressFocus: FocusState<UUID?>.Binding
 
     @Environment(BrowserState.self) private var browser
+    @Environment(SitePermissions.self) private var permissions
 
     private var accent: Color {
         browser.profiles.first { $0.id == tab.profileID }?.color ?? .accentColor
@@ -235,6 +236,12 @@ private struct ColumnView: View {
             if !fullscreen {
                 WindowChrome(tab: tab, isFocused: isFocused, addressFocus: addressFocus)
                     .contextMenu { ColumnMenu(tab: tab) }
+                Divider()
+            }
+            // Above the page even in fullscreen: the page is suspended waiting for this answer, and a
+            // window with nowhere to say yes is a window that seems to have broken the site.
+            if let question = permissions.question(for: tab.id) {
+                PermissionBar(tab: tab, question: question)
                 Divider()
             }
             if tab.showsStartPage {

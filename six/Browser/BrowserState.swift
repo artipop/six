@@ -45,6 +45,12 @@ final class BrowserState {
     @ObservationIgnored var devTools: DevToolsStore? {
         didSet { for tab in tabs { tab.devTools = devTools } }
     }
+    /// The camera, the microphone and the motion sensors, per site (`SitePermissions`). Handed to
+    /// the initializer for the same reason as the blocker: the windows it restores are built and
+    /// answered before anything assigned afterwards could reach them.
+    @ObservationIgnored var permissions: SitePermissions? {
+        didSet { for tab in tabs { tab.permissions = permissions } }
+    }
     /// Deep-research runs (see `ResearchRun`).
     var research: [ResearchRun] = []
     @ObservationIgnored private let settings: SettingsStore
@@ -60,12 +66,13 @@ final class BrowserState {
     /// would arrive after that page had already started loading.
     init(snapshot: BrowserSnapshot? = nil, history: HistoryStore, settings: SettingsStore,
          pageControllers: PageControllers? = nil, blocker: ContentBlocker? = nil,
-         devTools: DevToolsStore? = nil) {
+         devTools: DevToolsStore? = nil, permissions: SitePermissions? = nil) {
         self.history = history
         self.settings = settings
         self.pageControllers = pageControllers ?? PageControllers()
         self.blocker = blocker
         self.devTools = devTools
+        self.permissions = permissions
         layout.centersFocus = settings.centersFocus
         layout.preferredWidthIndex = settings.columnWidthIndex
         var loaded = snapshot?.profiles ?? Self.legacyProfiles() ?? Profile.defaults
@@ -253,6 +260,7 @@ final class BrowserState {
         profiles.removeAll { $0.id == id }
         dataStores[profile.dataStoreID] = nil // a private store dies with its last reference: that is the whole point
         layout.removeProfile(id)
+        permissions?.forgetProfile(id) // what a site was allowed inside this profile went with it
         if !profile.isPrivate {
             bookmarks?.removeAll(in: id)
             history.clear(profileID: id)
@@ -327,6 +335,7 @@ final class BrowserState {
         tab.extensions = extensions
         tab.pageControllers = pageControllers
         tab.devTools = devTools
+        tab.permissions = permissions
         extensions?.noteOpened(tab)
         tabs.append(tab)
         tabsByID[tab.id] = tab

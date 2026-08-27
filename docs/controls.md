@@ -17,6 +17,8 @@ Nothing needs the keyboard: every layout operation has a mouse equivalent. `⌥`
 | the bookmark star (top bar) | save the focused page — filled when it is saved, a spinner while it is being indexed; again to remove. `⌘⌥B` lists and searches them |
 | overview button (top right) | zoom out to all workspaces; scroll sideways to run along a strip, click a window to open it |
 | double-click a workspace name (overview) | rename it; right-click the name to rename or clear it. A named workspace stays even when empty |
+| the lock / globe in an address field | once a site has been answered about the camera, the microphone or the motion sensors: flip an answer, forget the site, or open the whole list ([permissions.md](permissions.md)) |
+| the red camera / mic in an address field | only while the page is actually using one — click to mute it, click again to let it see and hear |
 | `×` on a title bar | close that window |
 | the top edge of the screen (in fullscreen) | brings the bar back: previous/next window, workspace up/down, overview, leave fullscreen |
 | the engine chip on the start page | DuckDuckGo or Google — for queries and for the suggestions; also under Navigate → Search Engine |

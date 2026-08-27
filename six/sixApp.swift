@@ -28,6 +28,7 @@ struct sixApp: App {
     @State private var blocker: ContentBlocker
     @State private var extensions: ExtensionStore
     @State private var devTools: DevToolsStore
+    @State private var permissions: SitePermissions
 
     init() {
         let store = FileSnapshotStore<AppStateSnapshot>(fileNamed: "state.json")
@@ -47,8 +48,13 @@ struct sixApp: App {
         let pageControllers = PageControllers()
         let blocker = ContentBlocker(settings: settings, controllers: pageControllers)
         let devTools = DevToolsStore(settings: settings, controllers: pageControllers)
+        // Built before the browser for the same reason as the blocker: a restored window can ask for
+        // the camera the moment it loads, and a question with nowhere to go is answered no.
+        let permissions = SitePermissions(settings: settings)
         let browser = BrowserState(snapshot: snapshot?.browser, history: history, settings: settings,
-                                   pageControllers: pageControllers, blocker: blocker, devTools: devTools)
+                                   pageControllers: pageControllers, blocker: blocker, devTools: devTools,
+                                   permissions: permissions)
+        permissions.isPrivate = { [weak browser] id in browser?.isPrivate(id) ?? false }
         blocker.startRefreshSchedule()
         devTools.browser = browser
         let bookmarks = BookmarkStore(database: database, embedder: MLXEmbedder(modelsDirectory: AppDatabase.url.deletingLastPathComponent().appending(path: "Models", directoryHint: .isDirectory)))
@@ -112,6 +118,7 @@ struct sixApp: App {
         _blocker = State(initialValue: blocker)
         _extensions = State(initialValue: extensions)
         _devTools = State(initialValue: devTools)
+        _permissions = State(initialValue: permissions)
     }
 
     /// A file that won't load starts fresh — better than not starting.
@@ -138,6 +145,7 @@ struct sixApp: App {
                 .environment(blocker)
                 .environment(extensions)
                 .environment(devTools)
+                .environment(permissions)
                 .background(WindowObserver(state: window))
                 // six is one window: every page in the strip is a `WebPage`, and a second window would
                 // put the same objects into a second `WebView` — WebKit traps on that. Without this,
@@ -369,6 +377,7 @@ private struct PrivacyCommands: Commands {
     let browser: BrowserState
     let blocker: ContentBlocker
     @FocusedValue(\.showFilterLists) private var showFilterLists
+    @FocusedValue(\.showSitePermissions) private var showSitePermissions
 
     var body: some Commands {
         CommandMenu("Privacy") {
@@ -388,6 +397,9 @@ private struct PrivacyCommands: Commands {
                 .disabled(!blocker.isEnabled || blocker.isWorking)
             Button("Filter Lists…") { showFilterLists?.perform() }
                 .disabled(showFilterLists == nil)
+            Divider()
+            Button("Site Permissions…") { showSitePermissions?.perform() }
+                .disabled(showSitePermissions == nil)
         }
     }
 }

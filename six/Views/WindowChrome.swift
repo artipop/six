@@ -10,7 +10,9 @@ struct WindowChrome: View {
 
     @Environment(BrowserState.self) private var browser
     @Environment(ContentBlocker.self) private var blocker
+    @Environment(SitePermissions.self) private var permissions
     @FocusedValue(\.showFilterLists) private var showFilterLists
+    @FocusedValue(\.showSitePermissions) private var showSitePermissions
     @State private var text = ""
     @State private var hovering = false
 
@@ -41,6 +43,83 @@ struct WindowChrome: View {
         .help(blocker.isEnabled
               ? (isAllowed ? "Ads are allowed on this site" : "Ads and trackers are blocked here")
               : "Blocking is off")
+    }
+
+    // MARK: The camera and the microphone
+
+    /// The site this window's answers are filed under. Nil off the web — a document window and the
+    /// start page have no origin and nothing to remember.
+    private var origin: String? { SitePermissions.origin(of: tab.currentURL) }
+
+    /// What this site has already been told, if anything.
+    private var decided: [SitePermission: Bool] {
+        guard let origin else { return [:] }
+        return permissions.decisions(forOrigin: origin, profileID: tab.profileID)
+    }
+
+    /// Only there while a device is actually in use, and red while it is live: the point of an
+    /// indicator is that you never have to go looking for it. One click mutes, another lets the page
+    /// hear and see again — muting rather than stopping, because a call that was cut off is not what
+    /// the button in a call's own toolbar does.
+    @ViewBuilder
+    private var captureIndicator: some View {
+        if tab.isCapturing {
+            let muted = tab.isCaptureMuted
+            Button { tab.setCaptureMuted(!muted) } label: {
+                Image(systemName: captureSymbol(muted: muted))
+                    .font(.system(size: 9))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(muted ? AnyShapeStyle(.tertiary) : AnyShapeStyle(Color.red))
+            .help(muted ? "Muted — click to let this page see and hear again"
+                        : "This page is using the camera or microphone — click to mute")
+        }
+    }
+
+    /// The camera wins the icon when both are on: it is the one people want to know about.
+    private func captureSymbol(muted: Bool) -> String {
+        if tab.cameraCapture != .none { return muted ? "video.slash.fill" : "video.fill" }
+        return muted ? "mic.slash.fill" : "mic.fill"
+    }
+
+    /// The lock (or the globe) turns into a menu once this site has been answered about something —
+    /// which is where a browser has always kept a site's own settings, and saves the address field an
+    /// icon it would only need sometimes.
+    @ViewBuilder
+    private var siteIcon: some View {
+        let symbol = tab.currentURL?.scheme == "https" ? "lock.fill" : "globe"
+        if let origin, !decided.isEmpty {
+            Menu {
+                ForEach(SitePermission.allCases) { permission in
+                    if let allowed = decided[permission] {
+                        Button(allowed ? "Block \(permission.label) on This Site"
+                                       : "Allow \(permission.label) on This Site") {
+                            permissions.set(!allowed, permission, forOrigin: origin, profileID: tab.profileID)
+                            // Taking the camera back has to take it back now, not next time.
+                            if allowed { tab.stopCapture(permission) }
+                        }
+                    }
+                }
+                Divider()
+                Button("Forget This Site's Choices") {
+                    permissions.forget(origin: origin, profileID: tab.profileID)
+                }
+                Button("Site Permissions…") { showSitePermissions?.perform() }
+                    .disabled(showSitePermissions == nil)
+            } label: {
+                Image(systemName: symbol)
+                    .font(.system(size: 9))
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .foregroundStyle(.secondary)
+            .help("What \(URL(string: origin)?.host() ?? origin) is allowed to use")
+        } else {
+            Image(systemName: symbol)
+                .foregroundStyle(.secondary)
+                .font(.system(size: 9))
+        }
     }
 
     var body: some View {
@@ -178,10 +257,9 @@ struct WindowChrome: View {
 
     private var address: some View {
         HStack(spacing: 5) {
-            Image(systemName: tab.currentURL?.scheme == "https" ? "lock.fill" : "globe")
-                .foregroundStyle(.secondary)
-                .font(.system(size: 9))
+            siteIcon
             if isWebPage { shield }
+            captureIndicator
             TextField("Search or enter address", text: $text)
                 .textFieldStyle(.plain)
                 .font(.caption)

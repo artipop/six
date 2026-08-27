@@ -107,6 +107,16 @@
         }
       }
     },
+    "%@ is asking for a file.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ запрашивает файл."
+          }
+        }
+      }
+    },
     "%@ not installed (runs via npx)": {
       "localizations": {
         "ru": {
@@ -117,12 +127,38 @@
         }
       }
     },
+    "%@ says:": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сообщение с %@:"
+          }
+        }
+      }
+    },
     "%@ scratchpad": {
       "localizations": {
         "ru": {
           "stringUnit": {
             "state": "translated",
             "value": "черновики профиля %@"
+          }
+        }
+      }
+    },
+    "%@ wants to use your %@.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ wants to use your %2$@."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сайт %@ запрашивает доступ: %@."
           }
         }
       }
@@ -579,6 +615,26 @@
         }
       }
     },
+    "Allow": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Разрешить"
+          }
+        }
+      }
+    },
+    "Allow %@ on This Site": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Разрешить %@ на этом сайте"
+          }
+        }
+      }
+    },
     "Allow Ads on %@": {
       "localizations": {
         "ru": {
@@ -595,6 +651,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Разрешить рекламу на этом сайте"
+          }
+        }
+      }
+    },
+    "Allowed — click to block": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Разрешено — нажмите, чтобы запретить"
           }
         }
       }
@@ -659,6 +725,16 @@
         }
       }
     },
+    "Ask again next time": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Спросить снова в следующий раз"
+          }
+        }
+      }
+    },
     "Assistant Searches": {
       "localizations": {
         "ru": {
@@ -709,6 +785,26 @@
         }
       }
     },
+    "Block": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Запретить"
+          }
+        }
+      }
+    },
+    "Block %@ on This Site": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Запретить %@ на этом сайте"
+          }
+        }
+      }
+    },
     "Block Ads and Trackers": {
       "localizations": {
         "ru": {
@@ -745,6 +841,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Снова блокировать рекламу на %@"
+          }
+        }
+      }
+    },
+    "Blocked — click to allow": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Запрещено — нажмите, чтобы разрешить"
           }
         }
       }
@@ -1171,6 +1277,16 @@
         }
       }
     },
+    "Each site will ask again the next time it needs a device.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Каждый сайт спросит снова, когда ему в следующий раз понадобится устройство."
+          }
+        }
+      }
+    },
     "Edit preset": {
       "localizations": {
         "ru": {
@@ -1357,6 +1473,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "Забыть"
+          }
+        }
+      }
+    },
+    "Forget All": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Забыть все"
+          }
+        }
+      }
+    },
+    "Forget This Site's Choices": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Забыть выбор для этого сайта"
+          }
+        }
+      }
+    },
+    "Forget every site's answer?": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Забыть ответы для всех сайтов?"
           }
         }
       }
@@ -1827,6 +1973,16 @@
         }
       }
     },
+    "Muted — click to let this page see and hear again": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выключено — нажмите, чтобы страница снова видела и слышала"
+          }
+        }
+      }
+    },
     "Name": {
       "localizations": {
         "ru": {
@@ -1983,6 +2139,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ничего не найдено"
+          }
+        }
+      }
+    },
+    "No Sites Yet": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пока ни одного сайта"
           }
         }
       }
@@ -2659,6 +2825,26 @@
         }
       }
     },
+    "Site Permissions": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Разрешения сайтов"
+          }
+        }
+      }
+    },
+    "Site Permissions…": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Разрешения сайтов…"
+          }
+        }
+      }
+    },
     "Site data is the profile's cookies, local storage and caches — clearing it signs you out everywhere, and the profile's open pages reload.": {
       "localizations": {
         "ru": {
@@ -2785,6 +2971,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Этот профиль"
+          }
+        }
+      }
+    },
+    "This page": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Эта страница"
+          }
+        }
+      }
+    },
+    "This page is using the camera or microphone — click to mute": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Страница использует камеру или микрофон — нажмите, чтобы выключить"
           }
         }
       }
@@ -2929,6 +3135,16 @@
         }
       }
     },
+    "What %@ is allowed to use": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Что разрешено сайту %@"
+          }
+        }
+      }
+    },
     "What list_bookmarks and search_bookmarks return unless the agent names a profile": {
       "localizations": {
         "ru": {
@@ -2945,6 +3161,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Что видят список, ассистент и агенты"
+          }
+        }
+      }
+    },
+    "When a site asks for the camera, the microphone or the motion sensors, your answer is remembered here.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Когда сайт запросит камеру, микрофон или датчики движения, ваш ответ появится здесь."
           }
         }
       }
@@ -3129,6 +3355,16 @@
         }
       }
     },
+    "camera": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "камера"
+          }
+        }
+      }
+    },
     "done %@": {
       "localizations": {
         "ru": {
@@ -3189,12 +3425,42 @@
         }
       }
     },
+    "macOS asks once for six itself; this list is six asking for each site.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS спрашивает один раз про сам six; этот список — то, о чём six спрашивает про каждый сайт."
+          }
+        }
+      }
+    },
+    "microphone": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "микрофон"
+          }
+        }
+      }
+    },
     "model unavailable: %@": {
       "localizations": {
         "ru": {
           "stringUnit": {
             "state": "translated",
             "value": "модель недоступна: %@"
+          }
+        }
+      }
+    },
+    "motion sensors": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "датчики движения"
           }
         }
       }

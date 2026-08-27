@@ -106,6 +106,37 @@ them in ([architecture.md](architecture.md#page-side-scripts)), so the work is a
 lookup at document start, and a way to keep both cheap on a page that is already loading. Anti-adblock
 circumvention comes with it, and only with it.
 
+## Geolocation, screen sharing and Web Push: one trade, not three
+
+Site permissions are built ([permissions.md](permissions.md)): the camera, the microphone and the motion sensors are
+asked for per site, remembered per origin and profile, and takeable back. Three things a browser is expected to do are
+still missing, and they are the *same* missing thing — each needs a `WKWebView` and a delegate on it, which `WebPage`
+does not hand out.
+
+**Geolocation** is the one that stings, because it is not even SPI any more. macOS 27 added
+`WKUIDelegate.webView(_:requestGeolocationPermissionForOrigin:initiatedByFrame:decisionHandler:)` — public,
+`API_AVAILABLE(macos(27.0))`, and six already targets 27. But it is a `WKUIDelegate` method, and the SwiftUI-native
+surface has no equivalent: `WebPage.DeviceSensorAuthorization.Permission` carries `mediaCapture` and
+`deviceOrientationAndMotion` and nothing else. So `NSLocationWhenInUseUsageDescription` sits in the Info.plist wired to
+nothing, and `navigator.geolocation` is dead on six's pages. Before writing any code, this wants a Feedback: the gap is
+a hole in the new API rather than a missing capability, and it is the cheapest of the three to have closed upstream.
+`WebPage.isInspectable` — a `WKWebView` property lifted into the new API — is the precedent to cite.
+
+**Screen sharing** (`getDisplayMedia`) is SPI, but shallow SPI: `WKPreferences._screenCaptureEnabled` plus
+`_webView:requestDisplayCapturePermissionForOrigin:initiatedByFrame:withSystemAudio:decisionHandler:` (macOS 13+),
+where returning `ScreenPrompt` or `WindowPrompt` hands the picker back to WebKit — six would not have to draw one.
+
+**Web Push** is SPI and deep: `_getPendingPushMessages` / `_processPushMessage` / `_processPersistentNotificationClick`
+on `WKWebsiteDataStore`, a push partition, and a daemon. Worth its own decision, not this one.
+
+The order to take them in follows the price: file the geolocation Feedback and wait a release; if it lands, geolocation
+costs nothing. If it does not — or if screen sharing starts being missed — the move is to drop `BrowserTab` back onto
+`WKWebView` + `NSViewRepresentable`, which is a real rewrite of the one file everything else talks to, and which the
+extension gap wants anyway ([extensions.md](extensions.md)). Doing it once for all four reasons is a different
+proposition from doing it for geolocation alone. six is not sandboxed and not on the App Store, so SPI carries no
+review risk here — only the ordinary one, that it goes away in a macOS update; `respondsToSelector:` and a feature that
+quietly disappears rather than a crash is the shape that takes.
+
 ## Picture-in-picture
 
 Two different features that both deserve the name:

@@ -10,6 +10,7 @@ struct ContentView: View {
     @State private var showBookmarks = false
     @State private var showFilterLists = false
     @State private var showExtensions = false
+    @State private var showSitePermissions = false
     @State private var confirmClearHistory = false
 
     var body: some View {
@@ -48,6 +49,8 @@ struct ContentView: View {
         .sheet(isPresented: $showFilterLists) { BlockingView() }
         .focusedSceneValue(\.showExtensions, FocusAddressBarAction { showExtensions = true })
         .sheet(isPresented: $showExtensions) { ExtensionsView() }
+        .focusedSceneValue(\.showSitePermissions, FocusAddressBarAction { showSitePermissions = true })
+        .sheet(isPresented: $showSitePermissions) { PermissionsView() }
         .focusedSceneValue(\.clearHistory, FocusAddressBarAction { confirmClearHistory = true })
         .clearHistoryDialog(isPresented: $confirmClearHistory)
         .onKeyPress(.escape) {

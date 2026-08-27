@@ -34,6 +34,7 @@ final class SettingsStore {
         case installedExtensions = "extensions.installed"
         case devToolsInspector = "devtools.inspector"
         case devToolsCapture = "devtools.capture"
+        case sitePermissions = "permissions.sites"
 
         /// Where the value lived before the database.
         var legacyDefaultsKey: String {
@@ -55,6 +56,7 @@ final class SettingsStore {
             case .installedExtensions: "six.extensions.installed"
             case .devToolsInspector: "six.devtools.inspector"
             case .devToolsCapture: "six.devtools.capture"
+            case .sitePermissions: "six.permissions.sites"
             }
         }
     }
@@ -196,6 +198,20 @@ final class SettingsStore {
     var devToolsCapture: Bool {
         get { self[.devToolsCapture].map { $0 == "1" } ?? false }
         set { self[.devToolsCapture] = newValue ? "1" : "0" }
+    }
+
+    /// What sites were allowed — or refused — the camera, the microphone and the motion sensors.
+    /// A private profile's answers never reach here; see `SitePermissions`.
+    var sitePermissions: [SitePermissions.Decision] {
+        get {
+            guard let json = self[.sitePermissions], let data = json.data(using: .utf8),
+                  let stored = try? JSONDecoder().decode([SitePermissions.Decision].self, from: data) else { return [] }
+            return stored
+        }
+        set {
+            guard let data = try? JSONEncoder().encode(newValue) else { return }
+            self[.sitePermissions] = newValue.isEmpty ? nil : String(decoding: data, as: UTF8.self)
+        }
     }
 
     /// Optional model id for the ACP agent (`ANTHROPIC_MODEL`).
