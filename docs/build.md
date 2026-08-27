@@ -14,7 +14,8 @@ xcodebuild -project six.xcodeproj -scheme six -configuration Debug -skipMacroVal
 `-skipPackagePluginValidation` is the same story for build plugins: mlx-swift ships one (`CudaBuild`). mlx-swift
 also compiles Metal shaders, which needs the **Metal Toolchain** component — once,
 `xcodebuild -downloadComponent MetalToolchain` (~840 MB); without it the build stops at `cannot execute tool 'metal'`.
-The first build with MLX takes several minutes (C++ and Metal); after that it is incremental.
+The first build with MLX takes several minutes (C++ and Metal); after that it is incremental. Debug builds run MLX
+at -O0 like every package dependency — embedding a page is 3–4× slower than in Release ([bookmarks.md](bookmarks.md#embeddings)).
 
 Files are added to the target automatically (the project uses a synchronized
 file group), so new sources need no project edits.

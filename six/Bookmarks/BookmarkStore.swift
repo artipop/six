@@ -395,8 +395,11 @@ final class BookmarkStore {
         let modelID = indexSignature
         let profileID = bookmark.profileID
         let now = Date()
+        let started = ContinuousClock.now
         do {
             let embeddings = try await embedder.embed(chunks.map(\.text), as: .passage)
+            let elapsed = ContinuousClock.now - started
+            FileHandle.standardError.write(Data("[six] embedded \(chunks.count) passages of \(bookmark.displayTitle) in \(elapsed)\n".utf8))
             let table = vectorTable
             try await database.write { db in
                 try Self.dropVectors(of: chunks.map(\.id), from: table, in: db)

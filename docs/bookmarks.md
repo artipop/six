@@ -63,7 +63,15 @@ and never leave the Mac afterwards; the download shows in the bookmarks window's
 status. Three things E5 needs, all in `MLXEmbedder`: a role prefix on every text (`query: ` for a question,
 `passage: ` for a chunk — hence `EmbeddingRole` on the `Embedder` protocol), **mean pooling** (set explicitly: the
 snapshot's `1_Pooling/config.json` doesn't reach the factory, and the CLS pooler it falls back to puts every sentence
-within a few percent of every other), and L2 normalisation. Texts are cut at 510 tokens, batched by 16.
+within a few percent of every other), and L2 normalisation. Texts are cut at 510 tokens and batched by 32, sorted by length so a batch pads little.
+
+Saving never waits for any of this: `add` extracts, writes the file and the row and returns (0.2 s); the embedding
+runs in the store's queue, off the main actor — the adapters are `nonisolated` on purpose, since the target defaults
+every type to the main actor and a main-actor tokenizer would parse `tokenizer.json` and encode every chunk on the
+UI thread. Throughput on an M-series Mac: a 118-passage Wikipedia page embeds in ~4 s in a **Release** build (plus
+~3 s of warm-up the first time) and ~14 s in **Debug** — Xcode builds package dependencies without optimisation, and
+MLX's graph code at -O0 is the difference. The star spins while the page is indexed; the page is bookmarked and
+searchable by title from the first second.
 
 The hub client and the tokenizer are adapted by hand (`HubDownloader`, `TransformersTokenizerLoader`) rather than
 through mlx-swift-lm's `MLXHuggingFace` macros — those pull in `MLXFoundationModels`, a third-party

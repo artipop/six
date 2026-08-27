@@ -16,7 +16,7 @@ actor MLXEmbedder: Embedder {
     static let configuration = ModelConfiguration(id: "intfloat/multilingual-e5-small")
     /// Tokens per text before truncation (the model's window is 512).
     static let maxTokens = 510
-    static let batchSize = 16
+    static let batchSize = 32
     /// E5 is a mean-pooled model. Said explicitly: the snapshot's `1_Pooling/config.json` doesn't
     /// reach the factory, and without it the container falls back to the CLS pooler — which for this
     /// model puts every sentence within a few percent of every other.
@@ -44,35 +44,41 @@ actor MLXEmbedder: Embedder {
         guard !texts.isEmpty else { return [] }
         let container = try await loadedContainer()
         let prefix = role == .query ? "query: " : "passage: "
-        var result: [Embedding] = []
-        result.reserveCapacity(texts.count)
-        for batch in stride(from: 0, to: texts.count, by: Self.batchSize).map({ Array(texts[$0..<min($0 + Self.batchSize, texts.count)]) }) {
-            let prefixed = batch.map { prefix + $0 }
-            let vectors = try await container.perform { context -> [[Float]] in
-                let tokenizer = context.tokenizer
-                let padID = tokenizer.convertTokenToId("<pad>") ?? tokenizer.convertTokenToId("[PAD]") ?? 0
-                let encoded = prefixed.map { text -> [Int] in
-                    let ids = tokenizer.encode(text: text, addSpecialTokens: true)
-                    guard ids.count > Self.maxTokens + 2 else { return ids }
-                    // Keep the closing special token when we cut the middle out.
-                    return Array(ids.prefix(Self.maxTokens + 1)) + [ids[ids.count - 1]]
-                }
-                let length = encoded.map(\.count).max() ?? 1
-                let padded = encoded.map { $0 + Array(repeating: padID, count: length - $0.count) }
-                let mask = encoded.map { Array(repeating: Int32(1), count: $0.count) + Array(repeating: Int32(0), count: length - $0.count) }
-                let inputs = MLXArray(padded.flatMap { $0.map { Int32($0) } }, [padded.count, length])
-                let attention = MLXArray(mask.flatMap { $0 }, [padded.count, length])
+        let prefixed = texts.map { prefix + $0 }
+        let vectors = try await container.perform { context -> [[Float]] in
+            let tokenizer = context.tokenizer
+            let padID = tokenizer.convertTokenToId("<pad>") ?? tokenizer.convertTokenToId("[PAD]") ?? 0
+            let tokenizingStarted = ContinuousClock.now
+            let encoded = prefixed.map { text -> [Int] in
+                let ids = tokenizer.encode(text: text, addSpecialTokens: true)
+                guard ids.count > Self.maxTokens + 2 else { return ids }
+                // Keep the closing special token when we cut the tail off.
+                return Array(ids.prefix(Self.maxTokens + 1)) + [ids[ids.count - 1]]
+            }
+            let tokenizing = ContinuousClock.now - tokenizingStarted
+            let modelStarted = ContinuousClock.now
+            defer { FileHandle.standardError.write(Data("[six] embed: tokenized \(encoded.count) in \(tokenizing), model \(ContinuousClock.now - modelStarted)\n".utf8)) }
+            // Batches of similar length pad the least: a batch is as long as its longest member.
+            let order = encoded.indices.sorted { encoded[$0].count < encoded[$1].count }
+            var vectors = [[Float]](repeating: [], count: encoded.count)
+            for start in stride(from: 0, to: order.count, by: Self.batchSize) {
+                let batch = Array(order[start..<min(start + Self.batchSize, order.count)])
+                let length = batch.map { encoded[$0].count }.max() ?? 1
+                let padded = batch.map { encoded[$0] + Array(repeating: padID, count: length - encoded[$0].count) }
+                let mask = batch.map { Array(repeating: Int32(1), count: encoded[$0].count) + Array(repeating: Int32(0), count: length - encoded[$0].count) }
+                let inputs = MLXArray(padded.flatMap { $0.map { Int32($0) } }, [batch.count, length])
+                let attention = MLXArray(mask.flatMap { $0 }, [batch.count, length])
                 let output = context.model(inputs, positionIds: nil, tokenTypeIds: nil, attentionMask: attention)
                 let pooled = Self.pooling(output, mask: attention, normalize: true)
                 pooled.eval()
-                return (0..<padded.count).map { pooled[$0].asArray(Float.self) }
+                for (row, index) in batch.enumerated() { vectors[index] = pooled[row].asArray(Float.self) }
             }
-            for vector in vectors {
-                guard vector.count == dimension else { throw EmbedderError.dimensionMismatch(expected: dimension, got: vector.count) }
-                result.append(Embedding(vector: vector, model: modelID))
-            }
+            return vectors
         }
-        return result
+        return try vectors.map { vector in
+            guard vector.count == dimension else { throw EmbedderError.dimensionMismatch(expected: dimension, got: vector.count) }
+            return Embedding(vector: vector, model: modelID)
+        }
     }
 
     /// `SIX_EMBED_SELFTEST=1`: what the tokenizer and the pooler make of a few sentences, on stderr.
@@ -139,8 +145,11 @@ actor MLXEmbedder: Embedder {
 
 // MARK: - mlx-swift-lm adapters
 
+// The adapters are `nonisolated` on purpose: the target defaults every type to the main actor, and a
+// main-actor tokenizer would parse tokenizer.json and encode every chunk on the UI thread.
+
 /// `HubClient` as mlx-swift-lm's `Downloader`: a snapshot of the repo into the cache directory.
-private struct HubDownloader: Downloader {
+nonisolated private struct HubDownloader: Downloader {
     let hub: HubClient
 
     init(_ hub: HubClient) { self.hub = hub }
@@ -158,14 +167,14 @@ private struct HubDownloader: Downloader {
 }
 
 /// swift-transformers' `AutoTokenizer` as mlx-swift-lm's `TokenizerLoader`.
-private struct TransformersTokenizerLoader: TokenizerLoader {
+nonisolated private struct TransformersTokenizerLoader: TokenizerLoader {
     func load(from directory: URL) async throws -> any MLXLMCommon.Tokenizer {
         TransformersTokenizer(try await AutoTokenizer.from(modelFolder: directory))
     }
 }
 
 /// The few calls the embedder makes, mapped one to one; chat templates are not a thing here.
-private struct TransformersTokenizer: MLXLMCommon.Tokenizer {
+nonisolated private struct TransformersTokenizer: MLXLMCommon.Tokenizer {
     let upstream: any Tokenizers.Tokenizer
 
     init(_ upstream: any Tokenizers.Tokenizer) { self.upstream = upstream }
