@@ -124,16 +124,14 @@ private struct BookmarkButton: View {
                 Task { try? await bookmarks.add(tab) }
             }
         } label: {
-            if indexing {
-                ProgressView().controlSize(.mini)
-            } else {
-                Image(systemName: saved ? "bookmark.fill" : "bookmark")
-                    .foregroundStyle(saved ? AnyShapeStyle(browser.selectedProfile.color) : AnyShapeStyle(.secondary))
-            }
+            // Saved is saved: the star fills as soon as the row exists. The embedding that follows is the
+            // index's business and shows in the bookmarks window — a spinner here reads as "still saving".
+            Image(systemName: saved ? "bookmark.fill" : "bookmark")
+                .foregroundStyle(saved ? AnyShapeStyle(browser.selectedProfile.color) : AnyShapeStyle(.secondary))
         }
         .buttonStyle(.borderless)
         .disabled(tab == nil || tab?.showsStartPage == true || tab.map { browser.isPrivate($0.profileID) } == true)
-        .help(saved ? "Remove Bookmark (⌘D)" : "Add Bookmark (⌘D)")
+        .help(saved ? (indexing ? "Saved; indexing for search… Remove Bookmark (⌘D)" : "Remove Bookmark (⌘D)") : "Add Bookmark (⌘D)")
     }
 }
 

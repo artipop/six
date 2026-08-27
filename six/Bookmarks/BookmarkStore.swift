@@ -19,7 +19,7 @@ final class BookmarkStore {
     /// Beyond this many passages a page is indexed only in part — and says so in `indexError`.
     static let maxChunks = 120
     /// Bump when chunking or pooling changes: every bookmark is then re-embedded on the next launch.
-    static let indexVersion = 2
+    static let indexVersion = 3
     /// A refresh reloads the page off screen and waits this long at most for it.
     static let refreshTimeout: TimeInterval = 30
     /// How often the due bookmarks are looked for while the app runs.
@@ -76,8 +76,11 @@ final class BookmarkStore {
         }
     }
 
-    /// Finishes what an earlier run left unindexed (and re-embeds after a change of embedder).
+    /// Finishes what an earlier run left unindexed (and re-embeds after a change of embedder). First
+    /// sweeps the vector table: a row whose chunk is gone — a crash between the two deletes, an
+    /// older run — is dropped, so the index never outlives the bookmarks.
     func resumeIndexing() {
+        sweepOrphanVectors()
         let pending = read { db in
             try Bookmark.where { $0.indexError.is(nil) }.order { $0.createdAt.desc() }.fetchAll(db)
         }.filter { $0.indexedAt == nil || $0.embeddingModel != indexSignature }
@@ -346,7 +349,7 @@ final class BookmarkStore {
             var arguments: StatementArguments = [blob, k * 4, model]
             if scope == .profile {
                 sql += " AND profile_id = ?"
-                arguments += [profileID.uuidString]
+                arguments += [profileID.uuidString.lowercased()]
             }
             return try Row.fetchAll(db, sql: sql + " ORDER BY distance", arguments: arguments)
                 .compactMap { row in UUID(uuidString: row["chunk_id"]).map { ($0, row["distance"] as Double) } }
@@ -370,6 +373,23 @@ final class BookmarkStore {
     }
 
     // MARK: Indexing
+
+    private func sweepOrphanVectors() {
+        let table = vectorTable
+        do {
+            let removed: Int = try database.write { db in
+                let chunkIDs = Set(try BookmarkChunk.select(\.id).fetchAll(db).map { $0.uuidString.lowercased() })
+                let stored = try String.fetchAll(db, sql: "SELECT chunk_id FROM \"\(table)\"")
+                // Ids are stored lowercase (as SQLiteData writes UUIDs); an upper-case one is from before that.
+                let orphans = stored.filter { !chunkIDs.contains($0.lowercased()) || $0 != $0.lowercased() }
+                for chunkID in orphans { try db.execute(sql: "DELETE FROM \"\(table)\" WHERE chunk_id = ?", arguments: [chunkID]) }
+                return orphans.count
+            }
+            if removed > 0 { FileHandle.standardError.write(Data("[six] dropped \(removed) orphan vectors\n".utf8)) }
+        } catch {
+            FileHandle.standardError.write(Data("[six] vector sweep failed: \(error)\n".utf8))
+        }
+    }
 
     private func enqueue(_ id: Bookmark.ID) {
         guard !queue.contains(id), !indexing.contains(id) else { return }
@@ -406,7 +426,7 @@ final class BookmarkStore {
                 for (chunk, embedding) in zip(chunks, embeddings) {
                     try db.execute(
                         sql: "INSERT INTO \"\(table)\"(chunk_id, profile_id, model, embedding) VALUES (?, ?, ?, ?)",
-                        arguments: [chunk.id.uuidString, profileID.uuidString, embedding.model, Self.blob(embedding.vector)]
+                        arguments: [chunk.id.uuidString.lowercased(), profileID.uuidString.lowercased(), embedding.model, Self.blob(embedding.vector)]
                     )
                 }
                 let note: String? = chunks.count >= Self.maxChunks ? "Indexed the first \(Self.maxChunks) passages only" : nil
@@ -441,7 +461,7 @@ final class BookmarkStore {
 
     nonisolated private static func dropVectors(of chunkIDs: [BookmarkChunk.ID], from table: String, in db: Database) throws {
         for chunkID in chunkIDs {
-            try db.execute(sql: "DELETE FROM \"\(table)\" WHERE chunk_id = ?", arguments: [chunkID.uuidString])
+            try db.execute(sql: "DELETE FROM \"\(table)\" WHERE chunk_id = ?", arguments: [chunkID.uuidString.lowercased()])
         }
     }
 
