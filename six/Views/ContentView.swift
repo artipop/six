@@ -15,6 +15,10 @@ struct ContentView: View {
             // Fullscreen gives the whole window to the strip; its own bar comes back on hover.
             if !browser.layout.showsFullscreen {
                 TopBar(showAgentPanel: $showAgentPanel)
+                    // In front of the strip, not behind it. They are siblings in a stack, so the strip
+                    // is drawn — and hit-tested — after the bar; anything of the strip's that reaches
+                    // up into the bar's band would take the click off its buttons.
+                    .zIndex(1)
             }
             NiriStripView()
                 .overlay(alignment: .bottom) {

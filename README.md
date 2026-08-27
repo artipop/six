@@ -24,6 +24,13 @@ playground for three things:
 Windows, workspaces, profiles and agent chats survive a relaunch: one JSON snapshot under Application Support, autosaved
 on change, ACP sessions resumed with `session/load`. See [docs/architecture.md](docs/architecture.md#persistence).
 
+A window is not a page it holds forever. A `WebPage` is a web content process, so a strip of a hundred windows keeps
+only as many live as the machine can carry and *discards* the rest, the way Chrome's Memory Saver and Safari's
+suspended tabs do — the window stays where it is, with its address, its history, its scroll offset and a picture of
+itself, and builds the same page again when you come back to it. Coming back is the case it is tuned for: one queue for
+the whole app, so stepping out to another workspace and back finds the pages still warm.
+See [docs/architecture.md](docs/architecture.md#live-pages).
+
 six registers with macOS as a browser: it claims `http`/`https` and the usual web file types, so it can be picked in
 System Settings › Desktop & Dock › Default web browser (or from **Set six as Default Browser…** in the six menu), and
 links or `.html` files opened from other apps land as windows in the strip.

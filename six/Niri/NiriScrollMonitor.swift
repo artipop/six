@@ -39,6 +39,7 @@ final class NiriScrollMonitor {
 
     private var monitor: Any?
     private var keyMonitor: Any?
+    private var clickMonitor: Any?
     private var accumulated: CGFloat = 0
     private var accumulatedX: CGFloat = 0
     private var didCommit = false
@@ -60,13 +61,38 @@ final class NiriScrollMonitor {
             guard let self else { return event }
             return MainActor.assumeIsolated { self.handleKey(event) }
         }
+        startClickTrace()
+    }
+
+    /// `SIX_UI_DEBUG=1`: every click, and the AppKit view that answered for the point. A control that
+    /// stops working is either not being hit or not doing anything, and this says which.
+    private func startClickTrace() {
+        guard Self.tracesClicks, clickMonitor == nil else { return }
+        clickMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { event in
+            MainActor.assumeIsolated {
+                let point = event.locationInWindow
+                let hit = event.window?.contentView?.hitTest(point)
+                let flipped = (event.window?.contentView?.bounds.height ?? 0) - point.y
+                Self.trace("click at (\(Int(point.x)), \(Int(flipped))) → \(hit.map { String(describing: type(of: $0)) } ?? "nothing")")
+            }
+            return event
+        }
+    }
+
+    static let tracesClicks = ProcessInfo.processInfo.environment["SIX_UI_DEBUG"] == "1"
+
+    static func trace(_ message: @autoclosure () -> String) {
+        guard tracesClicks else { return }
+        FileHandle.standardError.write(Data("[six] ui: \(message())\n".utf8))
     }
 
     func stop() {
         if let monitor { NSEvent.removeMonitor(monitor) }
         if let keyMonitor { NSEvent.removeMonitor(keyMonitor) }
+        if let clickMonitor { NSEvent.removeMonitor(clickMonitor) }
         monitor = nil
         keyMonitor = nil
+        clickMonitor = nil
     }
 
     private static let escapeKeyCode: UInt16 = 53

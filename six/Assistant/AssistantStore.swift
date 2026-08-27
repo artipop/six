@@ -85,7 +85,7 @@ final class AssistantStore {
         guard let agentSession else { errorMessage = "Agent session is not available"; return }
         if agentSession.agent != agent { agentSession.agent = agent }
         var context: [ACP.ContentBlock] = []
-        if let tab, !tab.showsStartPage, let url = tab.page.url {
+        if let tab, !tab.showsStartPage, let url = tab.currentURL {
             context.append(.resourceLink(uri: url.absoluteString, name: tab.title, mimeType: "text/html", title: tab.title))
         }
         let outcome = await agentSession.prompt(question, context: context) { [weak self] update in
@@ -142,8 +142,8 @@ final class AssistantStore {
     }
 
     private static func buildPrompt(question: String, tab: BrowserTab?) async -> String {
-        guard let tab, let url = tab.page.url else { return question }
-        var prompt = "Current page: \(tab.page.title) <\(url.absoluteString)>\n"
+        guard let tab, let url = tab.currentURL else { return question }
+        var prompt = "Current page: \(tab.title) <\(url.absoluteString)>\n"
         if let text = await pageText(of: tab.page) {
             prompt += "Page content (truncated):\n\"\"\"\n\(text)\n\"\"\"\n\n"
         }

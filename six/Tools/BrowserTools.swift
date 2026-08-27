@@ -545,7 +545,7 @@ final class BrowserToolCatalog {
                         window["kind"] = "document"
                         window["url"] = .string("six://document/\(document.id.uuidString)")
                         window["characters"] = .number(Double(document.text.count))
-                    } else if tab.page.isLoading { window["loading"] = true }
+                    } else if tab.isLoading { window["loading"] = true }
                     if position == workspace.focus { window["focused"] = true }
                     return .object(window)
                 }
@@ -601,7 +601,7 @@ final class BrowserToolCatalog {
         guard let raw = args["url"]?.stringValue, let url = URL.fromUserInput(raw) else { throw BrowserTool.Failure(message: "url is required") }
         tab.load(url)
         await Self.waitForLoad(tab)
-        return "\(Self.describe(tab))" + (tab.page.isLoading ? " (still loading)" : "")
+        return "\(Self.describe(tab))" + (tab.isLoading ? " (still loading)" : "")
     }
 
     private func pageContent(_ args: ACPJSON) async throws -> String {
@@ -640,7 +640,7 @@ final class BrowserToolCatalog {
             You summarize web pages for a browser. Be faithful to the page, concise, and write in the page's language \
             unless asked otherwise. Use short paragraphs or bullets.
             """)
-        var prompt = "Page: \(tab.title) <\(tab.page.url?.absoluteString ?? "")>\n"
+        var prompt = "Page: \(tab.title) <\(tab.currentURL?.absoluteString ?? "")>\n"
         if let focus = args["focus"]?.stringValue, !focus.isEmpty { prompt += "Focus on: \(focus)\n" }
         prompt += "Page content (truncated):\n\"\"\"\n\(text)\n\"\"\"\n\nSummarize this page."
         let response = try await session.respond(to: prompt)
@@ -805,7 +805,7 @@ final class BrowserToolCatalog {
         let deadline = Date().addingTimeInterval(timeout)
         // A fresh `load` flips `isLoading` on a tick later; give it a moment.
         try? await Task.sleep(for: .milliseconds(150))
-        while tab.page.isLoading, Date() < deadline {
+        while tab.isLoading, Date() < deadline {
             try? await Task.sleep(for: .milliseconds(100))
         }
     }

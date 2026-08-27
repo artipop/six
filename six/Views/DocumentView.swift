@@ -15,8 +15,14 @@ struct DocumentView: View {
     var body: some View {
         Group {
             if document.showsPreview {
-                WebView(tab.page)
-                    .id(tab.id)
+                // The page is built by the live-page budget when the column comes on screen, and given
+                // back when it goes cold; the preview is rendered again from the text either way.
+                if let page = tab.livePage {
+                    WebView(page)
+                        .id(tab.generation)
+                } else {
+                    Color(nsColor: .textBackgroundColor)
+                }
             } else {
                 Editor(document: document, isActive: isActive)
             }

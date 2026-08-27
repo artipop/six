@@ -216,6 +216,24 @@ private struct LayoutCommands: Commands {
                 set: { _ in browser.toggleCenterFocus() }
             ))
             .keyboardShortcut("c", modifiers: .option)
+
+            Divider()
+
+            // Windows off the screen give their pages back when the app runs over this (see
+            // `LivePageCache`); they keep everything it takes to put the same page back when they
+            // come round again. The default is sized from the machine's memory.
+            Section("Loaded Windows: \(browser.pages.liveCount) of \(browser.tabs.count)") {
+                Picker("Keep Loaded", selection: Binding(
+                    get: { browser.pages.budget },
+                    set: { browser.setLivePageBudget($0) }
+                )) {
+                    ForEach([4, 6, 8, 12, 16, 24, 40], id: \.self) { count in
+                        Text("\(count) windows").tag(count)
+                    }
+                }
+                .pickerStyle(.inline)
+                Button("Unload Background Windows") { browser.pages.discardBackgroundPages() }
+            }
         }
     }
 }

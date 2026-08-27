@@ -26,6 +26,7 @@ final class SettingsStore {
         case bookmarkRefreshDays = "bookmarks.refreshDays"
         case researchTemplate = "research.template"
         case researchSources = "research.sources"
+        case livePages = "browser.livePages"
 
         /// Where the value lived before the database.
         var legacyDefaultsKey: String {
@@ -39,6 +40,7 @@ final class SettingsStore {
             case .bookmarkRefreshDays: "six.bookmarks.refreshDays"
             case .researchTemplate: "six.research.template"
             case .researchSources: "six.research.sources"
+            case .livePages: "six.browser.livePages"
             }
         }
     }
@@ -100,6 +102,13 @@ final class SettingsStore {
     var researchSources: Int {
         get { Int(self[.researchSources] ?? "") ?? ResearchPreset.defaultSources }
         set { self[.researchSources] = String(newValue) }
+    }
+
+    /// How many windows keep a live `WebPage` at once; the rest are discarded and built again when
+    /// they are next shown. Defaults to what the machine's memory can carry (see `LivePageCache`).
+    var livePageBudget: Int {
+        get { self[.livePages].flatMap(Int.init) ?? LivePageCache.defaultBudget }
+        set { self[.livePages] = String(newValue) }
     }
 
     /// How often a saved page is re-read from its site and re-embedded if it changed; 0 is never.

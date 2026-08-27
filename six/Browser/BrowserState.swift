@@ -15,6 +15,11 @@ final class BrowserState {
 
     /// niri-style layout: the focused column here is the selected tab.
     let layout = NiriLayout()
+    /// The app-wide budget for live `WebPage`s — one queue across every profile and every workspace,
+    /// which is what makes stepping out of a workspace and back cheap. See `LivePageCache`.
+    let pages = LivePageCache()
+    /// The pictures of the windows, kept as files so the overview is not blank after a relaunch.
+    @ObservationIgnored let thumbnails = PageThumbnails()
     /// Visits, per profile.
     let history: HistoryStore
     /// Saved pages, per profile; wired at launch. Removing a profile removes its bookmarks.
@@ -28,6 +33,9 @@ final class BrowserState {
     @ObservationIgnored private let settings: SettingsStore
 
     @ObservationIgnored private var dataStores: [UUID: WKWebsiteDataStore] = [:]
+    /// Tabs by id. The strip asks for one per column per layout pass, and a linear scan over a
+    /// hundred windows on every pass is a hundred times nothing that adds up to something.
+    @ObservationIgnored private var tabsByID: [UUID: BrowserTab] = [:]
 
     /// Starts from a snapshot when there is one; otherwise with the default profiles and one window.
     init(snapshot: BrowserSnapshot? = nil, history: HistoryStore, settings: SettingsStore) {
@@ -46,6 +54,66 @@ final class BrowserState {
         for i in research.indices { research[i].isRunning = false } // nothing survives a relaunch mid-turn
         layout.setPreferredWidth(settings.columnWidthIndex) // one width everywhere, whatever the file says
         if layout.hasColumns { syncSelection() } else { newTab() }
+        pages.setBudget(settings.livePageBudget)
+        thumbnails.prune(keeping: Set(tabs.map(\.id))) // windows closed in a launch that never cleaned up
+        trackVisibleWindows()
+        refreshLivePages() // the first strip, before any change has had a chance to fire
+    }
+
+    // MARK: Live pages
+
+    /// Keeps the live-page budget pointed at what the strip is showing. Every layout change — focus,
+    /// workspace, scroll, resize, overview, a new window — moves `visibleTabIDs`, and this follows it
+    /// without the views having to say anything: building and discarding pages is the model's job,
+    /// and doing it from a view body would be mutating state in the middle of drawing it.
+    private func trackVisibleWindows() {
+        withObservationTracking {
+            _ = layout.visibleTabIDs
+        } onChange: { [weak self] in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                refreshLivePages()
+                trackVisibleWindows()
+            }
+        }
+    }
+
+    /// How many windows may hold a live page at once, from the menu.
+    func setLivePageBudget(_ value: Int) {
+        settings.livePageBudget = value
+        pages.setBudget(value)
+    }
+
+    /// True while the overview is up, so entering it can be told from moving around inside it.
+    @ObservationIgnored private var showingOverview = false
+    @ObservationIgnored private var shownTabIDs: Set<UUID> = []
+
+    private func refreshLivePages() {
+        let visible = layout.visibleTabIDs
+        // On the way into the overview every window on screen is about to become a card: this is the
+        // last moment any of them can be drawn.
+        if layout.isOverview, !showingOverview {
+            for id in shownTabIDs { tabsByID[id]?.rememberViewState(force: true) }
+            // The rest of the strip is about to be drawn as cards: the ones with no picture in memory
+            // — never shown this launch, or dropped for the budget — read theirs off disk. Only this
+            // profile's: the overview shows one strip, and the others are not on screen to be drawn.
+            for tab in tabs(in: selectedProfileID) { tab.loadPictureIfNeeded() }
+        }
+        showingOverview = layout.isOverview
+        shownTabIDs = visible
+        // Each window's own width, so the picture taken of it is the shape of the column it fills.
+        if let workspace = layout.focusedWorkspace {
+            let frames = layout.columnFrames(workspace)
+            for (index, column) in workspace.columns.enumerated() where frames.indices.contains(index) {
+                guard visible.contains(column.tabID) else { continue }
+                tabsByID[column.tabID]?.displaySize = frames[index].size
+            }
+        }
+        // Only the focused window is loaded. Everything else on screen is pinned — a neighbour that
+        // still has its page goes on showing it — but nothing is built for walking past it, and the
+        // overview builds nothing at all.
+        let building = layout.isOverview ? nil : layout.focusedTabID
+        pages.setVisible(visible, building: building) { [weak self] id in self?.tabsByID[id] }
     }
 
     // MARK: Snapshot
@@ -97,9 +165,9 @@ final class BrowserState {
             if let saved = tab.document {
                 let text = documents.load(id: saved.id) ?? "# \(saved.title)\n"
                 let document = TextDocument(id: saved.id, text: text, modifiedAt: saved.modifiedAt, fileURL: saved.fileURL, showsPreview: saved.showsPreview)
-                tabs.append(makeDocumentTab(id: tab.id, profile: profile, document: document))
+                add(makeDocumentTab(id: tab.id, profile: profile, document: document))
             } else {
-                tabs.append(makeTab(id: tab.id, profile: profile, restoring: tab.url, title: tab.title))
+                add(makeTab(id: tab.id, profile: profile, restoring: tab.url, title: tab.title))
             }
         }
         layout.restore(strips: strips)
@@ -162,7 +230,7 @@ final class BrowserState {
         guard let profile = profiles.first(where: { $0.id == id }) else { return }
         await dataStore(for: profile).removeData(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(), modifiedSince: .distantPast)
         for tab in tabs(in: id) where !tab.showsStartPage && tab.pendingURL == nil {
-            _ = tab.page.reload(fromOrigin: true)
+            _ = tab.livePage?.reload(fromOrigin: true)
         }
     }
 
@@ -186,7 +254,15 @@ final class BrowserState {
     }
 
     func tab(_ id: BrowserTab.ID) -> BrowserTab? {
-        tabs.first { $0.id == id }
+        tabsByID[id]
+    }
+
+    /// Every tab goes through here, so nothing is in `tabs` without an index entry and a page budget.
+    private func add(_ tab: BrowserTab) {
+        tab.cache = pages
+        tab.thumbnails = thumbnails
+        tabs.append(tab)
+        tabsByID[tab.id] = tab
     }
 
     func tabs(in profileID: Profile.ID) -> [BrowserTab] {
@@ -204,7 +280,7 @@ final class BrowserState {
     func newTab(url: URL?, in profileID: Profile.ID?, workspace: Int?, activate: Bool) -> BrowserTab {
         let profile = profiles.first { $0.id == profileID } ?? selectedProfile
         let tab = makeTab(profile: profile)
-        tabs.append(tab)
+        add(tab)
         if activate, selectedProfileID != profile.id {
             selectedProfileID = profile.id
             layout.activeProfileID = profile.id
@@ -220,11 +296,11 @@ final class BrowserState {
     private func makeTab(id: UUID = UUID(), profile: Profile, restoring url: URL? = nil, title: String = "") -> BrowserTab {
         let tab = BrowserTab(id: id, profileID: profile.id, dataStore: dataStore(for: profile), restoring: url, title: title)
         tab.onNavigation = { [weak self] tab, outcome in
-            guard let self, let url = tab.page.url else { return }
+            guard let self, let page = tab.livePage, let url = page.url else { return }
             switch outcome {
-            case .committed: history.record(url, title: tab.page.title, in: tab.profileID)
+            case .committed: history.record(url, title: page.title, in: tab.profileID)
             case .finished:
-                history.updateTitle(tab.page.title, for: url, in: tab.profileID)
+                history.updateTitle(page.title, for: url, in: tab.profileID)
                 highlights?.apply(to: tab)
             }
         }
@@ -240,7 +316,7 @@ final class BrowserState {
         let document = TextDocument(text: text)
         let tab = makeDocumentTab(profile: profile, document: document)
         documents.save(document)
-        tabs.append(tab)
+        add(tab)
         if activate, selectedProfileID != profile.id {
             selectedProfileID = profile.id
             layout.activeProfileID = profile.id
@@ -324,13 +400,15 @@ final class BrowserState {
         withAnimation(NiriLayout.switchAnimation) {
             layout.focus(tabID: id)
         }
+        pages.touch(id)
         syncSelection()
     }
 
     func closeTab(_ id: BrowserTab.ID) {
         guard let index = tabs.firstIndex(where: { $0.id == id }) else { return }
         let closed = tabs.remove(at: index)
-        closed.close()
+        tabsByID[id] = nil
+        closed.close() // drops its page, its place in the budget and its picture
         if let document = closed.document {
             documents.remove(id: document.id)
             research.removeAll { $0.documentTabID == closed.id }
@@ -387,6 +465,7 @@ final class BrowserState {
     }
 
     func toggleOverview() {
+        NiriScrollMonitor.trace("toggleOverview (was \(layout.isOverview ? "open" : "closed"))")
         if layout.isOverview {
             exitOverview()
         } else {
@@ -398,6 +477,7 @@ final class BrowserState {
     }
 
     func exitOverview() {
+        NiriScrollMonitor.trace("exitOverview (isOverview \(layout.isOverview))")
         guard layout.isOverview else { return }
         withAnimation(NiriLayout.switchAnimation) {
             layout.isOverview = false

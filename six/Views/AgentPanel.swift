@@ -161,7 +161,7 @@ struct AgentPanel: View {
 
     private func send() {
         var context: [ACP.ContentBlock] = []
-        if attachPage, let tab = browser.selectedTab, let url = tab.page.url {
+        if attachPage, let tab = browser.selectedTab, let url = tab.currentURL {
             context.append(.resourceLink(uri: url.absoluteString, name: tab.title, mimeType: "text/html", title: tab.title))
         }
         store.send(input, context: context)

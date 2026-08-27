@@ -224,6 +224,27 @@ final class NiriLayout {
         return max(280, usableWidth * fraction - gap)
     }
 
+    /// The windows the strip is actually showing: the focused workspace's columns that fall inside the
+    /// viewport, plus half a screen of margin on each side so stepping to a neighbour has its page
+    /// ready. This is what gets a real web view and what the live-page budget pins — everything else
+    /// in the strip is a card (see `LivePageCache`).
+    ///
+    /// Workspaces above and below are deliberately not in here, mid-gesture included: building a web
+    /// view costs a hitch you can see, and doing it for a whole workspace while a scroll is still
+    /// deciding where to land is the worst possible moment for it. What they already have stays.
+    var visibleTabIDs: Set<UUID> {
+        guard let workspace = focusedWorkspace, !workspace.isEmpty else { return [] }
+        let frames = columnFrames(workspace)
+        let scroll = resolvedOffset(workspace) - horizontalPreview
+        let margin = visibleWidth / 2
+        var ids: Set<UUID> = []
+        for (index, column) in workspace.columns.enumerated() where frames.indices.contains(index) {
+            let x = frames[index].minX - scroll
+            if x + frames[index].width > -margin, x < visibleWidth + margin { ids.insert(column.tabID) }
+        }
+        return ids
+    }
+
     /// Column rectangles in content space (x grows along the strip, origin at the strip's left edge).
     func columnFrames(_ workspace: NiriWorkspace) -> [CGRect] {
         var frames: [CGRect] = []

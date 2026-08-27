@@ -551,7 +551,7 @@ final class BookmarkStore {
     private static func waitForLoad(_ tab: BrowserTab, timeout: TimeInterval = 15) async {
         let deadline = Date().addingTimeInterval(timeout)
         try? await Task.sleep(for: .milliseconds(150))
-        while tab.page.isLoading, Date() < deadline {
+        while tab.isLoading, Date() < deadline {
             try? await Task.sleep(for: .milliseconds(100))
         }
     }

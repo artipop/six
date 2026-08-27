@@ -48,11 +48,23 @@ puts every strip back under its focused window whenever the viewport or `⌥C` c
 does the same for the strip coming on screen.
 
 Only columns of the workspace on screen, within one viewport-width of it, get a real `WebView`; the rest render as
-cards (`ColumnPlaceholder`), so a long strip stays cheap. Restricting that to the *current* workspace is not only about
-cost: a web view is a real AppKit view, SwiftUI's clipping does not reach it, and one parked a screen above still
-answers the mouse over the top bar — which is how clicking a button up there could fly you to the workspace above. Off
-screen, it must not exist. The neighbours come back while a gesture is peeking at them (`verticalPreview != 0`) and in
-the overview, where every workspace is on screen; a column of another workspace never captures clicks outside it.
+cards (`ColumnPlaceholder`), so a long strip stays cheap. Whether a column *has* a page to mount at all is a separate
+question and the live-page budget's — see [architecture.md](architecture.md#live-pages): the strip pins what is on
+screen and builds only the focused window, once the focus has settled, so walking the strip loads the window you stop
+at rather than every window you pass. In the overview nothing is mounted and nothing is built; every window there is a
+card, and a card is its title in the strip and the last picture of the page in the overview.
+
+Restricting live views to the *current* workspace is not only about cost: a web view is a real AppKit view, SwiftUI's
+clipping does not reach it, and one parked a screen above still answers the mouse over the top bar — which is how
+clicking a button up there could fly you to the workspace above. Off screen, it must not exist. The neighbours come
+back while a gesture is peeking at them (`verticalPreview != 0`).
+
+The same is true of everything else a workspace off screen contains, which is the other half of that bug: cards and
+their shadows reach into the top bar's band too — how far depends on the window's size, since the gaps are fractions of
+the viewport — and that is enough to take a click off a button there, intermittently. So a workspace that is not the
+current one answers nothing at all (`allowsHitTesting`), unless the overview is open and it really is on screen; and
+the top bar is `zIndex`-ed in front of the strip, since they are siblings in a stack and the strip is hit-tested after
+it.
 
 ## Gestures — `six/Niri/NiriScrollMonitor.swift`
 

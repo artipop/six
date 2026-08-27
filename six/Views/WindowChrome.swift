@@ -19,24 +19,25 @@ struct WindowChrome: View {
             if let document = tab.document {
                 documentControls(document)
             } else {
-                Button { _ = tab.page.load(tab.page.backForwardList.backList.last) } label: {
+                // Everything here goes through the window, not through its page: a title bar is drawn
+                // for every column in the strip, and reaching for `tab.page` would build a page for
+                // each of them just to ask whether its back list is empty (see `BrowserTab.page`).
+                Button(action: tab.goBack) {
                     Image(systemName: "chevron.left")
                 }
-                .disabled(tab.page.backForwardList.backList.isEmpty)
+                .disabled(!tab.canGoBack)
                 .help("Back")
 
-                Button { _ = tab.page.load(tab.page.backForwardList.forwardList.first) } label: {
+                Button(action: tab.goForward) {
                     Image(systemName: "chevron.right")
                 }
-                .disabled(tab.page.backForwardList.forwardList.isEmpty)
+                .disabled(!tab.canGoForward)
                 .help("Forward")
 
-                Button {
-                    if tab.page.isLoading { tab.page.stopLoading() } else { _ = tab.page.reload() }
-                } label: {
-                    Image(systemName: tab.page.isLoading ? "xmark" : "arrow.clockwise")
+                Button(action: tab.reloadOrStop) {
+                    Image(systemName: tab.isLoading ? "xmark" : "arrow.clockwise")
                 }
-                .help(tab.page.isLoading ? "Stop" : "Reload")
+                .help(tab.isLoading ? "Stop" : "Reload")
 
                 address
 
@@ -68,8 +69,8 @@ struct WindowChrome: View {
         }
         .onHover { hovering = $0 }
         .overlay(alignment: .bottom) {
-            if !tab.isDocument, tab.page.isLoading {
-                LoadingLine(progress: tab.page.estimatedProgress, accent: accent)
+            if !tab.isDocument, tab.isLoading {
+                LoadingLine(progress: tab.estimatedProgress, accent: accent)
             }
         }
     }
@@ -148,7 +149,7 @@ struct WindowChrome: View {
 
     private var address: some View {
         HStack(spacing: 5) {
-            Image(systemName: tab.page.url?.scheme == "https" ? "lock.fill" : "globe")
+            Image(systemName: tab.currentURL?.scheme == "https" ? "lock.fill" : "globe")
                 .foregroundStyle(.secondary)
                 .font(.system(size: 9))
             TextField("Search or enter address", text: $text)

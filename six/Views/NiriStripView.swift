@@ -17,9 +17,16 @@ struct NiriStripView: View {
         GeometryReader { proxy in
             ZStack(alignment: .topLeading) {
                 Color.clear
+                // Only the workspace on screen and the two it can slide in from are built. The rest of
+                // the stack is a screen or more away and cannot be seen even mid-gesture; with a
+                // workspace holding a dozen columns, not building them is the difference between a
+                // strip that scrolls and one that thinks about it first. The overview is the exception:
+                // there they are all on screen at once.
                 ForEach(Array(layout.workspaces.enumerated()), id: \.element.id) { index, workspace in
-                    WorkspaceView(workspace: workspace, index: index, size: proxy.size, addressFocus: $addressFocus)
-                        .offset(y: offset(of: index, height: proxy.size.height, layout: layout))
+                    if layout.isOverview || abs(index - layout.focusedWorkspaceIndex) <= 1 {
+                        WorkspaceView(workspace: workspace, index: index, size: proxy.size, addressFocus: $addressFocus)
+                            .offset(y: offset(of: index, height: proxy.size.height, layout: layout))
+                    }
                 }
             }
             .frame(width: proxy.size.width, height: proxy.size.height, alignment: .topLeading)
@@ -135,16 +142,34 @@ private struct WorkspaceView: View {
         .clipped()
         .offset(x: -(layerWidth - size.width) / 2)
         .opacity(layout.isOverview && !isCurrent ? 0.7 : 1)
+        // A workspace that is not on screen answers nothing. It is laid out a screen above or below,
+        // and a screen above is where the top bar is: its cards, their shadows and the hosted views
+        // underneath them all reach into that strip of window, and how far they reach depends on the
+        // window's height (the gaps are fractions of it). That is how a button up there stops working
+        // for no reason you can see. The same rule as the web views (`isLive`), for everything else.
+        .allowsHitTesting(isCurrent || layout.isOverview)
     }
 
-    /// Only nearby columns get a real web view; the rest are cheap cards, so a big strip stays cheap.
+    /// Whether this column may mount a web view. Nearby columns do, the rest are cheap cards, so a big
+    /// strip stays cheap.
     ///
     /// A workspace that is not on screen gets none at all, and that is not only about cost: a web view
     /// is a real AppKit view, SwiftUI's clipping does not reach it, and one sitting a screen above
     /// still answers the mouse over the top bar. Off screen it must not exist. The neighbours come
-    /// back while a gesture is peeking at them, and in the overview, where they are all on screen.
+    /// back while a gesture is peeking at them.
+    ///
+    /// The overview is every window at once, and there they are all cards. A live page in the overview
+    /// is a page being laid out and composited at a fraction of its size for a picture of itself, and
+    /// a dozen of them are a dozen of that every time the view moves — which is exactly what the
+    /// overview is for. The cards are the pictures taken on the way in.
+    ///
+    /// This only decides what is *shown*. Whether the window has a page to show at all is the live-page
+    /// budget's business (`LivePageCache`), which pins the focused workspace's columns and lets the
+    /// cold end of the strip go — so a neighbour workspace mid-gesture shows the pages it still has
+    /// and cards for the rest, and never builds a web view in the middle of a scroll.
     private func isLive(workspaceDistance: Int, x: CGFloat, width: CGFloat, layout: NiriLayout) -> Bool {
-        let visibleWorkspace = workspaceDistance == 0 || layout.isOverview || layout.verticalPreview != 0
+        guard !layout.isOverview else { return false }
+        let visibleWorkspace = workspaceDistance == 0 || layout.verticalPreview != 0
         guard visibleWorkspace, workspaceDistance <= 1 else { return false }
         let margin = layout.visibleWidth
         return x + width > -margin && x < layout.visibleWidth + margin
@@ -228,14 +253,16 @@ private struct ColumnView: View {
                 DocumentView(tab: tab, document: document, isActive: isFocused && !browser.layout.isOverview)
                     .allowsHitTesting(!capturesClicks)
                     .overlay { if capturesClicks { ClickCatcher(action: activate) } }
-            } else if isLive {
-                WebView(tab.page)
+            } else if isLive, let page = tab.livePage {
+                // Identified by the page, not the window: a window whose page was discarded and built
+                // again is showing a different `WebPage`, and the view has to be built again with it.
+                WebView(page)
                     .webViewBackForwardNavigationGestures(.enabled)
-                    .id(tab.id)
+                    .id(tab.generation)
                     .onAppear(perform: tab.resumeIfNeeded)
                     .overlay { if capturesClicks { ClickCatcher(action: activate) } }
             } else {
-                ColumnPlaceholder(tab: tab, accent: accent)
+                ColumnPlaceholder(tab: tab, accent: accent, showsPicture: browser.layout.isOverview)
                     .contentShape(Rectangle())
                     .onTapGesture { if capturesClicks { activate() } }
             }
@@ -255,30 +282,63 @@ private struct ColumnView: View {
     }
 }
 
+/// What a window shows in place of a page it doesn't have live. Every window off the focused
+/// workspace is one of these, and so is every window whose page was discarded for the budget (see
+/// `LivePageCache`).
+///
+/// In the strip it is a card with the window's title: a picture of the page would only ever be seen
+/// out of the corner of the eye, at the edge of the screen, for the moment before the real page
+/// arrives — and a stale, soft screenshot flashing where a page is about to be is worse than a card
+/// that never pretended to be one. The pictures are for the overview, where every window is a
+/// picture and telling them apart is the whole point.
 private struct ColumnPlaceholder: View {
     let tab: BrowserTab
     let accent: Color
+    let showsPicture: Bool
 
     var body: some View {
         ZStack {
             LinearGradient(colors: [accent.opacity(0.16), accent.opacity(0.04)],
                            startPoint: .topLeading, endPoint: .bottomTrailing)
-            VStack(spacing: 8) {
-                Image(systemName: tab.isDocument ? "doc.text" : "globe")
-                    .font(.system(size: 30, weight: .light))
-                    .foregroundStyle(accent)
-                Text(tab.title)
-                    .font(.headline)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.center)
-                if let host = tab.currentURL?.host() {
-                    Text(host).font(.caption).foregroundStyle(.secondary)
-                }
+            if showsPicture, let image = tab.thumbnail {
+                Image(nsImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    .clipped()
+                    .allowsHitTesting(false)
+                    .overlay(alignment: .bottom) {
+                        Text(tab.title)
+                            .font(.caption)
+                            .lineLimit(1)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .frame(maxWidth: .infinity)
+                            .background(.regularMaterial)
+                    }
+            } else {
+                card
             }
-            .padding(24)
         }
     }
+
+    private var card: some View {
+        VStack(spacing: 8) {
+            Image(systemName: tab.isDocument ? "doc.text" : "globe")
+                .font(.system(size: 30, weight: .light))
+                .foregroundStyle(accent)
+            Text(tab.title)
+                .font(.headline)
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+            if let host = tab.currentURL?.host() {
+                Text(host).font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .padding(24)
+    }
 }
+
 
 // MARK: - Mouse controls
 
@@ -330,6 +390,10 @@ private struct StripEdgeButton: View {
         .padding(.horizontal, 6)
         .opacity(hovering ? 1 : 0.45)
         .onHover { hovering = $0 }
+        // The button goes away under the cursor whenever the strip runs out of columns on this side,
+        // and a view that is gone never reports the exit — the flag would stay set and the next
+        // button to appear here would come up already lit, with the mouse nowhere near it.
+        .onDisappear { hovering = false }
         .animation(.easeOut(duration: 0.15), value: hovering)
         .help(help)
         .transition(.opacity)

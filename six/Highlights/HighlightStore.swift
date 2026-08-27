@@ -79,7 +79,7 @@ final class HighlightStore {
     /// watching the DOM for a few seconds for passages that arrive late; what never anchors is
     /// reported on the tab (`highlightNote`) rather than pretended.
     func apply(to tab: BrowserTab) {
-        guard !tab.isDocument, let url = tab.page.url else { return }
+        guard !tab.isDocument, let url = tab.currentURL else { return }
         let stored = highlights(for: url)
         tab.highlightNote = nil
         guard !stored.isEmpty else { return }
@@ -94,7 +94,7 @@ final class HighlightStore {
                 let later = try? await page.callJavaScript(HighlightScript.status, arguments: ["ids": missing])
                 missing = (later as? [String: Any])?["missing"] as? [String] ?? missing
             }
-            guard let tab, tab.page.url.map({ Highlight.key(for: $0) }) == Highlight.key(for: url) else { return }
+            guard let tab, tab.currentURL.map({ Highlight.key(for: $0) }) == Highlight.key(for: url) else { return }
             if let unsupported, !unsupported.isEmpty {
                 tab.highlightNote = unsupported
             } else if !missing.isEmpty {
@@ -128,9 +128,9 @@ final class HighlightStore {
 
     /// Marks the page's current selection. Nil when nothing is selected.
     func highlightSelection(in tab: BrowserTab, note: String = "") async -> Highlight? {
-        guard !tab.isDocument, let url = tab.page.url else { return nil }
+        guard !tab.isDocument, let url = tab.currentURL else { return nil }
         let value = try? await tab.page.callJavaScript(HighlightScript.selectionSelectors)
-        guard let highlight = Highlight(url: Highlight.key(for: url), script: value, note: note, pageTitle: tab.page.title) else { return nil }
+        guard let highlight = Highlight(url: Highlight.key(for: url), script: value, note: note, pageTitle: tab.title) else { return nil }
         add(highlight)
         paint(highlight, in: tab)
         return highlight

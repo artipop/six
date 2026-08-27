@@ -6,7 +6,7 @@ The entry point is `SixMain`, not the `App`: with `--mcp` the process never touc
 
 ```
 six/Niri        NiriLayout (workspaces, columns, geometry, focus/move ops), NiriScrollMonitor (scroll gestures)
-six/Browser     Profile, BrowserTab (WebPage), BrowserState, History, SearchEngine, SearchSuggestions, WebSearch
+six/Browser     Profile, BrowserTab (WebPage), LivePageCache (the live-page budget), BrowserState, History, SearchEngine, SearchSuggestions, WebSearch
 six/Bookmarks   Bookmark (tables), ReadablePage (page → Markdown), Embedder + MLXEmbedder (multilingual-e5 over MLX), BookmarkStore (files, vec0 index, search)
 six/Views       ContentView (top bar), NiriStripView (strip + overview), WindowChrome, StartPage, AssistantBar, AgentPanel, HistoryView, BookmarksView
 six/Assistant   ModelChoice/AssistantSettings, AssistantStore (streaming), FoundationModelsCompatibility
@@ -24,8 +24,9 @@ six/Vendor      ClaudeForFoundationModels sources
 ## State
 
 `BrowserState` owns the profiles and the flat list of `BrowserTab`s; `NiriLayout` owns where they sit. A tab's
-`content` is `.web(WebPage)` or `.document(TextDocument)` — a document window is a column like any other, with a
-`WebPage` of its own that renders the Markdown preview (and exports it); see [deep-research.md](deep-research.md). A tab exists
+`content` is `.web` or `.document(TextDocument)` — a document window is a column like any other, with a
+`WebPage` of its own that renders the Markdown preview (and exports it); see [deep-research.md](deep-research.md). The
+`WebPage` is not part of the tab's identity: it comes and goes with the live-page budget (below). A tab exists
 because a column points at it — `newTab` appends a tab and inserts a column, `closeTab` removes both. **The focused
 column is the selected tab**: `syncSelection()` copies `layout.focusedTabID` into `selectedTabID` after every layout
 operation, and the assistant, the agent panel and `⌘L` all key off that.
@@ -36,6 +37,74 @@ Views never mutate `NiriLayout` directly; they call `BrowserState`, which wraps 
 A `Profile` is a name, a colour, a `WKWebsiteDataStore(forIdentifier:)` and an optional working directory for agents
 (otherwise its scratchpad, `Profiles/<name>/Scratchpad` under Application Support). Switching profiles switches `layout.activeProfileID`, which swaps
 the whole workspace stack.
+
+## Live pages
+
+A `WebPage` is a web content process — a JavaScript heap, a render tree, timers, a compositor. A strip of a hundred
+windows cannot hold a hundred of them, so six does what every browser does and calls by the same name: it **discards**
+the pages it is unlikely to be asked for and builds them again from the address. Discarding is not closing; the window
+stays in the strip with its title, its address, its back/forward stacks, its scroll offset and a picture of itself.
+
+`LivePageCache` is the budget, one queue for the whole app — every profile, every workspace. That is the point: step
+out to another workspace and back and the windows you just left are at the warm end of the queue with their pages
+still on them.
+
+- **Building waits for the focus to settle.** `WebPage()` is a web content process being attached —
+  measured at 6–250 ms on the main actor, with the load after it — so doing it inside the click that moved the focus
+  is a third of a second of stuck button, and stepping along the strip would pay it at every window passed. The build
+  is scheduled one switch animation later (`LivePageCache.settleDelay`, 350 ms) and cancelled if the focus moves
+  again: hold ⌥→ across ten windows and exactly one page is built, the one you stopped at. A window that already has
+  its page is shown at once, with nothing to wait for.
+- **Pinning and building are different things.** `NiriLayout.visibleTabIDs` — the focused workspace's columns inside
+  the viewport plus half a screen of margin — is *pinned*: never an eviction candidate, so the neighbours peeking in at
+  the edges go on showing whatever pages they still have. Only the **focused** window is *built*. Walking down a
+  restored strip loads one page, the one you stopped at, not one per window you passed; and if you were there recently
+  it is still warm and there is nothing to load at all. `BrowserState.refreshLivePages` follows the layout through
+  `withObservationTracking`, so no view has to say anything.
+- **The overview builds nothing and mounts nothing.** The whole strip is on screen there, so everything is pinned and
+  everything is a card — a live page in the overview is a page being laid out and composited at a fraction of its size
+  for a picture of itself, a dozen times over, every time the view moves. The pictures are taken on the way in.
+- **The rest is LRU**, `budget` deep. The default is sized from the machine — about one page per gigabyte of RAM,
+  clamped to 8…32 — and the Layout menu has it (`Loaded Windows`), stored in the settings table.
+- **Guards**, the ones Chrome's Memory Saver uses: a page loading (for the last 20 s — plenty of pages never stop
+  loading at all), playing audio or video, or holding a draft in a `textarea` or a filled-in password is skipped and
+  the next candidate taken. Deliberately *not* "a field whose value differs from its attribute": that calls every
+  search results page unsent input.
+- **Memory pressure** takes a third off the budget on `.warning` — not half: on a small machine that band is the
+  normal state rather than an emergency, and it never goes below a workspace's worth — and keeps only what is on
+  screen on `.critical`. It grows back when the pressure lifts — and, because the system reports a transition and
+  nothing guarantees the one that says "normal" ever arrives, a reported band expires after ninety seconds by itself.
+  A browser that shrank on a warning it heard once and stayed shrunk for the rest of the launch is the bug you cannot
+  see; if the pressure is real, growing back is what makes the system say so again.
+- `SIX_LIVE_PAGES=n` pins the budget and `SIX_PAGE_CACHE_DEBUG=1` narrates evictions on stderr. Measured over one real
+  strip of 31 windows, visiting every one: 22 web content processes and 798 MB with the budget out of the way, 6 and
+  287 MB with it in place.
+
+The cards are real pictures of the pages, taken with `WebPage.exported(as: .image(…))` — the same thing Safari's tab
+overview and Chrome's tab switcher show, and the only thing an app that isn't the compositor can show. It is taken
+when a window leaves the screen, on the way into the overview, and once for a window that has never been drawn;
+rate limited to one per window per three seconds, 400 pt wide, `afterScreenUpdates: false` so nothing is re-rendered
+for it. Measured on the same strip: 4–100 ms each, 15 ms median, off the main actor. `LivePageCache.notePicture`
+keeps the newest `budget × 4` (at least 24) in memory and the rest let go of theirs — a decoded bitmap per window is
+memory too, and giving memory back was the point.
+
+The pictures themselves outlive both the page and the launch: `PageThumbnails` writes each one as a PNG under
+`Application Support/six/Thumbnails/<window id>.png`, the way Firefox keeps `moz-page-thumbnails` and Safari keeps its
+snapshots, because an overview full of blank cards after a relaunch is exactly the moment they were for. They are read
+back lazily — when the overview opens, for the windows with nothing in memory — never all at once. What bounds the
+folder is the strip: `prune(keeping:)` drops the pictures of windows that no longer exist, at launch and as they
+close, so there is one file per open window and no more.
+
+On the tab side (`BrowserTab`): `page` builds the page on demand — everything that *talks* to a page goes through it
+(tools, assistant, highlights, export) — while `title`, `currentURL`, `isLoading`, `canGoBack` and the rest answer
+without one, because the title bar is drawn for every column in the strip and reaching for `page` there would keep the
+whole strip live. `discard()` is synchronous on purpose: an `await` on the way out is something holding the page while
+it waits. What the window needs afterwards is taken earlier, by `rememberViewState()`, while the page is still on
+screen and there is still something to draw and someone to ask.
+
+Back and forward survive: WebKit's own list goes with the page, so the window keeps the URLs and walks them itself
+once a rebuilt page runs out of its own. A window on the start page never builds a page at all — the start page is
+SwiftUI.
 
 ## What six says it is
 
@@ -126,3 +195,14 @@ an `.inspector`. The window uses `.hiddenTitleBar` and the top bar reserves 68 p
 `NiriStripView` draws every workspace as a full-size layer offset vertically by `index - focusedIndex`, and every
 column inside it at an absolute offset from `columnFrames`. That is why switching workspaces or scrolling the strip is
 a single animated offset change rather than a view rebuild — the web views are never re-created.
+
+A column only mounts a web view when it is near the screen *and* its window has a live page; otherwise it draws a card:
+its title over the profile's colour in the strip, and the last picture of the page in the overview. Nowhere else — a
+picture in the strip is only ever seen out of the corner of the eye, at the edge of the screen, in the moment before
+the real page arrives, and a stale soft screenshot flashing where a page is about to be is worse than a card that never
+pretended to be one. Off-screen workspaces mount nothing, mid-gesture included: a web view is a real AppKit view that
+SwiftUI's clipping doesn't reach, and building one while a scroll is still deciding where to land is the worst moment
+for the hitch it costs. They also answer no clicks at all (`allowsHitTesting`): a workspace laid out a screen above is
+laid out over the top bar, and its cards and their shadows reach into it far enough to take a click off a button
+there — which is how the overview button stopped working, intermittently, depending on the window's size. The top bar
+sits in front of the strip (`zIndex`) for the same reason.
