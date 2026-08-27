@@ -85,13 +85,13 @@ final class HighlightStore {
         guard !stored.isEmpty else { return }
         let page = tab.page
         Task { [weak tab] in
-            let result = try? await page.callJavaScript(HighlightScript.apply, arguments: ["list": stored.map(\.scriptValue)])
+            let result = try? await page.six(HighlightScript.apply, arguments: ["list": stored.map(\.scriptValue)])
             var missing = (result as? [String: Any])?["missing"] as? [String] ?? []
             let unsupported = (result as? [String: Any])?["unsupported"] as? String
             if !missing.isEmpty, unsupported?.isEmpty != false {
                 // The page's retry budget is five seconds; ask again once it has run out.
                 try? await Task.sleep(for: .milliseconds(5600))
-                let later = try? await page.callJavaScript(HighlightScript.status, arguments: ["ids": missing])
+                let later = try? await page.six(HighlightScript.status, arguments: ["ids": missing])
                 missing = (later as? [String: Any])?["missing"] as? [String] ?? missing
             }
             guard let tab, tab.currentURL.map({ Highlight.key(for: $0) }) == Highlight.key(for: url) else { return }
@@ -108,7 +108,7 @@ final class HighlightStore {
     /// Paints one new highlight right away (its page is loaded — it was just made there).
     func paint(_ highlight: Highlight, in tab: BrowserTab) {
         let page = tab.page
-        Task { _ = try? await page.callJavaScript(HighlightScript.apply, arguments: ["list": [highlight.scriptValue]]) }
+        Task { _ = try? await page.six(HighlightScript.apply, arguments: ["list": [highlight.scriptValue]]) }
     }
 
     /// Scrolls the window to the highlight a citation link points at. The link carries a text
@@ -122,14 +122,14 @@ final class HighlightStore {
         let id = match.id.uuidString
         Task {
             try? await Task.sleep(for: .milliseconds(600)) // give the load and the re-anchor a moment
-            _ = try? await page.callJavaScript(HighlightScript.scrollTo, arguments: ["id": id])
+            _ = try? await page.six(HighlightScript.scrollTo, arguments: ["id": id])
         }
     }
 
     /// Marks the page's current selection. Nil when nothing is selected.
     func highlightSelection(in tab: BrowserTab, note: String = "") async -> Highlight? {
         guard !tab.isDocument, let url = tab.currentURL else { return nil }
-        let value = try? await tab.page.callJavaScript(HighlightScript.selectionSelectors)
+        let value = try? await tab.page.six(HighlightScript.selectionSelectors)
         guard let highlight = Highlight(url: Highlight.key(for: url), script: value, note: note, pageTitle: tab.title) else { return nil }
         add(highlight)
         paint(highlight, in: tab)

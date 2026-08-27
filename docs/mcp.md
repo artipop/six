@@ -37,7 +37,7 @@ empty, like a named workspace in niri).
 | `focus_window` | switch to the window's profile and workspace and scroll to it |
 | `move_window` | move a window to another workspace of its profile |
 | `close_window` | close a window |
-| `evaluate_javascript` | run a function body in the page, result back as JSON |
+| `evaluate_javascript` | run a function body in the page — in the *page's* world, unlike every other tool ([architecture.md](architecture.md#page-side-scripts)); result back as JSON |
 | `create_document` | a document window (Markdown in a column) — `title` or `markdown`, optional `workspace`, `profile`, `activate` → id |
 | `write_document` | `mode`: `replace` the text, `append`, or `section` — replace the body of one `## heading` (added when missing); `document_id` defaults to the run's document in the on-screen workspace |
 | `read_document` | the document's Markdown and its section list |

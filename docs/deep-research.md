@@ -151,6 +151,7 @@ text inside cross-origin iframes, pages that rewrite their content on every visi
 
 ## Page-side scripts
 
-`ReadablePage` (bookmarks), `BrowserToolCatalog.pageText` and `HighlightScript` all run through
-`WebPage.callJavaScript` as function bodies — a plain function, no `await` — in the page's world. They read the DOM;
-the only writes are the highlight registry, the `<style>` for it, and `<mark>` wrappers where the registry is missing.
+`ReadablePage`, `BrowserToolCatalog.pageText` and `HighlightScript` all run through `WebPage.six` — `callJavaScript`
+in six's own `WKContentWorld`, the way Firefox and Safari run their reader scripts: the page's JavaScript cannot
+tamper with what the extractor reads or see the highlight machinery. Why and what it covers is in
+[architecture.md](architecture.md#page-side-scripts).

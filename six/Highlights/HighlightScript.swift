@@ -1,9 +1,11 @@
 import Foundation
 
-/// The page-side half of highlights, run through `WebPage.callJavaScript` as function bodies. One
-/// library string is prepended to each entry point, so nothing is installed in the page and nothing
-/// of the page's is touched except the highlight registry (`CSS.highlights`) — or, where that API is
-/// missing, wrapper `<mark>` elements.
+/// The page-side half of highlights, run through `WebPage.six` (`callJavaScript` in six's own content
+/// world — see `PageScripts.swift`) as function bodies. One library string is prepended to each entry
+/// point; the globals it keeps (`__sixHighlight`, `__sixRanges`, `__sixSheet`) live in that world, out
+/// of the page's sight. Nothing of the page's is touched except the highlight registry (`CSS.highlights`,
+/// a DOM object, shared) and a constructed stylesheet — or, where those APIs are missing, wrapper
+/// `<mark>` elements and a `<style>`.
 ///
 /// Text positions are offsets into the page's *text index*: every visible text node under `<body>`
 /// concatenated, in document order. Quote, position and range selectors are all computed from and
@@ -269,11 +271,24 @@ nonisolated enum HighlightScript {
     }
 
     function ensureStyle() {
+        const css = `::highlight(${NAME}) { background-color: rgba(255, 214, 10, 0.45); color: inherit; }
+            mark.${NAME} { background-color: rgba(255, 214, 10, 0.45); color: inherit; }`;
+        // A constructed stylesheet: nothing is added to the DOM, and a page's CSP (`style-src` without
+        // 'unsafe-inline') has no say over it. A <style> element only where the API is missing.
+        if (document.adoptedStyleSheets !== undefined && typeof CSSStyleSheet === 'function') {
+            if (window.__sixSheet) return;
+            try {
+                const sheet = new CSSStyleSheet();
+                sheet.replaceSync(css);
+                document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
+                window.__sixSheet = sheet;
+                return;
+            } catch {}
+        }
         if (document.getElementById('six-highlight-style')) return;
         const style = document.createElement('style');
         style.id = 'six-highlight-style';
-        style.textContent = `::highlight(${NAME}) { background-color: rgba(255, 214, 10, 0.45); color: inherit; }
-            mark.${NAME} { background-color: rgba(255, 214, 10, 0.45); color: inherit; }`;
+        style.textContent = css;
         (document.head || document.documentElement).appendChild(style);
     }
 

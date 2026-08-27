@@ -51,7 +51,7 @@ final class WebSearch {
         request.setValue(Self.acceptLanguage, forHTTPHeaderField: "Accept-Language")
         _ = page.load(request)
         await withLoading()
-        return (try? await page.callJavaScript(script)) as? [[String: Any]] ?? []
+        return (try? await page.six(script)) as? [[String: Any]] ?? []
     }
 
     /// Bounded: an agent waits for this, and a hanging search must not become a hanging turn.

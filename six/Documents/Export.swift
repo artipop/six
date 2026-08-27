@@ -117,7 +117,7 @@ enum Exporter {
         await waitForLoad(tab.page)
         switch format {
         case .html:
-            let source = (try? await tab.page.callJavaScript("return '<!DOCTYPE html>\\n' + document.documentElement.outerHTML")) as? String ?? ""
+            let source = (try? await tab.page.six("return '<!DOCTYPE html>\\n' + document.documentElement.outerHTML")) as? String ?? ""
             return Data(source.utf8)
         case .pdf:
             return try await tab.page.exported(as: .pdf())

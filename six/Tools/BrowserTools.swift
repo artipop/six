@@ -383,7 +383,7 @@ final class BrowserToolCatalog {
                 let highlight = try self.highlights.highlight(matching: args["highlight_id"]?.stringValue ?? "")
                 self.highlights.remove(highlight.id)
                 for tab in self.browser.tabs where tab.currentURL.map({ Highlight.key(for: $0) }) == highlight.url {
-                    _ = try? await tab.page.callJavaScript(HighlightScript.remove, arguments: ["id": highlight.id.uuidString])
+                    _ = try? await tab.page.six(HighlightScript.remove, arguments: ["id": highlight.id.uuidString])
                 }
                 return "Removed highlight \(highlight.id.uuidString)"
             }
@@ -624,7 +624,7 @@ final class BrowserToolCatalog {
                 .map(a => [a.innerText.trim().replace(/\\s+/g, ' ').slice(0, 120), a.href])
                 .filter(([, href]) => /^https?:/.test(href));
             """
-        let raw = (try? await tab.page.callJavaScript(script)) as? [[String]] ?? []
+        let raw = (try? await tab.page.six(script)) as? [[String]] ?? []
         var seen = Set<String>()
         let lines = raw.filter { seen.insert($0[1]).inserted }.prefix(limit).map { "\($0[0].isEmpty ? "(no text)" : $0[0]) — \($0[1])" }
         return "\(Self.describe(tab))\n\n" + (lines.isEmpty ? "No links." : lines.joined(separator: "\n"))
@@ -700,7 +700,7 @@ final class BrowserToolCatalog {
     private struct PageBlock { var n: Int; var text: String }
 
     private func pageBlocks(_ tab: BrowserTab) async throws -> (unsupported: String?, blocks: [PageBlock]) {
-        let value = try await tab.page.callJavaScript(HighlightScript.blocks)
+        let value = try await tab.page.six(HighlightScript.blocks)
         guard let object = value as? [String: Any] else { throw BrowserTool.Failure(message: "The page didn't answer") }
         let unsupported = (object["unsupported"] as? String).flatMap { $0.isEmpty ? nil : $0 }
         let blocks = (object["blocks"] as? [[String: Any]] ?? []).compactMap { entry -> PageBlock? in
@@ -728,7 +728,7 @@ final class BrowserToolCatalog {
         }
         let valid = chosen.filter { pick in blocks.contains { $0.n == pick.n } }
         guard !valid.isEmpty else { return "\(Self.describe(tab))\n\nNo passage on this page answers \"\(question)\"." }
-        let selectors = try await tab.page.callJavaScript(HighlightScript.blockSelectors, arguments: ["numbers": valid.map(\.n)]) as? [[String: Any]] ?? []
+        let selectors = try await tab.page.six(HighlightScript.blockSelectors, arguments: ["numbers": valid.map(\.n)]) as? [[String: Any]] ?? []
         var made: [Highlight] = []
         for entry in selectors {
             let n = entry["n"] as? Int
@@ -812,7 +812,7 @@ final class BrowserToolCatalog {
 
     static func pageText(of page: WebPage, limit: Int = 200_000) async -> String? {
         let script = "return document.body ? document.body.innerText : ''"
-        guard let raw = try? await page.callJavaScript(script) as? String else { return nil }
+        guard let raw = try? await page.six(script) as? String else { return nil }
         let collapsed = raw.replacingOccurrences(of: "\\s*\\n\\s*", with: "\n", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
         return collapsed.isEmpty ? nil : String(collapsed.prefix(limit))

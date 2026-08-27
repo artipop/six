@@ -187,6 +187,31 @@ Bookmarks are three more tables next to history — `bookmarks`, `bookmark_chunk
 Markdown file per page in `Profiles/<name>/Bookmarks`; [bookmarks.md](bookmarks.md) has the pipeline, the embedder and the
 search, and how sqlite-vec is loaded into the Apple SQLite.
 
+## Page-side scripts
+
+Everything six runs inside a page — the readable-text extractor behind bookmarks and `get_page_content`, the link
+lister, the scroll save/restore, the highlight anchoring — goes through `WebPage.six(_:arguments:)`
+(`six/Browser/PageScripts.swift`): `callJavaScript` in a `WKContentWorld` of six's own. This is the arrangement
+Firefox Reader View and Safari Reader use — the browser's script reads the page from a privileged context, never as a
+guest of the page's own scripts. The DOM is shared, the JavaScript is not:
+
+- the page cannot redefine `document.querySelectorAll`, the `innerText` getter or `getComputedStyle` to hand the
+  extractor (and the model or agent reading its output) text a person never sees;
+- the page cannot see six's globals (the highlight registry's ranges, the constructed stylesheet) — nothing to
+  detect, nothing to erase;
+- what six adds to the page is a constructed `CSSStyleSheet` in `document.adoptedStyleSheets` (a page's CSP has no say
+  over it) and `Range`s in `CSS.highlights`, both DOM objects and both shared. `<mark>` wrappers and a `<style>` element
+  exist only as fallbacks for engines without those APIs.
+
+The one deliberate exception is the `evaluate_javascript` tool, which runs in the page's world because that is what
+it is for. Its result is the page's word, not six's. What isolation does not change: page text still reaches the
+model — that is the task, not an injection — and the defence there is the agent's (permission prompts, treating page
+content as data).
+
+The scripts are plain function bodies — `callJavaScript` runs a function, not an async one, so no `await`; anything
+that has to wait (the highlight re-anchor watching a hydrating page) runs fire-and-forget in the page and Swift asks
+for the outcome later.
+
 ## Views
 
 `ContentView` is a top bar plus `NiriStripView`, with the assistant line overlaid at the bottom and the agent panel as

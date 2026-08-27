@@ -330,7 +330,7 @@ final class BrowserTab: Identifiable {
         guard let offset = pendingScroll else { return }
         pendingScroll = nil
         Task {
-            _ = try? await page.callJavaScript("window.scrollTo(0, offset)", arguments: ["offset": offset])
+            _ = try? await page.six("window.scrollTo(0, offset)", arguments: ["offset": offset])
         }
     }
 
@@ -369,7 +369,7 @@ final class BrowserTab: Identifiable {
             });
             return drafts || secrets
             """
-            return (try? await livePage.callJavaScript(script)) as? Bool ?? false
+            return (try? await livePage.six(script)) as? Bool ?? false
         }
     }
 
@@ -385,7 +385,7 @@ final class BrowserTab: Identifiable {
         lastThumbnailAt = Date()
         let region = CGRect(origin: .zero, size: displaySize)
         Task {
-            if let offset = (try? await page.callJavaScript("return window.scrollY")) as? Double {
+            if let offset = (try? await page.six("return window.scrollY")) as? Double {
                 self.savedScroll = offset
             }
         }

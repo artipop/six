@@ -21,7 +21,7 @@ nonisolated struct ReadablePage: Decodable, Sendable {
     /// The page must be loaded; the caller waits for that.
     @MainActor
     static func extract(from page: WebPage) async throws -> ReadablePage {
-        let value = try await page.callJavaScript(script)
+        let value = try await page.six(script)
         guard let object = value as? [String: Any], JSONSerialization.isValidJSONObject(object) else {
             throw ExtractionError.noContent
         }
