@@ -11,13 +11,33 @@ nonisolated struct Profile: Identifiable, Codable, Hashable, Sendable {
     /// Where agents work for this profile when the user picked a folder; nil means the profile's
     /// scratchpad under Application Support (see `Profile.defaultWorkingDirectory`).
     var workingDirectoryPath: String?
+    /// Private browsing: the data store is `nonPersistent()` — cookies, storage and caches live in memory
+    /// and go with the profile — and nothing about it is recorded: no history, no bookmarks, no
+    /// highlights, no place in the snapshot. It exists until it is closed or the app quits.
+    var isPrivate = false
 
-    init(id: UUID = UUID(), name: String, colorHex: String, dataStoreID: UUID = UUID()) {
+    init(id: UUID = UUID(), name: String, colorHex: String, dataStoreID: UUID = UUID(), isPrivate: Bool = false) {
         self.id = id
         self.name = name
         self.colorHex = colorHex
         self.dataStoreID = dataStoreID
+        self.isPrivate = isPrivate
     }
+
+    private enum CodingKeys: String, CodingKey { case id, name, colorHex, dataStoreID, workingDirectoryPath, isPrivate }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        name = try c.decode(String.self, forKey: .name)
+        colorHex = try c.decode(String.self, forKey: .colorHex)
+        dataStoreID = try c.decode(UUID.self, forKey: .dataStoreID)
+        workingDirectoryPath = try c.decodeIfPresent(String.self, forKey: .workingDirectoryPath)
+        isPrivate = try c.decodeIfPresent(Bool.self, forKey: .isPrivate) ?? false
+    }
+
+    static let privateName = "Private"
+    static let privateColorHex = "#5C5C66"
 
     var color: Color { Color(hex: colorHex) }
 

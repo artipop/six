@@ -14,6 +14,8 @@ final class HighlightStore {
     }()
 
     private(set) var all: [Highlight] = []
+    /// Wired at launch: a private profile's pages are never recorded, highlights included.
+    @ObservationIgnored var isPrivate: (Profile.ID) -> Bool = { _ in false }
     @ObservationIgnored private var saveTask: Task<Void, Never>?
 
     init() {
@@ -128,7 +130,7 @@ final class HighlightStore {
 
     /// Marks the page's current selection. Nil when nothing is selected.
     func highlightSelection(in tab: BrowserTab, note: String = "") async -> Highlight? {
-        guard !tab.isDocument, let url = tab.currentURL else { return nil }
+        guard !tab.isDocument, !isPrivate(tab.profileID), let url = tab.currentURL else { return nil }
         let value = try? await tab.page.six(HighlightScript.selectionSelectors)
         guard let highlight = Highlight(url: Highlight.key(for: url), script: value, note: note, pageTitle: tab.title) else { return nil }
         add(highlight)

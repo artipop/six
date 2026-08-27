@@ -50,6 +50,7 @@ struct sixApp: App {
             Task { FileHandle.standardError.write(Data("[six] embed selftest:\n\(await mlx.diagnostics())\n".utf8)) }
         }
         let highlights = HighlightStore()
+        highlights.isPrivate = { [weak browser] id in browser?.isPrivate(id) ?? false }
         browser.highlights = highlights
         let assistant = AssistantStore(settings: settings)
         let agentSession = AgentSessionStore(snapshot: snapshot?.agent, settings: settings)
@@ -129,6 +130,10 @@ struct sixApp: App {
             CommandGroup(replacing: .newItem) {
                 Button("New Window in Strip") { browser.newTab() }
                     .keyboardShortcut("t")
+                Button("New Private Window") { browser.newPrivateWindow() }
+                    .keyboardShortcut("p", modifiers: [.command, .shift])
+                Button("Close Private Browsing") { browser.closePrivateBrowsing() }
+                    .disabled(browser.privateProfile == nil)
                 Button("Close Window") { browser.closeSelectedTab() }
                     .keyboardShortcut("w")
             }
@@ -289,7 +294,7 @@ private struct BookmarkCommands: Commands {
                 }
             }
             .keyboardShortcut("d")
-            .disabled(tab == nil || tab?.showsStartPage == true)
+            .disabled(tab == nil || tab?.showsStartPage == true || tab.map { browser.isPrivate($0.profileID) } == true)
             Button("Show Bookmarks…") { showBookmarks?.perform() }
                 .keyboardShortcut("b", modifiers: [.command, .option])
                 .disabled(showBookmarks == nil)

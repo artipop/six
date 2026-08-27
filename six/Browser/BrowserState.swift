@@ -118,11 +118,14 @@ final class BrowserState {
 
     // MARK: Snapshot
 
+    /// A private profile leaves nothing here: not the profile, not its windows, not its strip.
     var snapshot: BrowserSnapshot {
-        BrowserSnapshot(
-            profiles: profiles,
-            selectedProfileID: selectedProfileID,
-            tabs: tabs.map { tab in
+        let privateIDs = Set(profiles.filter(\.isPrivate).map(\.id))
+        let selected = privateIDs.contains(selectedProfileID) ? (profiles.first { !$0.isPrivate }?.id ?? selectedProfileID) : selectedProfileID
+        return BrowserSnapshot(
+            profiles: profiles.filter { !$0.isPrivate },
+            selectedProfileID: selected,
+            tabs: tabs.filter { !privateIDs.contains($0.profileID) }.map { tab in
                 var entry = TabSnapshot(id: tab.id, profileID: tab.profileID, url: tab.showsStartPage ? nil : tab.currentURL, title: tab.title)
                 if let document = tab.document {
                     entry.document = DocumentSnapshot(id: document.id, title: document.title, modifiedAt: document.modifiedAt,
@@ -131,15 +134,21 @@ final class BrowserState {
                 return entry
             },
             strips: layout.allStrips
+                .filter { !privateIDs.contains($0.key) }
                 .map { StripSnapshot(profileID: $0.key, strip: $0.value) }
                 .sorted { $0.profileID.uuidString < $1.profileID.uuidString },
-            research: research
+            research: research.filter { !privateIDs.contains($0.profileID) }
         )
     }
 
-    /// Document text is autosaved on its own; this is for the way out.
+    /// Document text is autosaved on its own; this is for the way out. A private profile's documents
+    /// were never on disk and stay that way.
     func flushDocuments() {
-        documents.flush(tabs.compactMap(\.document))
+        documents.flush(tabs.filter { !isPrivate($0.profileID) }.compactMap(\.document))
+    }
+
+    func isPrivate(_ profileID: Profile.ID) -> Bool {
+        profiles.first { $0.id == profileID }?.isPrivate ?? false
     }
 
     /// Rebuilds tabs and strips, dropping what doesn't line up: a column without a tab, a tab no column
@@ -186,9 +195,11 @@ final class BrowserState {
         profiles.first { $0.id == selectedProfileID } ?? profiles[0]
     }
 
+    /// Persistent per profile; in memory for a private one — the same store for every window of the
+    /// profile, so a login made in one private window holds in the next, and gone with the profile.
     func dataStore(for profile: Profile) -> WKWebsiteDataStore {
         if let store = dataStores[profile.dataStoreID] { return store }
-        let store = WKWebsiteDataStore(forIdentifier: profile.dataStoreID)
+        let store = profile.isPrivate ? WKWebsiteDataStore.nonPersistent() : WKWebsiteDataStore(forIdentifier: profile.dataStoreID)
         dataStores[profile.dataStoreID] = store
         return store
     }
@@ -213,13 +224,39 @@ final class BrowserState {
     func removeProfile(_ id: Profile.ID) {
         guard profiles.count > 1, let profile = profiles.first(where: { $0.id == id }) else { return }
         for tab in tabs(in: id) { closeTab(tab.id) }
-        bookmarks?.removeAll(in: id)
+        research.removeAll { $0.profileID == id }
         profiles.removeAll { $0.id == id }
-        dataStores[profile.dataStoreID] = nil
+        dataStores[profile.dataStoreID] = nil // a private store dies with its last reference: that is the whole point
         layout.removeProfile(id)
-        history.clear(profileID: id)
-        Task { try? await WKWebsiteDataStore.remove(forIdentifier: profile.dataStoreID) }
-        if selectedProfileID == id { selectProfile(profiles[0].id) }
+        if !profile.isPrivate {
+            bookmarks?.removeAll(in: id)
+            history.clear(profileID: id)
+            Task { try? await WKWebsiteDataStore.remove(forIdentifier: profile.dataStoreID) }
+        }
+        if selectedProfileID == id { selectProfile(profiles.first { !$0.isPrivate }?.id ?? profiles[0].id) }
+    }
+
+    // MARK: Private browsing
+
+    /// The private profile, if one is open. There is one at a time — its windows share a session, the
+    /// way Safari's private windows do.
+    var privateProfile: Profile? { profiles.first(where: \.isPrivate) }
+
+    /// A window in the private profile, creating the profile on the first call. ⌘⇧P.
+    @discardableResult
+    func newPrivateWindow(url: URL? = nil) -> BrowserTab {
+        if let existing = privateProfile { return newTab(url: url, in: existing.id) }
+        let profile = Profile(name: Profile.privateName, colorHex: Profile.privateColorHex, isPrivate: true)
+        profiles.append(profile)
+        selectedProfileID = profile.id
+        layout.activeProfileID = profile.id
+        return newTab(url: url, in: profile.id)
+    }
+
+    /// Closes every private window, forgets the profile, and with it the in-memory site data.
+    func closePrivateBrowsing() {
+        guard let profile = privateProfile else { return }
+        removeProfile(profile.id)
     }
 
     /// Wipes the profile's site data — cookies, local storage, IndexedDB, caches, everything the
@@ -298,8 +335,9 @@ final class BrowserState {
         tab.onNavigation = { [weak self] tab, outcome in
             guard let self, let page = tab.livePage, let url = page.url else { return }
             switch outcome {
-            case .committed: history.record(url, title: page.title, in: tab.profileID)
+            case .committed: if !profile.isPrivate { history.record(url, title: page.title, in: tab.profileID) }
             case .finished:
+                guard !profile.isPrivate else { return } // no history, and highlights are not stored for it
                 history.updateTitle(page.title, for: url, in: tab.profileID)
                 highlights?.apply(to: tab)
             }
@@ -315,7 +353,7 @@ final class BrowserState {
         let profile = profiles.first { $0.id == profileID } ?? selectedProfile
         let document = TextDocument(text: text)
         let tab = makeDocumentTab(profile: profile, document: document)
-        documents.save(document)
+        if !profile.isPrivate { documents.save(document) }
         add(tab)
         if activate, selectedProfileID != profile.id {
             selectedProfileID = profile.id
@@ -330,7 +368,7 @@ final class BrowserState {
 
     private func makeDocumentTab(id: UUID = UUID(), profile: Profile, document: TextDocument) -> BrowserTab {
         let tab = BrowserTab(id: id, profileID: profile.id, document: document)
-        documents.watch(document)
+        if !profile.isPrivate { documents.watch(document) } // private: in memory only, like everything else there
         tab.onDocumentLink = { [weak self] tab, url in self?.open(url, from: tab) }
         return tab
     }

@@ -27,9 +27,9 @@ empty, like a named workspace in niri).
 
 | tool | what it does |
 |---|---|
-| `list_workspaces` | every profile → workspaces → windows (`id`, `title`, `url`, `focused`, `loading`), with what is on screen |
+| `list_workspaces` | every profile (`private: true` for the private one) → workspaces → windows (`id`, `title`, `url`, `focused`, `loading`), with what is on screen |
 | `web_search` | ranked results — title, URL, snippet — without opening anything (`query`, `count`) |
-| `open_window` | `url` or `query` (search); optional `workspace`, `profile`, `activate` (false = add in the background, nothing on screen moves) |
+| `open_window` | `url` or `query` (search); optional `workspace`, `profile`, `activate` (false = add in the background, nothing on screen moves), `private` (true = a private-browsing window; see [architecture.md](architecture.md#private-browsing)) |
 | `navigate` | load a URL / search in an existing window, wait for the load |
 | `get_page_content` | title, URL and `innerText` of a window (waits for loading; `max_chars`, default 20 000) |
 | `get_page_links` | `text — URL` lines of the page's links (`max_links`) |

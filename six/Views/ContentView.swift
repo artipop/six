@@ -132,7 +132,7 @@ private struct BookmarkButton: View {
             }
         }
         .buttonStyle(.borderless)
-        .disabled(tab == nil || tab?.showsStartPage == true)
+        .disabled(tab == nil || tab?.showsStartPage == true || tab.map { browser.isPrivate($0.profileID) } == true)
         .help(saved ? "Remove Bookmark (⌘D)" : "Add Bookmark (⌘D)")
     }
 }
@@ -200,16 +200,26 @@ private struct ProfileSwitcher: View {
                             Circle().strokeBorder(.primary.opacity(selected ? 0.9 : 0), lineWidth: 2)
                         }
                         .overlay {
-                            Text(String(profile.name.prefix(1)))
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundStyle(.white)
+                            if profile.isPrivate {
+                                Image(systemName: "eyeglasses")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundStyle(.white)
+                            } else {
+                                Text(String(profile.name.prefix(1)))
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundStyle(.white)
+                            }
                         }
                 }
                 .buttonStyle(.plain)
-                .help(profile.name)
+                .help(profile.isPrivate ? "Private browsing — nothing is kept; close it to forget the session" : profile.name)
                 .contextMenu {
-                    Button("Delete Profile", role: .destructive) { browser.removeProfile(profile.id) }
-                        .disabled(browser.profiles.count == 1)
+                    if profile.isPrivate {
+                        Button("Close Private Browsing") { browser.closePrivateBrowsing() }
+                    } else {
+                        Button("Delete Profile", role: .destructive) { browser.removeProfile(profile.id) }
+                            .disabled(browser.profiles.count == 1)
+                    }
                 }
             }
             Button { isAddingProfile = true } label: {

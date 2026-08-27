@@ -38,6 +38,24 @@ A `Profile` is a name, a colour, a `WKWebsiteDataStore(forIdentifier:)` and an o
 (otherwise its scratchpad, `Profiles/<name>/Scratchpad` under Application Support). Switching profiles switches `layout.activeProfileID`, which swaps
 the whole workspace stack.
 
+### Private browsing
+
+Private browsing is a profile, not a mode: `⌘⇧P` (**File → New Private Window**, or `open_window` with
+`private: true`) creates a profile with `isPrivate` set — one at a time, so its windows share a session the way
+Safari's private windows do — and every later `⌘⇧P` adds a window to it. What makes it private is the data store:
+`BrowserState.dataStore(for:)` hands a private profile `WKWebsiteDataStore.nonPersistent()` instead of
+`WKWebsiteDataStore(forIdentifier:)`, so cookies, local storage, IndexedDB, caches and service workers live in memory
+and go when the profile is dropped — the same WebKit API Safari's private windows use (`WebSearch` already runs its
+off-screen page on one). Content worlds have nothing to do with it; they isolate JavaScript, not data.
+
+What the app itself stops doing for a private profile: no history (`makeTab`'s navigation handler skips it), no
+bookmarks (`BookmarkStore.add` refuses, the star and `⌘D` are disabled), no highlights (`HighlightStore` neither
+applies nor stores; `highlight_page` refuses), no document files (`DocumentStore` neither watches nor saves — a
+private document lives in memory), and no place in the snapshot: `BrowserState.snapshot` drops the profile, its
+windows, its strip and its runs, so a relaunch starts without it. **Close Private Browsing** (File menu, or the
+profile chip's context menu) closes the windows and forgets the profile; quitting does the same. The one file a
+private profile can still touch is its agent scratchpad, if an agent is asked to work there.
+
 ## Live pages
 
 A `WebPage` is a web content process — a JavaScript heap, a render tree, timers, a compositor. A strip of a hundred

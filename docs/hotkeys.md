@@ -28,6 +28,7 @@ row is backed by a menu item or a view — the file is named so nothing here can
 |---|---|
 | `⌘T` | new window in the strip, right of the focused one |
 | `⌘⇧N` | new document — a Markdown column next to the pages (edit / preview in its title bar) |
+| `⌘⇧P` | new private window — in the private profile (created on the first press; in-memory session, nothing recorded); File → Close Private Browsing forgets it |
 | `⌘W` | close the focused window |
 | `⌘S` | save — a document that has a file goes back to it; otherwise Save As |
 | `⌘⇧S` | save as… — a document as `.md` / `.html` / `.pdf`, a page as `.html` / `.pdf` / `.txt`; the folder is remembered |

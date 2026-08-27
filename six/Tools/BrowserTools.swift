@@ -130,6 +130,7 @@ final class BrowserToolCatalog {
                 .init(name: "workspace", description: "Workspace name or 1-based index. Default: the on-screen workspace."),
                 .init(name: "profile", description: "Profile name. Default: the current profile."),
                 .init(name: "activate", description: "Focus the new window (default true). false adds it in the background.", type: .boolean),
+                .init(name: "private", description: "Open in private browsing (in-memory session, nothing recorded); ignores `workspace` and `profile`.", type: .boolean),
             ],
             run: { [unowned self] args in try self.openWindow(args) }
         ),
@@ -556,6 +557,7 @@ final class BrowserToolCatalog {
             }
             var entry: [String: ACPJSON] = ["name": .string(profile.name), "workspaces": .array(workspaces)]
             if profile.id == browser.selectedProfileID { entry["onScreen"] = true }
+            if profile.isPrivate { entry["private"] = true }
             profiles.append(.object(entry))
         }
         return ACPJSON.object(["profiles": .array(profiles)]).description
@@ -580,6 +582,13 @@ final class BrowserToolCatalog {
     }
 
     private func openWindow(_ args: ACPJSON) throws -> String {
+        if args["private"]?.boolValue == true {
+            var url: URL?
+            if let raw = args["url"]?.stringValue, !raw.isEmpty { url = URL.fromUserInput(raw) }
+            else if let query = args["query"]?.stringValue, !query.isEmpty { url = SearchEngine.current.searchURL(for: query) }
+            let tab = browser.newPrivateWindow(url: url)
+            return "Opened private window \(tab.id.uuidString)" + (url.map { " → \($0.absoluteString)" } ?? " (start page)")
+        }
         let profile = try profile(args["profile"])
         let index = try workspaceIndex(args["workspace"], in: profile.id)
         let activate = args["activate"]?.boolValue ?? true
@@ -713,6 +722,7 @@ final class BrowserToolCatalog {
     private func highlightPage(_ args: ACPJSON) async throws -> String {
         let tab = try webTab(args)
         guard let url = tab.currentURL else { throw BrowserTool.Failure(message: "Nothing is loaded in this window") }
+        guard !browser.isPrivate(tab.profileID) else { throw BrowserTool.Failure(message: "This window is in private browsing; highlights are not kept there — cite the URL instead") }
         await Self.waitForLoad(tab)
         let (unsupported, blocks) = try await pageBlocks(tab)
         if let unsupported { throw BrowserTool.Failure(message: unsupported) }

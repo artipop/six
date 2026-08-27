@@ -101,6 +101,7 @@ final class BookmarkStore {
     func add(_ tab: BrowserTab) async throws -> Bookmark {
         guard !tab.showsStartPage, let url = tab.currentURL else { throw Failure("Nothing is loaded in this window") }
         guard let profile = profile(tab.profileID) else { throw Failure("Unknown profile") }
+        guard !profile.isPrivate else { throw Failure("Private browsing keeps no bookmarks") }
         tab.resumeIfNeeded()
         await Self.waitForLoad(tab)
         let readable = try await ReadablePage.extract(from: tab.page)
