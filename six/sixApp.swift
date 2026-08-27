@@ -93,10 +93,6 @@ struct sixApp: App {
         let mcp = MCPHost(server: MCPServer(catalog: tools))
         mcp.start()
         FileHandle.standardError.write(Data("[six] \(mcp.status); state at \(store.url.path)\n".utf8))
-        // Links handed to six from outside land in a new window in the strip.
-        ExternalOpenDelegate.handler = { [weak browser] url in
-            browser?.newTab(url: url)
-        }
         let window = WindowState(snapshot: snapshot?.window)
         let persistence = StatePersistence(store: store) {
             AppStateSnapshot(browser: browser.snapshot, agent: agentSession.snapshot, window: window.snapshot)
@@ -132,7 +128,11 @@ struct sixApp: App {
     }
 
     var body: some Scene {
-        WindowGroup {
+        // A `Window`, not a `WindowGroup`: six is one window, and the difference is not cosmetic.
+        // A group lets SwiftUI answer an external open — a Handoff tile, a link from another app — by
+        // building a second window, which puts the same `WebPage`s into a second `WebView`; WebKit
+        // traps on that. A `Window` scene has nowhere to build, so SwiftUI raises the one that is up.
+        Window("six", id: "main") {
             ContentView()
                 .environment(browser)
                 .environment(assistant)
@@ -147,10 +147,19 @@ struct sixApp: App {
                 .environment(devTools)
                 .environment(permissions)
                 .background(WindowObserver(state: window))
-                // six is one window: every page in the strip is a `WebPage`, and a second window would
-                // put the same objects into a second `WebView` — WebKit traps on that. Without this,
-                // SwiftUI answers an external open by building a window instead of using the one that
-                // is up. `"*"` is the wildcard: this window takes every external event.
+                // The two doors from outside: a link or file handed to six, and a Handoff tile from an
+                // iPhone. macOS delivers through them but leaves the app that was clicked in front,
+                // so each one asks for the front afterwards.
+                .onOpenURL { url in
+                    browser.newTab(url: ExternalOpen.resolve(url))
+                    ExternalOpen.comeForward()
+                }
+                .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
+                    guard let url = activity.webpageURL else { return }
+                    browser.newTab(url: url)
+                    ExternalOpen.comeForward()
+                }
+                // `"*"` is the wildcard: whatever arrives from outside is this window's.
                 .handlesExternalEvents(preferring: ["*"], allowing: ["*"])
                 .frame(minWidth: 900, minHeight: 560)
         }

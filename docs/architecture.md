@@ -168,14 +168,17 @@ request is denied; and `NSAllowsArbitraryLoadsInWebContent`, which is for page c
 itself. The app menu's **Set six as Default Browser…** calls `NSWorkspace.setDefaultApplication` for both schemes;
 macOS puts up its own confirmation, as it should — an app cannot promote itself silently.
 
-`ExternalOpen.swift` is the receiving end. A link handed to six from another app arrives as a `GetURL` Apple Event,
-and six takes that event itself instead of letting it reach `application(_:open:)`: SwiftUI answers an external open
-by asking `AppWindowsController` for a *window*, and a second window would put the same `WebPage`s into a second
-`WebView` — WebKit traps and the process dies. (`handlesExternalEvents(preferring:allowing:)` with `"*"` on the
-content view says the one window takes everything, but only the event we never hand over is reliably ours.) The
-handler is registered in `applicationWillFinishLaunching`, before AppKit delivers the event the app was *launched*
-with, and again after SwiftUI has had its turn; URLs that land before `sixApp.init` has built the browser wait in a
-queue. A `.webloc` is resolved to the URL inside it rather than opened as a file.
+The receiving end is the scene itself. `sixApp.body` declares a `Window`, not a `WindowGroup`, and that is the whole
+defence: SwiftUI answers an external open — a link from another app, a Handoff tile — by asking `AppWindowsController`
+for a *window*, and a group happily builds a second one, which puts the same `WebPage`s into a second `WebView`;
+WebKit traps and the process dies. A `Window` scene has nowhere to build, so SwiftUI raises the one that is up and
+delivers to it. With that in place the sanctioned modifiers do the rest: `.onOpenURL` for links and files,
+`.onContinueUserActivity(NSUserActivityTypeBrowsingWeb)` for Handoff from an iPhone, and
+`handlesExternalEvents(preferring:allowing:)` with `"*"` saying the one window takes everything.
+
+Two things macOS does not do for us, both in `ExternalOpen.swift`. It leaves whatever app was clicked in front, so
+`comeForward()` activates six and digs the window out if it was minimised. And a `.webloc` is a plist wrapping a URL,
+so `resolve(_:)` opens what it points at rather than the file.
 
 ## Persistence
 
