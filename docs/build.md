@@ -100,9 +100,9 @@ swift scripts/appicon.swift six/Assets.xcassets/AppIcon.appiconset six/Assets.xc
 
 It is the strip seen from inside it: the window being read, bright in the middle, with its neighbours cut off by
 the icon's own edge. The cutting off is the whole of it — a strip does not stop at the screen, and nothing else in a
-browser's icon says so. Detail goes as the icon shrinks (the title bar below 256 px, the word DEV below 64) and the
-silhouette stays, which is why the neighbours are kept bright and the gaps wide: at 32 px this is three shapes or it
-is one white blob.
+browser's icon says so. The neighbours are kept bright and the gaps wide because at 32 px this is three shapes or it
+is one white blob, and the focused card carries no title bar: a band across the top of it reads as a notch rather
+than as a window. The word DEV goes below 64 px; nothing else has to.
 
 The second set is the same icon under an amber ribbon, the way every browser marks its nightly, and the macOS Debug
 configuration is the only thing pointing at it (`ASSETCATALOG_COMPILER_APPICON_NAME`). Ten sizes for the Mac from

@@ -40,34 +40,27 @@ func draw(_ pixels: Int, development: Bool) -> NSBitmapImageRep {
     // The focused window, and its neighbours cut off by the icon's own edge — a strip does not stop at
     // the screen, and the pair running out of frame is the one thing that says so. The two are kept
     // bright and the gaps wide because at 32 px this is three shapes or it is one white blob.
-    func card(x: CGFloat, width: CGFloat, height: CGFloat, alpha: CGFloat, titled: Bool) {
+    // Plain cards, no title bar on the focused one: a band across the top of it reads as a notch, not
+    // as a window, and the shape says window well enough on its own.
+    func card(x: CGFloat, width: CGFloat, height: CGFloat, alpha: CGFloat) {
         let rect = CGRect(x: x, y: body.midY - height / 2, width: width, height: height)
         let corner = min(width, height) * 0.17
         let path = NSBezierPath(roundedRect: rect, xRadius: corner, yRadius: corner)
         NSColor(calibratedWhite: 1, alpha: alpha).setFill()
         path.fill()
-        // A title bar, once there is room to see one. Below that it is mud.
-        guard titled, pixels >= 256 else { return }
-        let barHeight = height * 0.13
-        let bar = CGRect(x: rect.minX, y: rect.maxY - barHeight, width: width, height: barHeight)
-        let capped = NSBezierPath(roundedRect: bar, xRadius: corner, yRadius: corner)
-        capped.append(NSBezierPath(rect: CGRect(x: bar.minX, y: bar.minY,
-                                                width: bar.width, height: barHeight * 0.55)))
-        NSColor(calibratedRed: 0.31, green: 0.24, blue: 0.62, alpha: 0.55).setFill()
-        capped.fill()
     }
 
     let sliverWidth = body.width * 0.22
     let sliverShown = body.width * 0.105
     card(x: body.minX - (sliverWidth - sliverShown), width: sliverWidth,
-         height: body.height * 0.50, alpha: 0.44, titled: false)
+         height: body.height * 0.50, alpha: 0.44)
     card(x: body.maxX - sliverShown, width: sliverWidth,
-         height: body.height * 0.50, alpha: 0.44, titled: false)
+         height: body.height * 0.50, alpha: 0.44)
 
     context.setShadow(offset: CGSize(width: 0, height: -size * 0.014), blur: size * 0.055,
                       color: NSColor(calibratedWhite: 0, alpha: 0.42).cgColor)
     card(x: body.midX - body.width * 0.185, width: body.width * 0.37,
-         height: body.height * 0.68, alpha: 1, titled: true)
+         height: body.height * 0.68, alpha: 1)
     context.setShadow(offset: .zero, blur: 0, color: nil)
 
     if development {
