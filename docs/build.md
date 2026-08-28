@@ -66,7 +66,7 @@ machine refuses it outright — they would have to right-click › Open, or `xat
 
 ## Two apps: the one you use and the one you build
 
-A **Debug** build is `org.deffun.six.dev`, shows up as **six dev** and keeps everything
+A **Debug** build is `org.deffun.six.dev`, shows up as **six dev** under an icon of its own, and keeps everything
 under `~/Library/Application Support/org.deffun.six.dev` — the database, the snapshot, bookmarks, thumbnails, the
 MCP socket. A **Release** build is `org.deffun.six` under `…/org.deffun.six`, and that is the app that gets
 installed. Nothing decides this: the folder *is* the identifier (`AppSupport`), so two identifiers are two folders
@@ -89,6 +89,25 @@ cp -R ~/Library/WebKit/org.deffun.six ~/Library/WebKit/org.deffun.six.dev
 
 A development build never offers to become the default browser: two apps with one face, and only one of them should
 be catching every link on the machine.
+
+## The icon
+
+Drawn rather than painted, by [`scripts/appicon.swift`](../scripts/appicon.swift):
+
+```sh
+swift scripts/appicon.swift six/Assets.xcassets/AppIcon.appiconset six/Assets.xcassets/AppIcon-Dev.appiconset
+```
+
+It is the strip — three columns side by side, the focused one tall and bright in the middle, its neighbours dimmer
+and cut off by the icon's own edge, because a strip does not stop at the screen and that is the one thing no other
+browser's icon says. Detail goes as the icon shrinks (the title bar below 256 px, the word DEV below 64) and the
+silhouette stays: three bars, the middle one taller.
+
+The second set is the same icon under an amber ribbon, the way every browser marks its nightly, and the macOS Debug
+configuration is the only thing pointing at it (`ASSETCATALOG_COMPILER_APPICON_NAME`). Ten sizes for the Mac from
+16 to 512@2x, plus one 1024 for the phone, which takes a single size and masks it itself. Each is drawn straight
+into a bitmap of the exact pixel size — an `NSImage` with `lockFocus` renders at the screen's backing scale and
+comes out twice as big on a Retina Mac, which actool rejects.
 
 ## Sandbox
 
