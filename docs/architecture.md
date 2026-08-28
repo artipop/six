@@ -118,7 +118,7 @@ keeps the newest `budget × 4` (at least 24) in memory and the rest let go of th
 memory too, and giving memory back was the point.
 
 The pictures themselves outlive both the page and the launch: `PageThumbnails` writes each one as a PNG under
-`Application Support/six/Thumbnails/<window id>.png`, the way Firefox keeps `moz-page-thumbnails` and Safari keeps its
+`Application Support/org.deffun.six/Thumbnails/<window id>.png`, the way Firefox keeps `moz-page-thumbnails` and Safari keeps its
 snapshots, because an overview full of blank cards after a relaunch is exactly the moment they were for. They are read
 back lazily — when the overview opens, for the windows with nothing in memory — never all at once. What bounds the
 folder is the strip: `prune(keeping:)` drops the pictures of windows that no longer exist, at launch and as they
@@ -184,7 +184,9 @@ so `resolve(_:)` opens what it points at rather than the file.
 
 Everything that makes up a session — profiles, the selected one, every tab (URL + title) and every profile's strip
 (workspaces with their names, columns with their widths, focus) plus the agent chats — is one `AppStateSnapshot`,
-written to `~/Library/Application Support/six/state.json`. The snapshot types, `SnapshotStore` and `StatePersistence`
+written to `~/Library/Application Support/org.deffun.six/state.json` — the folder is the bundle identifier, so a Debug
+build writes to `org.deffun.six.dev/` and the two never meet (`AppSupport`, and
+[build.md](build.md#two-apps-the-one-you-use-and-the-one-you-build)). The snapshot types, `SnapshotStore` and `StatePersistence`
 use only Foundation and Observation (no SwiftData, no AppKit), so the format and the machinery are portable as they
 are; only the mapping to the live objects (`BrowserState.snapshot` / `init(snapshot:)`, `NiriLayout.allStrips` /
 `restore(strips:)`, `AgentSessionStore.snapshot` / `init(snapshot:)`) is app code.
@@ -198,7 +200,7 @@ notifications and applied once when the content view lands in its window; a save
 ignored). Restore drops anything that doesn't line up (a column whose tab is gone, a tab no column points at). Only the API key
 stays in `UserDefaults`; the other settings are in the database (below).
 
-History and settings live in SQLite — `~/Library/Application Support/six/six.sqlite`, opened by `AppDatabase`
+History and settings live in SQLite — `~/Library/Application Support/org.deffun.six/six.sqlite`, opened by `AppDatabase`
 through [SQLiteData](https://github.com/pointfreeco/sqlite-data) (GRDB + StructuredQueries; `@Table` structs, typed
 queries, `#sql` for the schema). Tables follow SQLiteData's CloudKit rules from the start — UUID text primary keys,
 no `UNIQUE` elsewhere, columns only ever added — so turning its `SyncEngine` on later is configuration

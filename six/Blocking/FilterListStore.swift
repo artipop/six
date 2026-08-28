@@ -3,7 +3,7 @@ import Foundation
 
 /// Where filter lists live on disk, and how they are kept fresh.
 ///
-/// Three files per list under `Application Support/six/Blocking/`: `<id>.txt` — the rules as the
+/// Three files per list under `Application Support/org.deffun.six/Blocking/`: `<id>.txt` — the rules as the
 /// publisher wrote them, `<id>.json` — the same rules converted to WebKit's content-blocker JSON
 /// (conversion is cheap but not free, and the JSON is what a recompile needs), and one shared
 /// `index.json` with what is known about each: its ETag, when it was fetched, how big it came out.
@@ -24,8 +24,7 @@ actor FilterListStore {
     }
 
     static let folder: URL = {
-        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return support.appending(path: "six/Blocking", directoryHint: .isDirectory)
+        AppSupport.folder("Blocking")
     }()
 
     private var index: [String: Entry] = [:]

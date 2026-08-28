@@ -301,7 +301,7 @@ final class BookmarkStore {
         return folder(for: profile).appending(path: bookmark.fileName)
     }
 
-    /// `~/Library/Application Support/six/Profiles/<name>/Bookmarks`, next to the agents' `Scratchpad`.
+    /// `~/Library/Application Support/org.deffun.six/Profiles/<name>/Bookmarks`, next to the agents' `Scratchpad`.
     func folder(for profile: Profile) -> URL {
         profile.folder.appending(path: "Bookmarks", directoryHint: .isDirectory)
     }

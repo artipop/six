@@ -24,7 +24,7 @@ through untouched. See [mcp.md](mcp.md#names) for the naming on the wire.
 
 ## Working directory
 
-Each profile has a folder of its own — `~/Library/Application Support/six/Profiles/<name>` — and the agent works in
+Each profile has a folder of its own — `~/Library/Application Support/org.deffun.six/Profiles/<name>` — and the agent works in
 its `Scratchpad/` by default, created on first use: a place for whatever a run writes, next to (not inside) the
 profile's `Bookmarks/`, so saved pages are reached through the MCP tools and their search rather than by grepping the
 working directory ([bookmarks.md](bookmarks.md)). The panel only says "*Personal* scratchpad" then; **Choose…** picks

@@ -17,7 +17,7 @@ ReadablePage.extract      in the page: main content → Markdown + title, excerp
 
 ## Files
 
-Every profile has its own folder, `~/Library/Application Support/six/Profiles/<name>/`, with `Bookmarks/` and the
+Every profile has its own folder, `~/Library/Application Support/org.deffun.six/Profiles/<name>/`, with `Bookmarks/` and the
 agents' `Scratchpad/` side by side. The agents' default working directory is the scratchpad, *not* the profile folder:
 that way a question about something saved goes through `search_bookmarks` (and its vector search) rather than a
 `grep` over the working directory, and what a run leaves behind lands in the scratchpad, away from the bookmarks. A
@@ -58,7 +58,7 @@ removing the profile removes the folder. The database is the system of record; t
 `intfloat/multilingual-e5-small` run through **MLX** (`MLXEmbedder`, `six/Bookmarks/MLXEmbedder.swift`, over
 [mlx-swift-lm](https://github.com/ml-explore/mlx-swift-lm)'s `MLXEmbedders`): 118 M parameters, 384 dimensions, about a
 hundred languages in *one* space — «плов» and *pilaf* land next to each other, which is the whole point. The weights
-(~470 MB, fp32 safetensors) come from the Hugging Face Hub on first use into `~/Library/Application Support/six/Models`
+(~470 MB, fp32 safetensors) come from the Hugging Face Hub on first use into `~/Library/Application Support/org.deffun.six/Models`
 and never leave the Mac afterwards; the download shows in the bookmarks window's footer and in the `list_bookmarks`
 status. Three things E5 needs, all in `MLXEmbedder`: a role prefix on every text (`query: ` for a question,
 `passage: ` for a chunk — hence `EmbeddingRole` on the `Embedder` protocol), **mean pooling** (set explicitly: the

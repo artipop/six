@@ -19,8 +19,7 @@ import Foundation
 @MainActor
 final class PageThumbnails {
     static let folder: URL = {
-        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return support.appending(path: "six/Thumbnails", directoryHint: .isDirectory)
+        AppSupport.folder("Thumbnails")
     }()
 
     private static func url(for id: UUID) -> URL {

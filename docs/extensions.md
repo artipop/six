@@ -119,7 +119,7 @@ The whole "does not work" table is one missing method. The routes out, in the or
 ## Installing from a file
 
 `WKWebExtension` takes only `resourceBaseURL:` — an unpacked folder. So the install paths are a folder, a `.zip`, a
-`.crx` (a zip behind a header) or an `.xpi` (a zip), unpacked into `Application Support/six/Extensions/<id>/`.
+`.crx` (a zip behind a header) or an `.xpi` (a zip), unpacked into `Application Support/org.deffun.six/Extensions/<id>/`.
 Extensions from the App Store cannot be adopted: those are app extensions belonging to their own host apps, and
 `WKWebExtension(appExtensionBundle:)` is for an extension shipped *inside* six. Nothing verifies a `.crx`
 signature, which the install dialog should say in as many words.

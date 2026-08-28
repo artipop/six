@@ -5,8 +5,7 @@ import Foundation
 nonisolated enum MCPSocket {
     static var path: String {
         if let custom = ProcessInfo.processInfo.environment["SIX_MCP_SOCKET"], !custom.isEmpty { return custom }
-        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return support.appending(path: "six/mcp.sock").path
+        return AppSupport.file("mcp.sock").path
     }
 
     /// `sockaddr_un` for `path`; nil when the path is too long for the kernel's 104-byte field.

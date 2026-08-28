@@ -50,7 +50,7 @@ HTML and PDF export.
 - `TextDocument` (`@Observable`): the Markdown, a title read off the first heading (else the first line, else
   "Untitled"), `modifiedAt`, `fileURL` after the first save, and whether the column shows the editor or the preview.
   Sections are `## heading` ranges (code fences skipped), which is what `write_document` works on.
-- `DocumentStore` writes the text to `~/Library/Application Support/six/Documents/<id>.md` a second after every edit
+- `DocumentStore` writes the text to `~/Library/Application Support/org.deffun.six/Documents/<id>.md` a second after every edit
   and on quit. The snapshot keeps only `DocumentSnapshot` (id, title, dates, file URL, preview flag) — a long
   document does not ride along in `state.json` on every keystroke. Closing the window deletes the file; Save As is
   for what is worth keeping. History records nothing for a document: it has no URL.
@@ -142,7 +142,7 @@ call it the citation.
 with a `highlight_id` puts that link in the source line. Clicking it focuses the source window; WebKit scrolls to
 the fragment and `HighlightStore.scroll` lands on the painted range.
 
-**Storage.** `~/Library/Application Support/six/highlights.json`, keyed by URL without its fragment — per page, not
+**Storage.** `~/Library/Application Support/org.deffun.six/highlights.json`, keyed by URL without its fragment — per page, not
 per window, so highlights come back next week whether or not the run still exists. **File → Remove Highlights on
 This Page** clears one page's.
 

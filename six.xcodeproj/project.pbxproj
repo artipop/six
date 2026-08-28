@@ -406,7 +406,8 @@
 					"-weak_framework",
 					FoundationModels,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = org.deffun.six;
+				INFOPLIST_KEY_CFBundleDisplayName = "six dev";
+				PRODUCT_BUNDLE_IDENTIFIER = org.deffun.six.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -481,7 +482,8 @@
 					FoundationModels,
 				);
 				OTHER_SWIFT_FLAGS = "";
-				PRODUCT_BUNDLE_IDENTIFIER = org.deffun.six;
+				INFOPLIST_KEY_CFBundleDisplayName = "six dev";
+				PRODUCT_BUNDLE_IDENTIFIER = org.deffun.six.dev;
 				PRODUCT_NAME = six;
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;

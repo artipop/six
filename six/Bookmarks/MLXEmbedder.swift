@@ -31,7 +31,7 @@ actor MLXEmbedder: Embedder {
     /// What is happening with the model — "downloading 42 %", an error — for whoever asked. Empty means ready.
     private var statusHandler: (@Sendable (String) -> Void)?
 
-    /// - Parameter modelsDirectory: where downloaded weights live (`~/Library/Application Support/six/Models`).
+    /// - Parameter modelsDirectory: where downloaded weights live (`~/Library/Application Support/org.deffun.six/Models`).
     init(modelsDirectory: URL) {
         hub = HubClient(cache: HubCache(cacheDirectory: modelsDirectory))
     }

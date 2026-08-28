@@ -3,7 +3,7 @@ import Foundation
 /// An extension six has unpacked into its own folder, as it is remembered between launches. The
 /// folder is the truth about what the extension *is*; this is what the user decided about it.
 nonisolated struct InstalledExtension: Identifiable, Codable, Sendable, Hashable {
-    /// Also the folder name under `Application Support/six/Extensions/`, and the context's
+    /// Also the folder name under `Application Support/org.deffun.six/Extensions/`, and the context's
     /// `uniqueIdentifier` — which is what makes an extension's storage survive a relaunch.
     var id: String
     var name: String
@@ -18,8 +18,7 @@ nonisolated struct InstalledExtension: Identifiable, Codable, Sendable, Hashable
     }
 
     static let folder: URL = {
-        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return support.appending(path: "six/Extensions", directoryHint: .isDirectory)
+        AppSupport.folder("Extensions")
     }()
 }
 

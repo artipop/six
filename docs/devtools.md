@@ -34,7 +34,7 @@ it ([mcp.md](mcp.md)):
 |---|---|
 | `list_console_messages` | what the page logged since it last navigated, with uncaught errors and unhandled rejections; `level` filters |
 | `list_network_requests` | the requests it made — method, status, duration, size, kind; `failed_only` narrows to errors and 4xx/5xx |
-| `take_screenshot` | writes a PNG of the whole page (not the visible part) under `Application Support/six/Screenshots/` and returns the path |
+| `take_screenshot` | writes a PNG of the whole page (not the visible part) under `Application Support/org.deffun.six/Screenshots/` and returns the path |
 
 `take_screenshot` works whether or not capture is on. The other two say plainly that capture is off rather than
 answering with an empty list — and because the hooks are installed at the *start* of a load, turning capture on

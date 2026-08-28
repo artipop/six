@@ -10,7 +10,7 @@ agent ──stdio──▶ six --mcp ──unix socket──▶ six.app (MCPHost
 - `six --mcp` (`MCPStdioBridge`) is a byte pump: MCP-over-stdio and the app's socket are both newline-delimited
   JSON-RPC, so it forwards lines untouched. It runs before AppKit is loaded — no Dock icon, no window. If the app
   isn't running it launches it (`open -g`) and waits up to 20 s for the socket.
-- The running app listens on `~/Library/Application Support/six/mcp.sock` (mode 0600; override with
+- The running app listens on `~/Library/Application Support/org.deffun.six/mcp.sock` (mode 0600; override with
   `SIX_MCP_SOCKET`). `MCPHost` gives each client its own `JSONRPCConnection` — the same transport the ACP client
   uses — and `MCPServer` answers `initialize`, `ping`, `tools/list`, `tools/call` on the main actor. The tools
   themselves live in `BrowserToolCatalog` (`six/Tools/`), shared with the ⌘K assistant (see [assistant.md](assistant.md)).
@@ -63,7 +63,7 @@ empty, like a named workspace in niri).
 | `close_window` | close a window |
 | `list_console_messages` | what a window's page logged since it last navigated (`level`, `limit`); needs Develop › Capture Console and Network — see [devtools.md](devtools.md) |
 | `list_network_requests` | the requests a page made — method, status, duration, size, kind (`failed_only`, `limit`); same switch |
-| `take_screenshot` | writes a PNG of the whole page under `Application Support/six/Screenshots/` and returns the path |
+| `take_screenshot` | writes a PNG of the whole page under `Application Support/org.deffun.six/Screenshots/` and returns the path |
 | `evaluate_javascript` | run a function body in the page — in the *page's* world, unlike every other tool ([architecture.md](architecture.md#page-side-scripts)); result back as JSON |
 | `create_document` | a document window (Markdown in a column) — `title` or `markdown`, optional `workspace`, `profile`, `activate` → id |
 | `write_document` | `mode`: `replace` the text, `append`, or `section` — replace the body of one `## heading` (added when missing); `document_id` defaults to the run's document in the on-screen workspace |

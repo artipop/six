@@ -64,6 +64,32 @@ machine refuses it outright — they would have to right-click › Open, or `xat
 `disable-library-validation` are the usual suspects), `codesign --options runtime --deep` and
 `xcrun notarytool submit … --wait` followed by `xcrun stapler staple`. None of that is set up yet.
 
+## Two apps: the one you use and the one you build
+
+A **Debug** build is `org.deffun.six.dev`, shows up as **six dev** and keeps everything
+under `~/Library/Application Support/org.deffun.six.dev` — the database, the snapshot, bookmarks, thumbnails, the
+MCP socket. A **Release** build is `org.deffun.six` under `…/org.deffun.six`, and that is the app that gets
+installed. Nothing decides this: the folder *is* the identifier (`AppSupport`), so two identifiers are two folders
+the way a sandboxed app gets two containers for free, and there is no rule to keep in step with the build settings.
+
+So the browser you are using and the browser you are changing sit side by side, and killing, rebuilding and
+relaunching one all afternoon does nothing to the other. They could not have shared: the snapshot is rewritten
+whole, the SQLite file is opened for writing, and there is one socket at one path — two sixes on one directory
+means the second one finding the socket taken and the two of them overwriting each other's windows.
+
+Site data separates itself, because WebKit files a non-sandboxed app's cookies and storage under
+`~/Library/WebKit/<bundle identifier>`. That is the point of it and also the cost: a development six starts logged
+out of everything. To start it from a copy of the real one instead — with **both** sixes quit, or the copy is of a
+database mid-write:
+
+```sh
+cp -R ~/Library/Application\ Support/org.deffun.six ~/Library/Application\ Support/org.deffun.six.dev
+cp -R ~/Library/WebKit/org.deffun.six ~/Library/WebKit/org.deffun.six.dev
+```
+
+A development build never offers to become the default browser: two apps with one face, and only one of them should
+be catching every link on the machine.
+
 ## Sandbox
 
 App Sandbox is off — the ACP layer spawns `npx` / `claude` / `codex` from the user's toolchain.

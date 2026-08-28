@@ -9,8 +9,7 @@ import WebKit
 @Observable
 final class HighlightStore {
     static let url: URL = {
-        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return support.appending(path: "six/highlights.json")
+        AppSupport.file("highlights.json")
     }()
 
     private(set) var all: [Highlight] = []

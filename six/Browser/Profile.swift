@@ -41,12 +41,11 @@ nonisolated struct Profile: Identifiable, Codable, Hashable, Sendable {
 
     var color: Color { Color(hex: colorHex) }
 
-    /// The folder six creates for this profile: `~/Library/Application Support/six/Profiles/<name>`.
+    /// The folder six creates for this profile: `~/Library/Application Support/org.deffun.six/Profiles/<name>`.
     /// `Bookmarks/` and `Scratchpad/` live inside it.
     var folder: URL {
-        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         let safeName = name.replacingOccurrences(of: "/", with: "-").trimmingCharacters(in: .whitespaces)
-        return support.appending(path: "six/Profiles/\(safeName.isEmpty ? id.uuidString : safeName)", directoryHint: .isDirectory)
+        return AppSupport.folder("Profiles/\(safeName.isEmpty ? id.uuidString : safeName)")
     }
 
     /// Where agents work unless the user picked a folder: `<folder>/Scratchpad`, a place for the files a

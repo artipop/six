@@ -161,8 +161,7 @@ final class DevToolsStore {
 
     /// Where `take_screenshot` puts its files.
     static let screenshotFolder: URL = {
-        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return support.appending(path: "six/Screenshots", directoryHint: .isDirectory)
+        AppSupport.folder("Screenshots")
     }()
 }
 

@@ -110,7 +110,7 @@ Clicking it allows (or blocks again) every site under this one's host — `examp
 
 ## Sundries
 
-- Lists live in `~/Library/Application Support/six/Blocking/`: `<id>.txt` as the publisher wrote it, `<id>.json`
+- Lists live in `~/Library/Application Support/org.deffun.six/Blocking/`: `<id>.txt` as the publisher wrote it, `<id>.json`
   converted, `index.json` for the ETags and counts. Deleting the folder costs one re-download.
 - Compiled rule lists are named `six.<list>.<hash of the source>`; when a list changes upstream the old rule list is
   found by that prefix and dropped, so a year of updates is not a year of dead rule lists in WebKit's store.

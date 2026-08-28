@@ -8,7 +8,7 @@ import WebKit
 /// Everything the world ships is a zip underneath — a `.crx` is a zip behind a small header, an
 /// `.xpi` is a zip with a different name — so the work is unpacking, finding the manifest (archives
 /// are not always flat), and copying the result into
-/// `Application Support/six/Extensions/<id>/`. Extensions from the App Store are *not* a source:
+/// `Application Support/org.deffun.six/Extensions/<id>/`. Extensions from the App Store are *not* a source:
 /// those are app extensions belonging to their own host apps, and `WKWebExtension(appExtensionBundle:)`
 /// is for one shipped inside six.
 enum ExtensionInstaller {

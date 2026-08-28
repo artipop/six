@@ -18,10 +18,9 @@ nonisolated protocol SnapshotStore: Sendable {
 nonisolated struct FileSnapshotStore<Snapshot: VersionedSnapshot>: SnapshotStore {
     let url: URL
 
-    /// A file under `Application Support/six/` (`~/.local/share/six/` on Linux).
+    /// A file under `Application Support/org.deffun.six/` (`~/.local/share/six/` on Linux).
     init(fileNamed name: String) {
-        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        url = support.appending(path: "six/\(name)")
+        url = AppSupport.file(name)
     }
 
     func load() throws -> Snapshot? {

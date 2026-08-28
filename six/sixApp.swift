@@ -202,11 +202,13 @@ struct sixApp: App {
         .commands {
             CommandGroup(after: .appInfo) {
                 // Read once, when the menus are built: if six already holds http/https there is
-                // nothing to ask macOS for.
+                // nothing to ask macOS for. A development build never offers at all — it is a second
+                // app wearing the same face, and giving it the web would send every link from every
+                // other app into a browser that is about to be killed and built again.
                 Button("Set six as Default Browser…") {
                     Task { await DefaultBrowser.makeDefault() }
                 }
-                .disabled(DefaultBrowser.isDefault)
+                .disabled(DefaultBrowser.isDefault || AppSupport.isDevelopment)
             }
             CommandGroup(replacing: .newItem) {
                 Button("New Window in Strip") { browser.newTab() }

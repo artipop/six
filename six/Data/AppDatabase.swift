@@ -3,14 +3,13 @@ import GRDB
 import SQLiteData
 import SQLiteVecData
 
-/// The one SQLite file: `~/Library/Application Support/six/six.sqlite`. Opened once at launch,
+/// The one SQLite file: `~/Library/Application Support/org.deffun.six/six.sqlite`. Opened once at launch,
 /// migrated forward only. Tables follow SQLiteData's CloudKit rules from day one (see
 /// docs/storage.md): UUID text primary keys, no `UNIQUE` on other columns, columns are only ever
 /// added — so switching the `SyncEngine` on later is configuration, not a migration.
 nonisolated enum AppDatabase {
     static var url: URL {
-        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return support.appending(path: "six/six.sqlite")
+        AppSupport.file("six.sqlite")
     }
 
     static func open() throws -> any DatabaseWriter {

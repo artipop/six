@@ -162,14 +162,13 @@ final class TextDocument: Identifiable {
     }
 }
 
-/// Where documents live: `~/Library/Application Support/six/Documents/<id>.md`. The snapshot keeps only
+/// Where documents live: `~/Library/Application Support/org.deffun.six/Documents/<id>.md`. The snapshot keeps only
 /// the id, the title and the column; the text is here, written by a debounced autosave of its own, so
 /// a long document doesn't ride along in `state.json` on every keystroke.
 @MainActor
 final class DocumentStore {
     static let folder: URL = {
-        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return support.appending(path: "six/Documents", directoryHint: .isDirectory)
+        AppSupport.folder("Documents")
     }()
 
     private var pending: [UUID: Task<Void, Never>] = [:]
