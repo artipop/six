@@ -2,10 +2,10 @@
 import AppKit
 import Foundation
 
-// six's icon, drawn rather than painted: the strip itself — three columns side by side, the focused
-// one tall and bright in the middle, its neighbours dimmer and running off both edges, which is what
-// a niri strip looks like and what no other browser's icon says. At 16 pt the detail goes and the
-// silhouette stays: three bars, the middle one taller.
+// six's icon, drawn rather than painted: the window you are reading, with its neighbours barely on
+// screen either side. That is what a niri strip looks like from inside it — one column centred, the
+// rest of the strip continuing past both edges — and it is what no other browser's icon says. At 16 pt
+// the detail goes and the silhouette stays: a bright card between two slivers.
 //
 //   swift scripts/appicon.swift <AppIcon.appiconset> [<AppIcon-Dev.appiconset>]
 //
@@ -37,42 +37,37 @@ func draw(_ pixels: Int, development: Bool) -> NSBitmapImageRep {
     context.saveGState()
     shape.addClip()
 
-    // Three columns on one baseline, the middle one taller and brighter. The outer two are cut off by
-    // the icon's own edge on purpose: a strip continues past the screen, and that is the whole idea.
-    let columnWidth = body.width * 0.30
-    let gap = body.width * 0.055
-    let sideWidth = body.width * 0.38
-    let centreHeight = body.height * 0.62
-    let sideHeight = body.height * 0.46
-    let baseline = body.minY + (body.height - centreHeight) / 2
-    let middle = body.midX
-
-    func column(x: CGFloat, width: CGFloat, height: CGFloat, white: CGFloat, alpha: CGFloat) {
-        let rect = CGRect(x: x, y: baseline, width: width, height: height)
-        let corner = width * 0.19
+    // The focused window, and its neighbours cut off by the icon's own edge — a strip does not stop at
+    // the screen, and the pair running out of frame is the one thing that says so. The two are kept
+    // bright and the gaps wide because at 32 px this is three shapes or it is one white blob.
+    func card(x: CGFloat, width: CGFloat, height: CGFloat, alpha: CGFloat, titled: Bool) {
+        let rect = CGRect(x: x, y: body.midY - height / 2, width: width, height: height)
+        let corner = min(width, height) * 0.17
         let path = NSBezierPath(roundedRect: rect, xRadius: corner, yRadius: corner)
-        NSColor(calibratedWhite: white, alpha: alpha).setFill()
+        NSColor(calibratedWhite: 1, alpha: alpha).setFill()
         path.fill()
         // A title bar, once there is room to see one. Below that it is mud.
-        guard pixels >= 256 else { return }
-        let bar = CGRect(x: rect.minX, y: rect.maxY - height * 0.14, width: width, height: height * 0.14)
+        guard titled, pixels >= 256 else { return }
+        let barHeight = height * 0.13
+        let bar = CGRect(x: rect.minX, y: rect.maxY - barHeight, width: width, height: barHeight)
         let capped = NSBezierPath(roundedRect: bar, xRadius: corner, yRadius: corner)
-        let square = NSBezierPath(rect: CGRect(x: bar.minX, y: bar.minY, width: bar.width, height: bar.height * 0.55))
-        capped.append(square)
-        NSColor(calibratedWhite: white, alpha: alpha * 0.42).setFill()
+        capped.append(NSBezierPath(rect: CGRect(x: bar.minX, y: bar.minY,
+                                                width: bar.width, height: barHeight * 0.55)))
+        NSColor(calibratedRed: 0.31, green: 0.24, blue: 0.62, alpha: 0.55).setFill()
         capped.fill()
     }
 
-    // Wide enough to be cut off by the icon's own edge: a strip does not stop at the screen, and the
-    // neighbours running out of frame is the one thing that says so.
-    column(x: middle - columnWidth / 2 - gap - sideWidth, width: sideWidth,
-           height: sideHeight, white: 1, alpha: 0.32)
-    column(x: middle + columnWidth / 2 + gap, width: sideWidth,
-           height: sideHeight, white: 1, alpha: 0.32)
+    let sliverWidth = body.width * 0.22
+    let sliverShown = body.width * 0.105
+    card(x: body.minX - (sliverWidth - sliverShown), width: sliverWidth,
+         height: body.height * 0.50, alpha: 0.44, titled: false)
+    card(x: body.maxX - sliverShown, width: sliverWidth,
+         height: body.height * 0.50, alpha: 0.44, titled: false)
 
-    context.setShadow(offset: CGSize(width: 0, height: -size * 0.012), blur: size * 0.045,
-                      color: NSColor(calibratedWhite: 0, alpha: 0.35).cgColor)
-    column(x: middle - columnWidth / 2, width: columnWidth, height: centreHeight, white: 0.99, alpha: 1)
+    context.setShadow(offset: CGSize(width: 0, height: -size * 0.014), blur: size * 0.055,
+                      color: NSColor(calibratedWhite: 0, alpha: 0.42).cgColor)
+    card(x: body.midX - body.width * 0.185, width: body.width * 0.37,
+         height: body.height * 0.68, alpha: 1, titled: true)
     context.setShadow(offset: .zero, blur: 0, color: nil)
 
     if development {
