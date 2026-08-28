@@ -103,6 +103,7 @@ final class NiriLayout {
     /// Rubber-band offsets while a scroll gesture is still below the switch threshold.
     var verticalPreview: CGFloat = 0
     var horizontalPreview: CGFloat = 0
+    @ObservationIgnored private var peekTask: Task<Void, Never>?
     /// The strip on screen. Switching to another profile shows a strip that was last laid out at
     /// whatever the viewport was then, so it gets put back under its focused window on the way in.
     var activeProfileID: UUID = UUID() {
@@ -361,6 +362,32 @@ final class NiriLayout {
     // MARK: Columns
 
     /// Opens a tab as a new column to the right of the focused one, niri-style.
+    /// A glance to the right: the strip leans that way far enough to show the edge of what just
+    /// arrived, and comes back.
+    ///
+    /// This is what a ⌘-click has instead of a notification. The window it opens goes *behind* — the
+    /// strip grows to the right and the focus deliberately stays on the page being read — which is
+    /// correct and completely invisible, because the new column is usually past the edge of the
+    /// screen. Leaning over shows the thing itself rather than a symbol standing in for it, and it
+    /// costs nothing new: `horizontalPreview` is the rubber band a scroll gesture already borrows.
+    ///
+    /// A second ⌘-click restarts it rather than queueing: the strip stays leaned while they keep
+    /// coming and settles once, at the end.
+    func peek(_ amount: CGFloat = 72) {
+        peekTask?.cancel()
+        peekTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            // Negative, because the columns are drawn at `frame.minX - (offset - horizontalPreview)`:
+            // leaning right means scrolling further along the strip.
+            withAnimation(.smooth(duration: 0.22)) { horizontalPreview = -amount }
+            NiriLayout.trace("peek out \(horizontalPreview)")
+            try? await Task.sleep(for: .milliseconds(260))
+            guard !Task.isCancelled else { return } // a newer peek owns the band now, and will let go
+            withAnimation(NiriLayout.switchAnimation) { horizontalPreview = 0 }
+            NiriLayout.trace("peek back \(horizontalPreview)")
+        }
+    }
+
     func insertColumn(tabID: UUID) {
         mutate { s in
             guard s.workspaces.indices.contains(s.focus) else { return }

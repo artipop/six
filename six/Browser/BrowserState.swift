@@ -1,3 +1,6 @@
+#if os(macOS)
+import AppKit
+#endif
 import Foundation
 import Observation
 import SwiftUI
@@ -51,6 +54,12 @@ final class BrowserState {
     @ObservationIgnored var permissions: SitePermissions? {
         didSet { for tab in tabs { tab.permissions = permissions } }
     }
+    /// Files the pages asked to save (`DownloadStore`). One list for the app, like the strip's
+    /// pictures: a download belongs to the browser, not to the window that started it — closing the
+    /// window must not stop the transfer.
+    let downloads = DownloadStore()
+    /// The mark that flies from a click to the downloads button (`FlightStore`).
+    let flights = FlightStore()
     /// Deep-research runs (see `ResearchRun`).
     var research: [ResearchRun] = []
     @ObservationIgnored private let settings: SettingsStore
@@ -381,7 +390,78 @@ final class BrowserState {
                 highlights?.apply(to: tab)
             }
         }
+        tab.onNewWindow = { [weak self] tab, request, behind in
+            guard let url = request.url else { return }
+            self?.openInNewWindow(url, from: tab, background: behind)
+        }
+        tab.onDownload = { [weak self] tab, request, suggestedName in
+            self?.download(request, suggestedName: suggestedName, from: tab)
+        }
         return tab
+    }
+
+    // MARK: A second window, and a file
+
+    /// Open Link, from the page's context menu. A page window goes there; a document window never
+    /// navigates away from the document, so the link becomes a window of its own (`open(_:from:)`).
+    func openLink(_ url: URL, in tab: BrowserTab) {
+        if tab.isDocument {
+            open(url, from: tab)
+        } else {
+            tab.load(url)
+        }
+    }
+
+    /// What ⌘-click, a middle click, Open Link in New Window and `target=_blank` come to: a column
+    /// right of the one the link was in.
+    ///
+    /// `background` puts it there *behind* — the strip grows to the right and the focus stays on the
+    /// page being read, which is what a background tab is everywhere else. A page that opened the
+    /// window itself (`window.open`, a `_blank` link clicked plainly) comes forward, because the page
+    /// opened it to be looked at.
+    func openInNewWindow(_ url: URL, from tab: BrowserTab, background: Bool = false) {
+        guard let scheme = url.scheme?.lowercased() else { return }
+        guard ["http", "https", "file", "about", "six"].contains(scheme) else {
+            #if os(macOS)
+            NSWorkspace.shared.open(url) // mailto:, tel:, a custom scheme — the system's business
+            #endif
+            return
+        }
+        newTab(url: url, in: tab.profileID, workspace: nil, activate: !background)
+        // Only for the ones that go behind: a window that comes forward takes the eye with it and
+        // needs no announcing. The one that does not is otherwise invisible — see `NiriLayout.peek`.
+        if background { layout.peek() }
+    }
+
+
+    /// Download Linked File, `<a download>`, or a response no page can show.
+    func download(_ request: URLRequest, suggestedName: String?, from tab: BrowserTab) {
+        let profile = profiles.first { $0.id == tab.profileID } ?? selectedProfile
+        downloads.start(request, suggestedName: suggestedName, referrer: tab.currentURL,
+                        cookies: dataStore(for: profile))
+        flights.launch(from: Self.clickInWindow)
+    }
+
+    /// Where the pointer is, in the window's own coordinates — the link that was clicked, or the menu
+    /// item over it, which is close enough to be the same place. Read now, because by the time the
+    /// first byte arrives the mouse has moved on. Nil when the pointer is not in six's window at all:
+    /// a download an agent asked for has nowhere to fly from.
+    private static var clickInWindow: CGPoint? {
+        #if os(macOS)
+        // Not `keyWindow`: a download can be asked for from a menu or a popover, and while the app is
+        // not the active one there is no key window at all.
+        guard let window = NSApp.windows.first(where: { $0.isVisible && $0.canBecomeMain }),
+              let content = window.contentView
+        else { return nil }
+        // `convert(_:from: nil)` takes it from the window's coordinates into the content view's, which
+        // is flipped — and so is the SwiftUI space the flight is drawn in.
+        let inWindow = window.convertPoint(fromScreen: NSEvent.mouseLocation)
+        let point = content.convert(inWindow, from: nil)
+        guard content.bounds.contains(point) else { return nil }
+        return point
+        #else
+        return nil
+        #endif
     }
 
     // MARK: Documents

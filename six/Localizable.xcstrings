@@ -991,6 +991,16 @@
         }
       }
     },
+    "Clear": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Очистить"
+          }
+        }
+      }
+    },
     "Clear %@ History…": {
       "localizations": {
         "ru": {
@@ -1167,12 +1177,32 @@
         }
       }
     },
+    "Copy": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Скопировать"
+          }
+        }
+      }
+    },
     "Copy Address": {
       "localizations": {
         "ru": {
           "stringUnit": {
             "state": "translated",
             "value": "Скопировать адрес"
+          }
+        }
+      }
+    },
+    "Copy Link": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Скопировать ссылку"
           }
         }
       }
@@ -1203,6 +1233,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Создать"
+          }
+        }
+      }
+    },
+    "Cut": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вырезать"
           }
         }
       }
@@ -1273,6 +1313,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Двойной клик — переименовать"
+          }
+        }
+      }
+    },
+    "Download Linked File": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Загрузить файл по ссылке"
+          }
+        }
+      }
+    },
+    "Download failed": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось загрузить"
+          }
+        }
+      }
+    },
+    "Downloading…": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Загрузка…"
+          }
+        }
+      }
+    },
+    "Downloads": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Загрузки"
           }
         }
       }
@@ -2233,6 +2313,46 @@
         }
       }
     },
+    "Open": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Открыть"
+          }
+        }
+      }
+    },
+    "Open Link": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Открыть ссылку"
+          }
+        }
+      }
+    },
+    "Open Link Behind": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Открыть ссылку в фоне"
+          }
+        }
+      }
+    },
+    "Open Link in New Window": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Открыть ссылку в новом окне"
+          }
+        }
+      }
+    },
     "Open Location…": {
       "localizations": {
         "ru": {
@@ -2309,6 +2429,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ссылки страницы"
+          }
+        }
+      }
+    },
+    "Paste": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вставить"
           }
         }
       }
@@ -2569,6 +2699,16 @@
         }
       }
     },
+    "Remove from List": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Убрать из списка"
+          }
+        }
+      }
+    },
     "Rename…": {
       "localizations": {
         "ru": {
@@ -2755,6 +2895,16 @@
         }
       }
     },
+    "Select All": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выбрать всё"
+          }
+        }
+      }
+    },
     "Send": {
       "localizations": {
         "ru": {
@@ -2891,6 +3041,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Стоп"
+          }
+        }
+      }
+    },
+    "Stopped": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Остановлено"
           }
         }
       }

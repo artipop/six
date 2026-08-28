@@ -12,6 +12,7 @@ reference.
 | [architecture.md](architecture.md) | modules and how state flows |
 | [platforms.md](platforms.md) | the macOS and iOS targets, and what differs |
 | [extensions.md](extensions.md) | browser extensions: installing from a file, a controller per profile, and the measured boundary of what a `WebPage` browser can host |
+| [links.md](links.md) | links: the context menu six had to take over, ⌘-click and the middle click, and downloads without `WKDownload` |
 | [blocking.md](blocking.md) | ads and trackers: filter lists, `WKContentRuleList`, the shield and the per-site allowlist |
 | [permissions.md](permissions.md) | site permissions: the camera and microphone per site, the page's own dialogs, and what a `WebPage` browser still cannot ask for |
 | [bookmarks.md](bookmarks.md) | bookmarks: readable Markdown copies per profile, on-device embeddings, search from the assistant and MCP |

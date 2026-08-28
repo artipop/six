@@ -5,6 +5,9 @@ import UIKit
 #endif
 import Foundation
 import Observation
+// For `NavigationAction.modifierFlags`: WebKit declares it in its SwiftUI half, so reading the keys
+// held during a click needs SwiftUI imported even here, in the model.
+import SwiftUI
 import WebKit
 
 /// What a column holds: a web page, or a document — Markdown the user (or an agent) writes, with a
@@ -81,6 +84,11 @@ final class BrowserTab: Identifiable {
     /// A link clicked in a document's preview: the document's own page never navigates away, the
     /// browser opens (or focuses) a window for the URL instead. Set by `BrowserState`.
     @ObservationIgnored var onDocumentLink: ((BrowserTab, URL) -> Void)?
+    /// The page asked for a second window — a ⌘-click, a middle click, `target=_blank`,
+    /// `window.open`. Set by `BrowserState`, which puts a column next to this one.
+    @ObservationIgnored var onNewWindow: ((BrowserTab, URLRequest, Bool) -> Void)?
+    /// A link to save rather than to show. Set by `BrowserState`, which hands it to `DownloadStore`.
+    @ObservationIgnored var onDownload: ((BrowserTab, URLRequest, String?) -> Void)?
     /// A fresh window shows six's own start page instead of loading someone's home page. The first
     /// navigation replaces it for good.
     private(set) var showsStartPage = true
@@ -234,6 +242,14 @@ final class BrowserTab: Identifiable {
                 guard let self else { return }
                 self.blocker?.note(self.id, showing: url)
             }
+            decider.onNewWindow = { [weak self] request, behind in
+                guard let self else { return }
+                self.onNewWindow?(self, request, behind)
+            }
+            decider.onDownload = { [weak self] request, suggestedName in
+                guard let self else { return }
+                self.onDownload?(self, request, suggestedName)
+            }
             // The page suspends inside this closure while the bar is up, which is the whole point:
             // WebKit's own answer (`.prompt`) puts up a popover six can neither remember nor undo.
             let windowID = id
@@ -301,6 +317,8 @@ final class BrowserTab: Identifiable {
         navigationTask?.cancel()
         onNavigation = nil
         onDocumentLink = nil
+        onNewWindow = nil
+        onDownload = nil
         permissions?.forget(id)
         livePage?.stopLoading()
         livePage = nil
@@ -510,18 +528,83 @@ final class BrowserTab: Identifiable {
     }
 }
 
-/// Keeps navigation inside the tab; opens `target=_blank` links in the same page.
+/// Everything a page asks for that is not "load this here".
+///
+/// The SwiftUI WebKit API has no UI client and no download delegate. A page that asks for a second
+/// window (`target=_blank`, `window.open`, a ⌘- or middle click) and a link that asks to be saved
+/// (`<a download>`, a response no page can show) reach a decider and nowhere else; left at `.allow`
+/// they are handed on to a delegate that does not exist, and the click does nothing at all. So the
+/// decider cancels them and gives the request back to the browser, which has a strip to put a window
+/// in and a `DownloadStore` to give a file to.
+///
+/// The context menu's own Open Link in New Window and Download Linked File never come through here —
+/// they go straight to those missing delegates, which is why six builds the menu itself
+/// (`PageContextMenu`). [links.md](../../docs/links.md) has the whole map.
 @MainActor
 private final class TabNavigationDecider: WebPage.NavigationDeciding {
     /// Where the window is going, told before the request leaves — the one moment early enough to
     /// decide whether this page is blocked (`ContentBlocker`).
     var onNavigate: ((URL) -> Void)?
+    /// A second window: the browser opens a column for it. The flag says the click asked for it
+    /// *behind* — a ⌘-click or a middle click, which everywhere else means a background tab.
+    var onNewWindow: ((URLRequest, Bool) -> Void)?
+    /// A file rather than a page.
+    var onDownload: ((URLRequest, String?) -> Void)?
 
     func decidePolicy(for action: WebPage.NavigationAction, preferences: inout WebPage.NavigationPreferences) async -> WKNavigationActionPolicy {
-        if action.request.url?.scheme?.hasPrefix("http") == true, let url = action.request.url {
-            onNavigate?(url)
+        guard let url = action.request.url else { return .allow }
+        LinkTrace.log("action \(url.absoluteString) target=\(action.target == nil ? "none" : "frame") type=\(action.navigationType.rawValue) button=\(action.buttonNumber) mods=\(action.modifierFlags.rawValue) download=\(action.shouldPerformDownload)")
+        if action.shouldPerformDownload {
+            onDownload?(action.request, nil)
+            return .cancel
         }
+        // A ⌘-click, or a middle click, asks for the link somewhere else rather than here. WebKit
+        // keeps its own record of the keys that were held (`modifierFlags`, declared in its SwiftUI
+        // half), which is the honest signal — nothing here depends on what the keyboard happens to be
+        // doing by the time this runs. The button number catches the middle click, which carries no
+        // modifier at all; on a phone it is a `UIEvent.ButtonMask` and there is no middle button.
+        //
+        // ⇧ is not among the keys that can be read, because a shift-modified click never arrives:
+        // WebKit sends every one of them — ⇧ alone and ⌘⇧ together — to the UI client, the seat this
+        // API has none of, and they reach nothing at all. Verified by clicking: ⌘ comes through,
+        // ⇧ and ⌘⇧ produce no navigation action of any kind.
+        #if os(macOS)
+        let middleClick = action.buttonNumber == 1
+        #else
+        let middleClick = false
+        #endif
+        let behind = action.navigationType == .linkActivated
+            && (action.modifierFlags.contains(.command) || middleClick)
+        // The other way: no target frame means the frame does not exist yet — `target=_blank`,
+        // `window.open`. There is nobody to answer that but the browser.
+        if action.target == nil || behind {
+            onNewWindow?(action.request, behind)
+            return .cancel
+        }
+        if url.scheme?.hasPrefix("http") == true { onNavigate?(url) }
         return .allow
+    }
+
+    /// What came back cannot be shown — a zip, a dmg, anything served as an attachment. A browser
+    /// downloads it; `.allow` here would leave the window on a blank page.
+    func decidePolicy(for response: WebPage.NavigationResponse) async -> WKNavigationResponsePolicy {
+        guard let url = response.response.url else { return .allow }
+        let http = response.response as? HTTPURLResponse
+        let disposition = (http?.value(forHTTPHeaderField: "Content-Disposition") ?? "").lowercased()
+        let isAttachment = disposition.hasPrefix("attachment")
+        guard !response.canShowMimeType || isAttachment else { return .allow }
+        LinkTrace.log("response \(url.absoluteString) canShow=\(response.canShowMimeType) attachment=\(isAttachment)")
+        onDownload?(URLRequest(url: url), response.response.suggestedFilename)
+        return .cancel
+    }
+}
+
+/// `SIX_LINKS_TRACE=1` narrates what the page asked for. Off, it costs the branch and nothing else.
+enum LinkTrace {
+    nonisolated(unsafe) static let isOn = ProcessInfo.processInfo.environment["SIX_LINKS_TRACE"] == "1"
+    static func log(_ message: @autoclosure () -> String) {
+        guard isOn else { return }
+        FileHandle.standardError.write(Data("[six/links] \(message())\n".utf8))
     }
 }
 

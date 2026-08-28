@@ -35,6 +35,7 @@ struct ContentView: View {
                 }
         }
         .ignoresSafeArea(.container, edges: .top)
+        .overlay { FlightsOverlay() }
         .inspector(isPresented: $showAgentPanel) {
             AgentPanel()
                 .inspectorColumnWidth(min: 320, ideal: 400, max: 700)
@@ -100,6 +101,7 @@ private struct TopBar: View {
             ProfileSwitcher(isAddingProfile: $isAddingProfile)
             Spacer(minLength: 12)
             BookmarkButton()
+            DownloadsButton()
             ExtensionActionBar()
             WorkspaceStepper()
             Button { browser.toggleOverview() } label: {

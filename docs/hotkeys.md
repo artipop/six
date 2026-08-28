@@ -39,6 +39,7 @@ row is backed by a menu item or a view — the file is named so nothing here can
 | `⌘Y` | history of the current profile |
 | `⌘D` | bookmark the focused page (again: remove the bookmark) |
 | `⌘⌥B` | bookmarks, searchable by meaning |
+| `⌘` + click a link | open it in a new window right of this one, behind — the strip leans right for a moment to show it; a middle click does the same. `⇧` and `⌘⇧` clicks do nothing at all: WebKit never passes them on ([links.md](links.md)) |
 | `Esc` | leave fullscreen, or close the overview; otherwise the page's own |
 
 ## Start page (a new window)

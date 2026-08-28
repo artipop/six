@@ -2,11 +2,11 @@
 
 What is planned but not built. Ordered by how much it is missed, not by effort.
 
-## Save As: web archives and downloads
+## Save As: web archives
 
 Document windows, Save As and highlights are built ([deep-research.md](deep-research.md)). What Save As still
-lacks: `.webarchive` for pages — `WebPage` has no `createWebArchiveData` today, so a page saves as `.html` (its
-source), `.pdf` or `.txt` — and **downloads** (`WKDownload`), which six does not handle at all yet.
+lacks is `.webarchive` for pages: `WebPage` has no `createWebArchiveData` today, so a page saves as `.html` (its
+source), `.pdf` or `.txt`. Downloads are built without `WKDownload` at all — see [links.md](links.md).
 
 ## Bookmarks: images
 
@@ -228,7 +228,7 @@ dynamically. `WebPage` exists on iOS 26, so `ReadablePage` and the refresh path 
 - Deep research without an agent: a native loop over the ⌘K model for machines with no Claude Code / Codex, and
   exporting a run as one HTML file with its sources inlined ([deep-research.md](deep-research.md)).
 - A way back to the start page after navigating (a "home" affordance, or `⌘⇧H`).
-- Downloads UI once `WKDownload` exists: where a file went, and a way to open it.
+- Resuming an interrupted download: `URLSessionDownloadTask` hands back the data to resume from and six throws it away ([links.md](links.md)).
 - Forget one site: drop a single host's cookies and storage (`WKWebsiteDataStore.fetchDataRecords` →
   `remove(ofTypes:for:)`). Clearing a whole profile is the only option today, and it takes every login with it.
 - Per-site user-agent overrides through `WebPage.customUserAgent`, for sites that sniff wrongly even at Safari's

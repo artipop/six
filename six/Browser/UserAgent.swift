@@ -20,6 +20,19 @@ enum UserAgent {
     /// default string — so this tail is the whole difference from Safari's user agent.
     static let applicationName = "Version/\(safariVersion) Safari/\(webKitBuild)"
 
+    /// The whole string, for the requests six makes itself rather than through a page — a download
+    /// (`DownloadStore`), where a URLSession has no user agent of WebKit's to inherit and a site that
+    /// checks would see `six/1.0 CFNetwork/…` instead of the browser that asked for the file.
+    static let full: String = {
+        #if os(macOS)
+        let platform = "Macintosh; Intel Mac OS X 10_15_7"
+        #else
+        let version = ProcessInfo.processInfo.operatingSystemVersion
+        let platform = "iPhone; CPU iPhone OS \(version.majorVersion)_\(version.minorVersion) like Mac OS X"
+        #endif
+        return "Mozilla/5.0 (\(platform)) AppleWebKit/\(webKitBuild) (KHTML, like Gecko) \(applicationName)"
+    }()
+
     /// The build token WebKit freezes into every Safari user agent; kept in step with the default one.
     private static let webKitBuild = "605.1.15"
 

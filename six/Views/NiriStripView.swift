@@ -266,6 +266,7 @@ private struct ColumnView: View {
                 // again is showing a different `WebPage`, and the view has to be built again with it.
                 WebView(page)
                     .webViewBackForwardNavigationGestures(.enabled)
+                    .pageContextMenu(for: tab, in: browser)
                     .id(tab.generation)
                     .onAppear(perform: tab.resumeIfNeeded)
                     .overlay { if capturesClicks { ClickCatcher(action: activate) } }

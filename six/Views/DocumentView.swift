@@ -19,6 +19,9 @@ struct DocumentView: View {
                 // back when it goes cold; the preview is rendered again from the text either way.
                 if let page = tab.livePage {
                     WebView(page)
+                        // No back, forward or reload: a preview is one page, rendered from the text
+                        // again whenever it changes, and it has no history to walk.
+                        .pageContextMenu(for: tab, in: browser, showsPageCommands: false)
                         .id(tab.generation)
                 } else {
                     Color.documentBackground
