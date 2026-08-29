@@ -1,7 +1,7 @@
 import SQLiteData
 import SwiftUI
 import WebKit
-#if !os(macOS)
+#if os(iOS)
 import UIKit
 #endif
 
@@ -108,7 +108,7 @@ struct sixApp: App {
         let mcp = MCPHost(server: MCPServer(catalog: tools))
         mcp.start()
         FileHandle.standardError.write(Data("[six] \(mcp.status); state at \(store.url.path)\n".utf8))
-        #else
+        #elseif os(iOS)
         FileHandle.standardError.write(Data("[six] state at \(store.url.path)\n".utf8))
         #endif
         let window = WindowState(snapshot: snapshot?.window)
@@ -116,7 +116,7 @@ struct sixApp: App {
         // reading a Mac's state does not throw the transcripts away.
         #if os(macOS)
         let agentSnapshot = { agentSession.snapshot }
-        #else
+        #elseif os(iOS)
         let saved = snapshot?.agent ?? AgentSnapshot(agentID: "", chats: [])
         let agentSnapshot = { saved }
         #endif
@@ -126,7 +126,7 @@ struct sixApp: App {
         persistence.start()
         #if os(macOS)
         let terminating = NSApplication.willTerminateNotification
-        #else
+        #elseif os(iOS)
         let terminating = UIApplication.willTerminateNotification
         #endif
         NotificationCenter.default.addObserver(forName: terminating, object: nil, queue: .main) { _ in
@@ -229,7 +229,7 @@ struct sixApp: App {
             HistoryCommands(browser: browser)
             BookmarkCommands(browser: browser, bookmarks: bookmarks, settings: settings)
         }
-        #else
+        #elseif os(iOS)
         // A `WindowGroup`, because that is the only scene a phone has; it still comes up as one
         // window, for the same reason the Mac insists on one — the pages are live `WebPage`s and a
         // second `WebView` over the same one traps in WebKit.

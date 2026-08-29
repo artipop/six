@@ -1,6 +1,6 @@
 #if os(macOS)
 import AppKit
-#else
+#elseif os(iOS)
 import UIKit
 #endif
 import SwiftUI
@@ -14,7 +14,7 @@ enum Platform {
         #if os(macOS)
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(string, forType: .string)
-        #else
+        #elseif os(iOS)
         UIPasteboard.general.string = string
         #endif
     }
@@ -24,7 +24,7 @@ enum Platform {
     static var screenSize: CGSize {
         #if os(macOS)
         NSScreen.main?.visibleFrame.size ?? CGSize(width: 1440, height: 900)
-        #else
+        #elseif os(iOS)
         UIScreen.main.bounds.size
         #endif
     }
@@ -36,7 +36,7 @@ extension Color {
     static var documentBackground: Color {
         #if os(macOS)
         Color(nsColor: .textBackgroundColor)
-        #else
+        #elseif os(iOS)
         Color(uiColor: .systemBackground)
         #endif
     }

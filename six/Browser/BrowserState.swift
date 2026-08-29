@@ -503,7 +503,7 @@ final class BrowserState {
         let point = content.convert(inWindow, from: nil)
         guard content.bounds.contains(point) else { return nil }
         return point
-        #else
+        #elseif os(iOS)
         return nil
         #endif
     }

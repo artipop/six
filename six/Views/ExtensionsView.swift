@@ -72,10 +72,10 @@ struct ExtensionsView: View {
     }
 
     private func pickExtension() {
-        #if !os(macOS)
+        #if os(iOS)
         // TODO: the phone wants `.fileImporter` here; a modal panel is a Mac thing.
         failure = String(localized: "Installing an extension from a file is not available on this device yet.")
-        #else
+        #elseif os(macOS)
         let panel = NSOpenPanel()
         panel.canChooseFiles = true
         panel.canChooseDirectories = true

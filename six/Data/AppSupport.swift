@@ -24,11 +24,29 @@ enum AppSupport {
     /// browser that is about to be killed and built again.
     static let isDevelopment = Bundle.main.bundleIdentifier?.hasSuffix(".dev") ?? false
 
-    /// `~/Library/Application Support/<bundle identifier>`.
+    /// `~/Library/Application Support/<bundle identifier>` on Apple, `$XDG_DATA_HOME/six` on Linux.
+    ///
+    /// The one function a port has to answer differently: everything else in the app reaches its
+    /// files through `file(_:)` and `folder(_:)` below, so this is the whole of "where six lives".
+    /// Linux is spelled out rather than left to Foundation — `.applicationSupportDirectory` does
+    /// resolve there, but to `~/.local/share` without the `XDG_DATA_HOME` override a Linux user
+    /// expects to be honoured, and `Bundle.main.bundleIdentifier` is nil off Apple, so the folder
+    /// would be named by the fallback anyway.
     static let root: URL = {
+        #if os(Linux)
+        let base: URL
+        if let xdg = ProcessInfo.processInfo.environment["XDG_DATA_HOME"], !xdg.isEmpty {
+            base = URL(fileURLWithPath: xdg, isDirectory: true)
+        } else {
+            base = URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true)
+                .appending(path: ".local/share", directoryHint: .isDirectory)
+        }
+        return base.appending(path: "six", directoryHint: .isDirectory)
+        #else
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         let identifier = Bundle.main.bundleIdentifier ?? "org.deffun.six"
         return support.appending(path: identifier, directoryHint: .isDirectory)
+        #endif
     }()
 
     static func file(_ path: String) -> URL {

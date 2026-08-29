@@ -1,6 +1,6 @@
 #if os(macOS)
 import AppKit
-#else
+#elseif os(iOS)
 import UIKit
 #endif
 import SwiftUI
@@ -10,7 +10,7 @@ import SwiftUI
 /// hand it to SwiftUI.
 #if os(macOS)
 typealias PlatformImage = NSImage
-#else
+#elseif os(iOS)
 typealias PlatformImage = UIImage
 #endif
 
@@ -18,7 +18,7 @@ extension Image {
     init(platform image: PlatformImage) {
         #if os(macOS)
         self.init(nsImage: image)
-        #else
+        #elseif os(iOS)
         self.init(uiImage: image)
         #endif
     }

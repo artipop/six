@@ -1,4 +1,4 @@
-#if !os(macOS)
+#if os(iOS)
 import Foundation
 import Observation
 import SwiftUI

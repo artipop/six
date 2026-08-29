@@ -329,10 +329,10 @@ final class ExtensionDelegate: NSObject, WKWebExtensionControllerDelegate {
     /// that was clicked.
     func webExtensionController(_ controller: WKWebExtensionController, presentActionPopup action: WKWebExtension.Action, for context: WKWebExtensionContext) async throws {
         guard let store else { return }
-        #if !os(macOS)
+        #if os(iOS)
         // TODO: the phone has no popover to hang this on — it wants a sheet over the strip.
         store.log("popup for \(action.label ?? "an extension") is not presented on this platform")
-        #else
+        #elseif os(macOS)
         let anchor = { (content: NSView) in
             store.popupAnchor ?? NSRect(x: content.bounds.midX, y: content.bounds.maxY - 40, width: 1, height: 1)
         }
@@ -383,12 +383,12 @@ final class ExtensionDelegate: NSObject, WKWebExtensionControllerDelegate {
     }
 
     private static func ask(title: String, body: String, allow: String) -> Bool {
-        #if !os(macOS)
+        #if os(iOS)
         // TODO: route this through the same question the page permissions use; until then the phone
         // grants nothing an extension did not already have at install time.
         FileHandle.standardError.write(Data("[six] extensions: denied without asking — \(title)\n".utf8))
         return false
-        #else
+        #elseif os(macOS)
         let alert = NSAlert()
         alert.messageText = title
         alert.informativeText = body

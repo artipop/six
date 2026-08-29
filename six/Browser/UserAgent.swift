@@ -26,7 +26,7 @@ enum UserAgent {
     static let full: String = {
         #if os(macOS)
         let platform = "Macintosh; Intel Mac OS X 10_15_7"
-        #else
+        #elseif os(iOS)
         let version = ProcessInfo.processInfo.operatingSystemVersion
         let platform = "iPhone; CPU iPhone OS \(version.majorVersion)_\(version.minorVersion) like Mac OS X"
         #endif
@@ -46,7 +46,7 @@ enum UserAgent {
               version.range(of: "^[0-9]+(\\.[0-9]+)*$", options: .regularExpression) != nil
         else { return "\(ProcessInfo.processInfo.operatingSystemVersion.majorVersion).0" }
         return version
-        #else
+        #elseif os(iOS)
         // iOS has no readable Safari bundle; its major version is the system's own.
         return "\(ProcessInfo.processInfo.operatingSystemVersion.majorVersion).0"
         #endif

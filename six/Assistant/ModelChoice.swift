@@ -21,7 +21,7 @@ enum ModelChoice: String, CaseIterable, Identifiable, Codable {
     #if os(macOS)
     static let languageModels: [ModelChoice] = [.onDevice, .privateCloudCompute, .claudeSonnet, .claudeOpus]
     static let agents: [ModelChoice] = [.claudeCodeAgent, .codexAgent]
-    #else
+    #elseif os(iOS)
     static let languageModels: [ModelChoice] = [.onDevice, .privateCloudCompute]
     static let agents: [ModelChoice] = []
     #endif
@@ -53,7 +53,7 @@ enum ModelChoice: String, CaseIterable, Identifiable, Codable {
     var isClaude: Bool {
         #if os(macOS)
         self == .claudeSonnet || self == .claudeOpus
-        #else
+        #elseif os(iOS)
         false
         #endif
     }
