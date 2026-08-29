@@ -7,8 +7,8 @@ import SixUI
 /// six on Linux. A skeleton: one window, the niri strip, columns that are real pages, an address bar
 /// and history in the same SQLite file the Mac writes.
 ///
-/// `SIX_URL` opens somewhere other than the start page, which is how the strip gets exercised without
-/// a keyboard in a headless container.
+/// `SIX_URL` opens somewhere other than the start page — space-separated for more than one, which is
+/// how the strip gets more than one column without a keyboard in a headless container.
 @MainActor
 func run() -> Int32 {
     let application = Application(id: "org.deffun.six")
@@ -18,6 +18,11 @@ func run() -> Int32 {
 
     application.onActivate {
         let layout = NiriLayout()
+        // `SIX_WIDTH` picks a column preset (0 = half, 3 = full), which is the setting the Mac cycles
+        // with ⌥R. Here it is the only way to see more than one column without a keyboard.
+        if let width = ProcessInfo.processInfo.environment["SIX_WIDTH"].flatMap(Int.init) {
+            layout.preferredWidthIndex = width
+        }
 
         // The database is the same file, in the same format, that the Mac build writes; only the
         // folder differs, and only inside `AppSupport.root`.
@@ -39,9 +44,10 @@ func run() -> Int32 {
         window = browser
         browser.present()
 
-        let start = ProcessInfo.processInfo.environment["SIX_URL"]
-            .flatMap(URL.init(string:)) ?? BrowserWindow.startPage
-        browser.open(start)
+        let requested = (ProcessInfo.processInfo.environment["SIX_URL"] ?? "")
+            .split(separator: " ")
+            .compactMap { URL(string: String($0)) }
+        for url in requested.isEmpty ? [BrowserWindow.startPage] : requested { browser.open(url) }
     }
 
     return application.run()
