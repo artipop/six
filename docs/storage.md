@@ -83,7 +83,7 @@ CloudKit Web Services"]
 ## Reading it
 
 - **Solid arrows** are the portable core: the JSON snapshot, SQLite through GRDB, and four protocol seams. Only
-  the Linux build of SQLiteData itself is unverified.
+  the Linux build of SQLiteData itself was the open question, and it now has an answer — below.
 - **Dotted arrows** are implementations of the seams — Apple on the left, the Linux replacement on the right. The
   core doesn't know which one is plugged in.
 - **SQLite is the only system of record.** The `vec0` tables (sqlite-vec) are rebuildable indexes over it, as Wax or
@@ -103,3 +103,27 @@ CloudKit Web Services"]
 | Embedder | multilingual-e5-small over MLX (built); `NLContextualEmbedding` as the no-download alternative | the same model over llama.cpp / ONNX | model ids + re-embedding is what is built: every vector carries its model, a query only meets its own |
 | Retrieval | sqlite-vec `vec0` (built) | the same; `sqlite3_auto_extension` works there | on macOS the extension is entered per connection (`sqlite3_vec_init`), since the system SQLite has extension loading compiled out — [bookmarks.md](bookmarks.md#the-index) |
 | Sync | SQLiteData's `SyncEngine` over CloudKit | no-op / own server | without an Apple account a Linux build cannot reach iCloud at all; accept that |
+
+## SQLiteData on Linux: measured
+
+Swift 6.3.3, aarch64, Ubuntu 24.04, in a container. **GRDB, StructuredQueries, the `@Table` and `#sql`
+macros and sqlite-vec all compile there** — the build reaches 687 of 779 steps before it stops, and it
+stops outside all of them.
+
+What stops it is `SQLiteData` depending on `Sharing`, unconditionally
+(`sqlite-data/Package.swift`, target dependency, not trait-gated), which reaches `combine-schedulers`,
+whose `Internal/Lock.swift` uses `pthread_mutex_t` under a bare `import Foundation`. Swift 6.3 rejects
+that: `initializer 'init()' is not available due to missing import of defining module 'CoreFoundation'`
+`[#MemberImportVisibility]`. Upstream `main` still has no `import CoreFoundation`, so a version bump does
+not help; and because the package sets its own language mode, neither `-Wwarning MemberImportVisibility`
+nor `-swift-version 5` on the command line reaches it.
+
+The way out is the one this file already implied. **six uses none of the layer that pulls `Sharing`** —
+no `@FetchAll`, no `@Fetch`, no `@Shared` anywhere in `six/`; only `@Table`, `#sql` and
+`defaultDatabase`. So on Linux the dependency is `swift-structured-queries` directly, which ships
+`StructuredQueriesSQLite` and depends on neither `Sharing` nor `combine-schedulers`. The macros are the
+same ones, so **every model file travels unchanged** and only `AppDatabase`'s plumbing — `defaultDatabase`
+over a GRDB `DatabaseWriter` — needs a Linux arm.
+
+That is a smaller fallback than "plain GRDB" ([todo.md](todo.md#storage-history-pages-and-retrieval)
+assumed the query layer might have to go too; it does not).
