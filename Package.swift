@@ -8,9 +8,21 @@ import PackageDescription
 // `membershipExceptions`, so a file belongs to a module by being listed rather than by being moved.
 // `xcodebuild -project six.xcodeproj` ignores this manifest entirely.
 //
-// `SixCore` is the part that already imports nothing but Foundation and Observation. It grows one
-// directory at a time, and every addition has to keep `swift build` green on **Linux**, which is the
-// only reason the package exists — building on macOS proves nothing the project didn't already know.
+// `SixCore` grows one directory at a time, and every addition has to keep `swift build` green on
+// **Linux**, which is the only reason the package exists — building on macOS proves nothing the
+// project didn't already know.
+//
+// `Package.resolved` here is **seeded from the app's own**
+// (six.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved) and that is load-bearing
+// three times over. A database written by one build is opened by the other, so they had better agree
+// on the library that wrote it. sqlite-data 1.11.0 does not compile against structured-queries 0.38,
+// so a free resolve picks a set that does not build at all. And newer swift-sharing (2.10.0) and
+// combine-schedulers (1.2.1) are Linux regressions — `package import Foundation.NSData` in one,
+// `pthread_mutex_t` under a bare `import Foundation` in the other — arriving through SQLiteData,
+// which depends on Sharing unconditionally.
+//
+// **So `swift package update` is a Linux-breaking command here.** Re-seed from the app instead, and
+// let the project's own graph move first. See docs/storage.md.
 let package = Package(
     name: "six",
     platforms: [.macOS(.v15)],
@@ -19,23 +31,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/pointfreeco/sqlite-data", from: "1.11.0"),
-        .package(url: "https://github.com/mhayes853/sqlite-vec-data", from: "0.5.0"),
-
-        // Pins, not uses. Neither is imported anywhere in six; both are here to hold the graph at
-        // the versions the app itself resolved, because the newer ones do not build on Linux:
-        //
-        //   swift-sharing 2.10.0    `package import Foundation.NSData` — no such module off Apple
-        //   combine-schedulers 1.2.1  `pthread_mutex_t` under a bare `import Foundation`
-        //
-        // Both are regressions (2.9.1, 2.8.2 and 2.5.2 of Sharing all build clean), both are
-        // upstream, and both arrive through SQLiteData, which depends on Sharing unconditionally.
-        // Keeping the two builds on the same versions is worth having anyway: a database written by
-        // one is opened by the other.
-        //
-        // **So bumping either of these is a Linux-breaking change**, and it will break in a package
-        // six never imports. See docs/storage.md.
-        .package(url: "https://github.com/pointfreeco/swift-sharing", exact: "2.9.1"),
-        .package(url: "https://github.com/pointfreeco/combine-schedulers", exact: "1.2.0")
+        .package(url: "https://github.com/mhayes853/sqlite-vec-data", from: "0.5.0")
     ],
     targets: [
         .target(

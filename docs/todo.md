@@ -183,8 +183,9 @@ their chunks and vectors (`six/Data/`, `six/Bookmarks/`, [architecture.md](archi
 - **Linux build of the data layer.** ~~Verify early~~ — done, and it builds: GRDB, SQLiteData, sqlite-vec
   and the `@Table` macros all compile on Swift 6.3.3/aarch64, as do `AppDatabase`, `SettingsStore`, `History`
   and `Bookmark`. No fallback needed. What it costs is two pins: `swift-sharing` 2.10.0 and
-  `combine-schedulers` 1.2.1 regressed on Linux, so `Package.swift` holds both at the versions the app
-  already uses — bumping either is now a Linux-breaking change. Measured in [storage.md](storage.md).
+  `combine-schedulers` 1.2.1 regressed on Linux, and `sqlite-data` 1.11.0 does not compile against
+  `structured-queries` 0.38 on any platform. The package's `Package.resolved` is seeded from the app's,
+  which answers all three — so `swift package update` is Linux-breaking. Measured in [storage.md](storage.md).
 - `record_name` / `sync_state` columns for [sync](sync.md) when it comes; the schema already follows SQLiteData's
   CloudKit rules (UUID text keys with `ON CONFLICT REPLACE`, no other `UNIQUE`, no column drops, BLOBs in their own
   tables), so nothing migrates.

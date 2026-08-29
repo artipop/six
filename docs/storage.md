@@ -122,13 +122,17 @@ Both breakages are recent regressions, and both are upstream, not ours:
 2.9.1, 2.8.2 and 2.5.2 of `swift-sharing` all build clean, so 2.10.0 is a regression — and its own CI
 claims Linux on Swift 6.3, which makes it worth reporting upstream.
 
-So `Package.swift` names both as **pins rather than uses**: dependencies it declares and never imports,
-purely to hold the graph at the versions the app already resolved. That is also the honest statement of
-the arrangement — the two builds compile the same sources against the same libraries, which is the only
-way a database written by one is safe to open with the other.
+There is a third trap in the same family, and it is not about Linux at all: `sqlite-data` 1.11.0 does not
+compile against `swift-structured-queries` 0.38. A free resolve picks a set that fails on **both**
+platforms.
 
-**The consequence to remember:** bumping `swift-sharing` or `combine-schedulers` is now a Linux-breaking
-change, and it will break in a package six never imports. The pin comments say so.
+So the package's `Package.resolved` is **seeded from the app's own**, and that one file answers all
+three. It is the honest statement of the arrangement anyway: a database written by one build is opened
+by the other, and they should agree on the library that wrote it.
+
+**The consequence to remember:** `swift package update` is a Linux-breaking command here. Re-seed from
+`six.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` and let the project's own
+graph move first.
 
 ([sqlite-data#459](https://github.com/pointfreeco/sqlite-data/pull/459) is a separate Linux effort —
 CloudKit gating in its own tests, and its GRDB floor. Orthogonal to this, and not needed for it.)
