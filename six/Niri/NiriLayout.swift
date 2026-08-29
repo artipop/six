@@ -1,6 +1,21 @@
 import Foundation
 import Observation
+#if canImport(SwiftUI)
 import SwiftUI
+#else
+// The strip's geometry is the one piece a second front end reuses whole, and the only thing standing
+// between it and a Linux build was three lines of animation. The model's business is *when* something
+// should ease rather than jump; how it eases belongs to whoever draws it, and GTK has a timeline of
+// its own. So off Apple these stand in, the call sites stay identical on both platforms, and the
+// front animates the properties it reads.
+struct Animation: Sendable {
+    static func smooth(duration: Double, extraBounce: Double = 0) -> Animation { Animation() }
+}
+
+func withAnimation<Result>(_ animation: Animation? = nil, _ body: () throws -> Result) rethrows -> Result {
+    try body()
+}
+#endif
 
 // MARK: - Model
 
@@ -58,7 +73,13 @@ final class NiriLayout {
     static let widthPresets: [CGFloat] = [0.5, 2.0 / 3.0, 0.88, 1.0]
     /// Menu names for the presets, in the same order.
     static var widthPresetTitles: [String] {
+        #if os(Linux)
+        // `String(localized:)` is Apple Foundation's; the strings catalog is Apple's too. A GTK
+        // front localises through gettext, so these are the keys and it translates them itself.
+        ["Half", "Two Thirds", "Peek", "Full"]
+        #else
         [String(localized: "Half"), String(localized: "Two Thirds"), String(localized: "Peek"), String(localized: "Full")]
+        #endif
     }
     nonisolated static let defaultWidthIndex = 2
     /// Gaps are a fraction of the viewport, not a pixel count: the layout should look the same on a
@@ -648,7 +669,11 @@ final class NiriLayout {
     /// The name, or the position when there is none.
     func title(at index: Int) -> String {
         guard workspaces.indices.contains(index), !workspaces[index].name.isEmpty else {
+            #if os(Linux)
+            return "Workspace \(index + 1)"
+            #else
             return String(localized: "Workspace \(index + 1)")
+            #endif
         }
         return workspaces[index].name
     }

@@ -9,27 +9,17 @@ import PackageDescription
 // `xcodebuild -project six.xcodeproj` ignores this manifest entirely.
 //
 // `SixCore` is the part that already imports nothing but Foundation and Observation. It grows one
-// directory at a time, and every addition has to keep `swift build` green on Linux.
+// directory at a time, and every addition has to keep `swift build` green on **Linux**, which is the
+// only reason the package exists — building on macOS proves nothing the project didn't already know.
 let package = Package(
     name: "six",
     platforms: [.macOS(.v15)],
     products: [
         .library(name: "SixCore", targets: ["SixCore"])
     ],
-    dependencies: [
-        // Versions follow the project's own resolved graph
-        // (six.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved), so the two
-        // builds compile the same sources against the same libraries.
-        .package(url: "https://github.com/pointfreeco/sqlite-data", from: "1.11.0"),
-        .package(url: "https://github.com/mhayes853/sqlite-vec-data", from: "0.5.0")
-    ],
     targets: [
         .target(
             name: "SixCore",
-            dependencies: [
-                .product(name: "SQLiteData", package: "sqlite-data"),
-                .product(name: "SQLiteVecData", package: "sqlite-vec-data")
-            ],
             path: "six",
             sources: [
                 // Geometry: no platform at all, and the piece a second front end reuses whole.
@@ -37,19 +27,22 @@ let package = Package(
                 // Where six lives, and the versioned JSON snapshot beside the database.
                 "Data/AppSupport.swift",
                 "Persistence/SnapshotStore.swift",
-                "Persistence/StatePersistence.swift",
-                // The SQLite half. This is the part `docs/todo.md` flags as the unverified one:
-                // SQLiteData does not declare Linux in its manifest, so whether it builds there is
-                // the question the Linux target exists to answer early.
-                "Data/AppDatabase.swift",
-                "Bookmarks/Bookmark.swift"
+                "Persistence/StatePersistence.swift"
                 //
-                // Deliberately not here yet: `Data/SettingsStore.swift` and, through it,
+                // The SQLite half is measured and waiting on a decision, not forgotten — see
+                // `docs/storage.md`. `Data/AppDatabase.swift` and `Bookmarks/Bookmark.swift` compile
+                // fine, but `SQLiteData` depends unconditionally on `Sharing`, which reaches
+                // `combine-schedulers`, which does not build on Linux under Swift 6.3. The way out
+                // is `swift-structured-queries` directly — same `@Table` and `#sql` macros, no
+                // `Sharing` — so the models travel unchanged and only `AppDatabase`'s plumbing
+                // needs a Linux arm.
+                //
+                // Also not here: `Data/SettingsStore.swift` and, through it,
                 // `Browser/{History,SearchEngine}.swift`. SettingsStore is the coupling hub of the
                 // app — it decodes six subsystems' types out of the settings table (ModelChoice,
                 // FilterList, InstalledExtension, SitePermissions, ResearchPreset, LivePageCache),
-                // so taking it drags most of the app with it. Untangling that is its own step:
-                // each typed accessor belongs beside the type it decodes, as an extension, leaving
+                // so taking it drags most of the app with it. Untangling that is its own step: each
+                // typed accessor belongs beside the type it decodes, as an extension, leaving
                 // SettingsStore itself knowing only keys and strings.
             ],
             swiftSettings: [.swiftLanguageMode(.v5)]
