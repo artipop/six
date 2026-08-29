@@ -20,6 +20,14 @@ public final class BrowserModel {
         public var isFocused: Bool
     }
 
+    /// One model for the app, reached statically rather than stored in a view.
+    ///
+    /// Not a style choice: Meta collects a view's `@State` by reflecting over its stored properties,
+    /// and a class sitting in one crashes the runtime inside `swift_getTypeByMangledName` — the
+    /// window comes up, draws once, and dies. So the views hold value types only, and the model is
+    /// here.
+    public static let shared = BrowserModel()
+
     let layout = NiriLayout()
     public let session: NetworkSession
 
@@ -28,7 +36,7 @@ public final class BrowserModel {
     private var titles: [UUID: String] = [:]
     private var urls: [UUID: URL] = [:]
 
-    public init() {
+    private init() {
         let profiles = AppSupport.folder("Profiles/Default")
         try? FileManager.default.createDirectory(at: profiles, withIntermediateDirectories: true)
         session = NetworkSession(directory: profiles)
@@ -68,6 +76,13 @@ public final class BrowserModel {
     }
 
     var focusedID: UUID? { layout.focusedTabID }
+    /// The layout's own gap, so the front never invents a spacing of its own.
+    public var gap: Double { Double(layout.gap) }
+    /// What a column should be, in points, from the same presets the Mac cycles with ⌥R.
+    public var columnSize: CGSize {
+        CGSize(width: layout.width(of: .init(tabID: UUID(), widthIndex: layout.preferredWidthIndex)),
+               height: layout.columnHeight)
+    }
     public var canGoBack: Bool { false }
     public var canGoForward: Bool { false }
 

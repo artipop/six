@@ -43,6 +43,7 @@ public struct WebView: AdwaitaWidget {
         g_value_unset(&value)
 
         let storage = ViewStorage(view.map { OpaquePointer($0) })
+        connect(storage)
         update(storage, data: data, updateProperties: true, type: type)
         return storage
     }
@@ -51,6 +52,28 @@ public struct WebView: AdwaitaWidget {
     where Data: ViewRenderData {
         guard let view = storage.opaquePointer else { return }
 
+        guard updateProperties, let url else { return }
+        // Only navigate when the address actually differs. Every other update — a title arriving, a
+        // neighbour column moving — must leave the page where it is.
+        let current = webkit_web_view_get_uri(.init(view)).map { String(cString: $0) }
+        if current != url.absoluteString, (storage.previousState as? Self)?.url != url {
+            webkit_web_view_load_uri(.init(view), url.absoluteString)
+        }
+        storage.previousState = self
+    }
+}
+
+extension WebView {
+    /// Signals are connected **once**, when the widget is made — never in `update`.
+    ///
+    /// Connecting them there instead is what took the whole app down, and the way it failed is worth
+    /// remembering: every re-render added another handler, each handler asked the view to refresh,
+    /// and the refresh re-rendered. The crash surfaced as a bad pointer dereference inside adwaita's
+    /// own `Button.update`, which is not where the mistake was — it was a stack overflow from
+    /// `SafeWrapper.update` recursing into itself, and the button was simply what the runaway
+    /// happened to be walking when the stack ran out.
+    func connect(_ storage: ViewStorage) {
+        guard let view = storage.opaquePointer else { return }
         storage.notify(name: "title") {
             let title = webkit_web_view_get_title(.init(view)).map { String(cString: $0) } ?? ""
             onTitleChange?(title)
@@ -67,19 +90,8 @@ public struct WebView: AdwaitaWidget {
             let title = webkit_web_view_get_title(.init(view)).map { String(cString: $0) } ?? ""
             onFinishLoad?(url, title)
         }
-
-        guard updateProperties, let url else { return }
-        // Only navigate when the address actually differs. Every other update — a title arriving, a
-        // neighbour column moving — must leave the page where it is.
-        let current = webkit_web_view_get_uri(.init(view)).map { String(cString: $0) }
-        if current != url.absoluteString, (storage.previousState as? Self)?.url != url {
-            webkit_web_view_load_uri(.init(view), url.absoluteString)
-        }
-        storage.previousState = self
     }
-}
 
-extension WebView {
     public func onTitleChange(_ body: @escaping (String) -> Void) -> Self {
         var copy = self
         copy.onTitleChange = body
