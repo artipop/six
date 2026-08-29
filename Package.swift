@@ -29,13 +29,13 @@ let package = Package(
                 "Persistence/SnapshotStore.swift",
                 "Persistence/StatePersistence.swift"
                 //
-                // The SQLite half is measured and waiting on a decision, not forgotten — see
-                // `docs/storage.md`. `Data/AppDatabase.swift` and `Bookmarks/Bookmark.swift` compile
-                // fine, but `SQLiteData` depends unconditionally on `Sharing`, which reaches
-                // `combine-schedulers`, which does not build on Linux under Swift 6.3. The way out
-                // is `swift-structured-queries` directly — same `@Table` and `#sql` macros, no
-                // `Sharing` — so the models travel unchanged and only `AppDatabase`'s plumbing
-                // needs a Linux arm.
+                // The SQLite half is measured and waiting on one piece of work, not forgotten —
+                // see `docs/storage.md`. The files compile; `SQLiteData` does not, because it
+                // depends unconditionally on `Sharing`, which is not portable (its own
+                // `import Foundation.NSData` stops the build even after `combine-schedulers` is
+                // patched). Linux takes `swift-structured-queries` directly plus the ~8-file
+                // MIT bridge that binds it to GRDB, which keeps the same `DatabaseWriter` on both
+                // platforms and leaves every call site here alone.
                 //
                 // Also not here: `Data/SettingsStore.swift` and, through it,
                 // `Browser/{History,SearchEngine}.swift`. SettingsStore is the coupling hub of the

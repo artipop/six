@@ -118,12 +118,23 @@ that: `initializer 'init()' is not available due to missing import of defining m
 not help; and because the package sets its own language mode, neither `-Wwarning MemberImportVisibility`
 nor `-swift-version 5` on the command line reaches it.
 
+Patching was tried and is a dead end. Adding the missing `import CoreFoundation` to
+`combine-schedulers` does clear that error — and the build then stops one package later, at
+`swift-sharing`'s own `import Foundation.NSData`, a module that does not exist off Apple. It is not one
+line in one package; `Sharing` is simply not portable.
+
 The way out is the one this file already implied. **six uses none of the layer that pulls `Sharing`** —
-no `@FetchAll`, no `@Fetch`, no `@Shared` anywhere in `six/`; only `@Table`, `#sql` and
-`defaultDatabase`. So on Linux the dependency is `swift-structured-queries` directly, which ships
-`StructuredQueriesSQLite` and depends on neither `Sharing` nor `combine-schedulers`. The macros are the
-same ones, so **every model file travels unchanged** and only `AppDatabase`'s plumbing — `defaultDatabase`
-over a GRDB `DatabaseWriter` — needs a Linux arm.
+no `@FetchAll`, no `@Fetch`, no `@Shared` anywhere in `six/`; only `@Table`, `#sql`, `defaultDatabase`
+and GRDB. So on Linux the dependency becomes `swift-structured-queries` directly, which depends on
+neither `Sharing` nor `combine-schedulers`, plus the thin bridge that binds it to GRDB.
+
+That bridge is the only thing SQLiteData was giving us that structured-queries does not. It is ~8 files
+in `sqlite-data/Sources/SQLiteData/StructuredQueries+GRDB/` — `DefaultDatabase`, `QueryCursor`,
+`Statement+GRDB`, `Table+GRDB`, `SQLiteQueryDecoder`, `Decoding` and a couple of helpers — under MIT,
+and the rest of that directory is the `Fetch*` layer six never touches. Vendoring that slice the way
+`ClaudeForFoundationModels` is vendored keeps **the same `Database` and `DatabaseWriter` types on both
+platforms**, so `AppDatabase` and `SettingsStore` keep their call sites exactly and the model files
+travel untouched.
 
 That is a smaller fallback than "plain GRDB" ([todo.md](todo.md#storage-history-pages-and-retrieval)
-assumed the query layer might have to go too; it does not).
+assumed the query layer might have to go too; it does not — only the package that wraps it).
