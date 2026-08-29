@@ -160,12 +160,28 @@ public struct BrowserContent: View {
                 .ellipsize()
                 .padding(4)
                 .style(column.isFocused ? "heading" : "dim-label")
-            page(for: column)
+            // A discarded column keeps its place and its address, and builds a page again when the
+            // strip brings it back — the same thing the Mac does, and for the same reason: a strip
+            // of a hundred columns cannot hold a hundred web content processes.
+            if column.isLive {
+                page(for: column)
+                    .frame(
+                        minWidth: Int(model.columnSize.width),
+                        minHeight: Int(model.columnSize.height)
+                    )
+                    .vexpand()
+            } else {
+                StatusPage(
+                    column.title.isEmpty ? "Discarded" : column.title,
+                    icon: .default(icon: .viewRefresh),
+                    description: column.url?.absoluteString ?? ""
+                )
                 .frame(
                     minWidth: Int(model.columnSize.width),
                     minHeight: Int(model.columnSize.height)
                 )
                 .vexpand()
+            }
         }
         .style("card")
         // Clicking a column focuses it, which is also what scrolls the strip to it — the offset

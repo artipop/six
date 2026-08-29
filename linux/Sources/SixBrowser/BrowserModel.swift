@@ -18,6 +18,9 @@ public final class BrowserModel {
         public var url: URL?
         public var title: String
         public var isFocused: Bool
+        /// Whether this column is holding a real page. A discarded one keeps its place, its title
+        /// and its address, and builds again when it is next shown.
+        public var isLive: Bool
     }
 
     /// One model for the app, reached statically rather than stored in a view.
@@ -35,6 +38,7 @@ public final class BrowserModel {
     private var profileID = UUID()
     private var titles: [UUID: String] = [:]
     private var urls: [UUID: URL] = [:]
+    private var pages = LivePages()
 
     private init() {
         let profiles = AppSupport.folder("Profiles/Default")
@@ -76,6 +80,16 @@ public final class BrowserModel {
         trace("columns: \(workspace.columns.count)")
         let frames = layout.columnFrames(workspace)
         let scroll = layout.resolvedOffset(workspace) - layout.horizontalPreview
+        // What the strip is showing is pinned; the rest lives or dies by the budget.
+        let all = workspace.columns.map(\.tabID)
+        let pinned = layout.visibleTabIDs
+        let dropped = pages.settle(pinned: pinned, all: all)
+        trace("бюджет \(pages.budget): живых \(pages.live.count) из \(all.count), закреплено \(pinned.count), выгружено \(dropped.count)")
+        for id in dropped {
+            trace("discard \(id.uuidString.prefix(8))")
+            PageRegistry.forget(id)
+        }
+
         return workspace.columns.enumerated().compactMap { index, column in
             guard frames.indices.contains(index) else { return nil }
             let frame = frames[index].offsetBy(dx: -scroll, dy: 0)
@@ -84,10 +98,15 @@ public final class BrowserModel {
                 frame: frame,
                 url: urls[column.tabID],
                 title: titles[column.tabID] ?? "",
-                isFocused: column.tabID == layout.focusedTabID
+                isFocused: column.tabID == layout.focusedTabID,
+                isLive: pages.live.contains(column.tabID)
             )
         }
     }
+
+    /// How many pages may be live at once, and how many are.
+    public var liveBudget: Int { pages.budget }
+    public var liveCount: Int { pages.live.count }
 
     var focusedID: UUID? { layout.focusedTabID }
     /// Where the strip should be scrolled to: the offset `NiriLayout` computes for the focused
@@ -146,6 +165,7 @@ public final class BrowserModel {
         guard layout.focusedTabID != tabID else { return }
         trace("focus \(tabID)")
         layout.focus(tabID: tabID)
+        pages.touch(tabID)
     }
 
     /// One column along the strip, the way ⌥← and ⌥→ do it on the Mac.
@@ -178,6 +198,7 @@ public final class BrowserModel {
         trace("close \(focused)")
         layout.removeColumn(tabID: focused)
         PageRegistry.forget(focused)
+        pages.forget(focused)
         urls[focused] = nil
         titles[focused] = nil
     }
