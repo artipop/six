@@ -188,6 +188,28 @@ public final class BrowserModel {
     /// Send the focused column to the next workspace along, which is how a strip gets tidied.
     public func moveColumnToWorkspace(_ delta: Int) { layout.moveColumnToWorkspace(delta) }
 
+    // MARK: Overview
+
+    /// The whole strip at once, scaled down. Not a layout of its own — `NiriLayout` reports the
+    /// tiled geometry throughout, because the overview is a way of *looking* at the strip rather
+    /// than a different arrangement of it.
+    public var isOverview: Bool { layout.isOverview }
+
+    public func toggleOverview() {
+        layout.isOverview.toggle()
+        trace("overview \(layout.isOverview ? "on" : "off") scale \(layout.overviewScale)")
+    }
+
+    /// How far to zoom out: enough to show the focused strip, never more than half, never past the
+    /// floor where a long strip starts scrolling instead of getting microscopic.
+    public var overviewScale: Double { layout.isOverview ? Double(layout.overviewScale) : 1 }
+
+    /// The strip's full width, so the scaled canvas can ask for the right size.
+    public var contentWidth: Double {
+        guard let workspace = layout.focusedWorkspace else { return 0 }
+        return Double(layout.contentWidth(workspace))
+    }
+
     public var workspaceCount: Int { layout.workspaces.count }
     public var focusedWorkspaceIndex: Int { layout.focusedWorkspaceIndex }
 

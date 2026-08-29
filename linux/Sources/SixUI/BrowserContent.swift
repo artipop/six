@@ -62,6 +62,9 @@ public struct BrowserContent: View {
             EntryRow("Address", text: $typed)
                 .entryActivated { model.go(to: typed); refresh() }
                 .hexpand()
+            Button(icon: .default(icon: .viewFullscreen)) { model.toggleOverview(); refresh() }
+                .flat()
+                .tooltip("Overview")
             Button(icon: .default(icon: .documentOpenRecent)) { showsHistory = true }
                 .flat()
                 .tooltip("History")
@@ -95,6 +98,7 @@ public struct BrowserContent: View {
             Button("") { model.focusWorkspace(-1); refresh() }.keyboardShortcut("<Alt>Up")
             Button("") { model.focusWorkspace(1); refresh() }.keyboardShortcut("<Alt>Down")
             Button("") { model.cycleWidth(); refresh() }.keyboardShortcut("<Alt>r")
+            Button("") { model.toggleOverview(); refresh() }.keyboardShortcut("<Alt>o")
         }
         .visible(false)
     }
@@ -113,12 +117,32 @@ public struct BrowserContent: View {
     /// not needed to lay a row out.
     @ViewBuilder var strip: Body {
         ScrollView {
-            HStack(spacing: Int(gap)) {
-                ForEach(columns) { column in
-                    columnView(column)
+            // The overview scales the whole canvas rather than re-laying it out, which is what makes
+            // it a way of looking at the strip rather than a second layout. `GtkFixed` is the only
+            // container that can transform a child, and one static child is exactly what adwaita's
+            // own `element(x:y:id:)` handles — managing its storage by hand is what crashed this
+            // once already.
+            Fixed()
+                .element(x: 0, y: 0, id: "canvas") {
+                    HStack(spacing: Int(gap)) {
+                        ForEach(columns) { column in
+                            columnView(column)
+                        }
+                    }
+                    .padding(Int(gap))
                 }
-            }
-            .padding(Int(gap))
+                .inspect { storage, _ in
+                    guard let fixed = storage.opaquePointer,
+                          let canvas = storage.content["canvas"]?.first?.opaquePointer else { return }
+                    let scale = Float(model.overviewScale)
+                    let transform = gsk_transform_scale(nil, scale, scale)
+                    gtk_fixed_set_child_transform(fixed.cast(), canvas.cast(), transform)
+                    gtk_widget_set_size_request(
+                        fixed.cast(),
+                        Int32(model.contentWidth * model.overviewScale),
+                        -1
+                    )
+                }
         }
         // The strip follows the focus. Without this a new column is created, laid out past the right
         // edge, and never seen — which is what "the plus button does nothing" actually was.
