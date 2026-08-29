@@ -34,7 +34,11 @@ public final class BrowserModel {
     public static let shared = BrowserModel()
 
     let layout = NiriLayout()
-    public let session: NetworkSession
+    /// One session per profile. A profile *is* its cookie jar — that is what makes private browsing
+    /// private, rather than the app remembering to skip writes.
+    private var sessions: [UUID: NetworkSession] = [:]
+    private var privateProfiles: Set<UUID> = []
+    private let defaultSession: NetworkSession
 
     private var history: HistoryStore?
     private var profileID = UUID()
@@ -47,7 +51,7 @@ public final class BrowserModel {
         Thumbnails.folder = AppSupport.folder("Thumbnails")
         let profiles = AppSupport.folder("Profiles/Default")
         try? FileManager.default.createDirectory(at: profiles, withIntermediateDirectories: true)
-        session = NetworkSession(directory: profiles)
+        defaultSession = NetworkSession(directory: profiles)
 
         // The same file, in the same format, the Mac build writes; only the folder differs, and only
         // inside `AppSupport.root`. A browser without history is still a browser, so a database that
@@ -100,7 +104,9 @@ public final class BrowserModel {
     /// focused, or sent somewhere — because a browser that only saves on quit loses everything to
     /// the one crash it was going to have.
     public func save() {
-        guard let settings else { return }
+        // A private profile has no place in the snapshot: it is recorded nowhere, and a relaunch
+        // must not bring it back.
+        guard let settings, !isPrivate else { return }
         var state = StripState()
         for (id, strip) in layout.allStrips { state.strips[id.uuidString] = strip }
         for (id, url) in urls { state.urls[id.uuidString] = url.absoluteString }
@@ -151,6 +157,44 @@ public final class BrowserModel {
     var focusedID: UUID? { layout.focusedTabID }
     /// Where the strip should be scrolled to: the offset `NiriLayout` computes for the focused
     /// column, which is what centres it when `centersFocus` is on. The same number the Mac uses.
+    /// The session a column should be built against: its profile's.
+    public var session: NetworkSession {
+        sessions[layout.activeProfileID] ?? defaultSession
+    }
+
+    /// Whether the strip on screen belongs to a private profile. Recorded nowhere, and the chrome
+    /// says so.
+    public var isPrivate: Bool { privateProfiles.contains(layout.activeProfileID) }
+
+    /// Private browsing is a profile, not a mode — the same arrangement the Mac has. Its session is
+    /// ephemeral, so cookies, storage and caches live in memory and go when it does; and because the
+    /// profile is what is private, nothing downstream has to remember to behave differently.
+    public func openPrivateProfile() {
+        let id = UUID()
+        privateProfiles.insert(id)
+        sessions[id] = NetworkSession()
+        layout.activeProfileID = id
+        trace("private profile \(id.uuidString.prefix(8))")
+        open(Self.startPage)
+    }
+
+    /// Back to the ordinary profile, and the private one is forgotten entirely — its session, its
+    /// pages and its place in the strip.
+    public func closePrivateProfile() {
+        let id = layout.activeProfileID
+        guard privateProfiles.contains(id) else { return }
+        for column in layout.workspaces.flatMap(\.columns) {
+            PageRegistry.forget(column.tabID)
+            pages.forget(column.tabID)
+            urls[column.tabID] = nil
+            titles[column.tabID] = nil
+        }
+        privateProfiles.remove(id)
+        sessions[id] = nil
+        layout.activeProfileID = profileID
+        trace("private profile closed")
+    }
+
     public var scrollOffset: Double {
         guard let workspace = layout.focusedWorkspace else { return 0 }
         return Double(layout.resolvedOffset(workspace))
@@ -295,7 +339,7 @@ public final class BrowserModel {
     public func setTitle(_ title: String, for tabID: UUID) -> Bool {
         guard titles[tabID] != title else { return false }
         titles[tabID] = title
-        if let url = urls[tabID], !title.isEmpty {
+        if let url = urls[tabID], !title.isEmpty, !isPrivate {
             history?.updateTitle(title, for: url, in: profileID)
         }
         return true
@@ -311,6 +355,7 @@ public final class BrowserModel {
 
     public func didFinishLoad(_ url: URL, title: String, for tabID: UUID) {
         urls[tabID] = url
+        guard !isPrivate else { return }
         history?.record(url, title: title, in: profileID)
         // Photographed when it finishes rather than when it is discarded. Waiting for the eviction
         // sounds tidier and takes no pictures at all: a column past the budget never becomes live,

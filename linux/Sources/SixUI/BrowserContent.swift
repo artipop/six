@@ -62,6 +62,12 @@ public struct BrowserContent: View {
             EntryRow("Address", text: $typed)
                 .entryActivated { model.go(to: typed); refresh() }
                 .hexpand()
+            Button(icon: .default(icon: model.isPrivate ? .viewReveal : .viewConceal)) {
+                if model.isPrivate { model.closePrivateProfile() } else { model.openPrivateProfile() }
+                refresh()
+            }
+            .flat()
+            .tooltip(model.isPrivate ? "Leave private browsing" : "Private window")
             Button(icon: .default(icon: .viewFullscreen)) { model.toggleOverview(); refresh() }
                 .flat()
                 .tooltip("Overview")
@@ -72,7 +78,7 @@ public struct BrowserContent: View {
                 .flat()
         }
         .padding(6)
-        .style("toolbar")
+        .style(model.isPrivate ? "toolbar suggested-action" : "toolbar")
     }
 
     /// Pull the strip's shape out of the model. Safe from an action; never called during a render,
@@ -99,6 +105,11 @@ public struct BrowserContent: View {
             Button("") { model.focusWorkspace(1); refresh() }.keyboardShortcut("<Alt>Down")
             Button("") { model.cycleWidth(); refresh() }.keyboardShortcut("<Alt>r")
             Button("") { model.toggleOverview(); refresh() }.keyboardShortcut("<Alt>o")
+            Button("") {
+                if model.isPrivate { model.closePrivateProfile() } else { model.openPrivateProfile() }
+                refresh()
+            }
+            .keyboardShortcut("<Ctrl><Shift>p")
         }
         .visible(false)
     }
