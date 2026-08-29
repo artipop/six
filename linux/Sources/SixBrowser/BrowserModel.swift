@@ -82,6 +82,13 @@ public final class BrowserModel {
     }
 
     var focusedID: UUID? { layout.focusedTabID }
+    /// Where the strip should be scrolled to: the offset `NiriLayout` computes for the focused
+    /// column, which is what centres it when `centersFocus` is on. The same number the Mac uses.
+    public var scrollOffset: Double {
+        guard let workspace = layout.focusedWorkspace else { return 0 }
+        return Double(layout.resolvedOffset(workspace))
+    }
+
     /// The layout's own gap, so the front never invents a spacing of its own.
     public var gap: Double { Double(layout.gap) }
     /// What a column should be, in points, from the same presets the Mac cycles with ⌥R.
@@ -136,14 +143,25 @@ public final class BrowserModel {
 
     // MARK: What the pages report
 
-    public func setTitle(_ title: String, for tabID: UUID) {
+    /// Returns whether anything changed, so the front can redraw for a new title and stay still for
+    /// the dozen identical ones a loading page sends. Redrawing on every one of them is what sent
+    /// the view tree into a 248-render runaway.
+    @discardableResult
+    public func setTitle(_ title: String, for tabID: UUID) -> Bool {
+        guard titles[tabID] != title else { return false }
         titles[tabID] = title
         if let url = urls[tabID], !title.isEmpty {
             history?.updateTitle(title, for: url, in: profileID)
         }
+        return true
     }
 
-    public func setURL(_ url: URL, for tabID: UUID) { urls[tabID] = url }
+    @discardableResult
+    public func setURL(_ url: URL, for tabID: UUID) -> Bool {
+        guard urls[tabID] != url else { return false }
+        urls[tabID] = url
+        return true
+    }
 
     public func didFinishLoad(_ url: URL, title: String, for tabID: UUID) {
         urls[tabID] = url

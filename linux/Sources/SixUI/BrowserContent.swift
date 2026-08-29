@@ -1,4 +1,5 @@
 import Adwaita
+import CAdw
 import Foundation
 import SixBrowser
 import SixWebKit
@@ -19,7 +20,12 @@ public struct BrowserContent: View {
     /// A counter that nothing reads does not work: Meta re-renders a view when the state it *reads*
     /// changes, so bumping a write-only `revision` left the new tab and the typed address with no
     /// way to reach the screen. Holding the derived list is what makes the dependency real.
-    @State private var columns: [BrowserModel.Column] = []
+    ///
+    /// Seeded from the model rather than left empty and filled from `onAppear`: a state assignment
+    /// made while the view is first appearing does not reach the screen — the body has already been
+    /// evaluated with the old value, and nothing re-renders. The model fills itself at construction,
+    /// so the first read is already right.
+    @State private var columns: [BrowserModel.Column] = BrowserModel.shared.columns
     @State private var typed = ""
 
     private var model: BrowserModel { .shared }
@@ -32,7 +38,6 @@ public struct BrowserContent: View {
             strip
                 .vexpand()
         }
-        .onAppear { refresh() }
     }
 
     // MARK: The chrome
@@ -84,6 +89,20 @@ public struct BrowserContent: View {
             }
             .padding(Int(gap))
         }
+        // The strip follows the focus. Without this a new column is created, laid out past the right
+        // edge, and never seen — which is what "the plus button does nothing" actually was.
+        //
+        // `NiriLayout.resolvedOffset` is the same number the Mac scrolls to, centring the focused
+        // column when `centersFocus` is on. Reaching the adjustment needs the widget, and `inspect`
+        // is adwaita's documented way to get at one.
+        .inspect { storage, _ in
+            guard let scrolled = storage.opaquePointer,
+                  let adjustment = gtk_scrolled_window_get_hadjustment(scrolled) else { return }
+            let target = model.scrollOffset
+            if abs(gtk_adjustment_get_value(adjustment) - target) > 0.5 {
+                gtk_adjustment_set_value(adjustment, target)
+            }
+        }
     }
 
     /// Gaps are a fraction of the viewport, never a point constant — the same rule `NiriLayout`
@@ -111,8 +130,8 @@ public struct BrowserContent: View {
     /// of them.
     func page(for column: BrowserModel.Column) -> WebView {
         WebView(url: column.url, tabID: column.id, session: model.session)
-            .onTitleChange { model.setTitle($0, for: column.id) }
-            .onURLChange { model.setURL($0, for: column.id) }
+            .onTitleChange { if model.setTitle($0, for: column.id) { refresh() } }
+            .onURLChange { if model.setURL($0, for: column.id) { refresh() } }
             .onFinishLoad { model.didFinishLoad($0, title: $1, for: column.id); refresh() }
     }
 }
