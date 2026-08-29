@@ -1,26 +1,58 @@
-// swift-tools-version: 6.0
+// swift-tools-version: 6.2
 import PackageDescription
 
-// The Linux front, kept in a package of its own so the root one still builds on a Mac: SwiftPM has no
-// way to leave a target out per platform, and a `pkgConfig: "webkitgtk-6.0"` target cannot resolve
-// where there is no webkitgtk to find.
+// The Linux front, in a package of its own so the root one still builds on a Mac: SwiftPM cannot
+// leave a target out per platform, and a `pkgConfig: "webkitgtk-6.0"` target cannot resolve where
+// there is no webkitgtk to find.
 //
-// `GtkSpike` is not the front. It is the half-day experiment the plan asks for before any of it is
-// written — see docs/storage.md and the plan: does a WebKitWebView survive being moved around a
-// GtkFixed, and does a click land in the column under the pointer when a bar is sitting on top of it.
+// The UI is adwaita-swift. What is ours is the WebKitGTK interop, which no Swift GTK library covers
+// — see `docs/linux.md` for why that split is the one that matters.
+//
+// Pinned to a commit rather than a tag: the only tag, 0.1.0, does not build on Linux (their #97),
+// and the maintainer's advice is to live on main.
 let package = Package(
     name: "six-linux",
-    dependencies: [.package(path: "..")],
+    dependencies: [
+        .package(path: ".."),
+        .package(
+            url: "https://codeberg.org/aparoksha/adwaita-swift",
+            revision: "476f9e36d34239aed78ce141b8af435d8825c859"
+        )
+    ],
     targets: [
         .systemLibrary(name: "CWebKitGTK", pkgConfig: "webkitgtk-6.0"),
-        // The toolkit layer, and the only module that knows what GTK is. Everything above it —
-        // the strip, the columns, the browser model — sees `Widget`, `WebView`, `NetworkSession`
-        // and nothing else, which is what makes swapping the toolkit later cost one module.
-        .target(name: "SixGtk", dependencies: ["CWebKitGTK"]),
-        // The front. Thin on purpose: this is the module a declarative layer would replace, so the
-        // investment stays in SixCore above it and SixGtk below it.
-        .target(name: "SixUI", dependencies: ["SixGtk", .product(name: "SixCore", package: "six")]),
-        .executableTarget(name: "six-linux", dependencies: ["SixUI"]),
-        .executableTarget(name: "GtkSpike", dependencies: ["CWebKitGTK"])
+        // Ours, and ours whichever UI library wins: the profile's cookie jar, with no toolkit in it.
+        .target(name: "SixWebKitCore", dependencies: ["CWebKitGTK"]),
+        // The page as a widget adwaita can place.
+        .target(
+            name: "SixWebKit",
+            dependencies: ["SixWebKitCore", "CWebKitGTK", .product(name: "Adwaita", package: "adwaita-swift")],
+            swiftSettings: [.defaultIsolation(MainActor.self)]
+        ),
+        // The model. Deliberately without Adwaita: it depends on its own SQLite and SixCore reaches
+        // GRDB's, and Clang will not have both in one compilation unit. The seam is enforced.
+        .target(
+            name: "SixBrowser",
+            dependencies: ["SixWebKitCore", .product(name: "SixCore", package: "six")],
+            swiftSettings: [.defaultIsolation(MainActor.self)]
+        ),
+        .target(
+            name: "SixUI",
+            dependencies: [
+                "SixWebKit",
+                "SixBrowser",
+                .product(name: "Adwaita", package: "adwaita-swift")
+            ],
+            // GTK is a single-threaded toolkit driven from one main loop, and `SixCore`'s stores are
+            // `@MainActor` for the same reason on the Mac. Saying so once for the module beats
+            // annotating every view — and it is what the Xcode project already sets with
+            // `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`.
+            swiftSettings: [.defaultIsolation(MainActor.self)]
+        ),
+        .executableTarget(
+            name: "six-linux",
+            dependencies: ["SixUI"],
+            swiftSettings: [.defaultIsolation(MainActor.self)]
+        )
     ]
 )

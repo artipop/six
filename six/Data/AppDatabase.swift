@@ -1,7 +1,12 @@
 import Foundation
 import GRDB
 import SQLiteData
+#if canImport(SQLiteVecData)
+// Present in the app; absent from the SwiftPM build, where vectors are out of scope for now and
+// where its `CSQLiteVec` (system SQLite headers) collides with the SQLite 3.51 that adwaita-swift's
+// `meta-sqlite` vendors — Clang will not have two definitions of `sqlite3_api_routines`.
 import SQLiteVecData
+#endif
 
 /// The one SQLite file: `~/Library/Application Support/org.deffun.six/six.sqlite`. Opened once at launch,
 /// migrated forward only. Tables follow SQLiteData's CloudKit rules from day one (see
@@ -15,6 +20,7 @@ nonisolated enum AppDatabase {
     static func open() throws -> any DatabaseWriter {
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         var configuration = GRDB.Configuration()
+        #if canImport(SQLiteVecData)
         #if os(Linux)
         // Registered once for the process, which is what `sqlite3_auto_extension` is for. Doing it
         // per connection instead segfaults inside `sqlite3_vec_init` here: the entry point expects
@@ -25,6 +31,7 @@ nonisolated enum AppDatabase {
         // sqlite-vec goes into every connection by hand (`sqlite3_vec_init` on the handle): the Apple
         // SQLite has extension loading compiled out, so `sqlite3_auto_extension` is refused there.
         configuration.prepareDatabase { db in try db.loadSQLiteVecExtension() }
+        #endif
         #endif
         let database = try defaultDatabase(path: url.path, configuration: configuration)
         var migrator = DatabaseMigrator()

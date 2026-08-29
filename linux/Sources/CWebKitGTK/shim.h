@@ -1,5 +1,5 @@
 #pragma once
-// One module for the whole toolkit: webkitgtk-6.0.pc already Requires gtk4, so pkg-config hands us
-// GTK's headers and libraries transitively and the two never disagree about a GtkWidget.
-#include <gtk/gtk.h>
+// WebKitGTK only: GTK itself comes from Adwaita's own `CAdw`, and webkit's headers pull in the same
+// gtk headers, which Clang unifies. This is the arrangement `aparoksha/codeeditor` uses for
+// GtkSourceView, and it is why a foreign widget can sit beside adwaita-swift's own.
 #include <webkit/webkit.h>

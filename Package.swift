@@ -31,14 +31,16 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/pointfreeco/sqlite-data", from: "1.11.0"),
-        .package(url: "https://github.com/mhayes853/sqlite-vec-data", from: "0.5.0")
+        // No sqlite-vec here. Vectors are out of scope for the Linux phase, and its `CSQLiteVec`
+        // reads the system SQLite headers while adwaita-swift's `meta-sqlite` vendors 3.51 — Clang
+        // refuses two definitions of `sqlite3_api_routines` in one compilation. `AppDatabase` asks
+        // for it with `#if canImport`, so the app keeps it and this build does without.
     ],
     targets: [
         .target(
             name: "SixCore",
             dependencies: [
-                .product(name: "SQLiteData", package: "sqlite-data"),
-                .product(name: "SQLiteVecData", package: "sqlite-vec-data")
+                .product(name: "SQLiteData", package: "sqlite-data")
             ],
             path: "six",
             sources: [
