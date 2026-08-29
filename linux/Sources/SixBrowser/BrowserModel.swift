@@ -39,6 +39,7 @@ public final class BrowserModel {
     private var titles: [UUID: String] = [:]
     private var urls: [UUID: URL] = [:]
     private var pages = LivePages()
+    private var settings: SettingsStore?
 
     private init() {
         let profiles = AppSupport.folder("Profiles/Default")
@@ -56,6 +57,7 @@ public final class BrowserModel {
             // in the database and unreachable is worse than history that is missing.
             let settings = SettingsStore(database: database)
             SettingsStore.shared = settings
+            self.settings = settings
             profileID = settings.defaultProfileID
             layout.activeProfileID = profileID
         } catch {
@@ -67,7 +69,41 @@ public final class BrowserModel {
         // building one before GTK is up is the kind of mistake that fires later, in someone else's
         // code. `shared` is lazy, so the first touch happens inside the first render, by which time
         // the toolkit is running.
-        fill()
+        if !restore() { fill() }
+    }
+
+    // MARK: Leaving and coming back
+
+    /// Put the strip back the way it was left. Returns whether there was anything to put back — if
+    /// not, the caller opens what the environment asked for instead.
+    private func restore() -> Bool {
+        guard let settings, let state = StripState.load(from: settings), state.isWorthKeeping else {
+            return false
+        }
+        var strips: [UUID: NiriStrip] = [:]
+        for (key, strip) in state.strips { if let id = UUID(uuidString: key) { strips[id] = strip } }
+        guard !strips.isEmpty else { return false }
+
+        layout.restore(strips: strips)
+        if let active = UUID(uuidString: state.activeProfile) { layout.activeProfileID = active }
+        for (key, value) in state.urls { if let id = UUID(uuidString: key) { urls[id] = URL(string: value) } }
+        for (key, value) in state.titles { if let id = UUID(uuidString: key) { titles[id] = value } }
+        for id in urls.keys { pages.touch(id) }
+        trace("restore \(urls.count) колонок")
+        return true
+    }
+
+    /// Write the strip down. Called after anything that changes its shape — a column opened, closed,
+    /// focused, or sent somewhere — because a browser that only saves on quit loses everything to
+    /// the one crash it was going to have.
+    public func save() {
+        guard let settings else { return }
+        var state = StripState()
+        for (id, strip) in layout.allStrips { state.strips[id.uuidString] = strip }
+        for (id, url) in urls { state.urls[id.uuidString] = url.absoluteString }
+        for (id, title) in titles where !title.isEmpty { state.titles[id.uuidString] = title }
+        state.activeProfile = layout.activeProfileID.uuidString
+        state.save(to: settings)
     }
 
     // MARK: What the strip draws
@@ -166,6 +202,7 @@ public final class BrowserModel {
         trace("focus \(tabID)")
         layout.focus(tabID: tabID)
         pages.touch(tabID)
+        save()
     }
 
     /// One column along the strip, the way ⌥← and ⌥→ do it on the Mac.
@@ -221,6 +258,7 @@ public final class BrowserModel {
         layout.removeColumn(tabID: focused)
         PageRegistry.forget(focused)
         pages.forget(focused)
+        save()
         urls[focused] = nil
         titles[focused] = nil
     }
@@ -262,6 +300,7 @@ public final class BrowserModel {
     public func setURL(_ url: URL, for tabID: UUID) -> Bool {
         guard urls[tabID] != url else { return false }
         urls[tabID] = url
+        save()
         return true
     }
 

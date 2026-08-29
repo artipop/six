@@ -39,6 +39,10 @@ final class SettingsStore {
         /// that has no snapshot yet still needs the id to be the same one tomorrow, or every launch
         /// orphans its own history.
         case defaultProfile = "profile.default"
+        /// The strip as it was left: workspaces, columns, and the address each column was on.
+        /// On the Mac this lives in the state snapshot beside the database; a front without one
+        /// keeps it here, where it is migrated and backed up with everything else.
+        case stripState = "strip.state"
 
         /// Where the value lived before the database.
         var legacyDefaultsKey: String {
@@ -62,6 +66,7 @@ final class SettingsStore {
             case .devToolsCapture: "six.devtools.capture"
             case .sitePermissions: "six.permissions.sites"
             case .defaultProfile: "six.profile.default"
+            case .stripState: "six.strip.state"
             }
         }
     }
