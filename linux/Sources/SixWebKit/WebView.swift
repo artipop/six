@@ -43,7 +43,6 @@ public struct WebView: AdwaitaWidget {
         g_value_unset(&value)
 
         let storage = ViewStorage(view.map { OpaquePointer($0) })
-        connect(storage)
         update(storage, data: data, updateProperties: true, type: type)
         return storage
     }
@@ -51,6 +50,7 @@ public struct WebView: AdwaitaWidget {
     public func update<Data>(_ storage: ViewStorage, data: WidgetData, updateProperties: Bool, type: Data.Type)
     where Data: ViewRenderData {
         guard let view = storage.opaquePointer else { return }
+        connect(storage)
 
         guard updateProperties, let url else { return }
         // Only navigate when the address actually differs. Every other update — a title arriving, a
@@ -64,14 +64,18 @@ public struct WebView: AdwaitaWidget {
 }
 
 extension WebView {
-    /// Signals are connected **once**, when the widget is made — never in `update`.
+    /// Connected from `update`, which is where adwaita's own widgets connect theirs — `Button` does
+    /// exactly this, and `connectSignal` keeps one handler per name.
     ///
-    /// Connecting them there instead is what took the whole app down, and the way it failed is worth
-    /// remembering: every re-render added another handler, each handler asked the view to refresh,
-    /// and the refresh re-rendered. The crash surfaced as a bad pointer dereference inside adwaita's
-    /// own `Button.update`, which is not where the mistake was — it was a stack overflow from
-    /// `SafeWrapper.update` recursing into itself, and the button was simply what the runaway
-    /// happened to be walking when the stack ran out.
+    /// Each signal must declare the **shape of its C signature**: `SignalData.HandlerType` exists
+    /// because GObject hands the handler a different argument list per signal, and a handler invoked
+    /// through the wrong one finds its user data in the wrong place. `notify::` is `.oneArg` (the
+    /// property), `load-changed` is `.guint` (the `WebKitLoadEvent`). Taking the `.noArgs` default
+    /// for the latter is what crashed the app.
+    ///
+    /// The handlers only write to the model. Asking for a render from a title or address change —
+    /// which arrive in bursts — is what sent the view tree into a 248-render runaway; only the end
+    /// of a load, once per page, redraws the strip.
     func connect(_ storage: ViewStorage) {
         guard let view = storage.opaquePointer else { return }
         storage.notify(name: "title") {
@@ -83,7 +87,11 @@ extension WebView {
                   let url = URL(string: uri) else { return }
             onURLChange?(url)
         }
-        storage.connectSignal(name: "load-changed") {
+        // `.guint`, because `load-changed` is `void (*, WebKitLoadEvent, gpointer)` and the enum is
+        // a guint. The default is `.noArgs`, and a handler called through the wrong C signature reads
+        // its user-data from the wrong register — which surfaced as a null dereference inside
+        // adwaita's own signal machinery, three renders in, nowhere near the mistake.
+        storage.connectSignal(name: "load-changed", type: .guint) {
             guard webkit_web_view_is_loading(.init(view)) == 0,
                   let uri = webkit_web_view_get_uri(.init(view)).map({ String(cString: $0) }),
                   let url = URL(string: uri) else { return }

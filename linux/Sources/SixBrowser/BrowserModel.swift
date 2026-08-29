@@ -50,6 +50,12 @@ public final class BrowserModel {
             FileHandle.standardError.write(Data("[six] database unavailable: \(error)\n".utf8))
         }
         profileID = layout.activeProfileID
+        // Populated here rather than from the app's `init` or the view's `onAppear`. `init` runs
+        // before `g_application_run`, and this creates a `NetworkSession`, which is a GObject —
+        // building one before GTK is up is the kind of mistake that fires later, in someone else's
+        // code. `shared` is lazy, so the first touch happens inside the first render, by which time
+        // the toolkit is running.
+        fill()
     }
 
     // MARK: What the strip draws
@@ -88,8 +94,8 @@ public final class BrowserModel {
 
     // MARK: Driving it
 
-    public func start() {
-        trace("start")
+    private func fill() {
+        trace("fill")
         layout.updateViewport(CGSize(width: 1400, height: 820))
         if let width = ProcessInfo.processInfo.environment["SIX_WIDTH"].flatMap(Int.init) {
             layout.preferredWidthIndex = width

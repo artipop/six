@@ -1,21 +1,14 @@
 import Adwaita
-import SixBrowser
 import SixUI
 
 /// six on Linux.
+///
+/// Nothing touches the model here. `BrowserModel.shared` is lazy and fills itself, so it comes into
+/// being at the first render — after `g_application_run` has GTK up. Doing it from this `init`
+/// instead builds a `WebKitNetworkSession`, and so a GObject, before the toolkit exists.
 @main
 struct SixApp: App {
     let app = AdwaitaApp(id: "org.deffun.six")
-
-    /// The strip is filled *before* the first render, not from `onAppear`.
-    ///
-    /// Populating it from inside the view's own appear callback changes what the model returns while
-    /// adwaita is still walking the tree it computed a moment earlier — the storage bookkeeping goes
-    /// out of step with the model, and the next update dereferences something that has moved. The
-    /// window came up, drew once, and died in `Button.update`, which is not where the mistake was.
-    init() {
-        MainActor.assumeIsolated { BrowserModel.shared.start() }
-    }
 
     var scene: Scene {
         Window(id: "main") { _ in
