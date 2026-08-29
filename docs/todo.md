@@ -226,6 +226,33 @@ dynamically. `WebPage` exists on iOS 26, so `ReadablePage` and the refresh path 
   `NSExtension`/background task with a passage budget, or mark the bookmark *pending* and let the Mac embed it when
   it syncs. Start with the latter.
 
+## Linux: what the third front still owes the first
+
+Built and measured; see [linux.md](linux.md) for the whole picture. What is left, in the order it is missed:
+
+- **Page scripting.** `PageScripts` and `PageControllers` are the two places six already abstracted WebKit, and both
+  land on WebKitGTK without strain: `call_async_javascript_function` takes the same function body, arguments and
+  isolated-world name as `callJavaScript(_:arguments:contentWorld:)`. Everything downstream waits on it — highlights,
+  the readable copy, the DevTools capture the agent tools read. It should also be the first place the Linux build ends
+  up *ahead*: WebKitGTK awaits a returned Promise, and the Apple API does not, which is why every page script on the
+  Mac is written synchronously and polled from Swift.
+- **Blocking.** `WebKitUserContentFilterStore` compiles the same content-blocker JSON as `WKContentRuleList`, so the
+  SafariConverterLib output already in `FilterListStore` needs no changes. Wiring, not design ([blocking.md](blocking.md)).
+- **The strip clamps at its ends.** `resolvedOffset` centres the focused column; the Mac places columns absolutely in
+  a container that does not scroll, so the first and last centre like any other. On Linux the strip is a real
+  `GtkScrolledWindow` and its adjustment clamps, so the outermost columns sit against the edge. Either the canvas
+  grows half a viewport of slack at each end, or the front stops using the adjustment and places the canvas itself.
+- **Downloads, dialogs and navigation policy.** `WebKitDownload`, `script-dialog`, `run-file-chooser` and
+  `decide-policy` map one-to-one onto what `PageDialogQueue` and the navigation decider already do
+  ([links.md](links.md)).
+- **The assistant, ACP and MCP.** The most portable code in the repository — Foundation, child processes, JSON-RPC
+  over stdio — with no front to talk to yet. `ModelChoice` collapses to ACP plus the vendored `ClaudeAPI`, because
+  FoundationModels is Apple's.
+- **Extensions**, when Igalia exposes `WebExtensionContext` and `WebExtensionController`. The install dialog and the
+  compatibility verdict port today, because `WebKitWebExtension` already parses a manifest.
+- **Favicons and find-in-page**, which WebKitGTK gives away (`WebKitFaviconDatabase`, `WebKitFindController`) and six
+  has on no platform.
+
 ## Smaller things
 
 - A readable maximum width for the default column on ultra-wide displays: 88 % of a 5K panel is a very long line.

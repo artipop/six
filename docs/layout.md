@@ -11,6 +11,13 @@ Modelled on [niri](https://github.com/YaLTeR/niri). There are no tabs and no sid
 - A workspace can be **named** (double-click its plate in the overview). Naming is optional; an unnamed one is just
   "Workspace N". A named workspace survives running out of windows, an unnamed one disappears — same as niri.
 
+*`NiriLayout` is the one file two front ends share. It has no platform in it — `CGFloat`, `CGRect`,
+`CGSize` and nothing else — so the GTK front computes its columns from the same `columnFrames()` and
+inherits the same promises. Those promises are the repository's first tests
+(`Tests/SixCoreTests/NiriLayoutGeometryTests.swift`), written against the intent stated below rather
+than against the numbers it happens to produce, because that is what would silently desynchronise the
+two. See [linux.md](linux.md).*
+
 ## Model — `six/Niri/NiriLayout.swift`
 
 ```
@@ -70,6 +77,11 @@ the top bar is `zIndex`-ed in front of the strip, since they are siblings in a s
 it.
 
 ## Gestures — `six/Niri/NiriScrollMonitor.swift`
+
+*This section is AppKit's. The GTK front reaches the same gestures through a
+`GtkEventControllerScroll` in the capture phase, where the boundaries of a gesture are explicit
+rather than inferred — which is one of the few places the second front had an easier time.*
+
 
 A local `NSEvent` monitor sees scroll events before WebKit does. It acts on them when `⌥` is held, when the overview is
 open, or — unmodified — when the pointer is over the layout's own chrome. "Chrome" is decided by hit-testing the event

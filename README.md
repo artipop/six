@@ -1,7 +1,11 @@
 # six
 
-A minimal macOS browser with a [niri](https://github.com/YaLTeR/niri)-style scrollable-tiling layout, used as a
-playground for three things:
+A minimal browser with a [niri](https://github.com/YaLTeR/niri)-style scrollable-tiling layout. macOS first, with an
+iPhone/iPad target beside it and a Linux front on WebKitGTK over the same storage layer
+([docs/platforms.md](docs/platforms.md), [docs/linux.md](docs/linux.md)). Everything below describes the Mac, which is
+where the features land first.
+
+It is a playground for three things:
 
 1. **SwiftUI + WebKit on the macOS 26+ APIs** — `WebView` / `WebPage` (no `NSViewRepresentable`), with several profiles
    in one window. Each profile is an isolated `WKWebsiteDataStore(forIdentifier:)` and has its own strip of workspaces.
@@ -100,7 +104,18 @@ Only columns near the viewport get a real `WebView`; the rest render as cards, s
 Full reference: [docs/](docs/) — [controls](docs/controls.md), [hotkeys](docs/hotkeys.md), [layout](docs/layout.md),
 [architecture](docs/architecture.md), [blocking](docs/blocking.md), [extensions](docs/extensions.md),
 [devtools](docs/devtools.md), [assistant](docs/assistant.md),
-[agents](docs/agents.md), [MCP server](docs/mcp.md), [build](docs/build.md).
+[agents](docs/agents.md), [MCP server](docs/mcp.md), [build](docs/build.md),
+[platforms](docs/platforms.md), [Linux](docs/linux.md).
+
+## Beyond macOS
+
+The phone and the tablet are a second Xcode target over the same folder; what they leave out and why the layout turns
+sideways on a phone is [docs/platforms.md](docs/platforms.md).
+
+Linux is a third front end — GTK 4 and WebKitGTK 6.0, built by SwiftPM in a container — over the *same* `six.sqlite`,
+the same schema and the same `NiriLayout`. The strip, workspaces, the overview, history, bookmarks, private profiles,
+thumbnails, the live-page budget and site permissions are there; extensions, blocking, the assistant and embeddings
+are not yet. [docs/linux.md](docs/linux.md).
 
 ```
 six/Niri        NiriLayout (workspaces, columns, geometry, focus/move ops), NiriScrollMonitor (⌥+scroll gestures)
