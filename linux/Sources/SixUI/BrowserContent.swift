@@ -27,6 +27,7 @@ public struct BrowserContent: View {
     /// so the first read is already right.
     @State private var columns: [BrowserModel.Column] = BrowserModel.shared.columns
     @State private var typed = ""
+    @State private var showsHistory = false
 
     private var model: BrowserModel { .shared }
 
@@ -37,6 +38,9 @@ public struct BrowserContent: View {
             toolbar
             strip
                 .vexpand()
+        }
+        .dialog(visible: $showsHistory, title: "History", width: 640, height: 520) {
+            HistorySheet(visible: $showsHistory)
         }
     }
 
@@ -57,6 +61,9 @@ public struct BrowserContent: View {
             EntryRow("Address", text: $typed)
                 .entryActivated { model.go(to: typed); refresh() }
                 .hexpand()
+            Button(icon: .default(icon: .documentOpenRecent)) { showsHistory = true }
+                .flat()
+                .tooltip("History")
             Button(icon: .default(icon: .listAdd)) { model.openColumn(); refresh() }
                 .flat()
         }

@@ -45,11 +45,19 @@ public final class BrowserModel {
         // inside `AppSupport.root`. A browser without history is still a browser, so a database that
         // will not open is reported and stepped over rather than fatal.
         do {
-            history = HistoryStore(database: try AppDatabase.open())
+            let database = try AppDatabase.open()
+            history = HistoryStore(database: database)
+            // The profile id comes out of the settings table rather than being made fresh each
+            // launch. Regenerating it orphans every visit the last run recorded — history that is
+            // in the database and unreachable is worse than history that is missing.
+            let settings = SettingsStore(database: database)
+            SettingsStore.shared = settings
+            profileID = settings.defaultProfileID
+            layout.activeProfileID = profileID
         } catch {
             FileHandle.standardError.write(Data("[six] database unavailable: \(error)\n".utf8))
+            profileID = layout.activeProfileID
         }
-        profileID = layout.activeProfileID
         // Populated here rather than from the app's `init` or the view's `onAppear`. `init` runs
         // before `g_application_run`, and this creates a `NetworkSession`, which is a GObject —
         // building one before GTK is up is the kind of mistake that fires later, in someone else's
@@ -199,6 +207,27 @@ public final class BrowserModel {
     func trace(_ message: @autoclosure () -> String) {
         guard NiriLayout.tracesUI else { return }
         FileHandle.standardError.write(Data("[six] model: \(message())\n".utf8))
+    }
+
+    // MARK: History
+
+    /// A visit, flattened for the view — the same shape the Mac's sheet draws.
+    public struct HistoryRow: Identifiable {
+        public let id: String
+        public let url: URL
+        public let title: String
+    }
+
+    /// Empty query means the recent ones; anything else is a search. Both are queries against the
+    /// `visits` table through `HistoryStore`, scoped to this profile — the front does not filter a
+    /// list it holds in memory, because history outlives what fits in one.
+    public func history(matching query: String) -> [HistoryRow] {
+        guard let history else { return [] }
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        let visits = trimmed.isEmpty
+            ? history.recent(in: profileID, limit: 200)
+            : history.search(trimmed, in: profileID)
+        return visits.map { HistoryRow(id: $0.id.uuidString, url: $0.url, title: $0.title) }
     }
 
     // MARK: Addresses

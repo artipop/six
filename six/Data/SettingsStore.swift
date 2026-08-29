@@ -35,6 +35,10 @@ final class SettingsStore {
         case devToolsInspector = "devtools.inspector"
         case devToolsCapture = "devtools.capture"
         case sitePermissions = "permissions.sites"
+        /// The default profile's identifier. On the Mac profiles live in the state snapshot; a front
+        /// that has no snapshot yet still needs the id to be the same one tomorrow, or every launch
+        /// orphans its own history.
+        case defaultProfile = "profile.default"
 
         /// Where the value lived before the database.
         var legacyDefaultsKey: String {
@@ -57,6 +61,7 @@ final class SettingsStore {
             case .devToolsInspector: "six.devtools.inspector"
             case .devToolsCapture: "six.devtools.capture"
             case .sitePermissions: "six.permissions.sites"
+            case .defaultProfile: "six.profile.default"
             }
         }
     }
@@ -135,6 +140,19 @@ final class SettingsStore {
     var devToolsCapture: Bool {
         get { self[.devToolsCapture].map { $0 == "1" } ?? false }
         set { self[.devToolsCapture] = newValue ? "1" : "0" }
+    }
+
+    /// The profile a front uses when it has no other. Made once and kept, so history and cookies
+    /// belong to the same profile across launches.
+    ///
+    /// Stored as `uuidString`, which is uppercase, while GRDB writes the `visits` column lowercase.
+    /// Nothing compares them as text — `UUID(uuidString:)` reads either — but a hand-written SQL
+    /// query joining the two will find nothing, which is worth knowing before it wastes an hour.
+    var defaultProfileID: UUID {
+        if let stored = self[.defaultProfile], let id = UUID(uuidString: stored) { return id }
+        let fresh = UUID()
+        self[.defaultProfile] = fresh.uuidString
+        return fresh
     }
 
     /// Optional model id for the ACP agent (`ANTHROPIC_MODEL`).
