@@ -18,7 +18,8 @@ ReadablePage.extract      in the page: main content → Markdown + title, excerp
 ## Files
 
 Every profile has its own folder, `~/Library/Application Support/org.deffun.six/Profiles/<name>/`, with `Bookmarks/` and the
-agents' `Scratchpad/` side by side. The agents' default working directory is the scratchpad, *not* the profile folder:
+agents' `Scratchpad/` side by side. The folder is named after the profile, so renaming one in the profile menu moves the
+folder with it (`BrowserState.renameProfile`) — otherwise everything saved under the old name would be orphaned. The agents' default working directory is the scratchpad, *not* the profile folder:
 that way a question about something saved goes through `search_bookmarks` (and its vector search) rather than a
 `grep` over the working directory, and what a run leaves behind lands in the scratchpad, away from the bookmarks. A
 file looks like this:

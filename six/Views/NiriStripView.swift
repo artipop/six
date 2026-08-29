@@ -7,7 +7,6 @@ import WebKit
 /// stacked vertically and only one of them is on screen at a time.
 struct NiriStripView: View {
     @Environment(BrowserState.self) private var browser
-    @FocusState private var addressFocus: UUID?
     @State private var monitor = NiriScrollMonitor()
     /// Where the strip sits in the window, for the scroll monitor: what is above it is the top bar,
     /// and scrolling there is nobody's layout gesture.
@@ -25,7 +24,7 @@ struct NiriStripView: View {
                 // there they are all on screen at once.
                 ForEach(Array(layout.workspaces.enumerated()), id: \.element.id) { index, workspace in
                     if layout.isOverview || abs(index - layout.focusedWorkspaceIndex) <= 1 {
-                        WorkspaceView(workspace: workspace, index: index, size: proxy.size, addressFocus: $addressFocus)
+                        WorkspaceView(workspace: workspace, index: index, size: proxy.size)
                             .offset(y: offset(of: index, height: proxy.size.height, layout: layout))
                     }
                 }
@@ -38,18 +37,12 @@ struct NiriStripView: View {
         }
         .background(StripBackground())
         .clipped()
-        .overlay(alignment: .leading) { StripEdgeButton(direction: -1) }
-        .overlay(alignment: .trailing) { StripEdgeButton(direction: 1) }
+        .overlay { StripEdgeButtons() }
         .overlay(alignment: .top) { if layout.showsFullscreen { FullscreenBar() } }
         .overlay(alignment: .bottom) { OverviewHint() }
         .contextMenu { StripMenu() }
         .onAppear(perform: startMonitor)
         .onDisappear { monitor.stop() }
-        .focusedSceneValue(\.focusAddressBar, FocusAddressBarAction {
-            browser.exitOverview()
-            browser.restoreChrome() // the address bar is part of the chrome a filled window hides
-            addressFocus = browser.layout.focusedTabID
-        })
     }
 
     private func offset(of index: Int, height: CGFloat, layout: NiriLayout) -> CGFloat {
@@ -95,7 +88,6 @@ private struct WorkspaceView: View {
     let workspace: NiriWorkspace
     let index: Int
     let size: CGSize
-    var addressFocus: FocusState<UUID?>.Binding
 
     @Environment(BrowserState.self) private var browser
 
@@ -124,8 +116,7 @@ private struct WorkspaceView: View {
                         isFocused: isFocused,
                         isCurrentWorkspace: isCurrent,
                         isLive: isLive(workspaceDistance: abs(index - layout.focusedWorkspaceIndex),
-                                       x: frame.minX - scroll, width: frame.width, layout: layout),
-                        addressFocus: addressFocus
+                                       x: frame.minX - scroll, width: frame.width, layout: layout)
                     )
                     .frame(width: frame.width, height: frame.height)
                     .offset(x: frame.minX - scroll, y: frame.minY)
@@ -207,7 +198,6 @@ private struct ColumnView: View {
     /// views are still there — SwiftUI's clipping doesn't reach them — but they must not be targets.
     let isCurrentWorkspace: Bool
     let isLive: Bool
-    var addressFocus: FocusState<UUID?>.Binding
 
     @Environment(BrowserState.self) private var browser
     @Environment(SitePermissions.self) private var permissions
@@ -234,11 +224,6 @@ private struct ColumnView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if !fullscreen {
-                WindowChrome(tab: tab, isFocused: isFocused, addressFocus: addressFocus)
-                    .contextMenu { ColumnMenu(tab: tab) }
-                Divider()
-            }
             // Above the page even in fullscreen: the page is suspended waiting for this answer, and a
             // window with nowhere to say yes is a window that seems to have broken the site.
             if let question = permissions.question(for: tab.id) {
@@ -277,6 +262,13 @@ private struct ColumnView: View {
             }
         }
         .background(.background)
+        // The window's own progress, on the window: the top bar's field carries a spinner for the
+        // focused page, and this is the one thing a *neighbour* still has to be able to say.
+        .overlay(alignment: .top) {
+            if !tab.isDocument, tab.isLoading {
+                LoadingLine(progress: tab.estimatedProgress, accent: accent)
+            }
+        }
         .clipShape(RoundedRectangle(cornerRadius: fullscreen ? 0 : 12, style: .continuous))
         .overlay {
             if !fullscreen {
@@ -285,9 +277,67 @@ private struct ColumnView: View {
                                   lineWidth: isFocused ? 2.5 : 1)
             }
         }
+        .overlay(alignment: .topTrailing) {
+            if !fullscreen, isCurrentWorkspace, !browser.layout.isOverview {
+                // Sitting on the corner rather than inside it: most of the button is over the gap
+                // between the windows, so the page underneath keeps the clicks it should have.
+                ColumnCloseBadge(tab: tab).offset(x: 11, y: -11)
+            }
+        }
         .shadow(color: .black.opacity(fullscreen ? 0 : (isFocused ? 0.28 : 0.16)),
                 radius: fullscreen ? 0 : (isFocused ? 18 : 10), y: fullscreen ? 0 : 5)
         .animation(.easeOut(duration: 0.18), value: isFocused)
+    }
+}
+
+/// The window's close button, moved off the title bar and onto the window itself: a × on the top
+/// right corner of the card, out of sight until the pointer is on it. Hosted in AppKit, because the
+/// corner it sits on is a page's corner and SwiftUI drawn over a `WKWebView` never sees the mouse.
+private struct ColumnCloseBadge: View {
+    let tab: BrowserTab
+
+    @Environment(BrowserState.self) private var browser
+    @State private var hovering = false
+
+    var body: some View {
+        HostedOverlay { content.environment(browser) }
+            .frame(width: 26, height: 26)
+    }
+
+    private var content: some View {
+        Button { browser.closeTab(tab.id) } label: {
+            Image(systemName: "xmark")
+                .font(.system(size: 9, weight: .bold))
+                .foregroundStyle(hovering ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
+                .frame(width: 20, height: 20)
+                .background(.regularMaterial, in: Circle())
+                .overlay { Circle().strokeBorder(.separator, lineWidth: 0.5) }
+        }
+        .buttonStyle(.plain)
+        .frame(width: 26, height: 26)
+        .contentShape(Rectangle())
+        .opacity(hovering ? 1 : 0)
+        .onHover { hovering = $0 }
+        .animation(.easeOut(duration: 0.12), value: hovering)
+        .help("Close Window (⌘W)")
+    }
+}
+
+/// The loading line, drawn by hand: a linear `ProgressView` brings a track and a thickness of its
+/// own, and a browser wants a hairline the page seems to push along, not a control.
+private struct LoadingLine: View {
+    let progress: Double
+    let accent: Color
+
+    var body: some View {
+        GeometryReader { proxy in
+            Capsule()
+                .fill(accent)
+                .frame(width: max(3, proxy.size.width * min(max(progress, 0.03), 1)))
+                .animation(.easeOut(duration: 0.25), value: progress)
+        }
+        .frame(height: 2)
+        .transition(.opacity)
     }
 }
 
@@ -351,59 +401,116 @@ private struct ColumnPlaceholder: View {
 
 // MARK: - Mouse controls
 
-/// Chevron parked on the left/right edge: one click scrolls the strip by one column. At the end of the
-/// strip the right one turns into a `+`, so the way to add a window is where you run out of them; on the
-/// left there is simply nothing, and the edge itself tells you whether the strip continues.
+/// The two step arrows, one on each side of the focused window.
+///
+/// They stand in the gap the layout already leaves beside that window — the strip between two
+/// windows — rather than against the edge of the screen, where the neighbour peeking in is and where
+/// they used to cover it. They follow the focused window as the strip scrolls, and when the window
+/// fills the viewport there is no gap left to stand in, so they fall back to the edge and stay out of
+/// sight until the pointer comes looking (`StripEdgeButton`).
+private struct StripEdgeButtons: View {
+    @Environment(BrowserState.self) private var browser
+
+    var body: some View {
+        let layout = browser.layout
+        if !layout.isOverview, !layout.showsFullscreen {
+            GeometryReader { proxy in
+                let lane = StripEdgeButton.lane(layout)
+                let frame = layout.focusedColumnFrame
+                let inset = lane / 2 + 1
+                // Half a gap out from the window's edge, and never off the screen: a window as wide as
+                // the viewport leaves nowhere to stand but the edge itself.
+                let left = min(max(inset, (frame?.minX ?? 0) - layout.gap / 2), proxy.size.width - inset)
+                let right = max(min(proxy.size.width - inset, (frame?.maxX ?? proxy.size.width) + layout.gap / 2), inset)
+                StripEdgeButton(direction: -1)
+                    .position(x: left, y: proxy.size.height / 2)
+                StripEdgeButton(direction: 1)
+                    .position(x: right, y: proxy.size.height / 2)
+            }
+            .animation(NiriLayout.switchAnimation, value: layout.focusedColumnFrame?.minX)
+        }
+    }
+}
+
+/// A sliver standing in the gap beside the focused window: one click steps one column. At the end of
+/// the strip the right one turns into a `+`, so the way to add a window is where you run out of them;
+/// on the left there is simply nothing, and the empty gap tells you the strip is over.
+///
+/// It is as narrow as the gap it stands in — a button wide enough to read comfortably is a button
+/// covering the page next to it, and the page is what the window is for. Tiled, it rests at a quarter
+/// and lights up under the pointer; with the window filled there is no gap left at all, so it stays
+/// away entirely until the pointer comes to the edge looking for it.
 private struct StripEdgeButton: View {
     let direction: Int
 
     @Environment(BrowserState.self) private var browser
     @State private var hovering = false
 
+    /// The lane tracks the layout, not the screen: it is the gap the layout already leaves between
+    /// two windows, floored so it stays clickable and capped so it never becomes a margin.
+    static func lane(_ layout: NiriLayout) -> CGFloat {
+        layout.fillsViewport ? 22 : max(13, min(28, layout.gap))
+    }
+
+    /// A tall thin pill — enough of a target to hit without aiming, and it reaches nowhere sideways.
+    /// Taller with the window filled, where it is invisible until the pointer finds it: a target you
+    /// cannot see has to be one you cannot miss along the edge you are sweeping.
+    private func pillHeight(_ layout: NiriLayout) -> CGFloat {
+        let fraction = layout.fillsViewport ? 0.3 : 0.16
+        return max(52, min(280, layout.viewport.height * fraction))
+    }
+
     var body: some View {
         let layout = browser.layout
-        // In fullscreen these give way to the bar at the top edge, which carries the same two steps.
-        if !layout.isOverview, !layout.showsFullscreen {
-            // Hosted in AppKit like the fullscreen bar: over a page a SwiftUI button never sees the
-            // mouse (see `ClickCatcher`), and with the window filled there is nothing but page here.
-            HostedOverlay {
-                content(layout: layout)
-            }
-            .frame(width: 42, height: 60)
+        // Hosted in AppKit like the fullscreen bar: over a page a SwiftUI button never sees the
+        // mouse (see `ClickCatcher`), and with the window filled there is nothing but page here.
+        HostedOverlay {
+            content(layout: layout)
         }
+        .frame(width: Self.lane(layout), height: pillHeight(layout))
     }
 
     @ViewBuilder
     private func content(layout: NiriLayout) -> some View {
-        if layout.canFocusColumn(direction) {
-            button(symbol: direction < 0 ? "chevron.left" : "chevron.right",
-                   help: direction < 0 ? "Previous window (⌥←)" : "Next window (⌥→)",
-                   action: { browser.focusColumn(direction) })
-        } else if direction > 0, layout.focusedWorkspace?.isEmpty == false {
-            button(symbol: "plus", help: "New window (⌘T)", action: { browser.newTab() })
+        if let step = step(layout: layout) {
+            pill(symbol: step.symbol, help: step.help, layout: layout, action: step.action)
+                .animation(.easeOut(duration: 0.15), value: hovering)
         }
     }
 
-    private func button(symbol: String, help: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
+    private func step(layout: NiriLayout) -> (symbol: String, help: String, action: () -> Void)? {
+        if layout.canFocusColumn(direction) {
+            return (direction < 0 ? "chevron.left" : "chevron.right",
+                    direction < 0 ? String(localized: "Previous window (⌥←)") : String(localized: "Next window (⌥→)"),
+                    { browser.focusColumn(direction) })
+        }
+        if direction > 0, layout.focusedWorkspace?.isEmpty == false {
+            return ("plus", String(localized: "New window (⌘T)"), { browser.newTab() })
+        }
+        return nil
+    }
+
+    private func pill(symbol: String, help: String, layout: NiriLayout, action: @escaping () -> Void) -> some View {
+        let width = max(11, Self.lane(layout) - 2)
+        return Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(.primary)
-                .frame(width: 30, height: 60)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(.separator)
-                }
+                .font(.system(size: min(11, width), weight: .bold))
+                .foregroundStyle(hovering ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
+                .frame(width: width, height: pillHeight(layout))
+                .background(.regularMaterial, in: Capsule())
+                .overlay { Capsule().strokeBorder(.separator, lineWidth: 0.5) }
         }
         .buttonStyle(.plain)
-        .padding(.horizontal, 6)
-        .opacity(hovering ? 1 : 0.45)
+        // Filled, the strip has no gap to stand in and the sliver is over the page: it stays out of
+        // sight until the pointer is at the edge. Tiled it lives in the gap and can rest there faintly.
+        // Invisible is not gone — a button at zero opacity still answers the mouse, which is the whole
+        // trick: the sliver is its own hover target and nothing else has to be laid over the page.
+        .opacity(hovering ? 1 : (layout.fillsViewport ? 0 : 0.3))
         .onHover { hovering = $0 }
         // The button goes away under the cursor whenever the strip runs out of columns on this side,
         // and a view that is gone never reports the exit — the flag would stay set and the next
         // button to appear here would come up already lit, with the mouse nowhere near it.
         .onDisappear { hovering = false }
-        .animation(.easeOut(duration: 0.15), value: hovering)
         .help(help)
         .transition(.opacity)
     }
@@ -461,7 +568,7 @@ private struct StripMenu: View {
 }
 
 /// The shared width preset, with the current one checked — the same list as in the Layout menu.
-private struct ColumnWidthPicker: View {
+struct ColumnWidthPicker: View {
     @Environment(BrowserState.self) private var browser
 
     var body: some View {
@@ -477,8 +584,10 @@ private struct ColumnWidthPicker: View {
     }
 }
 
-/// Right-click on a window's title bar: everything the ⌥ bindings do, without ⌥.
-private struct ColumnMenu: View {
+/// Everything the ⌥ bindings do to one window, without ⌥. It used to hang off the window's title
+/// bar; with the page running edge to edge it hangs off the page's own context menu instead, and off
+/// the layout button in the top bar.
+struct ColumnMenu: View {
     let tab: BrowserTab
 
     @Environment(BrowserState.self) private var browser

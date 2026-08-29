@@ -2,7 +2,10 @@
 
 Modelled on [niri](https://github.com/YaLTeR/niri). There are no tabs and no sidebar.
 
-- A page is a **column**: a full-height window with its own title bar (back/forward/reload, address field, close).
+- A page is a **column**: a full-height window that is nothing but the page, edge to edge inside a rounded card.
+  Everything that used to be drawn on it — the lock, the shield, the address, the title — is in the top bar, for the
+  focused window only, because a strip of a dozen windows does not want a dozen address fields. The `×` is the one
+  thing that stayed with the window: it sits on the card's top right corner, invisible until the pointer is on it.
 - Columns sit left to right in an endlessly scrollable **strip**. One strip is a **workspace**.
 - Workspaces are stacked **vertically**; exactly one is on screen. Each profile has its own stack.
 - A workspace can be **named** (double-click its plate in the overview). Naming is optional; an unnamed one is just
@@ -103,8 +106,8 @@ Three steps, each one taking away more of what is not the page:
 
 | | | |
 |---|---|---|
-| `⌥F` | **compact width** | the widest preset (`1.0`), still tiled: the outer gaps and the title bar stay |
-| `⌥W` | **full window** | the page fills the window under the top bar — no gaps, no title bar |
+| `⌥F` | **compact width** | the widest preset (`1.0`), still tiled: the outer gaps and the card stay |
+| `⌥W` | **full window** | the page fills the window under the top bar — no gaps, no card, no corners. Also the layout button in the top bar: a click there fills and unfills |
 | `⌥⇧F` | **fullscreen** | the top bar goes too; only a bar hiding at the top edge comes back |
 
 The last two are `NiriFill.window` and `.screen` on the layout — a mode, not per-window state. `fillsViewport` is what
@@ -125,8 +128,8 @@ through the 0.34 s spring spreads the stutter over the whole animation instead o
 six switches, 20 dropped frames animated against 5 instant. (The neighbours stay live on purpose, so stepping to the
 next full window shows a page rather than a card; that is what makes the third resize worth paying for.)
 
-Leaving: the same key again, the Layout menu, the right-click menu, the `⤢` button in the top bar (full window), or —
-for fullscreen — `⎋` and the bar's own button. `⎋` comes through the scroll monitor's key monitor rather than SwiftUI,
+Leaving: the same key again, the Layout menu, the right-click menu, the layout button in the top bar (a click there
+is full window on and off; the same menu holds all three modes), or — for fullscreen — `⎋` and the bar's own button. `⎋` comes through the scroll monitor's key monitor rather than SwiftUI,
 because a page holds the first responder and a key press would never reach the view hierarchy; WebKit's own full-screen
 window (a video playing) is left alone, so `⎋` there still belongs to the video. `⎋` deliberately does not leave full
 window: that mode is ordinary browsing, where a page's own `⎋` is worth more. `⌘L` leaves whichever mode is on, since
@@ -134,10 +137,16 @@ the address bar is part of what they hide. Closing the last window of the worksp
 chrome is a trap.
 
 **Controls over a page have to be AppKit.** SwiftUI drawn over a `WKWebView` never sees the mouse (the reason
-`ClickCatcher` exists), and with the window filled there is nothing *but* page under them. So the edge chevrons and the
+`ClickCatcher` exists), and with the window filled there is nothing *but* page under them. So the step chevrons and the
 fullscreen bar are hosted in `NSHostingView` (`HostedOverlay`) — which must be frame-driven (`sizingOptions = []`,
 `translatesAutoresizingMaskIntoConstraints = true`), or it publishes its size into the window's constraints and the
-update passes never settle. In fullscreen the chevrons give way to the bar at the top edge, which carries the same two
+update passes never settle.
+
+The chevrons stand in the **gap beside the focused window** (`focusedColumnFrame`), not against the edge of the screen
+where the neighbour peeking in is, and they are as narrow as that gap — a button wide enough to read comfortably is a
+button covering the page next to it. Tiled they rest at a third of their opacity; filled, the gap is gone and the
+sliver is over the page, so it drops to nothing and comes back under the pointer. Invisible is not absent: a SwiftUI
+button at zero opacity still answers the mouse, which is what makes the sliver its own hover target. In fullscreen the chevrons give way to the bar at the top edge, which carries the same two
 steps plus the workspaces, the overview and the way out; the ⌘K line tucks itself away there until it is asked for or
 has an answer to show. The window buttons stay where macOS puts them, so the bar leaves room for them.
 
@@ -155,4 +164,4 @@ the scale) is what every offset is measured against, so the same clamping code s
 puts the strip back under the focused window.
 
 Pages keep rendering but stop taking clicks — the same `ClickCatcher` covers every column — so one click focuses a
-window and leaves the overview. A click on a title bar does the same.
+window and leaves the overview.

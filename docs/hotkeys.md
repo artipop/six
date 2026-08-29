@@ -14,7 +14,7 @@ row is backed by a menu item or a view — the file is named so nothing here can
 | `⌥↑` `⌥↓` | focus the workspace above / below |
 | `⌥⇧↑` `⌥⇧↓` | move the window to the workspace above / below (and follow it) |
 | `⌥R` / `⌥⇧R` | wider / narrower — every window steps one preset (½, ⅔, peek, full), stopping at the ends; the current one is checked in the menu |
-| `⌥F` | compact width — this window at the widest tiled preset, gaps and title bar still there; again to go back |
+| `⌥F` | compact width — this window at the widest tiled preset, the gaps still there; again to go back |
 | `⌥W` | full window — the page fills the window under the top bar; again to leave |
 | `⌥⇧F` | fullscreen — the page edge to edge, `⌥←` `⌥→` still walk the strip; again or `Esc` to leave |
 | `⌥O` | overview on / off; `Esc` also leaves it |
@@ -27,7 +27,7 @@ row is backed by a menu item or a view — the file is named so nothing here can
 | | |
 |---|---|
 | `⌘T` | new window in the strip, right of the focused one |
-| `⌘⇧N` | new document — a Markdown column next to the pages (edit / preview in its title bar) |
+| `⌘⇧N` | new document — a Markdown column next to the pages (edit / preview in the top bar, where its address would be) |
 | `⌘⇧P` | new private window — in the private profile (created on the first press; in-memory session, nothing recorded); File → Close Private Browsing forgets it |
 | `⌘W` | close the focused window |
 | `⌘S` | save — a document that has a file goes back to it; otherwise Save As |

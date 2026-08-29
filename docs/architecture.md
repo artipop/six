@@ -126,7 +126,7 @@ close, so there is one file per open window and no more.
 
 On the tab side (`BrowserTab`): `page` builds the page on demand — everything that *talks* to a page goes through it
 (tools, assistant, highlights, export) — while `title`, `currentURL`, `isLoading`, `canGoBack` and the rest answer
-without one, because the title bar is drawn for every column in the strip and reaching for `page` there would keep the
+without one, because chrome is evaluated for every column in the strip and reaching for `page` there would keep the
 whole strip live. `discard()` is synchronous on purpose: an `await` on the way out is something holding the page while
 it waits. What the window needs afterwards is taken earlier, by `rememberViewState()`, while the page is still on
 screen and there is still something to draw and someone to ask.

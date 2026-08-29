@@ -6,6 +6,9 @@ struct ContentView: View {
     @Environment(BrowserState.self) private var browser
     @Environment(AgentSessionStore.self) private var agentSession
     @Environment(AssistantStore.self) private var assistant
+    /// The address field lives in the top bar now, so the focus that ⌘L moves lives beside it —
+    /// above the strip, which no longer has one.
+    @FocusState private var addressFocus: UUID?
     @State private var showAgentPanel = false
     @State private var showHistory = false
     @State private var showBookmarks = false
@@ -18,7 +21,7 @@ struct ContentView: View {
         VStack(spacing: 0) {
             // Fullscreen gives the whole window to the strip; its own bar comes back on hover.
             if !browser.layout.showsFullscreen {
-                TopBar(showAgentPanel: $showAgentPanel)
+                TopBar(showAgentPanel: $showAgentPanel, addressFocus: $addressFocus)
                     // In front of the strip, not behind it. They are siblings in a stack, so the strip
                     // is drawn — and hit-tested — after the bar; anything of the strip's that reaches
                     // up into the bar's band would take the click off its buttons.
@@ -42,6 +45,11 @@ struct ContentView: View {
         }
         .tint(browser.selectedProfile.color)
         .navigationTitle(browser.selectedTab?.title ?? "six")
+        .focusedSceneValue(\.focusAddressBar, FocusAddressBarAction {
+            browser.exitOverview()
+            browser.restoreChrome() // the top bar is chrome, and a fullscreen window has none
+            addressFocus = browser.selectedTabID
+        })
         .focusedSceneValue(\.toggleAgentPanel, FocusAddressBarAction { showAgentPanel.toggle() })
         .focusedSceneValue(\.showHistory, FocusAddressBarAction { showHistory = true })
         .sheet(isPresented: $showHistory) { HistoryView() }
@@ -69,6 +77,14 @@ struct ContentView: View {
             return .ignored
         }
         .task {
+            // SwiftUI hands a new window's focus to the first field it finds, and that is now the
+            // address field: six would open with the caret up there and the page unable to hear a
+            // key. `defaultFocus(_:nil)` does not cover it — the field has to be let go of after the
+            // window has settled. ⌘L is how you ask for it.
+            try? await Task.sleep(for: .milliseconds(200))
+            addressFocus = nil
+        }
+        .task {
             // Debug harness: `SIX_ACP_SELFTEST="hi"` opens the agent panel and sends the text on launch,
             // so the ACP path can be exercised (with SIX_ACP_TRACE=1) without clicking.
             if let text = ProcessInfo.processInfo.environment["SIX_ACP_SELFTEST"], !text.isEmpty {
@@ -88,18 +104,29 @@ struct ContentView: View {
     }
 }
 
-/// Slim bar in the (hidden) title bar area: profiles on the left, workspace position on the right.
+/// The bar in the (hidden) title bar area — the window's one piece of chrome, and now the only one.
+///
+/// Left: which profile you are in, and how the layout is showing the strip. Middle: the focused
+/// window's address, because that band of the window was empty and an address field is exactly the
+/// shape of it. Right: everything about the strip rather than the page — what is bookmarked and
+/// downloading, where in the stack of workspaces you are, the overview, the agent.
 private struct TopBar: View {
     @Binding var showAgentPanel: Bool
+    var addressFocus: FocusState<UUID?>.Binding
     @Environment(BrowserState.self) private var browser
-    @State private var isAddingProfile = false
 
     var body: some View {
         let layout = browser.layout
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             Color.clear.frame(width: 68, height: 1) // room for the window buttons
-            ProfileSwitcher(isAddingProfile: $isAddingProfile)
-            Spacer(minLength: 12)
+            ProfileMenuButton()
+            LayoutModeButton()
+            Spacer(minLength: 8)
+            if let tab = browser.selectedTab {
+                AddressBar(tab: tab, addressFocus: addressFocus)
+                    .frame(maxWidth: addressWidth)
+            }
+            Spacer(minLength: 8)
             BookmarkButton()
             DownloadsButton()
             ExtensionActionBar()
@@ -116,10 +143,90 @@ private struct TopBar: View {
             .help("Agent panel (⌘⇧A)")
         }
         .padding(.horizontal, 10)
-        .frame(height: 38)
+        .frame(height: 40)
         .background(.bar)
         .overlay(alignment: .bottom) { Divider() }
-        .sheet(isPresented: $isAddingProfile) { NewProfileSheet() }
+    }
+
+    /// A share of the window rather than a number of points: on a 5K panel a fixed field is a slot in
+    /// the middle of nowhere, and on a laptop it crowds out the buttons on either side. The floor and
+    /// the ceiling are the two places where a share stops being sensible.
+    private var addressWidth: CGFloat {
+        max(280, min(760, browser.layout.viewport.width * 0.4))
+    }
+}
+
+/// How the strip is showing the focused window, as one control: click to fill the window and back
+/// (⌥W), hold for the rest — the three fills, the shared column width, the overview.
+///
+/// It replaces the button that used to sit inside a compact window and expand it. That button could
+/// only ever say one thing and could only be reached in one mode; a mode picker says where you are
+/// as well as where you can go, and it is in the same place whichever mode you are in.
+private struct LayoutModeButton: View {
+    @Environment(BrowserState.self) private var browser
+
+    var body: some View {
+        let layout = browser.layout
+        Menu {
+            Picker("View", selection: Binding(get: { layout.fill }, set: { setFill($0) })) {
+                Label("Strip", systemImage: "rectangle.split.3x1").tag(NiriFill.tiled)
+                Label("Full Window (⌥W)", systemImage: "rectangle.inset.filled").tag(NiriFill.window)
+                Label("Fullscreen (⌥⇧F)", systemImage: "arrow.up.left.and.arrow.down.right").tag(NiriFill.screen)
+            }
+            .pickerStyle(.inline)
+            Divider()
+            ColumnWidthPicker()
+            Toggle("Compact Width (⌥F)", isOn: Binding(
+                get: { layout.focusedColumnIsFullWidth },
+                set: { _ in browser.toggleCompactWidth() }
+            ))
+            .disabled(layout.fillsViewport)
+            Divider()
+            Toggle("Overview (⌥O)", isOn: Binding(get: { layout.isOverview }, set: { _ in browser.toggleOverview() }))
+            Toggle("Centre Focused Window (⌥C)", isOn: Binding(
+                get: { layout.centersFocus },
+                set: { _ in browser.toggleCenterFocus() }
+            ))
+            Divider()
+            // Where a window is in the strip, and the way out of it. These used to hang off its
+            // title bar; the page runs edge to edge now, so they hang off the layout button and off
+            // the page's own context menu.
+            Button("Move Left (⌥⇧←)") { browser.moveColumn(-1) }
+            Button("Move Right (⌥⇧→)") { browser.moveColumn(1) }
+            Button("Move to Workspace Above (⌥⇧↑)") { browser.moveColumnToWorkspace(-1) }
+            Button("Move to Workspace Below (⌥⇧↓)") { browser.moveColumnToWorkspace(1) }
+            Divider()
+            Button("Close Window (⌘W)") { browser.closeSelectedTab() }
+                .disabled(browser.selectedTabID == nil)
+        } label: {
+            Image(systemName: symbol(layout.showsFill))
+                .font(.system(size: 12))
+        } primaryAction: {
+            browser.toggleFullWindow()
+        }
+        .menuStyle(.borderlessButton)
+        .controlSize(.small)
+        .fixedSize()
+        .padding(.horizontal, 5)
+        .frame(height: 24)
+        .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+        .help("How the strip is shown — click fills the window (⌥W)")
+    }
+
+    private func setFill(_ fill: NiriFill) {
+        switch fill {
+        case .tiled: browser.restoreChrome()
+        case .window: if browser.layout.fill != .window { browser.toggleFullWindow() }
+        case .screen: if browser.layout.fill != .screen { browser.toggleFullscreen() }
+        }
+    }
+
+    private func symbol(_ fill: NiriFill) -> String {
+        switch fill {
+        case .tiled: "rectangle.split.3x1"
+        case .window: "rectangle.inset.filled"
+        case .screen: "arrow.up.left.and.arrow.down.right"
+        }
     }
 }
 
@@ -195,93 +302,6 @@ private struct WorkspacePips: View {
             }
         }
         .animation(NiriLayout.switchAnimation, value: layout.focusedWorkspaceIndex)
-    }
-}
-
-private struct ProfileSwitcher: View {
-    @Environment(BrowserState.self) private var browser
-    @Binding var isAddingProfile: Bool
-
-    var body: some View {
-        HStack(spacing: 6) {
-            ForEach(browser.profiles) { profile in
-                let selected = profile.id == browser.selectedProfileID
-                Button {
-                    browser.selectProfile(profile.id)
-                } label: {
-                    Circle()
-                        .fill(profile.color)
-                        .frame(width: 18, height: 18)
-                        .overlay {
-                            Circle().strokeBorder(.primary.opacity(selected ? 0.9 : 0), lineWidth: 2)
-                        }
-                        .overlay {
-                            if profile.isPrivate {
-                                Image(systemName: "eyeglasses")
-                                    .font(.system(size: 9, weight: .bold))
-                                    .foregroundStyle(.white)
-                            } else {
-                                Text(String(profile.name.prefix(1)))
-                                    .font(.system(size: 9, weight: .bold))
-                                    .foregroundStyle(.white)
-                            }
-                        }
-                }
-                .buttonStyle(.plain)
-                .help(profile.isPrivate ? "Private browsing — nothing is kept; close it to forget the session" : profile.name)
-                .contextMenu {
-                    if profile.isPrivate {
-                        Button("Close Private Browsing") { browser.closePrivateBrowsing() }
-                    } else {
-                        Button("Delete Profile", role: .destructive) { browser.removeProfile(profile.id) }
-                            .disabled(browser.profiles.count == 1)
-                    }
-                }
-            }
-            Button { isAddingProfile = true } label: {
-                Image(systemName: "plus.circle")
-                    .foregroundStyle(.secondary)
-            }
-            .buttonStyle(.plain)
-            .help("New Profile")
-        }
-    }
-}
-
-private struct NewProfileSheet: View {
-    @Environment(BrowserState.self) private var browser
-    @Environment(\.dismiss) private var dismiss
-    @State private var name = ""
-    @State private var color = Color.purple
-
-    var body: some View {
-        Form {
-            TextField("Name", text: $name)
-            ColorPicker("Color", selection: $color, supportsOpacity: false)
-        }
-        .formStyle(.grouped)
-        .frame(width: 320)
-        .safeAreaInset(edge: .bottom) {
-            HStack {
-                Button("Cancel", role: .cancel) { dismiss() }
-                Spacer()
-                Button("Create") {
-                    browser.addProfile(name: name, colorHex: color.hexString)
-                    dismiss()
-                }
-                .keyboardShortcut(.defaultAction)
-                .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
-            }
-            .padding()
-        }
-    }
-}
-
-private extension Color {
-    var hexString: String {
-        let resolved = resolve(in: EnvironmentValues())
-        let r = Int((resolved.red * 255).rounded()), g = Int((resolved.green * 255).rounded()), b = Int((resolved.blue * 255).rounded())
-        return String(format: "#%02X%02X%02X", max(0, min(255, r)), max(0, min(255, g)), max(0, min(255, b)))
     }
 }
 #endif

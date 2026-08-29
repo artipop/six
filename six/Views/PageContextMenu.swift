@@ -52,6 +52,10 @@ extension View {
             Button("Copy") { send("copy:") }
             Button("Paste") { send("paste:") }
             Button("Select All") { send("selectAll:") }
+            Divider()
+            // The window's own commands. They used to live on its title bar; the page runs edge to
+            // edge now, so the page's menu is where the mouse can still reach them.
+            Menu("This Window") { ColumnMenu(tab: tab).environment(browser) }
         }
         #else
         // A phone has no context menu on a page: the long press is WebKit's own, and there is no

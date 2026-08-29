@@ -60,8 +60,10 @@ See [docs/architecture.md](docs/architecture.md#being-a-browser).
 
 ## The niri layout
 
-There are no tabs and no sidebar. A page is a **column**: a full-height window with its own title bar (navigation +
-address field), laid out left to right in an endlessly scrollable **strip**. A column defaults to almost the full
+There are no tabs and no sidebar. A page is a **column**: a full-height window that is nothing but the page, laid out
+left to right in an endlessly scrollable **strip**. Nothing is drawn on it — the address, the lock, the shield and the
+title are one row in the top bar, for the window you are reading, with the profile and the layout mode beside them as
+dropdowns; the `×` that closes a window sits on its top right corner and waits for the pointer. A column defaults to almost the full
 width — an ordinary browser window, centred, with the neighbours peeking in at both edges to be scrolled to. A strip is a **workspace**; workspaces are
 stacked vertically and exactly one is on screen at a time. The bottom workspace is always empty — move a window into it
 and a fresh empty one appears below (niri's dynamic workspaces); a workspace that runs out of windows disappears,
@@ -70,9 +72,9 @@ unless you gave it a name (double-click its plate in the overview).
 A new window opens on six's own start page — one field for both queries and addresses, with completions from the
 search engine, so the first thing a window does isn't a network request. See [docs/start-page.md](docs/start-page.md).
 
-Nothing needs the keyboard: click a background window to pull it in, use the `‹` `›` buttons on the screen edges —
-at the end of the strip the right one becomes a `+` that adds a window — the workspace stepper in the top bar, and a
-right-click on a title bar or on the background for the rest. Scrolling over the
+Nothing needs the keyboard: click a background window to pull it in, use the `‹` `›` slivers standing in the gaps
+beside the focused window — at the end of the strip the right one becomes a `+` that adds a window — the workspace
+stepper in the top bar, and a right-click on a title bar or on the background for the rest. Scrolling over the
 layout's own chrome (title bars, gaps, background) pans the strip and changes workspace too — over a page, scrolling
 stays the page's.
 

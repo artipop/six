@@ -1,11 +1,16 @@
+#if os(macOS)
 import SwiftUI
 import WebKit
 
-/// Per-column title bar. Every window in the strip carries its own navigation and address field,
-/// the way a tiled window carries its own decorations.
-struct WindowChrome: View {
+/// The address field, in the top bar — one of them, for the window you are reading.
+///
+/// Every column used to carry its own, under a title bar of its own: a strip of a dozen windows is a
+/// dozen address fields, eleven of them for a page nobody is looking at, each one too narrow to show
+/// more than a host. All of it — the lock, the shield, the camera, the title — is here now, and a
+/// window is a page from edge to edge with nothing drawn on it. There is only ever one window you are
+/// reading, and this describes that one.
+struct AddressBar: View {
     let tab: BrowserTab
-    let isFocused: Bool
     var addressFocus: FocusState<UUID?>.Binding
 
     @Environment(BrowserState.self) private var browser
@@ -14,13 +19,95 @@ struct WindowChrome: View {
     @FocusedValue(\.showFilterLists) private var showFilterLists
     @FocusedValue(\.showSitePermissions) private var showSitePermissions
     @State private var text = ""
-    @State private var hovering = false
 
     private var isEditing: Bool { addressFocus.wrappedValue == tab.id }
-
     private var isWebPage: Bool { tab.currentURL?.scheme?.hasPrefix("http") == true }
     /// Is this site being left alone — either because the switch is off, or because the user said so?
     private var isAllowed: Bool { blocker.allows(tab.currentURL) }
+
+    var body: some View {
+        HStack(spacing: 6) {
+            if let document = tab.document {
+                documentControls(document)
+            } else {
+                Button(action: tab.goBack) { Image(systemName: "chevron.left") }
+                    .disabled(!tab.canGoBack)
+                    .help("Back")
+                Button(action: tab.goForward) { Image(systemName: "chevron.right") }
+                    .disabled(!tab.canGoForward)
+                    .help("Forward")
+                Button(action: tab.reloadOrStop) {
+                    Image(systemName: tab.isLoading ? "xmark" : "arrow.clockwise")
+                }
+                .help(tab.isLoading ? "Stop" : "Reload")
+                field
+                if let note = tab.highlightNote {
+                    // Moved up here with everything else that described the page: the window itself
+                    // is a page now, edge to edge, with nothing drawn on it.
+                    Image(systemName: "highlighter")
+                        .foregroundStyle(.orange)
+                        .help(note)
+                }
+            }
+        }
+        .buttonStyle(.borderless)
+        .font(.callout)
+    }
+
+    // MARK: The field
+
+    private var field: some View {
+        HStack(spacing: 5) {
+            siteIcon
+            if isWebPage { shield }
+            captureIndicator
+            TextField("Search or enter address", text: $text)
+                .textFieldStyle(.plain)
+                .font(.callout)
+                .lineLimit(1)
+                .focused(addressFocus, equals: tab.id)
+                .onSubmit {
+                    tab.navigate(to: text)
+                    addressFocus.wrappedValue = nil
+                }
+            if tab.isLoading {
+                ProgressView(value: min(max(tab.estimatedProgress, 0.03), 1))
+                    .progressViewStyle(.circular)
+                    .controlSize(.mini)
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .frame(height: 24)
+        .background(.quaternary.opacity(isEditing ? 0.85 : 0.5),
+                    in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                .strokeBorder(isEditing ? AnyShapeStyle(.tint) : AnyShapeStyle(.clear), lineWidth: 1.5)
+        }
+        // The field belongs to whichever window is focused, so it has to be repointed when the focus
+        // moves as well as when the page navigates — `tab` itself changes under it.
+        .onChange(of: tab.currentURL, initial: true) { _, url in
+            if !isEditing { text = displayString(for: url) }
+        }
+        .onChange(of: tab.id, initial: true) { _, _ in
+            if !isEditing { text = displayString(for: tab.currentURL) }
+        }
+        .onChange(of: isEditing) { _, editing in
+            text = editing ? (tab.currentURL?.absoluteString ?? "") : displayString(for: tab.currentURL)
+        }
+    }
+
+    /// The whole address once you are typing in it; the host and path at rest, because a query string
+    /// the length of a paragraph is not what the field is for.
+    private func displayString(for url: URL?) -> String {
+        guard let url else { return "" }
+        guard let host = url.host() else { return url.absoluteString }
+        let path = url.path()
+        return path.isEmpty || path == "/" ? host : host + path
+    }
+
+    // MARK: Blocking
 
     /// The state of blocking on this page, and the two things to do about it. Filled shield: the
     /// rules are on this page. Crossed out: they are not.
@@ -34,7 +121,7 @@ struct WindowChrome: View {
                 .disabled(showFilterLists == nil)
         } label: {
             Image(systemName: isAllowed ? "shield.slash" : "shield.lefthalf.filled")
-                .font(.system(size: 9))
+                .font(.system(size: 10))
         }
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
@@ -67,7 +154,7 @@ struct WindowChrome: View {
             let muted = tab.isCaptureMuted
             Button { tab.setCaptureMuted(!muted) } label: {
                 Image(systemName: captureSymbol(muted: muted))
-                    .font(.system(size: 9))
+                    .font(.system(size: 10))
             }
             .buttonStyle(.plain)
             .foregroundStyle(muted ? AnyShapeStyle(.tertiary) : AnyShapeStyle(Color.red))
@@ -108,7 +195,7 @@ struct WindowChrome: View {
                     .disabled(showSitePermissions == nil)
             } label: {
                 Image(systemName: symbol)
-                    .font(.system(size: 9))
+                    .font(.system(size: 10))
             }
             .menuStyle(.borderlessButton)
             .menuIndicator(.hidden)
@@ -118,73 +205,14 @@ struct WindowChrome: View {
         } else {
             Image(systemName: symbol)
                 .foregroundStyle(.secondary)
-                .font(.system(size: 9))
+                .font(.system(size: 10))
         }
     }
 
-    var body: some View {
-        HStack(spacing: 6) {
-            if let document = tab.document {
-                documentControls(document)
-            } else {
-                // Everything here goes through the window, not through its page: a title bar is drawn
-                // for every column in the strip, and reaching for `tab.page` would build a page for
-                // each of them just to ask whether its back list is empty (see `BrowserTab.page`).
-                Button(action: tab.goBack) {
-                    Image(systemName: "chevron.left")
-                }
-                .disabled(!tab.canGoBack)
-                .help("Back")
+    // MARK: Documents
 
-                Button(action: tab.goForward) {
-                    Image(systemName: "chevron.right")
-                }
-                .disabled(!tab.canGoForward)
-                .help("Forward")
-
-                Button(action: tab.reloadOrStop) {
-                    Image(systemName: tab.isLoading ? "xmark" : "arrow.clockwise")
-                }
-                .help(tab.isLoading ? "Stop" : "Reload")
-
-                address
-
-                if let note = tab.highlightNote {
-                    Image(systemName: "highlighter")
-                        .foregroundStyle(.orange)
-                        .help(note)
-                }
-            }
-
-            Button { browser.closeTab(tab.id) } label: {
-                Image(systemName: "xmark")
-                    .font(.caption2)
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(hovering || isFocused ? .secondary : .tertiary)
-            .help("Close Window")
-        }
-        .buttonStyle(.borderless)
-        .font(.caption)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 5)
-        .frame(height: 32)
-        .background(isFocused ? AnyShapeStyle(.bar) : AnyShapeStyle(.quaternary.opacity(0.4)))
-        .contentShape(Rectangle())
-        .onTapGesture {
-            browser.selectTab(tab.id)
-            browser.exitOverview()
-        }
-        .onHover { hovering = $0 }
-        .overlay(alignment: .bottom) {
-            if !tab.isDocument, tab.isLoading {
-                LoadingLine(progress: tab.estimatedProgress, accent: accent)
-            }
-        }
-    }
-
-    /// A document's bar: edit/preview, the title, and — while a research run writes into it — what
-    /// the agent is up to.
+    /// A document window has no address; what it has instead is the two ways of looking at it, and —
+    /// while a research run writes into it — what the agent is up to.
     @ViewBuilder
     private func documentControls(_ document: TextDocument) -> some View {
         @Bindable var document = document
@@ -194,107 +222,41 @@ struct WindowChrome: View {
         }
         .pickerStyle(.segmented)
         .labelsHidden()
-        .controlSize(.mini)
+        .controlSize(.small)
         .fixedSize()
         HStack(spacing: 5) {
             Image(systemName: "doc.text")
                 .foregroundStyle(.secondary)
-                .font(.system(size: 9))
+                .font(.system(size: 10))
             Text(document.title)
-                .font(.caption)
                 .lineLimit(1)
                 .truncationMode(.tail)
             if let run = browser.run(forDocument: tab.id) {
                 if run.isRunning {
                     ProgressView().controlSize(.mini)
                     Text(run.status.isEmpty ? String(localized: "researching…") : run.status)
-                        .font(.caption2)
+                        .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 } else if !run.status.isEmpty {
                     Image(systemName: "checkmark.circle")
                         .foregroundStyle(.secondary)
-                        .font(.system(size: 9))
+                        .font(.system(size: 10))
                         .help(run.status)
                 }
             }
             Spacer(minLength: 0)
             if let url = document.fileURL {
                 Text(url.lastPathComponent)
-                    .font(.caption2)
+                    .font(.caption)
                     .foregroundStyle(.tertiary)
                     .lineLimit(1)
                     .help(url.path(percentEncoded: false))
             }
         }
         .padding(.horizontal, 8)
-        .padding(.vertical, 3)
-        .frame(maxWidth: .infinity)
-        .background(.quaternary.opacity(0.45), in: RoundedRectangle(cornerRadius: 7))
-    }
-
-    private var accent: Color {
-        browser.profiles.first { $0.id == tab.profileID }?.color ?? .accentColor
-    }
-
-    /// The loading line, drawn by hand: a linear `ProgressView` brings a track and a thickness of its
-    /// own, and a browser wants a hairline the page seems to push along, not a control.
-    private struct LoadingLine: View {
-        let progress: Double
-        let accent: Color
-
-        var body: some View {
-            GeometryReader { proxy in
-                Capsule()
-                    .fill(accent)
-                    .frame(width: max(3, proxy.size.width * min(max(progress, 0.03), 1)))
-                    .animation(.easeOut(duration: 0.25), value: progress)
-            }
-            .frame(height: 1.5)
-            .transition(.opacity)
-        }
-    }
-
-    private var address: some View {
-        HStack(spacing: 5) {
-            siteIcon
-            if isWebPage { shield }
-            captureIndicator
-            TextField("Search or enter address", text: $text)
-                .textFieldStyle(.plain)
-                .font(.caption)
-                .lineLimit(1)
-                .focused(addressFocus, equals: tab.id)
-                .onSubmit {
-                    tab.navigate(to: text)
-                    addressFocus.wrappedValue = nil
-                }
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 3)
-        .background(.quaternary.opacity(isEditing ? 0.8 : 0.45), in: RoundedRectangle(cornerRadius: 7))
-        .onChange(of: tab.currentURL, initial: true) { _, url in
-            if !isEditing { text = displayString(for: url) }
-        }
-        .onChange(of: isEditing) { _, editing in
-            text = editing ? (tab.currentURL?.absoluteString ?? "") : displayString(for: tab.currentURL)
-        }
-    }
-
-    /// Collapsed columns are narrow, so the resting state shows the host, not the whole URL.
-    private func displayString(for url: URL?) -> String {
-        guard let url else { return "" }
-        guard let host = url.host() else { return url.absoluteString }
-        let path = url.path()
-        return path.isEmpty || path == "/" ? host : host + path
+        .frame(height: 24)
+        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
     }
 }
-
-extension WebPage {
-    @discardableResult
-    func load(_ item: WebPage.BackForwardList.Item?) -> Bool {
-        guard let item else { return false }
-        _ = load(item)
-        return true
-    }
-}
+#endif

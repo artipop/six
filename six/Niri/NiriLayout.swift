@@ -218,6 +218,19 @@ final class NiriLayout {
     /// down, so it shows proportionally more of the strip — and scrolls when even that isn't enough.
     var visibleWidth: CGFloat { viewport.width / overviewScale }
 
+    /// Where the focused column is on screen right now, in the strip's own coordinates. The mouse
+    /// controls that belong to the focused window — the two step arrows — are placed against it
+    /// rather than against the window, so they stand in the gap the layout already leaves instead of
+    /// over the neighbour peeking in at the edge.
+    var focusedColumnFrame: CGRect? {
+        guard !isOverview, let workspace = focusedWorkspace, workspace.columns.indices.contains(workspace.focus) else { return nil }
+        let frames = columnFrames(workspace)
+        guard frames.indices.contains(workspace.focus) else { return nil }
+        var frame = frames[workspace.focus]
+        frame.origin.x -= resolvedOffset(workspace) - horizontalPreview
+        return frame
+    }
+
     /// Space between two columns, and between a column and the edge of the screen. Fullscreen has none:
     /// the page runs to every edge, and the next window starts exactly one screen away.
     var gap: CGFloat { fillsViewport ? 0 : max(Self.minimumGap, (viewport.width * Self.gapFraction).rounded()) }

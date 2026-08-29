@@ -7,25 +7,27 @@ Nothing needs the keyboard: every layout operation has a mouse equivalent. `⌥`
 | | |
 |---|---|
 | click a window | focuses it and scrolls it into view — the first click on a background window never reaches the page |
-| `‹` `›` on the screen edges | one window left/right; they only appear when the strip continues that way |
-| `+` on the right edge | at the end of the strip the right chevron becomes a `+`: a new window after the last one |
+| `‹` `›` in the gaps beside the focused window | one window left/right. They are as narrow as the gap they stand in, they follow the focused window as the strip scrolls, and they only appear when the strip continues that way. With the window filled there is no gap left, so they wait at the edge of the screen and come up under the pointer |
+| `+` on the right | at the end of the strip the right chevron becomes a `+`: a new window after the last one |
 | `⌃`/`⌄` beside the workspace pips | one workspace up/down |
 | click a workspace pip | jump to that workspace |
 | ⌘-click a link | opens it in a new window right of this one, **behind** — the focus stays on the page you are reading, and the strip leans right for a moment to show what arrived. To go there instead, the context menu's Open Link in New Window: WebKit swallows every shift-click before six sees it, and a middle click cannot be told from a plain one ([links.md](links.md)) |
 | right-click a page | six's own menu: on a link, Open Link / in New Window / Behind / Download Linked File / Copy Link; always Back, Forward, Reload and the clipboard. WebKit's menu could not be repaired in place — [links.md](links.md) has why |
 | the download ring (top bar) | there once something has been downloaded: what is coming in, Stop, and Show in Finder when it is done. A download flies there from the click, so it is clear both that it started and where it went ([links.md](links.md)) |
-| right-click a window's title bar | close, column width (checked), compact width, full window, fullscreen, move left/right, move to the workspace above/below |
+| right-click a page → This Window | close, column width (checked), compact width, full window, fullscreen, move left/right, move to the workspace above/below. It used to hang off the window's title bar; the page runs edge to edge now, so it hangs off the page |
+| the layout button (top left, beside the profile) | click fills the window and back (`⌥W`); hold for the list — strip / full window / fullscreen, the shared column width, compact width, overview, centring, and where the focused window goes in the strip (move left/right, to the workspace above/below, close) |
 | right-click the background | new window, workspace up/down, overview, centring on/off |
-| scroll over a title bar, a gap or the background | one window sideways / one workspace up-down per gesture — over a page or a panel, scrolling stays the page's, and over the top bar it does nothing (its buttons would be a gamble otherwise) |
+| scroll over a gap or the background | one window sideways / one workspace up-down per gesture — over a page or a panel, scrolling stays the page's, and over the top bar it does nothing (its buttons would be a gamble otherwise) |
+| the address field (top bar) | one field, for the window you are reading, with back/forward/reload beside it, and the lock, the shield, the camera light and the highlighter with it. `⌘L` puts the caret in it. A window has no title bar of its own at all: it is a page from edge to edge |
 | the bookmark star (top bar) | save the focused page — filled when it is saved, a spinner while it is being indexed; again to remove. `⌘⌥B` lists and searches them |
 | overview button (top right) | zoom out to all workspaces; scroll sideways to run along a strip, click a window to open it |
 | double-click a workspace name (overview) | rename it; right-click the name to rename or clear it. A named workspace stays even when empty |
-| the lock / globe in an address field | once a site has been answered about the camera, the microphone or the motion sensors: flip an answer, forget the site, or open the whole list ([permissions.md](permissions.md)) |
-| the red camera / mic in an address field | only while the page is actually using one — click to mute it, click again to let it see and hear |
-| `×` on a title bar | close that window |
+| the lock / globe in the address field | once a site has been answered about the camera, the microphone or the motion sensors: flip an answer, forget the site, or open the whole list ([permissions.md](permissions.md)) |
+| the red camera / mic in the address field | only while the page is actually using one — click to mute it, click again to let it see and hear |
+| `×` on a window's top right corner | close that window. It sits on the corner itself — mostly over the gap, so the page keeps its clicks — and it is invisible until the pointer is on it, so a strip of a dozen windows is not a row of a dozen crosses |
 | the top edge of the screen (in fullscreen) | brings the bar back: previous/next window, workspace up/down, overview, leave fullscreen |
 | the engine chip on the start page | DuckDuckGo or Google — for queries and for the suggestions; also under Navigate → Search Engine |
-| the profile dots (top left) | switch profile — each has its own strip; `+` adds one, right-click deletes |
+| the profile button (top left) | which profile you are in, by name. It opens onto the list: click one to switch (each has its own strip), or unfold a row to rename it, pick its colour and delete it. New Profile at the bottom, and Private Window when there isn't one |
 
 ## Keyboard
 

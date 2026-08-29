@@ -651,3 +651,13 @@ extension URL {
         return text.contains(".") || text.hasPrefix("localhost")
     }
 }
+
+extension WebPage {
+    /// `load(_:)` returns a navigation, not a verdict; this says whether there was anything to load.
+    @discardableResult
+    func load(_ item: WebPage.BackForwardList.Item?) -> Bool {
+        guard let item else { return false }
+        _ = load(item)
+        return true
+    }
+}

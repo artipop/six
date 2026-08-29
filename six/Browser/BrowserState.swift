@@ -262,6 +262,29 @@ final class BrowserState {
         selectProfile(profile.id)
     }
 
+    /// A new name for a profile. The profile's folder on disk is named after it — the bookmarks'
+    /// Markdown and the agents' scratchpad live there — so the rename takes the folder with it, or
+    /// everything saved under the old name is orphaned.
+    func renameProfile(_ id: Profile.ID, to name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty,
+              let index = profiles.firstIndex(where: { $0.id == id }),
+              !profiles[index].isPrivate,
+              profiles[index].name != trimmed else { return }
+        let old = profiles[index].folder
+        profiles[index].name = trimmed
+        let new = profiles[index].folder
+        guard old != new, FileManager.default.fileExists(atPath: old.path(percentEncoded: false)) else { return }
+        try? FileManager.default.createDirectory(at: new.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try? FileManager.default.moveItem(at: old, to: new)
+    }
+
+    /// The profile's colour — the tint of the whole window while it is the one on screen.
+    func setProfileColor(_ id: Profile.ID, hex: String) {
+        guard let index = profiles.firstIndex(where: { $0.id == id }), profiles[index].colorHex != hex else { return }
+        profiles[index].colorHex = hex
+    }
+
     func removeProfile(_ id: Profile.ID) {
         guard profiles.count > 1, let profile = profiles.first(where: { $0.id == id }) else { return }
         for tab in tabs(in: id) { closeTab(tab.id) }

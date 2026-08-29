@@ -35,7 +35,7 @@ The preset asks the agent to `web_search` first, open the sources worth comparin
 section, citing as it goes, and leave every window open — the workspace is the record. The bounds (how many sources,
 how deep) are words in the preset, where the user can see and change them, not numbers in code.
 
-While it runs, tool-call titles stream into `run.status`, shown with a spinner in the document's title bar; the end
+While it runs, tool-call titles stream into `run.status`, shown with a spinner beside the document's name in the top bar; the end
 writes `done <time>`, `stopped` or `failed` (and replaces the document's "Researching…" line when it failed).
 `open_window` into the run's workspace records the window as a source. A question asked while the focused workspace
 belongs to a run is a **follow-up**: the follow-up preset points the agent at `read_document` and the same document.
@@ -132,7 +132,7 @@ re-rendering does not tear anything apart and the page's own scripts see no new 
 
 **Dynamic pages.** `HighlightStore.apply` runs after every `didFinishNavigation`. What does not anchor at once is
 retried on a `MutationObserver` for five seconds (a lazily hydrated article usually lands in one), then the page
-stops; Swift asks for the outcome afterwards and puts a note on the tab — an orange highlighter in the title bar
+stops; Swift asks for the outcome afterwards and puts a note on the tab — an orange highlighter beside the address
 with the reason: the passage is gone, a PDF in WebKit's viewer, text drawn on a canvas. The document still holds the
 quote and the link, so the evidence survives even when the page does not. Never scroll somewhere approximate and
 call it the citation.
