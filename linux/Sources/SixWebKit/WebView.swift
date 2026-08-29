@@ -46,7 +46,21 @@ public struct WebView: AdwaitaWidget {
         g_value_unset(&value)
 
         let storage = ViewStorage(view.map { OpaquePointer($0) })
-        if let pointer = storage.opaquePointer { PageRegistry.register(pointer, for: tabID) }
+        // `SIX_MOCK_CAPTURE=1` gives the page a camera and a microphone that are not there. WebKit's
+        // own test suite uses this setting for the same reason: without a device, `getUserMedia` is
+        // refused before anyone is asked, and the permission bar can never be seen to work — the
+        // container has neither PulseAudio nor a video device.
+        if ProcessInfo.processInfo.environment["SIX_MOCK_CAPTURE"] == "1",
+           let pointer = storage.opaquePointer,
+           let settings = webkit_web_view_get_settings(.init(pointer)) {
+            webkit_settings_set_enable_mock_capture_devices(settings, 1)
+        }
+        if let pointer = storage.opaquePointer {
+            PageRegistry.register(pointer, for: tabID)
+            // Here and not in `connect`: `permission-request` is wired by hand, and hand-wiring has
+            // none of adwaita's one-handler-per-name bookkeeping. `update` runs on every render.
+            PermissionRequests.connect(pointer, tabID: tabID)
+        }
         update(storage, data: data, updateProperties: true, type: type)
         return storage
     }

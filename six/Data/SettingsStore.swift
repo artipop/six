@@ -196,7 +196,15 @@ final class SettingsStore {
             do {
                 try database.write { db in
                     if let newValue {
-                        try Setting.insert { Setting(key: key.rawValue, value: newValue) }.execute(db)
+                        // `upsert`, not `insert`. A plain insert is only ever right the first time a
+                        // key is written, and every change after that failed on the primary key —
+                        // *"UNIQUE constraint failed: settings.key"*, caught, printed to stderr and
+                        // stepped over. The in-memory cache took the new value, so nothing looked
+                        // wrong until the next launch read the old one back.
+                        //
+                        // Found on Linux, answering a site's request for the camera and the
+                        // microphone: the second of the two answers never reached the table.
+                        try Setting.upsert { Setting(key: key.rawValue, value: newValue) }.execute(db)
                     } else {
                         try Setting.where { $0.key.eq(key.rawValue) }.delete().execute(db)
                     }

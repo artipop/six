@@ -1,6 +1,8 @@
 import Foundation
 import Observation
+#if canImport(WebKit)
 import WebKit
+#endif
 
 /// One device a site can ask for.
 ///
@@ -18,11 +20,21 @@ enum SitePermission: String, Codable, CaseIterable, Sendable, Identifiable {
 
     /// Lowercase on purpose: it is read inside a sentence ("wants to use your camera").
     var label: String {
+        #if os(Linux)
+        // `String(localized:)` and the strings catalog behind it are Apple Foundation's; a GTK front
+        // localises through gettext, so these are the keys and it translates them itself.
+        switch self {
+        case .camera: "camera"
+        case .microphone: "microphone"
+        case .motion: "motion sensors"
+        }
+        #else
         switch self {
         case .camera: String(localized: "camera")
         case .microphone: String(localized: "microphone")
         case .motion: String(localized: "motion sensors")
         }
+        #endif
     }
 
     var symbol: String {
@@ -80,14 +92,20 @@ final class SitePermissions {
         }
     }
 
-    /// Holds the suspended request. A class, and emptied on the first answer: the window can be
-    /// closed while its bar is still up, and a continuation resumed twice is a crash.
+    /// How the answer gets back to the page. A class, and emptied on the first answer: the window
+    /// can be closed while its bar is still up, and a continuation resumed twice is a crash.
+    ///
+    /// A closure rather than the continuation itself, because there are two ways back. Apple's front
+    /// suspends the page inside `deviceSensorAuthorization` and wants the continuation resumed;
+    /// WebKitGTK keeps the request object and wants a call later. Both are "hand this answer over
+    /// once", so both are this.
     fileprivate final class Pending {
-        var continuation: CheckedContinuation<Bool, Never>?
+        var answer: ((Bool) -> Void)?
 
         func resume(_ allowed: Bool) {
-            continuation?.resume(returning: allowed)
-            continuation = nil
+            let answer = self.answer
+            self.answer = nil
+            answer?(allowed)
         }
     }
 
@@ -97,6 +115,13 @@ final class SitePermissions {
     private(set) var queues: [UUID: [Question]] = [:]
     /// Whether a profile's answers may be written down; wired at launch to `BrowserState.isPrivate`.
     @ObservationIgnored var isPrivate: (UUID) -> Bool = { _ in false }
+    /// Told when a question is asked or answered, for a front that does not watch this object.
+    ///
+    /// SwiftUI does watch it — `@Observable` is exactly this, and on Apple nothing sets this and
+    /// nothing calls back. Adwaita has no equivalent: it re-renders when a view's own state is
+    /// assigned, and a question arriving from a C signal assigns nothing. So the one thing the Mac
+    /// gets for free is said out loud here.
+    @ObservationIgnored var onQuestionsChanged: (() -> Void)?
     @ObservationIgnored private let settings: SettingsStore
 
     init(settings: SettingsStore) {
@@ -106,8 +131,9 @@ final class SitePermissions {
 
     // MARK: Answering the page
 
-    /// The page is asking. Answers from memory when this site has been answered before, and
-    /// otherwise puts the question on the window and waits for it.
+    #if canImport(WebKit)
+    /// The page is asking, in WebKit's own vocabulary. Everything past the translation is
+    /// `decide(_:origin:in:profileID:)`, which is the same on both platforms.
     ///
     /// This is the closure behind `WebPage.Configuration.deviceSensorAuthorization`, so the page's
     /// `getUserMedia()` is suspended for exactly as long as the bar is up.
@@ -115,27 +141,54 @@ final class SitePermissions {
                 origin: WKSecurityOrigin,
                 in windowID: UUID,
                 profileID: UUID) async -> WKPermissionDecision {
-        let asked = Self.permissions(for: permission)
-        let origin = Self.string(for: origin)
+        let allowed = await decide(Self.permissions(for: permission),
+                                   origin: Self.string(for: origin),
+                                   in: windowID, profileID: profileID)
+        return allowed ? .grant : .deny
+    }
+    #endif
+
+    /// The page is asking, and the caller would rather be suspended than called back.
+    func decide(_ asked: [SitePermission], origin: String,
+                in windowID: UUID, profileID: UUID) async -> Bool {
+        await withCheckedContinuation { continuation in
+            decide(asked, origin: origin, in: windowID, profileID: profileID) {
+                continuation.resume(returning: $0)
+            }
+        }
+    }
+
+    /// The page is asking. Answers from memory when this site has been answered before, and
+    /// otherwise puts the question on the window and calls back when it has been answered.
+    ///
+    /// Says nothing about *who* asked. WebKit on Apple and WebKitGTK on Linux describe a request in
+    /// different types, but by the time either reaches here it has said only what was asked for and
+    /// by which origin — and an answer depends on nothing else. So the memory and the queue are
+    /// written once, and each platform brings its own translation.
+    ///
+    /// A callback and not `async`, with the suspending version layered on top rather than under.
+    /// That is not a preference: under GTK the thread belongs to `g_main_loop_run`, nothing drains
+    /// Swift's main-actor executor, and a `Task` created from a signal handler never runs at all —
+    /// measured, after the bar failed to appear for a page that was visibly suspended. WebKitGTK
+    /// does not want suspension anyway; it wants its request kept and answered later.
+    func decide(_ asked: [SitePermission], origin: String,
+                in windowID: UUID, profileID: UUID,
+                then answer: @escaping (Bool) -> Void) {
         // Nothing to file an answer under (an opaque origin, a `data:` page): the safe answer is no.
-        guard !asked.isEmpty, !origin.isEmpty else { return .deny }
+        guard !asked.isEmpty, !origin.isEmpty else { return answer(false) }
 
         let known = asked.compactMap { decision(for: $0, origin: origin, profileID: profileID) }
         if known.count == asked.count {
             // One "no" among them is a no: a page that asked for the camera *and* the microphone was
             // asking for a call, and half a call is not what either answer meant.
-            return known.allSatisfy { $0 } ? .grant : .deny
+            return answer(known.allSatisfy { $0 })
         }
 
         let pending = Pending()
+        pending.answer = answer
         queues[windowID, default: []].append(
             Question(profileID: profileID, origin: origin, permissions: asked, pending: pending))
-        let allowed = await withCheckedContinuation { continuation in
-            // Nothing suspends between appending the question and this line, so the bar can never
-            // be answered before there is a continuation for the answer to land in.
-            pending.continuation = continuation
-        }
-        return allowed ? .grant : .deny
+        onQuestionsChanged?()
     }
 
     /// The question this window is showing, if any.
@@ -152,6 +205,7 @@ final class SitePermissions {
             set(allowed, permission, forOrigin: question.origin, profileID: question.profileID)
         }
         question.pending.resume(allowed)
+        onQuestionsChanged?()
     }
 
     /// The window is closing, or its page is being given back: a question nobody can answer any more
@@ -160,6 +214,7 @@ final class SitePermissions {
     func forget(_ windowID: UUID) {
         guard let queue = queues.removeValue(forKey: windowID) else { return }
         for question in queue { question.pending.resume(false) }
+        onQuestionsChanged?()
     }
 
     // MARK: What has been decided
@@ -241,6 +296,7 @@ final class SitePermissions {
     /// A `file:` page has no host, because WebKit gives every local file the same opaque origin.
     /// Filing them together under `file://` is not a shortcut — it is what that origin *is*, and it
     /// beats the alternative of denying a local page with no question asked.
+    #if canImport(WebKit)
     private static func string(for origin: WKSecurityOrigin) -> String {
         let scheme = origin.`protocol`
         guard !scheme.isEmpty else { return "" }
@@ -249,8 +305,11 @@ final class SitePermissions {
         return origin.port == 0 ? base : "\(base):\(origin.port)"
     }
 
+    #endif
+
     /// The same string built from an address, so the title bar can look up what a window was
-    /// answered without asking its page. Kept beside `string(for:)` because the two must agree.
+    /// answered without asking its page. Kept beside `string(for:)` because the two must agree —
+    /// and it is what Linux files answers under, since WebKitGTK does not hand out an origin at all.
     static func origin(of url: URL?) -> String? {
         guard let url, let scheme = url.scheme?.lowercased(), !scheme.isEmpty else { return nil }
         guard let host = url.host()?.lowercased(), !host.isEmpty else { return "\(scheme)://" }
@@ -260,6 +319,7 @@ final class SitePermissions {
         return "\(base):\(port)"
     }
 
+    #if canImport(WebKit)
     private static func permissions(
         for permission: WebPage.DeviceSensorAuthorization.Permission
     ) -> [SitePermission] {
@@ -278,6 +338,7 @@ final class SitePermissions {
             return []
         }
     }
+    #endif
 }
 
 // MARK: - Settings

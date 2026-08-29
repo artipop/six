@@ -29,6 +29,7 @@ public struct BrowserContent: View {
     @State private var typed = ""
     @State private var showsHistory = false
     @State private var showsBookmarks = false
+    @State private var showsPermissions = false
 
     private var model: BrowserModel { .shared }
 
@@ -46,6 +47,15 @@ public struct BrowserContent: View {
         }
         .dialog(visible: $showsBookmarks, title: "Bookmarks", width: 640, height: 520) {
             BookmarksSheet(visible: $showsBookmarks)
+        }
+        .dialog(visible: $showsPermissions, title: "Site Permissions", width: 640, height: 520) {
+            PermissionsSheet(visible: $showsPermissions)
+        }
+        // A question arrives from a C signal, and a signal assigns no view state. This is the one
+        // place the model is allowed to reach back into the front, and it does the same thing every
+        // action here does: pull the strip's shape out again.
+        .inspectOnAppear { _ in
+            model.onPermissionQuestion = { refresh() }
         }
     }
 
@@ -86,6 +96,9 @@ public struct BrowserContent: View {
             Button(icon: .default(icon: .documentOpenRecent)) { showsHistory = true }
                 .flat()
                 .tooltip("History")
+            Button(icon: .default(icon: .cameraWeb)) { showsPermissions = true }
+                .flat()
+                .tooltip("Site permissions")
             Button(icon: .default(icon: .listAdd)) { model.openColumn(); refresh() }
                 .flat()
         }
@@ -209,6 +222,9 @@ public struct BrowserContent: View {
                 .ellipsize()
                 .padding(4)
                 .style(column.isFocused ? "heading" : "dim-label")
+            if let question = column.permission {
+                permissionBar(question, in: column.id)
+            }
             // A discarded column keeps its place and its address, and builds a page again when the
             // strip brings it back — the same thing the Mac does, and for the same reason: a strip
             // of a hundred columns cannot hold a hundred web content processes.
@@ -250,6 +266,34 @@ public struct BrowserContent: View {
                 refresh()
             }
         }
+    }
+
+    /// What a site is asking for, drawn where the answer belongs: in the column that asked, under
+    /// its own title.
+    ///
+    /// A bar rather than a dialog, and that is the same judgement the Mac makes in `PermissionBar`:
+    /// a dialog belongs to the app, and one column of twenty wanting the camera is no reason to stop
+    /// the other nineteen. It pushes the page down instead of covering it, so its buttons are
+    /// siblings of the web view rather than something drawn over it — which is also how they keep
+    /// the mouse.
+    ///
+    /// The page is suspended inside `getUserMedia()` for exactly as long as this is up.
+    @ViewBuilder func permissionBar(
+        _ question: BrowserModel.PermissionQuestion,
+        in tabID: UUID
+    ) -> Body {
+        HStack {
+            Symbol(icon: .default(icon: question.wantsCamera ? .cameraWeb : .audioInputMicrophone))
+                .padding(4)
+            Text("\(question.host) wants to use your \(question.devices).")
+                .ellipsize()
+                .hexpand()
+            Button("Block") { model.answerPermission(false, for: tabID); refresh() }
+            Button("Allow") { model.answerPermission(true, for: tabID); refresh() }
+                .style("suggested-action")
+        }
+        .padding(6)
+        .style("toolbar")
     }
 
     /// Built as a value first: the page's own modifiers belong to `WebView`, and a `Body` has none

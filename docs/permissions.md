@@ -97,3 +97,33 @@ be denied with no prompt at all, which is why they are there and why they are lo
 All three are the same trade rather than three different ones: they need `WKWebView` and a delegate, which means
 giving up `WebPage` and the SwiftUI-native model six is built on. Worth doing when one of them is actually wanted;
 not worth doing pre-emptively. See [todo.md](todo.md).
+
+## The same questions on Linux
+
+The GTK build asks the same questions, keeps the answers in the same `permissions.sites` row of the same
+`settings` table, and draws the same bar under the column that asked. That is not a second implementation:
+`SitePermissions` itself is shared code, and what each platform brings is only the translation into it.
+
+Two things differ, and both are WebKitGTK's shape rather than a decision:
+
+- **There is no origin object.** Apple hands the closure a `WKSecurityOrigin`; `WebKitPermissionRequest` carries
+  nothing but itself. So the origin comes from the view's own address through `SitePermissions.origin(of:)` — the
+  same function the title bar already used, and for a request the page has just made it names the same site.
+- **The answer is a callback, not a suspension.** `SitePermissions.decide` is a callback function with the `async`
+  one layered on top, because under GTK the thread belongs to `g_main_loop_run` and nothing drains Swift's
+  main-actor executor: a `Task` created from a signal handler never runs at all. WebKitGTK does not want
+  suspension anyway — it wants its request object kept and answered later, which is what `webkit_permission_request_allow`
+  is for. The Apple side is unchanged: it still suspends the page inside `deviceSensorAuthorization`.
+
+The signal is wired by hand rather than through adwaita's signal machinery. `permission-request` is
+`gboolean (*)(WebKitWebView*, WebKitPermissionRequest*, gpointer)` and adwaita's handler types have no case for
+that shape — and here the half that would be wrong is the *return value*, which is what tells WebKitGTK whether
+six took the request or it should fall back to its own denial.
+
+`SIX_MOCK_CAPTURE=1` turns on `WebKitSettings:enable-mock-capture-devices`, which is how this is tested: without a
+device `getUserMedia` is refused before anyone is asked, and a container has neither a camera nor PulseAudio.
+
+WebKitGTK does offer what the Apple build cannot — `WebKitGeolocationPermissionRequest`, screen sharing through
+`is_for_display_device`, notifications, pointer lock. None of them are wired: `SitePermission` is a `Codable` enum
+stored in a table both builds read, so a case that exists on one platform and not the other is a row the other
+cannot decode. Widening it is a change to the shared model, and it belongs with the platform that would use it.

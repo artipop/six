@@ -54,7 +54,11 @@ let package = Package(
                 "Data/SettingsStore.swift",
                 "Bookmarks/Bookmark.swift",
                 "Browser/SearchEngine.swift",
-                "Browser/History.swift"
+                "Browser/History.swift",
+                // What a site was allowed. The decision, the queue and the suspension are the same
+                // on both platforms; only the type the request arrives as differs, and that part
+                // stays behind `#if canImport(WebKit)`.
+                "Browser/SitePermissions.swift"
                 //
                 // `SettingsStore` is in only because it was untangled first: it used to decode six
                 // subsystems' types out of the settings table, so taking it would have dragged most
@@ -65,7 +69,9 @@ let package = Package(
         ),
         .testTarget(
             name: "SixCoreTests",
-            dependencies: ["SixCore"],
+            // GRDB directly, so a test can hand `SettingsStore` a database of its own rather than
+            // the one under `AppSupport` that a running six is using.
+            dependencies: ["SixCore", .product(name: "SQLiteData", package: "sqlite-data")],
             path: "Tests/SixCoreTests"
         )
     ]

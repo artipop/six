@@ -23,6 +23,21 @@ public final class BrowserModel {
         public var isLive: Bool
         /// A picture of the page as it was when it gave up its process, if there is one.
         public var thumbnail: URL?
+        /// A question this page is waiting on, drawn as a bar under its title. On the column rather
+        /// than on the window: in a strip of twenty, the page that wants the camera is one of them,
+        /// and stopping the other nineteen to answer for it is a browser mistaking a page for
+        /// itself. The Mac's `PermissionBar` sits in the same place for the same reason.
+        public var permission: PermissionQuestion?
+    }
+
+    /// A question, flattened for the view.
+    public struct PermissionQuestion: Identifiable, Equatable {
+        public let id: UUID
+        /// The site, as people name one: `example.com`.
+        public let host: String
+        /// "camera and microphone" — what the bar says it wants.
+        public let devices: String
+        public let wantsCamera: Bool
     }
 
     /// One model for the app, reached statically rather than stored in a view.
@@ -47,6 +62,13 @@ public final class BrowserModel {
     private var pages = LivePages()
     private var settings: SettingsStore?
     private var bookmarks: Bookmarks?
+    /// What sites were allowed, and what they are asking right now. The same object the Mac has,
+    /// out of `SixCore`: the memory, the queue and the suspended page are shared code, and only the
+    /// shape a request arrives in is not.
+    private var permissions: SitePermissions?
+    /// Told when a question appears or is answered. A question arrives from a C signal and assigns
+    /// no view state, so without this the bar would exist and never be drawn.
+    public var onPermissionQuestion: (() -> Void)?
 
     private init() {
         Thumbnails.folder = AppSupport.folder("Thumbnails")
@@ -69,6 +91,14 @@ public final class BrowserModel {
             self.settings = settings
             profileID = settings.defaultProfileID
             layout.activeProfileID = profileID
+
+            let permissions = SitePermissions(settings: settings)
+            // A private profile's answers live as long as the profile and are written nowhere —
+            // the same rule as its cookies, and for the same reason.
+            permissions.isPrivate = { [weak self] id in self?.privateProfiles.contains(id) ?? false }
+            permissions.onQuestionsChanged = { [weak self] in self?.onPermissionQuestion?() }
+            self.permissions = permissions
+            listenForPermissionRequests()
         } catch {
             FileHandle.standardError.write(Data("[six] database unavailable: \(error)\n".utf8))
             profileID = layout.activeProfileID
@@ -79,6 +109,70 @@ public final class BrowserModel {
         // code. `shared` is lazy, so the first touch happens inside the first render, by which time
         // the toolkit is running.
         if !restore() { fill() }
+    }
+
+    // MARK: Permissions
+
+    /// Turn WebKitGTK's request into the question `SitePermissions` already knows how to answer.
+    ///
+    /// Everything past this function is shared with the Mac — the remembered answer, the queue, the
+    /// suspended promise. What differs is only this: Apple hands the closure a `WKSecurityOrigin`,
+    /// WebKitGTK hands it nothing and the origin comes from the page's own address.
+    private func listenForPermissionRequests() {
+        PermissionRequests.handler = { [weak self] ask, answer in
+            guard let self, let permissions else { return answer(false) }
+            var asked: [SitePermission] = []
+            if ask.wantsCamera { asked.append(.camera) }
+            if ask.wantsMicrophone { asked.append(.microphone) }
+            guard let origin = SitePermissions.origin(of: ask.pageURL) else { return answer(false) }
+            trace("permission \(origin) \(asked.map(\.rawValue).joined(separator: "+"))")
+            permissions.decide(asked, origin: origin, in: ask.tabID,
+                               profileID: self.layout.activeProfileID, then: answer)
+        }
+    }
+
+    /// The bar's two buttons. Remembers the answer and lets the page go.
+    public func answerPermission(_ allowed: Bool, for tabID: UUID) {
+        permissions?.answer(allowed, for: tabID)
+        trace("answered \(allowed): \(permissionSites.map(\.detail))")
+    }
+
+    /// What the column that asked should be drawing, if anything.
+    private func question(for tabID: UUID) -> PermissionQuestion? {
+        guard let question = permissions?.question(for: tabID) else { return nil }
+        return PermissionQuestion(
+            id: question.id,
+            host: question.host,
+            // `ListFormatter` is Apple Foundation's, and this list is never longer than two.
+            devices: question.permissions.map(\.label).joined(separator: " and "),
+            wantsCamera: question.permissions.contains(.camera)
+        )
+    }
+
+    /// Every site with a remembered answer — the Mac's Site Permissions panel, flattened.
+    public struct PermissionRow: Identifiable {
+        public let id: String
+        public let origin: String
+        public let detail: String
+    }
+
+    public var permissionSites: [PermissionRow] {
+        guard let permissions else { return [] }
+        return permissions.sites.map { site in
+            let decided = permissions.decisions(forOrigin: site.origin, profileID: site.profileID)
+            let detail = SitePermission.allCases.compactMap { permission -> String? in
+                guard let allowed = decided[permission] else { return nil }
+                return "\(permission.label): \(allowed ? "allowed" : "blocked")"
+            }
+            return PermissionRow(id: site.id, origin: site.origin,
+                                 detail: detail.joined(separator: ", "))
+        }
+    }
+
+    /// Take it back: the site asks again the next time it needs a device.
+    public func forgetPermissions(_ id: String) {
+        guard let permissions, let site = permissions.sites.first(where: { $0.id == id }) else { return }
+        permissions.forget(origin: site.origin, profileID: site.profileID)
     }
 
     // MARK: Leaving and coming back
@@ -147,7 +241,8 @@ public final class BrowserModel {
                 title: titles[column.tabID] ?? "",
                 isFocused: column.tabID == layout.focusedTabID,
                 isLive: pages.live.contains(column.tabID),
-                thumbnail: Thumbnails.exists(for: column.tabID) ? Thumbnails.url(for: column.tabID) : nil
+                thumbnail: Thumbnails.exists(for: column.tabID) ? Thumbnails.url(for: column.tabID) : nil,
+                permission: question(for: column.tabID)
             )
         }
     }
@@ -188,10 +283,12 @@ public final class BrowserModel {
         for column in layout.workspaces.flatMap(\.columns) {
             PageRegistry.forget(column.tabID)
             pages.forget(column.tabID)
+            permissions?.forget(column.tabID)
             urls[column.tabID] = nil
             titles[column.tabID] = nil
         }
         privateProfiles.remove(id)
+        permissions?.forgetProfile(id)
         sessions[id] = nil
         layout.activeProfileID = profileID
         trace("private profile closed")
@@ -308,6 +405,9 @@ public final class BrowserModel {
         layout.removeColumn(tabID: focused)
         PageRegistry.forget(focused)
         pages.forget(focused)
+        // The page is suspended inside `decide`; a promise that never lands is a page that never
+        // finds out. Denying is the answer a closed column gives.
+        permissions?.forget(focused)
         Thumbnails.prune(keeping: Set(layout.workspaces.flatMap { $0.columns.map(\.tabID) }))
         save()
         urls[focused] = nil
