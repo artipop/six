@@ -14,11 +14,12 @@ public struct BrowserContent: View {
     /// The strip's shape is kept here and reassigned after anything that could change it — a
     /// declarative front re-renders on assignment, and the model is a reference type that mutates
     /// quietly. That is the tax this layer charges for owning the update cycle.
-    /// A counter, not the data. The strip reads `model.columns` directly on every render; this only
-    /// exists to *ask* for a render, and it is bumped from user actions — never from inside the
-    /// render path. Assigning derived state during a render is what sent the view tree into
-    /// unbounded recursion and took the stack with it.
-    @State private var revision = 0
+    /// The strip's shape, assigned from actions and never during a render.
+    ///
+    /// A counter that nothing reads does not work: Meta re-renders a view when the state it *reads*
+    /// changes, so bumping a write-only `revision` left the new tab and the typed address with no
+    /// way to reach the screen. Holding the derived list is what makes the dependency real.
+    @State private var columns: [BrowserModel.Column] = []
     @State private var typed = ""
 
     private var model: BrowserModel { .shared }
@@ -31,6 +32,7 @@ public struct BrowserContent: View {
             strip
                 .vexpand()
         }
+        .onAppear { refresh() }
     }
 
     // MARK: The chrome
@@ -45,8 +47,10 @@ public struct BrowserContent: View {
                 .insensitive(!model.canGoForward)
             Button(icon: .default(icon: .viewRefresh)) { model.reload(); refresh() }
                 .flat()
+            // `entryActivated`, not `onSubmit` — the latter exists on every view and quietly binds
+            // to nothing here, which is why Enter in the address bar did nothing at all.
             EntryRow("Address", text: $typed)
-                .onSubmit { model.go(to: typed); refresh() }
+                .entryActivated { model.go(to: typed); refresh() }
                 .hexpand()
             Button(icon: .default(icon: .listAdd)) { model.openColumn(); refresh() }
                 .flat()
@@ -55,8 +59,9 @@ public struct BrowserContent: View {
         .style("toolbar")
     }
 
-    /// Ask for a render. Safe from an action, never called while one is in progress.
-    func refresh() { revision += 1 }
+    /// Pull the strip's shape out of the model. Safe from an action; never called during a render,
+    /// which is what sent the view tree into a 248-render runaway the first time.
+    func refresh() { columns = model.columns }
 
     // MARK: The strip
 
@@ -73,7 +78,7 @@ public struct BrowserContent: View {
     @ViewBuilder var strip: Body {
         ScrollView {
             HStack(spacing: Int(gap)) {
-                ForEach(model.columns) { column in
+                ForEach(columns) { column in
                     columnView(column)
                 }
             }

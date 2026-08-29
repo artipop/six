@@ -117,6 +117,7 @@ public final class BrowserModel {
 
     /// Anything that is not an address is a search, which is the one decision an address bar makes.
     public func go(to typed: String) {
+        trace("go \(typed)")
         let trimmed = typed.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, let url = Self.destination(for: trimmed) else { return }
         if let focused = focusedID { urls[focused] = url } else { open(url) }
