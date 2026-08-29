@@ -10,7 +10,8 @@ import PackageDescription
 // GtkFixed, and does a click land in the column under the pointer when a bar is sitting on top of it.
 let package = Package(
     name: "six-linux",
-    dependencies: [.package(path: "..")],
+    // No dependency on the root package yet: the spike answers a question about widgets, and
+    // pulling SixCore in would drag the whole SQLite graph through every build of it.
     targets: [
         .systemLibrary(name: "CWebKitGTK", pkgConfig: "webkitgtk-6.0"),
         .executableTarget(name: "GtkSpike", dependencies: ["CWebKitGTK"])
