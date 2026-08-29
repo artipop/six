@@ -150,11 +150,37 @@ public final class BrowserModel {
 
     /// One column along the strip, the way ⌥← and ⌥→ do it on the Mac.
     public func focusColumn(_ delta: Int) {
-        guard layout.canFocusColumn(delta) else { return }
+        guard layout.canFocusColumn(delta) else { return trace("focusColumn \(delta): некуда") }
         layout.focusColumn(delta)
+        trace("focusColumn \(delta) -> \(layout.focusedTabID?.uuidString.prefix(8) ?? "—")")
     }
 
     public func canFocusColumn(_ delta: Int) -> Bool { layout.canFocusColumn(delta) }
+
+    /// Workspaces stack across the strip, the way niri means them: columns follow one another
+    /// *along* it, workspaces are the other axis. `NiriLayout` owns both; this only asks.
+    public func focusWorkspace(_ delta: Int) {
+        guard layout.canFocusWorkspace(delta) else { return trace("focusWorkspace \(delta): некуда") }
+        layout.focusWorkspace(delta)
+        trace("focusWorkspace -> \(layout.focusedWorkspaceIndex) из \(layout.workspaces.count)")
+    }
+
+    /// Send the focused column to the next workspace along, which is how a strip gets tidied.
+    public func moveColumnToWorkspace(_ delta: Int) { layout.moveColumnToWorkspace(delta) }
+
+    public var workspaceCount: Int { layout.workspaces.count }
+    public var focusedWorkspaceIndex: Int { layout.focusedWorkspaceIndex }
+
+    /// Close the focused column. The page goes with it — the registry drops its pointer, and the
+    /// widget is removed by the strip on the next render.
+    public func closeColumn() {
+        guard let focused = focusedID else { return }
+        trace("close \(focused)")
+        layout.removeColumn(tabID: focused)
+        PageRegistry.forget(focused)
+        urls[focused] = nil
+        titles[focused] = nil
+    }
 
     /// Cycle the width every column uses, which is ⌥R there. One value for the whole strip rather
     /// than per column, because a strip where each window has its own width reads as a mess.

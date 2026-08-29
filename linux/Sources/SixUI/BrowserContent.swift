@@ -38,6 +38,7 @@ public struct BrowserContent: View {
             toolbar
             strip
                 .vexpand()
+            shortcuts
         }
         .dialog(visible: $showsHistory, title: "History", width: 640, height: 520) {
             HistorySheet(visible: $showsHistory)
@@ -74,6 +75,29 @@ public struct BrowserContent: View {
     /// Pull the strip's shape out of the model. Safe from an action; never called during a render,
     /// which is what sent the view tree into a 248-render runaway the first time.
     func refresh() { columns = model.columns }
+
+    /// Keyboard shortcuts.
+    ///
+    /// adwaita binds an accelerator to a *button's* action, so the shortcuts are a row of buttons
+    /// that is never shown. That reads oddly and is exactly right: the action lives in one place,
+    /// and the key and the toolbar press the same thing.
+    ///
+    /// Ctrl rather than ⌘, and `<Alt>` where the Mac uses ⌥ — the strip's own gestures keep their
+    /// meaning, the platform's conventions keep theirs.
+    @ViewBuilder var shortcuts: Body {
+        HStack {
+            Button("") { model.openColumn(); refresh() }.keyboardShortcut("<Ctrl>t")
+            Button("") { model.closeColumn(); refresh() }.keyboardShortcut("<Ctrl>w")
+            Button("") { model.reload() }.keyboardShortcut("<Ctrl>r")
+            Button("") { showsHistory = true }.keyboardShortcut("<Ctrl>h")
+            Button("") { model.focusColumn(-1); refresh() }.keyboardShortcut("<Alt>Left")
+            Button("") { model.focusColumn(1); refresh() }.keyboardShortcut("<Alt>Right")
+            Button("") { model.focusWorkspace(-1); refresh() }.keyboardShortcut("<Alt>Up")
+            Button("") { model.focusWorkspace(1); refresh() }.keyboardShortcut("<Alt>Down")
+            Button("") { model.cycleWidth(); refresh() }.keyboardShortcut("<Alt>r")
+        }
+        .visible(false)
+    }
 
     // MARK: The strip
 
