@@ -14,6 +14,10 @@ let package = Package(
     // pulling SixCore in would drag the whole SQLite graph through every build of it.
     targets: [
         .systemLibrary(name: "CWebKitGTK", pkgConfig: "webkitgtk-6.0"),
+        // The toolkit layer, and the only module that knows what GTK is. Everything above it —
+        // the strip, the columns, the browser model — sees `Widget`, `WebView`, `NetworkSession`
+        // and nothing else, which is what makes swapping the toolkit later cost one module.
+        .target(name: "SixGtk", dependencies: ["CWebKitGTK"]),
         .executableTarget(name: "GtkSpike", dependencies: ["CWebKitGTK"])
     ]
 )
