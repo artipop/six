@@ -56,10 +56,19 @@ nonisolated enum BookmarkScope: String, CaseIterable, Identifiable, Sendable {
     var id: String { rawValue }
 
     var title: String {
+        #if os(Linux)
+        // `String(localized:)` and the strings catalog behind it are Apple Foundation's; a GTK front
+        // localises through gettext, so these are the keys and it translates them itself.
+        switch self {
+        case .profile: "This Profile"
+        case .all: "All Profiles"
+        }
+        #else
         switch self {
         case .profile: String(localized: "This Profile")
         case .all: String(localized: "All Profiles")
         }
+        #endif
     }
 }
 

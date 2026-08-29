@@ -104,37 +104,35 @@ CloudKit Web Services"]
 | Retrieval | sqlite-vec `vec0` (built) | the same; `sqlite3_auto_extension` works there | on macOS the extension is entered per connection (`sqlite3_vec_init`), since the system SQLite has extension loading compiled out — [bookmarks.md](bookmarks.md#the-index) |
 | Sync | SQLiteData's `SyncEngine` over CloudKit | no-op / own server | without an Apple account a Linux build cannot reach iCloud at all; accept that |
 
-## SQLiteData on Linux: measured
+## SQLiteData on Linux: it builds, and the pins are why
 
-Swift 6.3.3, aarch64, Ubuntu 24.04, in a container. **GRDB, StructuredQueries, the `@Table` and `#sql`
-macros and sqlite-vec all compile there** — the build reaches 687 of 779 steps before it stops, and it
-stops outside all of them.
+Swift 6.3.3, aarch64, Ubuntu 24.04, in a container: **GRDB, SQLiteData, sqlite-vec and the `@Table` /
+`#sql` macros all build, and so do `AppDatabase`, `SettingsStore`, `History`, `Bookmark` and
+`SearchEngine`.** Nothing had to be vendored, and the query layer did not have to be swapped for
+`swift-structured-queries` on its own.
 
-What stops it is `SQLiteData` depending on `Sharing`, unconditionally
-(`sqlite-data/Package.swift`, target dependency, not trait-gated), which reaches `combine-schedulers`,
-whose `Internal/Lock.swift` uses `pthread_mutex_t` under a bare `import Foundation`. Swift 6.3 rejects
-that: `initializer 'init()' is not available due to missing import of defining module 'CoreFoundation'`
-`[#MemberImportVisibility]`. Upstream `main` still has no `import CoreFoundation`, so a version bump does
-not help; and because the package sets its own language mode, neither `-Wwarning MemberImportVisibility`
-nor `-swift-version 5` on the command line reaches it.
+What made it look impossible at first was resolving *newer* transitive versions than the app uses.
+Both breakages are recent regressions, and both are upstream, not ours:
 
-Patching was tried and is a dead end. Adding the missing `import CoreFoundation` to
-`combine-schedulers` does clear that error — and the build then stops one package later, at
-`swift-sharing`'s own `import Foundation.NSData`, a module that does not exist off Apple. It is not one
-line in one package; `Sharing` is simply not portable.
+| package | app's version | newest | what the newest does on Linux |
+|---|---|---|---|
+| `swift-sharing` | 2.9.1 ✅ | 2.10.0 ❌ | `package import Foundation.NSData` — no such module off Apple |
+| `combine-schedulers` | 1.2.0 ✅ | 1.2.1 ❌ | `pthread_mutex_t` under a bare `import Foundation`; Swift 6.3 wants `CoreFoundation` |
 
-The way out is the one this file already implied. **six uses none of the layer that pulls `Sharing`** —
-no `@FetchAll`, no `@Fetch`, no `@Shared` anywhere in `six/`; only `@Table`, `#sql`, `defaultDatabase`
-and GRDB. So on Linux the dependency becomes `swift-structured-queries` directly, which depends on
-neither `Sharing` nor `combine-schedulers`, plus the thin bridge that binds it to GRDB.
+2.9.1, 2.8.2 and 2.5.2 of `swift-sharing` all build clean, so 2.10.0 is a regression — and its own CI
+claims Linux on Swift 6.3, which makes it worth reporting upstream.
 
-That bridge is the only thing SQLiteData was giving us that structured-queries does not. It is ~8 files
-in `sqlite-data/Sources/SQLiteData/StructuredQueries+GRDB/` — `DefaultDatabase`, `QueryCursor`,
-`Statement+GRDB`, `Table+GRDB`, `SQLiteQueryDecoder`, `Decoding` and a couple of helpers — under MIT,
-and the rest of that directory is the `Fetch*` layer six never touches. Vendoring that slice the way
-`ClaudeForFoundationModels` is vendored keeps **the same `Database` and `DatabaseWriter` types on both
-platforms**, so `AppDatabase` and `SettingsStore` keep their call sites exactly and the model files
-travel untouched.
+So `Package.swift` names both as **pins rather than uses**: dependencies it declares and never imports,
+purely to hold the graph at the versions the app already resolved. That is also the honest statement of
+the arrangement — the two builds compile the same sources against the same libraries, which is the only
+way a database written by one is safe to open with the other.
 
-That is a smaller fallback than "plain GRDB" ([todo.md](todo.md#storage-history-pages-and-retrieval)
-assumed the query layer might have to go too; it does not — only the package that wraps it).
+**The consequence to remember:** bumping `swift-sharing` or `combine-schedulers` is now a Linux-breaking
+change, and it will break in a package six never imports. The pin comments say so.
+
+([sqlite-data#459](https://github.com/pointfreeco/sqlite-data/pull/459) is a separate Linux effort —
+CloudKit gating in its own tests, and its GRDB floor. Orthogonal to this, and not needed for it.)
+
+What did have to move is Apple-only Foundation, twice: `String(localized:)` in `NiriLayout` and in
+`BookmarkScope.title`. The strings catalog is Apple's too, so on Linux those are the keys and a GTK
+front translates them through gettext.

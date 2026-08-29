@@ -17,9 +17,33 @@ let package = Package(
     products: [
         .library(name: "SixCore", targets: ["SixCore"])
     ],
+    dependencies: [
+        .package(url: "https://github.com/pointfreeco/sqlite-data", from: "1.11.0"),
+        .package(url: "https://github.com/mhayes853/sqlite-vec-data", from: "0.5.0"),
+
+        // Pins, not uses. Neither is imported anywhere in six; both are here to hold the graph at
+        // the versions the app itself resolved, because the newer ones do not build on Linux:
+        //
+        //   swift-sharing 2.10.0    `package import Foundation.NSData` — no such module off Apple
+        //   combine-schedulers 1.2.1  `pthread_mutex_t` under a bare `import Foundation`
+        //
+        // Both are regressions (2.9.1, 2.8.2 and 2.5.2 of Sharing all build clean), both are
+        // upstream, and both arrive through SQLiteData, which depends on Sharing unconditionally.
+        // Keeping the two builds on the same versions is worth having anyway: a database written by
+        // one is opened by the other.
+        //
+        // **So bumping either of these is a Linux-breaking change**, and it will break in a package
+        // six never imports. See docs/storage.md.
+        .package(url: "https://github.com/pointfreeco/swift-sharing", exact: "2.9.1"),
+        .package(url: "https://github.com/pointfreeco/combine-schedulers", exact: "1.2.0")
+    ],
     targets: [
         .target(
             name: "SixCore",
+            dependencies: [
+                .product(name: "SQLiteData", package: "sqlite-data"),
+                .product(name: "SQLiteVecData", package: "sqlite-vec-data")
+            ],
             path: "six",
             sources: [
                 // Geometry: no platform at all, and the piece a second front end reuses whole.
@@ -27,23 +51,17 @@ let package = Package(
                 // Where six lives, and the versioned JSON snapshot beside the database.
                 "Data/AppSupport.swift",
                 "Persistence/SnapshotStore.swift",
-                "Persistence/StatePersistence.swift"
+                "Persistence/StatePersistence.swift",
+                "Data/AppDatabase.swift",
+                "Data/SettingsStore.swift",
+                "Bookmarks/Bookmark.swift",
+                "Browser/SearchEngine.swift",
+                "Browser/History.swift"
                 //
-                // The SQLite half is measured and waiting on one piece of work, not forgotten —
-                // see `docs/storage.md`. The files compile; `SQLiteData` does not, because it
-                // depends unconditionally on `Sharing`, which is not portable (its own
-                // `import Foundation.NSData` stops the build even after `combine-schedulers` is
-                // patched). Linux takes `swift-structured-queries` directly plus the ~8-file
-                // MIT bridge that binds it to GRDB, which keeps the same `DatabaseWriter` on both
-                // platforms and leaves every call site here alone.
-                //
-                // Also not here: `Data/SettingsStore.swift` and, through it,
-                // `Browser/{History,SearchEngine}.swift`. SettingsStore is the coupling hub of the
-                // app — it decodes six subsystems' types out of the settings table (ModelChoice,
-                // FilterList, InstalledExtension, SitePermissions, ResearchPreset, LivePageCache),
-                // so taking it drags most of the app with it. Untangling that is its own step: each
-                // typed accessor belongs beside the type it decodes, as an extension, leaving
-                // SettingsStore itself knowing only keys and strings.
+                // `SettingsStore` is in only because it was untangled first: it used to decode six
+                // subsystems' types out of the settings table, so taking it would have dragged most
+                // of the browser behind it. Each typed accessor now lives beside the type it
+                // decodes, and what is left here knows only keys and strings.
             ],
             swiftSettings: [.swiftLanguageMode(.v5)]
         ),

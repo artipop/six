@@ -180,11 +180,11 @@ their chunks and vectors (`six/Data/`, `six/Bookmarks/`, [architecture.md](archi
   [Wax](https://github.com/christopherkarani/Wax) — one `.wax` file with FTS5 + Metal HNSW, hybrid search in one
   query, own embedder and an MCP server; Apple Silicon first, single writer, v0.2. VecturaKit — embed + index +
   BM25 hybrid in one Swift API over MLX; Apple-only, own files.
-- **Linux build of the data layer.** ~~Verify early~~ — done, and the answer is narrower than the fallback
-  assumed: GRDB, StructuredQueries and sqlite-vec all build on Linux, and what does not is `SQLiteData`'s
-  unconditional dependency on `Sharing` → `combine-schedulers`, which six never uses. So the fallback is
-  `swift-structured-queries` directly rather than plain GRDB, the `@Table` models travel untouched, and only
-  `AppDatabase`'s `defaultDatabase` needs a Linux arm. Measured in [storage.md](storage.md).
+- **Linux build of the data layer.** ~~Verify early~~ — done, and it builds: GRDB, SQLiteData, sqlite-vec
+  and the `@Table` macros all compile on Swift 6.3.3/aarch64, as do `AppDatabase`, `SettingsStore`, `History`
+  and `Bookmark`. No fallback needed. What it costs is two pins: `swift-sharing` 2.10.0 and
+  `combine-schedulers` 1.2.1 regressed on Linux, so `Package.swift` holds both at the versions the app
+  already uses — bumping either is now a Linux-breaking change. Measured in [storage.md](storage.md).
 - `record_name` / `sync_state` columns for [sync](sync.md) when it comes; the schema already follows SQLiteData's
   CloudKit rules (UUID text keys with `ON CONFLICT REPLACE`, no other `UNIQUE`, no column drops, BLOBs in their own
   tables), so nothing migrates.
