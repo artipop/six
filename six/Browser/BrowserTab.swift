@@ -84,14 +84,21 @@ final class BrowserTab: Identifiable {
     /// A link clicked in a document's preview: the document's own page never navigates away, the
     /// browser opens (or focuses) a window for the URL instead. Set by `BrowserState`.
     @ObservationIgnored var onDocumentLink: ((BrowserTab, URL) -> Void)?
-    /// The page asked for a second window — a ⌘-click, a middle click, `target=_blank`,
-    /// `window.open`. Set by `BrowserState`, which puts a column next to this one.
+    /// The page asked for a second window — a ⌘-click, `target=_blank`, `window.open`. Set by
+    /// `BrowserState`, which puts a column next to this one.
     @ObservationIgnored var onNewWindow: ((BrowserTab, URLRequest, Bool) -> Void)?
     /// A link to save rather than to show. Set by `BrowserState`, which hands it to `DownloadStore`.
     @ObservationIgnored var onDownload: ((BrowserTab, URLRequest, String?) -> Void)?
     /// A fresh window shows six's own start page instead of loading someone's home page. The first
     /// navigation replaces it for good.
     private(set) var showsStartPage = true
+    /// Was this window opened to carry a link — a ⌘-click, `target=_blank`, Open Link in New Window
+    /// — rather than by the user or a restore? Set by `BrowserState`, which reads it together with
+    /// `hasCommitted` to take the window back if the link turns out to be a file.
+    @ObservationIgnored var openedForLink = false
+    /// Has anything ever been shown here? A window whose only navigation became a download never
+    /// commits one, and has neither a page to show nor a page to go back to.
+    private(set) var hasCommitted = false
     /// A restored — or discarded — window doesn't load until it is first shown (or an agent looks at
     /// it): relaunching with a hundred windows must not fire a hundred requests. Until then this is
     /// its address.
@@ -334,6 +341,7 @@ final class BrowserTab: Identifiable {
                     guard let self else { return }
                     switch event {
                     case .committed:
+                        hasCommitted = true
                         savedURL = page.url ?? savedURL
                         // Redirects and history moves never go through the decider.
                         blocker?.note(id, showing: page.url)
@@ -531,7 +539,7 @@ final class BrowserTab: Identifiable {
 /// Everything a page asks for that is not "load this here".
 ///
 /// The SwiftUI WebKit API has no UI client and no download delegate. A page that asks for a second
-/// window (`target=_blank`, `window.open`, a ⌘- or middle click) and a link that asks to be saved
+/// window (`target=_blank`, `window.open`, a ⌘-click) and a link that asks to be saved
 /// (`<a download>`, a response no page can show) reach a decider and nowhere else; left at `.allow`
 /// they are handed on to a delegate that does not exist, and the click does nothing at all. So the
 /// decider cancels them and gives the request back to the browser, which has a strip to put a window
@@ -546,35 +554,33 @@ private final class TabNavigationDecider: WebPage.NavigationDeciding {
     /// decide whether this page is blocked (`ContentBlocker`).
     var onNavigate: ((URL) -> Void)?
     /// A second window: the browser opens a column for it. The flag says the click asked for it
-    /// *behind* — a ⌘-click or a middle click, which everywhere else means a background tab.
+    /// *behind* — a ⌘-click, which everywhere else means a background tab.
     var onNewWindow: ((URLRequest, Bool) -> Void)?
     /// A file rather than a page.
     var onDownload: ((URLRequest, String?) -> Void)?
 
     func decidePolicy(for action: WebPage.NavigationAction, preferences: inout WebPage.NavigationPreferences) async -> WKNavigationActionPolicy {
         guard let url = action.request.url else { return .allow }
-        LinkTrace.log("action \(url.absoluteString) target=\(action.target == nil ? "none" : "frame") type=\(action.navigationType.rawValue) button=\(action.buttonNumber) mods=\(action.modifierFlags.rawValue) download=\(action.shouldPerformDownload)")
+        LinkTrace.log("action \(url.absoluteString) target=\(action.target == nil ? "none" : "frame") type=\(action.navigationType.rawValue) button=\(action.buttonNumber) mods=\(action.modifierFlags.rawValue) cmd=\(action.modifierFlags.contains(.command)) download=\(action.shouldPerformDownload)")
         if action.shouldPerformDownload {
             onDownload?(action.request, nil)
             return .cancel
         }
-        // A ⌘-click, or a middle click, asks for the link somewhere else rather than here. WebKit
-        // keeps its own record of the keys that were held (`modifierFlags`, declared in its SwiftUI
-        // half), which is the honest signal — nothing here depends on what the keyboard happens to be
-        // doing by the time this runs. The button number catches the middle click, which carries no
-        // modifier at all; on a phone it is a `UIEvent.ButtonMask` and there is no middle button.
+        // A ⌘-click asks for the link somewhere else rather than here. WebKit keeps its own record of
+        // the keys that were held (`modifierFlags`, declared in its SwiftUI half and carrying
+        // SwiftUI's `EventModifiers`), which is the honest signal — nothing here depends on what the
+        // keyboard happens to be doing by the time this runs.
         //
-        // ⇧ is not among the keys that can be read, because a shift-modified click never arrives:
-        // WebKit sends every one of them — ⇧ alone and ⌘⇧ together — to the UI client, the seat this
-        // API has none of, and they reach nothing at all. Verified by clicking: ⌘ comes through,
-        // ⇧ and ⌘⇧ produce no navigation action of any kind.
-        #if os(macOS)
-        let middleClick = action.buttonNumber == 1
-        #else
-        let middleClick = false
-        #endif
-        let behind = action.navigationType == .linkActivated
-            && (action.modifierFlags.contains(.command) || middleClick)
+        // The ⌘ is the only thing that can be read, and `buttonNumber` is not a second signal:
+        // despite the name it is not a button at all. Every activation driven by the mouse reports 1
+        // — left, middle, plain or modified — and everything else reports 0, so a middle click cannot
+        // be told from an ordinary one. Reading it as "the middle button" made every plain click on
+        // every link open a window of its own. Measured by clicking all three.
+        //
+        // ⇧ cannot be read either, because a shift-modified click never arrives: WebKit sends every
+        // one of them — ⇧ alone and ⌘⇧ together — to the UI client, the seat this API has none of,
+        // and they reach nothing at all.
+        let behind = action.navigationType == .linkActivated && action.modifierFlags.contains(.command)
         // The other way: no target frame means the frame does not exist yet — `target=_blank`,
         // `window.open`. There is nobody to answer that but the browser.
         if action.target == nil || behind {

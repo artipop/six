@@ -412,8 +412,8 @@ final class BrowserState {
         }
     }
 
-    /// What ⌘-click, a middle click, Open Link in New Window and `target=_blank` come to: a column
-    /// right of the one the link was in.
+    /// What ⌘-click, Open Link in New Window and `target=_blank` come to: a column right of the one
+    /// the link was in.
     ///
     /// `background` puts it there *behind* — the strip grows to the right and the focus stays on the
     /// page being read, which is what a background tab is everywhere else. A page that opened the
@@ -427,7 +427,10 @@ final class BrowserState {
             #endif
             return
         }
-        newTab(url: url, in: tab.profileID, workspace: nil, activate: !background)
+        let opened = newTab(url: url, in: tab.profileID, workspace: nil, activate: !background)
+        // Remembered so the column can be taken back if the link turns out to be a file — see
+        // `closeIfOnlyCarriedALink`.
+        opened.openedForLink = true
         // Only for the ones that go behind: a window that comes forward takes the eye with it and
         // needs no announcing. The one that does not is otherwise invisible — see `NiriLayout.peek`.
         if background { layout.peek() }
@@ -440,6 +443,24 @@ final class BrowserState {
         downloads.start(request, suggestedName: suggestedName, referrer: tab.currentURL,
                         cookies: dataStore(for: profile))
         flights.launch(from: Self.clickInWindow)
+        closeIfOnlyCarriedALink(tab)
+    }
+
+    /// A column opened for a link the server then answered with a file has nothing in it: no page
+    /// committed, nothing to go back to, and nothing to show but the blank it was born as. It goes
+    /// with the download it turned into — the file is in the bar, which is where the answer is.
+    ///
+    /// A download asked for from a page the user is reading leaves that page alone, and so does one
+    /// asked for in a window that had already shown something.
+    private func closeIfOnlyCarriedALink(_ tab: BrowserTab) {
+        guard tab.openedForLink, !tab.hasCommitted else { return }
+        // Not here: this runs inside the policy decision that turned the link into a download, and
+        // the page is still waiting for the answer to it. One turn later there is nothing to unwind.
+        Task { @MainActor [weak self, weak tab] in
+            try? await Task.sleep(for: .milliseconds(50))
+            guard let self, let tab, !tab.hasCommitted else { return }
+            closeTab(tab.id)
+        }
     }
 
     /// Where the pointer is, in the window's own coordinates — the link that was clicked, or the menu

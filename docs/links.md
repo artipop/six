@@ -13,7 +13,8 @@ Everything below follows from that.
 | what the user does | where WebKit sends it | before |
 |---|---|---|
 | a `target=_blank` link, `window.open` | `decidePolicy(for:preferences:)`, `target == nil`, then the UI client | the policy call was answered `.allow` and the UI client never existed → nothing |
-| ⌘-click, middle click | `decidePolicy(for:preferences:)` — `modifierFlags` carries the ⌘, `buttonNumber == 1` the middle button | answered `.allow` → the page was simply replaced |
+| ⌘-click | `decidePolicy(for:preferences:)` — `modifierFlags` carries the ⌘ | answered `.allow` → the page was simply replaced |
+| middle click | `decidePolicy(for:preferences:)`, and nothing in the action tells it from a plain click | it replaces the page, and still does |
 | ⇧-click, ⌘⇧-click | straight to the UI client, no policy call | nothing, and nothing six can do about it |
 | **Open Link in New Window** (context menu) | straight to the UI client, no policy call | nothing |
 | **Download Linked File** (context menu) | straight to a download delegate, no policy call | nothing |
@@ -21,7 +22,11 @@ Everything below follows from that.
 | a response no page can show (a zip, an attachment) | `decidePolicy(for response:)`, `canShowMimeType == false` | answered `.allow` → a blank window |
 
 The two context-menu items and the shift-clicks cannot be caught in a decider at all: WebKit hands them to
-the UI client and to a download delegate, and this API has a seat for neither. Everything else is a navigation
+the UI client and to a download delegate, and this API has a seat for neither. The middle click is a third kind of
+loss: it *does* reach the decider, but nothing in the action says which button was pressed. `buttonNumber`,
+despite the name, is 1 for every activation the mouse drove — left, middle, plain or modified — and 0 for
+everything else, so a middle click and an ordinary one are the same event. Reading it as the middle button is
+what once made every plain click open a window of its own. Everything else is a navigation
 action, and `TabNavigationDecider` in [`BrowserTab.swift`](../six/Browser/BrowserTab.swift) cancels it and
 hands the request back to `BrowserState`. The menu items six replaces; the shift-clicks it cannot.
 
@@ -50,10 +55,10 @@ the two link items working at all.
 
 ## A second window
 
-⌘-click, a middle click, Open Link in New Window and `target=_blank` all end at
+⌘-click, Open Link in New Window and `target=_blank` all end at
 `BrowserState.openInNewWindow(_:from:background:)` — a column inserted right of the one the link was in.
 
-- ⌘-click and middle click put it there **behind**: the strip grows to the right and the focus stays on the page
+- ⌘-click puts it there **behind**: the strip grows to the right and the focus stays on the page
   being read, and the strip leans over for a moment to show what arrived (above). There is no modifier for "and
   take me there" — every shift-click is swallowed before six is asked — so the going-there version lives in the
   context menu, as Open Link in New Window next to Open Link Behind.
@@ -85,6 +90,11 @@ List. Removing a row never touches the file.
 
 A download belongs to the browser, not to the window that started it: closing the window does not stop the transfer.
 The list is in memory only — it is not written to the snapshot, in any profile.
+
+A window that was opened only to carry the link — a `target=_blank` that turned out to be a file, an Open Link in
+New Window on the same — closes itself when the download starts (`BrowserState.closeIfOnlyCarriedALink`). Nothing
+was committed in it, so there is no page in it and nothing to go back to: it would stand there blank next to the
+download it became. A window that had already shown something is left alone, and so is the one the user is reading.
 
 ## Saying that it happened
 
