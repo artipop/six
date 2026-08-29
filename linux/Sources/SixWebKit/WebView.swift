@@ -17,14 +17,17 @@ public struct WebView: AdwaitaWidget {
     /// Where the page should be. Assigning a different address navigates; assigning the same one
     /// does nothing, so an update that changes something else does not reload the page.
     var url: URL?
+    /// Which column this is, so the page can register itself for back, forward and reload.
+    var tabID: UUID
     /// The profile's cookies and caches. Construct-only, so it is read once and never updated.
     var session: NetworkSession
     var onTitleChange: ((String) -> Void)?
     var onURLChange: ((URL) -> Void)?
     var onFinishLoad: ((URL, String) -> Void)?
 
-    public init(url: URL?, session: NetworkSession) {
+    public init(url: URL?, tabID: UUID, session: NetworkSession) {
         self.url = url
+        self.tabID = tabID
         self.session = session
     }
 
@@ -43,6 +46,7 @@ public struct WebView: AdwaitaWidget {
         g_value_unset(&value)
 
         let storage = ViewStorage(view.map { OpaquePointer($0) })
+        if let pointer = storage.opaquePointer { PageRegistry.register(pointer, for: tabID) }
         update(storage, data: data, updateProperties: true, type: type)
         return storage
     }

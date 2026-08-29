@@ -22,7 +22,11 @@ let package = Package(
     targets: [
         .systemLibrary(name: "CWebKitGTK", pkgConfig: "webkitgtk-6.0"),
         // Ours, and ours whichever UI library wins: the profile's cookie jar, with no toolkit in it.
-        .target(name: "SixWebKitCore", dependencies: ["CWebKitGTK"]),
+        .target(
+            name: "SixWebKitCore",
+            dependencies: ["CWebKitGTK"],
+            swiftSettings: [.defaultIsolation(MainActor.self)]
+        ),
         // The page as a widget adwaita can place.
         .target(
             name: "SixWebKit",

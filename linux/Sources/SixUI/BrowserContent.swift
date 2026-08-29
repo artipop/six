@@ -110,7 +110,7 @@ public struct BrowserContent: View {
     /// Built as a value first: the page's own modifiers belong to `WebView`, and a `Body` has none
     /// of them.
     func page(for column: BrowserModel.Column) -> WebView {
-        WebView(url: column.url, session: model.session)
+        WebView(url: column.url, tabID: column.id, session: model.session)
             .onTitleChange { model.setTitle($0, for: column.id) }
             .onURLChange { model.setURL($0, for: column.id) }
             .onFinishLoad { model.didFinishLoad($0, title: $1, for: column.id); refresh() }

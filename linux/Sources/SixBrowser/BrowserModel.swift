@@ -89,8 +89,8 @@ public final class BrowserModel {
         CGSize(width: layout.width(of: .init(tabID: UUID(), widthIndex: layout.preferredWidthIndex)),
                height: layout.columnHeight)
     }
-    public var canGoBack: Bool { false }
-    public var canGoForward: Bool { false }
+    public var canGoBack: Bool { focusedID.map(PageRegistry.canGoBack) ?? false }
+    public var canGoForward: Bool { focusedID.map(PageRegistry.canGoForward) ?? false }
 
     // MARK: Driving it
 
@@ -123,9 +123,16 @@ public final class BrowserModel {
         if let focused = focusedID { urls[focused] = url } else { open(url) }
     }
 
-    public func goBack() {}
-    public func goForward() {}
-    public func reload() {}
+    public func goBack() { focusedID.map(PageRegistry.goBack) }
+    public func goForward() { focusedID.map(PageRegistry.goForward) }
+    public func reload() { focusedID.map(PageRegistry.reload) }
+
+    /// The address bar shows where the focused page actually is, which after a redirect or a
+    /// followed link is not the address it was asked for.
+    public var focusedURL: URL? {
+        guard let focused = focusedID else { return nil }
+        return PageRegistry.url(of: focused) ?? urls[focused]
+    }
 
     // MARK: What the pages report
 
