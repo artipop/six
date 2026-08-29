@@ -10,7 +10,7 @@ import Foundation
 /// crash lands later, somewhere else, in C. So every handler is disconnected first, and only then is
 /// the reference dropped. Every binding library that survives contact with GObject does this; ours
 /// does it in one place.
-public class GObjectRef {
+open class GObjectRef {
     public let raw: UnsafeMutableRawPointer
     private var handlers: [CUnsignedLong] = []
 

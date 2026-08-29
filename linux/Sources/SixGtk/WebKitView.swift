@@ -21,6 +21,21 @@ public final class NetworkSession: GObjectRef {
     public var isEphemeral: Bool { webkit_network_session_is_ephemeral(opaque(raw)) != 0 }
 }
 
+/// How far a load has got. WebKit reports every step; six only ever acts on the last one.
+public enum LoadEvent {
+    case started, redirected, committed, finished, other
+
+    init(_ raw: UInt32) {
+        switch raw {
+        case WEBKIT_LOAD_STARTED.rawValue: self = .started
+        case WEBKIT_LOAD_REDIRECTED.rawValue: self = .redirected
+        case WEBKIT_LOAD_COMMITTED.rawValue: self = .committed
+        case WEBKIT_LOAD_FINISHED.rawValue: self = .finished
+        default: self = .other
+        }
+    }
+}
+
 /// A page. The Linux counterpart of `WebPage`, and — unlike it — a widget six owns outright, which
 /// is what will let extensions work here that cannot work on the Mac (see docs/extensions.md).
 @MainActor
@@ -76,8 +91,8 @@ public final class WebView: Widget {
 
     /// Every load event: started, redirected, committed, finished. History is written on `.finished`,
     /// the way the Mac writes it from the navigation stream.
-    public func onLoadChanged(_ body: @escaping @MainActor (WebKitLoadEvent) -> Void) {
-        onEvent("load-changed") { raw in body(WebKitLoadEvent(rawValue: raw)) }
+    public func onLoadChanged(_ body: @escaping @MainActor (LoadEvent) -> Void) {
+        onEvent("load-changed") { raw in body(LoadEvent(raw)) }
     }
 
     /// The title arriving after the page has already committed — which is the usual order, so a title

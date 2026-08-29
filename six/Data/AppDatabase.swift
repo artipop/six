@@ -14,10 +14,18 @@ nonisolated enum AppDatabase {
 
     static func open() throws -> any DatabaseWriter {
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        var configuration = GRDB.Configuration()
+        #if os(Linux)
+        // Registered once for the process, which is what `sqlite3_auto_extension` is for. Doing it
+        // per connection instead segfaults inside `sqlite3_vec_init` here: the entry point expects
+        // to be called through SQLite's own extension machinery, and the handle GRDB hands it in
+        // `prepareDatabase` is not that.
+        try registerSQLiteVecAutoExtension()
+        #else
         // sqlite-vec goes into every connection by hand (`sqlite3_vec_init` on the handle): the Apple
         // SQLite has extension loading compiled out, so `sqlite3_auto_extension` is refused there.
-        var configuration = GRDB.Configuration()
         configuration.prepareDatabase { db in try db.loadSQLiteVecExtension() }
+        #endif
         let database = try defaultDatabase(path: url.path, configuration: configuration)
         var migrator = DatabaseMigrator()
         migrator.registerMigration("v1 visits, settings") { db in

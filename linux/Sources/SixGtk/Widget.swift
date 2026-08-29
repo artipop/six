@@ -7,8 +7,17 @@ import Foundation
 /// This is deliberately thin. It is not a binding library and should not grow into one: the front
 /// needs a window, a fixed canvas, a box, an entry, a label, a button and a web view, and anything
 /// past that is added when something asks for it rather than in advance.
+/// Which way a box lays its children out. Spelled here rather than passed through as GTK's own enum,
+/// because the point of this module is that nothing above it imports C.
+public enum Orientation {
+    case horizontal
+    case vertical
+
+    var gtk: GtkOrientation { self == .horizontal ? GTK_ORIENTATION_HORIZONTAL : GTK_ORIENTATION_VERTICAL }
+}
+
 @MainActor
-public class Widget: GObjectRef {
+open class Widget: GObjectRef {
     public var widget: UnsafeMutablePointer<GtkWidget> {
         raw.assumingMemoryBound(to: GtkWidget.self)
     }
@@ -29,6 +38,12 @@ public class Widget: GObjectRef {
         guard gtk_widget_compute_bounds(widget, ancestor.widget, &rect) != 0 else { return nil }
         return CGRect(x: CGFloat(rect.origin.x), y: CGFloat(rect.origin.y),
                       width: CGFloat(rect.size.width), height: CGFloat(rect.size.height))
+    }
+
+    /// Take the space going spare. The page does, the title bar above it does not.
+    public func expand(horizontally: Bool = false, vertically: Bool = false) {
+        if horizontally { gtk_widget_set_hexpand(widget, 1) }
+        if vertically { gtk_widget_set_vexpand(widget, 1) }
     }
 
     public func addCSSClass(_ name: String) { gtk_widget_add_css_class(widget, name) }
@@ -60,10 +75,12 @@ public final class Fixed: Widget {
     public var contents: [Widget] { Array(children.values) }
 }
 
+/// Not `final`: a column is a box with a title bar and a page in it, and saying so by inheritance is
+/// the shortest true thing.
 @MainActor
-public final class Box: Widget {
-    public init(_ orientation: GtkOrientation, spacing: Int = 0) {
-        super.init(gtk_box_new(orientation, Int32(spacing))!)
+open class Box: Widget {
+    public init(_ orientation: Orientation, spacing: Int = 0) {
+        super.init(gtk_box_new(orientation.gtk, Int32(spacing))!)
     }
 
     public func append(_ child: Widget) { gtk_box_append(cast(widget), child.widget) }
