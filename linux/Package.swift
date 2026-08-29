@@ -49,6 +49,7 @@ let package = Package(
             name: "SixUI",
             dependencies: [
                 "SixWebKit",
+                "SixWebKitCore",
                 "SixBrowser",
                 .product(name: "Adwaita", package: "adwaita-swift")
             ],

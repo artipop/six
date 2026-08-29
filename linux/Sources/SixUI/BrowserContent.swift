@@ -7,19 +7,15 @@ import SixWebKit
 /// The browser, declaratively. One window, always — what look like tabs are columns in the strip
 /// inside it, which is the whole niri idea and the same constraint the Mac has.
 public struct BrowserContent: View {
-    /// The model. `NiriLayout` is shared with the Mac untouched; everything here reads it and puts
-    /// widgets where it says.
+    /// The strip's shape, reassigned from actions and never during a render.
+    ///
     /// Only value types live in `@State`: Meta reflects over a view's stored properties to find it,
-    /// and a class in there takes the runtime down. The model is `BrowserModel.shared`.
+    /// and a class in there takes the runtime down inside `swift_getTypeByMangledName`. The model is
+    /// `BrowserModel.shared` instead, and this holds what it says the strip looks like.
     ///
-    /// The strip's shape is kept here and reassigned after anything that could change it — a
-    /// declarative front re-renders on assignment, and the model is a reference type that mutates
-    /// quietly. That is the tax this layer charges for owning the update cycle.
-    /// The strip's shape, assigned from actions and never during a render.
-    ///
-    /// A counter that nothing reads does not work: Meta re-renders a view when the state it *reads*
-    /// changes, so bumping a write-only `revision` left the new tab and the typed address with no
-    /// way to reach the screen. Holding the derived list is what makes the dependency real.
+    /// Holding the derived list, rather than a counter, is what makes the dependency real: Meta
+    /// re-renders a view when the state it *reads* changes, so bumping a write-only `revision` left
+    /// the new column and the typed address with no way to reach the screen.
     ///
     /// Seeded from the model rather than left empty and filled from `onAppear`: a state assignment
     /// made while the view is first appearing does not reach the screen — the body has already been
@@ -173,7 +169,14 @@ public struct BrowserContent: View {
                     guard let fixed = storage.opaquePointer,
                           let canvas = storage.content["canvas"]?.first?.opaquePointer else { return }
                     let scale = Float(model.overviewScale)
-                    let transform = gsk_transform_scale(nil, scale, scale)
+                    // A scale is anchored at the top left, so on its own it leaves the strip pinned
+                    // to the top of the window with a band of nothing underneath. One translation
+                    // before it puts the shrunk strip back in the middle, which is where an overview
+                    // of it belongs.
+                    let height = Float(gtk_widget_get_height(canvas.cast()))
+                    var origin = graphene_point_t(x: 0, y: (height - height * scale) / 2)
+                    let transform = gsk_transform_scale(
+                        gsk_transform_translate(nil, &origin), scale, scale)
                     gtk_fixed_set_child_transform(fixed.cast(), canvas.cast(), transform)
                     gtk_widget_set_size_request(
                         fixed.cast(),
@@ -202,8 +205,23 @@ public struct BrowserContent: View {
             }
         }
         .inspect { storage, _ in
-            guard let scrolled = storage.opaquePointer,
-                  let adjustment = gtk_scrolled_window_get_hadjustment(scrolled) else { return }
+            guard let scrolled = storage.opaquePointer else { return }
+            // How big the strip actually is. `NiriLayout` needs the viewport to size a column and to
+            // decide where the focused one sits, and this widget's allocation *is* the viewport —
+            // the window minus the toolbar. Reported from here because GTK has no `GeometryReader`
+            // and a widget's allocation is not a property one can watch.
+            //
+            // Safe to do during a render only because it settles: `updateViewport` returns false for
+            // a size it already has, so the redraw happens on the render after a resize and not on
+            // every one. Asking for a render unconditionally from here is what produced the
+            // 248-render runaway.
+            let size = CGSize(
+                width: Double(gtk_widget_get_width(scrolled.cast())),
+                height: Double(gtk_widget_get_height(scrolled.cast()))
+            )
+            if model.updateViewport(size) { refresh() }
+
+            guard let adjustment = gtk_scrolled_window_get_hadjustment(scrolled) else { return }
             let target = model.scrollOffset
             if abs(gtk_adjustment_get_value(adjustment) - target) > 0.5 {
                 gtk_adjustment_set_value(adjustment, target)
@@ -229,22 +247,13 @@ public struct BrowserContent: View {
             // strip brings it back — the same thing the Mac does, and for the same reason: a strip
             // of a hundred columns cannot hold a hundred web content processes.
             if column.isLive {
-                page(for: column)
-                    .frame(
-                        minWidth: Int(model.columnSize.width),
-                        minHeight: Int(model.columnSize.height)
-                    )
-                    .vexpand()
+                page(for: column).vexpand()
             } else {
                 // The picture the page left behind, if it left one. Otherwise its name and address,
                 // which is still more than a blank card.
                 if let thumbnail = column.thumbnail {
                     Picture(url: thumbnail)
                         .contentFit(.cover)
-                        .frame(
-                            minWidth: Int(model.columnSize.width),
-                            minHeight: Int(model.columnSize.height)
-                        )
                         .vexpand()
                 } else {
                     StatusPage(
@@ -256,6 +265,14 @@ public struct BrowserContent: View {
                 }
             }
         }
+        // The size belongs to the *column*, not to the page inside it. Asking the page for
+        // `columnHeight` and then stacking a title bar and a permission bar on top of it made the
+        // card taller than the strip, so every column ran off the bottom edge of the window.
+        // `columnHeight` is already the viewport minus its gaps, which is what a column is.
+        .frame(
+            minWidth: Int(model.columnSize.width),
+            minHeight: Int(model.columnSize.height)
+        )
         .style("card")
         // Clicking a column focuses it, which is also what scrolls the strip to it — the offset
         // follows the focus, so the two are one gesture rather than two. In the capture phase,

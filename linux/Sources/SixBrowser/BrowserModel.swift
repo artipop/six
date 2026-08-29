@@ -134,7 +134,7 @@ public final class BrowserModel {
     /// The bar's two buttons. Remembers the answer and lets the page go.
     public func answerPermission(_ allowed: Bool, for tabID: UUID) {
         permissions?.answer(allowed, for: tabID)
-        trace("answered \(allowed): \(permissionSites.map(\.detail))")
+        trace("permission answered \(allowed)")
     }
 
     /// What the column that asked should be drawing, if anything.
@@ -192,7 +192,7 @@ public final class BrowserModel {
         for (key, value) in state.urls { if let id = UUID(uuidString: key) { urls[id] = URL(string: value) } }
         for (key, value) in state.titles { if let id = UUID(uuidString: key) { titles[id] = value } }
         for id in urls.keys { pages.touch(id) }
-        trace("restore \(urls.count) колонок")
+        trace("restore \(urls.count) columns")
         return true
     }
 
@@ -225,7 +225,7 @@ public final class BrowserModel {
         let all = workspace.columns.map(\.tabID)
         let pinned = layout.visibleTabIDs
         let dropped = pages.settle(pinned: pinned, all: all)
-        trace("бюджет \(pages.budget): живых \(pages.live.count) из \(all.count), закреплено \(pinned.count), выгружено \(dropped.count)")
+        trace("budget \(pages.budget): \(pages.live.count) live of \(all.count), \(pinned.count) pinned, \(dropped.count) discarded")
         for id in dropped {
             trace("discard \(id.uuidString.prefix(8))")
             PageRegistry.forget(id)
@@ -252,8 +252,7 @@ public final class BrowserModel {
     public var liveCount: Int { pages.live.count }
 
     var focusedID: UUID? { layout.focusedTabID }
-    /// Where the strip should be scrolled to: the offset `NiriLayout` computes for the focused
-    /// column, which is what centres it when `centersFocus` is on. The same number the Mac uses.
+
     /// The session a column should be built against: its profile's.
     public var session: NetworkSession {
         sessions[layout.activeProfileID] ?? defaultSession
@@ -294,9 +293,26 @@ public final class BrowserModel {
         trace("private profile closed")
     }
 
+    /// Where the strip should be scrolled to: the offset `NiriLayout` computes for the focused
+    /// column, which is what centres it when `centersFocus` is on. The same number the Mac uses.
     public var scrollOffset: Double {
         guard let workspace = layout.focusedWorkspace else { return 0 }
         return Double(layout.resolvedOffset(workspace))
+    }
+
+    /// Tell the layout how big the strip actually is, and say whether that moved anything — so the
+    /// front can redraw once and then stop.
+    ///
+    /// The Mac reads this from a `GeometryReader`. GTK has no equivalent, so the front reports the
+    /// widget's own allocation instead; until it does, `NiriLayout`'s default stands, which is why a
+    /// first render is laid out for a window nobody has measured yet. It was a hard-coded size here
+    /// for a while, which is worse in the way a plausible wrong number always is: the columns were
+    /// laid out for a window that did not exist and nothing looked broken enough to ask.
+    public func updateViewport(_ size: CGSize) -> Bool {
+        guard size.width > 1, size.height > 1, size != layout.viewport else { return false }
+        layout.updateViewport(size)
+        trace("viewport \(Int(size.width))×\(Int(size.height))")
+        return true
     }
 
     /// The layout's own gap, so the front never invents a spacing of its own.
@@ -313,7 +329,6 @@ public final class BrowserModel {
 
     private func fill() {
         trace("fill")
-        layout.updateViewport(CGSize(width: 1400, height: 820))
         if let width = ProcessInfo.processInfo.environment["SIX_WIDTH"].flatMap(Int.init) {
             layout.preferredWidthIndex = width
         }
@@ -354,7 +369,7 @@ public final class BrowserModel {
 
     /// One column along the strip, the way ⌥← and ⌥→ do it on the Mac.
     public func focusColumn(_ delta: Int) {
-        guard layout.canFocusColumn(delta) else { return trace("focusColumn \(delta): некуда") }
+        guard layout.canFocusColumn(delta) else { return trace("focusColumn \(delta): nowhere to go") }
         layout.focusColumn(delta)
         trace("focusColumn \(delta) -> \(layout.focusedTabID?.uuidString.prefix(8) ?? "—")")
     }
@@ -364,9 +379,9 @@ public final class BrowserModel {
     /// Workspaces stack across the strip, the way niri means them: columns follow one another
     /// *along* it, workspaces are the other axis. `NiriLayout` owns both; this only asks.
     public func focusWorkspace(_ delta: Int) {
-        guard layout.canFocusWorkspace(delta) else { return trace("focusWorkspace \(delta): некуда") }
+        guard layout.canFocusWorkspace(delta) else { return trace("focusWorkspace \(delta): nowhere to go") }
         layout.focusWorkspace(delta)
-        trace("focusWorkspace -> \(layout.focusedWorkspaceIndex) из \(layout.workspaces.count)")
+        trace("focusWorkspace -> \(layout.focusedWorkspaceIndex) of \(layout.workspaces.count)")
     }
 
     /// Send the focused column to the next workspace along, which is how a strip gets tidied.

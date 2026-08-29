@@ -40,17 +40,11 @@ public enum PermissionRequests {
     /// Connect a freshly built page. Called from `container`, once — `update` runs on every render,
     /// and this has no name-based deduplication of adwaita's kind.
     public static func connect(_ view: OpaquePointer, tabID: UUID) {
-        let column = Unmanaged.passRetained(PermissionColumn(tabID: tabID)).toOpaque()
-        g_signal_connect_data(
+        Signal.connect(
             UnsafeMutableRawPointer(view),
-            "permission-request",
+            to: "permission-request",
             unsafeBitCast(permissionRequested, to: GCallback.self),
-            column,
-            { data, _ in
-                guard let data else { return }
-                Unmanaged<PermissionColumn>.fromOpaque(data).release()
-            },
-            GConnectFlags(rawValue: 0)
+            holding: Signal.Box(tabID)
         )
     }
 
@@ -62,7 +56,7 @@ public enum PermissionRequests {
         request: OpaquePointer,
         data: UnsafeMutableRawPointer
     ) -> gboolean {
-        let column = Unmanaged<PermissionColumn>.fromOpaque(data).takeUnretainedValue()
+        guard let tabID = Signal.Box.open(data, as: UUID.self) else { return 0 }
         // `WEBKIT_IS_USER_MEDIA_PERMISSION_REQUEST` is a macro, and macros do not cross into Swift;
         // what it expands to is this.
         guard g_type_check_instance_is_a(
@@ -79,7 +73,7 @@ public enum PermissionRequests {
         let uri = webkit_web_view_get_uri(view.assumingMemoryBound(to: WebKitWebView.self))
             .map { String(cString: $0) }
         let ask = PermissionAsk(
-            tabID: column.tabID,
+            tabID: tabID,
             wantsCamera: camera,
             wantsMicrophone: microphone,
             pageURL: uri.flatMap { URL(string: $0) }
@@ -97,13 +91,6 @@ public enum PermissionRequests {
         }
         return 1
     }
-}
-
-/// Which column a page belongs to, boxed for the trip through `user_data`. A class because that is
-/// what `Unmanaged` retains, and `nonisolated` because the C handler that unboxes it is.
-nonisolated final class PermissionColumn {
-    let tabID: UUID
-    init(tabID: UUID) { self.tabID = tabID }
 }
 
 /// The C entry point. A free constant rather than a method: `@convention(c)` cannot be formed from

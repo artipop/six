@@ -1,18 +1,12 @@
 import CWebKitGTK
 import Foundation
 
+/// `SIX_UI_DEBUG=1`, the same switch the model and `NiriLayout` use.
+///
 /// A free function rather than a member: the snapshot's completion is a `@convention(c)` function
 /// pointer, and one of those cannot be formed from anything that captures context — which a method
 /// on an actor-isolated type does.
 func thumbnailTrace(_ message: @autoclosure () -> String) {
-    guard ProcessInfo.processInfo.environment["SIX_UI_DEBUG"] == "1" else { return }
-    FileHandle.standardError.write(Data("[six] thumb: \(message())\n".utf8))
-}
-
-/// A free function rather than a member: the snapshot's completion is a `@convention(c)` function
-/// pointer, and one of those cannot be formed from anything that captures context — which a method
-/// on an actor-isolated type does.
-func trace(_ message: @autoclosure () -> String) {
     guard ProcessInfo.processInfo.environment["SIX_UI_DEBUG"] == "1" else { return }
     FileHandle.standardError.write(Data("[six] thumb: \(message())\n".utf8))
 }
@@ -47,16 +41,16 @@ public enum Thumbnails {
     /// rather than returned.
     public static func capture(_ tabID: UUID, then done: (() -> Void)? = nil) {
         guard let page = PageRegistry.page(for: tabID) else {
-            thumbnailTrace("нет страницы \(tabID.uuidString.prefix(8))")
+            thumbnailTrace("no page for \(tabID.uuidString.prefix(8))")
             done?()
             return
         }
         guard let destination = url(for: tabID) else {
-            thumbnailTrace("нет папки")
+            thumbnailTrace("no folder")
             done?()
             return
         }
-        thumbnailTrace("снимаю \(tabID.uuidString.prefix(8))")
+        thumbnailTrace("capturing \(tabID.uuidString.prefix(8))")
         try? FileManager.default.createDirectory(
             at: destination.deletingLastPathComponent(),
             withIntermediateDirectories: true
@@ -82,11 +76,11 @@ public enum Thumbnails {
                 )
                 if let texture {
                     let ok = gdk_texture_save_to_png(texture, request.destination.path)
-                    thumbnailTrace("сохранено \(ok != 0) -> \(request.destination.lastPathComponent)")
+                    thumbnailTrace("saved \(ok != 0) -> \(request.destination.lastPathComponent)")
                     g_object_unref(UnsafeMutableRawPointer(texture))
                 }
                 if let error {
-                    thumbnailTrace("ошибка: \(String(cString: error.pointee.message))")
+                    thumbnailTrace("failed: \(String(cString: error.pointee.message))")
                     g_error_free(error)
                 }
                 request.done?()
