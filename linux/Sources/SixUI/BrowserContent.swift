@@ -28,6 +28,7 @@ public struct BrowserContent: View {
     @State private var columns: [BrowserModel.Column] = BrowserModel.shared.columns
     @State private var typed = ""
     @State private var showsHistory = false
+    @State private var showsBookmarks = false
 
     private var model: BrowserModel { .shared }
 
@@ -42,6 +43,9 @@ public struct BrowserContent: View {
         }
         .dialog(visible: $showsHistory, title: "History", width: 640, height: 520) {
             HistorySheet(visible: $showsHistory)
+        }
+        .dialog(visible: $showsBookmarks, title: "Bookmarks", width: 640, height: 520) {
+            BookmarksSheet(visible: $showsBookmarks)
         }
     }
 
@@ -71,6 +75,14 @@ public struct BrowserContent: View {
             Button(icon: .default(icon: .viewFullscreen)) { model.toggleOverview(); refresh() }
                 .flat()
                 .tooltip("Overview")
+            Button(icon: .default(icon: model.isBookmarked ? .starred : .nonStarred)) {
+                model.toggleBookmark(); refresh()
+            }
+            .flat()
+            .tooltip(model.isBookmarked ? "Remove bookmark" : "Bookmark this page")
+            Button(icon: .default(icon: .userBookmarks)) { showsBookmarks = true }
+                .flat()
+                .tooltip("Bookmarks")
             Button(icon: .default(icon: .documentOpenRecent)) { showsHistory = true }
                 .flat()
                 .tooltip("History")
@@ -105,6 +117,8 @@ public struct BrowserContent: View {
             Button("") { model.focusWorkspace(1); refresh() }.keyboardShortcut("<Alt>Down")
             Button("") { model.cycleWidth(); refresh() }.keyboardShortcut("<Alt>r")
             Button("") { model.toggleOverview(); refresh() }.keyboardShortcut("<Alt>o")
+            Button("") { model.toggleBookmark(); refresh() }.keyboardShortcut("<Ctrl>d")
+            Button("") { showsBookmarks = true }.keyboardShortcut("<Ctrl>b")
             Button("") {
                 if model.isPrivate { model.closePrivateProfile() } else { model.openPrivateProfile() }
                 refresh()

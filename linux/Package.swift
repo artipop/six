@@ -14,6 +14,7 @@ let package = Package(
     name: "six-linux",
     dependencies: [
         .package(path: ".."),
+        .package(url: "https://github.com/pointfreeco/sqlite-data", from: "1.11.0"),
         .package(
             url: "https://codeberg.org/aparoksha/adwaita-swift",
             revision: "476f9e36d34239aed78ce141b8af435d8825c859"
@@ -37,7 +38,11 @@ let package = Package(
         // GRDB's, and Clang will not have both in one compilation unit. The seam is enforced.
         .target(
             name: "SixBrowser",
-            dependencies: ["SixWebKitCore", .product(name: "SixCore", package: "six")],
+            dependencies: [
+                "SixWebKitCore",
+                .product(name: "SixCore", package: "six"),
+                .product(name: "SQLiteData", package: "sqlite-data")
+            ],
             swiftSettings: [.defaultIsolation(MainActor.self)]
         ),
         .target(

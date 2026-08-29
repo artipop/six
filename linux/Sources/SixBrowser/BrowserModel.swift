@@ -46,6 +46,7 @@ public final class BrowserModel {
     private var urls: [UUID: URL] = [:]
     private var pages = LivePages()
     private var settings: SettingsStore?
+    private var bookmarks: Bookmarks?
 
     private init() {
         Thumbnails.folder = AppSupport.folder("Thumbnails")
@@ -59,6 +60,7 @@ public final class BrowserModel {
         do {
             let database = try AppDatabase.open()
             history = HistoryStore(database: database)
+            bookmarks = Bookmarks(database: database)
             // The profile id comes out of the settings table rather than being made fresh each
             // launch. Regenerating it orphans every visit the last run recorded — history that is
             // in the database and unreachable is worse than history that is missing.
@@ -391,6 +393,49 @@ public final class BrowserModel {
             ? history.recent(in: profileID, limit: 200)
             : history.search(trimmed, in: profileID)
         return visits.map { HistoryRow(id: $0.id.uuidString, url: $0.url, title: $0.title) }
+    }
+
+    // MARK: Bookmarks
+
+    /// A saved page, flattened for the view.
+    public struct BookmarkRow: Identifiable {
+        public let id: UUID
+        public let url: URL
+        public let title: String
+        public let site: String
+    }
+
+    public func bookmarks(matching query: String) -> [BookmarkRow] {
+        guard let bookmarks, let rows = try? bookmarks.all(in: profileID, matching: query) else { return [] }
+        return rows.map { BookmarkRow(id: $0.id, url: $0.url, title: $0.displayTitle, site: $0.displayDetail) }
+    }
+
+    /// Save the focused page, or unsave it if it is already there. Private profiles keep nothing —
+    /// a bookmark is a record like any other.
+    public func toggleBookmark() {
+        guard !isPrivate, let bookmarks, let focused = focusedID, let url = urls[focused] else { return }
+        do {
+            if try bookmarks.contains(url, in: profileID) {
+                let existing = try bookmarks.all(in: profileID).filter { $0.url == url }
+                for row in existing { try bookmarks.remove(row.id) }
+                trace("bookmark removed \(url)")
+            } else {
+                try bookmarks.add(url: url, title: titles[focused] ?? "", profileID: profileID)
+                trace("bookmark added \(url)")
+            }
+        } catch {
+            FileHandle.standardError.write(Data("[six] bookmark failed: \(error)\n".utf8))
+        }
+    }
+
+    public func removeBookmark(_ id: UUID) {
+        try? bookmarks?.remove(id)
+    }
+
+    /// Whether the focused page is saved, so the star can say so.
+    public var isBookmarked: Bool {
+        guard let bookmarks, let focused = focusedID, let url = urls[focused] else { return false }
+        return (try? bookmarks.contains(url, in: profileID)) ?? false
     }
 
     // MARK: Addresses
