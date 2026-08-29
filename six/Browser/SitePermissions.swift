@@ -279,3 +279,16 @@ final class SitePermissions {
         }
     }
 }
+
+// MARK: - Settings
+
+/// The setting lives in the settings table; the knowledge of what its string means lives here,
+/// beside the type it means it as. `SettingsStore` itself keeps only keys and strings.
+extension SettingsStore {
+    /// What sites were allowed — or refused — the camera, the microphone and the motion sensors.
+    /// A private profile's answers never reach here; see `SitePermissions`.
+    var sitePermissions: [SitePermissions.Decision] {
+        get { decode(.sitePermissions) ?? [] }
+        set { encode(.sitePermissions, newValue, keepingEmpty: false) }
+    }
+}

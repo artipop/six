@@ -64,3 +64,15 @@ nonisolated enum SearchEngine: String, CaseIterable, Identifiable, Sendable {
         return components.url
     }
 }
+
+// MARK: - Settings
+
+/// The setting lives in the settings table; the knowledge of what its string means lives here,
+/// beside the type it means it as. `SettingsStore` itself keeps only keys and strings.
+extension SettingsStore {
+    /// The engine six searches with. Read statically through `SearchEngine.current`.
+    var searchEngine: SearchEngine {
+        get { SearchEngine(rawValue: self[.searchEngine] ?? "") ?? .duckDuckGo }
+        set { self[.searchEngine] = newValue.rawValue }
+    }
+}

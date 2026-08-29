@@ -147,3 +147,15 @@ enum AssistantError: LocalizedError {
         }
     }
 }
+
+// MARK: - Settings
+
+/// The setting lives in the settings table; the knowledge of what its string means lives here,
+/// beside the type it means it as. `SettingsStore` itself keeps only keys and strings.
+extension SettingsStore {
+    /// Which model answers ⌘K.
+    var assistantModel: ModelChoice {
+        get { ModelChoice(rawValue: self[.assistantModel] ?? "") ?? .onDevice }
+        set { self[.assistantModel] = newValue.rawValue }
+    }
+}

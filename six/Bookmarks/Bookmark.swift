@@ -72,3 +72,15 @@ nonisolated struct BookmarkHit: Identifiable, Sendable {
 
     var id: Bookmark.ID { bookmark.id }
 }
+
+// MARK: - Settings
+
+/// The setting lives in the settings table; the knowledge of what its string means lives here,
+/// beside the type it means it as. `SettingsStore` itself keeps only keys and strings.
+extension SettingsStore {
+    /// What the assistant and the agents search: this profile's bookmarks, or every profile's.
+    var bookmarkScope: BookmarkScope {
+        get { BookmarkScope(rawValue: self[.bookmarkScope] ?? "") ?? .profile }
+        set { self[.bookmarkScope] = newValue.rawValue }
+    }
+}

@@ -298,3 +298,16 @@ final class LivePageCache {
         FileHandle.standardError.write(Data("[six] pages: \(message())\n".utf8))
     }
 }
+
+// MARK: - Settings
+
+/// The setting lives in the settings table; the knowledge of what its string means lives here,
+/// beside the type it means it as. `SettingsStore` itself keeps only keys and strings.
+extension SettingsStore {
+    /// How many windows keep a live `WebPage` at once; the rest are discarded and built again when
+    /// they are next shown. Defaults to what the machine's memory can carry.
+    var livePageBudget: Int {
+        get { self[.livePages].flatMap(Int.init) ?? LivePageCache.defaultBudget }
+        set { self[.livePages] = String(newValue) }
+    }
+}

@@ -72,3 +72,16 @@ nonisolated struct FilterList: Identifiable, Codable, Sendable, Hashable {
         return merged
     }
 }
+
+// MARK: - Settings
+
+/// The setting lives in the settings table; the knowledge of what its string means lives here,
+/// beside the type it means it as. `SettingsStore` itself keeps only keys and strings.
+extension SettingsStore {
+    /// The filter lists and what the user chose about each. Healed against the built-in catalogue
+    /// on read, so a list added in a later version of six appears by itself (`FilterList.merge`).
+    var blockingLists: [FilterList] {
+        get { decode(.blockingLists) ?? [] }
+        set { encode(.blockingLists, newValue) }
+    }
+}
