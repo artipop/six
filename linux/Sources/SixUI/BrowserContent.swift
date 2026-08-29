@@ -95,6 +95,19 @@ public struct BrowserContent: View {
         // `NiriLayout.resolvedOffset` is the same number the Mac scrolls to, centring the focused
         // column when `centersFocus` is on. Reaching the adjustment needs the widget, and `inspect`
         // is adwaita's documented way to get at one.
+        .inspectOnAppear { storage in
+            // ⌥ + scroll walks the strip, the way the Mac's `NiriScrollMonitor` does it. The
+            // modifier is not decoration: over a page an unmodified gesture belongs to the page.
+            guard let scrolled = storage.opaquePointer else { return }
+            let controller = gtk_event_controller_scroll_new(GTK_EVENT_CONTROLLER_SCROLL_BOTH_AXES)
+            gtk_widget_add_controller(scrolled.cast(), controller)
+            ScrollHandler.attach(controller) { dx, dy in
+                guard ScrollHandler.altHeld(controller) else { return false }
+                model.focusColumn(abs(dx) > abs(dy) ? (dx > 0 ? 1 : -1) : (dy > 0 ? 1 : -1))
+                refresh()
+                return true
+            }
+        }
         .inspect { storage, _ in
             guard let scrolled = storage.opaquePointer,
                   let adjustment = gtk_scrolled_window_get_hadjustment(scrolled) else { return }
@@ -124,6 +137,15 @@ public struct BrowserContent: View {
                 .vexpand()
         }
         .style("card")
+        // Clicking a column focuses it, which is also what scrolls the strip to it — the offset
+        // follows the focus, so the two are one gesture rather than two. In the capture phase,
+        // because the page is on top and would otherwise swallow it.
+        .inspectOnAppear { storage in
+            ScrollHandler.onClickCapture(storage.opaquePointer?.cast()) {
+                model.focus(column.id)
+                refresh()
+            }
+        }
     }
 
     /// Built as a value first: the page's own modifiers belong to `WebView`, and a `Body` has none

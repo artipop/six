@@ -130,6 +130,31 @@ public final class BrowserModel {
         if let focused = focusedID { urls[focused] = url } else { open(url) }
     }
 
+    // MARK: Focus and the strip
+
+    /// Focus a column. Clicking one focuses it, which is also what makes the strip scroll to it —
+    /// `resolvedOffset` follows the focus, so the two are the same gesture.
+    public func focus(_ tabID: UUID) {
+        guard layout.focusedTabID != tabID else { return }
+        trace("focus \(tabID)")
+        layout.focus(tabID: tabID)
+    }
+
+    /// One column along the strip, the way ⌥← and ⌥→ do it on the Mac.
+    public func focusColumn(_ delta: Int) {
+        guard layout.canFocusColumn(delta) else { return }
+        layout.focusColumn(delta)
+    }
+
+    public func canFocusColumn(_ delta: Int) -> Bool { layout.canFocusColumn(delta) }
+
+    /// Cycle the width every column uses, which is ⌥R there. One value for the whole strip rather
+    /// than per column, because a strip where each window has its own width reads as a mess.
+    public func cycleWidth() {
+        let next = (layout.preferredWidthIndex + 1) % NiriLayout.widthPresets.count
+        layout.setPreferredWidth(next)
+    }
+
     public func goBack() { focusedID.map(PageRegistry.goBack) }
     public func goForward() { focusedID.map(PageRegistry.goForward) }
     public func reload() { focusedID.map(PageRegistry.reload) }
