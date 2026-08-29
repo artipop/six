@@ -195,16 +195,24 @@ public struct BrowserContent: View {
                     )
                     .vexpand()
             } else {
-                StatusPage(
-                    column.title.isEmpty ? "Discarded" : column.title,
-                    icon: .default(icon: .viewRefresh),
-                    description: column.url?.absoluteString ?? ""
-                )
-                .frame(
-                    minWidth: Int(model.columnSize.width),
-                    minHeight: Int(model.columnSize.height)
-                )
-                .vexpand()
+                // The picture the page left behind, if it left one. Otherwise its name and address,
+                // which is still more than a blank card.
+                if let thumbnail = column.thumbnail {
+                    Picture(url: thumbnail)
+                        .contentFit(.cover)
+                        .frame(
+                            minWidth: Int(model.columnSize.width),
+                            minHeight: Int(model.columnSize.height)
+                        )
+                        .vexpand()
+                } else {
+                    StatusPage(
+                        column.title.isEmpty ? "Discarded" : column.title,
+                        icon: .default(icon: .viewRefresh),
+                        description: column.url?.absoluteString ?? ""
+                    )
+                    .vexpand()
+                }
             }
         }
         .style("card")

@@ -45,6 +45,13 @@ struct LivePages {
         live.remove(tabID)
     }
 
+    /// What `settle` is about to drop, without dropping it — so a page can be photographed while it
+    /// still exists.
+    func wouldDrop(pinned: Set<UUID>, all: [UUID]) -> Set<UUID> {
+        var copy = self
+        return copy.settle(pinned: pinned, all: all)
+    }
+
     /// Decide what stays. `pinned` is what the strip is showing — those keep their pages whatever
     /// the budget says, because a column half on screen with no page in it is a hole the user can
     /// see. Everything else is least-recently-used, deepest first.

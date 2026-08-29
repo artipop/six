@@ -21,6 +21,8 @@ public final class BrowserModel {
         /// Whether this column is holding a real page. A discarded one keeps its place, its title
         /// and its address, and builds again when it is next shown.
         public var isLive: Bool
+        /// A picture of the page as it was when it gave up its process, if there is one.
+        public var thumbnail: URL?
     }
 
     /// One model for the app, reached statically rather than stored in a view.
@@ -42,6 +44,7 @@ public final class BrowserModel {
     private var settings: SettingsStore?
 
     private init() {
+        Thumbnails.folder = AppSupport.folder("Thumbnails")
         let profiles = AppSupport.folder("Profiles/Default")
         try? FileManager.default.createDirectory(at: profiles, withIntermediateDirectories: true)
         session = NetworkSession(directory: profiles)
@@ -135,7 +138,8 @@ public final class BrowserModel {
                 url: urls[column.tabID],
                 title: titles[column.tabID] ?? "",
                 isFocused: column.tabID == layout.focusedTabID,
-                isLive: pages.live.contains(column.tabID)
+                isLive: pages.live.contains(column.tabID),
+                thumbnail: Thumbnails.exists(for: column.tabID) ? Thumbnails.url(for: column.tabID) : nil
             )
         }
     }
@@ -258,6 +262,7 @@ public final class BrowserModel {
         layout.removeColumn(tabID: focused)
         PageRegistry.forget(focused)
         pages.forget(focused)
+        Thumbnails.prune(keeping: Set(layout.workspaces.flatMap { $0.columns.map(\.tabID) }))
         save()
         urls[focused] = nil
         titles[focused] = nil
@@ -307,6 +312,11 @@ public final class BrowserModel {
     public func didFinishLoad(_ url: URL, title: String, for tabID: UUID) {
         urls[tabID] = url
         history?.record(url, title: title, in: profileID)
+        // Photographed when it finishes rather than when it is discarded. Waiting for the eviction
+        // sounds tidier and takes no pictures at all: a column past the budget never becomes live,
+        // so there is never a page there to photograph. The Mac takes its own on the way out *and*
+        // once for a window that has never been drawn, which is the same admission.
+        Thumbnails.capture(tabID)
     }
 
     /// `SIX_UI_DEBUG=1`, the same switch `NiriLayout` already uses: what the model was asked to do
