@@ -252,6 +252,34 @@ So committing to Android is the same act as committing to a non-Apple backend be
 protocol. Better to know that now, before the CloudKit implementation is written, than to write it
 twice.
 
+## Where state that belongs to one device lives
+
+Not in the database, and this is a rule rather than a preference.
+
+`SQLiteData`'s sync is **opt-in per table**: `SyncEngine(for:tables:privateTables:)` takes the tables
+by name, and anything not named is never synchronised. There is no filter below that — the only
+method on `SyncEngineDelegate` is `accountChanged`, so "sync this table but not that row" is not
+something the library can be asked for.
+
+So a row holding state that belongs to one device is safe exactly as long as nobody adds its table to
+that list, and unsafe the moment somebody does — silently, and in the direction that matters least
+until it matters most. [sync.md](sync.md) already says the live strip must not travel: which windows
+are open on this device is like Safari's iCloud Tabs, a list rather than a layout.
+
+The clean answer is a table of its own that is never named. Android cannot write that one: the
+schema's migrations are matched by identifier against `grdb_migrations`, so a table added here and
+not on the Mac makes the Mac replay its own version of the same history and fail. A `device_state`
+table is a Mac-side change, and until it exists this platform keeps `state.json`.
+
+Which costs nothing, because the file is not a workaround here. `AppStateSnapshot` and
+`FileSnapshotStore` are already written and tested, and the snapshot carries the `agent`, `research`
+and `window` branches through untouched — a property no row in `settings` would have.
+
+**The Linux front does it the other way**, in `settings["strip.state"]`, and says why: a front with no
+snapshot machinery yet gets durability for free from the database that is already open and already
+migrated. That reasoning is sound where it is written and does not reach Android, which has the
+machinery. It is worth revisiting there the day `settings` joins the sync list.
+
 ## The steps
 
 Two phases. Phase one is a browser; phase two is what makes it six.
