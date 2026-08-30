@@ -22,6 +22,12 @@ nonisolated struct TranslationSegment: Codable, Sendable, Equatable, Identifiabl
     var text: String
 }
 
+/// What one call to an engine may carry. Apple takes a real batch; a small on-device model does not.
+nonisolated struct TranslationBatchLimits: Sendable {
+    var segments: Int
+    var characters: Int
+}
+
 // MARK: - Engines
 
 /// Which machine turns the words around. A preference rather than a hard switch: a run asks the
@@ -44,7 +50,13 @@ nonisolated enum TranslationEngineChoice: String, Codable, Sendable, CaseIterabl
 @MainActor
 protocol PageTranslating: AnyObject {
     /// For the sentence a person reads when something goes wrong: "Apple Translation", "Claude Opus 5".
+    /// A product name, so it is not localized — the same line `localization.md` draws for engines.
     var name: String { get }
+
+    /// How much this engine wants at a time. The caller cuts the page up with
+    /// `TranslationBatch.chunks` and hands over one batch at a time, so a torn-down run loses one
+    /// batch rather than a page, and so progress can be shown at all.
+    var limits: TranslationBatchLimits { get }
 
     /// Does this engine know this pair at all? Asked once per run, before any text is sent.
     func canTranslate(from source: Locale.Language, to target: Locale.Language) async -> Bool
