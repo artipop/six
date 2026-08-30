@@ -3050,6 +3050,16 @@
         }
       }
     },
+    "Select some text on the page first" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сначала выделите текст на странице"
+          }
+        }
+      }
+    },
     "Send" : {
       "localizations" : {
         "ru" : {
@@ -3432,6 +3442,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Перевести страницу"
+          }
+        }
+      }
+    },
+    "Translate Selection…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перевести выделенное…"
           }
         }
       }

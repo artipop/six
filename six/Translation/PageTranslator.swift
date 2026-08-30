@@ -145,6 +145,16 @@ final class PageTranslator {
 
     private func isCurrent(_ id: UUID, _ token: Int) -> Bool { tokens[id] == token }
 
+    /// The page's current selection, waiting for the system's own translation popover.
+    ///
+    /// The popover is the platform's, not six's: it brings its own languages, its own downloads and
+    /// its own layout. All this side owns is the text and whether the panel is up.
+    var selection = ""
+    /// Whether replacing the selection with its translation would mean anything — a text field, a
+    /// contenteditable. On an article it would be a lie, so the popover is not offered the action.
+    var selectionIsEditable = false
+    var showsSelection = false
+
     /// The engine in use. Set by the front, which owns the choice.
     var engine: (any PageTranslating)?
 
@@ -331,6 +341,31 @@ final class PageTranslator {
                     try? await self.write(translated, to: page, id: id, target: target)
                 }
             }
+        }
+    }
+
+    /// Reads what is selected in the page. Nil when nothing is.
+    func readSelection(_ page: some PageScriptRunner) async -> Bool {
+        guard let value = try? await page.runScript(TranslationScript.selection),
+              let found = try? Self.decode(value, as: Selected.self),
+              !found.text.isEmpty
+        else { return false }
+        selection = found.text
+        selectionIsEditable = found.editable
+        showsSelection = true
+        return true
+    }
+
+    private struct Selected: Decodable {
+        var text = ""
+        var editable = false
+
+        enum CodingKeys: String, CodingKey { case text, editable }
+
+        init(from decoder: any Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            text = try c.decodeIfPresent(String.self, forKey: .text) ?? ""
+            editable = try c.decodeIfPresent(Bool.self, forKey: .editable) ?? false
         }
     }
 

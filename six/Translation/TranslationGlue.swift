@@ -61,6 +61,10 @@ enum TranslationLanguage {
         String(localized: "There is nothing on this page to translate yet — try again once it has loaded")
     }
 
+    static var noSelection: String {
+        String(localized: "Select some text on the page first")
+    }
+
     static var undetected: String {
         String(localized: "Could not tell what language this page is in")
     }

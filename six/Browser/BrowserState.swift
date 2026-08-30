@@ -153,6 +153,10 @@ final class BrowserState {
             guard seen.insert(code).inserted else { continue }
             guard supported.isEmpty || supported.contains(where: { $0.languageCode?.identifier == code })
             else { continue }
+            // Named on the button means offered, and offered means it works. A pair Apple does not
+            // have is not a suggestion — it belongs in the full list, greyed, where the reader who
+            // went looking for it is told why rather than left pressing a dead item.
+            if let source, appleTranslator.cannotTranslate(from: source, to: language) { continue }
             out.append(language)
             if out.count == 2 { break }
         }
@@ -177,6 +181,29 @@ final class BrowserState {
         translationTarget = language
         translation.forget(tab.id)
         toggleTranslation(of: tab)
+    }
+
+    /// Translate whatever is selected, in the system's own popover.
+    ///
+    /// Nothing in six can know there *is* a selection before asking the page: `ActivatedElementInfo`
+    /// carries a link URL and nothing else, so the page context menu cannot see one, and a menu
+    /// cannot await. "Highlight Selection" has the same shape and the same answer — the item is
+    /// always enabled, and pressing it with nothing selected says so.
+    func translateSelection(of tab: BrowserTab) {
+        Task {
+            if await translation.readSelection(tab) { return }
+            translation.fail(id: tab.id, TranslationLanguage.noSelection, target: translationTarget)
+        }
+    }
+
+    /// The popover's "replace with translation", for a field where that means something.
+    func replaceSelection(in tab: BrowserTab, with text: String) {
+        Task {
+            _ = try? await tab.runScript(
+                "document.execCommand('insertText', false, replacement); return true;",
+                arguments: ["replacement": text]
+            )
+        }
     }
 
     /// Give up on a run in progress and leave the page as it is — half translated is still

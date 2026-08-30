@@ -1,5 +1,6 @@
 #if os(macOS)
 import SwiftUI
+import Translation
 import WebKit
 
 /// The address field, in the top bar — one of them, for the window you are reading.
@@ -176,6 +177,12 @@ struct AddressBar: View {
             // reader's own language, so none of them reaches the string catalogue.
             Menu("Translate to…") {
                 ForEach(browser.appleTranslator.languages, id: \.maximalIdentifier) { language in
+                    // Greyed rather than hidden. A language missing from the list looks like six
+                    // forgot it; a language greyed out with a reason is Apple not having that
+                    // direction, which is a fact about the machine and worth saying.
+                    let unavailable = state.source.map {
+                        browser.appleTranslator.cannotTranslate(from: $0, to: language)
+                    } ?? false
                     Button {
                         browser.translate(tab, to: language)
                     } label: {
@@ -185,6 +192,10 @@ struct AddressBar: View {
                             Text(AppleTranslator.name(of: language))
                         }
                     }
+                    .disabled(unavailable)
+                    .help(unavailable && state.source != nil
+                          ? String(localized: "There is no translation from \(AppleTranslator.name(of: state.source!)) to \(AppleTranslator.name(of: language))")
+                          : "")
                 }
             }
             .disabled(browser.appleTranslator.languages.isEmpty)
@@ -209,7 +220,30 @@ struct AddressBar: View {
         .fixedSize()
         .foregroundStyle(tint(for: state))
         .help(helpText(for: state, target: target))
-        .task { await browser.appleTranslator.loadLanguages() }
+        // The system's own translation panel: its languages, its downloads, its layout. Six owns
+        // the text and nothing else. `replacementAction` is passed only where putting the
+        // translation back means something — offering "replace" on an article would be a lie.
+        //
+        // **It is not the same privacy posture as the page translation**, and that is worth knowing
+        // rather than discovering. A page is translated by a `TranslationSession` on this machine
+        // and nothing leaves it. This panel says, in Apple's own words, that the selected content
+        // is sent to Apple unless the reader has turned on offline translation in System Settings.
+        // Apple asks before the first one, which is why six does not ask again — but it is the one
+        // place in this feature where text can leave the Mac.
+        .translationPresentation(
+            isPresented: Binding(
+                get: { browser.translation.showsSelection },
+                set: { browser.translation.showsSelection = $0 }
+            ),
+            text: browser.translation.selection,
+            replacementAction: browser.translation.selectionIsEditable
+                ? { browser.replaceSelection(in: tab, with: $0) }
+                : nil
+        )
+        .task(id: state.source?.maximalIdentifier) {
+            await browser.appleTranslator.loadLanguages()
+            if let source = state.source { await browser.appleTranslator.loadStatuses(from: source) }
+        }
     }
 
     private func tint(for state: TabTranslation) -> AnyShapeStyle {

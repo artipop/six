@@ -285,6 +285,40 @@ final class AppleTranslator: PageTranslating {
         return Locale.current.localizedString(forIdentifier: identifier) ?? identifier
     }
 
+    /// What this Mac can do *from* one language, by target. A menu cannot await, and asking for
+    /// twenty-five pair statuses every time one opens would be twenty-five calls for a list that
+    /// does not change while a page is open — so it is filled once per source language and read
+    /// synchronously after.
+    private(set) var statuses: [String: LanguageAvailability.Status] = [:]
+    private var statusSource: String?
+
+    func loadStatuses(from source: Locale.Language) async {
+        let key = source.maximalIdentifier
+        guard statusSource != key else { return }
+        statusSource = key
+        await loadLanguages()
+        var found: [String: LanguageAvailability.Status] = [:]
+        for language in languages {
+            found[language.maximalIdentifier] = await availability.status(from: source, to: language)
+        }
+        guard statusSource == key else { return }       // another page overtook us
+        statuses = found
+    }
+
+    /// `nil` while the answer has not been asked for yet — which is not the same as "no", and a
+    /// menu that greys everything out until an await finishes is worse than one that briefly
+    /// offers something it then refuses.
+    func known(from source: Locale.Language, to target: Locale.Language) -> LanguageAvailability.Status? {
+        guard statusSource == source.maximalIdentifier else { return nil }
+        return statuses[target.maximalIdentifier]
+    }
+
+    /// The plain answer, so callers do not have to import `Translation` to ask a yes/no question.
+    /// False while unknown, because "not asked yet" is not "no".
+    func cannotTranslate(from source: Locale.Language, to target: Locale.Language) -> Bool {
+        known(from: source, to: target) == .unsupported
+    }
+
     /// The languages a menu can offer, once they have been asked for. `offeredLanguages` is async
     /// and a menu is not, so the view loads this on appear and reads it synchronously after.
     private(set) var languages: [Locale.Language] = []

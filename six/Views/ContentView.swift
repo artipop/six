@@ -68,6 +68,9 @@ struct ContentView: View {
         .focusedSceneValue(\.translatePage, FocusAddressBarAction {
             if let tab = browser.selectedTab { browser.toggleTranslation(of: tab) }
         })
+        .focusedSceneValue(\.translateSelection, FocusAddressBarAction {
+            if let tab = browser.selectedTab { browser.translateSelection(of: tab) }
+        })
         .clearHistoryDialog(isPresented: $confirmClearHistory)
         .onKeyPress(.escape) {
             // The scroll monitor usually gets there first (a page holds the focus); this is the path
@@ -151,6 +154,23 @@ extension ContentView {
             await runOnce(tab, source: source, target: Locale.Language(identifier: code), say: say)
         }
         say("armed at the end: \(browser.appleTranslator.armedPairs.map(\.id))")
+
+        // `SIX_TRANSLATE_SELFTEST_SELECTION=1` selects a paragraph and opens the system popover.
+        if ProcessInfo.processInfo.environment["SIX_TRANSLATE_SELFTEST_SELECTION"] == "1" {
+            _ = try? await tab.runScript("""
+            const p = document.querySelector('p');
+            const range = document.createRange();
+            range.selectNodeContents(p);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+            return p.textContent.slice(0, 40);
+            """)
+            browser.translateSelection(of: tab)
+            try? await Task.sleep(for: .seconds(2))
+            say("selection: \(browser.translation.selection.prefix(50))…")
+            say("editable: \(browser.translation.selectionIsEditable), popover up: \(browser.translation.showsSelection)")
+        }
     }
 
     fileprivate func runOnce(
