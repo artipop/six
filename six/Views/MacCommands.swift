@@ -279,6 +279,8 @@ struct BrowserCommands: Commands {
     @FocusedValue(\.focusAddressBar) private var focusAddressBar
     @FocusedValue(\.focusAssistant) private var focusAssistant
     @FocusedValue(\.toggleAgentPanel) private var toggleAgentPanel
+    @FocusedValue(\.translatePage) private var translatePage
+    @FocusedValue(\.translateSelection) private var translateSelection
 
     var body: some Commands {
         CommandMenu("Navigate") {
@@ -291,6 +293,20 @@ struct BrowserCommands: Commands {
             Button("Toggle Agent Panel") { toggleAgentPanel?.perform() }
                 .keyboardShortcut("a", modifiers: [.command, .shift])
                 .disabled(toggleAgentPanel == nil)
+
+            Divider()
+
+            // ⌘⇧L: "L" for language, next to ⌘L in the hand. Deliberately not ⌘⇧T, which is free
+            // today but is "reopen closed tab" in every other browser.
+            Button("Translate Page") { translatePage?.perform() }
+                .keyboardShortcut("l", modifiers: [.command, .shift])
+                .disabled(translatePage == nil)
+            // ⌥⇧T beside ⌥⇧H "Highlight Selection": the same shape of gesture on the same thing.
+            // Always enabled, because nothing here can know whether there is a selection without
+            // asking the page, and a menu cannot await — pressing it with none says so.
+            Button("Translate Selection…") { translateSelection?.perform() }
+                .keyboardShortcut("t", modifiers: [.option, .shift])
+                .disabled(translateSelection == nil)
 
             Divider()
 

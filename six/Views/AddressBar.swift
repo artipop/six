@@ -1,5 +1,6 @@
 #if os(macOS)
 import SwiftUI
+import Translation
 import WebKit
 
 /// The address field, in the top bar — one of them, for the window you are reading.
@@ -70,6 +71,7 @@ struct AddressBar: View {
                     tab.navigate(to: text)
                     addressFocus.wrappedValue = nil
                 }
+            translate
             if tab.isLoading {
                 ProgressView(value: min(max(tab.estimatedProgress, 0.03), 1))
                     .progressViewStyle(.circular)
@@ -105,6 +107,168 @@ struct AddressBar: View {
         guard let host = url.host() else { return url.absoluteString }
         let path = url.path()
         return path.isEmpty || path == "/" ? host : host + path
+    }
+
+    // MARK: Translation
+
+    /// Translating this page, in four states.
+    ///
+    /// The trailing end of the field, where Safari puts it — the lock and the shield sit at the
+    /// leading end and talk about safety, which is the other half of the field's job.
+    ///
+    /// **Downloading gets a spinner and an indeterminate one.** `Translation.framework` has no
+    /// progress to offer: `status(from:to:)`, `isReady` and `canRequestDownloads`, and no byte
+    /// count anywhere. A determinate bar would have to invent its number, and a bar stuck at zero
+    /// while a gigabyte arrives is exactly the thing that makes a person think it has hung. So the
+    /// spinner turns, the tooltip says what it is waiting for, and the system's own sheet — which
+    /// is up at that moment — carries the rest.
+    @ViewBuilder
+    private var translate: some View {
+        if isWebPage {
+            // Shown on every page, not only on one detected as foreign. Detection runs after the
+            // page settles and can decline to answer at all — a short page, a page that hydrates
+            // late — and a button that comes and goes on its own is worse than one that is always
+            // where you left it. What it does when the page needs nothing is say so.
+            let state = browser.translation[tab.id]
+                ?? TabTranslation(source: nil, target: browser.translationTarget)
+            switch state.phase {
+            case .downloading:
+                // Indeterminate, and that is not laziness. `Translation.framework` offers
+                // `status(from:to:)`, `isReady` and `canRequestDownloads`, and no byte count
+                // anywhere, so a determinate bar would have to invent its number — and one sitting
+                // at zero while a gigabyte arrives is exactly what reads as hung.
+                ProgressView()
+                    .progressViewStyle(.circular)
+                    .controlSize(.small)
+                    .help("Downloading a language — it continues in the background")
+            case .working(let done, let total):
+                ProgressView(value: total > 0 ? Double(done) / Double(total) : 0)
+                    .progressViewStyle(.circular)
+                    .controlSize(.small)
+                    .help("Translating…")
+            default:
+                menu(state)
+            }
+        }
+    }
+
+    /// The menu behind the button. Its first item is the whole answer to "into what?" — it names
+    /// the language rather than leaving the reader to find out by pressing it.
+    private func menu(_ state: TabTranslation) -> some View {
+        let target = browser.translationTarget
+        let translated = { if case .done = state.phase { return true } else { return false } }()
+
+        return Menu {
+            if translated {
+                Button(state.showsOriginal ? "Show Translation" : "Show Original") {
+                    browser.toggleTranslation(of: tab)
+                }
+            } else {
+                // Named, not implied. One or two, from the reader's own preferred languages, with
+                // the page's own language left out of them.
+                ForEach(browser.suggestedTargets(excluding: state.source), id: \.maximalIdentifier) { language in
+                    Button("Translate to \(AppleTranslator.name(of: language))") {
+                        browser.translate(tab, to: language)
+                    }
+                }
+            }
+
+            // Every language this Mac can translate into. Names come from Foundation in the
+            // reader's own language, so none of them reaches the string catalogue.
+            Menu("Translate to…") {
+                ForEach(browser.appleTranslator.languages, id: \.maximalIdentifier) { language in
+                    // Greyed rather than hidden. A language missing from the list looks like six
+                    // forgot it; a language greyed out with a reason is Apple not having that
+                    // direction, which is a fact about the machine and worth saying.
+                    let unavailable = state.source.map {
+                        browser.appleTranslator.cannotTranslate(from: $0, to: language)
+                    } ?? false
+                    Button {
+                        browser.translate(tab, to: language)
+                    } label: {
+                        if language.languageCode == target.languageCode {
+                            Label(AppleTranslator.name(of: language), systemImage: "checkmark")
+                        } else {
+                            Text(AppleTranslator.name(of: language))
+                        }
+                    }
+                    .disabled(unavailable)
+                    .help(unavailable && state.source != nil
+                          ? String(localized: "There is no translation from \(AppleTranslator.name(of: state.source!)) to \(AppleTranslator.name(of: language))")
+                          : "")
+                }
+            }
+            .disabled(browser.appleTranslator.languages.isEmpty)
+
+            if let host = tab.currentURL?.host() {
+                Divider()
+                Toggle("Always Translate \(host)", isOn: Binding(
+                    get: { browser.alwaysTranslates(host) },
+                    set: { browser.setAlwaysTranslates(host, $0) }
+                ))
+            }
+
+            if case .failed(let why) = state.phase {
+                Divider()
+                Text(why)
+            }
+        } label: {
+            Image(systemName: "translate").font(.system(size: 10))
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .foregroundStyle(tint(for: state))
+        .help(helpText(for: state, target: target))
+        // The system's own translation panel: its languages, its downloads, its layout. Six owns
+        // the text and nothing else. `replacementAction` is passed only where putting the
+        // translation back means something — offering "replace" on an article would be a lie.
+        //
+        // **It is not the same privacy posture as the page translation**, and that is worth knowing
+        // rather than discovering. A page is translated by a `TranslationSession` on this machine
+        // and nothing leaves it. This panel says, in Apple's own words, that the selected content
+        // is sent to Apple unless the reader has turned on offline translation in System Settings.
+        // Apple asks before the first one, which is why six does not ask again — but it is the one
+        // place in this feature where text can leave the Mac.
+        .translationPresentation(
+            isPresented: Binding(
+                get: { browser.translation.showsSelection },
+                set: { browser.translation.showsSelection = $0 }
+            ),
+            text: browser.translation.selection,
+            replacementAction: browser.translation.selectionIsEditable
+                ? { browser.replaceSelection(in: tab, with: $0) }
+                : nil
+        )
+        .task(id: state.source?.maximalIdentifier) {
+            await browser.appleTranslator.loadLanguages()
+            if let source = state.source { await browser.appleTranslator.loadStatuses(from: source) }
+        }
+    }
+
+    private func tint(for state: TabTranslation) -> AnyShapeStyle {
+        switch state.phase {
+        case .done: state.showsOriginal ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.tint)
+        case .failed: AnyShapeStyle(.orange)
+        default: AnyShapeStyle(.tertiary)
+        }
+    }
+
+    private func helpText(for state: TabTranslation, target: Locale.Language) -> String {
+        switch state.phase {
+        case .done:
+            state.showsOriginal
+                ? String(localized: "Showing the original")
+                : String(localized: "Translated into \(AppleTranslator.name(of: target))")
+        case .failed(let why):
+            why
+        default:
+            if let first = browser.suggestedTargets(excluding: state.source).first {
+                String(localized: "Translate this page into \(AppleTranslator.name(of: first))")
+            } else {
+                String(localized: "Translate this page")
+            }
+        }
     }
 
     // MARK: Blocking

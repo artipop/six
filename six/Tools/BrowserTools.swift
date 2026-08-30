@@ -158,6 +158,15 @@ final class BrowserToolCatalog {
             run: { [unowned self] args in try await self.pageContent(args) }
         ),
         BrowserTool(
+            name: "get_selection",
+            title: String(localized: "Read Selection"),
+            description: "The text the reader has selected on a window's page, with the page's title, URL and language. "
+                + "Empty when nothing is selected. Use it when the user refers to \"this\", \"the selected text\" or "
+                + "\"what I highlighted\" — including asking for it to be translated or explained.",
+            parameters: [Self.windowID],
+            run: { [unowned self] args in try await self.pageSelection(args) }
+        ),
+        BrowserTool(
             name: "get_page_links",
             title: String(localized: "Page Links"),
             description: "Links on a window's page as `text — URL` lines, in document order. Defaults to the focused window.",
@@ -737,6 +746,29 @@ final class BrowserToolCatalog {
         let text = await Self.pageText(of: tab.page) ?? ""
         let truncated = text.count > limit ? String(text.prefix(limit)) + "\n…[truncated, \(text.count) characters in total]" : text
         return "\(Self.describe(tab))\n\n\(truncated)"
+    }
+
+    /// What the reader has selected, for a model to do something with.
+    ///
+    /// This is the whole of six's answer to "translate this with a model". Apple's translator is
+    /// wired into the page and into the address field because it is free, local and fast; a language
+    /// model is none of those over a thousand segments, so it does not get a second engine behind
+    /// the translator. It gets this instead — the selection, handed to ⌘K and to every MCP client,
+    /// where the model translates or explains it in the conversation and the reader sees what it
+    /// did. No new interface, and nothing to pay for when nobody asks.
+    private func pageSelection(_ args: ACPJSON) async throws -> String {
+        let tab = try webTab(args)
+        let value = try? await tab.page.six(TranslationScript.selection)
+        let text = ((value as? [String: Any])?["text"] as? String ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else {
+            return "\(Self.describe(tab))\n\nNothing is selected on this page."
+        }
+        // The page's own language, so a model asked to translate knows what from without guessing.
+        let plan = try? await tab.page.six(TranslationScript.plan)
+        let language = (plan as? [String: Any])?["language"] as? String ?? ""
+        let header = language.isEmpty ? Self.describe(tab) : "\(Self.describe(tab))\nPage language: \(language)"
+        return "\(header)\n\nSelected text:\n\(text)"
     }
 
     private func pageLinks(_ args: ACPJSON) async throws -> String {

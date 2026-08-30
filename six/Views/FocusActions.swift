@@ -12,4 +12,8 @@ struct FocusAddressBarAction {
 
 extension FocusedValues {
     @Entry var focusAddressBar: FocusAddressBarAction?
+    /// Translate the focused page, or put it back — one item, because the menu says which it is.
+    @Entry var translatePage: FocusAddressBarAction?
+    /// Translate whatever is selected, in the system's own popover.
+    @Entry var translateSelection: FocusAddressBarAction?
 }

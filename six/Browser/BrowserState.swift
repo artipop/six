@@ -60,6 +60,12 @@ final class BrowserState {
     let downloads = DownloadStore()
     /// The mark that flies from a click to the downloads button (`FlightStore`).
     let flights = FlightStore()
+    /// Translating a page in place, and the engine that does it. Both are `@Observable` themselves,
+    /// so the reference can be ignored here while the views still see them change.
+    @ObservationIgnored let translation = PageTranslator()
+    /// Apple's on-device translator. Held by name as well as behind the protocol, because the
+    /// hidden `.translationTask` host needs the concrete one — that is the whole point of it.
+    @ObservationIgnored let appleTranslator = AppleTranslator()
     /// Deep-research runs (see `ResearchRun`).
     var research: [ResearchRun] = []
     @ObservationIgnored private let settings: SettingsStore
@@ -99,6 +105,145 @@ final class BrowserState {
         thumbnails.prune(keeping: Set(tabs.map(\.id))) // windows closed in a launch that never cleaned up
         trackVisibleWindows()
         refreshLivePages() // the first strip, before any change has had a chance to fire
+        translation.engine = appleTranslator
+    }
+
+    // MARK: Translation
+
+    /// After a page settles: is it in a language the reader does not read? Then the address field
+    /// gets something to click. A site in `alwaysTranslateHosts` skips the offer and just goes.
+    private func offerTranslation(of tab: BrowserTab) {
+        let target = settings.translationTarget
+        Task {
+            guard let plan = try? await translation.plan(tab), plan.refusal == nil,
+                  let source = TranslationLanguage.source(of: plan),
+                  TranslationLanguage.isForeign(source, to: target) else { return }
+            if let host = tab.currentURL?.host(), settings.alwaysTranslateHosts.contains(host) {
+                await translation.translate(tab, id: tab.id, from: source, to: target)
+            } else {
+                translation.offer(source: source, target: target, id: tab.id)
+            }
+        }
+    }
+
+    /// What pages are translated into. Kept in the settings table, so it survives a relaunch and
+    /// is the same answer the automatic offer uses.
+    var translationTarget: Locale.Language {
+        get { settings.translationTarget }
+        set { settings.translationTarget = newValue }
+    }
+
+    /// The one or two languages worth naming on the button itself — "Translate to Spanish" rather
+    /// than "Translate", which makes the reader press it to find out.
+    ///
+    /// `Locale.preferredLanguages` is the reader's own list in the reader's own order, which is a
+    /// better guess than the single system language: someone reading Russian pages on an English
+    /// Mac has said so there. What the page is already written in is dropped — offering to
+    /// translate a Russian page into Russian is the offer that made this necessary — and so is
+    /// anything this Mac cannot translate into.
+    func suggestedTargets(excluding source: Locale.Language?) -> [Locale.Language] {
+        let supported = appleTranslator.languages
+        let sourceCode = source?.languageCode?.identifier
+        var seen = Set<String>()
+        var out: [Locale.Language] = []
+
+        for identifier in Locale.preferredLanguages + [translationTarget.maximalIdentifier, "en"] {
+            let language = Locale.Language(identifier: identifier)
+            guard let code = language.languageCode?.identifier, code != sourceCode else { continue }
+            guard seen.insert(code).inserted else { continue }
+            guard supported.isEmpty || supported.contains(where: { $0.languageCode?.identifier == code })
+            else { continue }
+            // Named on the button means offered, and offered means it works. A pair Apple does not
+            // have is not a suggestion — it belongs in the full list, greyed, where the reader who
+            // went looking for it is told why rather than left pressing a dead item.
+            if let source, appleTranslator.cannotTranslate(from: source, to: language) { continue }
+            out.append(language)
+            if out.count == 2 { break }
+        }
+        return out
+    }
+
+    /// Sites translated the moment they load, without being asked.
+    func alwaysTranslates(_ host: String) -> Bool {
+        settings.alwaysTranslateHosts.contains(host)
+    }
+
+    func setAlwaysTranslates(_ host: String, _ on: Bool) {
+        var hosts = settings.alwaysTranslateHosts
+        hosts.removeAll { $0 == host }
+        if on { hosts.append(host) }
+        settings.alwaysTranslateHosts = hosts
+    }
+
+    /// Translate into a language the reader picked, and remember it as the new default — picking one
+    /// is how you say what you read, and being asked again next time is not an improvement.
+    func translate(_ tab: BrowserTab, to language: Locale.Language) {
+        translationTarget = language
+        translation.forget(tab.id)
+        toggleTranslation(of: tab)
+    }
+
+    /// Translate whatever is selected, in the system's own popover.
+    ///
+    /// Nothing in six can know there *is* a selection before asking the page: `ActivatedElementInfo`
+    /// carries a link URL and nothing else, so the page context menu cannot see one, and a menu
+    /// cannot await. "Highlight Selection" has the same shape and the same answer — the item is
+    /// always enabled, and pressing it with nothing selected says so.
+    func translateSelection(of tab: BrowserTab) {
+        Task {
+            if await translation.readSelection(tab) { return }
+            translation.fail(id: tab.id, TranslationLanguage.noSelection, target: translationTarget)
+        }
+    }
+
+    /// The popover's "replace with translation", for a field where that means something.
+    func replaceSelection(in tab: BrowserTab, with text: String) {
+        Task {
+            _ = try? await tab.runScript(
+                "document.execCommand('insertText', false, replacement); return true;",
+                arguments: ["replacement": text]
+            )
+        }
+    }
+
+    /// Give up on a run in progress and leave the page as it is — half translated is still
+    /// readable, and the alternative is a bar you cannot dismiss.
+    func stopTranslating(_ tab: BrowserTab) {
+        translation.stop(tab.id)
+        translation.markStopped(id: tab.id)
+    }
+
+    /// Look at the focused page and translate it, or put it back. One entry point, because that is
+    /// what a button and a menu item both want.
+    func toggleTranslation(of tab: BrowserTab) {
+        let target = settings.translationTarget
+        Task {
+            if let state = translation[tab.id], state.isTranslated {
+                if state.showsOriginal {
+                    await translation.showTranslation(tab, id: tab.id)
+                } else {
+                    await translation.showOriginal(tab, id: tab.id)
+                }
+                return
+            }
+            guard let plan = try? await translation.plan(tab) else {
+                return translation.fail(id: tab.id, TranslationLanguage.unreadable, target: target)
+            }
+            if let refusal = plan.refusal {
+                return translation.fail(id: tab.id, refusal, target: target)
+            }
+            guard let source = TranslationLanguage.source(of: plan) else {
+                return translation.fail(id: tab.id, TranslationLanguage.undetected, target: target)
+            }
+            guard TranslationLanguage.isForeign(source, to: target) else {
+                return translation.fail(
+                    id: tab.id,
+                    TranslationLanguage.alreadyInTarget(AppleTranslator.name(of: source)),
+                    target: target
+                )
+            }
+            await translation.translate(tab, id: tab.id, from: source, to: target)
+        }
     }
 
     // MARK: Live pages
@@ -406,8 +551,17 @@ final class BrowserState {
         tab.onNavigation = { [weak self] tab, outcome in
             guard let self, let page = tab.livePage, let url = page.url else { return }
             switch outcome {
-            case .committed: if !profile.isPrivate { history.record(url, title: page.title, in: tab.profileID) }
+            case .committed:
+                // Before `.finished`, so the old page's batches are dead before the new page is
+                // looked at. A private window translates like any other — the work never leaves it.
+                self.translation.forget(tab.id)
+                if !profile.isPrivate { history.record(url, title: page.title, in: tab.profileID) }
             case .finished:
+                // Above the private guard, deliberately. A private window keeps no history and
+                // stores no highlights, but a page in another language is still a page in another
+                // language — and translating it never leaves the machine, so there is nothing for
+                // the profile to protect it from.
+                offerTranslation(of: tab)
                 guard !profile.isPrivate else { return } // no history, and highlights are not stored for it
                 history.updateTitle(page.title, for: url, in: tab.profileID)
                 highlights?.apply(to: tab)

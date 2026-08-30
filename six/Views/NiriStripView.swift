@@ -230,6 +230,13 @@ private struct ColumnView: View {
                 PermissionBar(tab: tab, question: question)
                 Divider()
             }
+            // Only while it has something to say. A translated page keeps its state, and a bar
+            // that stays up for as long as the page does is chrome charged against every page in
+            // the strip — the address field carries "translated" from here on.
+            if let translation = browser.translation[tab.id], translation.saysSomething {
+                TranslateBar(tab: tab, state: translation)
+                Divider()
+            }
             if tab.showsStartPage {
                 // Pure SwiftUI, so the plain overlay is enough to catch the first click here.
                 StartPage(tab: tab, isActive: isFocused && !browser.layout.isOverview)

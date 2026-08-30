@@ -39,6 +39,9 @@ struct ContentView: View {
         }
         .ignoresSafeArea(.container, edges: .top)
         .overlay { FlightsOverlay() }
+        // Mounted once, on the root, because six is a `Window` and not a `WindowGroup`. It draws
+        // nothing: it only carries the `.translationTask` that can ask for a language download.
+        .translationHost(browser.appleTranslator)
         .inspector(isPresented: $showAgentPanel) {
             AgentPanel()
                 .inspectorColumnWidth(min: 320, ideal: 400, max: 700)
@@ -62,6 +65,12 @@ struct ContentView: View {
         .focusedSceneValue(\.showSitePermissions, FocusAddressBarAction { showSitePermissions = true })
         .sheet(isPresented: $showSitePermissions) { PermissionsView() }
         .focusedSceneValue(\.clearHistory, FocusAddressBarAction { confirmClearHistory = true })
+        .focusedSceneValue(\.translatePage, FocusAddressBarAction {
+            if let tab = browser.selectedTab { browser.toggleTranslation(of: tab) }
+        })
+        .focusedSceneValue(\.translateSelection, FocusAddressBarAction {
+            if let tab = browser.selectedTab { browser.translateSelection(of: tab) }
+        })
         .clearHistoryDialog(isPresented: $confirmClearHistory)
         .onKeyPress(.escape) {
             // The scroll monitor usually gets there first (a page holds the focus); this is the path
@@ -100,7 +109,99 @@ struct ContentView: View {
                 try? await Task.sleep(for: .seconds(1))
                 assistant.ask(String(spec[split.upperBound...]), about: browser.selectedTab)
             }
+            // `SIX_TRANSLATE_SELFTEST="https://ru.wikipedia.org/wiki/Браузер"` opens the address and
+            // translates it, narrating each step — the download prompt is the framework's own and
+            // still wants a person, but everything up to and after it can be watched from a terminal.
+            if let address = ProcessInfo.processInfo.environment["SIX_TRANSLATE_SELFTEST"],
+               let url = URL(string: address) {
+                await translateSelfTest(url)
+            }
         }
+    }
+}
+
+extension ContentView {
+    /// Drives one page through translation from launch, printing what happened. A harness, in the
+    /// shape the ACP and assistant ones already have.
+    fileprivate func translateSelfTest(_ url: URL) async {
+        func say(_ text: String) { print("[translate] \(text)"); fflush(stdout) }
+
+        guard let tab = browser.selectedTab else { return say("no tab") }
+        tab.load(url)
+        for _ in 0..<80 where tab.isLoading || tab.currentURL == nil {
+            try? await Task.sleep(for: .milliseconds(250))
+        }
+        say("loaded \(tab.currentURL?.absoluteString ?? "nothing")")
+
+        await browser.appleTranslator.loadLanguages()
+        let offered = browser.appleTranslator.languages
+        say("menu offers \(offered.count) languages: \(offered.prefix(6).map { AppleTranslator.name(of: $0) }.joined(separator: ", "))…")
+        say("target from settings: \(AppleTranslator.name(of: browser.translationTarget))")
+
+        guard let plan = try? await browser.translation.plan(tab) else { return say("no plan") }
+        say("plan: lang=\(plan.language.isEmpty ? "-" : plan.language) unsupported=\(plan.unsupported.isEmpty ? "-" : plan.unsupported) sample=\(plan.sample.prefix(60))…")
+        if let refusal = plan.refusal { return say("refused: \(refusal)") }
+
+        guard let source = TranslationLanguage.source(of: plan) else { return say("no source language") }
+        say("the button would offer: \(browser.suggestedTargets(excluding: source).map { AppleTranslator.name(of: $0) })")
+
+        // `SIX_TRANSLATE_SELFTEST_TARGETS="en,de"` runs the page through more than one language in
+        // a row, which is the case that found the stale armed pair: the second language's download
+        // sheet never came up while the first one's task was still mounted.
+        let codes = (ProcessInfo.processInfo.environment["SIX_TRANSLATE_SELFTEST_TARGETS"] ?? "en")
+            .split(separator: ",").map(String.init)
+        for code in codes {
+            await runOnce(tab, source: source, target: Locale.Language(identifier: code), say: say)
+        }
+        say("armed at the end: \(browser.appleTranslator.armedPairs.map(\.id))")
+
+        // `SIX_TRANSLATE_SELFTEST_SELECTION=1` selects a paragraph and opens the system popover.
+        if ProcessInfo.processInfo.environment["SIX_TRANSLATE_SELFTEST_SELECTION"] == "1" {
+            _ = try? await tab.runScript("""
+            const p = document.querySelector('p');
+            const range = document.createRange();
+            range.selectNodeContents(p);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+            return p.textContent.slice(0, 40);
+            """)
+            browser.translateSelection(of: tab)
+            try? await Task.sleep(for: .seconds(2))
+            say("selection: \(browser.translation.selection.prefix(50))…")
+            say("editable: \(browser.translation.selectionIsEditable), popover up: \(browser.translation.showsSelection)")
+        }
+    }
+
+    fileprivate func runOnce(
+        _ tab: BrowserTab, source: Locale.Language, target: Locale.Language,
+        say: @escaping (String) -> Void
+    ) async {
+        browser.translation.forget(tab.id)
+        say("--- \(source.maximalIdentifier) -> \(target.maximalIdentifier), status \(await browser.appleTranslator.status(from: source, to: target))")
+
+        let run = Task { await browser.translation.translate(tab, id: tab.id, from: source, to: target) }
+        var sawArmed = false
+        var sawDownloading = false
+        for _ in 0..<300 {
+            try? await Task.sleep(for: .milliseconds(500))
+            let armed = browser.appleTranslator.armedPairs.map(\.id)
+            if !armed.isEmpty, !sawArmed {
+                sawArmed = true
+                say("ARMED \(armed) — the framework should be asking to download now")
+            }
+            guard let state = browser.translation[tab.id] else { continue }
+            switch state.phase {
+            case .done: say("DONE"); return
+            case .failed(let why): say("FAILED: \(why)"); return
+            case .working(let d, let n) where n > 0 && d % 300 == 0: say("working \(d)/\(n)")
+            case .downloading:
+                if !sawDownloading { sawDownloading = true; say("PHASE .downloading — the spinner should be turning") }
+            default: break
+            }
+        }
+        run.cancel()
+        say("gave up waiting")
     }
 }
 
