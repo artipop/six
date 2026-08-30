@@ -1,0 +1,104 @@
+{
+  "agent" : {
+    "agentID" : "claude-code",
+    "chats" : [
+      {
+        "agentID" : "claude-code",
+        "directoryPath" : "/Users/six/Scratchpad",
+        "sessionID" : "sess_0001",
+        "transcript" : [
+          {
+            "kind" : "userMessage",
+            "text" : "a shape Android does not model"
+          }
+        ]
+      }
+    ]
+  },
+  "browser" : {
+    "profiles" : [
+      {
+        "colorHex" : "#4A90D9",
+        "dataStoreID" : "6C1F0B2E-1111-4A00-9E31-000000000001",
+        "id" : "1B7A55C0-0000-4A00-9E31-000000000001",
+        "isPrivate" : false,
+        "name" : "Personal"
+      },
+      {
+        "colorHex" : "#E8743B",
+        "dataStoreID" : "6C1F0B2E-1111-4A00-9E31-000000000002",
+        "id" : "1B7A55C0-0000-4A00-9E31-000000000002",
+        "isPrivate" : true,
+        "name" : "Work"
+      }
+    ],
+    "research" : [],
+    "selectedProfileID" : "1B7A55C0-0000-4A00-9E31-000000000001",
+    "strips" : [
+      {
+        "profileID" : "1B7A55C0-0000-4A00-9E31-000000000001",
+        "strip" : {
+          "focus" : 0,
+          "workspaces" : [
+            {
+              "columns" : [
+                {
+                  "tabID" : "3D9C11AA-0000-4A00-9E31-000000000001",
+                  "widthIndex" : 2
+                },
+                {
+                  "tabID" : "3D9C11AA-0000-4A00-9E31-000000000002",
+                  "widthIndex" : 0
+                }
+              ],
+              "focus" : 0,
+              "id" : "9F73C504-0000-4A00-9E31-000000000001",
+              "name" : "",
+              "viewOffset" : -85.55999999999995
+            },
+            {
+              "columns" : [],
+              "focus" : 0,
+              "id" : "9F73C504-0000-4A00-9E31-000000000002",
+              "name" : "Reading",
+              "viewOffset" : 0
+            }
+          ]
+        }
+      }
+    ],
+    "tabs" : [
+      {
+        "id" : "3D9C11AA-0000-4A00-9E31-000000000001",
+        "profileID" : "1B7A55C0-0000-4A00-9E31-000000000001",
+        "title" : "Pilaf - Wikipedia",
+        "url" : "https://en.wikipedia.org/wiki/Pilaf"
+      },
+      {
+        "id" : "3D9C11AA-0000-4A00-9E31-000000000002",
+        "profileID" : "1B7A55C0-0000-4A00-9E31-000000000001",
+        "title" : "",
+        "document" : {
+          "id" : "5E2D77BB-0000-4A00-9E31-000000000001",
+          "modifiedAt" : 776000000.5,
+          "showsPreview" : true,
+          "title" : "Notes"
+        }
+      }
+    ]
+  },
+  "version" : 1,
+  "window" : {
+    "frame" : [
+      [
+        0,
+        0
+      ],
+      [
+        1600,
+        1000
+      ]
+    ],
+    "isFullScreen" : false
+  }
+}

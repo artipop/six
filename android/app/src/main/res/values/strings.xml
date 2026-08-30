@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">six</string>
+
+    <!-- The strip -->
+    <string name="workspace_numbered">Workspace %1$d</string>
+    <string name="new_window">New Window</string>
+    <string name="close_window">Close Window</string>
+    <string name="back">Back</string>
+    <string name="forward">Forward</string>
+    <string name="overview">Overview</string>
+    <string name="more">More</string>
+    <string name="new_window_in_strip">New Window in Strip</string>
+    <string name="history_ellipsis">History…</string>
+    <string name="clear_history_ellipsis">Clear History…</string>
+    <string name="clear_history_title">Clear %1$s history?</string>
+    <string name="clear_history_message">Site data is the profile\u2019s cookies, local storage and caches \u2014 clearing it signs you out everywhere, and the profile\u2019s open pages reload.</string>
+    <string name="clear_history_only">Clear History Only</string>
+    <string name="clear_history_and_site_data">Clear History and Site Data</string>
+    <string name="cancel">Cancel</string>
+    <string name="history_empty">Nothing here yet</string>
+
+    <!-- Column widths. The keys are NiriLayout.WIDTH_PRESET_KEYS, in that order. -->
+    <string name="width_half">Half</string>
+    <string name="width_two_thirds">Two Thirds</string>
+    <string name="width_peek">Peek</string>
+    <string name="width_full">Full</string>
+
+    <!-- The address field, which on a phone is the focused window's own title bar. -->
+    <string name="address_hint">Search or enter address</string>
+    <string name="start_page_title">New Window</string>
+    <string name="permission_camera">camera</string>
+    <string name="permission_microphone">microphone</string>
+    <string name="permission_motion">motion sensors</string>
+    <string name="permission_asks">%1$s wants to use your %2$s</string>
+    <string name="permission_and">%1$s and %2$s</string>
+    <string name="allow">Allow</string>
+    <string name="deny">Don\u2019t Allow</string>
+    <string name="site_permissions">Site Permissions</string>
+    <string name="site_permissions_ellipsis">Site Permissions\u2026</string>
+    <string name="site_permissions_empty">No site has been answered yet</string>
+    <string name="forget_site">Forget</string>
+    <string name="allowed">Allowed</string>
+    <string name="denied">Denied</string>
+    <string name="page_says">%1$s says:</string>
+    <string name="this_page">This page</string>
+    <string name="new_private_window">New Private Window</string>
+    <string name="close_private_browsing">Close Private Browsing</string>
+    <string name="bookmarks">Bookmarks</string>
+    <string name="bookmarks_ellipsis">Bookmarks\u2026</string>
+    <string name="add_bookmark">Add Bookmark</string>
+    <string name="bookmarks_empty">Nothing saved yet</string>
+    <string name="bookmark_nothing_loaded">Nothing is loaded in this window</string>
+    <string name="bookmark_no_text">The page has no readable text</string>
+    <string name="bookmark_private">Private browsing keeps no bookmarks</string>
+    <string name="bookmark_failed">The page could not be saved</string>
+    <string name="remove">Remove</string>
+</resources>

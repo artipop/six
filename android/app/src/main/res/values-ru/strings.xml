@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="workspace_numbered">Рабочий стол %1$d</string>
+    <string name="new_window">Новое окно</string>
+    <string name="close_window">Закрыть окно</string>
+    <string name="back">Назад</string>
+    <string name="forward">Вперёд</string>
+    <string name="overview">Обзор</string>
+    <string name="more">Ещё</string>
+    <string name="new_window_in_strip">Новое окно в полосе</string>
+    <string name="history_ellipsis">История…</string>
+    <string name="clear_history_ellipsis">Очистить историю…</string>
+    <string name="clear_history_title">Очистить историю профиля «%1$s»?</string>
+    <string name="clear_history_message">Данные сайтов \u2014 это куки, локальное хранилище и кэши профиля: после очистки вы выйдете из всех аккаунтов, а открытые страницы профиля перезагрузятся.</string>
+    <string name="clear_history_only">Только историю</string>
+    <string name="clear_history_and_site_data">Историю и данные сайтов</string>
+    <string name="cancel">Отмена</string>
+    <string name="history_empty">Пока пусто</string>
+
+    <string name="width_half">Половина</string>
+    <string name="width_two_thirds">Две трети</string>
+    <string name="width_peek">Почти во всю</string>
+    <string name="width_full">Во всю ширину</string>
+
+    <string name="address_hint">Поиск или адрес</string>
+    <string name="start_page_title">Новое окно</string>
+    <string name="permission_camera">камеру</string>
+    <string name="permission_microphone">микрофон</string>
+    <string name="permission_motion">датчики движения</string>
+    <string name="permission_asks">%1$s запрашивает %2$s</string>
+    <string name="permission_and">%1$s и %2$s</string>
+    <string name="allow">Разрешить</string>
+    <string name="deny">Не разрешать</string>
+    <string name="site_permissions">Разрешения сайтов</string>
+    <string name="site_permissions_ellipsis">Разрешения сайтов\u2026</string>
+    <string name="site_permissions_empty">Ни один сайт ещё не спрашивал</string>
+    <string name="forget_site">Забыть</string>
+    <string name="allowed">Разрешено</string>
+    <string name="denied">Запрещено</string>
+    <string name="page_says">%1$s сообщает:</string>
+    <string name="this_page">Эта страница</string>
+    <string name="new_private_window">Новое приватное окно</string>
+    <string name="close_private_browsing">Закрыть приватный просмотр</string>
+    <string name="bookmarks">Закладки</string>
+    <string name="bookmarks_ellipsis">Закладки\u2026</string>
+    <string name="add_bookmark">Добавить закладку</string>
+    <string name="bookmarks_empty">Пока ничего не сохранено</string>
+    <string name="bookmark_nothing_loaded">В этом окне ничего не открыто</string>
+    <string name="bookmark_no_text">На странице нет читаемого текста</string>
+    <string name="bookmark_private">Приватный просмотр не хранит закладок</string>
+    <string name="bookmark_failed">Страницу не удалось сохранить</string>
+    <string name="remove">Удалить</string>
+</resources>

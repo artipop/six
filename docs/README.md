@@ -22,6 +22,7 @@ reference.
 | [devtools.md](devtools.md) | Web Inspector on six's pages, and the console/network capture the agent tools read |
 | [mcp.md](mcp.md) | `six --mcp`: the browser as an MCP server, and its tools |
 | [localization.md](localization.md) | the String Catalogs, English and Russian, and the line between what a person reads and what a model reads |
+| [android.md](android.md) | the fourth front end: Kotlin and Compose on the system WebView, what it shares with the Mac and what it deliberately does not |
 | [build.md](build.md) | toolchain, SDK override, sandbox |
 | [deep-research.md](deep-research.md) | deep research: document windows, the run, the writing tools, Save As, highlighted passages |
 | [todo.md](todo.md) | what is planned and not built: geolocation and screen sharing, passkeys, CloudKit sync, SQLite + RAG, documents + Save As, fullscreen, PiP, and what the Linux front still owes |

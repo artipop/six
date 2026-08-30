@@ -1,0 +1,265 @@
+package org.deffun.six.app
+
+import android.annotation.SuppressLint
+import android.graphics.Bitmap
+import android.net.Uri
+import android.webkit.JsPromptResult
+import android.webkit.JsResult
+import android.webkit.PermissionRequest
+import android.webkit.ValueCallback
+import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.viewinterop.AndroidView
+import org.deffun.six.core.PageDialogAnswer
+import org.deffun.six.core.PageDialogKind
+import org.deffun.six.core.PageDialogRequest
+import java.util.UUID
+
+/**
+ * One page, in one column.
+ *
+ * The Mac's `WebPage` and this are the same thing wearing different frameworks, and the mapping is
+ * in [docs/android.md]. What matters here is what the strip needs from it and nothing more: an
+ * address, a title, and the navigations that make history.
+ *
+ * **Gestures inside the page are the page's.** This view takes no pointer input of its own, so a
+ * scroll here scrolls the page and only the handle above moves the strip. That is the whole reason
+ * the phone's gesture model was designed the way it was — a `WebView` inside a pannable container
+ * otherwise fights for every touch.
+ */
+@SuppressLint("SetJavaScriptEnabled")
+@Composable
+fun PageView(
+    tabId: UUID,
+    url: String,
+    profileStoreName: String?,
+    onPageStarted: (String) -> Unit,
+    onTitleChanged: (String) -> Unit,
+    onHistoryChanged: (canGoBack: Boolean, canGoForward: Boolean) -> Unit,
+    onPageFinished: () -> Unit,
+    onLoadFailed: (code: Int, description: String) -> Unit,
+    onPermissionRequest: (List<org.deffun.six.core.SitePermission>, String?, (Boolean) -> Unit) -> Unit,
+    onGone: () -> Unit,
+    onDialog: (org.deffun.six.core.PageDialogRequest, (org.deffun.six.core.PageDialogAnswer) -> Unit) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // Keyed on the profile: a WebView cannot be moved between profiles once it has been used, so a
+    // column whose profile changes has to become a different view rather than a reconfigured one.
+    // What this view was last told to load. Deliberately not Compose state: it is bookkeeping for
+    // the view, and making it state would invalidate the composition that just wrote it.
+    val requested = remember(profileStoreName) { arrayOfNulls<String>(1) }
+
+    key(profileStoreName) {
+        AndroidView(
+        modifier = modifier,
+        factory = { context ->
+            WebView(context).apply {
+                // Before any setting, any client and above all before `loadUrl`: the point of the
+                // profile is that no request is ever made against the wrong cookie jar.
+                WebProfiles.attach(this, profileStoreName)
+
+                // The engine paints its own error pages and its own dark mode over this; without an
+                // explicit background the view is black until something paints, and a page with a
+                // transparent body shows black through it.
+                setBackgroundColor(android.graphics.Color.WHITE)
+
+                settings.javaScriptEnabled = true
+                settings.domStorageEnabled = true
+                // A browser is what this is; the default is a WebView pretending to be an app.
+                settings.setSupportMultipleWindows(true)
+                settings.mediaPlaybackRequiresUserGesture = false
+
+                webViewClient = object : WebViewClient() {
+                    override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
+                        onPageStarted(url)
+                        onHistoryChanged(view.canGoBack(), view.canGoForward())
+                    }
+
+                    /**
+                     * A page that did not load.
+                     *
+                     * Only the main frame: a tracker that failed inside a page is not a page that
+                     * failed, and reporting it as one would make every ordinary page look broken.
+                     * The engine still shows its own error page — this is so the browser knows too,
+                     * which is the difference between a failure and a silence.
+                     */
+                    override fun onReceivedError(
+                        view: WebView,
+                        request: WebResourceRequest,
+                        error: WebResourceError,
+                    ) {
+                        if (!request.isForMainFrame) return
+                        onLoadFailed(error.errorCode, error.description?.toString().orEmpty())
+                    }
+
+                    override fun onPageFinished(view: WebView, url: String) {
+                        onPageFinished()
+                        onHistoryChanged(view.canGoBack(), view.canGoForward())
+                    }
+
+                    // The one callback that fires whenever the back/forward list moves, including
+                    // for in-page navigation that never starts a page load.
+                    override fun doUpdateVisitedHistory(view: WebView, url: String, isReload: Boolean) {
+                        onHistoryChanged(view.canGoBack(), view.canGoForward())
+                    }
+                }
+                webChromeClient = object : WebChromeClient() {
+                    override fun onReceivedTitle(view: WebView, title: String?) {
+                        onTitleChanged(title.orEmpty())
+                    }
+
+                    /**
+                     * A page wants a device. Nothing is decided here: the answer comes back from
+                     * `SitePermissions`, which is the Mac's, and may come back much later — the
+                     * request object is held until it does, which is exactly what it is for.
+                     */
+                    override fun onPermissionRequest(request: PermissionRequest) {
+                        val asked = SitePermissionBridge.permissions(request.resources)
+                        if (asked.isEmpty()) return request.deny()
+                        onPermissionRequest(asked, request.origin?.toString()) { allowed ->
+                            if (allowed) {
+                                // Only what was asked for, and only what six understands.
+                                request.grant(SitePermissionBridge.resources(asked))
+                            } else {
+                                request.deny()
+                            }
+                        }
+                    }
+
+                    override fun onPermissionRequestCanceled(request: PermissionRequest) {
+                        // The page stopped waiting. Nothing to resume, and nothing to write down.
+                    }
+
+                    // The four dialogs a page can put up. A WebChromeClient that does not handle
+                    // them makes the engine answer for us: `alert()` shows a dialog naming the app
+                    // rather than the site, and `<input type="file">` does nothing at all.
+
+                    override fun onJsAlert(
+                        view: WebView,
+                        url: String?,
+                        message: String?,
+                        result: JsResult,
+                    ): Boolean {
+                        onDialog(
+                            PageDialogRequest(hostOf(url), message.orEmpty(), PageDialogKind.Alert),
+                        ) { result.confirm() }
+                        return true
+                    }
+
+                    override fun onJsConfirm(
+                        view: WebView,
+                        url: String?,
+                        message: String?,
+                        result: JsResult,
+                    ): Boolean {
+                        onDialog(
+                            PageDialogRequest(hostOf(url), message.orEmpty(), PageDialogKind.Confirm),
+                        ) { answer ->
+                            if (answer is PageDialogAnswer.Ok) result.confirm() else result.cancel()
+                        }
+                        return true
+                    }
+
+                    override fun onJsPrompt(
+                        view: WebView,
+                        url: String?,
+                        message: String?,
+                        defaultValue: String?,
+                        result: JsPromptResult,
+                    ): Boolean {
+                        onDialog(
+                            PageDialogRequest(
+                                hostOf(url),
+                                message.orEmpty(),
+                                PageDialogKind.Prompt(defaultValue.orEmpty()),
+                            ),
+                        ) { answer ->
+                            if (answer is PageDialogAnswer.Ok) {
+                                result.confirm(answer.text)
+                            } else {
+                                result.cancel()
+                            }
+                        }
+                        return true
+                    }
+
+                    /**
+                     * Returning true means we own the callback, and it must be invoked exactly once:
+                     * an input whose callback never lands can never be opened again, for the life of
+                     * the page, with no error anywhere.
+                     */
+                    override fun onShowFileChooser(
+                        webView: WebView,
+                        filePathCallback: ValueCallback<Array<Uri>>,
+                        fileChooserParams: FileChooserParams,
+                    ): Boolean {
+                        val request = PageDialogRequest(
+                            hostOf(webView.url),
+                            "",
+                            PageDialogKind.File(
+                                allowsMultiple =
+                                    fileChooserParams.mode == FileChooserParams.MODE_OPEN_MULTIPLE,
+                                acceptTypes = fileChooserParams.acceptTypes
+                                    .filter { it.isNotBlank() },
+                            ),
+                        )
+                        onDialog(request) { answer ->
+                            val uris = (answer as? PageDialogAnswer.Files)?.uris.orEmpty()
+                            filePathCallback.onReceiveValue(
+                                if (uris.isEmpty()) null
+                                else uris.map(Uri::parse).toTypedArray(),
+                            )
+                        }
+                        return true
+                    }
+                }
+
+                requested[0] = url
+                LivePages.register(tabId, this)
+
+                // A column coming back is restored, not reloaded: the history and the place in it
+                // are the point of having kept the bundle at all. Only a column with nothing kept —
+                // a new window, or one whose address changed while it was away — makes a request.
+                if (!LivePages.restore(tabId, this)) loadUrl(url)
+            }
+        },
+        update = { webView ->
+            // Compared against what we last asked for, never against `webView.url`.
+            //
+            // The page's own address is not the one we requested: a redirect changes it, and so does
+            // a server that merely adds a trailing slash. Comparing with it would find a mismatch
+            // immediately after every successful load, request the original again, be redirected
+            // again — a reload loop that never settles and never stops making requests.
+            if (requested[0] != url) {
+                requested[0] = url
+                webView.loadUrl(url)
+            }
+        },
+        onRelease = {
+            // The question this page was waiting on goes with it: the `PermissionRequest` belonged
+            // to a WebView that is about to be destroyed, and granting it afterwards reaches nothing.
+            onGone()
+            LivePages.discard(tabId, it)
+            it.destroy()
+        },
+        )
+    }
+}
+
+/**
+ * Which site is asking. A dialog with no return address is a demand from nowhere, and on a phone the
+ * page that asked is often not the one being looked at.
+ *
+ * Empty when there is no host to name — a `data:` page, or one that has not loaded. The dialog puts
+ * a translated "This page" in its place, because that substitution is text a person reads and does
+ * not belong down here.
+ */
+private fun hostOf(url: String?): String =
+    runCatching { java.net.URI(url).host }.getOrNull().orEmpty()
