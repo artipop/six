@@ -173,21 +173,44 @@ bookmark. `ReadablePage`'s extraction is JavaScript running in the page, so it p
 Weights are ~230 MB, fetched on first use into app storage with the same status narration the Mac
 shows — not shipped in the package.
 
-### The index is rebuildable, which is what makes this cheap
+### The index: what was measured
 
-The `vec0` tables are an index over `bookmark_vectors`, never the record; losing one is harmless. The
-root `Package.swift` already drops sqlite-vec from the Linux build over a header clash and
-`AppDatabase` asks for it with `#if canImport`, so "the index is optional" is load-bearing already
-rather than a concession made for Android.
+The `vec0` tables are an index over the vectors, never the record, and they are not in the migration
+history on either platform — `BookmarkStore` creates one per dimension, lazily. That is what makes
+this a decision Android can take on its own: attaching an index or not touches neither the shared
+schema nor `grdb_migrations`.
 
-So there are two answers and the easy one comes first: **brute-force cosine** over the BLOB column —
-no NDK, no extension, blessed in [sync.md](sync.md), and for a few thousand chunks on a phone
-entirely adequate. If the numbers ask for more, `BundledSQLiteDriver` (`androidx.sqlite:sqlite-bundled`)
-compiles its own SQLite from source and takes `addExtension`, which registers per driver — the same
-per-connection shape the Mac uses instead of `auto_extension`.
+Three things were established by running them rather than reading about them, and they split the
+question cleanly in two.
 
-Take the bundled driver regardless. It fixes the SQLite version across devices rather than inheriting
-whatever the OS shipped, and that is what makes "the same schema" true instead of approximately true.
+**The SQLite half works.** `androidx.sqlite`'s bundled build has extension loading compiled in, and
+`BundledSQLiteDriver.addExtension(path, "sqlite3_vec_init")` reaches it. Loaded that way, sqlite-vec
+answers `vec_version()`, creates a `vec0(embedding float[384])` table, takes vectors and returns a
+correct nearest-neighbour ordering — exact match at distance zero. `SqliteVecTest` is that, run on
+the JVM against the same library and the same compile options that ship in the app.
+
+The entry point has to be named explicitly: SQLite derives one from the file name otherwise, and the
+file is `vec0.so`.
+
+**Vectors go in as a float32 blob, not as JSON.** That is what the Mac writes anyway, so it costs
+nothing — but it is not optional here. With this pairing, the bundled SQLite 3.50.1 against a
+sqlite-vec built nine months later, every JSON text form is rejected with a parsing error, including
+one produced by SQLite's own `json_array()`. The blob path is unaffected. Anyone who reaches for the
+documented `'[0.1,0.2]'` syntax first will conclude the extension is broken; it is not.
+
+**The Android half is packaging, and it is blocked today.** sqlite-vec publishes prebuilt loadables
+for all four ABIs, so no NDK is needed to *get* one — but the ELF program headers are 4 KB aligned
+(`PT_LOAD align = 0x1000`), and Android 15's 16 KB-page devices refuse to load those. The emulator
+this was checked against is one (`sdk_gphone16k_arm64`). Getting past it means rebuilding sqlite-vec
+with `-Wl,-z,max-page-size=16384`, which does need the NDK.
+
+Two smaller things wait behind that. The file has to be named `lib*.so` to be packaged and extracted
+as a JNI library at all, and `android:extractNativeLibs` has to be **true**, because `addExtension`
+takes a filesystem path and the default packaging leaves the library compressed inside the APK where
+there is no path to give it.
+
+So: brute-force cosine over the chunks remains the first answer, and the extension is a known
+quantity waiting on one rebuild rather than an unknown.
 
 ### The assistant inverts
 
