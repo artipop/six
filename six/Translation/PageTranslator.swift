@@ -143,6 +143,14 @@ final class PageTranslator {
         states[id] = TabTranslation(source: source, target: target, phase: .offered)
     }
 
+    /// Say why nothing is going to happen, in the same place the progress would have been. A click
+    /// that silently does nothing is the worst answer available.
+    func fail(id: UUID, _ message: String, target: Locale.Language) {
+        var state = states[id] ?? TabTranslation(source: nil, target: target)
+        state.phase = .failed(message)
+        states[id] = state
+    }
+
     // MARK: Translating
 
     func translate(

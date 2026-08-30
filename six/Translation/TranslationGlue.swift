@@ -57,6 +57,18 @@ enum TranslationLanguage {
         return Locale.Language(identifier: dominant.rawValue)
     }
 
+    static var unreadable: String {
+        String(localized: "There is nothing on this page to translate yet — try again once it has loaded")
+    }
+
+    static var undetected: String {
+        String(localized: "Could not tell what language this page is in")
+    }
+
+    static func alreadyInTarget(_ language: String) -> String {
+        String(localized: "This page is already in \(language)")
+    }
+
     /// Is this page worth offering to translate at all?
     static func isForeign(_ source: Locale.Language, to target: Locale.Language) -> Bool {
         source.languageCode != nil && source.languageCode != target.languageCode

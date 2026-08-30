@@ -139,9 +139,22 @@ final class BrowserState {
                 }
                 return
             }
-            guard let plan = try? await translation.plan(tab) else { return }
-            guard plan.refusal == nil else { return }
-            guard let source = TranslationLanguage.source(of: plan) else { return }
+            guard let plan = try? await translation.plan(tab) else {
+                return translation.fail(id: tab.id, TranslationLanguage.unreadable, target: target)
+            }
+            if let refusal = plan.refusal {
+                return translation.fail(id: tab.id, refusal, target: target)
+            }
+            guard let source = TranslationLanguage.source(of: plan) else {
+                return translation.fail(id: tab.id, TranslationLanguage.undetected, target: target)
+            }
+            guard TranslationLanguage.isForeign(source, to: target) else {
+                return translation.fail(
+                    id: tab.id,
+                    TranslationLanguage.alreadyInTarget(AppleTranslator.name(of: source)),
+                    target: target
+                )
+            }
             await translation.translate(tab, id: tab.id, from: source, to: target)
         }
     }

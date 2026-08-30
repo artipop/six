@@ -123,7 +123,13 @@ struct AddressBar: View {
     /// is up at that moment — carries the rest.
     @ViewBuilder
     private var translate: some View {
-        if let state = browser.translation[tab.id] {
+        if isWebPage {
+            // Shown on every page, not only on one detected as foreign. Detection runs after the
+            // page settles and can decline to answer at all — a short page, a page that hydrates
+            // late — and a button that comes and goes on its own is worse than one that is always
+            // where you left it. What it does when the page needs nothing is say so.
+            let state = browser.translation[tab.id]
+                ?? TabTranslation(source: nil, target: Locale.current.language)
             switch state.phase {
             case .downloading:
                 ProgressView()
