@@ -6,8 +6,11 @@ import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
+import java.util.UUID
 
 /**
  * One page, in one column.
@@ -24,15 +27,28 @@ import androidx.compose.ui.viewinterop.AndroidView
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun PageView(
+    tabId: UUID,
     url: String,
+    profileStoreName: String?,
     onPageStarted: (String) -> Unit,
     onTitleChanged: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    AndroidView(
+    // Keyed on the profile: a WebView cannot be moved between profiles once it has been used, so a
+    // column whose profile changes has to become a different view rather than a reconfigured one.
+    // What this view was last told to load. Deliberately not Compose state: it is bookkeeping for
+    // the view, and making it state would invalidate the composition that just wrote it.
+    val requested = remember(profileStoreName) { arrayOfNulls<String>(1) }
+
+    key(profileStoreName) {
+        AndroidView(
         modifier = modifier,
         factory = { context ->
             WebView(context).apply {
+                // Before any setting, any client and above all before `loadUrl`: the point of the
+                // profile is that no request is ever made against the wrong cookie jar.
+                WebProfiles.attach(this, profileStoreName)
+
                 settings.javaScriptEnabled = true
                 settings.domStorageEnabled = true
                 // A browser is what this is; the default is a WebView pretending to be an app.
@@ -50,15 +66,27 @@ fun PageView(
                     }
                 }
 
+                requested[0] = url
+                LivePages.register(tabId, this)
                 loadUrl(url)
             }
         },
         update = { webView ->
-            // Only navigate when the address actually changed: `update` runs on every recomposition,
-            // and reloading a page because a title arrived would be an endless loop with a network
-            // bill attached.
-            if (webView.url != url) webView.loadUrl(url)
+            // Compared against what we last asked for, never against `webView.url`.
+            //
+            // The page's own address is not the one we requested: a redirect changes it, and so does
+            // a server that merely adds a trailing slash. Comparing with it would find a mismatch
+            // immediately after every successful load, request the original again, be redirected
+            // again — a reload loop that never settles and never stops making requests.
+            if (requested[0] != url) {
+                requested[0] = url
+                webView.loadUrl(url)
+            }
         },
-        onRelease = { it.destroy() },
-    )
+        onRelease = {
+            LivePages.unregister(tabId)
+            it.destroy()
+        },
+        )
+    }
 }

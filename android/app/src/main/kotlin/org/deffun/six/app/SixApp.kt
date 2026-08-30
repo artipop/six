@@ -7,10 +7,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
 @Composable
-fun SixApp() {
+fun SixApp(onExit: () -> Unit = {}) {
     MaterialTheme {
         Surface(modifier = Modifier.fillMaxSize()) {
-            StripScreen()
+            StripScreen(onExit = onExit)
         }
     }
 }

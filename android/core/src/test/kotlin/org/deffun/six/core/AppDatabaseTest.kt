@@ -325,6 +325,23 @@ class AppDatabaseTest {
         }
     }
 
+    /**
+     * The key is `search.engine`, the Mac's. A key invented here would be a setting the other
+     * platform never sees change — which looks exactly like a setting that does not work.
+     */
+    @Test
+    fun theSearchEngineRoundTripsThroughTheMacsKey() {
+        open().use { database ->
+            val settings = SettingsStore(database)
+            assertEquals(SearchEngine.DUCK_DUCK_GO, settings.searchEngine)
+
+            settings.searchEngine = SearchEngine.GOOGLE
+
+            assertEquals("google", settings["search.engine"])
+            assertEquals(SearchEngine.GOOGLE, settings.searchEngine)
+        }
+    }
+
     // MARK: -
 
     private fun AppDatabase.hasTable(name: String): Boolean {

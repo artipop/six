@@ -15,9 +15,12 @@ import org.deffun.six.core.AppStateSnapshot
 import org.deffun.six.core.BrowserSnapshot
 import org.deffun.six.core.NiriLayout
 import org.deffun.six.core.Profile
+import org.deffun.six.core.SearchEngine
 import org.deffun.six.core.Size
 import org.deffun.six.core.StripSnapshot
 import org.deffun.six.core.TabSnapshot
+import org.deffun.six.core.UserInput
+import org.deffun.six.core.searchEngine
 
 /** One window in the strip, as the UI needs it: what the column points at. */
 data class TabState(
@@ -32,6 +35,9 @@ data class SixState(
     val layout: NiriLayout = NiriLayout(),
     val tabs: Map<UUID, TabState> = emptyMap(),
     val profiles: List<Profile> = emptyList(),
+    /** The window whose handle has become an address field, if any. Only ever one. */
+    val editingTabId: UUID? = null,
+    val searchEngine: SearchEngine = SearchEngine.DEFAULT,
     val isRestored: Boolean = false,
 )
 
@@ -59,6 +65,9 @@ class SixViewModel(application: Application) : AndroidViewModel(application) {
     private fun restore() {
         viewModelScope.launch {
             val snapshot = withContext(Dispatchers.IO) { environment.snapshots.load() }
+            val engine = withContext(Dispatchers.IO) {
+                runCatching { environment.settings.searchEngine }.getOrDefault(SearchEngine.DEFAULT)
+            }
             _state.update { current ->
                 if (snapshot == null) {
                     // A first launch: one profile, one empty workspace, nothing open.
@@ -77,6 +86,7 @@ class SixViewModel(application: Application) : AndroidViewModel(application) {
                             .insertColumn(tabId),
                         tabs = mapOf(tabId to TabState(tabId, profile.id)),
                         profiles = listOf(profile),
+                        searchEngine = engine,
                         isRestored = true,
                     )
                 } else {
@@ -89,6 +99,7 @@ class SixViewModel(application: Application) : AndroidViewModel(application) {
                             it.id to TabState(it.id, it.profileId, it.url, it.title)
                         },
                         profiles = snapshot.browser.profiles,
+                        searchEngine = engine,
                         isRestored = true,
                     )
                 }
@@ -208,6 +219,39 @@ class SixViewModel(application: Application) : AndroidViewModel(application) {
 
     fun endDrag() {
         _state.update { it.copy(layout = it.layout.copy(horizontalPreview = 0.0, verticalPreview = 0.0)) }
+    }
+
+    // MARK: The address field
+
+    /**
+     * A tap on the window that already has focus turns its title into the field; a tap on any other
+     * only focuses it, so walking the strip never opens the keyboard.
+     */
+    fun handleTapped(tabId: UUID) {
+        if (_state.value.layout.focusedTabId == tabId) {
+            _state.update { it.copy(editingTabId = tabId) }
+        } else {
+            focus(tabId)
+        }
+    }
+
+    fun cancelEditing() {
+        _state.update { it.copy(editingTabId = null) }
+    }
+
+    /**
+     * What was typed, turned into something to load by the rule both platforms share — a recognised
+     * scheme is an address, a bare host gets `https://`, anything else is a search.
+     */
+    fun submitAddress(tabId: UUID, text: String) {
+        val url = UserInput.url(text, _state.value.searchEngine)
+        _state.update { it.copy(editingTabId = null) }
+        if (url == null) return
+        _state.update { current ->
+            val tab = current.tabs[tabId] ?: return@update current
+            current.copy(tabs = current.tabs + (tabId to tab.copy(url = url, title = "")))
+        }
+        save()
     }
 
     // MARK: What the page reports
