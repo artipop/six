@@ -17,13 +17,17 @@ plugins {
     `java-library`
 }
 
-repositories {
-    maven { url = uri("https://maven-central.storage-download.googleapis.com/maven2/") }
-    mavenCentral()
-}
+// No `repositories` block: the build's own, in settings.gradle.kts, is the only list. `:core` used
+// to resolve from Maven Central alone, which stopped being true the moment it took androidx.sqlite.
 
 dependencies {
     api(libs.kotlinx.serialization.json)
+    // The bundled driver compiles its own SQLite rather than using the platform's, which is what
+    // makes "the same schema" true across devices instead of approximately true — and is the only
+    // build that would ever take sqlite-vec through `addExtension`. It is also a KMP artifact with a
+    // JVM target, which is why the whole storage layer stays testable in `:core` without a device.
+    api(libs.androidx.sqlite)
+    api(libs.androidx.sqlite.bundled)
 
     testImplementation(libs.kotlin.test)
     testImplementation(libs.junit.jupiter.engine)
