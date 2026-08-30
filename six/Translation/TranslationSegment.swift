@@ -108,6 +108,8 @@ nonisolated enum PageTranslationError: LocalizedError, Equatable {
     case modelUnreliable(engine: String)
     /// ⌘K is pointed at an agent, which is not a thing that translates.
     case engineIsAgent(String)
+    /// The session was taken away mid-batch — the window closed, or the view carrying it was rebuilt.
+    case interrupted
     /// Anything the engine itself reported.
     case engine(String, String)
 
@@ -124,6 +126,8 @@ nonisolated enum PageTranslationError: LocalizedError, Equatable {
             "\(language) has not been downloaded"
         case .modelUnreliable(let engine):
             "\(engine) did not translate this page reliably"
+        case .interrupted:
+            "The translation was interrupted"
         case .engineIsAgent(let name):
             "\(name) is an agent, not a translator"
         case .engine(let name, let message):
@@ -139,6 +143,8 @@ nonisolated enum PageTranslationError: LocalizedError, Equatable {
             String(localized: "\(language) has not been downloaded. Add it in System Settings › General › Language & Region › Translation Languages.")
         case .modelUnreliable(let engine):
             String(localized: "\(engine) did not translate this page reliably. Try Apple Translation instead.")
+        case .interrupted:
+            String(localized: "The translation was interrupted")
         case .engineIsAgent(let name):
             String(localized: "\(name) is an agent, not a translator. Pick a model in the ⌘K menu.")
         case .engine(let name, let message):

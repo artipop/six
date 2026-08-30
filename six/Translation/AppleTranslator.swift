@@ -1,5 +1,6 @@
 #if canImport(Translation)
 import Foundation
+import Observation
 import Translation
 
 /// Translation on the device, by the framework the platform already has.
@@ -20,6 +21,7 @@ import Translation
 /// `Sendable` and no isolation, and the project builds with `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`.
 /// Holding one here is fine; wrapping it in an actor does not compile.
 @MainActor
+@Observable
 final class AppleTranslator: PageTranslating {
     nonisolated var name: String { "Apple Translation" }
 
@@ -28,12 +30,14 @@ final class AppleTranslator: PageTranslating {
         TranslationBatchLimits(segments: 60, characters: 12_000)
     }
 
-    private struct Pair: Hashable {
-        let source: String
-        let target: String
+    /// A direction, as something that can be a dictionary key and a `ForEach` identity.
+    struct Pair: Hashable, Identifiable, Sendable {
+        let source: Locale.Language
+        let target: Locale.Language
+        var id: String { source.maximalIdentifier + ">" + target.maximalIdentifier }
         init(_ source: Locale.Language, _ target: Locale.Language) {
-            self.source = source.maximalIdentifier
-            self.target = target.maximalIdentifier
+            self.source = source
+            self.target = target
         }
     }
 
@@ -56,7 +60,6 @@ final class AppleTranslator: PageTranslating {
         to target: Locale.Language
     ) async throws -> [Int: String] {
         guard !segments.isEmpty else { return [:] }
-        let session = try await session(from: source, to: target)
 
         // `clientIdentifier` is what makes this cheap: the framework carries our own id through and
         // hands it back, so nothing depends on the responses arriving in order.
@@ -64,10 +67,15 @@ final class AppleTranslator: PageTranslating {
             TranslationSession.Request(sourceText: $0.text, clientIdentifier: String($0.id))
         }
 
-        running = session
-        defer { running = nil }
         do {
-            let responses = try await session.translations(from: requests)
+            let responses: [TranslationSession.Response]
+            if let owned = try await session(from: source, to: target) {
+                running = owned
+                defer { running = nil }
+                responses = try await owned.translations(from: requests)
+            } else {
+                responses = try await enqueue(requests, for: Pair(source, target))
+            }
             var out: [Int: String] = [:]
             for response in responses {
                 guard let raw = response.clientIdentifier, let id = Int(raw) else { continue }
@@ -89,7 +97,9 @@ final class AppleTranslator: PageTranslating {
 
     // MARK: Sessions
 
-    private func session(from source: Locale.Language, to target: Locale.Language) async throws -> TranslationSession {
+    /// A session we own outright, or nil when the framework has to be asked for one because a
+    /// download is needed.
+    private func session(from source: Locale.Language, to target: Locale.Language) async throws -> TranslationSession? {
         let pair = Pair(source, target)
         if let known = sessions[pair] { return known }
 
@@ -101,9 +111,10 @@ final class AppleTranslator: PageTranslating {
             sessions[pair] = session
             return session
         case .supported:
-            // The pair exists, the model is not on this machine, and only the SwiftUI path can ask
-            // for it. Until that lands, say so rather than failing obscurely.
-            throw PageTranslationError.notInstalled(language: Self.name(of: target))
+            // The pair exists and its model is not on this machine. Asking for a download is the one
+            // thing only `.translationTask` can do, so this is the path that needs the view. The
+            // caller does not know that: it still just awaits a batch.
+            return nil
         case .unsupported:
             throw PageTranslationError.unsupportedPair(
                 source: Self.name(of: source), target: Self.name(of: target)
@@ -122,6 +133,102 @@ final class AppleTranslator: PageTranslating {
 
     func status(from source: Locale.Language, to target: Locale.Language) async -> LanguageAvailability.Status {
         await availability.status(from: source, to: target)
+    }
+
+    // MARK: The bridge to a session six does not own
+    //
+    // A pair that is only `.supported` needs its model downloaded, and `.translationTask` is the
+    // only thing that can ask. But its session is alive only inside its closure, and the work is
+    // driven from a store, not a view. So: the store parks on a continuation, the view is armed
+    // with a `Configuration`, and the closure it runs pumps the queue until the queue is closed.
+    //
+    // The stream carries *nudges*, not jobs. A `CheckedContinuation` travelling through a stream
+    // must still be resumed exactly once if the stream is torn down mid-flight, and `AsyncStream`'s
+    // termination handler does not run on this actor. Keeping the jobs in a plain main-actor array
+    // and using the stream only as a doorbell makes teardown one synchronous drain in a `defer`,
+    // with no ordering question to get wrong.
+
+    private struct Job {
+        let requests: [TranslationSession.Request]
+        let reply: CheckedContinuation<[TranslationSession.Response], any Error>
+    }
+
+    private var queues: [Pair: [Job]] = [:]
+    private var doorbells: [Pair: AsyncStream<Void>.Continuation] = [:]
+
+    /// The directions a view must currently carry a `.translationTask` for. Observed by
+    /// `translationHost`; empty almost always, because an installed pair never comes here.
+    private(set) var armed: [Pair: TranslationSession.Configuration] = [:]
+
+    var armedPairs: [Pair] { armed.keys.sorted { $0.id < $1.id } }
+
+    func configuration(for pair: Pair) -> TranslationSession.Configuration? { armed[pair] }
+
+    private func enqueue(
+        _ requests: [TranslationSession.Request], for pair: Pair
+    ) async throws -> [TranslationSession.Response] {
+        arm(pair)
+        return try await withCheckedThrowingContinuation { continuation in
+            queues[pair, default: []].append(Job(requests: requests, reply: continuation))
+            doorbells[pair]?.yield()
+        }
+    }
+
+    /// Arming the same pair twice is the bug that looks like "the button does nothing":
+    /// `Configuration` is `Equatable`, so SwiftUI sees no change and never re-runs the closure.
+    /// `invalidate()` bumps its private version, which is what it is for. Every path that re-asks
+    /// for a pair — Retry, a second page, a declined download — comes through here.
+    private func arm(_ pair: Pair) {
+        if armed[pair] != nil {
+            armed[pair]?.invalidate()
+        } else {
+            armed[pair] = TranslationSession.Configuration(
+                source: pair.source, target: pair.target, preferredStrategy: .highFidelity
+            )
+        }
+    }
+
+    /// Runs inside `.translationTask`. Stays here, holding the session alive, until the pair is
+    /// released or the closure's task is cancelled.
+    func serve(_ pair: Pair, _ session: TranslationSession) async {
+        let (stream, doorbell) = AsyncStream<Void>.makeStream()
+        doorbells[pair] = doorbell
+        running = session
+        defer {
+            doorbells[pair] = nil
+            if running === session { running = nil }
+            // Whatever is still parked here is never going to be answered by this session.
+            for job in queues.removeValue(forKey: pair) ?? [] {
+                job.reply.resume(throwing: PageTranslationError.interrupted)
+            }
+        }
+        await drain(pair, session)          // anything that arrived before the closure started
+        for await _ in stream {
+            await drain(pair, session)
+        }
+    }
+
+    private func drain(_ pair: Pair, _ session: TranslationSession) async {
+        while !Task.isCancelled, let job = queues[pair]?.first {
+            queues[pair]?.removeFirst()
+            do {
+                job.reply.resume(returning: try await session.translations(from: job.requests))
+            } catch {
+                job.reply.resume(throwing: error)
+            }
+        }
+    }
+
+    /// The run is over. Ends the closure and takes the hidden view away; the next page through this
+    /// pair finds it `.installed` and never comes back here.
+    func release(_ pair: Pair) {
+        doorbells[pair]?.finish()
+        doorbells[pair] = nil
+        armed[pair] = nil
+    }
+
+    func releaseAll() {
+        for pair in armed.keys { release(pair) }
     }
 
     // MARK: Names and failures
