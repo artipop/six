@@ -1,297 +1,285 @@
 {
-  "sourceLanguage": "en",
-  "strings": {
-    "": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": ""
+  "sourceLanguage" : "en",
+  "strings" : {
+    "" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ""
           }
         }
       }
     },
-    " · %@, on device": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": " · %@, на устройстве"
+    " · %@, on device" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " · %@, на устройстве"
           }
         }
       }
     },
-    " · %lld indexing": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": " · %lld в очереди на индексацию"
+    " · %lld indexing" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " · %lld в очереди на индексацию"
           }
         }
       }
     },
-    " · updated %@": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": " · обновлён %@"
+    " · updated %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " · обновлён %@"
           }
         }
       }
     },
-    "%@ (empty)": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ (пусто)"
+    "_The run failed: %@_" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "_Запуск не удался: %@_"
           }
         }
       }
     },
-    "%@ Bookmarks": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Закладки — %@"
+    ", %@ over WebKit's limit" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ", %@ сверх лимита WebKit"
           }
         }
       }
     },
-    "%@ CLI": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "CLI %@"
+    "· %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "· %@"
           }
         }
       }
     },
-    "%@ CLI not found. %@": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "new",
-            "value": "%1$@ CLI not found. %2$@"
+    "{question} {workspace} {document} {profile} {sources} are filled in." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "{question} {workspace} {document} {profile} {sources} подставляются."
+          }
+        }
+      }
+    },
+    "%@ — %@ Search" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ — %2$@ Search"
           }
         },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "CLI %@ не найден. %@"
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ — поиск %@"
           }
         }
       }
     },
-    "%@ History": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "История — %@"
+    "%@ (empty)" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (пусто)"
           }
         }
       }
     },
-    "%@ Search": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Поиск %@"
+    "%@ Bookmarks" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закладки — %@"
           }
         }
       }
     },
-    "%@ is asking for a file.": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ запрашивает файл."
+    "%@ CLI" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CLI %@"
           }
         }
       }
     },
-    "%@ not installed (runs via npx)": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ не установлен (запускается через npx)"
-          }
-        }
-      }
-    },
-    "%@ says:": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Сообщение с %@:"
-          }
-        }
-      }
-    },
-    "%@ scratchpad": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "черновики профиля %@"
-          }
-        }
-      }
-    },
-    "%@ wants to use your %@.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "new",
-            "value": "%1$@ wants to use your %2$@."
+    "%@ CLI not found. %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ CLI not found. %2$@"
           }
         },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Сайт %@ запрашивает доступ: %@."
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CLI %@ не найден. %@"
           }
         }
       }
     },
-    "%@ — %@ Search": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "new",
-            "value": "%1$@ — %2$@ Search"
+    "%@ History" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "История — %@"
+          }
+        }
+      }
+    },
+    "%@ is asking for a file." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ запрашивает файл."
+          }
+        }
+      }
+    },
+    "%@ not installed (runs via npx)" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ не установлен (запускается через npx)"
+          }
+        }
+      }
+    },
+    "%@ says:" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сообщение с %@:"
+          }
+        }
+      }
+    },
+    "%@ scratchpad" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "черновики профиля %@"
+          }
+        }
+      }
+    },
+    "%@ Search" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поиск %@"
+          }
+        }
+      }
+    },
+    "%@ wants to use your %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ wants to use your %2$@."
           }
         },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ — поиск %@"
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сайт %@ запрашивает доступ: %@."
           }
         }
       }
     },
-    "%@, %@": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "new",
-            "value": "%1$@, %2$@"
+    "%@, %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, %2$@"
           }
         },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@, %@"
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, %@"
           }
         }
       }
     },
-    "%lld bookmarks": {
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld bookmark"
+    "%lld bookmarks" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld bookmark"
                 }
               },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld bookmarks"
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld bookmarks"
                 }
               }
             }
           }
         },
-        "ru": {
-          "variations": {
-            "plural": {
-              "few": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld закладки"
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld закладки"
                 }
               },
-              "many": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld закладок"
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld закладок"
                 }
               },
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld закладка"
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld закладка"
                 }
               },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld закладки"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "%lld lists blocking": {
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld list blocking"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld lists blocking"
-                }
-              }
-            }
-          }
-        },
-        "ru": {
-          "variations": {
-            "plural": {
-              "few": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "блокируют %lld списка"
-                }
-              },
-              "many": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "блокируют %lld списков"
-                }
-              },
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "блокирует %lld список"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "блокируют %lld списка"
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld закладки"
                 }
               }
             }
@@ -299,103 +287,51 @@
         }
       }
     },
-    "%lld rules": {
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld rule"
+    "%lld lists blocking" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld list blocking"
                 }
               },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld rules"
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld lists blocking"
                 }
               }
             }
           }
         },
-        "ru": {
-          "variations": {
-            "plural": {
-              "few": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld правила"
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "блокируют %lld списка"
                 }
               },
-              "many": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld правил"
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "блокируют %lld списков"
                 }
               },
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld правило"
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "блокирует %lld список"
                 }
               },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld правила"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "%lld visits": {
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld visit"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld visits"
-                }
-              }
-            }
-          }
-        },
-        "ru": {
-          "variations": {
-            "plural": {
-              "few": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld посещения"
-                }
-              },
-              "many": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld посещений"
-                }
-              },
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld посещение"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld посещения"
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "блокируют %lld списка"
                 }
               }
             }
@@ -403,51 +339,51 @@
         }
       }
     },
-    "%lld windows": {
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld window"
+    "%lld rules" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rule"
                 }
               },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld windows"
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld rules"
                 }
               }
             }
           }
         },
-        "ru": {
-          "variations": {
-            "plural": {
-              "few": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld окна"
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld правила"
                 }
               },
-              "many": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld окон"
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld правил"
                 }
               },
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld окно"
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld правило"
                 }
               },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld окна"
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld правила"
                 }
               }
             }
@@ -455,3296 +391,3429 @@
         }
       }
     },
-    ", %@ over WebKit's limit": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": ", %@ сверх лимита WebKit"
-          }
-        }
-      }
-    },
-    "A workspace named after the question, a document the agent writes into, and the sources it read open next to it.": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Откроется рабочий стол с названием по вопросу, документ, в который пишет агент, и рядом — прочитанные им источники."
-          }
-        }
-      }
-    },
-    "Add": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Добавить"
-          }
-        }
-      }
-    },
-    "Add Bookmark": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Добавить закладку"
-          }
-        }
-      }
-    },
-    "Add Bookmark (⌘D)": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Добавить закладку (⌘D)"
-          }
-        }
-      }
-    },
-    "Add a list by address": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Добавить список по адресу"
-          }
-        }
-      }
-    },
-    "Ads and trackers are blocked here": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Реклама и трекеры здесь блокируются"
-          }
-        }
-      }
-    },
-    "Ads are allowed on this site": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "На этом сайте реклама разрешена"
-          }
-        }
-      }
-    },
-    "Ads on Russian-language sites": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Реклама на русскоязычных сайтах"
-          }
-        }
-      }
-    },
-    "Ads on most of the web": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Реклама на большинстве сайтов"
-          }
-        }
-      }
-    },
-    "Agent": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Агент"
-          }
-        }
-      }
-    },
-    "Agent panel (⌘⇧A)": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Панель агента (⌘⇧A)"
-          }
-        }
-      }
-    },
-    "Agent session is not available": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Сессия агента недоступна"
-          }
-        }
-      }
-    },
-    "Agent: %@": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Агент: %@"
-          }
-        }
-      }
-    },
-    "All Bookmarks": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Все закладки"
-          }
-        }
-      }
-    },
-    "All Profiles": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Все профили"
-          }
-        }
-      }
-    },
-    "Allow": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Разрешить"
-          }
-        }
-      }
-    },
-    "Allow %@ on This Site": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Разрешить %@ на этом сайте"
-          }
-        }
-      }
-    },
-    "Allow Ads on %@": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Разрешить рекламу на %@"
-          }
-        }
-      }
-    },
-    "Allow Ads on This Site": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Разрешить рекламу на этом сайте"
-          }
-        }
-      }
-    },
-    "Allowed — click to block": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Разрешено — нажмите, чтобы запретить"
-          }
-        }
-      }
-    },
-    "Anthropic API Key": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ключ API Anthropic"
-          }
-        }
-      }
-    },
-    "Anthropic API Key…": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ключ API Anthropic…"
-          }
-        }
-      }
-    },
-    "Ask": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Спросить"
-          }
-        }
-      }
-    },
-    "Ask %@…": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Спросить %@…"
-          }
-        }
-      }
-    },
-    "Ask Assistant…": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Спросить ассистента…"
-          }
-        }
-      }
-    },
-    "Ask about this page…": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Спросить об этой странице…"
-          }
-        }
-      }
-    },
-    "Ask again next time": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Спросить снова в следующий раз"
-          }
-        }
-      }
-    },
-    "Assistant Searches": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ассистент ищет"
-          }
-        }
-      }
-    },
-    "Attach page": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Приложить страницу"
-          }
-        }
-      }
-    },
-    "Back": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Назад"
-          }
-        }
-      }
-    },
-    "Back to the profile's scratchpad": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Вернуться к черновикам профиля"
-          }
-        }
-      }
-    },
-    "Background, storage, alarms, tabs and its popup work.": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Фоновая страница, storage, alarms, tabs и всплывающее окно работают."
-          }
-        }
-      }
-    },
-    "Block": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Запретить"
-          }
-        }
-      }
-    },
-    "Block %@ on This Site": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Запретить %@ на этом сайте"
-          }
-        }
-      }
-    },
-    "Block Ads and Trackers": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Блокировать рекламу и трекеры"
-          }
-        }
-      }
-    },
-    "Block Ads on %@": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Блокировать рекламу на %@"
-          }
-        }
-      }
-    },
-    "Block Ads on This Site": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Блокировать рекламу на этом сайте"
-          }
-        }
-      }
-    },
-    "Block ads on %@ again": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Снова блокировать рекламу на %@"
-          }
-        }
-      }
-    },
-    "Blocked — click to allow": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Запрещено — нажмите, чтобы разрешить"
-          }
-        }
-      }
-    },
-    "Blocking is off": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Блокировка выключена"
-          }
-        }
-      }
-    },
-    "Blocking is off — nothing is fetched or attached to a page.": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Блокировка выключена — ничего не скачивается и не подключается к странице."
-          }
-        }
-      }
-    },
-    "Bookmarks": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Закладки"
-          }
-        }
-      }
-    },
-    "Browser tools of %@: %@": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "new",
-            "value": "Browser tools of %1$@: %2$@"
+    "%lld visits" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld visit"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld visits"
+                }
+              }
+            }
           }
         },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Инструменты браузера у %@: %@"
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld посещения"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld посещений"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld посещение"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld посещения"
+                }
+              }
+            }
           }
         }
       }
     },
-    "Cancel": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Отмена"
-          }
-        }
-      }
-    },
-    "Capture Console and Network": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Записывать консоль и сеть"
-          }
-        }
-      }
-    },
-    "Center Focused Window": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Центрировать активное окно"
-          }
-        }
-      }
-    },
-    "Checking %@…": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Проверяю %@…"
-          }
-        }
-      }
-    },
-    "Choose": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Выбрать"
-          }
-        }
-      }
-    },
-    "Choose an unpacked extension folder, or a .zip / .crx / .xpi archive.": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Выберите папку с распакованным расширением или архив .zip / .crx / .xpi."
-          }
-        }
-      }
-    },
-    "Choose…": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Выбрать…"
-          }
-        }
-      }
-    },
-    "Cite a Source": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Сослаться на источник"
-          }
-        }
-      }
-    },
-    "Claude unavailable: SDK/OS Foundation Models mismatch": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Claude недоступен: расходятся версии Foundation Models в SDK и в системе"
-          }
-        }
-      }
-    },
-    "Clear": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Очистить"
-          }
-        }
-      }
-    },
-    "Clear %@ History…": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Очистить историю — %@…"
-          }
-        }
-      }
-    },
-    "Clear %@ history?": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Очистить историю профиля %@?"
-          }
-        }
-      }
-    },
-    "Clear Captured Logs": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Очистить записанные логи"
-          }
-        }
-      }
-    },
-    "Clear History Only": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Очистить только историю"
-          }
-        }
-      }
-    },
-    "Clear History and Site Data": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Очистить историю и данные сайтов"
-          }
-        }
-      }
-    },
-    "Clear Name": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Убрать имя"
-          }
-        }
-      }
-    },
-    "Close Private Browsing": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Закрыть приватный просмотр"
-          }
-        }
-      }
-    },
-    "Close Window": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Закрыть окно"
-          }
-        }
-      }
-    },
-    "Color": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Цвет"
-          }
-        }
-      }
-    },
-    "Column Width": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ширина колонки"
-          }
-        }
-      }
-    },
-    "Compact Width": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Компактная ширина"
-          }
-        }
-      }
-    },
-    "Compiling…": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Компилирую…"
-          }
-        }
-      }
-    },
-    "Connected to %@ · %@": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "new",
-            "value": "Connected to %1$@ · %2$@"
+    "%lld windows" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld window"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld windows"
+                }
+              }
+            }
           }
         },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Подключено к %@ · %@"
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld окна"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld окон"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld окно"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld окна"
+                }
+              }
+            }
           }
         }
       }
     },
-    "Console Messages": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Сообщения консоли"
+    "• %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "• %@"
           }
         }
       }
     },
-    "Content Blocking": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Блокировка контента"
+    "`scripting.executeScript` and `scripting.insertCSS` fail here; scripts it registers do run." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "`scripting.executeScript` и `scripting.insertCSS` здесь не работают; скрипты, которые оно регистрирует, — работают."
           }
         }
       }
     },
-    "Continues \"%@\" in this workspace's document.": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Продолжит «%@» в документе этого рабочего стола."
+    "`webRequest` is not available in WebKit at all." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "`webRequest` в WebKit нет вообще."
           }
         }
       }
     },
-    "Cookie notices, in-page overlays, widgets": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Баннеры о куках, всплывашки на странице, виджеты"
+    "A workspace named after the question, a document the agent writes into, and the sources it read open next to it." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Откроется рабочий стол с названием по вопросу, документ, в который пишет агент, и рядом — прочитанные им источники."
           }
         }
       }
     },
-    "Copy": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Скопировать"
+    "Add" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавить"
           }
         }
       }
     },
-    "Copy Address": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Скопировать адрес"
+    "Add a list by address" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавить список по адресу"
           }
         }
       }
     },
-    "Copy Link": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Скопировать ссылку"
+    "Add Bookmark" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавить закладку"
           }
         }
       }
     },
-    "Could not install": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Не удалось установить"
+    "Add Bookmark (⌘D)" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавить закладку (⌘D)"
           }
         }
       }
     },
-    "Couldn't create a workspace": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Не удалось создать рабочий стол"
+    "Ads and trackers are blocked here" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Реклама и трекеры здесь блокируются"
           }
         }
       }
     },
-    "Create": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Создать"
+    "Ads are allowed on this site" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "На этом сайте реклама разрешена"
           }
         }
       }
     },
-    "Cut": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Вырезать"
+    "Ads on most of the web" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Реклама на большинстве сайтов"
           }
         }
       }
     },
-    "Daily": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ежедневно"
+    "Ads on Russian-language sites" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Реклама на русскоязычных сайтах"
           }
         }
       }
     },
-    "Deep research": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Глубокое исследование"
+    "Agent" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Агент"
           }
         }
       }
     },
-    "Deep research: a workspace of sources and a document the agent writes into": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Глубокое исследование: рабочий стол с источниками и документ, в который пишет агент"
+    "Agent panel (⌘⇧A)" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Панель агента (⌘⇧A)"
           }
         }
       }
     },
-    "Delete Profile": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Удалить профиль"
+    "Agent session is not available" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сессия агента недоступна"
           }
         }
       }
     },
-    "Develop": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Разработка"
+    "Agent: %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Агент: %@"
           }
         }
       }
     },
-    "Done": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Готово"
+    "All Bookmarks" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Все закладки"
           }
         }
       }
     },
-    "Double-click to rename": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Двойной клик — переименовать"
+    "All Profiles" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Все профили"
           }
         }
       }
     },
-    "Download Linked File": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Загрузить файл по ссылке"
+    "Allow" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешить"
           }
         }
       }
     },
-    "Download failed": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Не удалось загрузить"
+    "Allow %@ on This Site" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешить %@ на этом сайте"
           }
         }
       }
     },
-    "Downloading…": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Загрузка…"
+    "Allow Ads on %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешить рекламу на %@"
           }
         }
       }
     },
-    "Downloads": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Загрузки"
+    "Allow Ads on This Site" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешить рекламу на этом сайте"
           }
         }
       }
     },
-    "Each site will ask again the next time it needs a device.": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Каждый сайт спросит снова, когда ему в следующий раз понадобится устройство."
+    "Allowed — click to block" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешено — нажмите, чтобы запретить"
           }
         }
       }
     },
-    "Edit preset": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Изменить шаблон"
+    "Anthropic API Key" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ключ API Anthropic"
           }
         }
       }
     },
-    "Edit the Markdown": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Редактировать Markdown"
+    "Anthropic API Key…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ключ API Anthropic…"
           }
         }
       }
     },
-    "Empty prompt": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Пустой запрос"
-          }
-        }
-      }
-    },
-    "Empty question": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Пустой вопрос"
-          }
-        }
-      }
-    },
-    "Error: %@": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ошибка: %@"
-          }
-        }
-      }
-    },
-    "Extensions": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Расширения"
-          }
-        }
-      }
-    },
-    "Extensions run per profile and never in a private window. What works in six and what does not is measured — a content script runs, but an extension cannot message it or inject anything more.": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Расширения работают в рамках профиля и никогда — в приватном окне. Что здесь работает, а что нет, проверено на деле: content-скрипт выполняется, но расширение не может ни написать ему, ни внедрить что-то ещё."
-          }
-        }
-      }
-    },
-    "Filter Lists": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Списки фильтров"
-          }
-        }
-      }
-    },
-    "Filter Lists…": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Списки фильтров…"
-          }
-        }
-      }
-    },
-    "Focus Column Left": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Фокус на колонку слева"
-          }
-        }
-      }
-    },
-    "Focus Column Right": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Фокус на колонку справа"
-          }
-        }
-      }
-    },
-    "Focus First Column": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Фокус на первую колонку"
-          }
-        }
-      }
-    },
-    "Focus Last Column": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Фокус на последнюю колонку"
-          }
-        }
-      }
-    },
-    "Focus Window": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Показать окно"
-          }
-        }
-      }
-    },
-    "Focus Workspace Down": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Фокус на рабочий стол ниже"
-          }
-        }
-      }
-    },
-    "Focus Workspace Up": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Фокус на рабочий стол выше"
-          }
-        }
-      }
-    },
-    "Follow-up": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Уточнение"
-          }
-        }
-      }
-    },
-    "For list_console_messages and list_network_requests; runs a hook in the page's own world": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Для list_console_messages и list_network_requests; ставит перехват в собственном мире страницы"
-          }
-        }
-      }
-    },
-    "Forget": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Забыть"
-          }
-        }
-      }
-    },
-    "Forget All": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Забыть все"
-          }
-        }
-      }
-    },
-    "Forget This Site's Choices": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Забыть выбор для этого сайта"
-          }
-        }
-      }
-    },
-    "Forget every site's answer?": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Забыть ответы для всех сайтов?"
-          }
-        }
-      }
-    },
-    "Forward": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Вперёд"
-          }
-        }
-      }
-    },
-    "From %@": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Из %@"
-          }
-        }
-      }
-    },
-    "From %@. Nothing checks who made it — an extension can read and change the pages it is given.": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Из %@. Никто не проверяет, кто это написал: расширение может читать и менять страницы, которые ему дают."
-          }
-        }
-      }
-    },
-    "Full": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Во всю ширину"
-          }
-        }
-      }
-    },
-    "Full Window": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Во всё окно"
-          }
-        }
-      }
-    },
-    "Fullscreen": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Во весь экран"
-          }
-        }
-      }
-    },
-    "Go to Address": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Перейти по адресу"
-          }
-        }
-      }
-    },
-    "Half": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Половина"
-          }
-        }
-      }
-    },
-    "Highlight Page": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Выделить на странице"
-          }
-        }
-      }
+    "Any other colour" : {
+
     },
-    "Highlight Selection": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Выделить фрагмент"
+    "Ask" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Спросить"
           }
         }
       }
     },
-    "History": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "История"
+    "Ask %@…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Спросить %@…"
           }
         }
       }
     },
-    "Idle": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Простой"
+    "Ask about this page…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Спросить об этой странице…"
           }
         }
       }
     },
-    "Install": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Установить"
+    "Ask again next time" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Спросить снова в следующий раз"
           }
         }
       }
     },
-    "Install Claude Code and run `claude` once to log in.": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Установите Claude Code и один раз запустите `claude`, чтобы войти."
+    "Ask Assistant…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Спросить ассистента…"
           }
         }
       }
     },
-    "Install Codex CLI and run `codex login`.": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Установите Codex CLI и выполните `codex login`."
+    "Assistant Searches" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ассистент ищет"
           }
         }
       }
     },
-    "Install Node.js": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Установить Node.js"
+    "Attach page" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приложить страницу"
           }
         }
       }
     },
-    "Install log": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Лог установки"
+    "Back" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Назад"
           }
         }
       }
     },
-    "Install one from a folder, a .zip, a .crx or an .xpi. Extensions from the App Store belong to their own apps and cannot be adopted.": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Установите из папки, .zip, .crx или .xpi. Расширения из App Store принадлежат своим приложениям — их подключить нельзя."
+    "Back to the profile's scratchpad" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вернуться к черновикам профиля"
           }
         }
       }
     },
-    "Install…": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Установить…"
+    "Background, storage, alarms, tabs and its popup work." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Фоновая страница, storage, alarms, tabs и всплывающее окно работают."
           }
         }
       }
     },
-    "It will be granted": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Будут выданы права"
+    "Block" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запретить"
           }
         }
       }
     },
-    "Its content scripts run in pages, but cannot message the extension — and it cannot message them.": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Его content-скрипты работают на страницах, но не могут писать расширению — и оно им тоже."
+    "Block %@ on This Site" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запретить %@ на этом сайте"
           }
         }
       }
     },
-    "Its declarativeNetRequest rules work — those block for real.": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Его правила declarativeNetRequest работают — они блокируют по-настоящему."
+    "Block Ads and Trackers" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Блокировать рекламу и трекеры"
           }
         }
       }
     },
-    "Keep Loaded": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Держать загруженными"
+    "Block Ads on %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Блокировать рекламу на %@"
           }
         }
       }
     },
-    "Last refresh failed: %@": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Последнее перечитывание не удалось: %@"
+    "Block ads on %@ again" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Снова блокировать рекламу на %@"
           }
         }
       }
     },
-    "Last update failed: %@": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Последнее обновление не удалось: %@"
+    "Block Ads on This Site" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Блокировать рекламу на этом сайте"
           }
         }
       }
     },
-    "Layout": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Раскладка"
+    "Blocked — click to allow" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запрещено — нажмите, чтобы разрешить"
           }
         }
       }
     },
-    "List Bookmarks": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Список закладок"
+    "Blocking is off" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Блокировка выключена"
           }
         }
       }
     },
-    "List Highlights": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Список выделений"
+    "Blocking is off — nothing is fetched or attached to a page." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Блокировка выключена — ничего не скачивается и не подключается к странице."
           }
         }
       }
     },
-    "List Page Blocks": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Блоки страницы"
+    "bookmarks" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "закладки"
           }
         }
       }
     },
-    "List Workspaces": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Список рабочих столов"
+    "Bookmarks" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закладки"
           }
         }
       }
     },
-    "Loaded Windows: %lld of %lld": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "new",
-            "value": "Loaded Windows: %1$lld of %2$lld"
+    "Browser tools of %@: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Browser tools of %1$@: %2$@"
           }
         },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Загружено окон: %lld из %lld"
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Инструменты браузера у %@: %@"
           }
         }
       }
     },
-    "Manage Extensions…": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Управление расширениями…"
+    "camera" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "камера"
           }
         }
       }
     },
-    "Message %@…": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Написать %@…"
+    "Cancel" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отмена"
           }
         }
       }
     },
-    "Mode": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Режим"
+    "Capture Console and Network" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Записывать консоль и сеть"
           }
         }
       }
     },
-    "Model": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Модель"
+    "Center Focused Window" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Центрировать активное окно"
           }
         }
       }
     },
-    "Model override (ANTHROPIC_MODEL, optional)": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Другая модель (ANTHROPIC_MODEL, необязательно)"
+    "Centre Focused Window (⌥C)" : {
+
+    },
+    "Checking %@…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проверяю %@…"
           }
         }
       }
     },
-    "Monthly": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ежемесячно"
+    "Choose" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбрать"
           }
         }
       }
     },
-    "Move Column Left": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Сдвинуть колонку влево"
+    "Choose an unpacked extension folder, or a .zip / .crx / .xpi archive." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выберите папку с распакованным расширением или архив .zip / .crx / .xpi."
           }
         }
       }
     },
-    "Move Column Right": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Сдвинуть колонку вправо"
+    "Choose…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбрать…"
           }
         }
       }
     },
-    "Move Column to Workspace Down": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Перенести колонку на стол ниже"
+    "Cite a Source" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сослаться на источник"
           }
         }
       }
     },
-    "Move Column to Workspace Up": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Перенести колонку на стол выше"
+    "Claude unavailable: SDK/OS Foundation Models mismatch" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Claude недоступен: расходятся версии Foundation Models в SDK и в системе"
           }
         }
       }
     },
-    "Move Left": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Сдвинуть влево"
+    "Clear" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очистить"
           }
         }
       }
     },
-    "Move Right": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Сдвинуть вправо"
+    "Clear %@ history?" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очистить историю профиля %@?"
           }
         }
       }
     },
-    "Move Window": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Перенести окно"
+    "Clear %@ History…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очистить историю — %@…"
           }
         }
       }
     },
-    "Move to Workspace Above": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Перенести на стол выше"
+    "Clear Captured Logs" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очистить записанные логи"
           }
         }
       }
     },
-    "Move to Workspace Below": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Перенести на стол ниже"
+    "Clear History and Site Data" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очистить историю и данные сайтов"
           }
         }
       }
     },
-    "Muted — click to let this page see and hear again": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Выключено — нажмите, чтобы страница снова видела и слышала"
+    "Clear History Only" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очистить только историю"
           }
         }
       }
     },
-    "Name": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Имя"
+    "Clear Name" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Убрать имя"
           }
         }
       }
     },
-    "Narrower Columns": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Уже колонки"
+    "Close Private Browsing" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закрыть приватный просмотр"
           }
         }
       }
     },
-    "Navigate": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Навигация"
+    "Close Window" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закрыть окно"
           }
         }
       }
     },
-    "Network Requests": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Сетевые запросы"
+    "Close Window (⌘W)" : {
+
+    },
+    "Color" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Цвет"
           }
         }
       }
     },
-    "Never": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Никогда"
+    "Column Width" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ширина колонки"
           }
         }
       }
     },
-    "New Conversation": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Новый разговор"
+    "Compact Width" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Компактная ширина"
           }
         }
       }
     },
-    "New Document": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Новый документ"
+    "Compact Width (⌥F)" : {
+
+    },
+    "Compiling…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Компилирую…"
           }
         }
       }
     },
-    "New Private Window": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Новое приватное окно"
-          }
-        }
-      }
-    },
-    "New Profile": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Новый профиль"
-          }
-        }
-      }
-    },
-    "New Window": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Новое окно"
-          }
-        }
-      }
-    },
-    "New Window in Strip": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Новое окно в ленте"
-          }
-        }
-      }
-    },
-    "New chat: forget this conversation and its session": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Новый чат: забыть этот разговор и его сессию"
-          }
-        }
-      }
-    },
-    "No Bookmarks": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Закладок нет"
-          }
-        }
-      }
-    },
-    "No Extensions": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Расширений нет"
-          }
-        }
-      }
-    },
-    "No History": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "История пуста"
-          }
-        }
-      }
-    },
-    "No Matches": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ничего не найдено"
-          }
-        }
-      }
-    },
-    "No Sites Yet": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Пока ни одного сайта"
-          }
-        }
-      }
-    },
-    "No sites. The shield in a window's address field allows the site it is showing.": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Сайтов нет. Щит в адресной строке окна разрешает рекламу на том сайте, который в нём открыт."
-          }
-        }
-      }
-    },
-    "Node.js / npm not found": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Node.js / npm не найдены"
-          }
-        }
-      }
-    },
-    "None installed": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ничего не установлено"
-          }
-        }
-      }
-    },
-    "Nothing for this window": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Для этого окна ничего нет"
-          }
-        }
-      }
-    },
-    "OK": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ОК"
-          }
-        }
-      }
-    },
-    "Off": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Выключен"
-          }
-        }
-      }
-    },
-    "Off means off: nothing is fetched, compiled or attached to a page": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Выключено значит выключено: ничего не скачивается, не компилируется и не подключается к странице"
-          }
-        }
-      }
-    },
-    "On these sites": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "На этих сайтах"
-          }
-        }
-      }
-    },
-    "Open": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Открыть"
-          }
-        }
-      }
-    },
-    "Open Link": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Открыть ссылку"
-          }
-        }
-      }
-    },
-    "Open Link Behind": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Открыть ссылку в фоне"
-          }
-        }
-      }
-    },
-    "Open Link in New Window": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Открыть ссылку в новом окне"
-          }
-        }
-      }
-    },
-    "Open Location…": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Открыть адрес…"
-          }
-        }
-      }
-    },
-    "Open Options Page": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Открыть страницу настроек"
-          }
-        }
-      }
-    },
-    "Open Safari to Attach": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Открыть Safari для подключения"
-          }
-        }
-      }
-    },
-    "Open Window": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Открыть окно"
-          }
-        }
-      }
-    },
-    "Open in New Window": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Открыть в новом окне"
-          }
-        }
-      }
-    },
-    "Overview": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Обзор"
-          }
-        }
-      }
-    },
-    "Overview (⌥O)": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Обзор (⌥O)"
-          }
-        }
-      }
-    },
-    "Page Links": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ссылки страницы"
-          }
-        }
-      }
-    },
-    "Paste": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Вставить"
-          }
-        }
-      }
-    },
-    "Peek": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "С подглядыванием"
-          }
-        }
-      }
-    },
-    "Permission requested": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Запрошено разрешение"
-          }
-        }
-      }
-    },
-    "Personal": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Личный"
-          }
-        }
-      }
-    },
-    "Preparing filter lists…": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Готовлю списки фильтров…"
-          }
-        }
-      }
-    },
-    "Preview": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Просмотр"
-          }
-        }
-      }
-    },
-    "Previous session couldn't be resumed; new session with %@ · %@": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "new",
-            "value": "Previous session couldn't be resumed; new session with %1$@ · %2$@"
+    "Connected to %@ · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Connected to %1$@ · %2$@"
           }
         },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Прошлую сессию продолжить не удалось; новая сессия с %@ · %@"
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Подключено к %@ · %@"
           }
         }
       }
     },
-    "Privacy": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Приватность"
+    "Console Messages" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сообщения консоли"
           }
         }
       }
     },
-    "Question": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Вопрос"
+    "Content Blocking" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Блокировка контента"
           }
         }
       }
     },
-    "Re-check": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Проверить снова"
+    "Continues \"%@\" in this workspace's document." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Продолжит «%@» в документе этого рабочего стола."
           }
         }
       }
     },
-    "Re-read %@": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Перечитано %@"
+    "Cookie notices, in-page overlays, widgets" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Баннеры о куках, всплывашки на странице, виджеты"
           }
         }
       }
     },
-    "Re-read Saved Pages": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Перечитывать сохранённые страницы"
+    "Copy" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скопировать"
           }
         }
       }
     },
-    "Read Bookmark": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Прочитать закладку"
+    "Copy Address" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скопировать адрес"
           }
         }
       }
     },
-    "Read Document": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Прочитать документ"
+    "Copy Link" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скопировать ссылку"
           }
         }
       }
     },
-    "Read Page": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Прочитать страницу"
+    "Could not install" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось установить"
           }
         }
       }
     },
-    "Ready": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Готов"
+    "Couldn't create a workspace" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось создать рабочий стол"
           }
         }
       }
     },
-    "Refresh %@ Bookmarks": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Обновить закладки — %@"
+    "Create" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Создать"
           }
         }
       }
     },
-    "Refresh Bookmark": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Обновить закладку"
+    "Cut" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вырезать"
           }
         }
       }
     },
-    "Refresh Now": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Обновить сейчас"
+    "Daily" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ежедневно"
           }
         }
       }
     },
-    "Reload": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Перезагрузить"
+    "Deep research" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Глубокое исследование"
           }
         }
       }
     },
-    "Remove": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Удалить"
+    "Deep research: a workspace of sources and a document the agent writes into" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Глубокое исследование: рабочий стол с источниками и документ, в который пишет агент"
           }
         }
       }
     },
-    "Remove Bookmark": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Удалить закладку"
+    "Delete Profile" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить профиль"
           }
         }
       }
     },
-    "Remove Bookmark (⌘D)": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Удалить закладку (⌘D)"
+    "Develop" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разработка"
           }
         }
       }
     },
-    "Remove Highlight": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Убрать выделение"
+    "Done" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Готово"
           }
         }
       }
     },
-    "Remove Highlights on This Page": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Убрать выделения на этой странице"
+    "done %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "готово %@"
           }
         }
       }
     },
-    "Remove List": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Удалить список"
+    "Double-click to rename" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Двойной клик — переименовать"
           }
         }
       }
     },
-    "Remove from List": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Убрать из списка"
+    "Download failed" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось загрузить"
           }
         }
       }
     },
-    "Rename…": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Переименовать…"
+    "Download Linked File" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Загрузить файл по ссылке"
           }
         }
       }
     },
-    "Research…": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Исследование…"
+    "downloading model %lld %%" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "скачиваю модель, %lld %%"
           }
         }
       }
     },
-    "Reset": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Сбросить"
+    "Downloading…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Загрузка…"
           }
         }
       }
     },
-    "Resumed session with %@ · %@": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "new",
-            "value": "Resumed session with %1$@ · %2$@"
+    "Downloads" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Загрузки"
+          }
+        }
+      }
+    },
+    "Each site will ask again the next time it needs a device." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Каждый сайт спросит снова, когда ему в следующий раз понадобится устройство."
+          }
+        }
+      }
+    },
+    "Edit preset" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Изменить шаблон"
+          }
+        }
+      }
+    },
+    "Edit the Markdown" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Редактировать Markdown"
+          }
+        }
+      }
+    },
+    "Edit this profile" : {
+
+    },
+    "Empty prompt" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пустой запрос"
+          }
+        }
+      }
+    },
+    "Empty question" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пустой вопрос"
+          }
+        }
+      }
+    },
+    "Error: %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ошибка: %@"
+          }
+        }
+      }
+    },
+    "Extensions" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Расширения"
+          }
+        }
+      }
+    },
+    "Extensions run per profile and never in a private window. What works in six and what does not is measured — a content script runs, but an extension cannot message it or inject anything more." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Расширения работают в рамках профиля и никогда — в приватном окне. Что здесь работает, а что нет, проверено на деле: content-скрипт выполняется, но расширение не может ни написать ему, ни внедрить что-то ещё."
+          }
+        }
+      }
+    },
+    "failed: %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ошибка: %@"
+          }
+        }
+      }
+    },
+    "Filter Lists" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Списки фильтров"
+          }
+        }
+      }
+    },
+    "Filter Lists…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Списки фильтров…"
+          }
+        }
+      }
+    },
+    "Focus Column Left" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Фокус на колонку слева"
+          }
+        }
+      }
+    },
+    "Focus Column Right" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Фокус на колонку справа"
+          }
+        }
+      }
+    },
+    "Focus First Column" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Фокус на первую колонку"
+          }
+        }
+      }
+    },
+    "Focus Last Column" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Фокус на последнюю колонку"
+          }
+        }
+      }
+    },
+    "Focus Window" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показать окно"
+          }
+        }
+      }
+    },
+    "Focus Workspace Down" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Фокус на рабочий стол ниже"
+          }
+        }
+      }
+    },
+    "Focus Workspace Up" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Фокус на рабочий стол выше"
+          }
+        }
+      }
+    },
+    "Follow-up" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Уточнение"
+          }
+        }
+      }
+    },
+    "follow-up…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "уточнение…"
+          }
+        }
+      }
+    },
+    "For list_console_messages and list_network_requests; runs a hook in the page's own world" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Для list_console_messages и list_network_requests; ставит перехват в собственном мире страницы"
+          }
+        }
+      }
+    },
+    "Forget" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Забыть"
+          }
+        }
+      }
+    },
+    "Forget All" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Забыть все"
+          }
+        }
+      }
+    },
+    "Forget every site's answer?" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Забыть ответы для всех сайтов?"
+          }
+        }
+      }
+    },
+    "Forget This Site's Choices" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Забыть выбор для этого сайта"
+          }
+        }
+      }
+    },
+    "Forward" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вперёд"
+          }
+        }
+      }
+    },
+    "From %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Из %@"
+          }
+        }
+      }
+    },
+    "From %@. Nothing checks who made it — an extension can read and change the pages it is given." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Из %@. Никто не проверяет, кто это написал: расширение может читать и менять страницы, которые ему дают."
+          }
+        }
+      }
+    },
+    "Full" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Во всю ширину"
+          }
+        }
+      }
+    },
+    "Full Window" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Во всё окно"
+          }
+        }
+      }
+    },
+    "Full Window (⌥W)" : {
+
+    },
+    "Fullscreen" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Во весь экран"
+          }
+        }
+      }
+    },
+    "Fullscreen (⌥⇧F)" : {
+
+    },
+    "Go to Address" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перейти по адресу"
+          }
+        }
+      }
+    },
+    "Half" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Половина"
+          }
+        }
+      }
+    },
+    "Highlight Page" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выделить на странице"
+          }
+        }
+      }
+    },
+    "Highlight Selection" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выделить фрагмент"
+          }
+        }
+      }
+    },
+    "History" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "История"
+          }
+        }
+      }
+    },
+    "How the strip is shown — click fills the window (⌥W)" : {
+
+    },
+    "Idle" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Простой"
+          }
+        }
+      }
+    },
+    "Install" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Установить"
+          }
+        }
+      }
+    },
+    "Install Claude Code and run `claude` once to log in." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Установите Claude Code и один раз запустите `claude`, чтобы войти."
+          }
+        }
+      }
+    },
+    "Install Codex CLI and run `codex login`." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Установите Codex CLI и выполните `codex login`."
+          }
+        }
+      }
+    },
+    "Install log" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Лог установки"
+          }
+        }
+      }
+    },
+    "Install Node.js" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Установить Node.js"
+          }
+        }
+      }
+    },
+    "Install one from a folder, a .zip, a .crx or an .xpi. Extensions from the App Store belong to their own apps and cannot be adopted." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Установите из папки, .zip, .crx или .xpi. Расширения из App Store принадлежат своим приложениям — их подключить нельзя."
+          }
+        }
+      }
+    },
+    "Install…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Установить…"
+          }
+        }
+      }
+    },
+    "It will be granted" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Будут выданы права"
+          }
+        }
+      }
+    },
+    "Its content scripts run in pages, but cannot message the extension — and it cannot message them." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Его content-скрипты работают на страницах, но не могут писать расширению — и оно им тоже."
+          }
+        }
+      }
+    },
+    "Its declarativeNetRequest rules work — those block for real." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Его правила declarativeNetRequest работают — они блокируют по-настоящему."
+          }
+        }
+      }
+    },
+    "Keep Loaded" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Держать загруженными"
+          }
+        }
+      }
+    },
+    "Last refresh failed: %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Последнее перечитывание не удалось: %@"
+          }
+        }
+      }
+    },
+    "Last update failed: %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Последнее обновление не удалось: %@"
+          }
+        }
+      }
+    },
+    "Layout" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Раскладка"
+          }
+        }
+      }
+    },
+    "List Bookmarks" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Список закладок"
+          }
+        }
+      }
+    },
+    "List Highlights" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Список выделений"
+          }
+        }
+      }
+    },
+    "List Page Blocks" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Блоки страницы"
+          }
+        }
+      }
+    },
+    "List Workspaces" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Список рабочих столов"
+          }
+        }
+      }
+    },
+    "listening at %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "слушает на %@"
+          }
+        }
+      }
+    },
+    "Loaded Windows: %lld of %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Loaded Windows: %1$lld of %2$lld"
           }
         },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Сессия продолжена с %@ · %@"
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Загружено окон: %lld из %lld"
           }
         }
       }
     },
-    "Retry": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Повторить"
+    "loading model" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "загружаю модель"
           }
         }
       }
     },
-    "Run JavaScript": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Выполнить JavaScript"
+    "macOS asks once for six itself; this list is six asking for each site." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS спрашивает один раз про сам six; этот список — то, о чём six спрашивает про каждый сайт."
           }
         }
       }
     },
-    "Save As": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Сохранить как"
+    "Manage Extensions…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Управление расширениями…"
           }
         }
       }
     },
-    "Save As…": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Сохранить как…"
+    "Message %@…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Написать %@…"
           }
         }
       }
     },
-    "Saved; indexing for search… Remove Bookmark (⌘D)": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Сохранено; индексируется для поиска… Удалить закладку (⌘D)"
+    "microphone" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "микрофон"
           }
         }
       }
     },
-    "Saved; not re-read yet": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Сохранено; ещё не перечитывалось"
+    "Mode" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Режим"
           }
         }
       }
     },
-    "Save…": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Сохранить…"
+    "Model" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Модель"
           }
         }
       }
     },
-    "Scope": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Область"
+    "Model override (ANTHROPIC_MODEL, optional)" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Другая модель (ANTHROPIC_MODEL, необязательно)"
           }
         }
       }
     },
-    "Search": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Поиск"
+    "model unavailable: %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "модель недоступна: %@"
           }
         }
       }
     },
-    "Search Bookmarks": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Искать в закладках"
+    "Monthly" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ежемесячно"
           }
         }
       }
     },
-    "Search Engine": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Поисковик"
+    "motion sensors" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "датчики движения"
           }
         }
       }
     },
-    "Search by meaning": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Поиск по смыслу"
+    "Move Column Left" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сдвинуть колонку влево"
           }
         }
       }
     },
-    "Search or enter address": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Поиск или адрес"
+    "Move Column Right" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сдвинуть колонку вправо"
           }
         }
       }
     },
-    "Search the Web": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Искать в вебе"
+    "Move Column to Workspace Down" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перенести колонку на стол ниже"
           }
         }
       }
     },
-    "Select All": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Выбрать всё"
+    "Move Column to Workspace Up" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перенести колонку на стол выше"
           }
         }
       }
     },
-    "Send": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Отправить"
+    "Move Left" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сдвинуть влево"
           }
         }
       }
     },
-    "Set six as Default Browser…": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Сделать six браузером по умолчанию…"
+    "Move Left (⌥⇧←)" : {
+
+    },
+    "Move Right" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сдвинуть вправо"
+          }
+        }
+      }
+    },
+    "Move Right (⌥⇧→)" : {
+
+    },
+    "Move to Workspace Above" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перенести на стол выше"
+          }
+        }
+      }
+    },
+    "Move to Workspace Above (⌥⇧↑)" : {
+
+    },
+    "Move to Workspace Below" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перенести на стол ниже"
+          }
+        }
+      }
+    },
+    "Move to Workspace Below (⌥⇧↓)" : {
+
+    },
+    "Move Window" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перенести окно"
+          }
+        }
+      }
+    },
+    "Muted — click to let this page see and hear again" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выключено — нажмите, чтобы страница снова видела и слышала"
+          }
+        }
+      }
+    },
+    "Name" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Имя"
+          }
+        }
+      }
+    },
+    "Narrower Columns" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Уже колонки"
+          }
+        }
+      }
+    },
+    "Navigate" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Навигация"
+          }
+        }
+      }
+    },
+    "Network Requests" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сетевые запросы"
+          }
+        }
+      }
+    },
+    "Never" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Никогда"
+          }
+        }
+      }
+    },
+    "New chat: forget this conversation and its session" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Новый чат: забыть этот разговор и его сессию"
+          }
+        }
+      }
+    },
+    "New Conversation" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Новый разговор"
+          }
+        }
+      }
+    },
+    "New Document" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Новый документ"
+          }
+        }
+      }
+    },
+    "New Private Window" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Новое приватное окно"
+          }
+        }
+      }
+    },
+    "New Profile" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Новый профиль"
+          }
+        }
+      }
+    },
+    "New Window" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Новое окно"
+          }
+        }
+      }
+    },
+    "New window (⌘T)" : {
+
+    },
+    "New Window in Strip" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Новое окно в ленте"
+          }
+        }
+      }
+    },
+    "Next window (⌥→)" : {
+
+    },
+    "No Bookmarks" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закладок нет"
+          }
+        }
+      }
+    },
+    "No Extensions" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Расширений нет"
+          }
+        }
+      }
+    },
+    "No History" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "История пуста"
+          }
+        }
+      }
+    },
+    "No Matches" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ничего не найдено"
+          }
+        }
+      }
+    },
+    "No Sites Yet" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пока ни одного сайта"
+          }
+        }
+      }
+    },
+    "No sites. The shield in a window's address field allows the site it is showing." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сайтов нет. Щит в адресной строке окна разрешает рекламу на том сайте, который в нём открыт."
+          }
+        }
+      }
+    },
+    "Node.js / npm not found" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Node.js / npm не найдены"
+          }
+        }
+      }
+    },
+    "None installed" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ничего не установлено"
+          }
+        }
+      }
+    },
+    "not started" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "не запущен"
+          }
+        }
+      }
+    },
+    "Nothing for this window" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Для этого окна ничего нет"
+          }
+        }
+      }
+    },
+    "Nothing is kept in this profile. Closing it forgets the session." : {
+
+    },
+    "Off" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выключен"
+          }
+        }
+      }
+    },
+    "Off means off: nothing is fetched, compiled or attached to a page" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выключено значит выключено: ничего не скачивается, не компилируется и не подключается к странице"
+          }
+        }
+      }
+    },
+    "OK" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ОК"
+          }
+        }
+      }
+    },
+    "On these sites" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "На этих сайтах"
+          }
+        }
+      }
+    },
+    "Open" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть"
+          }
+        }
+      }
+    },
+    "Open in New Window" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть в новом окне"
+          }
+        }
+      }
+    },
+    "Open Link" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть ссылку"
+          }
+        }
+      }
+    },
+    "Open Link Behind" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть ссылку в фоне"
+          }
+        }
+      }
+    },
+    "Open Link in New Window" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть ссылку в новом окне"
+          }
+        }
+      }
+    },
+    "Open Location…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть адрес…"
+          }
+        }
+      }
+    },
+    "Open Options Page" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть страницу настроек"
+          }
+        }
+      }
+    },
+    "Open Safari to Attach" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть Safari для подключения"
+          }
+        }
+      }
+    },
+    "Open Window" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть окно"
+          }
+        }
+      }
+    },
+    "or ⌘T" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "или ⌘T"
+          }
+        }
+      }
+    },
+    "Overview" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обзор"
+          }
+        }
+      }
+    },
+    "Overview (⌥O)" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обзор (⌥O)"
+          }
+        }
+      }
+    },
+    "Page Links" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ссылки страницы"
+          }
+        }
+      }
+    },
+    "Paste" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вставить"
+          }
+        }
+      }
+    },
+    "Peek" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "С подглядыванием"
+          }
+        }
+      }
+    },
+    "Permission requested" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запрошено разрешение"
+          }
+        }
+      }
+    },
+    "Personal" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Личный"
+          }
+        }
+      }
+    },
+    "Preparing filter lists…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Готовлю списки фильтров…"
+          }
+        }
+      }
+    },
+    "Preview" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Просмотр"
+          }
+        }
+      }
+    },
+    "Previous session couldn't be resumed; new session with %@ · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Previous session couldn't be resumed; new session with %1$@ · %2$@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Прошлую сессию продолжить не удалось; новая сессия с %@ · %@"
+          }
+        }
+      }
+    },
+    "Previous window (⌥←)" : {
+
+    },
+    "Privacy" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приватность"
+          }
+        }
+      }
+    },
+    "Private browsing — nothing is kept; close it to forget the session" : {
+
+    },
+    "Private Window" : {
+
+    },
+    "Profiles" : {
+
+    },
+    "Question" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вопрос"
+          }
+        }
+      }
+    },
+    "Re-check" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проверить снова"
+          }
+        }
+      }
+    },
+    "Re-read %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перечитано %@"
+          }
+        }
+      }
+    },
+    "Re-read Saved Pages" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перечитывать сохранённые страницы"
+          }
+        }
+      }
+    },
+    "Read Bookmark" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Прочитать закладку"
+          }
+        }
+      }
+    },
+    "Read Document" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Прочитать документ"
+          }
+        }
+      }
+    },
+    "Read Page" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Прочитать страницу"
+          }
+        }
+      }
+    },
+    "Ready" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Готов"
+          }
+        }
+      }
+    },
+    "Refresh %@ Bookmarks" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обновить закладки — %@"
+          }
+        }
+      }
+    },
+    "Refresh Bookmark" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обновить закладку"
+          }
+        }
+      }
+    },
+    "Refresh Now" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обновить сейчас"
+          }
+        }
+      }
+    },
+    "Reload" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перезагрузить"
+          }
+        }
+      }
+    },
+    "Remove" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить"
+          }
+        }
+      }
+    },
+    "Remove Bookmark" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить закладку"
+          }
+        }
+      }
+    },
+    "Remove Bookmark (⌘D)" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить закладку (⌘D)"
+          }
+        }
+      }
+    },
+    "Remove from List" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Убрать из списка"
+          }
+        }
+      }
+    },
+    "Remove Highlight" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Убрать выделение"
+          }
+        }
+      }
+    },
+    "Remove Highlights on This Page" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Убрать выделения на этой странице"
+          }
+        }
+      }
+    },
+    "Remove List" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить список"
+          }
+        }
+      }
+    },
+    "Rename…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переименовать…"
           }
         }
       }
     },
-    "Show Bookmarks…": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Показать закладки…"
+    "Research…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Исследование…"
           }
         }
       }
     },
-    "Show File in Finder": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Показать файл в Finder"
+    "researching…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "исследую…"
           }
         }
       }
     },
-    "Show Folder in Finder": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Показать папку в Finder"
+    "Reset" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сбросить"
           }
         }
       }
     },
-    "Show History…": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Показать историю…"
+    "Resumed session with %@ · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Resumed session with %1$@ · %2$@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сессия продолжена с %@ · %@"
           }
         }
       }
     },
-    "Show in Finder": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Показать в Finder"
+    "Retry" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Повторить"
           }
         }
       }
     },
-    "Site Permissions": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Разрешения сайтов"
+    "Run JavaScript" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выполнить JavaScript"
           }
         }
       }
     },
-    "Site Permissions…": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Разрешения сайтов…"
+    "Save As" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сохранить как"
           }
         }
       }
     },
-    "Site data is the profile's cookies, local storage and caches — clearing it signs you out everywhere, and the profile's open pages reload.": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Данные сайтов — это куки, локальное хранилище и кэши профиля: очистить их значит везде выйти из аккаунтов, а открытые страницы профиля перезагрузятся."
+    "Save As…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сохранить как…"
           }
         }
       }
     },
-    "Sites Left Alone": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Сайты без блокировки"
+    "Save…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сохранить…"
           }
         }
       }
     },
-    "Sources to open: %lld": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Открыть источников: %lld"
+    "Saved; indexing for search… Remove Bookmark (⌘D)" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сохранено; индексируется для поиска… Удалить закладку (⌘D)"
           }
         }
       }
     },
-    "Start": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Начать"
+    "Saved; not re-read yet" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сохранено; ещё не перечитывалось"
           }
         }
       }
     },
-    "Stop": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Стоп"
+    "Scope" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Область"
           }
         }
       }
     },
-    "Stopped": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Остановлено"
+    "scroll up/down for workspaces · sideways to run along a strip · click a window to open it · double-click a name to rename · ⌥O to close" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "вверх-вниз — рабочие столы · вбок — вдоль ленты · клик по окну — открыть · двойной клик по имени — переименовать · ⌥O — закрыть"
           }
         }
       }
     },
-    "Stopped: %@": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Остановлено: %@"
+    "Search" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поиск"
           }
         }
       }
     },
-    "Stored locally for development. Production builds should use App Attest or a proxy.": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Хранится локально, для разработки. В релизной сборке нужен App Attest или прокси."
+    "Search Bookmarks" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Искать в закладках"
           }
         }
       }
     },
-    "Summarize Page": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Пересказать страницу"
+    "Search by meaning" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поиск по смыслу"
           }
         }
       }
     },
-    "Take Screenshot": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Снимок страницы"
+    "Search Engine" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поисковик"
           }
         }
       }
     },
-    "The agent is busy": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Агент занят"
+    "Search or enter address" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поиск или адрес"
           }
         }
       }
     },
-    "The agent's session gets `six --mcp` as an MCP server. %@": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Сессия агента получает `six --mcp` как MCP-сервер. %@"
+    "Search the Web" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Искать в вебе"
           }
         }
       }
     },
-    "Then attach from Safari: Develop › %@ › six": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Дальше подключитесь из Safari: Разработка › %@ › six"
+    "Select All" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбрать всё"
           }
         }
       }
     },
-    "This Profile": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Этот профиль"
+    "Send" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отправить"
           }
         }
       }
     },
-    "This page": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Эта страница"
+    "Set six as Default Browser…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сделать six браузером по умолчанию…"
           }
         }
       }
     },
-    "This page is using the camera or microphone — click to mute": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Страница использует камеру или микрофон — нажмите, чтобы выключить"
+    "Show Bookmarks…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показать закладки…"
           }
         }
       }
     },
-    "Today": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Сегодня"
+    "Show File in Finder" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показать файл в Finder"
           }
         }
       }
     },
-    "Toggle Agent Panel": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Показать или скрыть панель агента"
+    "Show Folder in Finder" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показать папку в Finder"
           }
         }
       }
     },
-    "Toggle Overview": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Показать или скрыть обзор"
+    "Show History…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показать историю…"
           }
         }
       }
     },
-    "Trackers, analytics and beacons": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Трекеры, аналитика и маячки"
+    "Show in Finder" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показать в Finder"
           }
         }
       }
     },
-    "Two Thirds": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Две трети"
+    "Site data is the profile's cookies, local storage and caches — clearing it signs you out everywhere, and the profile's open pages reload." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Данные сайтов — это куки, локальное хранилище и кэши профиля: очистить их значит везде выйти из аккаунтов, а открытые страницы профиля перезагрузятся."
           }
         }
       }
     },
-    "Unload Background Windows": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Выгрузить фоновые окна"
+    "Site Permissions" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешения сайтов"
           }
         }
       }
     },
-    "Untitled": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Без названия"
+    "Site Permissions…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешения сайтов…"
           }
         }
       }
     },
-    "Update Filter Lists Now": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Обновить списки фильтров"
+    "Sites Left Alone" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сайты без блокировки"
           }
         }
       }
     },
-    "Update Now": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Обновить сейчас"
+    "six" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "six"
           }
         }
       }
     },
-    "Updating…": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Обновляю…"
+    "sk-ant-…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "sk-ant-…"
           }
         }
       }
     },
-    "View": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Вид"
+    "Sources to open: %lld" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть источников: %lld"
           }
         }
       }
     },
-    "Waiting": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ожидание"
+    "Start" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Начать"
           }
         }
       }
     },
-    "Web Inspector": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Веб-инспектор"
+    "starting…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "начинаю…"
           }
         }
       }
     },
-    "Weekly": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Еженедельно"
+    "Stop" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Стоп"
           }
         }
       }
     },
-    "What %@ is allowed to use": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Что разрешено сайту %@"
+    "Stopped" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Остановлено"
           }
         }
       }
     },
-    "What list_bookmarks and search_bookmarks return unless the agent names a profile": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Что вернут list_bookmarks и search_bookmarks, если агент не назвал профиль"
+    "stopped: %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "остановлено: %@"
           }
         }
       }
     },
-    "What the list, the assistant and the agents see": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Что видят список, ассистент и агенты"
+    "Stopped: %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Остановлено: %@"
           }
         }
       }
     },
-    "When a site asks for the camera, the microphone or the motion sensors, your answer is remembered here.": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Когда сайт запросит камеру, микрофон или датчики движения, ваш ответ появится здесь."
+    "Stored locally for development. Production builds should use App Attest or a proxy." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Хранится локально, для разработки. В релизной сборке нужен App Attest или прокси."
           }
         }
       }
     },
-    "Where a query goes, and where the suggestions come from": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Куда уходит запрос и откуда берутся подсказки"
+    "Strip" : {
+
+    },
+    "Summarize Page" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пересказать страницу"
           }
         }
       }
     },
-    "Wider Columns": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Шире колонки"
+    "Take Screenshot" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Снимок страницы"
           }
         }
       }
     },
-    "Work": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Рабочий"
+    "terminal %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "терминал %@"
           }
         }
       }
     },
-    "Works partly — anything it does inside a page will be broken.": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Работает частично — всё, что оно делает внутри страницы, сломано."
+    "The agent is busy" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Агент занят"
           }
         }
       }
     },
-    "Works partly — it is content scripts, which run but cannot be configured or updated by it.": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Работает частично — это content-скрипты: они работают, но расширение не может их ни настроить, ни обновить."
+    "The agent's session gets `six --mcp` as an MCP server. %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сессия агента получает `six --mcp` как MCP-сервер. %@"
           }
         }
       }
     },
-    "Works partly — its content scripts run, but it cannot reach into pages beyond them.": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Работает частично — его content-скрипты работают, но дальше в страницу оно не дотянется."
+    "The last profile stays" : {
+
+    },
+    "Then attach from Safari: Develop › %@ › six" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дальше подключитесь из Safari: Разработка › %@ › six"
           }
         }
       }
     },
-    "Works — nothing it asks for depends on reaching into a page.": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Работает — ничего из того, что оно просит, не требует лезть в страницу."
+    "This page" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Эта страница"
           }
         }
       }
     },
-    "Workspace %lld": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Рабочий стол %lld"
+    "This page is using the camera or microphone — click to mute" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Страница использует камеру или микрофон — нажмите, чтобы выключить"
           }
         }
       }
     },
-    "Workspace Above": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Рабочий стол выше"
+    "This Profile" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Этот профиль"
           }
         }
       }
+    },
+    "This Window" : {
+      "comment" : "The name of the menu that appears when you right-click a page in a browser.",
+      "isCommentAutoGenerated" : true
     },
-    "Workspace Below": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Рабочий стол ниже"
+    "Today" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сегодня"
           }
         }
       }
     },
-    "Workspace above (⌥↑)": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Рабочий стол выше (⌥↑)"
+    "Toggle Agent Panel" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показать или скрыть панель агента"
           }
         }
       }
     },
-    "Workspace below (⌥↓)": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Рабочий стол ниже (⌥↓)"
+    "Toggle Overview" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показать или скрыть обзор"
           }
         }
       }
     },
-    "Write Document": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Записать в документ"
+    "Trackers, analytics and beacons" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Трекеры, аналитика и маячки"
           }
         }
       }
     },
-    "Yesterday": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Вчера"
+    "Two Thirds" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Две трети"
           }
         }
       }
     },
-    "_The run failed: %@_": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "_Запуск не удался: %@_"
+    "Unload Background Windows" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выгрузить фоновые окна"
           }
         }
       }
     },
-    "`scripting.executeScript` and `scripting.insertCSS` fail here; scripts it registers do run.": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "`scripting.executeScript` и `scripting.insertCSS` здесь не работают; скрипты, которые оно регистрирует, — работают."
+    "Untitled" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Без названия"
           }
         }
       }
     },
-    "`webRequest` is not available in WebKit at all.": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "`webRequest` в WebKit нет вообще."
+    "Update Filter Lists Now" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обновить списки фильтров"
           }
         }
       }
     },
-    "bookmarks": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "закладки"
+    "Update Now" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обновить сейчас"
           }
         }
       }
     },
-    "camera": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "камера"
+    "Updating…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обновляю…"
           }
         }
       }
     },
-    "done %@": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "готово %@"
+    "View" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вид"
           }
         }
       }
     },
-    "downloading model %lld %%": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "скачиваю модель, %lld %%"
+    "Waiting" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ожидание"
           }
         }
       }
     },
-    "failed: %@": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ошибка: %@"
+    "Web Inspector" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Веб-инспектор"
           }
         }
       }
     },
-    "follow-up…": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "уточнение…"
+    "Weekly" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Еженедельно"
           }
         }
       }
     },
-    "listening at %@": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "слушает на %@"
+    "What %@ is allowed to use" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Что разрешено сайту %@"
           }
         }
       }
     },
-    "loading model": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "загружаю модель"
+    "What list_bookmarks and search_bookmarks return unless the agent names a profile" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Что вернут list_bookmarks и search_bookmarks, если агент не назвал профиль"
           }
         }
       }
     },
-    "macOS asks once for six itself; this list is six asking for each site.": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "macOS спрашивает один раз про сам six; этот список — то, о чём six спрашивает про каждый сайт."
+    "What the list, the assistant and the agents see" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Что видят список, ассистент и агенты"
           }
         }
       }
     },
-    "microphone": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "микрофон"
+    "When a site asks for the camera, the microphone or the motion sensors, your answer is remembered here." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Когда сайт запросит камеру, микрофон или датчики движения, ваш ответ появится здесь."
           }
         }
       }
     },
-    "model unavailable: %@": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "модель недоступна: %@"
+    "Where a query goes, and where the suggestions come from" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Куда уходит запрос и откуда берутся подсказки"
           }
         }
       }
     },
-    "motion sensors": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "датчики движения"
+    "Wider Columns" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Шире колонки"
           }
         }
       }
     },
-    "not started": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "не запущен"
+    "Work" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Рабочий"
           }
         }
       }
     },
-    "or ⌘T": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "или ⌘T"
+    "Works — nothing it asks for depends on reaching into a page." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Работает — ничего из того, что оно просит, не требует лезть в страницу."
           }
         }
       }
     },
-    "researching…": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "исследую…"
+    "Works partly — anything it does inside a page will be broken." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Работает частично — всё, что оно делает внутри страницы, сломано."
           }
         }
       }
     },
-    "scroll up/down for workspaces · sideways to run along a strip · click a window to open it · double-click a name to rename · ⌥O to close": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "вверх-вниз — рабочие столы · вбок — вдоль ленты · клик по окну — открыть · двойной клик по имени — переименовать · ⌥O — закрыть"
+    "Works partly — it is content scripts, which run but cannot be configured or updated by it." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Работает частично — это content-скрипты: они работают, но расширение не может их ни настроить, ни обновить."
           }
         }
       }
     },
-    "six": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "six"
+    "Works partly — its content scripts run, but it cannot reach into pages beyond them." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Работает частично — его content-скрипты работают, но дальше в страницу оно не дотянется."
           }
         }
       }
     },
-    "sk-ant-…": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "sk-ant-…"
+    "Workspace %lld" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Рабочий стол %lld"
           }
         }
       }
     },
-    "starting…": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "начинаю…"
+    "Workspace Above" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Рабочий стол выше"
           }
         }
       }
     },
-    "stopped: %@": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "остановлено: %@"
+    "Workspace above (⌥↑)" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Рабочий стол выше (⌥↑)"
           }
         }
       }
     },
-    "terminal %@": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "терминал %@"
+    "Workspace Below" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Рабочий стол ниже"
           }
         }
       }
     },
-    "{question} {workspace} {document} {profile} {sources} are filled in.": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "{question} {workspace} {document} {profile} {sources} подставляются."
+    "Workspace below (⌥↓)" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Рабочий стол ниже (⌥↓)"
           }
         }
       }
     },
-    "· %@": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "· %@"
+    "Write Document" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Записать в документ"
           }
         }
       }
     },
-    "• %@": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "• %@"
+    "Yesterday" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вчера"
           }
         }
       }
     }
   },
-  "version": "1.0"
+  "version" : "1.1"
 }

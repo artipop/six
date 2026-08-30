@@ -12,13 +12,13 @@
 		A271466D26DE9D05E6A5B285 /* HuggingFace in Frameworks */ = {isa = PBXBuildFile; productRef = FF7BC8AD7FB5289836E41C75 /* HuggingFace */; };
 		AC11A8513040444B007E3F9B /* ContentBlockerConverter in Frameworks */ = {isa = PBXBuildFile; productRef = AD01B10D4E2F7A6390D5C442 /* ContentBlockerConverter */; };
 		AC8977A0303CEC22008426C2 /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = AC89779F303CEC22008426C2 /* SQLiteData */; };
-		C4E57E1CA358AD438C0F5731 /* SQLiteVecData in Frameworks */ = {isa = PBXBuildFile; productRef = 82F43A23555A3254647ADAE5 /* SQLiteVecData */; };
 		AC9001010000000000000020 /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = AC9001010000000000000010 /* SQLiteData */; };
 		AC9001010000000000000021 /* SQLiteVecData in Frameworks */ = {isa = PBXBuildFile; productRef = AC9001010000000000000011 /* SQLiteVecData */; };
 		AC9001010000000000000022 /* MLXEmbedders in Frameworks */ = {isa = PBXBuildFile; productRef = AC9001010000000000000012 /* MLXEmbedders */; };
 		AC9001010000000000000023 /* HuggingFace in Frameworks */ = {isa = PBXBuildFile; productRef = AC9001010000000000000013 /* HuggingFace */; };
 		AC9001010000000000000024 /* Tokenizers in Frameworks */ = {isa = PBXBuildFile; productRef = AC9001010000000000000014 /* Tokenizers */; };
 		AC9001010000000000000025 /* ContentBlockerConverter in Frameworks */ = {isa = PBXBuildFile; productRef = AC9001010000000000000015 /* ContentBlockerConverter */; };
+		C4E57E1CA358AD438C0F5731 /* SQLiteVecData in Frameworks */ = {isa = PBXBuildFile; productRef = 82F43A23555A3254647ADAE5 /* SQLiteVecData */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -30,50 +30,50 @@
 		AC9001010000000000000009 /* Exceptions for "six" folder in "six-iOS" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				"ACP/ACPAgent.swift",
-				"ACP/ACPClient.swift",
-				"ACP/AgentSessionStore.swift",
-				"ACP/AgentToolName.swift",
-				"ACP/AgentToolchain.swift",
-				"ACP/JSONRPCConnection.swift",
-				"MCP/MCPServer.swift",
-				"MCP/MCPSocket.swift",
-				"MCP/MCPStdioBridge.swift",
-				"Research/ResearchCoordinator.swift",
-				"Vendor/ClaudeForFoundationModels/ClaudeAPI/APIError.swift",
-				"Vendor/ClaudeForFoundationModels/ClaudeAPI/ClaudeClient.swift",
-				"Vendor/ClaudeForFoundationModels/ClaudeAPI/Configuration.swift",
-				"Vendor/ClaudeForFoundationModels/ClaudeAPI/ContentAssembler.swift",
-				"Vendor/ClaudeForFoundationModels/ClaudeAPI/ContentBlock.swift",
-				"Vendor/ClaudeForFoundationModels/ClaudeAPI/HTTPTransport.swift",
-				"Vendor/ClaudeForFoundationModels/ClaudeAPI/JSONValue.swift",
-				"Vendor/ClaudeForFoundationModels/ClaudeAPI/Message.swift",
-				"Vendor/ClaudeForFoundationModels/ClaudeAPI/MessagesRequest.swift",
-				"Vendor/ClaudeForFoundationModels/ClaudeAPI/MessagesResponse.swift",
-				"Vendor/ClaudeForFoundationModels/ClaudeAPI/SSEParser.swift",
-				"Vendor/ClaudeForFoundationModels/ClaudeAPI/StreamEvent.swift",
-				"Vendor/ClaudeForFoundationModels/ClaudeAPI/Telemetry.swift",
-				"Vendor/ClaudeForFoundationModels/ClaudeAPI/ThinkingConfig.swift",
-				"Vendor/ClaudeForFoundationModels/ClaudeAPI/ToolDefinition.swift",
-				"Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/AppAttestSession.swift",
-				"Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/AppAttestStore.swift",
-				"Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/AttestationService.swift",
-				"Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/AuthMode.swift",
-				"Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ClaudeError.swift",
-				"Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ClaudeExecutor.swift",
-				"Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ClaudeImage.swift",
-				"Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ClaudeLanguageModel.swift",
-				"Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ClaudeModel.swift",
-				"Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ClaudeServerTool.swift",
-				"Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ClaudeServerToolActivity.swift",
-				"Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ErrorMapper.swift",
-				"Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/EventTranslator.swift",
-				"Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/RequestBuilder.swift",
-				"Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ServerToolWire.swift",
-				"Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/TurnRecord.swift",
-				"Vendor/ClaudeForFoundationModels/LICENSE",
-				"Vendor/ClaudeForFoundationModels/VENDORED.md",
-				"Views/AgentPanel.swift",
+				ACP/ACPAgent.swift,
+				ACP/ACPClient.swift,
+				ACP/AgentSessionStore.swift,
+				ACP/AgentToolchain.swift,
+				ACP/AgentToolName.swift,
+				ACP/JSONRPCConnection.swift,
+				MCP/MCPServer.swift,
+				MCP/MCPSocket.swift,
+				MCP/MCPStdioBridge.swift,
+				Research/ResearchCoordinator.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeAPI/APIError.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeAPI/ClaudeClient.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeAPI/Configuration.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeAPI/ContentAssembler.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeAPI/ContentBlock.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeAPI/HTTPTransport.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeAPI/JSONValue.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeAPI/Message.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeAPI/MessagesRequest.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeAPI/MessagesResponse.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeAPI/SSEParser.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeAPI/StreamEvent.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeAPI/Telemetry.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeAPI/ThinkingConfig.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeAPI/ToolDefinition.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/AppAttestSession.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/AppAttestStore.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/AttestationService.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/AuthMode.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ClaudeError.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ClaudeExecutor.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ClaudeImage.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ClaudeLanguageModel.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ClaudeModel.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ClaudeServerTool.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ClaudeServerToolActivity.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ErrorMapper.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/EventTranslator.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/RequestBuilder.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ServerToolWire.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/TurnRecord.swift,
+				Vendor/ClaudeForFoundationModels/LICENSE,
+				Vendor/ClaudeForFoundationModels/VENDORED.md,
+				Views/AgentPanel.swift,
 			);
 			target = AC9001010000000000000001 /* six-iOS */;
 		};
@@ -396,6 +396,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "six dev";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -406,7 +407,6 @@
 					"-weak_framework",
 					FoundationModels,
 				);
-				INFOPLIST_KEY_CFBundleDisplayName = "six dev";
 				PRODUCT_BUNDLE_IDENTIFIER = org.deffun.six.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -467,6 +467,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "six dev";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -482,7 +483,6 @@
 					FoundationModels,
 				);
 				OTHER_SWIFT_FLAGS = "";
-				INFOPLIST_KEY_CFBundleDisplayName = "six dev";
 				PRODUCT_BUNDLE_IDENTIFIER = org.deffun.six.dev;
 				PRODUCT_NAME = six;
 				SDKROOT = iphoneos;
@@ -634,21 +634,6 @@
 			package = AC89779E303CEC22008426C2 /* XCRemoteSwiftPackageReference "sqlite-data" */;
 			productName = SQLiteData;
 		};
-		AD01B10D4E2F7A6390D5C442 /* ContentBlockerConverter */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = AD01B10C4E2F7A6390D5C441 /* XCRemoteSwiftPackageReference "SafariConverterLib" */;
-			productName = ContentBlockerConverter;
-		};
-		E4D3C02313C636C3B360B52A /* Tokenizers */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = F6FD676108E197A94959A73D /* XCRemoteSwiftPackageReference "swift-transformers" */;
-			productName = Tokenizers;
-		};
-		FF7BC8AD7FB5289836E41C75 /* HuggingFace */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 9202E564C34651D6970C63AD /* XCRemoteSwiftPackageReference "swift-huggingface" */;
-			productName = HuggingFace;
-		};
 		AC9001010000000000000010 /* SQLiteData */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = AC89779E303CEC22008426C2 /* XCRemoteSwiftPackageReference "sqlite-data" */;
@@ -678,6 +663,21 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AD01B10C4E2F7A6390D5C441 /* XCRemoteSwiftPackageReference "SafariConverterLib" */;
 			productName = ContentBlockerConverter;
+		};
+		AD01B10D4E2F7A6390D5C442 /* ContentBlockerConverter */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AD01B10C4E2F7A6390D5C441 /* XCRemoteSwiftPackageReference "SafariConverterLib" */;
+			productName = ContentBlockerConverter;
+		};
+		E4D3C02313C636C3B360B52A /* Tokenizers */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F6FD676108E197A94959A73D /* XCRemoteSwiftPackageReference "swift-transformers" */;
+			productName = Tokenizers;
+		};
+		FF7BC8AD7FB5289836E41C75 /* HuggingFace */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9202E564C34651D6970C63AD /* XCRemoteSwiftPackageReference "swift-huggingface" */;
+			productName = HuggingFace;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
