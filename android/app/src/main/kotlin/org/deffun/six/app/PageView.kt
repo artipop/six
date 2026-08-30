@@ -2,6 +2,7 @@ package org.deffun.six.app
 
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
+import android.webkit.PermissionRequest
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -34,6 +35,8 @@ fun PageView(
     onTitleChanged: (String) -> Unit,
     onHistoryChanged: (canGoBack: Boolean, canGoForward: Boolean) -> Unit,
     onPageFinished: () -> Unit,
+    onPermissionRequest: (List<org.deffun.six.core.SitePermission>, String?, (Boolean) -> Unit) -> Unit,
+    onGone: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // Keyed on the profile: a WebView cannot be moved between profiles once it has been used, so a
@@ -78,6 +81,28 @@ fun PageView(
                     override fun onReceivedTitle(view: WebView, title: String?) {
                         onTitleChanged(title.orEmpty())
                     }
+
+                    /**
+                     * A page wants a device. Nothing is decided here: the answer comes back from
+                     * `SitePermissions`, which is the Mac's, and may come back much later — the
+                     * request object is held until it does, which is exactly what it is for.
+                     */
+                    override fun onPermissionRequest(request: PermissionRequest) {
+                        val asked = SitePermissionBridge.permissions(request.resources)
+                        if (asked.isEmpty()) return request.deny()
+                        onPermissionRequest(asked, request.origin?.toString()) { allowed ->
+                            if (allowed) {
+                                // Only what was asked for, and only what six understands.
+                                request.grant(SitePermissionBridge.resources(asked))
+                            } else {
+                                request.deny()
+                            }
+                        }
+                    }
+
+                    override fun onPermissionRequestCanceled(request: PermissionRequest) {
+                        // The page stopped waiting. Nothing to resume, and nothing to write down.
+                    }
                 }
 
                 requested[0] = url
@@ -102,6 +127,9 @@ fun PageView(
             }
         },
         onRelease = {
+            // The question this page was waiting on goes with it: the `PermissionRequest` belonged
+            // to a WebView that is about to be destroyed, and granting it afterwards reaches nothing.
+            onGone()
             LivePages.discard(tabId, it)
             it.destroy()
         },

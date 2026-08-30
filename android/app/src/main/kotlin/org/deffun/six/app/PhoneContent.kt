@@ -6,7 +6,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,6 +33,7 @@ fun PhoneContent(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showHistory by remember { mutableStateOf(false) }
+    var showPermissions by remember { mutableStateOf(false) }
     var confirmClearHistory by remember { mutableStateOf(false) }
 
     val focused = state.layout.focusedTabId?.let { state.tabs[it] }
@@ -49,6 +53,7 @@ fun PhoneContent(
             onNewWindow = { viewModel.openColumn() },
             onToggleOverview = viewModel::toggleOverview,
             onShowHistory = { showHistory = true },
+            onShowPermissions = { showPermissions = true },
             onClearHistory = { confirmClearHistory = true },
         )
     }
@@ -61,6 +66,32 @@ fun PhoneContent(
                 viewModel.openColumn(url)
             },
             onDismiss = { showHistory = false },
+        )
+    }
+
+    // The app's own permission, asked for only once a site has been allowed - and asked for by the
+    // system, which is the one thing here that is not six's to decide.
+    val systemPermissions = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions(),
+    ) { result ->
+        viewModel.onSystemPermissionsResult(result.values.all { it })
+    }
+    LaunchedEffect(state.pendingSystemPermissions) {
+        val wanted = state.pendingSystemPermissions
+        if (wanted.isNotEmpty()) systemPermissions.launch(wanted.toTypedArray())
+    }
+
+    if (showPermissions) {
+        // Read through `permissionRevision` so answering or forgetting redraws the list.
+        val sites = remember(state.permissionRevision) { viewModel.permissionSites() }
+        PermissionsSheet(
+            sites = sites,
+            decisionsFor = viewModel::permissionDecisions,
+            profileNameFor = { site ->
+                state.profiles.firstOrNull { it.id == site.profileId }?.name.orEmpty()
+            },
+            onForget = viewModel::forgetPermissions,
+            onDismiss = { showPermissions = false },
         )
     }
 

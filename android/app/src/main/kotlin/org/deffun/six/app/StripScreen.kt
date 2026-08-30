@@ -39,6 +39,7 @@ import java.util.UUID
 import org.deffun.six.core.Along
 import org.deffun.six.core.NiriLayout
 import org.deffun.six.core.Rect
+import org.deffun.six.core.SitePermission
 import org.deffun.six.core.Size
 import org.deffun.six.core.StripAxis
 
@@ -162,6 +163,13 @@ fun StripScreen(
                             viewModel.onHistoryChanged(column.tabId, back, forward)
                         },
                         onPageFinished = { viewModel.onPageFinished(column.tabId) },
+                        onPermissionRequest = { asked, origin, grant ->
+                            viewModel.onPagePermissionRequest(column.tabId, asked, origin, grant)
+                        },
+                        onGone = { viewModel.onWindowGone(column.tabId) },
+                        permissionQuestion = state.permissionQuestion
+                            ?.takeIf { it.tabId == column.tabId },
+                        onAnswerPermission = viewModel::answerPermission,
                     )
                 }
             }
@@ -267,6 +275,10 @@ private fun ColumnWindow(
     onTitleChanged: (String) -> Unit,
     onHistoryChanged: (Boolean, Boolean) -> Unit,
     onPageFinished: () -> Unit,
+    onPermissionRequest: (List<SitePermission>, String?, (Boolean) -> Unit) -> Unit,
+    onGone: () -> Unit,
+    permissionQuestion: PermissionQuestion?,
+    onAnswerPermission: (Boolean) -> Unit,
 ) {
     val density = LocalDensity.current
     val shape = RoundedCornerShape(16.dp)
@@ -294,7 +306,17 @@ private fun ColumnWindow(
                 shape = shape,
             ),
     ) {
-        Box(modifier = Modifier.fillMaxSize().padding(top = HandleHeight)) {
+        Column(modifier = Modifier.fillMaxSize().padding(top = HandleHeight)) {
+            // The question sits under the handle, where the Mac puts it under the title bar.
+            if (permissionQuestion != null) {
+                PermissionBar(
+                    host = permissionQuestion.host,
+                    permissions = permissionQuestion.permissions,
+                    onAnswer = onAnswerPermission,
+                )
+            }
+
+            Box(modifier = Modifier.weight(1f)) {
             when {
                 url == null -> StartPage()
                 isLive -> PageView(
@@ -305,9 +327,12 @@ private fun ColumnWindow(
                     onTitleChanged = onTitleChanged,
                     onHistoryChanged = onHistoryChanged,
                     onPageFinished = onPageFinished,
+                    onPermissionRequest = onPermissionRequest,
+                    onGone = onGone,
                 )
                 // Leaving the composition is what discards the page: `onRelease` saves its bundle.
                 else -> DiscardedPage(title = title, url = url)
+            }
             }
         }
 

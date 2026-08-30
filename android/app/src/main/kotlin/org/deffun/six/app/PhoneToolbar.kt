@@ -33,10 +33,9 @@ import org.deffun.six.R
  * overview, and everything else behind `⋯`. The Mac puts these in a menu bar and a top bar; a phone
  * has neither to give away.
  *
- * The menu is shorter than the iPhone's, and shorter honestly. Bookmarks, filter lists, extensions
- * and site permissions are subsystems this platform does not have yet — docs/android.md puts
- * blocking and extensions out of scope outright — and a menu item that opens an empty sheet is worse
- * than one that is not there.
+ * The menu is shorter than the iPhone's, and shorter honestly. Bookmarks are not built yet, and
+ * filter lists and extensions are out of scope outright (docs/android.md) — a menu item that opens
+ * an empty sheet is worse than one that is not there.
  */
 @Composable
 fun PhoneToolbar(
@@ -48,6 +47,7 @@ fun PhoneToolbar(
     onNewWindow: () -> Unit,
     onToggleOverview: () -> Unit,
     onShowHistory: () -> Unit,
+    onShowPermissions: () -> Unit,
     onClearHistory: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -85,6 +85,13 @@ fun PhoneToolbar(
                         onClick = {
                             menuOpen = false
                             onShowHistory()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.site_permissions_ellipsis)) },
+                        onClick = {
+                            menuOpen = false
+                            onShowPermissions()
                         },
                     )
                     DropdownMenuItem(

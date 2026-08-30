@@ -24,4 +24,17 @@
 
     <string name="address_hint">Поиск или адрес</string>
     <string name="start_page_title">Новое окно</string>
+    <string name="permission_camera">камеру</string>
+    <string name="permission_microphone">микрофон</string>
+    <string name="permission_motion">датчики движения</string>
+    <string name="permission_asks">%1$s запрашивает %2$s</string>
+    <string name="permission_and">%1$s и %2$s</string>
+    <string name="allow">Разрешить</string>
+    <string name="deny">Не разрешать</string>
+    <string name="site_permissions">Разрешения сайтов</string>
+    <string name="site_permissions_ellipsis">Разрешения сайтов\u2026</string>
+    <string name="site_permissions_empty">Ни один сайт ещё не спрашивал</string>
+    <string name="forget_site">Забыть</string>
+    <string name="allowed">Разрешено</string>
+    <string name="denied">Запрещено</string>
 </resources>

@@ -17,6 +17,10 @@ import org.deffun.six.core.NiriLayout
 import org.deffun.six.core.Profile
 import org.deffun.six.core.releaseDrag
 import org.deffun.six.core.SearchEngine
+import org.deffun.six.core.PermissionSite
+import org.deffun.six.core.SitePermission
+import org.deffun.six.core.SitePermissions
+import org.deffun.six.core.sitePermissions
 import org.deffun.six.core.Size
 import org.deffun.six.core.StripSnapshot
 import org.deffun.six.core.TabSnapshot
@@ -39,6 +43,13 @@ data class TabState(
     val isLoading: Boolean = false,
 )
 
+/** A site's question, flattened for the view. */
+data class PermissionQuestion(
+    val tabId: UUID,
+    val host: String,
+    val permissions: List<SitePermission>,
+)
+
 /** Everything the strip draws from, in one value. */
 data class SixState(
     val layout: NiriLayout = NiriLayout(),
@@ -49,6 +60,12 @@ data class SixState(
     val searchEngine: SearchEngine = SearchEngine.DEFAULT,
     /** True while the system is asking for memory back: only the focused column keeps its page. */
     val isUnderMemoryPressure: Boolean = false,
+    /** The question a site is waiting on, drawn as a bar in the window that asked. */
+    val permissionQuestion: PermissionQuestion? = null,
+    /** App-level permissions the system still has to be asked for, once the site has been allowed. */
+    val pendingSystemPermissions: Set<String> = emptySet(),
+    /** Bumped whenever an answer is written or taken back, so an open panel re-reads. */
+    val permissionRevision: Int = 0,
     val isRestored: Boolean = false,
 )
 
@@ -63,6 +80,28 @@ data class SixState(
 class SixViewModel(application: Application) : AndroidViewModel(application) {
 
     private val environment = SixEnvironment(application)
+
+    /**
+     * The Mac's own permission model, unchanged. It calls back when a question appears or is
+     * answered, because a `WebChromeClient` callback assigns nothing a `StateFlow` would notice.
+     */
+    private val sitePermissions = SitePermissions(
+        onSave = { decisions ->
+            // The write goes to the settings table, which is behind a database this must not open
+            // from wherever a page's question happened to arrive.
+            viewModelScope.launch(Dispatchers.IO) {
+                runCatching { environment.settings.sitePermissions = decisions }
+            }
+        },
+    ).apply {
+        onQuestionsChanged = { publishQuestion() }
+    }
+
+    /** The page waiting on an answer that has already been given, pending the system's own. */
+    private var pendingGrant: ((Boolean) -> Unit)? = null
+
+    /** Which window's bar is showing. One at a time, like the Mac's. */
+    private var questionWindowId: UUID? = null
 
     private val _state = MutableStateFlow(SixState())
     val state: StateFlow<SixState> = _state.asStateFlow()
@@ -79,6 +118,10 @@ class SixViewModel(application: Application) : AndroidViewModel(application) {
             val engine = withContext(Dispatchers.IO) {
                 runCatching { environment.settings.searchEngine }.getOrDefault(SearchEngine.DEFAULT)
             }
+            // Answers already given, read once on the way in.
+            withContext(Dispatchers.IO) {
+                runCatching { environment.settings.sitePermissions }.getOrNull()
+            }?.let { sitePermissions.restore(it) }
             _state.update { current ->
                 if (snapshot == null) {
                     // A first launch: one profile, one empty workspace, nothing open.
@@ -193,6 +236,7 @@ class SixViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun closeColumn(tabId: UUID) {
+        onWindowGone(tabId)
         LivePages.forget(tabId)
         _state.update { it.copy(layout = it.layout.removeColumn(tabId), tabs = it.tabs - tabId) }
         save()
@@ -270,6 +314,87 @@ class SixViewModel(application: Application) : AndroidViewModel(application) {
      */
     fun onMemoryPressure(isUnderPressure: Boolean) {
         _state.update { it.copy(isUnderMemoryPressure = isUnderPressure) }
+    }
+
+    // MARK: Site permissions
+
+    /**
+     * A page is asking for a device.
+     *
+     * Everything about *whether* it may have it is `SitePermissions`, which is the Mac's code and
+     * knows nothing about Android. What is added here is the second gate: an allowed site still
+     * cannot have the camera until the app has been allowed it, so a yes may have to wait for the
+     * system's own question before it reaches the page.
+     */
+    fun onPagePermissionRequest(
+        tabId: UUID,
+        asked: List<SitePermission>,
+        origin: String?,
+        grant: (Boolean) -> Unit,
+    ) {
+        val current = _state.value
+        val profileId = current.tabs[tabId]?.profileId ?: current.layout.activeProfileId
+        questionWindowId = tabId
+
+        sitePermissions.decide(asked, origin.orEmpty(), tabId, profileId) { allowed ->
+            if (!allowed) return@decide grant(false)
+
+            val needed = SitePermissionBridge.systemPermissions(asked)
+                .filterNot { environment.hasSystemPermission(it) }
+                .toSet()
+
+            if (needed.isEmpty()) {
+                grant(true)
+            } else {
+                pendingGrant = grant
+                _state.update { it.copy(pendingSystemPermissions = needed) }
+            }
+        }
+        publishQuestion()
+    }
+
+    /** The bar's two buttons. */
+    fun answerPermission(allowed: Boolean) {
+        val windowId = questionWindowId ?: return
+        sitePermissions.answer(allowed, windowId)
+        _state.update { it.copy(permissionRevision = it.permissionRevision + 1) }
+    }
+
+    /** The system answered. A page allowed by its user and refused by the OS is still refused. */
+    fun onSystemPermissionsResult(granted: Boolean) {
+        val grant = pendingGrant
+        pendingGrant = null
+        _state.update { it.copy(pendingSystemPermissions = emptySet()) }
+        grant?.invoke(granted)
+    }
+
+    /** A window going takes its unanswered questions with it, answered no. */
+    fun onWindowGone(tabId: UUID) {
+        sitePermissions.forgetWindow(tabId)
+    }
+
+    /** Every site with a remembered answer, for the panel. */
+    fun permissionSites(): List<PermissionSite> = sitePermissions.sites
+
+    fun permissionDecisions(site: PermissionSite): Map<SitePermission, Boolean> =
+        sitePermissions.decisions(site.origin, site.profileId)
+
+    /** Take it back: the site asks again the next time it needs the device. */
+    fun forgetPermissions(site: PermissionSite) {
+        sitePermissions.forget(site.origin, site.profileId)
+        _state.update { it.copy(permissionRevision = it.permissionRevision + 1) }
+    }
+
+    private fun publishQuestion() {
+        val windowId = questionWindowId
+        val question = windowId?.let { sitePermissions.question(it) }
+        _state.update { current ->
+            current.copy(
+                permissionQuestion = question?.let {
+                    PermissionQuestion(windowId, it.host, it.permissions)
+                },
+            )
+        }
     }
 
     // MARK: The address field

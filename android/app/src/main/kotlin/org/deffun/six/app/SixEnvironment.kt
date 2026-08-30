@@ -1,6 +1,8 @@
 package org.deffun.six.app
 
 import android.content.Context
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 import java.io.File
 import org.deffun.six.core.AppDatabase
 import org.deffun.six.core.FileSnapshotStore
@@ -15,7 +17,7 @@ import org.deffun.six.core.SettingsStore
  * when it is uninstalled. The *names* inside it are the same ones, because a file that travels
  * between platforms should be recognisable when it arrives.
  */
-class SixEnvironment(context: Context) {
+class SixEnvironment(private val context: Context) {
 
     val root: File = context.filesDir
 
@@ -39,6 +41,10 @@ class SixEnvironment(context: Context) {
     val snapshots = FileSnapshotStore(snapshotFile)
     val history: HistoryStore by lazy { HistoryStore(database) }
     val settings: SettingsStore by lazy { SettingsStore(database) }
+
+    /** Whether the *app* has been allowed a device. The gate in front of the site's own answer. */
+    fun hasSystemPermission(permission: String): Boolean =
+        ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
 
     /** One folder per profile, holding its bookmarks — phase two, but the layout is fixed now. */
     fun profileDirectory(name: String): File = File(File(root, "Profiles"), name)

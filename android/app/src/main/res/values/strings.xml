@@ -29,4 +29,17 @@
     <!-- The address field, which on a phone is the focused window's own title bar. -->
     <string name="address_hint">Search or enter address</string>
     <string name="start_page_title">New Window</string>
+    <string name="permission_camera">camera</string>
+    <string name="permission_microphone">microphone</string>
+    <string name="permission_motion">motion sensors</string>
+    <string name="permission_asks">%1$s wants to use your %2$s</string>
+    <string name="permission_and">%1$s and %2$s</string>
+    <string name="allow">Allow</string>
+    <string name="deny">Don\u2019t Allow</string>
+    <string name="site_permissions">Site Permissions</string>
+    <string name="site_permissions_ellipsis">Site Permissions\u2026</string>
+    <string name="site_permissions_empty">No site has been answered yet</string>
+    <string name="forget_site">Forget</string>
+    <string name="allowed">Allowed</string>
+    <string name="denied">Denied</string>
 </resources>

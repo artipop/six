@@ -133,4 +133,5 @@ object SettingsKeys {
     const val CENTERS_FOCUS = "layout.centersFocus"
     const val COLUMN_WIDTH = "layout.columnWidth"
     const val DEFAULT_PROFILE = "profile.default"
+    const val SITE_PERMISSIONS = "permissions.sites"
 }
