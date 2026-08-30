@@ -1,38 +1,88 @@
 package org.deffun.six.app
 
+import android.os.Bundle
 import android.webkit.WebView
 import java.util.UUID
 
 /**
- * The `WebView` currently backing each column, by tab.
+ * Which columns have a real `WebView`, and what is kept of the ones that do not.
  *
- * Compose does not hand a composable's `AndroidView` back to anyone else, and two things outside the
- * column need the view itself: the system back gesture, which must walk the page's history before it
- * walks out of the app, and — later — discarding a column and restoring it from a `Bundle`, which is
- * this platform's answer to `LivePageCache`.
+ * A window is not a page it holds forever. On the Mac a `WebPage` is a content process, so a strip
+ * of a hundred windows keeps only as many live as the machine can carry and *discards* the rest —
+ * the window stays where it is, with its address, its history and its scroll offset, and builds the
+ * page again when you come back to it. [NiriLayout.visibleTabIds] decides which those are.
  *
- * Registration is the view's own lifecycle: it appears in `factory` and leaves in `onRelease`, so a
- * destroyed `WebView` is never in here to be called.
+ * Android has no process per tab, but a `WebView` is not cheap either, and the platform's answer to
+ * "keep this window without keeping its page" is `saveState`/`restoreState` into a `Bundle`.
+ *
+ * ## The part that is not verified
+ *
+ * `saveState` documents the back/forward list. Whether it also brings back the scroll offset — which
+ * is what makes returning to a column feel like returning rather than reloading — is the claim
+ * docs/android.md flags as the one most likely to be half-true, and nothing here can settle it
+ * without a device. The code is written as if it does; if it does not, this is where the answer goes.
  */
 object LivePages {
 
-    private val pages = mutableMapOf<UUID, WebView>()
+    private val live = mutableMapOf<UUID, WebView>()
+    private val discarded = mutableMapOf<UUID, Bundle>()
 
+    /** A view has been built for this column. */
     fun register(tabId: UUID, webView: WebView) {
-        pages[tabId] = webView
+        live[tabId] = webView
     }
 
-    fun unregister(tabId: UUID) {
-        pages.remove(tabId)
+    /**
+     * The column is going away. Its page is kept as a bundle so coming back is a restore rather than
+     * a fresh request — the case the whole design is tuned for.
+     */
+    fun discard(tabId: UUID, webView: WebView) {
+        val state = Bundle()
+        // `saveState` returns null when there is nothing worth keeping — a view that never loaded.
+        if (webView.saveState(state) != null) discarded[tabId] = state
+        live.remove(tabId)
     }
 
-    operator fun get(tabId: UUID): WebView? = pages[tabId]
+    /**
+     * Puts a rebuilt view back where its column was, if there is anything to put back.
+     *
+     * @return true when the view was restored and must not be sent to load the address again.
+     */
+    fun restore(tabId: UUID, webView: WebView): Boolean {
+        val state = discarded[tabId] ?: return false
+        val restored = webView.restoreState(state) != null
+        if (restored) discarded.remove(tabId)
+        return restored
+    }
+
+    /**
+     * Throws away what was kept of a column's page.
+     *
+     * Called when the address changes under it: a bundle restored after that would quietly navigate
+     * back to the page the column used to be on, which looks like the address bar not working.
+     */
+    fun forget(tabId: UUID) {
+        live.remove(tabId)
+        discarded.remove(tabId)
+    }
+
+    operator fun get(tabId: UUID): WebView? = live[tabId]
 
     /** True when the page took the gesture, so the app should not. */
     fun goBack(tabId: UUID?): Boolean {
-        val page = tabId?.let { pages[it] } ?: return false
+        val page = tabId?.let { live[it] } ?: return false
         if (!page.canGoBack()) return false
         page.goBack()
         return true
     }
+
+    /**
+     * Memory pressure is not answered from here.
+     *
+     * The obvious version of that — walk the live views and save their state — would save the state
+     * of views still on screen and still in the composition, which is not discarding anything. On
+     * this platform a page is released by the *composition* dropping it, so the answer belongs where
+     * the live set is decided: `SixViewModel.onMemoryPressure` narrows it, Compose releases what
+     * fell out, and each one arrives here through `discard` in its own `onRelease`.
+     */
 }

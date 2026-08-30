@@ -3,6 +3,7 @@ package org.deffun.six.app
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
@@ -20,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -59,6 +61,18 @@ fun StripScreen(
 
         val scroll = layout.resolvedOffset(workspace) - layout.horizontalPreview
 
+        // Which columns get a real WebView. Everything else in the strip is a card, and coming back
+        // to it is a restore rather than a fresh request. See LivePages.
+        //
+        // Under memory pressure the budget collapses to the window being read. Everything else keeps
+        // its address, its history and its place — which is the whole point of the strip being a
+        // layout rather than a list of live pages.
+        val liveTabIds = if (state.isUnderMemoryPressure) {
+            setOfNotNull(layout.focusedTabId)
+        } else {
+            layout.visibleTabIds
+        }
+
         // Back is the page's before it is the app's, which is what makes this a browser rather than
         // an app with a web view in it. The address field takes it first, since a keyboard is open.
         BackHandler(enabled = true) {
@@ -83,6 +97,7 @@ fun StripScreen(
                 ColumnWindow(
                     tabId = column.tabId,
                     frame = placed,
+                    isLive = column.tabId in liveTabIds,
                     title = tab?.title.orEmpty(),
                     url = tab?.url,
                     profileStoreName = profile?.let { WebProfiles.storeName(it) },
@@ -121,6 +136,7 @@ private fun Rect.translatedAlong(delta: Double) = copy(x = x + delta)
 private fun ColumnWindow(
     tabId: UUID,
     frame: Rect,
+    isLive: Boolean,
     title: String,
     url: String?,
     profileStoreName: String?,
@@ -149,16 +165,17 @@ private fun ColumnWindow(
             .background(MaterialTheme.colorScheme.surface),
     ) {
         Box(modifier = Modifier.fillMaxSize().padding(top = HandleHeight)) {
-            if (url == null) {
-                StartPage()
-            } else {
-                PageView(
+            when {
+                url == null -> StartPage()
+                isLive -> PageView(
                     tabId = tabId,
                     url = url,
                     profileStoreName = profileStoreName,
                     onPageStarted = onPageStarted,
                     onTitleChanged = onTitleChanged,
                 )
+                // Leaving the composition is what discards the page: `onRelease` saves its bundle.
+                else -> DiscardedPage(title = title, url = url)
             }
         }
 
@@ -178,6 +195,40 @@ private fun ColumnWindow(
         )
     }
 }
+
+/**
+ * A column whose page has been discarded.
+ *
+ * It is still a window in the strip — the address, the title and its place are all still here — and
+ * scrolling back to it builds the page again. The Mac also keeps a picture of the page; capturing a
+ * bitmap per column is a memory decision that should not be made without being able to measure it,
+ * so this is text for now.
+ */
+@Composable
+private fun DiscardedPage(title: String, url: String) {
+    Box(
+        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerLow),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = title.ifEmpty { url },
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+            Text(
+                text = host(url),
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
+    }
+}
+
+private fun host(url: String): String =
+    runCatching { java.net.URI(url).host }.getOrNull() ?: url
 
 @Composable
 private fun StartPage() {

@@ -68,7 +68,11 @@ fun PageView(
 
                 requested[0] = url
                 LivePages.register(tabId, this)
-                loadUrl(url)
+
+                // A column coming back is restored, not reloaded: the history and the place in it
+                // are the point of having kept the bundle at all. Only a column with nothing kept —
+                // a new window, or one whose address changed while it was away — makes a request.
+                if (!LivePages.restore(tabId, this)) loadUrl(url)
             }
         },
         update = { webView ->
@@ -84,7 +88,7 @@ fun PageView(
             }
         },
         onRelease = {
-            LivePages.unregister(tabId)
+            LivePages.discard(tabId, it)
             it.destroy()
         },
         )

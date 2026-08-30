@@ -38,6 +38,8 @@ data class SixState(
     /** The window whose handle has become an address field, if any. Only ever one. */
     val editingTabId: UUID? = null,
     val searchEngine: SearchEngine = SearchEngine.DEFAULT,
+    /** True while the system is asking for memory back: only the focused column keeps its page. */
+    val isUnderMemoryPressure: Boolean = false,
     val isRestored: Boolean = false,
 )
 
@@ -177,6 +179,7 @@ class SixViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun closeColumn(tabId: UUID) {
+        LivePages.forget(tabId)
         _state.update { it.copy(layout = it.layout.removeColumn(tabId), tabs = it.tabs - tabId) }
         save()
     }
@@ -221,6 +224,17 @@ class SixViewModel(application: Application) : AndroidViewModel(application) {
         _state.update { it.copy(layout = it.layout.copy(horizontalPreview = 0.0, verticalPreview = 0.0)) }
     }
 
+    /**
+     * The system asking for memory back.
+     *
+     * The Mac watches a pressure band and shrinks its live-page budget; this is the same move with
+     * Android's vocabulary. It narrows the live set rather than touching any `WebView` directly —
+     * the composition is what releases a page here, and each one saves its own state on the way out.
+     */
+    fun onMemoryPressure(isUnderPressure: Boolean) {
+        _state.update { it.copy(isUnderMemoryPressure = isUnderPressure) }
+    }
+
     // MARK: The address field
 
     /**
@@ -247,6 +261,9 @@ class SixViewModel(application: Application) : AndroidViewModel(application) {
         val url = UserInput.url(text, _state.value.searchEngine)
         _state.update { it.copy(editingTabId = null) }
         if (url == null) return
+        // Whatever was kept of this column's page is about to be wrong: restoring it would navigate
+        // quietly back to where the column used to be, which reads as the address bar not working.
+        LivePages.forget(tabId)
         _state.update { current ->
             val tab = current.tabs[tabId] ?: return@update current
             current.copy(tabs = current.tabs + (tabId to tab.copy(url = url, title = "")))
