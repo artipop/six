@@ -140,29 +140,44 @@ extension ContentView {
         if let refusal = plan.refusal { return say("refused: \(refusal)") }
 
         guard let source = TranslationLanguage.source(of: plan) else { return say("no source language") }
-        let target = Locale.Language(identifier: "en")
         say("the button would offer: \(browser.suggestedTargets(excluding: source).map { AppleTranslator.name(of: $0) })")
-        say("translating \(source.maximalIdentifier) -> \(target.maximalIdentifier)")
-        say("status: \(await browser.appleTranslator.status(from: source, to: target))")
+
+        // `SIX_TRANSLATE_SELFTEST_TARGETS="en,de"` runs the page through more than one language in
+        // a row, which is the case that found the stale armed pair: the second language's download
+        // sheet never came up while the first one's task was still mounted.
+        let codes = (ProcessInfo.processInfo.environment["SIX_TRANSLATE_SELFTEST_TARGETS"] ?? "en")
+            .split(separator: ",").map(String.init)
+        for code in codes {
+            await runOnce(tab, source: source, target: Locale.Language(identifier: code), say: say)
+        }
+        say("armed at the end: \(browser.appleTranslator.armedPairs.map(\.id))")
+    }
+
+    fileprivate func runOnce(
+        _ tab: BrowserTab, source: Locale.Language, target: Locale.Language,
+        say: @escaping (String) -> Void
+    ) async {
+        browser.translation.forget(tab.id)
+        say("--- \(source.maximalIdentifier) -> \(target.maximalIdentifier), status \(await browser.appleTranslator.status(from: source, to: target))")
 
         let run = Task { await browser.translation.translate(tab, id: tab.id, from: source, to: target) }
-        for _ in 0..<40 {
+        var sawArmed = false
+        var sawDownloading = false
+        for _ in 0..<300 {
             try? await Task.sleep(for: .milliseconds(500))
             let armed = browser.appleTranslator.armedPairs.map(\.id)
-            if !armed.isEmpty { say("ARMED \(armed) — the framework should be asking to download now") ; break }
-            if let phase = browser.translation[tab.id]?.phase, case .working(let d, let n) = phase, n > 0 {
-                say("working \(d)/\(n)")
+            if !armed.isEmpty, !sawArmed {
+                sawArmed = true
+                say("ARMED \(armed) — the framework should be asking to download now")
             }
-        }
-        for _ in 0..<120 {
-            try? await Task.sleep(for: .seconds(1))
             guard let state = browser.translation[tab.id] else { continue }
             switch state.phase {
             case .done: say("DONE"); return
             case .failed(let why): say("FAILED: \(why)"); return
-            case .working(let d, let n): if n > 0 { say("working \(d)/\(n)") }
-            case .downloading: say("downloading a language — the system sheet is up")
-            case .offered: break
+            case .working(let d, let n) where n > 0 && d % 300 == 0: say("working \(d)/\(n)")
+            case .downloading:
+                if !sawDownloading { sawDownloading = true; say("PHASE .downloading — the spinner should be turning") }
+            default: break
             }
         }
         run.cancel()

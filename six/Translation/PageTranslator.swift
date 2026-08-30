@@ -22,6 +22,15 @@ nonisolated struct TabTranslation: Sendable, Equatable {
     var showsOriginal = false
     var engine: String = ""
 
+    /// Is there anything worth a bar above the page? Working, waiting, or broken — not "done",
+    /// which the address field says on its own.
+    var saysSomething: Bool {
+        switch phase {
+        case .downloading, .working, .failed: true
+        case .offered, .done: false
+        }
+    }
+
     var isTranslated: Bool {
         if case .downloading = phase { return true }
         if case .working = phase { return true }
@@ -151,6 +160,11 @@ final class PageTranslator {
         states[id] = state
     }
 
+    /// The reader stopped it. Whatever landed stays on the page.
+    func markStopped(id: UUID) {
+        states[id]?.phase = .done
+    }
+
     // MARK: Translating
 
     func translate(
@@ -165,8 +179,14 @@ final class PageTranslator {
         states[id] = TabTranslation(source: source, target: target,
                                     phase: .working(done: 0, of: 0), engine: engine.name)
         cache[id] = [:]
+        defer { engine.finishedRun() }
 
         do {
+            // Whatever the page is carrying belongs to the language being left. Without this a
+            // second run finds every node already registered, collects nothing, and calls itself
+            // finished — which is what "switching language does nothing" looked like.
+            _ = try? await page.runScript(TranslationScript.reset)
+
             let collected = try await page.runScript(
                 TranslationScript.collect, arguments: ["budget": budget]
             )

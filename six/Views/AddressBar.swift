@@ -138,12 +138,12 @@ struct AddressBar: View {
                 // at zero while a gigabyte arrives is exactly what reads as hung.
                 ProgressView()
                     .progressViewStyle(.circular)
-                    .controlSize(.mini)
+                    .controlSize(.small)
                     .help("Downloading a language — it continues in the background")
             case .working(let done, let total):
                 ProgressView(value: total > 0 ? Double(done) / Double(total) : 0)
                     .progressViewStyle(.circular)
-                    .controlSize(.mini)
+                    .controlSize(.small)
                     .help("Translating…")
             default:
                 menu(state)

@@ -179,6 +179,13 @@ final class BrowserState {
         toggleTranslation(of: tab)
     }
 
+    /// Give up on a run in progress and leave the page as it is — half translated is still
+    /// readable, and the alternative is a bar you cannot dismiss.
+    func stopTranslating(_ tab: BrowserTab) {
+        translation.stop(tab.id)
+        translation.markStopped(id: tab.id)
+    }
+
     /// Look at the focused page and translate it, or put it back. One entry point, because that is
     /// what a button and a menu item both want.
     func toggleTranslation(of tab: BrowserTab) {

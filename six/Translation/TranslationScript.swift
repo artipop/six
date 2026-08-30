@@ -34,6 +34,7 @@ nonisolated enum TranslationScript {
                 seq: 0,
                 entries: new Map(),   // id -> entry
                 seen: new WeakSet(),  // text nodes already registered
+                attrSeen: new WeakMap(), // element -> attributes already registered
                 pending: [],          // segments found by the observer, waiting for Swift
                 applied: false,
                 observer: null,
@@ -260,9 +261,13 @@ nonisolated enum TranslationScript {
                     const value = el.getAttribute(attr);
                     if (!value || !worthTranslating(value)) continue;
                     if (!translatable(el)) continue;
-                    const mark = '__six_' + attr;
-                    if (el[mark]) continue;
-                    el[mark] = true;
+                    // Kept in the run's own state rather than on the element, so dropping the
+                    // state forgets them. A property left on the element would survive a reset and
+                    // make the second language skip every tooltip on the page.
+                    let marks = S.attrSeen.get(el);
+                    if (!marks) { marks = new Set(); S.attrSeen.set(el, marks); }
+                    if (marks.has(attr)) continue;
+                    marks.add(attr);
                     const entry = { kind: 'attr', el: el, attr: attr };
                     const id = ++S.seq;
                     S.entries.set(id, entry);
@@ -405,6 +410,34 @@ nonisolated enum TranslationScript {
     }
     S.applied = false;
     return { restored: S.entries.size };
+    """#
+
+    /// Back to the original *and* forgotten, so the page can be translated again — into another
+    /// language, or after the reader turned it off and changed their mind.
+    ///
+    /// This is not `restore`. Show Original is a toggle and has to keep every entry, because the
+    /// whole point of it is that coming back costs no translation. Changing language is the
+    /// opposite: everything registered belongs to the language being left, and `seen` holds every
+    /// text node on the page, so a second run over the same state collects nothing at all and
+    /// reports itself finished having done nothing. That was the bug.
+    static let reset = library + #"""
+
+    const S = window.__sixTranslate;
+    if (!S) return { reset: false };
+    for (const entry of S.entries.values()) {
+        try { putBack(entry); } catch (e) { /* detached */ }
+    }
+    if (S.observer) { S.observer.disconnect(); }
+    if (S.scroll) { window.removeEventListener('scroll', S.scroll); }
+    if (S.timer) { clearTimeout(S.timer); }
+    if (S.savedLang) {
+        if (S.lang === null) document.documentElement.removeAttribute('lang');
+        else document.documentElement.setAttribute('lang', S.lang);
+        if (S.dir === null) document.documentElement.removeAttribute('dir');
+        else document.documentElement.setAttribute('dir', S.dir);
+    }
+    window.__sixTranslate = null;
+    return { reset: true };
     """#
 
     /// Puts the translations back on without asking an engine again: the entries and their originals

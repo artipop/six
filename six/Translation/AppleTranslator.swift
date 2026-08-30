@@ -229,6 +229,14 @@ final class AppleTranslator: PageTranslating {
         await drain(pair, session)          // anything that arrived before the closure started
         for await _ in stream {
             await drain(pair, session)
+            // The download is what this path existed for. Once it has happened there is nothing
+            // left to hold the view open, and holding it open is not free: a second armed pair
+            // alongside a live one is a second `.translationTask`, and the framework will not put
+            // up a download sheet for it. That is the bug this line is here to not have.
+            if queues[pair]?.isEmpty ?? true,
+               await availability.status(from: pair.source, to: pair.target) == .installed {
+                release(pair)               // finishes the stream, so this loop ends next turn
+            }
         }
     }
 
@@ -253,6 +261,12 @@ final class AppleTranslator: PageTranslating {
 
     func releaseAll() {
         for pair in armed.keys { release(pair) }
+    }
+
+    /// The store's backstop for the same thing: a run that failed, or was cancelled, or asked for a
+    /// language the reader declined, must not leave a task mounted for the next one to queue behind.
+    func finishedRun() {
+        releaseAll()
     }
 
     // MARK: Names and failures

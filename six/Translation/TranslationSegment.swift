@@ -78,6 +78,10 @@ protocol PageTranslating: AnyObject {
     /// stuck at zero and one that is honest about what it is waiting for.
     var isFetchingLanguages: Bool { get }
 
+    /// The run is over — successfully, or not. An engine holding anything on the run's behalf lets
+    /// it go here. Called exactly once per run, including when the run threw.
+    func finishedRun()
+
     /// Stop whatever is in flight. Called on navigation — without it, leaving a three-thousand
     /// segment page keeps the engine grinding for a minute on text nobody will see.
     func cancel()
