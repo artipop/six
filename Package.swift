@@ -23,6 +23,17 @@ import PackageDescription
 //
 // **So `swift package update` is a Linux-breaking command here.** Re-seed from the app instead, and
 // let the project's own graph move first. See docs/storage.md.
+//
+// And `swift build`/`swift test` are quietly the same command: they resolve first, and a resolve on
+// macOS rewrites this file — the `originHash` changes and the pins nothing on this platform needs
+// (OpenCombine, which only Linux pulls in) are dropped, so the next Linux build resolves from
+// scratch. Pass **`--disable-automatic-resolution`** to every one of them:
+//
+//   swift test --disable-automatic-resolution
+//
+// It builds from the pins as written and fails loudly if they cannot satisfy the manifest, which is
+// exactly the promise this file is here to make. `--skip-update` is not it: that only skips the
+// fetch, and still writes.
 let package = Package(
     name: "six",
     platforms: [.macOS("26.0")],
