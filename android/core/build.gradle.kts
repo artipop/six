@@ -13,6 +13,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.serialization)
     `java-library`
 }
 
@@ -22,6 +23,8 @@ repositories {
 }
 
 dependencies {
+    api(libs.kotlinx.serialization.json)
+
     testImplementation(libs.kotlin.test)
     testImplementation(libs.junit.jupiter.engine)
     testRuntimeOnly(libs.junit.platform.launcher)
