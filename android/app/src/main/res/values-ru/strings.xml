@@ -41,4 +41,13 @@
     <string name="this_page">Эта страница</string>
     <string name="new_private_window">Новое приватное окно</string>
     <string name="close_private_browsing">Закрыть приватный просмотр</string>
+    <string name="bookmarks">Закладки</string>
+    <string name="bookmarks_ellipsis">Закладки\u2026</string>
+    <string name="add_bookmark">Добавить закладку</string>
+    <string name="bookmarks_empty">Пока ничего не сохранено</string>
+    <string name="bookmark_nothing_loaded">В этом окне ничего не открыто</string>
+    <string name="bookmark_no_text">На странице нет читаемого текста</string>
+    <string name="bookmark_private">Приватный просмотр не хранит закладок</string>
+    <string name="bookmark_failed">Страницу не удалось сохранить</string>
+    <string name="remove">Удалить</string>
 </resources>

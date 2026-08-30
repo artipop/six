@@ -4,7 +4,9 @@ import android.content.Context
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
 import java.io.File
+import java.util.UUID
 import org.deffun.six.core.AppDatabase
+import org.deffun.six.core.BookmarkStore
 import org.deffun.six.core.FileSnapshotStore
 import org.deffun.six.core.HistoryStore
 import org.deffun.six.core.SettingsStore
@@ -41,6 +43,20 @@ class SixEnvironment(private val context: Context) {
     val snapshots = FileSnapshotStore(snapshotFile)
     val history: HistoryStore by lazy { HistoryStore(database) }
     val settings: SettingsStore by lazy { SettingsStore(database) }
+
+    /**
+     * Bookmarks, over the same folder layout the Mac uses. The folder is named after the profile, so
+     * renaming one moves its bookmarks with it rather than orphaning them.
+     */
+    val bookmarks: BookmarkStore by lazy {
+        BookmarkStore(database) { profileId -> bookmarksFolder(profileId) }
+    }
+
+    /** Set by whoever knows the profiles; without it a bookmark has a row but nowhere to write. */
+    var profileNameFor: (UUID) -> String? = { null }
+
+    private fun bookmarksFolder(profileId: UUID): File? =
+        profileNameFor(profileId)?.let { File(profileDirectory(it), "Bookmarks") }
 
     /** Whether the *app* has been allowed a device. The gate in front of the site's own answer. */
     fun hasSystemPermission(permission: String): Boolean =

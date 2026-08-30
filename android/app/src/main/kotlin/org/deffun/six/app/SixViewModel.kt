@@ -12,12 +12,15 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.deffun.six.core.AppStateSnapshot
+import org.deffun.six.core.Bookmark
+import org.deffun.six.core.BookmarkScope
 import org.deffun.six.core.buildBrowserSnapshot
 import org.deffun.six.core.NiriLayout
 import org.deffun.six.core.PageDialogAnswer
 import org.deffun.six.core.PageDialogQueue
 import org.deffun.six.core.PageDialogRequest
 import org.deffun.six.core.Profile
+import org.deffun.six.core.ReadablePage
 import org.deffun.six.core.releaseDrag
 import org.deffun.six.core.SearchEngine
 import org.deffun.six.core.PermissionSite
@@ -71,6 +74,10 @@ data class SixState(
     val permissionRevision: Int = 0,
     /** The dialog a page is waiting on, if any. One at a time, for the whole window. */
     val pageDialog: PageDialogRequest? = null,
+    /** Bumped when a bookmark is saved or removed, so an open panel re-reads. */
+    val bookmarkRevision: Int = 0,
+    /** What the last save said, if it said anything: a page with no text is not an error to log. */
+    val bookmarkNotice: String? = null,
     val isRestored: Boolean = false,
 )
 
@@ -84,7 +91,10 @@ data class SixState(
  */
 class SixViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val environment = SixEnvironment(application)
+    private val environment = SixEnvironment(application).apply {
+        // A bookmark's file goes in its profile's folder, and only the state knows the names.
+        profileNameFor = { id -> _state.value.profiles.firstOrNull { it.id == id }?.name }
+    }
 
     /**
      * The Mac's own permission model, unchanged. It calls back when a question appears or is
@@ -499,6 +509,75 @@ class SixViewModel(application: Application) : AndroidViewModel(application) {
                 },
             )
         }
+    }
+
+    // MARK: Bookmarks
+
+    /**
+     * Saves the focused window's page: the row, the passages and the readable Markdown file.
+     *
+     * The text is read out of the live page rather than fetched again, which is the whole reason
+     * this is a browser feature and not a scraper — what is saved is the page as it was being read,
+     * including whatever it needed a session for.
+     *
+     * A discarded column cannot be saved. Loading it in order to save it would be a page request
+     * nobody asked for, so this says so instead.
+     */
+    fun addBookmark() {
+        val current = _state.value
+        val tabId = current.layout.focusedTabId ?: return
+        val tab = current.tabs[tabId] ?: return
+        val url = tab.url
+        if (url == null) {
+            return notify(BookmarkNotice.NOTHING_LOADED)
+        }
+        if (isPrivate(tab.profileId)) {
+            return notify(BookmarkNotice.PRIVATE)
+        }
+        val profileName = current.profiles.firstOrNull { it.id == tab.profileId }?.name
+            ?: return notify(BookmarkNotice.FAILED)
+
+        LivePages.evaluate(tabId, ReadablePage.script) { json ->
+            val page = json?.let { ReadablePage.from(it) }
+            if (page == null) {
+                notify(BookmarkNotice.NO_TEXT)
+                return@evaluate
+            }
+            viewModelScope.launch(Dispatchers.IO) {
+                val saved = runCatching {
+                    environment.bookmarks.save(page, url, tab.title, tab.profileId, profileName)
+                }
+                _state.update {
+                    it.copy(
+                        bookmarkRevision = it.bookmarkRevision + 1,
+                        bookmarkNotice = if (saved.isSuccess) null else BookmarkNotice.FAILED,
+                    )
+                }
+            }
+        }
+    }
+
+    /** Reading them is disk work, like the history, and does not belong on the main thread. */
+    suspend fun bookmarks(scope: BookmarkScope = BookmarkScope.PROFILE): List<Bookmark> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                environment.bookmarks.entries(_state.value.layout.activeProfileId, scope)
+            }.getOrDefault(emptyList())
+        }
+
+    fun removeBookmark(id: UUID) {
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { environment.bookmarks.remove(id) }
+            _state.update { it.copy(bookmarkRevision = it.bookmarkRevision + 1) }
+        }
+    }
+
+    fun clearBookmarkNotice() {
+        _state.update { it.copy(bookmarkNotice = null) }
+    }
+
+    private fun notify(notice: String) {
+        _state.update { it.copy(bookmarkNotice = notice) }
     }
 
     // MARK: What a page puts up

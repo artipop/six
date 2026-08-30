@@ -68,6 +68,25 @@ object LivePages {
 
     operator fun get(tabId: UUID): WebView? = live[tabId]
 
+    /**
+     * Runs a script in a page and hands back what it returned, as JSON.
+     *
+     * The script is a function *body* — it ends in `return {…}` — so it is wrapped before it is run.
+     * `evaluateJavascript` takes a callback, which is the one place this platform is easier than the
+     * Mac: `WebPage.callJavaScript` has no await, so a page script there has to be synchronous and
+     * polled for.
+     *
+     * Null when the column has no live page. A discarded column cannot be read: there is nothing
+     * loaded to read from, and loading it to find out would be a page request the user did not make.
+     */
+    fun evaluate(tabId: UUID?, script: String, then: (String?) -> Unit) {
+        val page = tabId?.let { live[it] } ?: return then(null)
+        page.evaluateJavascript("(function(){$script})()") { value ->
+            // A script that returned nothing comes back as the four characters `null`.
+            then(value?.takeIf { it != "null" })
+        }
+    }
+
     /** True when the page took the gesture, so the app should not. */
     fun goBack(tabId: UUID?): Boolean {
         val page = tabId?.let { live[it] } ?: return false

@@ -46,4 +46,13 @@
     <string name="this_page">This page</string>
     <string name="new_private_window">New Private Window</string>
     <string name="close_private_browsing">Close Private Browsing</string>
+    <string name="bookmarks">Bookmarks</string>
+    <string name="bookmarks_ellipsis">Bookmarks\u2026</string>
+    <string name="add_bookmark">Add Bookmark</string>
+    <string name="bookmarks_empty">Nothing saved yet</string>
+    <string name="bookmark_nothing_loaded">Nothing is loaded in this window</string>
+    <string name="bookmark_no_text">The page has no readable text</string>
+    <string name="bookmark_private">Private browsing keeps no bookmarks</string>
+    <string name="bookmark_failed">The page could not be saved</string>
+    <string name="remove">Remove</string>
 </resources>

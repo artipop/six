@@ -33,9 +33,9 @@ import org.deffun.six.R
  * overview, and everything else behind `⋯`. The Mac puts these in a menu bar and a top bar; a phone
  * has neither to give away.
  *
- * The menu is shorter than the iPhone's, and shorter honestly. Bookmarks are not built yet, and
- * filter lists and extensions are out of scope outright (docs/android.md) — a menu item that opens
- * an empty sheet is worse than one that is not there.
+ * The menu is shorter than the iPhone's, and shorter honestly: filter lists and extensions are out
+ * of scope outright (docs/android.md), and a menu item that opens an empty sheet is worse than one
+ * that is not there.
  */
 @Composable
 fun PhoneToolbar(
@@ -51,6 +51,9 @@ fun PhoneToolbar(
     onToggleOverview: () -> Unit,
     onShowHistory: () -> Unit,
     onShowPermissions: () -> Unit,
+    onShowBookmarks: () -> Unit,
+    canAddBookmark: Boolean,
+    onAddBookmark: () -> Unit,
     onClearHistory: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -100,6 +103,13 @@ fun PhoneToolbar(
                     }
                     HorizontalDivider()
                     DropdownMenuItem(
+                        text = { Text(stringResource(R.string.bookmarks_ellipsis)) },
+                        onClick = {
+                            menuOpen = false
+                            onShowBookmarks()
+                        },
+                    )
+                    DropdownMenuItem(
                         text = { Text(stringResource(R.string.history_ellipsis)) },
                         onClick = {
                             menuOpen = false
@@ -113,6 +123,16 @@ fun PhoneToolbar(
                             onShowPermissions()
                         },
                     )
+                    if (canAddBookmark) {
+                        HorizontalDivider()
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.add_bookmark)) },
+                            onClick = {
+                                menuOpen = false
+                                onAddBookmark()
+                            },
+                        )
+                    }
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.clear_history_ellipsis)) },
                         onClick = {
