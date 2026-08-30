@@ -61,12 +61,12 @@ class HistoryStore(private val database: AppDatabase) {
     /** Every visit of the profile, newest first. */
     fun entries(profileId: UUID, limit: Int = Int.MAX_VALUE): List<Visit> {
         val visits = mutableListOf<Visit>()
-        database.connection.prepare(
+        database.prepare(
             """
             SELECT "id", "profileID", "url", "title", "visitedAt" FROM "visits"
             WHERE "profileID" = ? ORDER BY "visitedAt" DESC LIMIT ?
             """.trimIndent(),
-        ).use { statement ->
+        ) { statement ->
             statement.bindText(1, profileId.toSqlText())
             statement.bindLong(2, limit.toLong())
             while (statement.step()) visits.add(statement.readVisit())
@@ -75,14 +75,14 @@ class HistoryStore(private val database: AppDatabase) {
     }
 
     fun remove(id: UUID) {
-        database.connection.prepare("""DELETE FROM "visits" WHERE "id" = ?""").use {
+        database.prepare("""DELETE FROM "visits" WHERE "id" = ?""") {
             it.bindText(1, id.toSqlText())
             it.step()
         }
     }
 
     fun clear(profileId: UUID) {
-        database.connection.prepare("""DELETE FROM "visits" WHERE "profileID" = ?""").use {
+        database.prepare("""DELETE FROM "visits" WHERE "profileID" = ?""") {
             it.bindText(1, profileId.toSqlText())
             it.step()
         }
@@ -96,17 +96,17 @@ class HistoryStore(private val database: AppDatabase) {
             if (url != null) append(""" AND "url" = ?""")
             append(""" ORDER BY "visitedAt" DESC LIMIT 1""")
         }
-        database.connection.prepare(sql).use { statement ->
+        return database.prepare(sql) { statement ->
             statement.bindText(1, profileId.toSqlText())
             if (url != null) statement.bindText(2, url)
-            return if (statement.step()) statement.readVisit() else null
+            if (statement.step()) statement.readVisit() else null
         }
     }
 
     private fun insert(visit: Visit) {
-        database.connection.prepare(
+        database.prepare(
             """INSERT INTO "visits" ("id", "profileID", "url", "title", "visitedAt") VALUES (?, ?, ?, ?, ?)""",
-        ).use { statement ->
+        ) { statement ->
             statement.bindText(1, visit.id.toSqlText())
             statement.bindText(2, visit.profileId.toSqlText())
             statement.bindText(3, visit.url)
@@ -117,9 +117,9 @@ class HistoryStore(private val database: AppDatabase) {
     }
 
     private fun update(visit: Visit) {
-        database.connection.prepare(
+        database.prepare(
             """UPDATE "visits" SET "title" = ?, "visitedAt" = ? WHERE "id" = ?""",
-        ).use { statement ->
+        ) { statement ->
             statement.bindText(1, visit.title)
             statement.bindText(2, GrdbDate.format(visit.visitedAt))
             statement.bindText(3, visit.id.toSqlText())

@@ -10,12 +10,11 @@ package org.deffun.six.core
  */
 class SettingsStore(private val database: AppDatabase) {
 
-    operator fun get(key: String): String? {
-        database.connection.prepare("""SELECT "value" FROM "settings" WHERE "key" = ?""").use {
+    operator fun get(key: String): String? =
+        database.prepare("""SELECT "value" FROM "settings" WHERE "key" = ?""") {
             it.bindText(1, key)
-            return if (it.step()) it.getText(0) else null
+            if (it.step()) it.getText(0) else null
         }
-    }
 
     /**
      * An explicit upsert, and not because the schema forgot to provide one.
@@ -27,12 +26,12 @@ class SettingsStore(private val database: AppDatabase) {
      * was found. The whole schema is written this way, so the same is true of every table here.
      */
     operator fun set(key: String, value: String) {
-        database.connection.prepare(
+        database.prepare(
             """
             INSERT INTO "settings" ("key", "value") VALUES (?, ?)
             ON CONFLICT("key") DO UPDATE SET "value" = excluded."value"
             """.trimIndent(),
-        ).use {
+        ) {
             it.bindText(1, key)
             it.bindText(2, value)
             it.step()
@@ -40,7 +39,7 @@ class SettingsStore(private val database: AppDatabase) {
     }
 
     fun remove(key: String) {
-        database.connection.prepare("""DELETE FROM "settings" WHERE "key" = ?""").use {
+        database.prepare("""DELETE FROM "settings" WHERE "key" = ?""") {
             it.bindText(1, key)
             it.step()
         }
@@ -48,7 +47,7 @@ class SettingsStore(private val database: AppDatabase) {
 
     fun all(): Map<String, String> {
         val settings = LinkedHashMap<String, String>()
-        database.connection.prepare("""SELECT "key", "value" FROM "settings" ORDER BY "key"""").use {
+        database.prepare("""SELECT "key", "value" FROM "settings" ORDER BY "key"""") {
             while (it.step()) settings[it.getText(0)] = it.getText(1)
         }
         return settings

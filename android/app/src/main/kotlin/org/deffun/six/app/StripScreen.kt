@@ -172,6 +172,9 @@ fun StripScreen(
                             viewModel.onHistoryChanged(column.tabId, back, forward)
                         },
                         onPageFinished = { viewModel.onPageFinished(column.tabId) },
+                        onLoadFailed = { code, description ->
+                            viewModel.onLoadFailed(column.tabId, code, description)
+                        },
                         thumbnail = viewModel::thumbnail,
                         onPermissionRequest = { asked, origin, grant ->
                             viewModel.onPagePermissionRequest(column.tabId, asked, origin, grant)
@@ -286,6 +289,7 @@ private fun ColumnWindow(
     onTitleChanged: (String) -> Unit,
     onHistoryChanged: (Boolean, Boolean) -> Unit,
     onPageFinished: () -> Unit,
+    onLoadFailed: (Int, String) -> Unit,
     thumbnail: suspend (UUID) -> ImageBitmap?,
     onPermissionRequest: (List<SitePermission>, String?, (Boolean) -> Unit) -> Unit,
     onGone: () -> Unit,
@@ -340,6 +344,7 @@ private fun ColumnWindow(
                     onTitleChanged = onTitleChanged,
                     onHistoryChanged = onHistoryChanged,
                     onPageFinished = onPageFinished,
+                    onLoadFailed = onLoadFailed,
                     onPermissionRequest = onPermissionRequest,
                     onGone = onGone,
                     onDialog = onDialog,

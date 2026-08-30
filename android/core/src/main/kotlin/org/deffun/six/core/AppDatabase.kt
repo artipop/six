@@ -1,10 +1,13 @@
 package org.deffun.six.core
 
 import androidx.sqlite.SQLiteConnection
+import androidx.sqlite.SQLiteStatement
 import androidx.sqlite.SQLiteDriver
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import androidx.sqlite.execSQL
 import java.io.File
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 
 /**
  * The one SQLite file, opened here the way the Mac opens it.
@@ -35,8 +38,39 @@ import java.io.File
  * it: no `SELECT *` across the schema, no schema-wide maintenance, no `VACUUM`.
  */
 class AppDatabase private constructor(
-    val connection: SQLiteConnection,
+    private val handle: SQLiteConnection,
 ) : AutoCloseable {
+
+    /**
+     * One connection, one thread at a time.
+     *
+     * A SQLite connection is not a thing several callers may use at once, and this one has several:
+     * a page committing a visit, the snapshot being written, a bookmark being saved — all on the IO
+     * dispatcher, all at once. Without this, two of them interleave and the second gets `cannot
+     * start a transaction within a transaction`, which is a crash rather than a lost write.
+     *
+     * GRDB gives the Mac the same guarantee by owning a writer queue; here it is a reentrant lock,
+     * reentrant so that a store may take it around a group of statements that are themselves already
+     * inside a transaction.
+     *
+     * Found by running the app, not by a test: every test until now used one database from one
+     * thread, which is the one shape this problem cannot happen in.
+     */
+    private val lock = ReentrantLock()
+
+    /**
+     * The connection, for the length of one piece of work.
+     *
+     * Everything that touches SQLite goes through here. Handing the connection out as a property was
+     * what made it possible to use it from two threads without noticing.
+     */
+    fun <T> withConnection(body: (SQLiteConnection) -> T): T = lock.withLock { body(handle) }
+
+    /** One prepared statement, used and closed, with the connection held for exactly that long. */
+    fun <T> prepare(sql: String, body: (SQLiteStatement) -> T): T =
+        withConnection { connection -> connection.prepare(sql).use(body) }
+
+    fun execute(sql: String) = withConnection { it.execSQL(sql) }
 
     data class Migration(val identifier: String, val statements: List<String>)
 
@@ -148,13 +182,13 @@ class AppDatabase private constructor(
     }
 
     /** Identifiers already recorded in the file, whether or not this build knows them. */
-    fun appliedMigrations(): Set<String> {
+    fun appliedMigrations(): Set<String> = withConnection { connection ->
         connection.execSQL("""CREATE TABLE IF NOT EXISTS grdb_migrations (identifier TEXT NOT NULL PRIMARY KEY)""")
         val applied = LinkedHashSet<String>()
         connection.prepare("SELECT identifier FROM grdb_migrations").use { statement ->
             while (statement.step()) applied.add(statement.getText(0))
         }
-        return applied
+        applied
     }
 
     private fun migrate() {
@@ -162,26 +196,32 @@ class AppDatabase private constructor(
         for (migration in MIGRATIONS) {
             if (migration.identifier in applied) continue
             transaction {
-                for (sql in migration.statements) connection.execSQL(sql.trimIndent())
-                connection.prepare("INSERT INTO grdb_migrations (identifier) VALUES (?)").use {
-                    it.bindText(1, migration.identifier)
-                    it.step()
+                withConnection { connection ->
+                    for (sql in migration.statements) connection.execSQL(sql.trimIndent())
+                    connection.prepare("INSERT INTO grdb_migrations (identifier) VALUES (?)").use {
+                        it.bindText(1, migration.identifier)
+                        it.step()
+                    }
                 }
             }
         }
     }
 
-    fun <T> transaction(body: () -> T): T {
-        connection.execSQL("BEGIN")
+    /**
+     * A transaction, held for as long as [body] runs — and holding the connection with it, so no
+     * other caller can begin one inside it.
+     */
+    fun <T> transaction(body: () -> T): T = lock.withLock {
+        handle.execSQL("BEGIN")
         try {
             val result = body()
-            connection.execSQL("COMMIT")
-            return result
+            handle.execSQL("COMMIT")
+            result
         } catch (error: Throwable) {
-            runCatching { connection.execSQL("ROLLBACK") }
+            runCatching { handle.execSQL("ROLLBACK") }
             throw error
         }
     }
 
-    override fun close() = connection.close()
+    override fun close() = lock.withLock { handle.close() }
 }

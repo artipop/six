@@ -110,9 +110,9 @@ class BookmarkStore(
 
     fun chunks(bookmarkId: UUID): List<BookmarkChunk> {
         val chunks = mutableListOf<BookmarkChunk>()
-        database.connection.prepare(
+        database.prepare(
             """SELECT "id", "bookmarkID", "ord", "text" FROM "bookmark_chunks" WHERE "bookmarkID" = ? ORDER BY "ord"""",
-        ).use { statement ->
+        ) { statement ->
             statement.bindText(1, bookmarkId.toSqlText())
             while (statement.step()) {
                 chunks.add(
@@ -204,7 +204,7 @@ class BookmarkStore(
     private fun upsert(bookmark: Bookmark) {
         // An explicit upsert: `ON CONFLICT REPLACE` on this schema binds to NOT NULL, not to the
         // primary key, so a plain insert on an existing id raises rather than replacing.
-        database.connection.prepare(
+        database.prepare(
             """
             INSERT INTO "bookmarks" (
               "id", "profileID", "url", "title", "excerpt", "siteName", "imageURL", "fileName",
@@ -220,7 +220,7 @@ class BookmarkStore(
               "refreshedAt" = excluded."refreshedAt", "contentHash" = excluded."contentHash",
               "refreshError" = excluded."refreshError"
             """.trimIndent(),
-        ).use { statement ->
+        ) { statement ->
             statement.bindText(1, bookmark.id.toSqlText())
             statement.bindText(2, bookmark.profileId.toSqlText())
             statement.bindText(3, bookmark.url)
@@ -245,9 +245,9 @@ class BookmarkStore(
     /** Replaced whole: a page re-read has different passages, and half of each would be worse. */
     private fun replaceChunks(bookmark: Bookmark, texts: List<String>) {
         execute("""DELETE FROM "bookmark_chunks" WHERE "bookmarkID" = ?""", bookmark.id.toSqlText())
-        database.connection.prepare(
+        database.prepare(
             """INSERT INTO "bookmark_chunks" ("id", "bookmarkID", "ord", "text") VALUES (?, ?, ?, ?)""",
-        ).use { statement ->
+        ) { statement ->
             texts.forEachIndexed { ord, text ->
                 statement.reset()
                 statement.bindText(1, UUID.randomUUID().toSqlText())
@@ -260,7 +260,7 @@ class BookmarkStore(
     }
 
     private fun execute(sql: String, vararg arguments: String) {
-        database.connection.prepare(sql).use { statement ->
+        database.prepare(sql) { statement ->
             arguments.forEachIndexed { index, value -> statement.bindText(index + 1, value) }
             statement.step()
         }
@@ -268,7 +268,7 @@ class BookmarkStore(
 
     private fun query(sql: String, vararg arguments: String): List<Bookmark> {
         val bookmarks = mutableListOf<Bookmark>()
-        database.connection.prepare(sql).use { statement ->
+        database.prepare(sql) { statement ->
             arguments.forEachIndexed { index, value -> statement.bindText(index + 1, value) }
             while (statement.step()) bookmarks.add(statement.readBookmark())
         }

@@ -143,9 +143,9 @@ class BookmarkStoreTest {
         val saved = store.save(page(), "https://example.org/pilaf", "fallback", profile, "Personal")
 
         // What the Mac would have written after embedding it.
-        database.connection.prepare(
+        database.prepare(
             """UPDATE "bookmarks" SET "indexedAt" = ?, "embeddingModel" = ?, "indexError" = ? WHERE "id" = ?""",
-        ).use {
+        ) {
             it.bindText(1, GrdbDate.format(Instant.parse("2026-08-02T09:00:00Z")))
             it.bindText(2, "multilingual-e5-small")
             it.bindText(3, "a note from the Mac")

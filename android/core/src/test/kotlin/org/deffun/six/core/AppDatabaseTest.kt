@@ -67,7 +67,7 @@ class AppDatabaseTest {
     @Test
     fun migrationsAreTrackedByNameAndNotByUserVersion() {
         open().use { database ->
-            database.connection.prepare("PRAGMA user_version").use {
+            database.prepare("PRAGMA user_version") {
                 assertTrue(it.step())
                 assertEquals(0L, it.getLong(0))
             }
@@ -92,7 +92,7 @@ class AppDatabaseTest {
     fun aNewerMacsMigrationsAreLeftAlone() {
         val file = File(directory, AppDatabase.FILE_NAME)
         AppDatabase.open(file).use { database ->
-            database.connection.prepare("INSERT INTO grdb_migrations (identifier) VALUES (?)").use {
+            database.prepare("INSERT INTO grdb_migrations (identifier) VALUES (?)") {
                 it.bindText(1, "v9 something Android has never seen")
                 it.step()
             }
@@ -160,21 +160,21 @@ class AppDatabaseTest {
     fun theTablesAreStrict() {
         open().use { database ->
             assertFailsWith<Throwable>("STRICT allowed text in an INTEGER column") {
-                database.connection.execSQL(
+                database.execute(
                     """INSERT INTO "bookmark_chunks" ("id", "bookmarkID", "ord", "text") VALUES ('a','b','not a number','t')""",
                 )
             }
             assertFailsWith<Throwable>("STRICT allowed a BLOB in a TEXT column") {
-                database.connection.execSQL(
+                database.execute(
                     """INSERT INTO "bookmark_chunks" ("id", "bookmarkID", "ord", "text") VALUES ('a','b',0,x'00')""",
                 )
             }
             // And the conversion it does allow, so the boundary is documented by the test rather
             // than by the next person's surprise.
-            database.connection.execSQL(
+            database.execute(
                 """INSERT INTO "bookmark_chunks" ("id", "bookmarkID", "ord", "text") VALUES ('a','b',0,5.5)""",
             )
-            database.connection.prepare("""SELECT "text" FROM "bookmark_chunks" WHERE "id" = 'a'""").use {
+            database.prepare("""SELECT "text" FROM "bookmark_chunks" WHERE "id" = 'a'""") {
                 assertTrue(it.step())
                 assertEquals("5.5", it.getText(0))
             }
@@ -195,14 +195,14 @@ class AppDatabaseTest {
             val history = HistoryStore(database)
             history.record("https://example.org/", "Example", profile)
 
-            database.connection.prepare("""SELECT "profileID" FROM "visits" LIMIT 1""").use {
+            database.prepare("""SELECT "profileID" FROM "visits" LIMIT 1""") {
                 assertTrue(it.step())
                 assertEquals("ed2fced9-98a6-4f1a-b360-3bd6d9887847", it.getText(0))
             }
             // The half that actually bites. `UUID.toString()` is already lowercase in Java, so the
             // uppercase form only ever arrives by hand — from someone reaching for the convention
             // `state.json` uses. It matches nothing, and says nothing about why.
-            database.connection.prepare("""SELECT count(*) FROM "visits" WHERE "profileID" = ?""").use {
+            database.prepare("""SELECT count(*) FROM "visits" WHERE "profileID" = ?""") {
                 it.bindText(1, profile.toString().uppercase())
                 assertTrue(it.step())
                 assertEquals(0L, it.getLong(0), "SQLite text comparison stopped being case-sensitive")
@@ -344,17 +344,16 @@ class AppDatabaseTest {
 
     // MARK: -
 
-    private fun AppDatabase.hasTable(name: String): Boolean {
-        connection.prepare("SELECT count(*) FROM sqlite_master WHERE type='table' AND name = ?").use {
+    private fun AppDatabase.hasTable(name: String): Boolean =
+        prepare("SELECT count(*) FROM sqlite_master WHERE type='table' AND name = ?") {
             it.bindText(1, name)
             it.step()
-            return it.getLong(0) > 0
+            it.getLong(0) > 0
         }
-    }
 
     private fun AppDatabase.columns(table: String): List<String> {
         val names = mutableListOf<String>()
-        connection.prepare("SELECT name FROM pragma_table_info(?)").use {
+        prepare("SELECT name FROM pragma_table_info(?)") {
             it.bindText(1, table)
             while (it.step()) names.add(it.getText(0))
         }

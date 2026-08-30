@@ -8,6 +8,8 @@ import android.webkit.JsResult
 import android.webkit.PermissionRequest
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.runtime.Composable
@@ -42,6 +44,7 @@ fun PageView(
     onTitleChanged: (String) -> Unit,
     onHistoryChanged: (canGoBack: Boolean, canGoForward: Boolean) -> Unit,
     onPageFinished: () -> Unit,
+    onLoadFailed: (code: Int, description: String) -> Unit,
     onPermissionRequest: (List<org.deffun.six.core.SitePermission>, String?, (Boolean) -> Unit) -> Unit,
     onGone: () -> Unit,
     onDialog: (org.deffun.six.core.PageDialogRequest, (org.deffun.six.core.PageDialogAnswer) -> Unit) -> Unit,
@@ -62,6 +65,11 @@ fun PageView(
                 // profile is that no request is ever made against the wrong cookie jar.
                 WebProfiles.attach(this, profileStoreName)
 
+                // The engine paints its own error pages and its own dark mode over this; without an
+                // explicit background the view is black until something paints, and a page with a
+                // transparent body shows black through it.
+                setBackgroundColor(android.graphics.Color.WHITE)
+
                 settings.javaScriptEnabled = true
                 settings.domStorageEnabled = true
                 // A browser is what this is; the default is a WebView pretending to be an app.
@@ -72,6 +80,23 @@ fun PageView(
                     override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
                         onPageStarted(url)
                         onHistoryChanged(view.canGoBack(), view.canGoForward())
+                    }
+
+                    /**
+                     * A page that did not load.
+                     *
+                     * Only the main frame: a tracker that failed inside a page is not a page that
+                     * failed, and reporting it as one would make every ordinary page look broken.
+                     * The engine still shows its own error page — this is so the browser knows too,
+                     * which is the difference between a failure and a silence.
+                     */
+                    override fun onReceivedError(
+                        view: WebView,
+                        request: WebResourceRequest,
+                        error: WebResourceError,
+                    ) {
+                        if (!request.isForMainFrame) return
+                        onLoadFailed(error.errorCode, error.description?.toString().orEmpty())
                     }
 
                     override fun onPageFinished(view: WebView, url: String) {

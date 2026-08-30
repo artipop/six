@@ -674,6 +674,19 @@ class SixViewModel(application: Application) : AndroidViewModel(application) {
         save()
     }
 
+    /**
+     * The page did not load. The engine shows its own error page either way; this is so the browser
+     * knows, which is what makes a failure something that can be said out loud rather than a window
+     * that quietly shows nothing.
+     */
+    fun onLoadFailed(tabId: UUID, code: Int, description: String) {
+        android.util.Log.w("six", "load failed in $tabId: $code $description")
+        _state.update { current ->
+            val tab = current.tabs[tabId] ?: return@update current
+            current.copy(tabs = current.tabs + (tabId to tab.copy(isLoading = false)))
+        }
+    }
+
     fun onPageFinished(tabId: UUID) {
         _state.update { current ->
             val tab = current.tabs[tabId] ?: return@update current
