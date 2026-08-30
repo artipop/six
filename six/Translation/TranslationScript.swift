@@ -190,11 +190,27 @@ nonisolated enum TranslationScript {
         }
     }
 
+    /// An entry is only worth putting back if it was ever written over, and most of them are not:
+    /// `collect` registers the whole page at once while translation arrives a batch at a time, so a
+    /// run stopped early — a language still downloading, another language picked, a page navigated
+    /// away from — leaves hundreds of entries that were never touched.
+    ///
+    /// Their `original` is `undefined`, and `node.data = undefined` does not throw. It writes the
+    /// **string** `"undefined"`. Restoring an interrupted run used to replace most of the page with
+    /// that word, which is as bad as this code can get: not a failure to translate, but a page
+    /// destroyed by the thing meant to undo the translation.
+    ///
+    /// `null` is a different answer from `undefined` here and has to stay one — an attribute that
+    /// was remembered as absent is removed, an attribute never remembered is left alone.
     function putBack(entry) {
         if (entry.kind === 'text') {
+            if (entry.original === undefined) return;
             entry.node.data = entry.original;
         } else if (entry.kind === 'flat') {
+            if (entry.originals === undefined) return;
             for (let i = 0; i < entry.nodes.length; i++) entry.nodes[i].data = entry.originals[i];
+        } else if (entry.original === undefined) {
+            return;
         } else if (entry.original === null) {
             entry.el.removeAttribute(entry.attr);
         } else {

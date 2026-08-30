@@ -128,6 +128,23 @@ final class PageTranslator {
     private var cache: [UUID: [Int: String]] = [:]
     private var loops: [UUID: Task<Void, Never>] = [:]
 
+    /// Which run of a page is the current one.
+    ///
+    /// A run is a long chain of awaits started from a button, and the button can be pressed again
+    /// before it ends — picking a second language is exactly that. The task itself is not held by
+    /// anyone who could cancel it, so instead every run carries a number, and after each await it
+    /// checks that it is still the run this page is having. A stale run stops writing rather than
+    /// racing the new one into the same page.
+    private var tokens: [UUID: Int] = [:]
+
+    private func begin(_ id: UUID) -> Int {
+        let token = (tokens[id] ?? 0) + 1
+        tokens[id] = token
+        return token
+    }
+
+    private func isCurrent(_ id: UUID, _ token: Int) -> Bool { tokens[id] == token }
+
     /// The engine in use. Set by the front, which owns the choice.
     var engine: (any PageTranslating)?
 
@@ -175,11 +192,12 @@ final class PageTranslator {
     ) async {
         guard let engine else { return }
         stop(id)                                        // one run per page
+        let token = begin(id)
 
         states[id] = TabTranslation(source: source, target: target,
                                     phase: .working(done: 0, of: 0), engine: engine.name)
         cache[id] = [:]
-        defer { engine.finishedRun() }
+        defer { if isCurrent(id, token) { engine.finishedRun() } }
 
         do {
             // Whatever the page is carrying belongs to the language being left. Without this a
@@ -190,6 +208,7 @@ final class PageTranslator {
             let collected = try await page.runScript(
                 TranslationScript.collect, arguments: ["budget": budget]
             )
+            guard isCurrent(id, token) else { return }
             let found = try Self.decode(collected, as: Collected.self)
             if let refusal = TranslationPlan(unsupported: found.unsupported).refusal {
                 states[id]?.phase = .failed(refusal)
@@ -213,11 +232,16 @@ final class PageTranslator {
                                                  characters: limits.characters) {
                 try Task.checkCancellation()
                 let translated = try await engine.translate(batch, from: source, to: target)
+                // The reader picked another language while this batch was in the air. Its words
+                // belong to a page that no longer exists; writing them now would interleave two
+                // languages into one page.
+                guard isCurrent(id, token) else { return }
                 try await write(translated, to: page, id: id, target: target)
                 done += batch.count
                 states[id]?.phase = .working(done: done, of: total)
             }
 
+            guard isCurrent(id, token) else { return }
             states[id]?.phase = .done
             // Only now start watching: a feed that hydrates while the first pass is still running
             // would have its new text collected twice.
@@ -226,6 +250,7 @@ final class PageTranslator {
         } catch is CancellationError {
             // The page went somewhere else. Its state went with it.
         } catch {
+            guard isCurrent(id, token) else { return }
             states[id]?.phase = .failed(error.localizedDescription)
         }
     }
@@ -337,6 +362,7 @@ final class PageTranslator {
 
     func forget(_ id: UUID) {
         stop(id)
+        tokens[id] = (tokens[id] ?? 0) + 1          // whatever is still in flight is now stale
         states[id] = nil
         cache[id] = nil
     }
