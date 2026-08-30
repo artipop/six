@@ -173,6 +173,22 @@
         }
       }
     },
+    "%@ wants to run %@ on %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ wants to run %2$@ on %3$@."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ хочет выполнить %2$@ на сервере %3$@."
+          }
+        }
+      }
+    },
     "%@ wants to use your %@." : {
       "localizations" : {
         "en" : {
@@ -325,6 +341,32 @@
         }
       }
     },
+    "%lld of %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld of %2$lld"
+          }
+        }
+      }
+    },
+    "%lld of %lld draw a window" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld of %2$lld draw a window"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld из %2$lld рисуют окно"
+          }
+        }
+      }
+    },
     "%lld rules" : {
       "localizations" : {
         "en" : {
@@ -373,6 +415,16 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "%lld tools, no interface" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld инструментов, интерфейса нет"
           }
         }
       }
@@ -501,6 +553,9 @@
         }
       }
     },
+    "API Key" : {
+
+    },
     "Add" : {
       "localizations" : {
         "ru" : {
@@ -531,12 +586,52 @@
         }
       }
     },
+    "Add Server…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавить сервер…"
+          }
+        }
+      }
+    },
+    "Add a Server" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавление сервера"
+          }
+        }
+      }
+    },
     "Add a list by address" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Добавить список по адресу"
+          }
+        }
+      }
+    },
+    "Added" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавлен"
+          }
+        }
+      }
+    },
+    "Address" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Адрес"
           }
         }
       }
@@ -701,7 +796,29 @@
         }
       }
     },
+    "An app is a window in the strip, drawn by the server that answered the tool call. A server given to the agent has its tools passed on as six's own — the agent can then open its windows itself." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приложение — это окно в полосе, нарисованное тем сервером, который ответил на вызов инструмента. У сервера, отданного агенту, инструменты уходят агенту как собственные инструменты six — и тогда агент открывает такие окна сам."
+          }
+        }
+      }
+    },
+    "An app is a window in the strip, drawn by the server that answered the tool call. The registry does not say which servers carry one, so six asks them." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приложение — это окно в полосе, нарисованное тем сервером, который ответил на вызов инструмента. Реестр не говорит, у кого из серверов оно есть, поэтому six спрашивает их сам."
+          }
+        }
+      }
+    },
     "Anthropic API Key" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ru" : {
           "stringUnit" : {
@@ -712,6 +829,7 @@
       }
     },
     "Anthropic API Key…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ru" : {
           "stringUnit" : {
@@ -723,6 +841,19 @@
     },
     "Any other colour" : {
 
+    },
+    "Any server speaking the OpenAI /chat/completions format: OpenAI, a gateway, or llama.cpp and Ollama on this machine — those want no key." : {
+
+    },
+    "Apps" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приложения"
+          }
+        }
+      }
     },
     "Ask" : {
       "localizations" : {
@@ -1023,7 +1154,11 @@
         }
       }
     },
+    "Claude" : {
+
+    },
     "Claude unavailable: SDK/OS Foundation Models mismatch" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ru" : {
           "stringUnit" : {
@@ -1143,6 +1278,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ширина колонки"
+          }
+        }
+      }
+    },
+    "Command" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Команда"
           }
         }
       }
@@ -1490,12 +1635,26 @@
         }
       }
     },
+    "Endpoint" : {
+
+    },
     "Error: %@" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ошибка: %@"
+          }
+        }
+      }
+    },
+    "Examples" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Примеры"
           }
         }
       }
@@ -1670,12 +1829,32 @@
         }
       }
     },
+    "Forget the token six holds for this server" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Забыть токен, который six хранит для этого сервера"
+          }
+        }
+      }
+    },
     "Forward" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Вперёд"
+          }
+        }
+      }
+    },
+    "Found" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Найдено"
           }
         }
       }
@@ -1735,6 +1914,26 @@
     },
     "Fullscreen (⌥⇧F)" : {
 
+    },
+    "Give this server's tools to the agent" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отдать инструменты этого сервера агенту"
+          }
+        }
+      }
+    },
+    "Give to the Agent" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отдать агенту"
+          }
+        }
+      }
     },
     "Go to Address" : {
       "localizations" : {
@@ -1909,6 +2108,16 @@
         }
       }
     },
+    "Kind" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тип"
+          }
+        }
+      }
+    },
     "Last refresh failed: %@" : {
       "localizations" : {
         "ru" : {
@@ -1995,12 +2204,32 @@
         }
       }
     },
+    "MCP Apps" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MCP-приложения"
+          }
+        }
+      }
+    },
     "Manage Extensions…" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Управление расширениями…"
+          }
+        }
+      }
+    },
+    "Manage Servers…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Управление серверами…"
           }
         }
       }
@@ -2034,6 +2263,9 @@
           }
         }
       }
+    },
+    "Model Providers…" : {
+
     },
     "Model override (ANTHROPIC_MODEL, optional)" : {
       "localizations" : {
@@ -2343,6 +2575,16 @@
         }
       }
     },
+    "No servers yet" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пока ни одного сервера"
+          }
+        }
+      }
+    },
     "No sites. The shield in a window's address field allows the site it is showing." : {
       "localizations" : {
         "ru" : {
@@ -2379,6 +2621,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Для этого окна ничего нет"
+          }
+        }
+      }
+    },
+    "Nothing in the registry matches." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В реестре ничего не нашлось."
           }
         }
       }
@@ -2515,6 +2767,9 @@
           }
         }
       }
+    },
+    "OpenAI-compatible" : {
+
     },
     "Overview" : {
       "localizations" : {
@@ -2774,6 +3029,9 @@
         }
       }
     },
+    "Remote models unavailable: SDK/OS Foundation Models mismatch" : {
+
+    },
     "Remove" : {
       "localizations" : {
         "ru" : {
@@ -2840,6 +3098,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Убрать из списка"
+          }
+        }
+      }
+    },
+    "Remove this server" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить этот сервер"
           }
         }
       }
@@ -3020,6 +3288,16 @@
         }
       }
     },
+    "Search the MCP registry" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поиск по реестру MCP"
+          }
+        }
+      }
+    },
     "Search the Web" : {
       "localizations" : {
         "ru" : {
@@ -3066,6 +3344,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Сделать six браузером по умолчанию…"
+          }
+        }
+      }
+    },
+    "Shared servers' tools reach the agent as six's own; a tool with an interface opens a window" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Инструменты отданных серверов приходят агенту как собственные инструменты six; инструмент с интерфейсом открывает окно"
           }
         }
       }
@@ -3146,6 +3434,67 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Показан оригинал"
+          }
+        }
+      }
+    },
+    "Sign In" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Войти"
+          }
+        }
+      }
+    },
+    "Sign In…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Войти…"
+          }
+        }
+      }
+    },
+    "Sign Out" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выйти"
+          }
+        }
+      }
+    },
+    "Sign in now, instead of waiting for the server to ask" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Войти сейчас, не дожидаясь, пока сервер попросит"
+          }
+        }
+      }
+    },
+    "Sign-in failed" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Войти не удалось"
+          }
+        }
+      }
+    },
+    "Signed in" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вход выполнен"
           }
         }
       }
@@ -3293,6 +3642,16 @@
         }
       }
     },
+    "The authorization server did not return a code." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сервер авторизации не вернул код."
+          }
+        }
+      }
+    },
     "The last profile stays" : {
 
     },
@@ -3386,6 +3745,16 @@
         }
       }
     },
+    "This server refused six without a token" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Этот сервер отказал six без токена"
+          }
+        }
+      }
+    },
     "Today" : {
       "localizations" : {
         "ru" : {
@@ -3412,6 +3781,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Показать или скрыть обзор"
+          }
+        }
+      }
+    },
+    "Token" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Токен"
           }
         }
       }
@@ -3532,6 +3911,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Две трети"
+          }
+        }
+      }
+    },
+    "URL" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "URL"
           }
         }
       }
@@ -3806,6 +4195,26 @@
         }
       }
     },
+    "You can close this window and go back to six." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Это окно можно закрыть и вернуться в six."
+          }
+        }
+      }
+    },
+    "Yours" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Свои"
+          }
+        }
+      }
+    },
     "_The run failed: %@_" : {
       "localizations" : {
         "ru" : {
@@ -3856,6 +4265,16 @@
         }
       }
     },
+    "did not answer" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "не ответил"
+          }
+        }
+      }
+    },
     "done %@" : {
       "localizations" : {
         "ru" : {
@@ -3895,6 +4314,15 @@
           }
         }
       }
+    },
+    "gpt-5" : {
+
+    },
+    "https://api.openai.com/v1" : {
+
+    },
+    "https://example.com/mcp" : {
+
     },
     "listening at %@" : {
       "localizations" : {
@@ -3966,6 +4394,19 @@
         }
       }
     },
+    "npx -y @modelcontextprotocol/server-map --stdio" : {
+
+    },
+    "optional — sent as a bearer token" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "необязательно — уйдёт как bearer-токен"
+          }
+        }
+      }
+    },
     "or ⌘T" : {
       "localizations" : {
         "ru" : {
@@ -3996,6 +4437,16 @@
         }
       }
     },
+    "sign-in required" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "нужен вход"
+          }
+        }
+      }
+    },
     "six" : {
       "localizations" : {
         "ru" : {
@@ -4015,6 +4466,9 @@
           }
         }
       }
+    },
+    "sk-… (blank for a local server)" : {
+
     },
     "starting…" : {
       "localizations" : {
@@ -4036,6 +4490,16 @@
         }
       }
     },
+    "swept %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "обход %@"
+          }
+        }
+      }
+    },
     "terminal %@" : {
       "localizations" : {
         "ru" : {
@@ -4045,6 +4509,9 @@
           }
         }
       }
+    },
+    "weather" : {
+
     },
     "{question} {workspace} {document} {profile} {sources} are filled in." : {
       "localizations" : {

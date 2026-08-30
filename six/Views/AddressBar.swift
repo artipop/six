@@ -109,6 +109,10 @@ struct AddressBar: View {
     /// that decision is the whole of `IDN`, and a homograph is exactly what it is refusing.
     private func displayString(for url: URL?) -> String {
         guard let url else { return "" }
+        // One of six's own pages is shown whole, scheme and all. Dropping the scheme the way a site
+        // gets it would leave `apps`, which reads like somebody's domain — and the point of a
+        // `six://` address is that it is not one.
+        if BuiltInPage.page(for: url) != nil { return url.absoluteString }
         guard let host = url.host(percentEncoded: false) else { return url.absoluteString }
         let name = IDN.displayHost(host)
         let path = readable(url.path(percentEncoded: false))
@@ -356,7 +360,9 @@ struct AddressBar: View {
     /// icon it would only need sometimes.
     @ViewBuilder
     private var siteIcon: some View {
-        let symbol = tab.currentURL?.scheme == "https" ? "lock.fill" : "globe"
+        let symbol = if tab.builtIn != nil { "gearshape" }
+                     else if tab.currentURL?.scheme == "https" { "lock.fill" }
+                     else { "globe" }
         if let origin, !decided.isEmpty {
             Menu {
                 ForEach(SitePermission.allCases) { permission in

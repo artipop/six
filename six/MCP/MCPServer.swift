@@ -9,6 +9,10 @@ final class MCPServer {
     static let serverInfo: ACPJSON = ["name": "six", "title": "Six Browser", "version": "1.0"]
 
     let catalog: BrowserToolCatalog
+    /// The servers six is itself a host to. Their tools are passed on to the agent under six's own
+    /// name, so a call to one goes through here — which is how six gets to see that the tool carries
+    /// an interface and open a window for it. See [mcp-apps.md](../../docs/mcp-apps.md).
+    weak var apps: MCPAppStore?
 
     init(catalog: BrowserToolCatalog) {
         self.catalog = catalog
@@ -30,13 +34,17 @@ final class MCPServer {
         case "ping":
             return [:]
         case "tools/list":
-            return ["tools": .array(catalog.tools(for: .mcp).map(\.mcpDescriptor))]
+            let own = catalog.tools(for: .mcp).map(\.mcpDescriptor)
+            return ["tools": .array(own + (await apps?.agentTools() ?? []))]
         case "tools/call":
             guard let name = params?["name"]?.stringValue else { throw JSONRPCError.invalidParams("name") }
+            let arguments = params?["arguments"] ?? [:]
+            // A shared server's tool first: six's own names carry no server prefix, so the two sets
+            // cannot collide, and answering here is what puts the window on screen.
+            if let answer = await apps?.callForAgent(name, arguments: arguments) { return answer }
             guard let tool = catalog.tool(named: name), tool.surfaces.contains(.mcp) else {
                 throw JSONRPCError.invalidParams("Unknown tool \(name)")
             }
-            let arguments = params?["arguments"] ?? [:]
             do {
                 return Self.result(try await tool.run(arguments))
             } catch let error as BrowserTool.Failure {

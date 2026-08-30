@@ -10,11 +10,43 @@ import Observation
 import SwiftUI
 import WebKit
 
-/// What a column holds: a web page, or a document — Markdown the user (or an agent) writes, with a
-/// `WebPage` of its own for the rendered preview. The layout does not care which.
+/// What a column holds: a web page; a document — Markdown the user (or an agent) writes, with a
+/// `WebPage` of its own for the rendered preview; an MCP app — somebody else's HTML, served to a
+/// `WebPage` under the policy its server declared (see `MCPAppSession`); or one of six's own pages.
+/// The layout does not care which.
 enum TabContent {
     case web
     case document(TextDocument)
+    case app(MCPAppSession)
+    case builtIn(BuiltInPage)
+}
+
+/// A page six draws itself, addressed like any other.
+///
+/// Not a sheet. A sheet belongs to the application and stops everything else; a browser's answer to
+/// "show me a list of things" is a page — it goes in a column, it has an address, it can be left
+/// open next to what it is about, and the strip already knows how to carry it. The start page is the
+/// same idea without an address of its own.
+nonisolated enum BuiltInPage: String, Codable, Sendable, CaseIterable {
+    /// The MCP servers six is host to, and what they carry (`MCPAppsView`).
+    case apps
+
+    var url: URL { URL(string: "six://\(rawValue)")! }
+
+    var title: String {
+        switch self {
+        case .apps: String(localized: "MCP Apps")
+        }
+    }
+
+    /// The page an address means, when it means one.
+    static func page(for url: URL) -> BuiltInPage? {
+        guard url.scheme?.lowercased() == "six" else { return nil }
+        // `six://apps` puts the name in the host; `six:apps` would put it in the path. Both read the
+        // same to a person typing, so both are taken.
+        let name = (url.host() ?? url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))).lowercased()
+        return BuiltInPage(rawValue: name)
+    }
 }
 
 /// One tab — a `WebPage` (the new SwiftUI-native WebKit model object) bound to a profile, or a
@@ -81,9 +113,27 @@ final class BrowserTab: Identifiable {
         return nil
     }
     var isDocument: Bool { document != nil }
+
+    /// The running app, when this window is one.
+    var app: MCPAppSession? {
+        if case .app(let session) = content { return session }
+        return nil
+    }
+    var isApp: Bool { app != nil }
+
+    /// One of six's own pages, when this window is one.
+    var builtIn: BuiltInPage? {
+        if case .builtIn(let page) = content { return page }
+        return nil
+    }
+    /// A window showing the web: not a document, not an app, not one of six's own pages. What
+    /// history, highlights, bookmarks and the page tools are all about.
+    var isWebPage: Bool { !isDocument && !isApp && builtIn == nil }
     /// A link clicked in a document's preview: the document's own page never navigates away, the
     /// browser opens (or focuses) a window for the URL instead. Set by `BrowserState`.
     @ObservationIgnored var onDocumentLink: ((BrowserTab, URL) -> Void)?
+    /// `six://…` was typed or followed. Set by `BrowserState`, which shows the page.
+    @ObservationIgnored var onBuiltInAddress: ((BrowserTab, BuiltInPage) -> Void)?
     /// The page asked for a second window — a ⌘-click, `target=_blank`, `window.open`. Set by
     /// `BrowserState`, which puts a column next to this one.
     @ObservationIgnored var onNewWindow: ((BrowserTab, URLRequest, Bool) -> Void)?
@@ -201,6 +251,26 @@ final class BrowserTab: Identifiable {
         }
     }
 
+    /// One of six's own pages. Pure SwiftUI, like the start page: no `WebPage` is ever built for it,
+    /// which is the point — a list of servers should not cost a web content process.
+    init(id: UUID = UUID(), profileID: Profile.ID, builtIn: BuiltInPage) {
+        self.id = id
+        self.profileID = profileID
+        dataStore = nil
+        content = .builtIn(builtIn)
+        showsStartPage = false
+    }
+
+    /// An app window. Like a document it belongs to a profile without borrowing its store: an app is
+    /// served from six's own scheme and keeps nothing of anyone's site data.
+    init(id: UUID = UUID(), profileID: Profile.ID, app: MCPAppSession) {
+        self.id = id
+        self.profileID = profileID
+        dataStore = nil
+        content = .app(app)
+        showsStartPage = false
+    }
+
     /// A document window. Its preview page is non-persistent: nothing it renders is anyone's site data.
     init(id: UUID = UUID(), profileID: Profile.ID, document: TextDocument) {
         self.id = id
@@ -232,6 +302,32 @@ final class BrowserTab: Identifiable {
             }
             page = WebPage(configuration: configuration, navigationDecider: decider)
             page.isInspectable = devTools?.isInspectable ?? false
+        } else if let app {
+            // The app's own store is never anyone's: a non-persistent one, thrown away with the
+            // window. Its two documents are served by `MCPAppSchemeHandler`, which is where the
+            // Content-Security-Policy the server declared is actually applied.
+            configuration.websiteDataStore = .nonPersistent()
+            configuration.userContentController = app.contentController
+            if let shell = URLScheme(MCPAppScheme.shell) { configuration.urlSchemeHandlers[shell] = app.schemeHandler }
+            if let content = URLScheme(MCPAppScheme.content) { configuration.urlSchemeHandlers[content] = app.schemeHandler }
+            // The camera and the microphone an app declared are still the profile's question to
+            // answer, asked of the app's origin like any other.
+            let windowID = id
+            let profileID = profileID
+            let permissions = permissions
+            configuration.deviceSensorAuthorization = .init { [weak permissions] permission, _, origin in
+                guard let permissions else { return .deny }
+                return await permissions.decide(permission, origin: origin, in: windowID, profileID: profileID)
+            }
+            let decider = AppNavigationDecider()
+            decider.onLink = { [weak self] url in
+                guard let self else { return }
+                self.onDocumentLink?(self, url)
+            }
+            page = WebPage(configuration: configuration, navigationDecider: decider)
+            page.isInspectable = devTools?.isInspectable ?? false
+            app.page = page
+            _ = page.load(URLRequest(url: app.url))
         } else {
             configuration.websiteDataStore = dataStore ?? .nonPersistent()
             configuration.applicationNameForUserAgent = UserAgent.applicationName
@@ -280,7 +376,7 @@ final class BrowserTab: Identifiable {
     /// Is there any work behind showing this window — a page to build, an address waiting to load? A
     /// window that is ready costs nothing to show, and the focus can be moved through it for free.
     var needsBuilding: Bool {
-        guard !showsStartPage else { return false }
+        guard !showsStartPage, builtIn == nil else { return false }
         return livePage == nil || pendingURL != nil
     }
 
@@ -289,7 +385,7 @@ final class BrowserTab: Identifiable {
     /// A window still on the start page is the exception — six's start page is SwiftUI, and building a
     /// page for it would spend a web content process on a text field.
     func prepareForDisplay() {
-        guard !showsStartPage else { return }
+        guard !showsStartPage, builtIn == nil else { return }
         materialize()
         resumeIfNeeded()
     }
@@ -305,7 +401,7 @@ final class BrowserTab: Identifiable {
         savedForward = page.backForwardList.forwardList.map(\.url) + savedForward
         // A document is never waiting on an address: its preview is rendered from the text again by
         // `DocumentView` as soon as the column is back on screen.
-        if !showsStartPage, !isDocument, let url = page.url { pendingURL = url }
+        if !showsStartPage, isWebPage, let url = page.url { pendingURL = url }
         navigationTask?.cancel()
         navigationTask = nil
         // A question belongs to the page that asked it. This one is going.
@@ -371,15 +467,21 @@ final class BrowserTab: Identifiable {
 
     var title: String {
         if let document { return document.title }
+        if let app { return app.title }
+        if let builtIn { return builtIn.title }
         if showsStartPage { return String(localized: "New Window") }
         if let live = livePage, !live.title.isEmpty { return live.title }
         if !savedTitle.isEmpty { return savedTitle }
         return currentURL?.host() ?? "New Tab"
     }
 
-    /// The page's URL, the one a waiting window will load, or the last one it had. A document has none.
+    /// The page's URL, the one a waiting window will load, or the last one it had. A document has
+    /// none, and neither has an app: `mcp-app://…` is an address nobody can type, revisit or bookmark.
     var currentURL: URL? {
-        guard !isDocument else { return nil }
+        // Six's own pages have an address, and it is the one thing about them worth showing: it can
+        // be typed, and it says what the window is.
+        if let builtIn { return builtIn.url }
+        guard isWebPage else { return nil }
         if let pendingURL { return pendingURL }
         return livePage?.url ?? savedURL
     }
@@ -435,7 +537,13 @@ final class BrowserTab: Identifiable {
     }
 
     func load(_ url: URL) {
-        guard !isDocument else { return }
+        // An address of six's own is not something WebKit can be asked to fetch: it is a page six
+        // draws, so it becomes a window rather than a navigation.
+        if let page = BuiltInPage.page(for: url) {
+            onBuiltInAddress?(self, page)
+            return
+        }
+        guard isWebPage else { return }
         showsStartPage = false
         pendingURL = nil
         savedTitle = ""
@@ -484,6 +592,9 @@ final class BrowserTab: Identifiable {
     /// people actually browse with are the ones that can never be discarded.
     var hasUserInput: Bool {
         get async {
+            // An app is unsaved work by definition — its whole state lives in a document six
+            // cannot rebuild — so it is never the window the budget takes back.
+            if isApp { return true }
             guard let livePage, !isDocument else { return false }
             let script = """
             var drafts = Array.from(document.querySelectorAll('textarea')).some(function (element) {
@@ -617,6 +728,22 @@ enum LinkTrace {
 /// A document's preview only ever shows the document: `load(html:)` and in-page anchors go through,
 /// a link to anywhere else is handed to the browser to open as a window.
 @MainActor
+/// An app never navigates: the shell and the app's frame are the only two documents this window
+/// ever shows, and a link the app's HTML carries becomes a window of six's own — the same answer a
+/// document's preview gives.
+private final class AppNavigationDecider: WebPage.NavigationDeciding {
+    var onLink: ((URL) -> Void)?
+
+    func decidePolicy(for action: WebPage.NavigationAction, preferences: inout WebPage.NavigationPreferences) async -> WKNavigationActionPolicy {
+        guard let url = action.request.url else { return .allow }
+        if url.scheme == MCPAppScheme.shell || url.scheme == MCPAppScheme.content || url.scheme == "about" {
+            return .allow
+        }
+        onLink?(url)
+        return .cancel
+    }
+}
+
 private final class DocumentNavigationDecider: WebPage.NavigationDeciding {
     var onLink: ((URL) -> Void)?
 
@@ -633,7 +760,8 @@ extension URL {
     static func fromUserInput(_ raw: String) -> URL? {
         let text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return nil }
-        if let url = URL(string: text), let scheme = url.scheme, ["http", "https", "file", "about"].contains(scheme) {
+        if let url = URL(string: text), let scheme = url.scheme,
+           ["http", "https", "file", "about", "six"].contains(scheme) {
             return url
         }
         let looksLikeHost = !text.contains(" ") && (text.contains(".") || text.hasPrefix("localhost"))

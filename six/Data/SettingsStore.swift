@@ -46,6 +46,10 @@ final class SettingsStore {
         /// array of hosts).
         case translationTarget = "translation.target"
         case translationHosts = "translation.hosts"
+        /// MCP app servers handed to the agent through `six --mcp` (a JSON array of server ids).
+        case mcpSharedServers = "mcpApps.shared"
+        /// The servers the user added (a JSON array of `MCPServerDefinition`).
+        case mcpCustomServers = "mcpApps.servers"
         /// The strip as it was left: workspaces, columns, and the address each column was on.
         /// On the Mac this lives in the state snapshot beside the database; a front without one
         /// keeps it here, where it is migrated and backed up with everything else.
@@ -77,6 +81,8 @@ final class SettingsStore {
             case .defaultProfile: "six.profile.default"
             case .translationTarget: "six.translation.target"
             case .translationHosts: "six.translation.hosts"
+            case .mcpSharedServers: "six.mcpApps.shared"
+            case .mcpCustomServers: "six.mcpApps.servers"
             case .stripState: "six.strip.state"
             }
         }
@@ -136,6 +142,19 @@ final class SettingsStore {
     var blockingAllowlist: [String] {
         get { decode(.blockingAllowlist) ?? [] }
         set { encode(.blockingAllowlist, newValue) }
+    }
+
+    /// MCP app servers whose tools six passes on to the agent (see docs/mcp-apps.md). Empty by
+    /// default: connecting to a server means launching a process, and that is the user's call.
+    var mcpSharedServers: [String] {
+        get { decode(.mcpSharedServers) ?? [] }
+        set { encode(.mcpSharedServers, newValue) }
+    }
+
+    /// MCP servers the user added by hand, alongside the built-in examples.
+    var mcpCustomServers: [MCPServerDefinition] {
+        get { decode(.mcpCustomServers) ?? [] }
+        set { encode(.mcpCustomServers, newValue) }
     }
 
     /// How often filter lists are fetched again; 0 is never (what is on disk keeps blocking).

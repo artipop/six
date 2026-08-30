@@ -5,14 +5,18 @@ import WebKit
 import UIKit
 #endif
 
-/// On the Mac the binary is two things: the browser, and — with `--mcp` — a stdio MCP server that
-/// relays to the running browser (see `MCPStdioBridge`). The switch happens before AppKit is touched.
+/// On the Mac the binary is three things: the browser; with `--mcp`, a stdio MCP server that relays
+/// to the running browser (see `MCPStdioBridge`); and with `--mcp-probe`, a client that connects to
+/// *someone else's* MCP server and says what it carries (`MCPProbe`, see
+/// [mcp-apps.md](../docs/mcp-apps.md)). Both switches happen before AppKit is touched.
 /// A phone has no second mode: there is no stdio to serve and no agent process to serve it to.
 @main
 enum SixMain {
     static func main() {
         #if os(macOS)
         if MCPStdioBridge.isRequested { MCPStdioBridge.run() }
+        if MCPProbe.isRequested { MCPProbe.run() }
+        if MCPProbe.isCatalogRequested { MCPProbe.runCatalog() }
         signal(SIGPIPE, SIG_IGN) // a vanished MCP client or agent must not kill the app
         #endif
         MainActor.assumeIsolated { sixApp.main() }
@@ -28,6 +32,7 @@ struct sixApp: App {
     #if os(macOS)
     @State private var agentSession: AgentSessionStore
     @State private var mcp: MCPHost
+    @State private var mcpApps: MCPAppStore
     #endif
     @State private var settings: SettingsStore
     @State private var bookmarks: BookmarkStore
@@ -107,6 +112,17 @@ struct sixApp: App {
         assistant.research = research
         let mcp = MCPHost(server: MCPServer(catalog: tools))
         mcp.start()
+        // The other direction: six as a host for servers that carry interfaces (docs/mcp-apps.md).
+        let mcpApps = MCPAppStore()
+        mcpApps.browser = browser
+        mcpApps.agent = agentSession
+        mcpApps.settings = settings
+        // A shared server's tools reach the agent through six's own MCP server, so a call to one
+        // lands here and can open a window before it answers.
+        mcp.server.apps = mcpApps
+        agentSession.appContext = { [weak mcpApps] in mcpApps?.pendingModelContext() ?? [] }
+        mcpApps.watchAppearance()
+        mcpApps.runSelfTestIfRequested()
         FileHandle.standardError.write(Data("[six] \(mcp.status); state at \(store.url.path)\n".utf8))
         #elseif os(iOS)
         FileHandle.standardError.write(Data("[six] state at \(store.url.path)\n".utf8))
@@ -141,6 +157,7 @@ struct sixApp: App {
         #if os(macOS)
         _agentSession = State(initialValue: agentSession)
         _mcp = State(initialValue: mcp)
+        _mcpApps = State(initialValue: mcpApps)
         _research = State(initialValue: research)
         #endif
         _highlights = State(initialValue: highlights)
@@ -172,6 +189,7 @@ struct sixApp: App {
                 .environment(assistant)
                 .environment(agentSession)
                 .environment(mcp)
+                .environment(mcpApps)
                 .environment(settings)
                 .environment(bookmarks)
                 .environment(highlights)
@@ -226,6 +244,7 @@ struct sixApp: App {
             PrivacyCommands(browser: browser, blocker: blocker)
             ExtensionCommands(browser: browser, extensions: extensions)
             DevelopCommands(devTools: devTools)
+            AppCommands(browser: browser, apps: mcpApps)
             HistoryCommands(browser: browser)
             BookmarkCommands(browser: browser, bookmarks: bookmarks, settings: settings)
         }

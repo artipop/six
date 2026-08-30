@@ -247,6 +247,45 @@ struct ExtensionCommands: Commands {
     }
 }
 
+/// The MCP apps six can open — a server, a tool of it that carries an interface, a window.
+///
+/// The list is the servers on `six://apps`, which is also where they are added; picking one here
+/// runs its first app tool. See [mcp-apps.md](../../docs/mcp-apps.md).
+struct AppCommands: Commands {
+    let browser: BrowserState
+    let apps: MCPAppStore
+
+    var body: some Commands {
+        CommandMenu("Apps") {
+            Button("Manage Servers…") { browser.openBuiltIn(.apps) }
+            Divider()
+            if apps.servers.isEmpty {
+                Text("No servers yet")
+            }
+            ForEach(apps.servers) { server in
+                Button(server.name) {
+                    Task { try? await apps.open(server) }
+                }
+            }
+            Divider()
+            // The second half of the menu is not about opening a window: it is about whether the
+            // agent is handed this server's tools at all, and so whether it can open one itself.
+            Menu("Give to the Agent") {
+                ForEach(apps.servers) { server in
+                    Toggle(server.name, isOn: Binding(
+                        get: { apps.isShared(server) },
+                        set: { apps.setShared(server, $0) }))
+                }
+            }
+            .help("Shared servers' tools reach the agent as six's own; a tool with an interface opens a window")
+            if let error = apps.lastError {
+                Divider()
+                Text(error)
+            }
+        }
+    }
+}
+
 /// Developer tools: Safari's inspector on six's pages, and the capture the agent tools read.
 struct DevelopCommands: Commands {
     let devTools: DevToolsStore

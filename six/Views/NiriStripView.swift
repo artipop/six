@@ -230,6 +230,12 @@ private struct ColumnView: View {
                 PermissionBar(tab: tab, question: question)
                 Divider()
             }
+            // An MCP app asking to run one of its server's tools — the same bar, one layer of
+            // trust further out (docs/mcp-apps.md).
+            if let app = tab.app, let request = app.pendingToolRequest {
+                MCPAppBar(session: app, request: request)
+                Divider()
+            }
             // Only while it has something to say. A translated page keeps its state, and a bar
             // that stays up for as long as the page does is chrome charged against every page in
             // the strip — the address field carries "translated" from here on.
@@ -240,6 +246,18 @@ private struct ColumnView: View {
             if tab.showsStartPage {
                 // Pure SwiftUI, so the plain overlay is enough to catch the first click here.
                 StartPage(tab: tab, isActive: isFocused && !browser.layout.isOverview)
+                    .allowsHitTesting(!capturesClicks)
+                    .overlay {
+                        if capturesClicks {
+                            Color.white.opacity(0.001)
+                                .contentShape(Rectangle())
+                                .onTapGesture(perform: activate)
+                        }
+                    }
+            } else if let page = tab.builtIn {
+                // One of six's own, and pure SwiftUI like the start page: no web content process is
+                // spent on a list of servers.
+                BuiltInPageView(page: page, tab: tab)
                     .allowsHitTesting(!capturesClicks)
                     .overlay {
                         if capturesClicks {

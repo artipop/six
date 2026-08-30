@@ -207,6 +207,9 @@ final class AgentSessionStore {
 
     @ObservationIgnored private var liveUpdate: ((LiveUpdate) -> Void)?
 
+    /// What a running MCP app has to add to the next turn. Set by `MCPAppStore`.
+    @ObservationIgnored var appContext: (() -> [ACP.ContentBlock])?
+
     func send(_ text: String, context: [ACP.ContentBlock] = []) {
         Task { await prompt(text, context: context) }
     }
@@ -232,7 +235,10 @@ final class AgentSessionStore {
         state = .prompting
         defer { liveUpdate = nil }
         do {
-            let stop = try await client.prompt(sessionId: sessionId, [.text(text)] + context)
+            // What the running MCP apps want the model to know this turn (`ui/update-model-context`,
+            // see docs/mcp-apps.md). Read once, here, because "next turn" is exactly this moment.
+            let fromApps = appContext?() ?? []
+            let stop = try await client.prompt(sessionId: sessionId, [.text(text)] + fromApps + context)
             if stop != .endTurn { append(.status(String(localized: "Stopped: \(stop.rawValue)"))) }
             state = .ready
             return .finished(stop)

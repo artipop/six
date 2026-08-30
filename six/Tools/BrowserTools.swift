@@ -87,6 +87,11 @@ final class BrowserToolCatalog {
         returns the `[n]` to use inline. `highlight_page` marks the paragraphs of a page that answer a \
         question and returns links to them (`#:~:text=`) for citations that point at the sentences, not the \
         page. Documents appear in `list_workspaces` with `kind: document`; their id is a window id.
+
+        An *app* is a third kind of window: an interface a connected MCP server drew for one of its own tool \
+        calls (`kind: app`, with the server and tool that opened it). You cannot read or drive its page — \
+        `get_page_content` returns what the tool was called with and what it answered, and that is all there \
+        is to read. The window is the answer; describe it, don't narrate it.
         """
 
     func tools(for surface: BrowserTool.Surface) -> [BrowserTool] {
@@ -494,9 +499,18 @@ final class BrowserToolCatalog {
     }
 
     /// A window that is a page, for the tools that read or drive one.
-    private func webTab(_ args: ACPJSON) throws -> BrowserTab {
+    /// A window that is a page, for the tools that read or drive one.
+    ///
+    /// `allowsApps` is for the three that only *watch* — a picture of the window, its console, its
+    /// network. Everything else is refused for an app: its own document is in a frame six never
+    /// scripts, so reading or driving it here would reach only the shell around it, and the shell is
+    /// the bridge to the app's server, which is not somewhere a tool call belongs.
+    private func webTab(_ args: ACPJSON, allowsApps: Bool = false) throws -> BrowserTab {
         let tab = try tab(args)
         guard !tab.isDocument else { throw BrowserTool.Failure(message: "\(Self.describe(tab)) is a document, not a page; use read_document / write_document") }
+        guard allowsApps || !tab.isApp else {
+            throw BrowserTool.Failure(message: "\(Self.describe(tab)) is an MCP app, not a page; use get_page_content for what it is showing")
+        }
         return tab
     }
 
@@ -620,6 +634,11 @@ final class BrowserToolCatalog {
                         window["kind"] = "document"
                         window["url"] = .string("six://document/\(document.id.uuidString)")
                         window["characters"] = .number(Double(document.text.count))
+                    } else if let app = tab.app {
+                        window["kind"] = "app"
+                        window["url"] = .string(app.resource.uri)
+                        window["server"] = .string(app.server.name)
+                        window["tool"] = .string(app.tool.name)
                     } else if tab.isLoading { window["loading"] = true }
                     if position == workspace.focus { window["focused"] = true }
                     return .object(window)
@@ -699,7 +718,7 @@ final class BrowserToolCatalog {
     }
 
     private func consoleMessages(_ args: ACPJSON) throws -> String {
-        let tab = try webTab(args)
+        let tab = try webTab(args, allowsApps: true)
         let devTools = try requireCapture()
         let limit = max(1, args["limit"]?.intValue ?? 100)
         let messages = devTools.consoleMessages(for: tab.id, level: args["level"]?.stringValue, limit: limit)
@@ -709,7 +728,7 @@ final class BrowserToolCatalog {
     }
 
     private func networkRequests(_ args: ACPJSON) throws -> String {
-        let tab = try webTab(args)
+        let tab = try webTab(args, allowsApps: true)
         let devTools = try requireCapture()
         let limit = max(1, args["limit"]?.intValue ?? 100)
         let failedOnly = args["failed_only"]?.boolValue ?? false
@@ -724,7 +743,7 @@ final class BrowserToolCatalog {
     }
 
     private func screenshot(_ args: ACPJSON) async throws -> String {
-        let tab = try webTab(args)
+        let tab = try webTab(args, allowsApps: true)
         await Self.waitForLoad(tab)
         // The whole page, not the part on screen — a screenshot of a column is not what was asked for.
         guard let data = try? await tab.page.exported(as: .image(region: .contents, snapshotWidth: 1200)) else {
@@ -740,6 +759,7 @@ final class BrowserToolCatalog {
     private func pageContent(_ args: ACPJSON) async throws -> String {
         let tab = try tab(args)
         if let document = tab.document { return "\(Self.describe(tab))\n\n\(document.text)" }
+        if let app = tab.app { return "\(Self.describe(tab))\n\n\(app.summaryForModel)" }
         let limit = max(200, args["max_chars"]?.intValue ?? 20_000)
         guard !tab.showsStartPage else { return "\(Self.describe(tab))\n\nThis window shows six's start page; nothing is loaded yet." }
         await Self.waitForLoad(tab)

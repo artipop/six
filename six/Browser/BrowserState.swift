@@ -311,7 +311,11 @@ final class BrowserState {
         return BrowserSnapshot(
             profiles: profiles.filter { !$0.isPrivate },
             selectedProfileID: selected,
-            tabs: tabs.filter { !privateIDs.contains($0.profileID) }.map { tab in
+            // An app window is not saved. What it *is* is a running connection to a server and a
+            // tool call already answered; an address and a title would restore neither, and a blank
+            // window with an app's name on it is worse than no window. Reopening one is Ф4's job
+            // (docs/mcp-apps.md) — until then a strip's apps end with the launch that opened them.
+            tabs: tabs.filter { !privateIDs.contains($0.profileID) && !$0.isApp }.map { tab in
                 var entry = TabSnapshot(id: tab.id, profileID: tab.profileID, url: tab.showsStartPage ? nil : tab.currentURL, title: tab.title)
                 if let document = tab.document {
                     entry.document = DocumentSnapshot(id: document.id, title: document.title, modifiedAt: document.modifiedAt,
@@ -361,6 +365,10 @@ final class BrowserState {
                 let text = documents.load(id: saved.id) ?? "# \(saved.title)\n"
                 let document = TextDocument(id: saved.id, text: text, modifiedAt: saved.modifiedAt, fileURL: saved.fileURL, showsPreview: saved.showsPreview)
                 add(makeDocumentTab(id: tab.id, profile: profile, document: document))
+            } else if let url = tab.url, let page = BuiltInPage.page(for: url) {
+                // A `six://…` window comes back as the page it was, not as a window trying to fetch
+                // an address WebKit has never heard of.
+                add(makeBuiltInTab(id: tab.id, profile: profile, page: page))
             } else {
                 add(makeTab(id: tab.id, profile: profile, restoring: tab.url, title: tab.title))
             }
@@ -548,6 +556,9 @@ final class BrowserState {
 
     private func makeTab(id: UUID = UUID(), profile: Profile, restoring url: URL? = nil, title: String = "") -> BrowserTab {
         let tab = BrowserTab(id: id, profileID: profile.id, dataStore: dataStore(for: profile), restoring: url, title: title)
+        // `six://apps` typed into any window's address field shows the page rather than asking
+        // WebKit to fetch an address it has never heard of.
+        tab.onBuiltInAddress = { [weak self] _, page in self?.openBuiltIn(page) }
         tab.onNavigation = { [weak self] tab, outcome in
             guard let self, let page = tab.livePage, let url = page.url else { return }
             switch outcome {
@@ -683,8 +694,70 @@ final class BrowserState {
         return tab
     }
 
+    // MARK: Six's own pages
+
+    /// Shows one of six's own pages (`six://apps`) — the one that is already open in this profile if
+    /// there is one, otherwise a new column beside the focus.
+    ///
+    /// Focusing rather than opening a second is the difference between a page and a panel: a person
+    /// who asks for the server list twice wants the list, not two of them.
+    @discardableResult
+    func openBuiltIn(_ page: BuiltInPage, in profileID: Profile.ID? = nil) -> BrowserTab {
+        let profile = profiles.first { $0.id == profileID } ?? selectedProfile
+        if let existing = tabs(in: profile.id).first(where: { $0.builtIn == page }) {
+            selectTab(existing.id)
+            return existing
+        }
+        let tab = makeBuiltInTab(profile: profile, page: page)
+        add(tab)
+        if selectedProfileID != profile.id {
+            selectedProfileID = profile.id
+            layout.activeProfileID = profile.id
+        }
+        withAnimation(NiriLayout.switchAnimation) {
+            layout.insertColumn(tabID: tab.id, in: profile.id, workspace: nil, focus: true)
+        }
+        syncSelection()
+        return tab
+    }
+
+    private func makeBuiltInTab(id: UUID = UUID(), profile: Profile, page: BuiltInPage) -> BrowserTab {
+        let tab = BrowserTab(id: id, profileID: profile.id, builtIn: page)
+        tab.onDocumentLink = { [weak self] tab, url in self?.open(url, from: tab) }
+        tab.onBuiltInAddress = { [weak self] _, page in self?.openBuiltIn(page) }
+        return tab
+    }
+
+    // MARK: Apps
+
+    /// Opens an MCP app — a window of the strip drawing a tool's result with the server's own HTML.
+    /// Same placement rules as `newTab`; see [mcp-apps.md](../../docs/mcp-apps.md).
+    @discardableResult
+    func newApp(_ session: MCPAppSession, in profileID: Profile.ID? = nil, workspace: Int? = nil,
+                activate: Bool = true) -> BrowserTab {
+        let profile = profiles.first { $0.id == profileID } ?? selectedProfile
+        let tab = BrowserTab(id: UUID(), profileID: profile.id, app: session)
+        tab.onDocumentLink = { [weak self] tab, url in self?.open(url, from: tab) }
+        // `ui/open-link`: the app asked for a page, and a page in six is a window beside it.
+        session.onOpenLink = { [weak self, weak tab] url in
+            guard let self, let tab else { return }
+            self.open(url, from: tab)
+        }
+        add(tab)
+        if activate, selectedProfileID != profile.id {
+            selectedProfileID = profile.id
+            layout.activeProfileID = profile.id
+        }
+        withAnimation(NiriLayout.switchAnimation) {
+            layout.insertColumn(tabID: tab.id, in: profile.id, workspace: workspace, focus: activate)
+        }
+        if activate { syncSelection() }
+        return tab
+    }
+
     private func makeDocumentTab(id: UUID = UUID(), profile: Profile, document: TextDocument) -> BrowserTab {
         let tab = BrowserTab(id: id, profileID: profile.id, document: document)
+        tab.onBuiltInAddress = { [weak self] _, page in self?.openBuiltIn(page) }
         if !profile.isPrivate { documents.watch(document) } // private: in memory only, like everything else there
         tab.onDocumentLink = { [weak self] tab, url in self?.open(url, from: tab) }
         return tab
@@ -791,6 +864,9 @@ final class BrowserState {
             documents.remove(id: document.id)
             research.removeAll { $0.documentTabID == closed.id }
         }
+        // The app is told it is going before its page is taken away (`ui/resource-teardown`), and
+        // the store hears about it too — a server whose last window closed has no one left to serve.
+        closed.app?.windowClosed()
         let wasActive = closed.profileID == selectedProfileID
         withAnimation(NiriLayout.switchAnimation) {
             layout.removeColumn(tabID: id)

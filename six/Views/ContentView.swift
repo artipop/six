@@ -101,6 +101,9 @@ struct ContentView: View {
                 try? await Task.sleep(for: .seconds(1))
                 agentSession.send(text)
             }
+            // `SIX_MCP_PANEL=1` opens the servers page on launch, so it can be looked at without
+            // reaching for the menu (docs/mcp-apps.md).
+            if ProcessInfo.processInfo.environment["SIX_MCP_PANEL"] != nil { browser.openBuiltIn(.apps) }
             // `SIX_ASSISTANT_SELFTEST="acp:claude-code:open example.com"` does the same through the ⌘K line.
             if let spec = ProcessInfo.processInfo.environment["SIX_ASSISTANT_SELFTEST"],
                let split = spec.range(of: ":", options: .backwards),

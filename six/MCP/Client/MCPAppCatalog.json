@@ -1,0 +1,5000 @@
+{
+  "entries": [
+    {
+      "appTools": [
+        "show-everything"
+      ],
+      "apps": 1,
+      "description": "Still WiP",
+      "id": "everything-app",
+      "name": "(WiP) An everything app",
+      "namespace": "live.alpic.staging.everything-app-7f22928f",
+      "tools": 1,
+      "url": "https://everything-app-7f22928f.staging.alpic.live"
+    },
+    {
+      "appTools": [
+        "hires_list_candidates",
+        "hires_get_candidate",
+        "hires_list_applications",
+        "hires_advance_application",
+        "hires_list_jobs",
+        "hires_get_job",
+        "hires_list_interviews",
+        "hires_create_note"
+      ],
+      "apps": 8,
+      "description": "Official 100Hires MCP: AI ATS & Recruitment Software for candidates, jobs, applications, interviews.",
+      "id": "100hires",
+      "name": "100Hires - AI ATS & Recruitment Software",
+      "namespace": "com.100hires",
+      "tools": 133,
+      "url": "https://mcp.100hires.com/mcp",
+      "websiteURL": "https://100hires.com/mcp"
+    },
+    {
+      "appTools": [
+        "estimate_home_cleaning_cost",
+        "estimate_office_cleaning_cost",
+        "estimate_cleaning_time_and_crew",
+        "calculate_cleaning_chemical_usage"
+      ],
+      "apps": 4,
+      "description": "Free US cleaning cost, time, crew, and chemical-use calculators with visual reports.",
+      "id": "11fgb-cleaning-tools",
+      "name": "11FGB Cleaning Tools",
+      "namespace": "io.github.kossik",
+      "tools": 4,
+      "url": "https://mcp.11fgb.com/mcp"
+    },
+    {
+      "appTools": [
+        "create_public_preview",
+        "list_projects",
+        "continue_project",
+        "act_on_project_os_task",
+        "update_living_plan",
+        "render_project_preview"
+      ],
+      "apps": 6,
+      "description": "Build, version, review, and export websites, web apps, and games from a conversation.",
+      "id": "mcp",
+      "name": "2ools",
+      "namespace": "app.2ools",
+      "tools": 81,
+      "url": "https://2ools.app/mcp",
+      "websiteURL": "https://2ools.app/connect-ai"
+    },
+    {
+      "appTools": [
+        "search_diamonds",
+        "search_engagement_rings",
+        "search_jewelry"
+      ],
+      "apps": 3,
+      "description": "Live lab grown diamond inventory, engagement ring settings, fine jewelry, and diamond buying guides.",
+      "id": "ada-diamonds",
+      "name": "Ada Diamonds",
+      "namespace": "com.adadiamonds",
+      "tools": 7,
+      "url": "https://www.adadiamonds.com/mcp",
+      "websiteURL": "https://www.adadiamonds.com/"
+    },
+    {
+      "appTools": [
+        "search_pets",
+        "get_pet_details",
+        "search_similar_pets",
+        "search_rescuers",
+        "get_rescuer_details"
+      ],
+      "apps": 5,
+      "description": "Cães e gatos para adoção no Brasil, de ONGs e protetores. Busque por cidade, porte, idade e saúde.",
+      "id": "adoteca",
+      "name": "Adoteca — Adoção de Pets no Brasil",
+      "namespace": "br.com.adoteca",
+      "tools": 10,
+      "url": "https://api.adoteca.com.br/mcp",
+      "websiteURL": "https://www.adoteca.com.br"
+    },
+    {
+      "appTools": [
+        "get_community_stats"
+      ],
+      "apps": 1,
+      "description": "Agent Community MCP: member lookup, stats, DMV checks, and proposed .agent name interest.",
+      "id": "mcp-agentcommunity",
+      "name": "Agent Community",
+      "namespace": "org.agentcommunity",
+      "tools": 4,
+      "url": "https://agentcommunity.org/mcp",
+      "websiteURL": "https://agentcommunity.org"
+    },
+    {
+      "appTools": [
+        "get_price_forecast",
+        "get_market_sentiment",
+        "get_top_movers",
+        "forecast_chart",
+        "scan_market"
+      ],
+      "apps": 5,
+      "description": "AI price forecasts, whale flows, market sentiment and prediction signals. 18 tools free, no account.",
+      "id": "einstein",
+      "name": "Agent Einstein — Crypto & Market Intelligence",
+      "namespace": "io.emc2ai",
+      "tools": 38,
+      "url": "https://emc2ai.io/api/mcp",
+      "websiteURL": "https://emc2ai.io/mcp"
+    },
+    {
+      "appTools": [
+        "scan_site",
+        "get_scan"
+      ],
+      "apps": 2,
+      "description": "Scan any URL for AI agent readability — Vercel Spec, llmstxt.org, and agent-protocol manifests.",
+      "id": "agent-ready-mcp",
+      "name": "Agent Ready",
+      "namespace": "io.github.mlava",
+      "tools": 3,
+      "url": "https://agent-ready.dev/api/v1/mcp",
+      "websiteURL": "https://agent-ready.dev"
+    },
+    {
+      "appTools": [
+        "search_docs",
+        "get_doc_page",
+        "list_doc_pages",
+        "list_supported_agents",
+        "list_managed_mcp_tools",
+        "get_latest_release"
+      ],
+      "apps": 6,
+      "description": "Docs for agent-manager, the terminal UI that runs AI coding agents as live tmux sessions.",
+      "id": "agent-manager-docs",
+      "name": "agent-manager.dev documentation",
+      "namespace": "io.github.YoanWai",
+      "tools": 6,
+      "url": "https://agent-manager.dev/mcp",
+      "websiteURL": "https://agent-manager.dev"
+    },
+    {
+      "appTools": [
+        "search_deals",
+        "plan_stack",
+        "compare_vendors",
+        "track_changes"
+      ],
+      "apps": 4,
+      "description": "MCP server aggregating developer infrastructure deals, free tiers, and startup programs",
+      "id": "agentdeals",
+      "name": "AgentDeals",
+      "namespace": "io.github.robhunter",
+      "tools": 12,
+      "url": "https://agentdeals.dev/mcp",
+      "websiteURL": "https://agentdeals.dev"
+    },
+    {
+      "appTools": [
+        "get_fabrication_quote",
+        "refine_quote",
+        "finalize_quote"
+      ],
+      "apps": 3,
+      "description": "Turn designs into shipped parts: quote 3D printing, CNC, and decals, then check out.",
+      "id": "ufp",
+      "name": "Agentic Fabrication Network (AFN)",
+      "namespace": "ai.agenticfabricationnetwork",
+      "tools": 10,
+      "url": "https://agenticfabricationnetwork.ai/mcp"
+    },
+    {
+      "appTools": [
+        "create_auth_session",
+        "send_store_template_to_display",
+        "search_store_templates",
+        "get_store_template_details",
+        "list_displays",
+        "get_display_preview_url"
+      ],
+      "apps": 6,
+      "description": "Display delivery platform for AI agents. Push HTML, dashboards and live data to screens.",
+      "id": "agentview-mcp",
+      "name": "agentView",
+      "namespace": "de.agentview",
+      "tools": 57,
+      "url": "https://agentview.de/mcp",
+      "websiteURL": "https://agentview.de/developers.html"
+    },
+    {
+      "appTools": [
+        "check_ai_visibility"
+      ],
+      "apps": 1,
+      "description": "Free, no signup. Check if ChatGPT, Perplexity & Google AI recommend a brand in 15 markets (GEO/AEO).",
+      "id": "ai-visibility-mcp",
+      "name": "AI Visibility Checker",
+      "namespace": "work.agentexchange.aivisibility",
+      "tools": 2,
+      "url": "https://aivisibility.agentexchange.work/mcp",
+      "websiteURL": "https://aivisibility.agentexchange.work"
+    },
+    {
+      "appTools": [
+        "verify_receipt",
+        "get_sample_receipt"
+      ],
+      "apps": 2,
+      "description": "Verify Seal AI decision receipts: signed evidence anyone can check, no account needed.",
+      "id": "seal",
+      "name": "ai.aqta/seal",
+      "namespace": "ai.aqta",
+      "tools": 10,
+      "url": "https://app.aqta.ai/api/mcp",
+      "websiteURL": "https://app.aqta.ai/demo"
+    },
+    {
+      "appTools": [
+        "fluxink-mcp-chatgpt-show-handwriting-canvas",
+        "fluxink-mcp-chatgpt-create-layout",
+        "fluxink-mcp-chatgpt-show-style-canvas"
+      ],
+      "apps": 3,
+      "description": "Convert handwriting into text, LaTeX math, chemistry, or molecular structures.",
+      "id": "fci-mcp",
+      "name": "ai.fluxink/fci-mcp",
+      "namespace": "ai.fluxink",
+      "tools": 6,
+      "url": "https://mcp.fluxink.ai/servers/f6b6758dba6c4c92b83407a113fdb80b/mcp"
+    },
+    {
+      "appTools": [
+        "alpha_signals",
+        "signal_performance"
+      ],
+      "apps": 2,
+      "description": "AI analyst desk for stocks, options & crypto with sourced trade setups and a public accuracy record.",
+      "id": "marketintell",
+      "name": "ai.marketintell/marketintell",
+      "namespace": "ai.marketintell",
+      "tools": 17,
+      "url": "https://api.marketintell.ai/mcp",
+      "websiteURL": "https://marketintell.ai"
+    },
+    {
+      "appTools": [
+        "view_bom"
+      ],
+      "apps": 1,
+      "description": "Search real parts with datasheet-provenance specs, check compatibility and compose priced BOMs.",
+      "id": "catalog",
+      "name": "ai.partsgraph/catalog",
+      "namespace": "ai.partsgraph",
+      "tools": 11,
+      "url": "https://partsgraph.ai/api/mcp",
+      "websiteURL": "https://partsgraph.ai/catalog"
+    },
+    {
+      "appTools": [
+        "start_eligibility_check",
+        "start_watch"
+      ],
+      "apps": 2,
+      "description": "Travel-upgrade Q&A, live booking eligibility, and operator lookups for airline, cruise, rail.",
+      "id": "upgrade-agent",
+      "name": "ai.upgradeagent/upgrade-agent",
+      "namespace": "ai.upgradeagent",
+      "tools": 17,
+      "url": "https://www.upgradeagent.ai/api/mcp",
+      "websiteURL": "https://www.upgradeagent.ai"
+    },
+    {
+      "appTools": [
+        "find_soundtrack",
+        "search_music",
+        "search_by_reference"
+      ],
+      "apps": 3,
+      "description": "Human-made production music for sync — search by brief or reference, preview, score to picture.",
+      "id": "mcp-ainsof",
+      "name": "AINSOF",
+      "namespace": "io.ainsof",
+      "tools": 12,
+      "url": "https://mcp.ainsof.io",
+      "websiteURL": "https://ainsof.io"
+    },
+    {
+      "appTools": [
+        "baas_provider_comparator",
+        "validate_ap2_mcp_policy",
+        "build_google_ap2_mandate",
+        "score_mcp_readiness",
+        "agentic_mandate_sandbox",
+        "customer_risk_rating",
+        "ap2_aml_mandate_builder",
+        "lint_mcp_tool_definition",
+        "validate_mcp_server_json",
+        "compare_agentic_payment_protocols",
+        "decode_x402_payment",
+        "audit_mcp_oauth",
+        "scan_tool_poisoning",
+        "validate_a2a_agent_card",
+        "inspect_visa_tap_signature",
+        "run_kernel_vm"
+      ],
+      "apps": 16,
+      "description": "530 MCP tools across 561 fintech tools: ChainGraph AP2 decisions, execution_hash. Zero PII.",
+      "id": "tools",
+      "name": "AINumbers Fintech Intelligence Suite",
+      "namespace": "co.ainumbers",
+      "tools": 695,
+      "url": "https://mcp.ainumbers.co/mcp",
+      "websiteURL": "https://ainumbers.co"
+    },
+    {
+      "appTools": [
+        "get_weekly_signal_memo",
+        "analyze_funnel",
+        "list_tasks"
+      ],
+      "apps": 3,
+      "description": "AIOProductOS: revenue, feedback, work and analytics on one customer record. 71 tools, 3 apps.",
+      "id": "mcp-aioproductos",
+      "name": "AIOProductOS MCP",
+      "namespace": "com.aioproductos",
+      "tools": 71,
+      "url": "https://platform.aioproductos.com/api/mcp",
+      "websiteURL": "https://aioproductos.com/mcp"
+    },
+    {
+      "appTools": [
+        "get_air_quality"
+      ],
+      "apps": 1,
+      "description": "Free, keyless real-time air quality (US AQI plus PM2.5, PM10, ozone, NO2, SO2, CO) for any city.",
+      "id": "air-quality-mcp",
+      "name": "Air Quality MCP",
+      "namespace": "io.github.Lulu-The-Narwhal",
+      "tools": 1,
+      "url": "https://ads.getlulu.dev/air-quality/mcp"
+    },
+    {
+      "appTools": [
+        "search_lounges",
+        "get_airport_lounges",
+        "get_lounge_details",
+        "find_lounges_by_access",
+        "list_access_methods",
+        "list_networks",
+        "get_network_lounges",
+        "get_my_profile",
+        "get_my_passport"
+      ],
+      "apps": 9,
+      "description": "Search 8,500+ airport lounges and check access by card or membership.",
+      "id": "lounges",
+      "name": "Airport Lounge List",
+      "namespace": "com.airportloungelist.mcp",
+      "tools": 21,
+      "url": "https://mcp.airportloungelist.com/mcp",
+      "websiteURL": "https://airportloungelist.com"
+    },
+    {
+      "appTools": [
+        "get_product"
+      ],
+      "apps": 1,
+      "description": "Cross-vendor B2B catalog for AI agents: search, compare, find equivalents, request a quote.",
+      "id": "catalog-airshelf",
+      "name": "AirShelf Catalog",
+      "namespace": "ai.airshelf",
+      "tools": 8,
+      "url": "https://mcp.airshelf.ai/mcp"
+    },
+    {
+      "appTools": [
+        "canvas"
+      ],
+      "apps": 1,
+      "description": "A pixel wars MCP server: ask your agent to collaboratively draw pixels in a huge square",
+      "id": "alpix",
+      "name": "AlpiX",
+      "namespace": "ai.alpic.alpix",
+      "tools": 3,
+      "url": "https://alpix.alpic.ai",
+      "websiteURL": "https://alpic.ai"
+    },
+    {
+      "appTools": [
+        "apiosk_execute"
+      ],
+      "apps": 1,
+      "description": "Discover, pay for, execute, and publish APIs through Apiosk.",
+      "id": "apiosk-mcp",
+      "name": "Apiosk Connect",
+      "namespace": "io.github.obcraft",
+      "tools": 5,
+      "url": "https://mcp.apiosk.com/mcp",
+      "websiteURL": "https://apiosk.com"
+    },
+    {
+      "appTools": [
+        "shop",
+        "skincare_recommend",
+        "recommend",
+        "skincare_cart",
+        "search_products",
+        "get_product",
+        "compare_products"
+      ],
+      "apps": 7,
+      "description": "Search, compare, and buy Apostle men's skincare: tinted moisturizer, face wash, and sets.",
+      "id": "apostleman",
+      "name": "Apostle — AI Men's Skincare Commerce",
+      "namespace": "ai.searchshop",
+      "tools": 14,
+      "url": "https://searchshopai-mcp.fly.dev/mcp/apostleman",
+      "websiteURL": "https://apostleman.co"
+    },
+    {
+      "appTools": [
+        "create_contact",
+        "update_contact",
+        "delete_contact",
+        "list_contacts",
+        "create_appliance",
+        "update_appliance",
+        "delete_appliance",
+        "list_appliances",
+        "create_calendar_event",
+        "update_calendar_event",
+        "delete_calendar_event",
+        "list_calendar_events",
+        "create_document",
+        "update_document",
+        "delete_document",
+        "list_documents",
+        "create_pet",
+        "update_pet",
+        "delete_pet",
+        "list_pets",
+        "create_subscription",
+        "update_subscription",
+        "delete_subscription",
+        "list_subscriptions",
+        "create_vehicle",
+        "update_vehicle",
+        "delete_vehicle",
+        "list_vehicles",
+        "create_task",
+        "update_task",
+        "delete_task",
+        "complete_task",
+        "uncomplete_task",
+        "assign_task",
+        "list_tasks",
+        "get_weather_forecast",
+        "get_house",
+        "list_house_members",
+        "list_houses",
+        "get_profile",
+        "list_shopping_list_items",
+        "add_shopping_list_item",
+        "buy_shopping_list_item",
+        "get_house_review",
+        "defer_recommendation",
+        "skip_recommendation",
+        "store_memory",
+        "update_memory",
+        "forget_memory",
+        "recall_memory",
+        "create_meal_plan",
+        "update_meal_plan",
+        "delete_meal_plan",
+        "list_meal_plans",
+        "create_recipe",
+        "update_recipe",
+        "delete_recipe",
+        "list_recipes",
+        "list_global_recipes",
+        "batch_add_shopping_list_items",
+        "update_shopping_list_item",
+        "remove_shopping_list_item",
+        "create_recurring_calendar_event",
+        "update_recurring_calendar_event",
+        "delete_recurring_calendar_event",
+        "create_recurring_task",
+        "update_recurring_task",
+        "delete_recurring_task"
+      ],
+      "apps": 68,
+      "description": "OneHaus household tools: tasks, calendar, contacts, pets, vehicles, documents and more.",
+      "id": "haus",
+      "name": "app.onehaus/haus",
+      "namespace": "app.onehaus",
+      "tools": 68,
+      "url": "https://mcp.onehaus.app",
+      "websiteURL": "https://onehaus.app"
+    },
+    {
+      "appTools": [
+        "recommend_surf_trip_destinations",
+        "compare_surf_destinations",
+        "get_spot_planning_context",
+        "get_live_spot_forecast",
+        "find_surf_trip_guides"
+      ],
+      "apps": 5,
+      "description": "Surf trip planner: live 0-100 Strike Scores, 10-day forecasts, and trip picks for 1,100+ spots.",
+      "id": "surf-trip-planner",
+      "name": "app.strikemission/surf-trip-planner",
+      "namespace": "app.strikemission",
+      "tools": 5,
+      "url": "https://www.strikemission.app/api/mcp"
+    },
+    {
+      "appTools": [
+        "search_tours",
+        "search_transfers",
+        "search_esim"
+      ],
+      "apps": 3,
+      "description": "Book trip logistics in chat: cars, transfers, eSIM, luggage storage, tours & flight compensation.",
+      "id": "trip-logistics-assistant",
+      "name": "app.triplogistics/trip-logistics-assistant",
+      "namespace": "app.triplogistics",
+      "tools": 6,
+      "url": "https://api.triplogistics.app/mcp",
+      "websiteURL": "https://triplogistics.app"
+    },
+    {
+      "appTools": [
+        "arcadeops_discover"
+      ],
+      "apps": 1,
+      "description": "Read-only ArcadeOps discovery for developer docs, OAuth, OpenAPI and synthetic sandbox.",
+      "id": "arcadeops-public-discovery",
+      "name": "ArcadeOps Public Discovery",
+      "namespace": "io.github.Damso74",
+      "tools": 3,
+      "url": "https://arcadeops.leadalpes.fr/mcp/public"
+    },
+    {
+      "appTools": [
+        "view_dxf",
+        "load_dxf_for_viewer"
+      ],
+      "apps": 2,
+      "description": "DXF and PDF/X-4 for AI agents: structured facts, PNG renders, an interactive in-chat viewer.",
+      "id": "aspicio",
+      "name": "Aspicio",
+      "namespace": "io.github.frontsail-ai",
+      "tools": 8,
+      "url": "https://aspicio-api.frontsail.app/mcp",
+      "websiteURL": "https://aspicio.frontsail.app"
+    },
+    {
+      "appTools": [
+        "atisbo_orient"
+      ],
+      "apps": 1,
+      "description": "MCP tools over one Atisbo workspace: Signals, Opportunities, Backlog, Decisions, Living Documents.",
+      "id": "atisbo",
+      "name": "Atisbo",
+      "namespace": "io.github.brian8a1",
+      "tools": 8,
+      "url": "https://app.atisbo.dev/api/mcp",
+      "websiteURL": "https://app.atisbo.dev/docs/api/mcp-server"
+    },
+    {
+      "appTools": [
+        "search_fish",
+        "get_fish_profile",
+        "search_plants",
+        "get_plant_profile",
+        "search_products",
+        "get_product_profile",
+        "check_species_compatibility",
+        "get_water_parameters",
+        "suggest_species_for_tank",
+        "search_guides",
+        "get_guide",
+        "search_algae",
+        "get_algae_profile",
+        "search_diseases",
+        "get_disease_profile",
+        "search_plant_problems",
+        "get_plant_problem_profile",
+        "search_medicines",
+        "get_medicine_profile",
+        "match_diagnostic_profiles",
+        "list_product_categories",
+        "list_product_brands",
+        "search_equipment",
+        "get_equipment_profile",
+        "search_fertilizers",
+        "get_fertilizer_profile",
+        "search_fertilization_regimes",
+        "get_fertilization_regime",
+        "calculate_fertilizer_dose",
+        "calculate_nutrient_gaps",
+        "calculate_weekly_dose_totals",
+        "generate_fertilization_plan",
+        "calculate_tank_volume",
+        "calculate_tank_weight",
+        "calculate_water_change",
+        "calculate_water_chemistry",
+        "convert_units",
+        "calculate_equipment_requirements",
+        "suggest_habitat_for_tank"
+      ],
+      "apps": 39,
+      "description": "Structured habitat data and advisory tools for aquariums, marine tanks, terrariums and paludariums.",
+      "id": "habitat-database",
+      "name": "Atlarium Habitat Database MCP",
+      "namespace": "bio.atlarium",
+      "tools": 39,
+      "url": "https://mcp.atlarium.bio/mcp"
+    },
+    {
+      "appTools": [
+        "brainstorm_names",
+        "search_brandable_domains",
+        "check_domain_availability",
+        "generate_domain_names",
+        "appraise_domain",
+        "get_domain_details"
+      ],
+      "apps": 6,
+      "description": "Search, appraise, trademark-check, and buy premium brandable domain names from Atom.com.",
+      "id": "premium-domains",
+      "name": "Atom.com — Premium Domains",
+      "namespace": "com.atom",
+      "tools": 13,
+      "url": "https://mcp.atom.com/mcp",
+      "websiteURL": "https://www.atom.com/atom-mcp-server"
+    },
+    {
+      "appTools": [
+        "search_properties",
+        "get_locality_insights",
+        "compare_localities",
+        "calculate_home_affordability",
+        "simulate_loan_prepayment",
+        "compare_balance_transfer",
+        "optimize_home_loan_tax_regime",
+        "estimate_stamp_duty_and_registration",
+        "get_property_details",
+        "compare_properties",
+        "get_property_decision_intelligence"
+      ],
+      "apps": 11,
+      "description": "Indian real estate: property search, locality insights, affordability & pan-India stamp-duty tools.",
+      "id": "property-intelligence",
+      "name": "AVnester — Indian Real Estate Intelligence",
+      "namespace": "com.avnester.mcp",
+      "tools": 11,
+      "url": "https://mcp.avnester.com/public-mcp"
+    },
+    {
+      "appTools": [
+        "search_all_airlines",
+        "search_availability",
+        "search_monthly_availability",
+        "get_pricing",
+        "search_hybrid",
+        "get_award_trip_details",
+        "get_program_rates",
+        "get_buy_points_pricing",
+        "get_status_matches",
+        "search_hotels",
+        "get_hotel_availability",
+        "monitor_hotel_price",
+        "add_hotel_booking",
+        "list_hotel_bookings",
+        "get_hotel_booking",
+        "update_hotel_booking",
+        "delete_hotel_booking",
+        "add_flight_booking",
+        "list_flight_bookings",
+        "get_flight_booking",
+        "update_flight_booking",
+        "delete_flight_booking",
+        "list_voucher_types",
+        "list_my_vouchers",
+        "add_voucher",
+        "apply_voucher_to_booking",
+        "delete_voucher",
+        "update_points_balance",
+        "list_points_balances",
+        "delete_points_balance",
+        "set_loyalty_status",
+        "list_loyalty_statuses",
+        "delete_loyalty_status",
+        "set_status_progress",
+        "get_status_progress",
+        "calculate_flight_earnings",
+        "recommend_status_path",
+        "get_award_release_window",
+        "list_award_release_windows",
+        "get_portfolio",
+        "log_lounge_visit",
+        "list_lounge_visits",
+        "delete_lounge_visit",
+        "discover_more_flight_tools",
+        "list_integrations",
+        "connect_integration",
+        "disconnect_integration",
+        "sync_now",
+        "whats_on_sale",
+        "recommend_redemption",
+        "audit_marriott_folio",
+        "compare_transfer_options",
+        "find_transfer_paths",
+        "create_route_monitor",
+        "list_route_monitors",
+        "update_route_monitor",
+        "cancel_route_monitor",
+        "create_standing_order",
+        "list_standing_orders",
+        "cancel_standing_order",
+        "search_multi_passenger",
+        "audit_hotel_folio",
+        "plan_trip",
+        "search_cash_flights",
+        "find_premium_hotels",
+        "list_skills",
+        "get_skill",
+        "search_knowledge_base",
+        "wikipedia_airports",
+        "get_earning_rates",
+        "get_partner_award_options",
+        "get_program_partner_chart",
+        "lookup_flight",
+        "get_trip_briefing",
+        "list_trips",
+        "create_trip",
+        "delete_trip",
+        "assign_bookings_to_trip",
+        "update_itinerary",
+        "search_my_documents",
+        "search_merchant_multipliers",
+        "get_points_valuation",
+        "get_cancellation_fee",
+        "get_award_chart_faq",
+        "submit_feedback",
+        "render_ui",
+        "fs_get_seatmap",
+        "fs_find_best_seats",
+        "fs_get_seat_info",
+        "fs_search_flight",
+        "fs_interactive_seat_finder",
+        "fs_get_seat_reviews",
+        "fs_list_seat_alerts",
+        "fs_create_seat_alert",
+        "fs_delete_seat_alert",
+        "fs_discover_more_flight_tools",
+        "sw_get_wifi_facts",
+        "sw_get_flight_wifi",
+        "sw_get_airline_wifi",
+        "sw_get_rollouts",
+        "sw_get_speed_stats",
+        "sw_get_tail_info",
+        "sw_search_wifi",
+        "sw_list_airlines",
+        "lounge_search_lounges",
+        "lounge_get_airport_lounges",
+        "lounge_get_lounge_details",
+        "lounge_find_lounges_by_access",
+        "lounge_list_access_methods",
+        "lounge_list_networks",
+        "lounge_get_network_lounges",
+        "lounge_discover_more_flight_tools",
+        "lounge_get_my_profile",
+        "lounge_get_my_passport",
+        "lounge_get_my_reviews",
+        "lounge_write_review",
+        "lounge_update_review",
+        "lounge_delete_review",
+        "lounge_get_my_visits",
+        "lounge_mark_lounge_visited",
+        "lounge_update_visit",
+        "lounge_delete_visit",
+        "lounge_get_my_wishlist",
+        "lounge_add_to_wishlist",
+        "lounge_remove_from_wishlist",
+        "cards_list_cards",
+        "cards_get_card",
+        "cards_compare_cards",
+        "cards_find_cards_for_category",
+        "cards_rank_welcome_bonuses",
+        "cards_analyze_spending",
+        "cards_list_changes",
+        "cards_list_transfer_partners",
+        "cards_find_transfer_programs_for_airline",
+        "viator_get_experience_details",
+        "viator_search_experiences"
+      ],
+      "apps": 136,
+      "description": "Search award flight availability and points pricing across 27 airlines and 23 loyalty programs.",
+      "id": "mcp-awardtravelfinder",
+      "name": "Award Travel Finder",
+      "namespace": "com.awardtravelfinder",
+      "tools": 136,
+      "url": "https://mcp.awardtravelfinder.com/mcp",
+      "websiteURL": "https://awardtravelfinder.com/mcp"
+    },
+    {
+      "appTools": [
+        "show_consular_dossier"
+      ],
+      "apps": 1,
+      "description": "Prepare Algerian consular procedures with offices, sources, and interactive checklists.",
+      "id": "bab-aljazair",
+      "name": "Bab Aljazair",
+      "namespace": "fr.larabi",
+      "tools": 5,
+      "url": "https://mcp.bab-aljazair.larabi.fr/mcp",
+      "websiteURL": "https://bab-aljazair.larabi.fr"
+    },
+    {
+      "appTools": [
+        "analyze_draft"
+      ],
+      "apps": 1,
+      "description": "Calibrated Dota 2, Deadlock & Marvel Rivals win predictions, counter picks, tier lists & momentum.",
+      "id": "batru-mcp",
+      "name": "Batru — Dota 2, Deadlock & Marvel Rivals win predictor",
+      "namespace": "gg.batru",
+      "tools": 33,
+      "url": "https://batru.gg/mcp",
+      "websiteURL": "https://batru.gg"
+    },
+    {
+      "appTools": [
+        "search_beaches",
+        "search_swim_spots",
+        "search_surf_spots",
+        "search_dive_snorkel_spots",
+        "search_river_whitewater_spots",
+        "search_vanlife_spots",
+        "search_activity_providers",
+        "search_guides",
+        "get_spot_details",
+        "get_spot_conditions",
+        "get_community_conditions",
+        "compare_spots"
+      ],
+      "apps": 12,
+      "description": "Search 184,900 swim spots, conditions, water activities, providers and guides worldwide.",
+      "id": "beachfinder",
+      "name": "BeachFinder - beaches and live conditions",
+      "namespace": "com.getbeachfinder",
+      "tools": 12,
+      "url": "https://getbeachfinder.com/mcp",
+      "websiteURL": "https://getbeachfinder.com/ai-search"
+    },
+    {
+      "appTools": [
+        "beel_get_invoice_pdf"
+      ],
+      "apps": 1,
+      "description": "Spanish e-invoicing with VeriFactu (AEAT): issue invoices, manage customers, validate NIFs.",
+      "id": "mcp-beel",
+      "name": "BeeL",
+      "namespace": "es.beel",
+      "tools": 121,
+      "url": "https://mcp.beel.es/mcp",
+      "websiteURL": "https://docs.beel.es/mcp"
+    },
+    {
+      "appTools": [
+        "search_products",
+        "compare_offers",
+        "get_price_history"
+      ],
+      "apps": 3,
+      "description": "Read-only product search, offer comparison, and price history for the Greek market.",
+      "id": "mcp-bestprice",
+      "name": "BestPrice Shopping",
+      "namespace": "gr.bestprice",
+      "tools": 4,
+      "url": "https://mcp.bestprice.gr/mcp",
+      "websiteURL": "https://www.bestprice.gr/mcp"
+    },
+    {
+      "appTools": [
+        "query",
+        "queryGroupBy"
+      ],
+      "apps": 2,
+      "description": "Query and analyse your data from Bitmovin Observability",
+      "id": "analytics-mcp",
+      "name": "Bitmovin Observability MCP",
+      "namespace": "com.bitmovin.mcp.analytics",
+      "tools": 11,
+      "url": "https://analytics.mcp.bitmovin.com",
+      "websiteURL": "https://bitmovin.com"
+    },
+    {
+      "appTools": [
+        "projects_list",
+        "clips_create",
+        "clips_get"
+      ],
+      "apps": 3,
+      "description": "Create, edit, reframe, caption, organize, generate, and export short-form videos with BlitzReels.",
+      "id": "blitzreels",
+      "name": "BlitzReels Video Editor",
+      "namespace": "com.blitzreels",
+      "tools": 58,
+      "url": "https://www.blitzreels.com/api/mcp",
+      "websiteURL": "https://www.blitzreels.com/agents"
+    },
+    {
+      "appTools": [
+        "search_flights",
+        "search_hotels",
+        "search_experiences",
+        "build_trip"
+      ],
+      "apps": 4,
+      "description": "Search flights, hotels & experiences at all-in prices, then build a trip on breckenwander.com.",
+      "id": "travel-connector",
+      "name": "BreckenWander Travel",
+      "namespace": "com.breckenwander",
+      "tools": 4,
+      "url": "https://mcp.breckenwander.com/mcp",
+      "websiteURL": "https://breckenwander.com"
+    },
+    {
+      "appTools": [
+        "getBuckyMcpGuide",
+        "explainFeasibilityStatus",
+        "getFeasibilitySnapshot",
+        "runFeasibilityAnalysis",
+        "getProjectContext",
+        "saveToProject",
+        "updateProject",
+        "produceProjectReport"
+      ],
+      "apps": 8,
+      "description": "Zoning, parcel, and development feasibility for a street address in Canada and the US.",
+      "id": "bucky",
+      "name": "Bucky",
+      "namespace": "com.buckybuild",
+      "tools": 10,
+      "url": "https://buckybuild.com/api/mcp",
+      "websiteURL": "https://buckybuild.com"
+    },
+    {
+      "appTools": [
+        "list_breakpoint_events",
+        "get_device",
+        "list_devices",
+        "get_my_account",
+        "search_entries",
+        "list_entries",
+        "inspect_requests",
+        "summarize_device_traffic",
+        "list_service_groups",
+        "list_tags",
+        "get_subscription",
+        "list_todos",
+        "list_advisor_findings",
+        "list_issue_reports",
+        "list_workspaces",
+        "list_snapshots",
+        "list_push_tokens",
+        "get_stats",
+        "get_status",
+        "list_audit_events"
+      ],
+      "apps": 20,
+      "description": "Capture, inspect & debug HTTPS traffic across iOS, Android, browsers & backends — 304 MCP tools.",
+      "id": "busymate-devtools",
+      "name": "Busymate DevTools",
+      "namespace": "dev.busymate",
+      "tools": 49,
+      "url": "https://mcp.busymate.dev",
+      "websiteURL": "https://busymate.dev/mcp"
+    },
+    {
+      "appTools": [
+        "get_pulse"
+      ],
+      "apps": 1,
+      "description": "Cameron Rye's blog, projects, resume, and live site stats, plus contact and newsletter tools.",
+      "id": "portfolio",
+      "name": "Cameron Rye Portfolio MCP Server",
+      "namespace": "dev.rye",
+      "tools": 12,
+      "url": "https://rye.dev/mcp",
+      "websiteURL": "https://rye.dev"
+    },
+    {
+      "appTools": [
+        "add_elements",
+        "update_elements",
+        "delete_elements",
+        "add_elements_from_mermaid"
+      ],
+      "apps": 4,
+      "description": "AI-powered diagrams, mind maps, flowcharts on a free unlimited collaborative whiteboard",
+      "id": "canvs",
+      "name": "Canvs",
+      "namespace": "io.github.voronkovm",
+      "tools": 6,
+      "url": "https://app.canvs.io/mcp",
+      "websiteURL": "https://app.canvs.io"
+    },
+    {
+      "appTools": [
+        "explore-capitals"
+      ],
+      "apps": 1,
+      "description": "A great map with info on Capitals all around the world",
+      "id": "skybridge",
+      "name": "Capitals!",
+      "namespace": "live.alpic.staging.skybridge-712c1350",
+      "tools": 1,
+      "url": "https://skybridge-712c1350.staging.alpic.live",
+      "websiteURL": "https://github.com"
+    },
+    {
+      "appTools": [
+        "shop_vehicles",
+        "get_vehicle",
+        "compare_vehicles"
+      ],
+      "apps": 3,
+      "description": "Find and compare live vehicle inventory from participating US dealers and contact them with consent.",
+      "id": "inventory",
+      "name": "Car Handshake",
+      "namespace": "com.carhandshake",
+      "tools": 10,
+      "url": "https://mcp.carhandshake.com/mcp",
+      "websiteURL": "https://carhandshake.com"
+    },
+    {
+      "appTools": [
+        "cf_render_search_results"
+      ],
+      "apps": 1,
+      "description": "Compare prices across Latvian online retailers: offers, price history and wishlists.",
+      "id": "cenufiltrs",
+      "name": "CenuFiltrs Price Comparison",
+      "namespace": "lv.cenufiltrs",
+      "tools": 22,
+      "url": "https://mcp.cenufiltrs.lv/mcp",
+      "websiteURL": "https://cenufiltrs.lv/en/mcp"
+    },
+    {
+      "appTools": [
+        "search_plans_by_vehicle",
+        "search_plans_by_license_plate",
+        "search_plans_by_vin"
+      ],
+      "apps": 3,
+      "description": "Live vehicle warranty (service contract) quotes by VIN, plate, or make/model/year.",
+      "id": "mcp-chaiz",
+      "name": "Chaiz MCP",
+      "namespace": "com.chaiz",
+      "tools": 6,
+      "url": "https://mcp.chaiz.com/mcp"
+    },
+    {
+      "appTools": [
+        "check_url_changes",
+        "check_mcp_surface_changes"
+      ],
+      "apps": 2,
+      "description": "Web and MCP change memory with native diff UI; later calls return only what changed.",
+      "id": "changepacket",
+      "name": "ChangePacket",
+      "namespace": "io.github.MisfitMEdiAhouse",
+      "tools": 3,
+      "url": "https://cibcxqrqiqvzpardbdrw.supabase.co/functions/v1/changepacket-mcp",
+      "websiteURL": "https://cibcxqrqiqvzpardbdrw.supabase.co/functions/v1/deltafeed"
+    },
+    {
+      "appTools": [
+        "search_products",
+        "get_products",
+        "browse_products",
+        "get_similar",
+        "get_details",
+        "get_price_history"
+      ],
+      "apps": 6,
+      "description": "Shopping search across 100M+ products, with every retailer's offer and live price in one place.",
+      "id": "shopping",
+      "name": "Channel3 Shopping",
+      "namespace": "com.trychannel3",
+      "tools": 6,
+      "url": "https://mcp.trychannel3.com/",
+      "websiteURL": "https://trychannel3.com"
+    },
+    {
+      "appTools": [
+        "render_chart",
+        "save_chart",
+        "get_chart",
+        "update_chart",
+        "rename_chart"
+      ],
+      "apps": 5,
+      "description": "Create, inspect, manage, and render charts and data visualizations as SVG/PNG or interactive embeds.",
+      "id": "charts",
+      "name": "Charts by Szum",
+      "namespace": "io.szum",
+      "tools": 13,
+      "url": "https://szum.io/mcp",
+      "websiteURL": "https://szum.io"
+    },
+    {
+      "appTools": [
+        "render_listing_cards"
+      ],
+      "apps": 1,
+      "description": "Luxembourg real estate for AI agents: property search, price estimates, market data, commutes.",
+      "id": "chathome",
+      "name": "chathome.lu — Luxembourg Real Estate",
+      "namespace": "lu.chathome",
+      "tools": 14,
+      "url": "https://chathome.lu/api/mcp",
+      "websiteURL": "https://chathome.lu/en/mcp"
+    },
+    {
+      "appTools": [
+        "list_references",
+        "find_references",
+        "list_playbooks",
+        "get_playbook",
+        "find_playbooks"
+      ],
+      "apps": 5,
+      "description": "Cloud cost + FinOps knowledge for AI agents: AWS/Azure/GCP optimisation, AI spend, waste playbooks.",
+      "id": "cloud-finops",
+      "name": "Cloud FinOps Skill & MCP",
+      "namespace": "io.github.OptimNow",
+      "tools": 6,
+      "url": "https://cloud-finops-skills-590a051d.alpic.live/mcp"
+    },
+    {
+      "appTools": [
+        "get_service_provider_reviews",
+        "recommend_service_providers",
+        "get_service_packages"
+      ],
+      "apps": 3,
+      "description": "Trusted B2B service providers with verified client reviews",
+      "id": "mcp-clutch",
+      "name": "Clutch.co",
+      "namespace": "co.clutch",
+      "tools": 4,
+      "url": "https://bot.clutch.co/mcp",
+      "websiteURL": "https://clutch.co/about-mcp"
+    },
+    {
+      "appTools": [
+        "format_code",
+        "format_json"
+      ],
+      "apps": 2,
+      "description": "Format/lint JS, Python, HubL for automation platforms. Tools: format_code, format_json, ask_codefmt",
+      "id": "codefmt",
+      "name": "codefmt",
+      "namespace": "dev.codefmt",
+      "tools": 3,
+      "url": "https://codefmt.dev/api/mcp",
+      "websiteURL": "https://codefmt.dev"
+    },
+    {
+      "appTools": [
+        "search_pets",
+        "get_pet"
+      ],
+      "apps": 2,
+      "description": "Search, preview, install community Codex pet packs, and discover the pet request flow.",
+      "id": "codex-pets-ydb-qdrant",
+      "name": "Codex Pets Registry",
+      "namespace": "tech.ydb-qdrant.pets",
+      "tools": 7,
+      "url": "https://pets.ydb-qdrant.tech/mcp",
+      "websiteURL": "https://pets.ydb-qdrant.tech/"
+    },
+    {
+      "appTools": [
+        "palette_swatch",
+        "render_colour_result",
+        "palette_finalize"
+      ],
+      "apps": 3,
+      "description": "Cultural color intelligence. Every colour anchored to a person, a year, and a consequence.",
+      "id": "colour-memory",
+      "name": "Colour Memory",
+      "namespace": "io.github.DigbyO",
+      "tools": 90,
+      "url": "https://colour-memory-api-production.up.railway.app/mcp"
+    },
+    {
+      "appTools": [
+        "list_models",
+        "search_articles",
+        "generate_video",
+        "get_generation",
+        "list_generations"
+      ],
+      "apps": 5,
+      "description": "Browse 35+ AI video and image models with credit costs, and generate video with an API key.",
+      "id": "ai-content-drop",
+      "name": "com.aicontentdrop/ai-content-drop",
+      "namespace": "com.aicontentdrop",
+      "tools": 8,
+      "url": "https://aicontentdrop.com/mcp",
+      "websiteURL": "https://aicontentdrop.com/mcp/claude-code"
+    },
+    {
+      "appTools": [
+        "get_keyword_rank",
+        "show_app_overview"
+      ],
+      "apps": 2,
+      "description": "Track app-store rankings, history, listing metadata, reviews and competitors across four stores.",
+      "id": "appskyline",
+      "name": "com.appskyline/appskyline",
+      "namespace": "com.appskyline",
+      "tools": 14,
+      "url": "https://mcp.appskyline.com/mcp",
+      "websiteURL": "https://www.appskyline.com/developers/?utm_source=official-mcp-registry&utm_medium=mcp_directory&utm_campaign=mcp-registries-2026#claude-mcp"
+    },
+    {
+      "appTools": [
+        "whats_priced_in",
+        "most_stretched",
+        "compare_priced_in"
+      ],
+      "apps": 3,
+      "description": "What a stock price is betting on: implied growth, duration, and margin, read from SEC filings.",
+      "id": "boothcheck",
+      "name": "com.boothcheck/boothcheck",
+      "namespace": "com.boothcheck",
+      "tools": 6,
+      "url": "https://boothcheck.com/api/mcp",
+      "websiteURL": "https://boothcheck.com/connect"
+    },
+    {
+      "appTools": [
+        "get_venue"
+      ],
+      "apps": 1,
+      "description": "Search 19,000+ verified places to eat and drink across 20 cities, each with a 0-100 quality score.",
+      "id": "catalog-dimhour",
+      "name": "com.dimhour/catalog",
+      "namespace": "com.dimhour",
+      "tools": 7,
+      "url": "https://dimhour-mcp.jakeoborn.workers.dev/mcp",
+      "websiteURL": "https://dimhour.com"
+    },
+    {
+      "appTools": [
+        "find_provider"
+      ],
+      "apps": 1,
+      "description": "Search providers, check availability, book evaluations, and estimate insurance copays.",
+      "id": "mental-health-care",
+      "name": "com.emorahealth/mental-health-care",
+      "namespace": "com.emorahealth",
+      "tools": 10,
+      "url": "https://www.emorahealth.com/api/mcp/v1",
+      "websiteURL": "https://www.emorahealth.com"
+    },
+    {
+      "appTools": [
+        "visualize_module",
+        "draw_patch_diagram"
+      ],
+      "apps": 2,
+      "description": "Citation-anchored Eurorack module reference: specs, compatibility, and patch techniques.",
+      "id": "eurorack",
+      "name": "com.eurorackref/eurorack",
+      "namespace": "com.eurorackref",
+      "tools": 17,
+      "url": "https://eurorackref.com/mcp",
+      "websiteURL": "https://eurorackref.com"
+    },
+    {
+      "appTools": [
+        "gns_get_compliance_report"
+      ],
+      "apps": 1,
+      "description": "Geospatial AI MCP server — satellite imagery, embeddings, weather, GNS governance",
+      "id": "mcp-perception",
+      "name": "com.geiant/mcp-perception",
+      "namespace": "com.geiant",
+      "tools": 8,
+      "url": "https://packagesmcp-perception-production.up.railway.app/mcp"
+    },
+    {
+      "appTools": [
+        "search_gifts",
+        "get_gift_details",
+        "check_delivery",
+        "create_checkout",
+        "get_order_status",
+        "list_my_orders"
+      ],
+      "apps": 6,
+      "description": "Send real gifts to 190+ countries: search, check delivery, get a secure checkout link.",
+      "id": "giftroam",
+      "name": "com.giftroam/giftroam",
+      "namespace": "com.giftroam",
+      "tools": 6,
+      "url": "https://mcp.giftroam.com/mcp",
+      "websiteURL": "https://giftroam.com"
+    },
+    {
+      "appTools": [
+        "visa_availability"
+      ],
+      "apps": 1,
+      "description": "Check visa requirements and travel documents for international travel destinations.",
+      "id": "mcp-www",
+      "name": "com.ivisa.www/mcp",
+      "namespace": "com.ivisa.www",
+      "tools": 1,
+      "url": "https://www.ivisa.com/mcp"
+    },
+    {
+      "appTools": [
+        "survey_respond"
+      ],
+      "apps": 1,
+      "description": "Let ChatGPT, Claude & Cursor use your Mac: email, calendar, iMessage, Teams, files. Local, free.",
+      "id": "local-mcp",
+      "name": "com.local-mcp/local-mcp",
+      "namespace": "com.local-mcp",
+      "tools": 203,
+      "url": "https://local-mcp.com/mcp"
+    },
+    {
+      "appTools": [
+        "get_pricing",
+        "search_forum",
+        "get_roadmap"
+      ],
+      "apps": 3,
+      "description": "The full CRM for contractors, asked directly: crew pricing, knowledge base, forum, roadmap.",
+      "id": "agent-door",
+      "name": "com.measuretechpro/agent-door",
+      "namespace": "com.measuretechpro",
+      "tools": 13,
+      "url": "https://measuretechpro.com/mcp",
+      "websiteURL": "https://measuretechpro.com"
+    },
+    {
+      "appTools": [
+        "get_phrase",
+        "show_project_overview"
+      ],
+      "apps": 2,
+      "description": "Manage translation projects, phrases and locales with secure organization-scoped tools and views.",
+      "id": "multilocale",
+      "name": "com.multilocale/multilocale",
+      "namespace": "com.multilocale",
+      "tools": 17,
+      "url": "https://mcp.multilocale.com/mcp",
+      "websiteURL": "https://www.multilocale.com/integrations/mcp-server/"
+    },
+    {
+      "appTools": [
+        "search_wake_word_library",
+        "test_wake_word_live",
+        "pay_training_job",
+        "get_training_job",
+        "pay_commercial_license"
+      ],
+      "apps": 5,
+      "description": "Train custom wake words from your agent: estimator, GPU training, benchmarks. Card or crypto.",
+      "id": "wake-word-training",
+      "name": "com.openwakeword/wake-word-training",
+      "namespace": "com.openwakeword",
+      "tools": 13,
+      "url": "https://openwakeword.com/mcp",
+      "websiteURL": "https://openwakeword.com/agents"
+    },
+    {
+      "appTools": [
+        "get_savvly_product_info",
+        "compare_savvly_vs_alternative",
+        "project_savvly_lumpsum",
+        "project_savvly_monthly",
+        "project_retirement_with_savvly"
+      ],
+      "apps": 5,
+      "description": "Savvly MCP: query fund data, model projections, and compare against alternative retirement products.",
+      "id": "savvly",
+      "name": "com.savvly/savvly",
+      "namespace": "com.savvly",
+      "tools": 8,
+      "url": "https://api.savvly.com/mcp",
+      "websiteURL": "https://savvly.com"
+    },
+    {
+      "appTools": [
+        "publish_document",
+        "update_document",
+        "list_comments"
+      ],
+      "apps": 3,
+      "description": "Publish an HTML document as a link anyone can open in one tap, plus PDF, image and Word export.",
+      "id": "sendpage",
+      "name": "com.sendpageapp/sendpage",
+      "namespace": "com.sendpageapp",
+      "tools": 7,
+      "url": "https://sendpageapp.com/mcp",
+      "websiteURL": "https://sendpageapp.com/docs/mcp"
+    },
+    {
+      "appTools": [
+        "search_jobs"
+      ],
+      "apps": 1,
+      "description": "Search live roles across hundreds of a16z portfolio startups and join the speedrun talent network.",
+      "id": "mcp-speedrun-talent-network",
+      "name": "com.speedrun-talent-network/mcp",
+      "namespace": "com.speedrun-talent-network",
+      "tools": 10,
+      "url": "https://mcp.speedrun-talent-network.com/mcp",
+      "websiteURL": "https://speedrun-talent-network.com/developers"
+    },
+    {
+      "appTools": [
+        "search_properties",
+        "compare_properties",
+        "get_listing",
+        "get_quote"
+      ],
+      "apps": 4,
+      "description": "Search Portland rentals, compare homes, save a shortlist, and get a live quote. No payments.",
+      "id": "mcp-stayportland",
+      "name": "com.stayportland/mcp",
+      "namespace": "com.stayportland",
+      "tools": 11,
+      "url": "https://www.stayportland.com/mcp"
+    },
+    {
+      "appTools": [
+        "plot_trip"
+      ],
+      "apps": 1,
+      "description": "Plot an AI-planned road trip onto an editable Stopful map — drive times, hotels & EV chargers.",
+      "id": "road-trip-planner",
+      "name": "com.stopful/road-trip-planner",
+      "namespace": "com.stopful",
+      "tools": 1,
+      "url": "https://stopful.com/api/mcp",
+      "websiteURL": "https://stopful.com"
+    },
+    {
+      "appTools": [
+        "get_conversation",
+        "show_support_overview",
+        "show_customer_inbox"
+      ],
+      "apps": 3,
+      "description": "Manage websites, help documents and customer-support conversations with safe, scoped tools.",
+      "id": "supovia",
+      "name": "com.supovia/supovia",
+      "namespace": "com.supovia",
+      "tools": 14,
+      "url": "https://mcp.supovia.com/mcp",
+      "websiteURL": "https://www.supovia.com/developers/#mcp"
+    },
+    {
+      "appTools": [
+        "twprojects-create_timelog"
+      ],
+      "apps": 1,
+      "description": "The Teamwork.com official MCP server helps teams efficiently manage client projects with AI.",
+      "id": "mcp-teamwork",
+      "name": "com.teamwork/mcp",
+      "namespace": "com.teamwork",
+      "tools": 209,
+      "url": "https://mcp.ai.teamwork.com"
+    },
+    {
+      "appTools": [
+        "get_quote",
+        "emergency_help",
+        "get_availability",
+        "get_services_pricing",
+        "confirm_booking"
+      ],
+      "apps": 5,
+      "description": "Johnson Bros. Plumbing: check coverage, services, pricing, availability, and book by SMS.",
+      "id": "plumbing-booking",
+      "name": "com.thejohnsonbros/plumbing-booking",
+      "namespace": "com.thejohnsonbros",
+      "tools": 11,
+      "url": "https://thejohnsonbros.com/mcp",
+      "websiteURL": "https://thejohnsonbros.com"
+    },
+    {
+      "appTools": [
+        "list_bookmarks",
+        "list_likes",
+        "search_bookmarks",
+        "get_smart_view_bookmarks"
+      ],
+      "apps": 4,
+      "description": "Search, label, and manage your X (Twitter) bookmarks from any MCP client via Tweetsmash",
+      "id": "mcp-tweetsmash",
+      "name": "com.tweetsmash/mcp",
+      "namespace": "com.tweetsmash",
+      "tools": 53,
+      "url": "https://mcp.tweetsmash.com/api/mcp"
+    },
+    {
+      "appTools": [
+        "get_connector_status",
+        "query_database",
+        "list_database_tables",
+        "describe_table"
+      ],
+      "apps": 4,
+      "description": "Authenticated, user-scoped MCP connectors for 30+ business systems.",
+      "id": "multi-source-mcp",
+      "name": "CorpusIQ",
+      "namespace": "io.corpusiq",
+      "tools": 34,
+      "url": "https://mcp2.corpusiq.io/mcp"
+    },
+    {
+      "appTools": [
+        "page.onboarding.start",
+        "page.onboarding.update"
+      ],
+      "apps": 2,
+      "description": "Create, edit, preview, publish, and manage web pages from MCP-capable AI clients.",
+      "id": "create-web-page",
+      "name": "Create Web Page",
+      "namespace": "com.create-web-page",
+      "tools": 23,
+      "url": "https://create-web-page.com/mcp",
+      "websiteURL": "https://create-web-page.com/docs/mcp"
+    },
+    {
+      "appTools": [
+        "get_crowdgap_offer"
+      ],
+      "apps": 1,
+      "description": "AI-agent probability research with one-call preflight and human-gated XRP activation.",
+      "id": "probability-research",
+      "name": "CrowdGap AI Probability Research",
+      "namespace": "site.chatgpt.super-myna-7255.crowdgap-pilot",
+      "tools": 12,
+      "url": "https://crowdgap-pilot.super-myna-7255.chatgpt.site/api/mcp?source=official_mcp_registry&campaign=registry_2_0_0",
+      "websiteURL": "https://crowdgap-pilot.super-myna-7255.chatgpt.site"
+    },
+    {
+      "appTools": [
+        "get_crypto_price"
+      ],
+      "apps": 1,
+      "description": "Free, keyless live cryptocurrency prices, market cap, and 24h change via CoinGecko.",
+      "id": "crypto-price-mcp",
+      "name": "Crypto Price MCP",
+      "namespace": "io.github.Lulu-The-Narwhal",
+      "tools": 1,
+      "url": "https://ads.getlulu.dev/crypto/mcp"
+    },
+    {
+      "appTools": [
+        "send_script_to_teleprompter"
+      ],
+      "apps": 1,
+      "description": "Send a shoot's worth of scripts to the Daily Studio teleprompter on iPhone, in one link.",
+      "id": "teleprompter",
+      "name": "Daily Studio Teleprompter",
+      "namespace": "app.dailystudio",
+      "tools": 12,
+      "url": "https://dailystudio.app/mcp",
+      "websiteURL": "https://dailystudio.app"
+    },
+    {
+      "appTools": [
+        "score_prompt"
+      ],
+      "apps": 1,
+      "description": "The prediction MCP — score your prompt before you generate, so you never waste a credit.",
+      "id": "dali",
+      "name": "Dali by Lulu",
+      "namespace": "io.github.Lulu-The-Narwhal",
+      "tools": 16,
+      "url": "https://dali.getlulu.dev/mcp"
+    },
+    {
+      "appTools": [
+        "decision_log_render_decision",
+        "decision_log_render_workspace_brief",
+        "decision_log_render_decision_explorer",
+        "decision_log_render_candidate_review",
+        "decision_log_render_supersession_composer",
+        "decision_log_render_source_pipeline",
+        "decision_log_render_audit_explorer"
+      ],
+      "apps": 7,
+      "description": "Append-only decisions with provenance, supersession, retrieval, and audited MCP actions.",
+      "id": "mcp-decisionlog",
+      "name": "Decision Log",
+      "namespace": "ai.decisionlog",
+      "tools": 30,
+      "url": "https://www.decisionlog.ai/api/mcp",
+      "websiteURL": "https://www.decisionlog.ai"
+    },
+    {
+      "appTools": [
+        "search_people",
+        "build_dossier",
+        "ask_about_person"
+      ],
+      "apps": 3,
+      "description": "Research a person's public footprint from a name, phone, email, or username. Sourced.",
+      "id": "deepsearch",
+      "name": "DeepSearch",
+      "namespace": "app.deepsearch",
+      "tools": 3,
+      "url": "https://deepsearch.app/api/mcp",
+      "websiteURL": "https://deepsearch.app/api/docs"
+    },
+    {
+      "appTools": [
+        "designesy_report"
+      ],
+      "apps": 1,
+      "description": "Score any URL against a real design contract — 40 checks, A-F grade, token + motion validation.",
+      "id": "designesy-org",
+      "name": "Designesy",
+      "namespace": "io.github.LE-VAI",
+      "tools": 17,
+      "url": "https://www.designesy.org/api/mcp",
+      "websiteURL": "https://www.designesy.org"
+    },
+    {
+      "appTools": [
+        "atlas_cards"
+      ],
+      "apps": 1,
+      "description": "Agent-design pattern guidance via 8 hosted read-only tools; Streamable HTTP, no auth, one Release.",
+      "id": "atlas",
+      "name": "dev.agentic-atlas/atlas",
+      "namespace": "dev.agentic-atlas",
+      "tools": 8,
+      "url": "https://agentic-atlas.dev/mcp/",
+      "websiteURL": "https://agentic-atlas.dev/"
+    },
+    {
+      "appTools": [
+        "getAccount",
+        "getInboxStatus",
+        "listEmails",
+        "searchEmails",
+        "getEmail",
+        "replyToEmail",
+        "sendEmail",
+        "sendEmailDemo"
+      ],
+      "apps": 8,
+      "description": "Email infrastructure for AI agents — send, receive, search, and reply to email over MCP.",
+      "id": "email",
+      "name": "dev.primitive/email",
+      "namespace": "dev.primitive",
+      "tools": 30,
+      "url": "https://www.primitive.dev/mcp",
+      "websiteURL": "https://www.primitive.dev"
+    },
+    {
+      "appTools": [
+        "doing"
+      ],
+      "apps": 1,
+      "description": "simple task manager for your LLM",
+      "id": "doing",
+      "name": "doing",
+      "namespace": "live.alpic.doing-v2-d5286fe8",
+      "tools": 2,
+      "url": "https://doing-v2-d5286fe8.alpic.live"
+    },
+    {
+      "appTools": [
+        "check_domain"
+      ],
+      "apps": 1,
+      "description": "Free, keyless domain registration lookup via RDAP: registered, available, registrar, expiration.",
+      "id": "domain-rdap-mcp",
+      "name": "Domain RDAP MCP",
+      "namespace": "io.github.Lulu-The-Narwhal",
+      "tools": 1,
+      "url": "https://ads.getlulu.dev/domain/mcp"
+    },
+    {
+      "appTools": [
+        "create_diagram"
+      ],
+      "apps": 1,
+      "description": "Create diagrams in chat, rendered as live interactive draw.io diagrams. 10,000+ searchable shapes.",
+      "id": "mcp-draw",
+      "name": "draw.io",
+      "namespace": "io.draw",
+      "tools": 2,
+      "url": "https://mcp.draw.io/mcp",
+      "websiteURL": "https://www.drawio.com"
+    },
+    {
+      "appTools": [
+        "search_driving_guides",
+        "get_driving_guide",
+        "list_study_options",
+        "find_test_centres",
+        "build_study_plan_preview",
+        "get_my_learning_overview"
+      ],
+      "apps": 6,
+      "description": "Published driving guides, source-backed UK and US test-centre search, and study-plan previews.",
+      "id": "driving-test-study",
+      "name": "Drivings",
+      "namespace": "com.drivings",
+      "tools": 6,
+      "url": "https://mcp.drivings.com/mcp",
+      "websiteURL": "https://mcp.drivings.com"
+    },
+    {
+      "appTools": [
+        "dynamoi_preview_smart_link_themes"
+      ],
+      "apps": 1,
+      "description": "Create music promotion campaigns, Smart Links, analytics, and music distribution applications.",
+      "id": "dynamoi",
+      "name": "Dynamoi",
+      "namespace": "io.github.getDynamoi",
+      "tools": 17,
+      "url": "https://dynamoi.com/mcp",
+      "websiteURL": "https://dynamoi.com"
+    },
+    {
+      "appTools": [
+        "emem_recall"
+      ],
+      "apps": 1,
+      "description": "Shared memory for AI agents. One address per fact, one signature you check. No key to read.",
+      "id": "emem",
+      "name": "emem, the verifiable memory protocol for the physical world",
+      "namespace": "io.github.Vortx-AI",
+      "tools": 16,
+      "url": "https://emem.dev/mcp",
+      "websiteURL": "https://emem.dev"
+    },
+    {
+      "appTools": [
+        "search",
+        "fetch",
+        "search_properties",
+        "get_property",
+        "search_guides",
+        "get_guide_section"
+      ],
+      "apps": 6,
+      "description": "Public EPK real estate listings and multilingual guides for Panama and the Dominican Republic.",
+      "id": "public-knowledge",
+      "name": "EPK Properties Public Knowledge MCP",
+      "namespace": "com.epkproperties",
+      "tools": 6,
+      "url": "https://mcp.epkproperties.com/mcp"
+    },
+    {
+      "appTools": [
+        "render_results"
+      ],
+      "apps": 1,
+      "description": "Magyar uniós pályázatok, feltételek, összegek, határidők és útmutatók forrásolt keresője.",
+      "id": "eu-money",
+      "name": "EU Money",
+      "namespace": "hu.eumoney",
+      "tools": 3,
+      "url": "https://eumoney.hu/chatgpt/mcp",
+      "websiteURL": "https://eumoney.hu/ai-integraciok"
+    },
+    {
+      "appTools": [
+        "compass_get_content"
+      ],
+      "apps": 1,
+      "description": "Digital-crisis playbooks as tools, 9 languages, country-anchored reporting channels. CC BY 4.0.",
+      "id": "digital-compass-mcp",
+      "name": "eu.madeinro/digital-compass-mcp",
+      "namespace": "eu.madeinro",
+      "tools": 5,
+      "url": "https://compass.madeinro.eu/mcp",
+      "websiteURL": "https://compass.madeinro.eu"
+    },
+    {
+      "appTools": [
+        "tv_concierge",
+        "tv_tonight_card"
+      ],
+      "apps": 2,
+      "description": "Romanian TV guide MCP: live listings, prime time, search, recommendations, MCP Apps tonight card.",
+      "id": "rotv-mcp",
+      "name": "eu.madeinro/rotv-mcp",
+      "namespace": "eu.madeinro",
+      "tools": 14,
+      "url": "https://tv.madeinro.eu/mcp",
+      "websiteURL": "https://tv.madeinro.eu"
+    },
+    {
+      "appTools": [
+        "assess_trip"
+      ],
+      "apps": 1,
+      "description": "European tourism & travel-disruption MCP: trip risk, live events, Eurostat panels, RO county data.",
+      "id": "travel-trends-mcp",
+      "name": "eu.mmatinca/travel-trends-mcp",
+      "namespace": "eu.mmatinca",
+      "tools": 8,
+      "url": "https://travel-trends.mmatinca.eu/mcp/v1",
+      "websiteURL": "https://travel-trends.mmatinca.eu"
+    },
+    {
+      "appTools": [
+        "search_listings",
+        "get_price_index",
+        "get_listing_detail",
+        "search"
+      ],
+      "apps": 4,
+      "description": "AI-native property MCP for Northern Cyprus (KKTC/TRNC): listings, prices, districts, yields.",
+      "id": "mcp-server",
+      "name": "Evlek — Northern Cyprus Property MCP Server",
+      "namespace": "app.evlek",
+      "tools": 14,
+      "url": "https://evlek.app/api/mcp",
+      "websiteURL": "https://evlek.app/mcp"
+    },
+    {
+      "appTools": [
+        "draft_board",
+        "best_available",
+        "sleepers_and_busts",
+        "adp_market_gaps",
+        "who_do_i_draft"
+      ],
+      "apps": 5,
+      "description": "AI fantasy football draft assistant — 2026 board, best available, sleepers, ADP gaps. Who to draft?",
+      "id": "fantasy-draft",
+      "name": "Fantasy Football Draft Assistant",
+      "namespace": "com.predictionmarketspicks",
+      "tools": 8,
+      "url": "https://predictionmarketspicks.com/api/mcp-draft/mcp",
+      "websiteURL": "https://predictionmarketspicks.com/draft"
+    },
+    {
+      "appTools": [
+        "fdic_show_bank_deep_dive"
+      ],
+      "apps": 1,
+      "description": "Search FDIC institutions, branches, failures, and peer analysis over MCP.",
+      "id": "fdic-mcp-server",
+      "name": "FDIC BankFind MCP Server",
+      "namespace": "io.github.jflamb",
+      "tools": 29,
+      "url": "https://bankfind.jflamb.com/mcp"
+    },
+    {
+      "appTools": [
+        "browse_stories",
+        "start_story",
+        "next_fragment"
+      ],
+      "apps": 3,
+      "description": "Short, finished fiction to discover by mood, genre or reading time inside ChatGPT.",
+      "id": "ficturn",
+      "name": "FICTURN — Short Fiction Inside ChatGPT",
+      "namespace": "io.github.thomasjudes-del",
+      "tools": 3,
+      "url": "https://ficturn.thomas-judes.workers.dev/mcp"
+    },
+    {
+      "appTools": [
+        "render_information_ui"
+      ],
+      "apps": 1,
+      "description": "Turn grounded AI answers into trusted comparisons, plans, timelines, and decision views.",
+      "id": "fify",
+      "name": "Fify",
+      "namespace": "io.github.renfei-design",
+      "tools": 2,
+      "url": "https://fify-chatgpt.renfei1992.chatgpt.site/api/mcp"
+    },
+    {
+      "appTools": [
+        "get_user_session"
+      ],
+      "apps": 1,
+      "description": "Read-only fantasy analysis for ESPN, Yahoo, and Sleeper leagues via MCP",
+      "id": "mcp-flaim",
+      "name": "Flaim Fantasy",
+      "namespace": "app.flaim",
+      "tools": 11,
+      "url": "https://api.flaim.app/mcp",
+      "websiteURL": "https://flaim.app"
+    },
+    {
+      "appTools": [
+        "get_seatmap",
+        "find_best_seats",
+        "get_seat_info",
+        "search_flight",
+        "interactive_seat_finder",
+        "get_seat_reviews",
+        "list_seat_alerts",
+        "create_seat_alert",
+        "delete_seat_alert"
+      ],
+      "apps": 9,
+      "description": "Seat maps, seat ratings, traveller reviews and seat alerts for 150+ airlines.",
+      "id": "flightseatmap",
+      "name": "FlightSeatMap",
+      "namespace": "com.flightseatmap",
+      "tools": 10,
+      "url": "https://mcp.flightseatmap.com/mcp",
+      "websiteURL": "https://flightseatmap.com/mcp"
+    },
+    {
+      "appTools": [
+        "search_variant_evidence"
+      ],
+      "apps": 1,
+      "description": "Helena Bioinformatics MCP for clinical variant interpretation, ACMG/AMP evidence and literature.",
+      "id": "folklore",
+      "name": "Folklore Clinical Variant Interpretation MCP",
+      "namespace": "io.github.helena-bioinformatics",
+      "tools": 5,
+      "url": "https://api.helena.bio/folklore/v1/mcp",
+      "websiteURL": "https://folklore.helena.bio"
+    },
+    {
+      "appTools": [
+        "search_planting_plans",
+        "get_plant_profile",
+        "check_companion_planting",
+        "get_seasonal_calendar"
+      ],
+      "apps": 4,
+      "description": "Search crops, check companion planting, explore seasonal calendars, and find planting plans.",
+      "id": "mcp-server-fryd",
+      "name": "Fryd - Your Garden Companion",
+      "namespace": "app.fryd",
+      "tools": 5,
+      "url": "https://mcp.fryd.app/mcp",
+      "websiteURL": "https://fryd.notion.site/Fryd-MCP-Server-362a7763fcc580a592eacd41df3db717"
+    },
+    {
+      "appTools": [
+        "fvs_open_chatgpt_app",
+        "fvs_submit_render",
+        "fvs_create_paid_render_quote",
+        "fvs_get_render_status",
+        "fvs_get_paid_render_status",
+        "fvs_cancel_render",
+        "fvs_download_final_video",
+        "fvs_example_render_request"
+      ],
+      "apps": 8,
+      "description": "Create and manage cinematic AI video renders through the Future Video Studio Agent API.",
+      "id": "future-video-studio",
+      "name": "Future Video Studio",
+      "namespace": "video.future",
+      "tools": 8,
+      "url": "https://mcp.future.video/mcp",
+      "websiteURL": "https://future.video"
+    },
+    {
+      "appTools": [
+        "convert_currency",
+        "get_exchange_rate"
+      ],
+      "apps": 2,
+      "description": "Free, keyless real-time currency conversion and exchange rates for any currency pair.",
+      "id": "fx-converter-mcp",
+      "name": "FX Converter MCP",
+      "namespace": "io.github.Lulu-The-Narwhal",
+      "tools": 2,
+      "url": "https://ads.getlulu.dev/fx/mcp"
+    },
+    {
+      "appTools": [
+        "subscribe_for_mcp_access",
+        "release_calendar",
+        "release_calendar_visual_artifact",
+        "plot_visual_artifact",
+        "indicator_visual_artifact",
+        "forex_visual_artifact",
+        "commodities_visual_artifact",
+        "cot_visual_artifact",
+        "policy_rate_differential_visual_artifact",
+        "indicator_intel_task",
+        "pair_intel_task",
+        "macro_heatmap_task",
+        "policy_scenario_modeler_task",
+        "macro_war_room_task",
+        "event_impact_replay_task",
+        "quant_scenario_lab_task"
+      ],
+      "apps": 16,
+      "description": "Macroeconomic and FX time-series data for AI agents: indicators, calendars, COT, forex, commodities.",
+      "id": "fxmacrodata",
+      "name": "FXMacroData",
+      "namespace": "io.github.fxmacrodata",
+      "tools": 48,
+      "url": "https://fxmacrodata.com/mcp",
+      "websiteURL": "https://fxmacrodata.com"
+    },
+    {
+      "appTools": [
+        "search_games"
+      ],
+      "apps": 1,
+      "description": "Publish, fork, improve browser games. No-auth reads; OAuth to post. Wheel: verified ops knowledge.",
+      "id": "mcp-gamefork",
+      "name": "GameFork MCP",
+      "namespace": "io.gamefork",
+      "tools": 3,
+      "url": "https://gamefork.dev/api/mcp",
+      "websiteURL": "https://gamefork.io"
+    },
+    {
+      "appTools": [
+        "get_services",
+        "lookup_duplicate_referral_deadline",
+        "choose_private_workflow"
+      ],
+      "apps": 3,
+      "description": "Read-only senior-care exit routes, duplicate-referral deadlines, and templates; no PII or sending.",
+      "id": "referral-exit-routes",
+      "name": "GeezerKeeper Referral Exit Routes and Deadlines",
+      "namespace": "com.geezerkeeper",
+      "tools": 7,
+      "url": "https://geezerkeeper.com/mcp"
+    },
+    {
+      "appTools": [
+        "search_hotels",
+        "get_rooms",
+        "create_checkout",
+        "create_one_click_checkout"
+      ],
+      "apps": 4,
+      "description": "Search hotels, get live prices, and check out in chat. Guest search needs no sign-in.",
+      "id": "getmyhotels",
+      "name": "GetMyHotels",
+      "namespace": "com.getmyhotels",
+      "tools": 18,
+      "url": "https://mcp.getmyhotels.com"
+    },
+    {
+      "appTools": [
+        "audit_a2a_agent_card",
+        "audit_shopify_agentic_storefront",
+        "audit_mcp_dependency",
+        "screen_agent_request",
+        "screen_mcp_tool_definition",
+        "screen_consequential_action",
+        "sanitize_agent_payload",
+        "validate_agent_response"
+      ],
+      "apps": 8,
+      "description": "Agent governance with A2A/Shopify/MCP trust audits, action screening, and decision UI.",
+      "id": "ghosbc-safety-gate",
+      "name": "GHOSBC Safety Gate",
+      "namespace": "io.github.MisfitMEdiAhouse",
+      "tools": 9,
+      "url": "https://cibcxqrqiqvzpardbdrw.supabase.co/functions/v1/ghosbc-safety-gate-mcp",
+      "websiteURL": "https://cibcxqrqiqvzpardbdrw.supabase.co/functions/v1/ghosbc-safety-gate"
+    },
+    {
+      "appTools": [
+        "marketing_get_report",
+        "marketing_get_funnel"
+      ],
+      "apps": 2,
+      "description": "Connect Google Analytics to ChatGPT. Query GA4 data in plain English and get instant insights.",
+      "id": "google-analytics-unofficial",
+      "name": "Google Analytics (unofficial)",
+      "namespace": "com.safe-mcp",
+      "tools": 5,
+      "url": "https://api.safe-mcp.com/mcp",
+      "websiteURL": "https://safe-mcp.com"
+    },
+    {
+      "appTools": [
+        "whatsapp_get_contacts",
+        "whatsapp_get_qr"
+      ],
+      "apps": 2,
+      "description": "MCP gateway for WhatsApp via Green API: messaging, contacts, groups and instance management.",
+      "id": "whatsapp",
+      "name": "Green API WhatsApp",
+      "namespace": "com.green-api",
+      "tools": 41,
+      "url": "https://mcp.green-api.com/mcp"
+    },
+    {
+      "appTools": [
+        "show_callable_leads"
+      ],
+      "apps": 1,
+      "description": "Sales intelligence for B2B SMEs — lead scoring, ICP fit, CRM enrichment & writeback.",
+      "id": "revenue-intelligence",
+      "name": "GrowthKit Revenue Intelligence",
+      "namespace": "tools.growthkit",
+      "tools": 68,
+      "url": "https://mcp.growthkit.tools",
+      "websiteURL": "https://growthkit.tools/en/mcp"
+    },
+    {
+      "appTools": [
+        "show_tours_activities"
+      ],
+      "apps": 1,
+      "description": "Free walking tours & activities in 1,000+ cities — live availability, ratings & booking links.",
+      "id": "mcp-guruwalk",
+      "name": "GuruWalk",
+      "namespace": "com.guruwalk",
+      "tools": 9,
+      "url": "https://back.guruwalk.com/mcp",
+      "websiteURL": "https://ai.guruwalk.com/docs/walkers"
+    },
+    {
+      "appTools": [
+        "get_decode"
+      ],
+      "apps": 1,
+      "description": "Decode video ads, load brand intelligence, generate ad scripts.",
+      "id": "api",
+      "name": "Heista",
+      "namespace": "co.heista",
+      "tools": 118,
+      "url": "https://www.heista.co/api/mcp/mcp",
+      "websiteURL": "https://www.heista.co"
+    },
+    {
+      "appTools": [
+        "hemelion_assess_decision_readiness"
+      ],
+      "apps": 1,
+      "description": "Native Clarity decision mapping, MindScan episode reflection, and read-only evidence tools.",
+      "id": "decision-reflection",
+      "name": "Hemelion Decision and Pattern Reflection",
+      "namespace": "com.hemelion",
+      "tools": 6,
+      "url": "https://www.hemelion.com/mcp",
+      "websiteURL": "https://www.hemelion.com/integrations/mcp"
+    },
+    {
+      "appTools": [
+        "get_verified_stay_offer"
+      ],
+      "apps": 1,
+      "description": "Host-owned vacation-rental direct booking via VRP. Signed offers, 0% commission. Not an OTA.",
+      "id": "hemmabo-mcp-server",
+      "name": "HemmaBo Host Booking Engine",
+      "namespace": "com.hemmabo",
+      "tools": 13,
+      "url": "https://www.hemmabo.com/mcp",
+      "websiteURL": "https://www.hemmabo.com"
+    },
+    {
+      "appTools": [
+        "show_listing"
+      ],
+      "apps": 1,
+      "description": "Interactive photo gallery widget for a single Airbnb listing with price, rating, and link.",
+      "id": "holiday-forever-2",
+      "name": "Holiday Forever",
+      "namespace": "io.github.holiday-forever",
+      "tools": 1,
+      "url": "https://holiday-forever-2.vercel.app/mcp",
+      "websiteURL": "https://holidayforever.vercel.app"
+    },
+    {
+      "appTools": [
+        "get_public_holidays",
+        "is_public_holiday"
+      ],
+      "apps": 2,
+      "description": "Free, keyless public holidays lookup for any country and year, plus single-date holiday checks.",
+      "id": "holidays-mcp",
+      "name": "Holidays MCP",
+      "namespace": "io.github.Lulu-The-Narwhal",
+      "tools": 2,
+      "url": "https://ads.getlulu.dev/holidays/mcp"
+    },
+    {
+      "appTools": [
+        "recommend_songs"
+      ],
+      "apps": 1,
+      "description": "Match singers to songs by vocal range: score fit, karaoke difficulty, and voice type.",
+      "id": "hummatch",
+      "name": "HumMatch",
+      "namespace": "me.hummatch",
+      "tools": 5,
+      "url": "https://hummatch.me/api/mcp",
+      "websiteURL": "https://hummatch.me"
+    },
+    {
+      "appTools": [
+        "ic_events_list_upcoming",
+        "ic_signal_get_latest",
+        "ic_donate"
+      ],
+      "apps": 3,
+      "description": "Members-run AI builder space on Floor 10, Frontier Tower SF. 138 tools: events, news, directory.",
+      "id": "floor10",
+      "name": "Immersive Commons",
+      "namespace": "com.immersivecommons",
+      "tools": 190,
+      "url": "https://www.immersivecommons.com/api/mcp",
+      "websiteURL": "https://www.immersivecommons.com"
+    },
+    {
+      "appTools": [
+        "cerca_offerte",
+        "dettaglio_offerta"
+      ],
+      "apps": 2,
+      "description": "Canary Islands holiday packages from Italy: live flights, hotels, cars, excursions and prices",
+      "id": "canarie",
+      "name": "In Viaggio alle Canarie",
+      "namespace": "it.inviaggioallecanarie",
+      "tools": 13,
+      "url": "https://inviaggioallecanarie.it/api/mcp",
+      "websiteURL": "https://inviaggioallecanarie.it"
+    },
+    {
+      "appTools": [
+        "view_portfolio"
+      ],
+      "apps": 1,
+      "description": "An interactive portfolio built for AI conversations. Browse work, services, and book calls.",
+      "id": "portfolio-in-context",
+      "name": "In-Context — AI-Native Portfolio",
+      "namespace": "me.in-context",
+      "tools": 3,
+      "url": "https://in-context.me/mcp"
+    },
+    {
+      "appTools": [
+        "animate_photo",
+        "get_animation_status"
+      ],
+      "apps": 2,
+      "description": "Animate old family photos into short lifelike videos with AI.",
+      "id": "photo-animation",
+      "name": "Incarn",
+      "namespace": "co.incarn",
+      "tools": 5,
+      "url": "https://api.incarn.co/mcp",
+      "websiteURL": "https://incarn.co"
+    },
+    {
+      "appTools": [
+        "get_sample_creator",
+        "render_creator_shortlist",
+        "render_creator_profile",
+        "render_creator_comparison"
+      ],
+      "apps": 4,
+      "description": "Find and analyze influencers with creator search, lookalikes, profiles, posts, and transcripts.",
+      "id": "influship-mcp",
+      "name": "Influship",
+      "namespace": "io.github.Influship",
+      "tools": 28,
+      "url": "https://mcp.influship.com/mcp",
+      "websiteURL": "https://docs.influship.com/guides/mcp-server"
+    },
+    {
+      "appTools": [
+        "murder-in-the-valley"
+      ],
+      "apps": 1,
+      "description": "Find out who killed Claude by interrogating the LLM driven suspects...",
+      "id": "investigation-game",
+      "name": "Investigation Game App",
+      "namespace": "tech.skybridge.investigation-game",
+      "tools": 1,
+      "url": "https://investigation-game.skybridge.tech",
+      "websiteURL": "https://www.skybridge.tech/"
+    },
+    {
+      "appTools": [
+        "search-site-photos",
+        "analyze-progress-and-forecasts"
+      ],
+      "apps": 2,
+      "description": "Explore and analyze Cupix construction site data: 360 images, progress, and insights.",
+      "id": "cupix-compass",
+      "name": "io.github.andrew-ji-cupix/cupix-compass",
+      "namespace": "io.github.andrew-ji-cupix",
+      "tools": 7,
+      "url": "https://7qc1f4ft9d.execute-api.us-west-2.amazonaws.com/mcp"
+    },
+    {
+      "appTools": [
+        "model_finder"
+      ],
+      "apps": 1,
+      "description": "Find your perfect Cowboy e-bike with an interactive wizard and AI recommendations.",
+      "id": "cowboy-model-finder",
+      "name": "io.github.cowboyhq/cowboy-model-finder",
+      "namespace": "io.github.cowboyhq",
+      "tools": 3,
+      "url": "https://cowboy-model-finder-mcp-app-8b3709a7529a.herokuapp.com/mcp",
+      "websiteURL": "https://cowboy.com"
+    },
+    {
+      "appTools": [
+        "scan_website",
+        "refresh_scan",
+        "compare_scan",
+        "get_score_breakdown",
+        "submit_lead"
+      ],
+      "apps": 5,
+      "description": "Scan websites for AI visibility and marketing health with interactive dashboard.",
+      "id": "ai-visibility-scanner",
+      "name": "io.github.edelgad3/ai-visibility-scanner",
+      "namespace": "io.github.edelgad3",
+      "tools": 5,
+      "url": "https://ai-visibility-scanner-production.up.railway.app/mcp"
+    },
+    {
+      "appTools": [
+        "analyze_weather"
+      ],
+      "apps": 1,
+      "description": "EPW/DDY weather files - TMY/AMY/CMIP6 morphing, UHI, events, smoke. 3 of 4 tools anon-free.",
+      "id": "epwforge-mcp",
+      "name": "io.github.guzz-labs/epwforge-mcp",
+      "namespace": "io.github.guzz-labs",
+      "tools": 6,
+      "url": "https://epwforge.com/api/mcp",
+      "websiteURL": "https://epwforge.com"
+    },
+    {
+      "appTools": [
+        "natal_chart",
+        "current_sky"
+      ],
+      "apps": 2,
+      "description": "34-tool Caelus MCP for validated astrology: charts, transits, Vedic, facts, sky view, synthetic.",
+      "id": "caelus-mcp",
+      "name": "io.github.heavyblotto/caelus-mcp",
+      "namespace": "io.github.heavyblotto",
+      "tools": 35,
+      "url": "https://www.ephemengine.com/api/mcp"
+    },
+    {
+      "appTools": [
+        "get_quote"
+      ],
+      "apps": 1,
+      "description": "Compare travel insurance quotes from 15+ insurers — Schengen, WHV, students, long stays, seniors.",
+      "id": "travel-insurance",
+      "name": "io.github.HelloSafe/travel-insurance",
+      "namespace": "io.github.HelloSafe",
+      "tools": 1,
+      "url": "https://hellosafe.com/api/mcp-travel",
+      "websiteURL": "https://hellosafe.com"
+    },
+    {
+      "appTools": [
+        "get_vitamin_d_year",
+        "configure_sun_profile",
+        "get_sun_forecast",
+        "compare_vitamin_d_year",
+        "get_current_status",
+        "get_my_history"
+      ],
+      "apps": 6,
+      "description": "Know when the sun can make vitamin D where you are, for your skin type. Live UV data.",
+      "id": "vitamind",
+      "name": "io.github.JaviMaligno/vitamind",
+      "namespace": "io.github.JaviMaligno",
+      "tools": 15,
+      "url": "https://getvitamind.app/api/mcp/mcp",
+      "websiteURL": "https://getvitamind.app/connect"
+    },
+    {
+      "appTools": [
+        "daf_viewer"
+      ],
+      "apps": 1,
+      "description": "Source discipline for Torah study in Claude: read the real texts, quote exactly, never fabricate",
+      "id": "torah-mcp",
+      "name": "io.github.JonathanB555/torah-mcp",
+      "namespace": "io.github.JonathanB555",
+      "tools": 16,
+      "url": "https://torah-mcp.com/mcp"
+    },
+    {
+      "appTools": [
+        "search_casinos"
+      ],
+      "apps": 1,
+      "description": "U.S. casino directory + a player's loyalty data, comps, tiers, and gambling tax docs.",
+      "id": "loyaltyvip",
+      "name": "io.github.justinmont84/loyaltyvip",
+      "namespace": "io.github.justinmont84",
+      "tools": 5,
+      "url": "https://loyaltyvip.com/mcp",
+      "websiteURL": "https://loyaltyvip.com/developers"
+    },
+    {
+      "appTools": [
+        "list_reports",
+        "get_report"
+      ],
+      "apps": 2,
+      "description": "Read your team's end-of-day reports and roster from Eodly.",
+      "id": "eodly-mcp",
+      "name": "io.github.layergen/eodly-mcp",
+      "namespace": "io.github.layergen",
+      "tools": 4,
+      "url": "https://eodly.io/api/mcp"
+    },
+    {
+      "appTools": [
+        "compare_programmes",
+        "estimate_total_cost",
+        "check_eligibility",
+        "plan_path"
+      ],
+      "apps": 4,
+      "description": "Verified CBI/RBI data + Mirabello Freedom Compass origin-aware migration planner. 96 programmes.",
+      "id": "mcp-server-mirabello-consultancy",
+      "name": "io.github.mirabello-consultancy/mcp-server",
+      "namespace": "io.github.mirabello-consultancy",
+      "tools": 60,
+      "url": "https://mcp.mirabelloconsultancy.com/",
+      "websiteURL": "https://www.mirabelloconsultancy.com/ai"
+    },
+    {
+      "appTools": [
+        "search_articles",
+        "get_article",
+        "list_topics"
+      ],
+      "apps": 3,
+      "description": "Sourced answers to everyday \"why is my…\" questions — health, pets, home, plumbing, tech, cars.",
+      "id": "whyismy-org",
+      "name": "io.github.parkragsterman/whyismy-org",
+      "namespace": "io.github.parkragsterman",
+      "tools": 3,
+      "url": "https://whyismy.org/mcp",
+      "websiteURL": "https://whyismy.org"
+    },
+    {
+      "appTools": [
+        "commit",
+        "note",
+        "handoff",
+        "recall",
+        "wake"
+      ],
+      "apps": 5,
+      "description": "Continuity for agents: a live memory you can read and cite right now, outliving the context window.",
+      "id": "kit-memory-demo",
+      "name": "io.github.PeterAtPondo/kit-memory-demo",
+      "namespace": "io.github.PeterAtPondo",
+      "tools": 10,
+      "url": "https://demo-mcp.kit-project.com/mcp",
+      "websiteURL": "https://kit-project.com"
+    },
+    {
+      "appTools": [
+        "quick_check",
+        "sample_prism_report",
+        "full_prism_report"
+      ],
+      "apps": 3,
+      "description": "Guideline-cited biomarker analysis for chronic conditions (diabetes, lupus, cancer). Synthetic.",
+      "id": "phi-longevity-prism",
+      "name": "io.github.Philongevity/phi-longevity-prism",
+      "namespace": "io.github.Philongevity",
+      "tools": 6,
+      "url": "https://philongevity.com/mcp",
+      "websiteURL": "https://philongevity.com/for-agents"
+    },
+    {
+      "appTools": [
+        "get_started",
+        "get_account_status",
+        "add_wallet",
+        "refresh_wallet_verification",
+        "get_wallet_summary",
+        "generate_proof_of_funds"
+      ],
+      "apps": 6,
+      "description": "Verify crypto wallets and generate proof of funds letters for buying real estate with crypto.",
+      "id": "mcp-server-realopengroup",
+      "name": "io.github.realopengroup/mcp-server",
+      "namespace": "io.github.realopengroup",
+      "tools": 20,
+      "url": "https://mcp.realopen.app/mcp",
+      "websiteURL": "https://realopen.com"
+    },
+    {
+      "appTools": [
+        "render_experience_cards"
+      ],
+      "apps": 1,
+      "description": "Search and book theatre, attractions, tours across 681 cities. 13,090+ products.",
+      "id": "tickadoo-mcp",
+      "name": "io.github.tickadoo/tickadoo-mcp",
+      "namespace": "io.github.tickadoo",
+      "tools": 23,
+      "url": "https://mcp.tickadoo.com/mcp"
+    },
+    {
+      "appTools": [
+        "exec"
+      ],
+      "apps": 1,
+      "description": "Draw and visually collaborate with your agents on tldraw's canvas.",
+      "id": "tldraw",
+      "name": "io.github.tldraw/tldraw",
+      "namespace": "io.github.tldraw",
+      "tools": 6,
+      "url": "https://tldraw-mcp-app.tldraw.workers.dev/mcp"
+    },
+    {
+      "appTools": [
+        "discover_products"
+      ],
+      "apps": 1,
+      "description": "Search and get fashion products recommendations across multiple e-ecom stores",
+      "id": "market",
+      "name": "io.github.vistoya/market",
+      "namespace": "io.github.vistoya",
+      "tools": 6,
+      "url": "https://api.vistoya.com/mcp"
+    },
+    {
+      "appTools": [
+        "van_quote",
+        "box_truck_quote",
+        "ftl_quote",
+        "ltl_quote",
+        "ltl_market_options",
+        "batch_quote",
+        "batch_book",
+        "list_bookings"
+      ],
+      "apps": 8,
+      "description": "Quote, book, and track LTL, FTL, cargo van, and box-truck freight via the Warp API.",
+      "id": "warp-agent-mcp",
+      "name": "io.github.warpfreight/warp-agent-mcp",
+      "namespace": "io.github.warpfreight",
+      "tools": 31,
+      "url": "https://mcp.wearewarp.com/api/mcp",
+      "websiteURL": "https://wearewarp.com"
+    },
+    {
+      "appTools": [
+        "join_waitlist"
+      ],
+      "apps": 1,
+      "description": "WebWeaver Nexus services for MCP hosts: waitlist signup (with UI), product overview, contact info.",
+      "id": "webweaver-mcp-server",
+      "name": "io.github.webweaver-nexus/webweaver-mcp-server",
+      "namespace": "io.github.webweaver-nexus",
+      "tools": 3,
+      "url": "https://webweaver-nexus-mcp.vercel.app/mcp",
+      "websiteURL": "https://github.com/webweaver-nexus/webweaver-mcp-server"
+    },
+    {
+      "appTools": [
+        "publish"
+      ],
+      "apps": 1,
+      "description": "Publish Markdown or HTML to a shareable link from your AI assistant. OAuth, no API keys.",
+      "id": "dochost-mcp",
+      "name": "io.github.zyli5313/dochost-mcp",
+      "namespace": "io.github.zyli5313",
+      "tools": 6,
+      "url": "https://dochost.io/api/mcp",
+      "websiteURL": "https://dochost.io"
+    },
+    {
+      "appTools": [
+        "scan_domain"
+      ],
+      "apps": 1,
+      "description": "Scan and fix a domain's email deliverability (SPF, DKIM, DMARC, MTA-STS, BIMI, DNS blocklists).",
+      "id": "email-deliverability",
+      "name": "io.inboxguard/email-deliverability",
+      "namespace": "io.inboxguard",
+      "tools": 28,
+      "url": "https://mcp.inboxguard.io/mcp"
+    },
+    {
+      "appTools": [
+        "get_sentiment_distribution",
+        "get_collection_stats",
+        "get_newspaper_stats",
+        "get_country_comparison",
+        "get_temporal_distribution",
+        "get_topic_distribution",
+        "get_field_distribution",
+        "get_cooccurrence",
+        "get_place_distribution",
+        "get_semantic_map",
+        "get_similar_items",
+        "get_lexical_metrics",
+        "list_periodicals"
+      ],
+      "apps": 13,
+      "description": "Read-only access to the Islam West Africa Collection via Hugging Face datasets.",
+      "id": "iwac-mcp-server",
+      "name": "Islam West Africa Collection (IWAC)",
+      "namespace": "io.github.fmadore",
+      "tools": 34,
+      "url": "https://islam.zmo.de/mcp/",
+      "websiteURL": "https://islam.zmo.de/s/westafrica/"
+    },
+    {
+      "appTools": [
+        "show_jass_card"
+      ],
+      "apps": 1,
+      "description": "First production Authority-MCP. W3C VC attested by Jassverband Schweiz.",
+      "id": "jasswiki",
+      "name": "JassWiki — Swiss Jass Authority (AMCP v0.1)",
+      "namespace": "ch.jassverband",
+      "tools": 3,
+      "url": "https://jasswiki.ch/mcp/http",
+      "websiteURL": "https://jasswiki.ch"
+    },
+    {
+      "appTools": [
+        "flight_calendar",
+        "find_destination",
+        "flight_search",
+        "hotel_search",
+        "hotel_details",
+        "trip",
+        "book"
+      ],
+      "apps": 7,
+      "description": "Turn your ChatGPT to a super travel agent",
+      "id": "jinko",
+      "name": "Jinko MCP",
+      "namespace": "com.gojinko.mcp",
+      "tools": 7,
+      "url": "https://mcp.gojinko.com",
+      "websiteURL": "https://gojinko.com"
+    },
+    {
+      "appTools": [
+        "get_job",
+        "lookup_roles_and_companies",
+        "search_jobs"
+      ],
+      "apps": 3,
+      "description": "Search Greek job listings on Jobily.gr by role, location, sector or company. Anonymous, read-only.",
+      "id": "jobs",
+      "name": "Jobily Jobs",
+      "namespace": "gr.jobily",
+      "tools": 5,
+      "url": "https://jobily.gr/mcp",
+      "websiteURL": "https://jobily.gr"
+    },
+    {
+      "appTools": [
+        "jobmojito_configuration"
+      ],
+      "apps": 1,
+      "description": "Run AI interviews, manage candidates and read hiring analytics on JobMojito.",
+      "id": "jobmojito",
+      "name": "JobMojito",
+      "namespace": "com.jobmojito",
+      "tools": 29,
+      "url": "https://mcp.jobmojito.com/mcp",
+      "websiteURL": "https://jobmojito.com"
+    },
+    {
+      "appTools": [
+        "search_buddhist_canon",
+        "find_passages_for_situation",
+        "explain_buddhist_passage",
+        "get_daily_practice"
+      ],
+      "apps": 4,
+      "description": "Read-only Buddhist scripture search, verified explanations, situation matching, and practice.",
+      "id": "jueban-buddhist-companion",
+      "name": "Jueban · Buddhist Companion",
+      "namespace": "io.github.assetgrid-llc",
+      "tools": 4,
+      "url": "https://jueban.online/mcp"
+    },
+    {
+      "appTools": [
+        "render_appointment_brief"
+      ],
+      "apps": 1,
+      "description": "Consent-gated tools that turn user health notes into non-diagnostic appointment-prep materials.",
+      "id": "juno-open-health-tools",
+      "name": "Juno Open Health Tools",
+      "namespace": "io.github.MarshallBear1",
+      "tools": 5,
+      "url": "https://juno-health-tools.vercel.app/api/mcp"
+    },
+    {
+      "appTools": [
+        "search_domains"
+      ],
+      "apps": 1,
+      "description": "Search domain availability and pricing, straight from chat, then open a link to register.",
+      "id": "just-domain",
+      "name": "Just Domain",
+      "namespace": "ai.justdomain",
+      "tools": 1,
+      "url": "https://mcp.justdomain.ai/",
+      "websiteURL": "https://justdomain.ai"
+    },
+    {
+      "appTools": [
+        "deploy"
+      ],
+      "apps": 1,
+      "description": "Publish the website you built with AI to a live public URL — straight from chat, no setup.",
+      "id": "just-publish",
+      "name": "Just Publish",
+      "namespace": "ai.justpublish",
+      "tools": 3,
+      "url": "https://mcp.justpublish.ai/",
+      "websiteURL": "https://justpublish.ai"
+    },
+    {
+      "appTools": [
+        "service-estimate-card"
+      ],
+      "apps": 1,
+      "description": "Quote UK trades jobs from any AI agent. Price breakdown + tappable booking link.",
+      "id": "justfix-skill",
+      "name": "JustFix Estimator",
+      "namespace": "io.github.Just-Fix",
+      "tools": 3,
+      "url": "https://estimator-mcp.justfix.app/mcp",
+      "websiteURL": "https://justfix.app"
+    },
+    {
+      "appTools": [
+        "compare_pdfs",
+        "create_upload_page",
+        "view_pdf"
+      ],
+      "apps": 3,
+      "description": "Upload, edit, compress, protect, redact, and compare PDFs with KDAN PDF in Claude and ChatGPT.",
+      "id": "kdan-pdf-mcp",
+      "name": "KDAN PDF",
+      "namespace": "com.kdandoc.mcp",
+      "tools": 16,
+      "url": "https://mcp.kdandoc.com/mcp",
+      "websiteURL": "https://pdf-reader.kdandoc.com/products/mcp/claude"
+    },
+    {
+      "appTools": [
+        "search_products"
+      ],
+      "apps": 1,
+      "description": "Multi-seller shopping for AI agents. Settle via Stripe MPP or x402 USDC on Base. Hosted.",
+      "id": "mcp-kifly",
+      "name": "Kifly — Agentic Commerce & Payments",
+      "namespace": "ai.kifly",
+      "tools": 21,
+      "url": "https://kifly.ai/api/mcp",
+      "websiteURL": "https://kifly.ai"
+    },
+    {
+      "appTools": [
+        "search_products"
+      ],
+      "apps": 1,
+      "description": "Multi-seller shopping for AI agents. Settle via Stripe MPP or x402 USDC on Base. Hosted.",
+      "id": "mcp-kifly-2",
+      "name": "Kifly — Agentic Commerce & Payments",
+      "namespace": "io.kifly",
+      "tools": 21,
+      "url": "https://kifly.io/api/mcp",
+      "websiteURL": "https://kifly.io"
+    },
+    {
+      "appTools": [
+        "get_case_workspace"
+      ],
+      "apps": 1,
+      "description": "Complete regulated intake work and retrieve cited case files without deciding the case.",
+      "id": "mcp-klarefi",
+      "name": "Klarefi",
+      "namespace": "com.klarefi",
+      "tools": 20,
+      "url": "https://www.klarefi.com/mcp"
+    },
+    {
+      "appTools": [
+        "shop",
+        "skincare_recommend",
+        "recommend",
+        "skincare_cart",
+        "search_products",
+        "get_product",
+        "compare_products"
+      ],
+      "apps": 7,
+      "description": "Search, compare, and purchase La Luer microcurrent facial devices and skincare products.",
+      "id": "la-luer",
+      "name": "La Luer — AI Skincare Commerce",
+      "namespace": "ai.searchshop.www",
+      "tools": 14,
+      "url": "https://searchshopai-mcp.fly.dev/mcp/la-luer"
+    },
+    {
+      "appTools": [
+        "search_vendors",
+        "get_vendor"
+      ],
+      "apps": 2,
+      "description": "Search Hungarian wedding vendors and venues, check a date, estimate a budget, get the checklist.",
+      "id": "latido",
+      "name": "Latido — wedding vendors & planning (Hungary)",
+      "namespace": "wedding.latido",
+      "tools": 8,
+      "url": "https://latido.wedding/mcp",
+      "websiteURL": "https://latido.wedding/en/ai"
+    },
+    {
+      "appTools": [
+        "compose_landing_submit",
+        "compose_landing"
+      ],
+      "apps": 2,
+      "description": "Build a landing page from your IDE chat, publish it, then manage domains and analytics.",
+      "id": "layero",
+      "name": "Layero",
+      "namespace": "ru.layero",
+      "tools": 27,
+      "url": "https://mcp.layero.ru/mcp",
+      "websiteURL": "https://docs.layero.ru/en/plugin/intro/"
+    },
+    {
+      "appTools": [
+        "leanriq_campaign_builder"
+      ],
+      "apps": 1,
+      "description": "Creative-intelligence MCP for campaign strategy, ad builds, QA, and reporting.",
+      "id": "leanriq",
+      "name": "LeanrIQ",
+      "namespace": "io.github.leanrads",
+      "tools": 87,
+      "url": "https://iq.leanrads.com/mcp",
+      "websiteURL": "https://github.com/leanrads/leanriq-mcp-docs"
+    },
+    {
+      "appTools": [
+        "generate-lineup"
+      ],
+      "apps": 1,
+      "description": "Turn one sentence into an event pack: event card, identity badges, QR codes, and .ics.",
+      "id": "lineup",
+      "name": "Lineup",
+      "namespace": "live.alpic.lineup-bf157e35",
+      "tools": 2,
+      "url": "https://lineup-bf157e35.alpic.live",
+      "websiteURL": "https://github.com/kaiser-data/lineup"
+    },
+    {
+      "appTools": [
+        "excerpt_render",
+        "media_render",
+        "verse_render"
+      ],
+      "apps": 3,
+      "description": "Read-only semantic search over Vedic scripture verses, commentaries, and recorded lectures.",
+      "id": "corpus",
+      "name": "Listen to Sadhu",
+      "namespace": "app.listentosadhu",
+      "tools": 21,
+      "url": "https://mcp.listentosadhu.app/mcp",
+      "websiteURL": "https://listentosadhu.app"
+    },
+    {
+      "appTools": [
+        "request_human_match",
+        "list_match_requests",
+        "start_chat",
+        "list_messages",
+        "send_message"
+      ],
+      "apps": 5,
+      "description": "Consent-based human matchmaking for peer advice, collaboration, and practical help.",
+      "id": "lmgram",
+      "name": "LMGram",
+      "namespace": "io.github.saezbaldo",
+      "tools": 6,
+      "url": "https://api.lmgram.com/mcp",
+      "websiteURL": "https://lmgram.com"
+    },
+    {
+      "appTools": [
+        "lotuswisdom"
+      ],
+      "apps": 1,
+      "description": "Contemplative reasoning with Lotus Sutra wisdom framework and ext-apps visualization.",
+      "id": "lotus-wisdom",
+      "name": "Lotus Wisdom",
+      "namespace": "io.github.linxule",
+      "tools": 2,
+      "url": "https://lotus-wisdom-mcp.linxule.workers.dev/mcp",
+      "websiteURL": "https://lotus-wisdom-mcp.linxule.workers.dev"
+    },
+    {
+      "appTools": [
+        "analyze_portfolio"
+      ],
+      "apps": 1,
+      "description": "Portfolio X-Ray with ETF look-through, file analysis, and website analytics in plain English.",
+      "id": "lubot",
+      "name": "LuBot Analytics",
+      "namespace": "io.github.lubobali",
+      "tools": 9,
+      "url": "https://mcp.lubot.ai/mcp",
+      "websiteURL": "https://lubot.ai"
+    },
+    {
+      "appTools": [
+        "search_mcps",
+        "get_mcp"
+      ],
+      "apps": 2,
+      "description": "Search and get install details on MCP servers, right from your agent -- a unified marketplace index.",
+      "id": "registry-mcp",
+      "name": "Lulu Registry MCP",
+      "namespace": "io.github.Lulu-The-Narwhal",
+      "tools": 2,
+      "url": "https://ads.getlulu.dev/registry/mcp"
+    },
+    {
+      "appTools": [
+        "magic-8-ball"
+      ],
+      "apps": 1,
+      "description": "Ask a question and get a deterministic Magic 8 Ball answer.",
+      "id": "new-test-cli",
+      "name": "Magic 8 Ball",
+      "namespace": "live.alpic.new-test-cli-239fbe01",
+      "tools": 1,
+      "url": "https://new-test-cli-239fbe01.alpic.live"
+    },
+    {
+      "appTools": [
+        "magic-8-ball"
+      ],
+      "apps": 1,
+      "description": "Skybridge demo for QA and playground validation",
+      "id": "test5",
+      "name": "Magic 8 Ball QA Demo",
+      "namespace": "live.alpic.test5-ca2cc17f",
+      "tools": 1,
+      "url": "https://test5-ca2cc17f.alpic.live"
+    },
+    {
+      "appTools": [
+        "get_platform_info",
+        "get_supported_languages",
+        "get_subjects",
+        "get_pricing_tiers",
+        "get_safety_features",
+        "get_compliance_matrix",
+        "get_tech_stack",
+        "get_contact_info",
+        "get_free_resources",
+        "show_how_makuri_works",
+        "show_romanian_quiz"
+      ],
+      "apps": 11,
+      "description": "Makuri (EU AI tutoring for immigrant children): 11 tools, 2 interactive panels, no user data.",
+      "id": "cogniledger-mcp-makuri",
+      "name": "Makuri Showcase (CogniLedger)",
+      "namespace": "io.github.Cogniledger",
+      "tools": 11,
+      "url": "https://mcp.cogniledger.eu/mcp"
+    },
+    {
+      "appTools": [
+        "search_community_apps",
+        "get_popular_tags",
+        "get_public_share"
+      ],
+      "apps": 3,
+      "description": "Read-only MCP tools for Mana public creations, tags, creator profiles, and share pages.",
+      "id": "mana-public",
+      "name": "Mana Public",
+      "namespace": "am.mana",
+      "tools": 3,
+      "url": "https://api.mana.am/mcp"
+    },
+    {
+      "appTools": [
+        "finance_search"
+      ],
+      "apps": 1,
+      "description": "Live market data, financial analysis, and portfolio research tools across 10,000+ tickers.",
+      "id": "manawa-terminal",
+      "name": "Manawa Terminal",
+      "namespace": "app.manawa",
+      "tools": 31,
+      "url": "https://mcp.manawa.app/mcp",
+      "websiteURL": "https://www.manawa.app"
+    },
+    {
+      "appTools": [
+        "check_ai_payment_authority",
+        "verify_cryptographic_payment_authority"
+      ],
+      "apps": 2,
+      "description": "Analyzes delegated AI payment authority and exposes supported Stripe/x402 evidence contracts.",
+      "id": "payment-authority",
+      "name": "MandateShield AI Payment Evidence",
+      "namespace": "com.mandateshield",
+      "tools": 3,
+      "url": "https://mandateshield.com/api/mcp",
+      "websiteURL": "https://mandateshield.com/connect"
+    },
+    {
+      "appTools": [
+        "mg_calculator_cagr",
+        "mg_calculator_dividend",
+        "mg_calculator_market_cap",
+        "mg_calculator_profit_margin"
+      ],
+      "apps": 4,
+      "description": "Our free Marketgenius investment tools as live, interactive React MCP Apps.",
+      "id": "mcp-marketgenius",
+      "name": "Marketgenius",
+      "namespace": "app.marketgenius",
+      "tools": 17,
+      "url": "https://marketgenius.app/mcp",
+      "websiteURL": "https://marketgenius.app"
+    },
+    {
+      "appTools": [
+        "rechnung_versand_vorschau",
+        "rechnung_versenden"
+      ],
+      "apps": 2,
+      "description": "Auftraege, Rechnungen, Material und Zeiten eines Handwerksbetriebs abfragen und pflegen.",
+      "id": "meistron",
+      "name": "Meistron",
+      "namespace": "app.meistron",
+      "tools": 29,
+      "url": "https://meistron.app/api/mcp",
+      "websiteURL": "https://meistron.app/ki-zugang"
+    },
+    {
+      "appTools": [
+        "render_mindmap"
+      ],
+      "apps": 1,
+      "description": "Turn outlines and hierarchical notes into interactive mind maps through a hosted remote MCP server.",
+      "id": "mindmap",
+      "name": "MindMap",
+      "namespace": "com.keenethics-labs",
+      "tools": 1,
+      "url": "https://mindmap-mcp-directory.keenethics-labs.com/mcp"
+    },
+    {
+      "appTools": [
+        "ask_audience",
+        "ask_study",
+        "get_study_status"
+      ],
+      "apps": 3,
+      "description": "Run AI market research: synthetic customer panels for concept testing, message testing, segments.",
+      "id": "minds",
+      "name": "Minds: Synthetic Market Research Panels",
+      "namespace": "ai.getminds",
+      "tools": 18,
+      "url": "https://getminds.ai/mcp",
+      "websiteURL": "https://getminds.ai/mcp/setup"
+    },
+    {
+      "appTools": [
+        "get-morning-brief"
+      ],
+      "apps": 1,
+      "description": "Chatgpt app for Morning brief",
+      "id": "iaapp",
+      "name": "Morning brief",
+      "namespace": "live.alpic.iaapp-a912a14e",
+      "tools": 1,
+      "url": "https://iaapp-a912a14e.alpic.live"
+    },
+    {
+      "appTools": [
+        "search_books",
+        "get_person_recommendations"
+      ],
+      "apps": 2,
+      "description": "Read-only MCP server for verified book recommendations and reading lists.",
+      "id": "books",
+      "name": "Most Recommended Books",
+      "namespace": "com.mostrecommendedbooks",
+      "tools": 6,
+      "url": "https://mostrecommendedbooks.com/api/mcp"
+    },
+    {
+      "appTools": [
+        "get_card_image"
+      ],
+      "apps": 1,
+      "description": "Magic: The Gathering card search, rules, rulings, deck analysis, brackets, and combo detection.",
+      "id": "mtgbench",
+      "name": "MTG Bench",
+      "namespace": "com.mtgbench",
+      "tools": 19,
+      "url": "https://mtgbench.com/mcp",
+      "websiteURL": "https://mtgbench.com"
+    },
+    {
+      "appTools": [
+        "play-sheet-music",
+        "play-live-pattern"
+      ],
+      "apps": 2,
+      "description": "Music studio: ABC notation composition and Strudel live coding with ext-apps UI.",
+      "id": "mcp-music-studio",
+      "name": "Music Studio",
+      "namespace": "io.github.linxule",
+      "tools": 5,
+      "url": "https://mcp-music-studio.linxule.workers.dev/mcp",
+      "websiteURL": "https://mcp-music-studio.linxule.workers.dev"
+    },
+    {
+      "appTools": [
+        "show-everything"
+      ],
+      "apps": 1,
+      "description": "Still WiP",
+      "id": "everything-app-everything-app-ce82911c",
+      "name": "My everything app!",
+      "namespace": "live.alpic.staging.everything-app-ce82911c",
+      "tools": 1,
+      "url": "https://everything-app-ce82911c.staging.alpic.live"
+    },
+    {
+      "appTools": [
+        "magic-8-ball"
+      ],
+      "apps": 1,
+      "description": "Description of my MCP server",
+      "id": "apps-sdk-template",
+      "name": "My MCP Server",
+      "namespace": "live.alpic.apps-sdk-template-14df1dd6",
+      "tools": 1,
+      "url": "https://apps-sdk-template-14df1dd6.alpic.live",
+      "websiteURL": "https://github.com/MichaelBiegluk"
+    },
+    {
+      "appTools": [
+        "search_domain"
+      ],
+      "apps": 1,
+      "description": "Domain availability search, WHOIS lookup, TLD pricing and registry rules from name.ai. Read-only.",
+      "id": "nameai-mcp",
+      "name": "Name.ai MCP Server",
+      "namespace": "ai.name",
+      "tools": 4,
+      "url": "https://nameai-mcp.h.namekart.com/mcp",
+      "websiteURL": "https://name.ai/developers"
+    },
+    {
+      "appTools": [
+        "nifra_gallery"
+      ],
+      "apps": 1,
+      "description": "Nifra docs, runnable examples, and API types as an MCP server for any AI assistant.",
+      "id": "nifra-docs",
+      "name": "Nifra docs",
+      "namespace": "io.github.nifrajs",
+      "tools": 5,
+      "url": "https://mcp.nifra.dev",
+      "websiteURL": "https://nifra.dev"
+    },
+    {
+      "appTools": [
+        "view-work",
+        "view-collection",
+        "view-search-results",
+        "view-similar-works"
+      ],
+      "apps": 4,
+      "description": "Agent integration with the Northwestern University Libraries Digital Collections API",
+      "id": "dc-api",
+      "name": "Northwestern University Libraries Digital Collections API",
+      "namespace": "io.github.nulib",
+      "tools": 8,
+      "url": "https://api.dc.library.northwestern.edu/api/v2/mcp"
+    },
+    {
+      "appTools": [
+        "screen_entity"
+      ],
+      "apps": 1,
+      "description": "Screen names against OFAC SDN and 7 more global sanctions lists. Free, no account required.",
+      "id": "screening",
+      "name": "OFACScreen Sanctions Screening",
+      "namespace": "com.ofacscreen",
+      "tools": 1,
+      "url": "https://www.ofacscreen.com/mcp",
+      "websiteURL": "https://www.ofacscreen.com"
+    },
+    {
+      "appTools": [
+        "offers_find",
+        "offers_get"
+      ],
+      "apps": 2,
+      "description": "Merchant offers with validated discounts and no bought rankings; accepting mints a voucher code.",
+      "id": "offers",
+      "name": "Offers",
+      "namespace": "ca.mattherbert",
+      "tools": 3,
+      "url": "https://offers.mattherbert.ca/mcp",
+      "websiteURL": "https://offers.mattherbert.ca"
+    },
+    {
+      "appTools": [
+        "plan_passage"
+      ],
+      "apps": 1,
+      "description": "Sailing passage planner for any coast, with high-precision tides on the French Atlantic.",
+      "id": "sailing-planner",
+      "name": "OhMyWind",
+      "namespace": "fr.ohmywind",
+      "tools": 4,
+      "url": "https://mcp.ohmywind.fr/mcp",
+      "websiteURL": "https://ohmywind.fr"
+    },
+    {
+      "appTools": [
+        "view_transcription"
+      ],
+      "apps": 1,
+      "description": "MCP server for Open Archives: Dutch genealogical records and historical page transcriptions.",
+      "id": "openarchieven-mcp-server",
+      "name": "Open Archives",
+      "namespace": "io.github.coret",
+      "tools": 22,
+      "url": "https://mcp.openarchieven.nl/",
+      "websiteURL": "https://www.openarchieven.nl"
+    },
+    {
+      "appTools": [
+        "search_vehicles",
+        "filter_vehicles",
+        "get_vehicle",
+        "dealers_near",
+        "dealer_inventory",
+        "compare_vehicles",
+        "get_deal_score",
+        "get_market_overview",
+        "get_market_segment",
+        "get_market_trends",
+        "get_vehicle_rankings",
+        "get_similar_vehicles"
+      ],
+      "apps": 12,
+      "description": "Automotive inventory search for AI assistants: vehicles, dealers, deals, and market data.",
+      "id": "mcp-opendealer",
+      "name": "OpenDealer MCP Server",
+      "namespace": "app.opendealer",
+      "tools": 27,
+      "url": "https://mcp.opendealer.app/rpc",
+      "websiteURL": "https://opendealer.pro"
+    },
+    {
+      "appTools": [
+        "search_jobs",
+        "get_job_details"
+      ],
+      "apps": 2,
+      "description": "Find jobs in your own words and apply on the company website — no detours.",
+      "id": "openjobs",
+      "name": "OpenJob",
+      "namespace": "live.alpic.openjobs-3168f222",
+      "tools": 6,
+      "url": "https://openjobs-3168f222.alpic.live",
+      "websiteURL": "https://openjobs-3168f222.alpic.live/try"
+    },
+    {
+      "appTools": [
+        "compare-llm-models",
+        "estimate-llm-cost",
+        "compare-models-side-by-side",
+        "recommend-llm-model",
+        "compare-compute-pricing"
+      ],
+      "apps": 5,
+      "description": "Compare LLM API pricing, estimate workload costs, and benchmark cloud compute. By OptimNow.",
+      "id": "ai-pricing-hub",
+      "name": "OptimToken",
+      "namespace": "io.github.OptimNow",
+      "tools": 5,
+      "url": "https://ai-pricing-hub-mcp-9604f763.alpic.live/",
+      "websiteURL": "https://optimtoken.optimnow.io/mcp"
+    },
+    {
+      "appTools": [
+        "orchestkit_docs_search"
+      ],
+      "apps": 1,
+      "description": "Read-only MCP server for the OrchestKit docs: full-text search + Markdown fetch. No auth.",
+      "id": "orchestkit",
+      "name": "OrchestKit Docs MCP",
+      "namespace": "io.github.yonatangross",
+      "tools": 2,
+      "url": "https://orchestkit.yonyon.ai/api/mcp",
+      "websiteURL": "https://orchestkit.yonyon.ai"
+    },
+    {
+      "appTools": [
+        "get_article"
+      ],
+      "apps": 1,
+      "description": "Search 4,130+ peer-reviewed articles on restorative reproductive medicine, with fact verification",
+      "id": "library",
+      "name": "org.rrmacademy/library",
+      "namespace": "org.rrmacademy",
+      "tools": 5,
+      "url": "https://mcp.rrmacademy.org/mcp",
+      "websiteURL": "https://rrmacademy.org/connect"
+    },
+    {
+      "appTools": [
+        "check_pc_for_local_ai",
+        "analyze_shared_report",
+        "simulate_hardware_upgrade",
+        "render_machine_cockpit"
+      ],
+      "apps": 4,
+      "description": "Conseiller IA locale read-only. Catalogue, rapports /r/, mesures. Aucun scan PC.",
+      "id": "local-ai-advisor",
+      "name": "OutilsIA — Conseiller IA locale",
+      "namespace": "fr.outilsia",
+      "tools": 15,
+      "url": "https://outilsia.fr/mcp",
+      "websiteURL": "https://outilsia.fr/chatgpt-ia-locale"
+    },
+    {
+      "appTools": [
+        "search_golf_coaches",
+        "search_golf_programs",
+        "get_golf_coach_availability",
+        "book_golf_lesson"
+      ],
+      "apps": 4,
+      "description": "PGA's official MCP Server for all things golf-related. Find a coach, play golf, improve your game.",
+      "id": "pga-golf",
+      "name": "PGA Golf",
+      "namespace": "com.pga",
+      "tools": 4,
+      "url": "https://mcp.pga.com/mcp",
+      "websiteURL": "https://mcp.pga.com"
+    },
+    {
+      "appTools": [
+        "get_account_state",
+        "show_spend_cap_approval"
+      ],
+      "apps": 2,
+      "description": "Inspect an approved ad account and first-party signal health, then propose policy-gated actions.",
+      "id": "mcp-plainrouter",
+      "name": "PlainRouter",
+      "namespace": "com.plainrouter",
+      "tools": 13,
+      "url": "https://plainrouter.com/mcp",
+      "websiteURL": "https://plainrouter.com"
+    },
+    {
+      "appTools": [
+        "get_sudoku_puzzle"
+      ],
+      "apps": 1,
+      "description": "Deterministic Sudoku puzzles, progress checks, logical hints, and step-by-step solutions.",
+      "id": "playsudoku",
+      "name": "PlaySudoku",
+      "namespace": "io.github.vincentping",
+      "tools": 4,
+      "url": "https://mcp.playsudoku.us/mcp"
+    },
+    {
+      "appTools": [
+        "ask_prepare"
+      ],
+      "apps": 1,
+      "description": "Every figure re-checked against SQL-computed facts; unsupported questions refused with the reason.",
+      "id": "mcp-plumbline",
+      "name": "Plumbline — a trust layer for LLM answers",
+      "namespace": "com.lattice-sys.plumbline",
+      "tools": 18,
+      "url": "https://plumbline.lattice-sys.com/mcp/demo",
+      "websiteURL": "https://plumbline.lattice-sys.com/"
+    },
+    {
+      "appTools": [
+        "browse_episodes"
+      ],
+      "apps": 1,
+      "description": "Search 4M+ podcasts & YouTube, transcribe any episode, search transcripts, generate AI lessons.",
+      "id": "podlearn",
+      "name": "PodLearn",
+      "namespace": "io.github.blutrich",
+      "tools": 25,
+      "url": "https://httiyebjgxxwtgggkpgw.supabase.co/functions/v1/mcp-server-streamable",
+      "websiteURL": "https://podlearn.ai"
+    },
+    {
+      "appTools": [
+        "render_news_list"
+      ],
+      "apps": 1,
+      "description": "Independent European news from Pollar: search, brief, threads, markets. Read-only, no login.",
+      "id": "pollar-news",
+      "name": "Pollar News",
+      "namespace": "news.pollar",
+      "tools": 16,
+      "url": "https://mcp.pollar.news/mcp"
+    },
+    {
+      "appTools": [
+        "render_parcel_shape"
+      ],
+      "apps": 1,
+      "description": "Unofficial MCP server for the public PortlandMaps property/permit/zoning API. Not city-affiliated.",
+      "id": "portlandmaps-mcp",
+      "name": "PortlandMaps (Unofficial)",
+      "namespace": "io.github.GPTNowLLC",
+      "tools": 11,
+      "url": "https://portlandmaps-mcp.vercel.app/mcp/v2",
+      "websiteURL": "https://github.com/GPTNowLLC/portlandmaps-mcp#readme"
+    },
+    {
+      "appTools": [
+        "lookup_postal_code"
+      ],
+      "apps": 1,
+      "description": "Free, keyless postal/ZIP code lookup: place name(s), state/region, and coordinates.",
+      "id": "postal-lookup-mcp",
+      "name": "Postal Lookup MCP",
+      "namespace": "io.github.Lulu-The-Narwhal",
+      "tools": 1,
+      "url": "https://ads.getlulu.dev/postal/mcp"
+    },
+    {
+      "appTools": [
+        "find_all",
+        "check_balance",
+        "topup_credits"
+      ],
+      "apps": 3,
+      "description": "Find company websites and verified business emails through the Potarix Enricher API.",
+      "id": "potarix-mcp",
+      "name": "Potarix Enricher",
+      "namespace": "io.github.Potarix",
+      "tools": 9,
+      "url": "https://api.potarix.com/mcp"
+    },
+    {
+      "appTools": [
+        "combo_edge",
+        "find_arbitrage",
+        "market_pulse",
+        "draft_board",
+        "best_available",
+        "sleepers_and_busts",
+        "who_do_i_draft",
+        "adp_market_gaps"
+      ],
+      "apps": 8,
+      "description": "Quant tools for AI agents with a public graded record — Kalshi & Polymarket EV, edge, NFL ADP.",
+      "id": "quant",
+      "name": "Prediction Markets Quant",
+      "namespace": "com.predictionmarketspicks",
+      "tools": 24,
+      "url": "https://predictionmarketspicks.com/api/mcp/mcp",
+      "websiteURL": "https://predictionmarketspicks.com/mcp"
+    },
+    {
+      "appTools": [
+        "url_to_pdf",
+        "markdown_to_pdf",
+        "html_to_pdf"
+      ],
+      "apps": 3,
+      "description": "Convert Markdown, HTML, and web pages to high-quality PDF with Prince.",
+      "id": "prince",
+      "name": "Prince Cloud",
+      "namespace": "cloud.prince",
+      "tools": 3,
+      "url": "https://prince.cloud/mcp",
+      "websiteURL": "https://prince.cloud"
+    },
+    {
+      "appTools": [
+        "get_job"
+      ],
+      "apps": 1,
+      "description": "Automatic audio mastering: LUFS targets, True Peak limiting, AI-fingerprint removal.",
+      "id": "mastering",
+      "name": "pro.magicmaster/mastering",
+      "namespace": "pro.magicmaster",
+      "tools": 9,
+      "url": "https://magicmaster.pro/mcp",
+      "websiteURL": "https://magicmaster.pro/mcp"
+    },
+    {
+      "appTools": [
+        "start_session"
+      ],
+      "apps": 1,
+      "description": "Send a one-off fax from inside ChatGPT or Claude. Pay-per-use, $2-$4.50 per delivered fax.",
+      "id": "promptfax",
+      "name": "PromptFax",
+      "namespace": "app.promptfax",
+      "tools": 8,
+      "url": "https://promptfax.app/mcp"
+    },
+    {
+      "appTools": [
+        "render_property_results"
+      ],
+      "apps": 1,
+      "description": "Search authorized real estate in Mexico and manage favorites and publishing with OAuth.",
+      "id": "propfacil",
+      "name": "PropFácil",
+      "namespace": "io.github.jonatanvazquez",
+      "tools": 13,
+      "url": "https://www.propfacil.com/api/mcp",
+      "websiteURL": "https://www.propfacil.com/docs"
+    },
+    {
+      "appTools": [
+        "inspect_rows",
+        "run_statement",
+        "run_metric"
+      ],
+      "apps": 3,
+      "description": "Public read-only Précis Finance MCP demo with synthetic data; no account or credentials required.",
+      "id": "precis-finance-mcp",
+      "name": "Précis Finance MCP",
+      "namespace": "io.github.precis-finance",
+      "tools": 17,
+      "url": "https://mcp.precis.finance/mcp",
+      "websiteURL": "https://precis.finance/mcp"
+    },
+    {
+      "appTools": [
+        "get_f1_race_weekend",
+        "get_f1_race_preview"
+      ],
+      "apps": 2,
+      "description": "Anonymous read-only Formula 1 tools, resources, prompts, completion, and interactive dashboard.",
+      "id": "f1",
+      "name": "Race Calendar F1",
+      "namespace": "app.racecalendar",
+      "tools": 15,
+      "url": "https://racecalendar.app/mcp",
+      "websiteURL": "https://racecalendar.app/f1"
+    },
+    {
+      "appTools": [
+        "get_savings_rates",
+        "get_cd_rates",
+        "get_mortgage_rates"
+      ],
+      "apps": 3,
+      "description": "Live US savings, CD, mortgage & HELOC rates with source + timestamp on every figure.",
+      "id": "rates",
+      "name": "RateZip Bank Deposit and Mortgage Rates",
+      "namespace": "com.ratezip",
+      "tools": 4,
+      "url": "https://mcp.ratezip.com/mcp",
+      "websiteURL": "https://www.ratezip.com"
+    },
+    {
+      "appTools": [
+        "show_recipes"
+      ],
+      "apps": 1,
+      "description": "Search recipes-daily.com by dish, ingredient, cuisine, method, meal or occasion.",
+      "id": "recipes",
+      "name": "Recipes Daily",
+      "namespace": "com.recipes-daily",
+      "tools": 3,
+      "url": "https://recipes-daily.com/mcp",
+      "websiteURL": "https://recipes-daily.com"
+    },
+    {
+      "appTools": [
+        "get_latest_releases",
+        "get_collection_releases"
+      ],
+      "apps": 2,
+      "description": "An agent-friendly API for product changelogs. A unified registry via CLI, API, or MCP.",
+      "id": "mcp-releases",
+      "name": "Releases",
+      "namespace": "sh.releases",
+      "tools": 16,
+      "url": "https://mcp.releases.sh/mcp"
+    },
+    {
+      "appTools": [
+        "rechercher_artisans",
+        "rechercher_chantier",
+        "contacter_artisan",
+        "creer_profil_artisan"
+      ],
+      "apps": 4,
+      "description": "Find French tradespeople, plan multi-trade projects, submit moderated contacts, create profiles.",
+      "id": "mcp-renoolab",
+      "name": "RenooLab - artisans in France",
+      "namespace": "fr.renoolab",
+      "tools": 4,
+      "url": "https://mcp.renoolab.fr/mcp",
+      "websiteURL": "https://renoolab.fr/mcp/"
+    },
+    {
+      "appTools": [
+        "get_usage"
+      ],
+      "apps": 1,
+      "description": "Give AI agents secure access to RevDesk calling, SMS, phone numbers, caller IDs, and usage.",
+      "id": "revdesk-product",
+      "name": "RevDesk Product MCP",
+      "namespace": "io.github.cell-labs-inc",
+      "tools": 10,
+      "url": "https://mcp.revdesk.com/mcp",
+      "websiteURL": "https://www.revdesk.com/developers"
+    },
+    {
+      "appTools": [
+        "rfix_export_rfix_project"
+      ],
+      "apps": 1,
+      "description": "Create RF signal projects from prompts, inspect graphs, and export IQ data.",
+      "id": "mcp-rfix",
+      "name": "RFix",
+      "namespace": "ai.rfix",
+      "tools": 3,
+      "url": "https://mcp.rfix.ai/mcp",
+      "websiteURL": "https://rfix.ai"
+    },
+    {
+      "appTools": [
+        "avizo_my_items"
+      ],
+      "apps": 1,
+      "description": "Avizo (RO SME compliance-deadline SaaS) as MCP tools: about, plans, categories, docs. Read-only.",
+      "id": "avizo-mcp",
+      "name": "ro.avizo/avizo-mcp",
+      "namespace": "ro.avizo",
+      "tools": 5,
+      "url": "https://avizo.ro/mcp",
+      "websiteURL": "https://avizo.ro"
+    },
+    {
+      "appTools": [
+        "show_map",
+        "show_itinerary_map"
+      ],
+      "apps": 2,
+      "description": "Romanian lodging character intelligence: calm, nature, culture, stays, itinerary maps. Read-only.",
+      "id": "lodging-intelligence",
+      "name": "ro.tria/lodging-intelligence",
+      "namespace": "ro.tria",
+      "tools": 7,
+      "url": "https://mcp.tria.ro",
+      "websiteURL": "https://tria.ro"
+    },
+    {
+      "appTools": [
+        "search_hotels",
+        "show_rooms"
+      ],
+      "apps": 2,
+      "description": "The room-level truth layer of hospitality. Verified scores for exact hotel rooms, not just hotels.",
+      "id": "roomza",
+      "name": "Roomza Hotel Intelligence",
+      "namespace": "io.github.roomza-inc",
+      "tools": 12,
+      "url": "https://www.roomza.com/api/mcp",
+      "websiteURL": "https://www.roomza.com"
+    },
+    {
+      "appTools": [
+        "get_current_affairs",
+        "get_news_card_detail",
+        "start_practice_quiz"
+      ],
+      "apps": 3,
+      "description": "UPSC prep: interactive quizzes, previous-year questions, daily current affairs, cited study search",
+      "id": "upsc-prep",
+      "name": "Sambodh IAS",
+      "namespace": "in.sambodh-ias",
+      "tools": 7,
+      "url": "https://api.sambodh-ias.in/mcp",
+      "websiteURL": "https://sambodh-ias.in"
+    },
+    {
+      "appTools": [
+        "show_chart",
+        "trending_stories_tool"
+      ],
+      "apps": 2,
+      "description": "Crypto market intelligence: social sentiment, on-chain, trending narratives & analyst insights.",
+      "id": "santiment-mcp",
+      "name": "Santiment",
+      "namespace": "io.github.santiment",
+      "tools": 8,
+      "url": "https://api.santiment.net/mcp",
+      "websiteURL": "https://academy.santiment.net/mcp-connector/"
+    },
+    {
+      "appTools": [
+        "find_schools",
+        "school_profile",
+        "feeder_path",
+        "compare_schools",
+        "similar_schools"
+      ],
+      "apps": 5,
+      "description": "California school data for AI agents — scores, profiles, comparisons, feeder paths, UC pipelines.",
+      "id": "mcp-schoolscope",
+      "name": "SchoolScope",
+      "namespace": "co.schoolscope",
+      "tools": 7,
+      "url": "https://mcp.schoolscope.co/mcp",
+      "websiteURL": "https://schoolscope.co"
+    },
+    {
+      "appTools": [
+        "preflight_endpoint",
+        "verify_artifact"
+      ],
+      "apps": 2,
+      "description": "The trust layer of the x402 economy: free conformance checks, attestation, corpus, agent store.",
+      "id": "general-store",
+      "name": "SCVD General Store",
+      "namespace": "store.scvd",
+      "tools": 13,
+      "url": "https://scvd.store/mcp",
+      "websiteURL": "https://scvd.store"
+    },
+    {
+      "appTools": [
+        "sear_overview",
+        "sear_benchmarks",
+        "sear_cli_help"
+      ],
+      "apps": 3,
+      "description": "Benchmark-first release surface with a read-only MCP endpoint and operator CLI.",
+      "id": "sear",
+      "name": "SEAR",
+      "namespace": "io.github.igor-holt",
+      "tools": 3,
+      "url": "https://sear.genesisconductor.io/api/mcp",
+      "websiteURL": "https://sear.genesisconductor.io"
+    },
+    {
+      "appTools": [
+        "shop",
+        "skincare_recommend",
+        "recommend",
+        "skincare_cart",
+        "search_products",
+        "get_product",
+        "compare_products"
+      ],
+      "apps": 7,
+      "description": "AI commerce for Shopify: product search, comparison, recommendations, and checkout via MCP.",
+      "id": "searchshopai",
+      "name": "SearchShop AI",
+      "namespace": "io.github.nathangrotticelli",
+      "tools": 11,
+      "url": "https://searchshopai-mcp.fly.dev/mcp"
+    },
+    {
+      "appTools": [
+        "get_wifi_facts",
+        "get_flight_wifi",
+        "get_airline_wifi",
+        "get_rollouts",
+        "get_speed_stats",
+        "get_tail_info",
+        "search_wifi",
+        "list_airlines"
+      ],
+      "apps": 8,
+      "description": "In-flight WiFi: provider by flight, airline or tail, measured speeds, Starlink rollout.",
+      "id": "seatwifi",
+      "name": "SeatWiFi",
+      "namespace": "com.seatwifi",
+      "tools": 8,
+      "url": "https://mcp.seatwifi.com/mcp",
+      "websiteURL": "https://seatwifi.com/for-developers"
+    },
+    {
+      "appTools": [
+        "createChart"
+      ],
+      "apps": 1,
+      "description": "Verified React chart generation: select, validate, repair, render, and inspect charts through MCP.",
+      "id": "semiotic",
+      "name": "Semiotic",
+      "namespace": "io.github.nteract",
+      "tools": 5,
+      "url": "https://semiotic-mcp-server-481507046413.us-west1.run.app/mcp",
+      "websiteURL": "https://semiotic.nteract.io"
+    },
+    {
+      "appTools": [
+        "publish_content",
+        "schedule_content",
+        "get_analytics",
+        "list_connected_accounts",
+        "get_scheduled_posts",
+        "create_upload_session",
+        "get_upload_session"
+      ],
+      "apps": 7,
+      "description": "AI-native social media publishing to LinkedIn, Instagram, Threads, TikTok, and X.",
+      "id": "sendit",
+      "name": "SendIt",
+      "namespace": "io.github.Shree-git",
+      "tools": 148,
+      "url": "https://sendit.infiniteappsai.com/mcp"
+    },
+    {
+      "appTools": [
+        "deployments_upload"
+      ],
+      "apps": 1,
+      "description": "Deploy static websites from AI agents. Free at mcp.shipstatic.com — no install, no signup.",
+      "id": "mcp-shipstatic",
+      "name": "ShipStatic",
+      "namespace": "com.shipstatic",
+      "tools": 15,
+      "url": "https://mcp.shipstatic.com",
+      "websiteURL": "https://shipstatic.com"
+    },
+    {
+      "appTools": [
+        "get-sideways-strategy-category-reframe",
+        "get-sideways-strategy-category-reduce",
+        "get-sideways-strategy-category-expand",
+        "get-sideways-strategy-category-disrupt",
+        "get-sideways-strategy-category-embody",
+        "get-sideways-strategy-category-pause"
+      ],
+      "apps": 6,
+      "description": "Use Sideways for unexpected questions and lateral thinking prompts to break through mental blocks.",
+      "id": "sideways",
+      "name": "Sideways",
+      "namespace": "com.usesideways",
+      "tools": 6,
+      "url": "https://usesideways.com/mcp",
+      "websiteURL": "https://usesideways.com"
+    },
+    {
+      "appTools": [
+        "sk_flights_search",
+        "sk_flex_departure_calendar",
+        "sk_flex_return_calendar",
+        "sk_hotels_search"
+      ],
+      "apps": 4,
+      "description": "Skiplagged MCP Server for flight search, hotel booking, and travel planning",
+      "id": "mcp-skiplagged",
+      "name": "Skiplagged MCP",
+      "namespace": "com.skiplagged",
+      "tools": 10,
+      "url": "https://mcp.skiplagged.com/mcp",
+      "websiteURL": "https://skiplagged.com"
+    },
+    {
+      "appTools": [
+        "build_travel_connectivity_guide",
+        "check_esim_device_compatibility"
+      ],
+      "apps": 2,
+      "description": "Estimate mobile-data needs and build a provider-neutral connectivity checklist for any trip.",
+      "id": "travel-connectivity-guide",
+      "name": "Skyalo Travel Connectivity Guide",
+      "namespace": "com.skyalo",
+      "tools": 2,
+      "url": "https://skyalo.com/chatgpt/mcp",
+      "websiteURL": "https://skyalo.com/chatgpt/docs"
+    },
+    {
+      "appTools": [
+        "explore-capitals"
+      ],
+      "apps": 1,
+      "description": "Example MCP and ChatGPT App based on Skybridge framework showing capitals in a world map",
+      "id": "capitals",
+      "name": "Skybridge Capitals Example",
+      "namespace": "tech.skybridge.capitals",
+      "tools": 1,
+      "url": "https://capitals.skybridge.tech",
+      "websiteURL": "https://skybridge.tech"
+    },
+    {
+      "appTools": [
+        "render-carousel"
+      ],
+      "apps": 1,
+      "description": "Example MCP App based on Skybridge framework showing an e-commerce products based on request\n",
+      "id": "ecom-carousel",
+      "name": "Skybridge Ecommerce Example",
+      "namespace": "tech.skybridge.ecommerce",
+      "tools": 2,
+      "url": "https://ecommerce.skybridge.tech",
+      "websiteURL": "https://skybridge.tech"
+    },
+    {
+      "appTools": [
+        "show-everything"
+      ],
+      "apps": 1,
+      "description": "Example and testing ChatGPT and MCP App showcasing all the features of the Skybridge framework",
+      "id": "everything",
+      "name": "Skybridge Everything App",
+      "namespace": "tech.skybridge.everything",
+      "tools": 3,
+      "url": "https://everything.skybridge.tech",
+      "websiteURL": "https://www.skybridge.tech"
+    },
+    {
+      "appTools": [
+        "show-productivity-insights"
+      ],
+      "apps": 1,
+      "description": "Skybridge Productivity MCP App Example",
+      "id": "productivity",
+      "name": "Skybridge Example MCP App",
+      "namespace": "tech.skybridge.productivity",
+      "tools": 1,
+      "url": "https://productivity.skybridge.tech",
+      "websiteURL": "https://skybridge.tech"
+    },
+    {
+      "appTools": [
+        "create_slide",
+        "create_deck",
+        "translate_deck",
+        "upload_asset"
+      ],
+      "apps": 4,
+      "description": "Deterministic, fully editable PowerPoint from typed slide intents. 200+ layouts, brand templates.",
+      "id": "slideforge",
+      "name": "SlideForge",
+      "namespace": "dev.slideforge",
+      "tools": 7,
+      "url": "https://api.slideforge.dev/mcp/"
+    },
+    {
+      "appTools": [
+        "get_forecast",
+        "get_hourly_forecast",
+        "get_alerts",
+        "get_air_quality"
+      ],
+      "apps": 4,
+      "description": "Smarter Weather MCP: forecasts, alerts, outlooks, observations, AQI, grids, and map imagery.",
+      "id": "weather",
+      "name": "Smarter Weather",
+      "namespace": "io.github.smarterweather",
+      "tools": 31,
+      "url": "https://mcp.smarterweather.com",
+      "websiteURL": "https://smarterweather.com/developers"
+    },
+    {
+      "appTools": [
+        "sign_up"
+      ],
+      "apps": 1,
+      "description": "Agent-first onboarding to Smarter Weather: plans, docs, signup, API keys, MCP config, billing.",
+      "id": "onboarding",
+      "name": "Smarter Weather Developer Onboarding",
+      "namespace": "io.github.smarterweather",
+      "tools": 3,
+      "url": "https://mcp.developers.smarterweather.com",
+      "websiteURL": "https://smarterweather.com/developers"
+    },
+    {
+      "appTools": [
+        "get_snow_report",
+        "get_resort_info",
+        "get_resort_photos",
+        "get_resort",
+        "find_best_powder"
+      ],
+      "apps": 5,
+      "description": "Live ski snow, multi-model forecasts, powder rankings & a grounded Answer Engine for 500+ resorts.",
+      "id": "snow",
+      "name": "SnowSure — Snow & Ski",
+      "namespace": "ai.snowsure",
+      "tools": 45,
+      "url": "https://www.snowsure.ai/mcp",
+      "websiteURL": "https://www.snowsure.ai"
+    },
+    {
+      "appTools": [
+        "tiktok_profile_get",
+        "tiktok_profile_videos_list",
+        "tiktok_profile_followers_list",
+        "tiktok_profile_following_list",
+        "tiktok_profile_region_get",
+        "tiktok_profile_audience_get",
+        "tiktok_profile_engagement_get",
+        "tiktok_users_search",
+        "tiktok_search_videos_list",
+        "tiktok_search_top_list",
+        "tiktok_search_hashtag_list",
+        "tiktok_search_suggestions_list",
+        "tiktok_video_get",
+        "tiktok_video_comments_list",
+        "tiktok_video_comments_replies_list",
+        "tiktok_video_transcript_get",
+        "tiktok_feed_trending_list",
+        "tiktok_collection_videos_list",
+        "tiktok_song_get",
+        "tiktok_music_videos_list",
+        "tiktok_shop_products_search",
+        "tiktok_shop_products_list",
+        "tiktok_product_get",
+        "tiktok_product_reviews_list",
+        "tiktok_profile_showcaseProducts_list",
+        "tiktok_adLibrary_ad_get",
+        "tiktok_adLibrary_ads_search_get",
+        "twitter_profile_get",
+        "twitter_profile_tweets_list",
+        "twitter_tweet_get",
+        "twitter_tweet_replies_list",
+        "twitter_tweet_transcript_get",
+        "twitter_search_list",
+        "twitter_hashtag_list",
+        "twitter_community_get",
+        "twitter_community_tweets_list",
+        "telegram_channel_get",
+        "telegram_channel_post_get",
+        "amazon_shop_get",
+        "linktree_profile_get",
+        "hackernews_search_list",
+        "hackernews_feed_list",
+        "hackernews_story_get",
+        "hackernews_story_comments_list",
+        "hackernews_item_get",
+        "hackernews_user_get",
+        "hackernews_user_submissions_list",
+        "hackernews_user_comments_list",
+        "hackernews_user_favorites_list",
+        "hackernews_jobs_who_is_hiring_list",
+        "truthsocial_profile_get",
+        "truthsocial_profile_posts_list",
+        "truthsocial_post_get",
+        "facebook_profile_get",
+        "facebook_profile_posts_list",
+        "facebook_profile_reels_list",
+        "facebook_profile_photos_list",
+        "facebook_profile_events_list",
+        "facebook_post_get",
+        "facebook_post_comments_list",
+        "facebook_post_comments_replies_list",
+        "facebook_post_transcript_get",
+        "facebook_group_get",
+        "facebook_group_posts_list",
+        "facebook_marketplace_locations_search",
+        "facebook_marketplace_search_list",
+        "facebook_marketplace_item_get",
+        "facebook_events_search_list",
+        "facebook_events_list",
+        "facebook_event_get",
+        "facebook_adLibrary_ad_get",
+        "facebook_adLibrary_ads_search_get",
+        "facebook_company_ads_list",
+        "facebook_adLibrary_companies_search",
+        "google_company_ads_list",
+        "google_adLibrary_ad_get",
+        "google_adLibrary_advertisers_search",
+        "instagram_profile_get",
+        "instagram_profile_basic_get",
+        "instagram_profile_posts_list",
+        "instagram_profile_reels_list",
+        "instagram_profile_highlights_list",
+        "instagram_profile_taggedPosts_list",
+        "instagram_highlight_get",
+        "instagram_profile_engagement_get",
+        "instagram_search_list",
+        "instagram_search_profiles_list",
+        "instagram_search_reels_list",
+        "instagram_search_hashtag_list",
+        "instagram_search_popular_list",
+        "instagram_post_get",
+        "instagram_post_comments_list",
+        "instagram_post_comments_replies_list",
+        "instagram_post_transcript_get",
+        "instagram_reels_trending_list",
+        "instagram_audio_reels_list",
+        "pinterest_profile_boards_list",
+        "pinterest_board_pins_list",
+        "pinterest_pin_get",
+        "pinterest_search_pins_list",
+        "threads_profile_get",
+        "threads_profile_posts_list",
+        "threads_post_get",
+        "threads_search_list",
+        "threads_users_search",
+        "bluesky_profile_get",
+        "bluesky_profile_posts_list",
+        "bluesky_post_get",
+        "linkedin_profile_get",
+        "linkedin_profiles_posts_list",
+        "linkedin_organization_get",
+        "linkedin_company_get",
+        "linkedin_company_posts_list",
+        "linkedin_post_get",
+        "linkedin_post_transcript_get",
+        "linkedin_people_search_list",
+        "linkedin_posts_search_list",
+        "linkedin_adLibrary_ad_get",
+        "linkedin_adLibrary_ads_search_list",
+        "linkedin_jobs_get",
+        "linkedin_jobs_search_list",
+        "reddit_subreddit_get",
+        "reddit_subreddit_posts_list",
+        "reddit_post_get",
+        "reddit_post_comments_list",
+        "reddit_post_transcript_get",
+        "reddit_subreddit_search_list",
+        "reddit_search_list",
+        "rumble_channel_videos_list",
+        "rumble_search_list",
+        "rumble_video_get",
+        "rumble_video_transcript_get",
+        "rumble_video_comments_list",
+        "twitch_profile_get",
+        "twitch_profile_videos_list",
+        "twitch_clip_get",
+        "github_profile_get",
+        "github_profile_repositories_list",
+        "github_profile_pullRequests_list",
+        "github_profile_activity_list",
+        "github_profile_followers_list",
+        "github_profile_following_list",
+        "github_profile_contributions_get",
+        "github_repositories_get",
+        "github_trending_repositories_list",
+        "github_trending_developers_list",
+        "spotify_artist_get",
+        "spotify_album_get",
+        "spotify_track_get",
+        "appleMusic_search_list",
+        "appleMusic_artist_get",
+        "appleMusic_album_get",
+        "appleMusic_track_get",
+        "soundcloud_profile_get",
+        "soundcloud_profile_tracks_list",
+        "soundcloud_track_get",
+        "youtube_channel_get",
+        "youtube_channel_videos_list",
+        "youtube_channel_shorts_list",
+        "youtube_playlist_get",
+        "youtube_community_post_get",
+        "youtube_search_list",
+        "youtube_search_hashtag_list",
+        "youtube_video_get",
+        "youtube_video_comments_list",
+        "youtube_video_comments_replies_list",
+        "youtube_video_transcript_get",
+        "youtube_shorts_trending_list",
+        "web_search_run"
+      ],
+      "apps": 169,
+      "description": "Public social-data API and live docs for AI coding agents.",
+      "id": "socialfetch",
+      "name": "Social Fetch",
+      "namespace": "io.github.social-freak-ltd",
+      "tools": 207,
+      "url": "https://api.socialfetch.dev/mcp",
+      "websiteURL": "https://www.socialfetch.dev/docs/integrations/mcp"
+    },
+    {
+      "appTools": [
+        "get_quote",
+        "check_availability",
+        "book_window_cleaning"
+      ],
+      "apps": 3,
+      "description": "Book window & gutter cleaning in Colorado and New Mexico: instant firm quote, real calendar slot",
+      "id": "booking",
+      "name": "Sonlight Window Cleaning",
+      "namespace": "com.sonlightwindow",
+      "tools": 3,
+      "url": "https://sonlightwindow.com/mcp",
+      "websiteURL": "https://sonlightwindow.com"
+    },
+    {
+      "appTools": [
+        "search_images"
+      ],
+      "apps": 1,
+      "description": "Search 15K rare pre-modern texts translated to English: philosophy, religion, science, literature.",
+      "id": "sourcelibrary",
+      "name": "Source Library",
+      "namespace": "io.github.Embassy-of-the-Free-Mind",
+      "tools": 15,
+      "url": "https://sourcelibrary.org/api/mcp",
+      "websiteURL": "https://sourcelibrary.org/developers"
+    },
+    {
+      "appTools": [
+        "search_family_hotels",
+        "get_hotel",
+        "compare_hotels"
+      ],
+      "apps": 3,
+      "description": "Family water-holiday hotels & campsites, scored for toddlers, kids and teens.",
+      "id": "family-hotels",
+      "name": "SplashScout — family water holidays",
+      "namespace": "uk.co.splashscout",
+      "tools": 3,
+      "url": "https://splashscout.co.uk/api/mcp",
+      "websiteURL": "https://splashscout.co.uk"
+    },
+    {
+      "appTools": [
+        "portal_get_recent_activity",
+        "portal_get_wallet_summary",
+        "portal_get_time_series",
+        "portal_evm_query_logs",
+        "portal_evm_query_transactions",
+        "portal_evm_query_token_transfers",
+        "portal_evm_get_contract_deployment",
+        "portal_evm_get_contract_activity",
+        "portal_evm_get_analytics",
+        "portal_evm_get_ohlc",
+        "portal_solana_query_instructions",
+        "portal_solana_query_transactions",
+        "portal_solana_get_analytics",
+        "portal_bitcoin_query_transactions",
+        "portal_bitcoin_get_analytics",
+        "portal_substrate_query_events",
+        "portal_substrate_query_calls",
+        "portal_substrate_get_analytics",
+        "portal_hyperliquid_query_fills",
+        "portal_hyperliquid_get_analytics",
+        "portal_hyperliquid_get_ohlc"
+      ],
+      "apps": 21,
+      "description": "Query 130+ SQD Portal datasets across blockchains. Discover Tron and resolve heads and timestamps.",
+      "id": "portal-mcp-server",
+      "name": "SQD",
+      "namespace": "io.github.subsquid-labs",
+      "tools": 28,
+      "url": "https://portal.sqd.dev/mcp",
+      "websiteURL": "https://docs.sqd.dev/en/ai/mcp-server"
+    },
+    {
+      "appTools": [
+        "get_shorts",
+        "list_templates",
+        "list_music",
+        "list_game_videos",
+        "list_meme_hooks"
+      ],
+      "apps": 5,
+      "description": "Create AI-powered short-form video clips from YouTube videos. Supports webhook callbacks.",
+      "id": "mcp-server-ssemble",
+      "name": "Ssemble AI Clipping",
+      "namespace": "com.ssemble",
+      "tools": 9,
+      "url": "https://mcp.ssemble.com/mcp",
+      "websiteURL": "https://www.ssemble.com/mcp"
+    },
+    {
+      "appTools": [
+        "getDocument",
+        "getWhiteboardImage",
+        "getImprovement",
+        "getPlan",
+        "getTask",
+        "getPlanHierarchy"
+      ],
+      "apps": 6,
+      "description": "End-to-end agent-managed company brain. Docs, diagrams, plans, Knowledge Graph. Lean & affordable.",
+      "id": "sb",
+      "name": "Stable Baseline",
+      "namespace": "io.stablebaseline",
+      "tools": 196,
+      "url": "https://api.stablebaseline.io/functions/v1/cloud-serve/mcp",
+      "websiteURL": "https://stablebaseline.io"
+    },
+    {
+      "appTools": [
+        "talent_scout_draft_manual_note",
+        "talent_scout_review_queue",
+        "talent_scout_daily_pipeline"
+      ],
+      "apps": 3,
+      "description": "Expert knowledge base for sales, negotiation, strategy, operations, and risk.",
+      "id": "expert-brain",
+      "name": "StackFast FractWin Expert Brain",
+      "namespace": "io.github.Trupe-Rs",
+      "tools": 74,
+      "url": "https://stackfast.ai/api/mcp"
+    },
+    {
+      "appTools": [
+        "get_public_profile",
+        "list_published_articles",
+        "list_case_studies"
+      ],
+      "apps": 3,
+      "description": "Read Sudhanva Narayana's public profile, production ML case studies, and technical writing.",
+      "id": "sudhanva-public-profile",
+      "name": "Sudhanva Public Profile",
+      "namespace": "io.github.nsudhanva",
+      "tools": 3,
+      "url": "https://sudhanva.me/mcp"
+    },
+    {
+      "appTools": [
+        "get_public_profile",
+        "list_published_articles",
+        "list_case_studies"
+      ],
+      "apps": 3,
+      "description": "Read Sudhanva Narayana's public profile, production ML case studies, and technical writing.",
+      "id": "public-profile",
+      "name": "Sudhanva Public Profile",
+      "namespace": "me.sudhanva",
+      "tools": 3,
+      "url": "https://sudhanva.me/mcp/registry"
+    },
+    {
+      "appTools": [
+        "call_endpoint"
+      ],
+      "apps": 1,
+      "description": "Gateway between LLM agents and world data through eight tools and a bundled endpoint catalog.",
+      "id": "api-mcp",
+      "name": "Sugra API",
+      "namespace": "ai.sugra",
+      "tools": 11,
+      "url": "https://app.sugra.ai/mcp"
+    },
+    {
+      "appTools": [
+        "playground-link"
+      ],
+      "apps": 1,
+      "description": "The official Svelte MCP server providing docs and autofixing tools for Svelte development",
+      "id": "mcp-svelte",
+      "name": "Svelte MCP",
+      "namespace": "dev.svelte",
+      "tools": 4,
+      "url": "https://mcp.svelte.dev/mcp",
+      "websiteURL": "https://svelte.dev/docs/mcp/overview"
+    },
+    {
+      "appTools": [
+        "search_products",
+        "get_product",
+        "add_to_cart",
+        "remove_from_cart",
+        "set_cart_quantity",
+        "apply_coupon",
+        "get_cart",
+        "get_active_cart"
+      ],
+      "apps": 8,
+      "description": "Shop connected e-commerce stores: search, compare, cart, and checkout with buyer approval.",
+      "id": "synchronity",
+      "name": "Synchronity",
+      "namespace": "io.github.themewireco",
+      "tools": 26,
+      "url": "https://api.synchronity.app/mcp",
+      "websiteURL": "https://synchronity.app"
+    },
+    {
+      "appTools": [
+        "info",
+        "eu_ai_act_compliance"
+      ],
+      "apps": 2,
+      "description": "Paid EU AI Act compliance reports for agents. $1.50 per call via x402 (USDC on Base) or Stripe.",
+      "id": "reports",
+      "name": "systemprompt.io reports",
+      "namespace": "io.systemprompt",
+      "tools": 2,
+      "url": "https://systemprompt.io/api/v1/mcp/systemprompt-reports/mcp",
+      "websiteURL": "https://systemprompt.io/tools/"
+    },
+    {
+      "appTools": [
+        "ayah_mutashabihat",
+        "phrase_mutashabihat",
+        "ayah_translation",
+        "ayah_tafsir",
+        "ayah_search",
+        "list_reciters",
+        "list_tafsirs",
+        "list_translations",
+        "play_ayahs",
+        "prayer_times"
+      ],
+      "apps": 10,
+      "description": "Quran MCP server for translation, tafsir, mutashabihat, recitation playlists, and prayer times.",
+      "id": "tarteel-mcp-server",
+      "name": "Tarteel MCP Server",
+      "namespace": "io.github.TarteelAI",
+      "tools": 16,
+      "url": "https://mcp.tarteel.ai/mcp",
+      "websiteURL": "https://mcp.tarteel.ai/docs/"
+    },
+    {
+      "appTools": [
+        "search_listings",
+        "get_listing"
+      ],
+      "apps": 2,
+      "description": "Agent-accessible map of global supply & demand: jobs, homes, cars & services your AI can act on",
+      "id": "teppek",
+      "name": "Teppek",
+      "namespace": "com.teppek",
+      "tools": 16,
+      "url": "https://mcp.teppek.com/mcp",
+      "websiteURL": "https://www.teppek.com"
+    },
+    {
+      "appTools": [
+        "get_swap_quote"
+      ],
+      "apps": 1,
+      "description": "Read-only THORChain swap quotes, liquidity pools, and network status.",
+      "id": "thorchain-swap",
+      "name": "THORChain Swap",
+      "namespace": "org.thorchain.swap",
+      "tools": 3,
+      "url": "https://swap.thorchain.org/mcp",
+      "websiteURL": "https://swap.thorchain.org/developers/mcp"
+    },
+    {
+      "appTools": [
+        "play"
+      ],
+      "apps": 1,
+      "description": "Skybridge Example App showcasing a Time's up game with the LLM",
+      "id": "time-s-up",
+      "name": "Time's up Skybridge example App",
+      "namespace": "tech.skybridge.times-up",
+      "tools": 2,
+      "url": "https://times-up.skybridge.tech",
+      "websiteURL": "https://skybridge.tech"
+    },
+    {
+      "appTools": [
+        "start_booking"
+      ],
+      "apps": 1,
+      "description": "Real-time booking for Korean beauty & wellness shops — search availability, get a booking link.",
+      "id": "booking-timeplex",
+      "name": "Timeplex K-Beauty Booking",
+      "namespace": "ai.timeplex",
+      "tools": 5,
+      "url": "https://chat.timeplex.ai/mcp",
+      "websiteURL": "https://timeplex.ai"
+    },
+    {
+      "appTools": [
+        "search_products",
+        "get_product",
+        "try_on"
+      ],
+      "apps": 3,
+      "description": "Search products, view details, and try items on across stores powered by Tolstoy.",
+      "id": "shopper",
+      "name": "Tolstoy Shopper",
+      "namespace": "io.github.GoTolstoy",
+      "tools": 3,
+      "url": "https://apilb.gotolstoy.com/mcp/v1/shopper/mcp",
+      "websiteURL": "https://platform.gotolstoy.com/settings/mcp?server=shopper"
+    },
+    {
+      "appTools": [
+        "tp_render_result_cards"
+      ],
+      "apps": 1,
+      "description": "Read-only MCP tools for Total Parks-listed Australian holiday parks, caravan parks, and campgrounds.",
+      "id": "mcp-totalparks",
+      "name": "Total Parks",
+      "namespace": "au.com.totalparks",
+      "tools": 11,
+      "url": "https://mcp.totalparks.com.au/mcp",
+      "websiteURL": "https://totalparks.com.au/docs/api/mcp"
+    },
+    {
+      "appTools": [
+        "get_signals",
+        "get_signal_details",
+        "get_my_account"
+      ],
+      "apps": 3,
+      "description": "AI crypto signals, smart money whale positions, live futures prices and indicators",
+      "id": "traderspy",
+      "name": "TraderSpy",
+      "namespace": "app.traderspy",
+      "tools": 15,
+      "url": "https://mcp.traderspy.app/mcp",
+      "websiteURL": "https://traderspy.app/mcp"
+    },
+    {
+      "appTools": [
+        "discover_collections",
+        "build_bookable_carousel"
+      ],
+      "apps": 2,
+      "description": "Semantic hotel search with real-time availability and price comparison for Kismet Travel",
+      "id": "mcp-server-kismet",
+      "name": "travel.kismet/mcp-server",
+      "namespace": "travel.kismet",
+      "tools": 13,
+      "url": "https://mcp.kismet.travel/mcp"
+    },
+    {
+      "appTools": [
+        "open_sutta_viewer"
+      ],
+      "apps": 1,
+      "description": "MCP server for the full Pāli Canon — search, cite, compare translations. Offered as Dhamma Dāna.",
+      "id": "tripitaka-mcp",
+      "name": "Tripitaka MCP",
+      "namespace": "io.github.dhamma-seeker",
+      "tools": 14,
+      "url": "https://mcp.tripitaka-mcp.com/mcp",
+      "websiteURL": "https://tripitaka-mcp.com"
+    },
+    {
+      "appTools": [
+        "search_rooms",
+        "rank_room_matches",
+        "get_room_details",
+        "compare_rooms",
+        "list_search_metadata",
+        "search_universities",
+        "search_cities",
+        "list_university_campuses",
+        "get_my_profile",
+        "send_room_message",
+        "list_my_favorites",
+        "add_favorite",
+        "remove_favorite",
+        "list_my_requests",
+        "create_rental_request",
+        "update_rental_request_status",
+        "list_my_listings",
+        "create_listing",
+        "get_account_links"
+      ],
+      "apps": 19,
+      "description": "Find, rank, and compare student rooms from UniAffitti public listings.",
+      "id": "room-finder",
+      "name": "UniAffitti Room Finder",
+      "namespace": "com.uniaffitti.www",
+      "tools": 19,
+      "url": "https://www.uniaffitti.com/mcp/"
+    },
+    {
+      "appTools": [
+        "property_details_tool",
+        "property_search_tool"
+      ],
+      "apps": 2,
+      "description": "Search and explore residential properties that aren't for sale (yet)",
+      "id": "unlisted",
+      "name": "Unlisted Property Search",
+      "namespace": "com.unlistedinc",
+      "tools": 3,
+      "url": "https://api.unlistedinc.com/mcp",
+      "websiteURL": "https://unlistedhomes.com"
+    },
+    {
+      "appTools": [
+        "unulu_create_site",
+        "unulu_get_state",
+        "unulu_update_site"
+      ],
+      "apps": 3,
+      "description": "AI agent website builder. Create and publish link-in-bio sites via MCP or REST API.",
+      "id": "unulu",
+      "name": "unulu",
+      "namespace": "ai.unulu",
+      "tools": 4,
+      "url": "https://mcp.unulu.ai"
+    },
+    {
+      "appTools": [
+        "upload_garment_from_chat_file",
+        "upload_garment_from_public_url",
+        "upload_avatar_from_chat_file",
+        "propose_montage",
+        "update_montage_proposal",
+        "request_user_context",
+        "save_reference_file_from_chat_file",
+        "propose_brief",
+        "update_brief",
+        "confirm_brief",
+        "get_brief"
+      ],
+      "apps": 11,
+      "description": "AI photoshoot studio: garments, avatars, locations, and art direction",
+      "id": "uwear",
+      "name": "Uwear",
+      "namespace": "ai.uwear",
+      "tools": 67,
+      "url": "https://api.uwear.ai/mcp",
+      "websiteURL": "https://uwear.ai/mcp"
+    },
+    {
+      "appTools": [
+        "open_diagnostic_intake",
+        "describe_services",
+        "start_free_diagnostic",
+        "check_diagnostic_status"
+      ],
+      "apps": 4,
+      "description": "Venture Insights' free Concept Diagnostic, requested by an AI assistant for a founder.",
+      "id": "venture-diagnostic",
+      "name": "Venture Insights Concept Diagnostic",
+      "namespace": "sa.com.ventureinsights.solutions",
+      "tools": 4,
+      "url": "https://solutions.ventureinsights.com.sa/api/mcp",
+      "websiteURL": "https://solutions.ventureinsights.com.sa/for-agents"
+    },
+    {
+      "appTools": [
+        "quiz_video_get_quiz",
+        "quiz_video_create_quiz",
+        "quiz_video_generate_quiz",
+        "quiz_video_create_render",
+        "quiz_video_get_render"
+      ],
+      "apps": 5,
+      "description": "Quiz.Video MCP: list, create, AI-generate, and render quiz and flashcard videos.",
+      "id": "api-quiz",
+      "name": "video.quiz/api",
+      "namespace": "video.quiz",
+      "tools": 30,
+      "url": "https://www.quiz.video/mcp/",
+      "websiteURL": "https://www.quiz.video"
+    },
+    {
+      "appTools": [
+        "browse_board"
+      ],
+      "apps": 1,
+      "description": "Manage feature requests, votes, roadmaps, and changelogs from any MCP client.",
+      "id": "voteship",
+      "name": "VoteShip",
+      "namespace": "io.github.MattKilmer",
+      "tools": 4,
+      "url": "https://voteship.app/mcp",
+      "websiteURL": "https://voteship.app/developers"
+    },
+    {
+      "appTools": [
+        "get_weather",
+        "get_forecast"
+      ],
+      "apps": 2,
+      "description": "Free, keyless real-time weather and 7-day forecasts for any city worldwide.",
+      "id": "weather-mcp",
+      "name": "Weather MCP",
+      "namespace": "io.github.Lulu-The-Narwhal",
+      "tools": 2,
+      "url": "https://ads.getlulu.dev/weather/mcp"
+    },
+    {
+      "appTools": [
+        "validate_html",
+        "validate_css",
+        "audit_seo_metadata",
+        "validate_schema_markup",
+        "check_broken_links",
+        "generate_validation_report",
+        "audit_public_webpage",
+        "audit_public_site"
+      ],
+      "apps": 8,
+      "description": "Validate HTML/CSS, audit SEO and JSON-LD, check links, and capture responsive screenshots.",
+      "id": "mcp-web-validator",
+      "name": "Web Validator by DigestSEO",
+      "namespace": "io.github.AKzar1el",
+      "tools": 8,
+      "url": "https://web-validator-mcp.digestseo.com/mcp",
+      "websiteURL": "https://digestseo.com/validator-mcp/"
+    },
+    {
+      "appTools": [
+        "find_clips",
+        "extract_clip",
+        "extract_vertical_clip",
+        "clips_vertical",
+        "clips_horizontal"
+      ],
+      "apps": 5,
+      "description": "Find & cut horizontal and vertical video clips (Shorts/Reels), transcribe & summarize. Pay per job.",
+      "id": "weftly",
+      "name": "Weftly",
+      "namespace": "ai.weftly",
+      "tools": 13,
+      "url": "https://api.weftly.ai/mcp",
+      "websiteURL": "https://weftly.ai"
+    },
+    {
+      "appTools": [
+        "well_query_records",
+        "well_create_company",
+        "well_create_person",
+        "well_update_company",
+        "well_update_person",
+        "well_delete_company",
+        "well_delete_person",
+        "well_update_invoice",
+        "well_delete_invoice",
+        "well_add_contact_channel",
+        "well_remove_contact_channel",
+        "well_get_entity",
+        "well_list_connector_tools",
+        "well_invoke_connector_tool",
+        "well_create_invoice_from_data",
+        "well_list_workspaces",
+        "well_list_connectors",
+        "well_get_runway",
+        "well_get_cash_position",
+        "well_get_cost_structure",
+        "well_create_invoice_document",
+        "well_list_missing_invoices",
+        "well_list_periods",
+        "well_preview_invoice_fetch",
+        "well_list_counterparties",
+        "well_get_burn",
+        "well_get_cash_forecast",
+        "well_get_cash_flow_bridge"
+      ],
+      "apps": 28,
+      "description": "Connect your AI to your Well financial data - invoices, companies, contacts.",
+      "id": "well-mcp",
+      "name": "Well",
+      "namespace": "io.github.WellApp-ai",
+      "tools": 40,
+      "url": "https://api.wellapp.ai/v1/mcp",
+      "websiteURL": "https://docs.wellapp.ai/mcp/introduction"
+    },
+    {
+      "appTools": [
+        "mental-health-get-test"
+      ],
+      "apps": 1,
+      "description": "Hosted MCP app for guided anxiety, depression, and well-being self-checks.",
+      "id": "well-being-check",
+      "name": "Well-Being Check",
+      "namespace": "com.keenethics-labs",
+      "tools": 1,
+      "url": "https://mental-tests-mcp-app.keenethics-labs.com/mcp",
+      "websiteURL": "https://mental-tests-mcp-app.keenethics-labs.com/"
+    },
+    {
+      "appTools": [
+        "compare_offers"
+      ],
+      "apps": 1,
+      "description": "Price comparison across partner retailers. Read-only, 90-day history, disclosed affiliate.",
+      "id": "wem-price-compare",
+      "name": "WEM Price Compare",
+      "namespace": "ai.wem3",
+      "tools": 8,
+      "url": "https://wem3.ai/api/mcp",
+      "websiteURL": "https://wem3.ai/extension/ai"
+    },
+    {
+      "appTools": [
+        "render_post_cards",
+        "render_post"
+      ],
+      "apps": 2,
+      "description": "Discover Wiplash and manage owned agents with human OAuth.",
+      "id": "wiplash",
+      "name": "Wiplash",
+      "namespace": "ai.wiplash",
+      "tools": 26,
+      "url": "https://mcp.wiplash.ai/mcp",
+      "websiteURL": "https://wiplash.ai"
+    },
+    {
+      "appTools": [
+        "search_jobs"
+      ],
+      "apps": 1,
+      "description": "Swipe to apply for jobs and search over 4 million roles with visa, distance, and salary filters.",
+      "id": "jobs-worklittle",
+      "name": "Worklittle Jobs",
+      "namespace": "io.github.worklittle",
+      "tools": 20,
+      "url": "https://mcp.worklittle.com/",
+      "websiteURL": "https://docs.worklittle.com/mcp"
+    },
+    {
+      "appTools": [
+        "get_press_article"
+      ],
+      "apps": 1,
+      "description": "Verified Japanese company press releases with provenance (corporate number, source URL) and jobs.",
+      "id": "press",
+      "name": "WorkPick Press",
+      "namespace": "com.work-pick",
+      "tools": 3,
+      "url": "https://work-pick.com/api/mcp",
+      "websiteURL": "https://work-pick.com/press"
+    },
+    {
+      "appTools": [
+        "get_market_data",
+        "get_conflict_events",
+        "get_news_intelligence",
+        "get_natural_disasters",
+        "get_prediction_markets",
+        "get_chokepoint_status",
+        "get_forecast_predictions",
+        "get_world_brief",
+        "get_country_brief",
+        "get_country_risk"
+      ],
+      "apps": 10,
+      "description": "Live markets, conflicts, country risk, chokepoints, energy, and China decision signals. 72 tools.",
+      "id": "mcp-worldmonitor",
+      "name": "World Monitor",
+      "namespace": "app.worldmonitor",
+      "tools": 72,
+      "url": "https://worldmonitor.app/mcp",
+      "websiteURL": "https://www.worldmonitor.app"
+    },
+    {
+      "appTools": [
+        "get_byway",
+        "get_place",
+        "places_on_byway",
+        "plan_drive",
+        "places_along_route"
+      ],
+      "apps": 5,
+      "description": "Byway MCP: call Byway Engine and Byway Atlas, the discovery engine for the real world.",
+      "id": "mcp-byway",
+      "name": "world.byway/mcp",
+      "namespace": "world.byway",
+      "tools": 10,
+      "url": "https://www.byway.world/api/mcp",
+      "websiteURL": "https://www.byway.world"
+    },
+    {
+      "appTools": [
+        "wubble_get_request_status",
+        "wubble_wait_for_request",
+        "wubble_create_song_and_wait",
+        "wubble_create_instrumental_and_wait",
+        "wubble_create_voiceover_and_wait",
+        "wubble_create_sound_effect_and_wait"
+      ],
+      "apps": 6,
+      "description": "Create, inspect, and manage Wubble music, speech, voice, and sound-effect requests through MCP.",
+      "id": "audio",
+      "name": "Wubble",
+      "namespace": "ai.wubble",
+      "tools": 33,
+      "url": "https://mcp.wubble.ai/mcp"
+    },
+    {
+      "appTools": [
+        "get_latest_release",
+        "get_pricing_plans"
+      ],
+      "apps": 2,
+      "description": "Yappy for macOS (yappy.biz): release, pricing, features, requirements, Mac compatibility.",
+      "id": "yappy",
+      "name": "Yappy",
+      "namespace": "biz.yappy",
+      "tools": 9,
+      "url": "https://yappy.biz/mcp",
+      "websiteURL": "https://yappy.biz"
+    },
+    {
+      "appTools": [
+        "File-Upload"
+      ],
+      "apps": 1,
+      "description": "Provides YouCam API for skin, face & body analysis, beauty/makeup try-on, and hair & beard styling.",
+      "id": "beauty",
+      "name": "YouCam for Beauty & Personal Care",
+      "namespace": "com.makeupar",
+      "tools": 47,
+      "url": "https://mcp-api-01.makeupar.com/mcp/beauty",
+      "websiteURL": "https://yce.perfectcorp.com/ai-api"
+    },
+    {
+      "appTools": [
+        "File-Upload"
+      ],
+      "apps": 1,
+      "description": "Provides YouCam API for AI image and video editing and generation.",
+      "id": "creators",
+      "name": "YouCam for Creators",
+      "namespace": "com.makeupar",
+      "tools": 34,
+      "url": "https://mcp-api-01.makeupar.com/mcp/creators",
+      "websiteURL": "https://yce.perfectcorp.com/ai-api"
+    },
+    {
+      "appTools": [
+        "File-Upload"
+      ],
+      "apps": 1,
+      "description": "Provides YouCam API for virtual try-on of clothing, jewelry, and watches.",
+      "id": "fashion",
+      "name": "YouCam for Fashion & Retail",
+      "namespace": "com.makeupar",
+      "tools": 18,
+      "url": "https://mcp-api-01.makeupar.com/mcp/fashion",
+      "websiteURL": "https://yce.perfectcorp.com/ai-api"
+    },
+    {
+      "appTools": [
+        "zernio_overview"
+      ],
+      "apps": 1,
+      "description": "Schedule, publish, and analyze social media across 15+ platforms, plus inbox, ads, and analytics.",
+      "id": "zernio",
+      "name": "Zernio",
+      "namespace": "com.zernio",
+      "tools": 52,
+      "url": "https://mcp.zernio.com/mcp"
+    }
+  ],
+  "generated": "2026-08-30T16:20:43Z",
+  "source": "https://registry.modelcontextprotocol.io"
+}
