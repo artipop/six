@@ -129,9 +129,13 @@ struct AddressBar: View {
             // late — and a button that comes and goes on its own is worse than one that is always
             // where you left it. What it does when the page needs nothing is say so.
             let state = browser.translation[tab.id]
-                ?? TabTranslation(source: nil, target: Locale.current.language)
+                ?? TabTranslation(source: nil, target: browser.translationTarget)
             switch state.phase {
             case .downloading:
+                // Indeterminate, and that is not laziness. `Translation.framework` offers
+                // `status(from:to:)`, `isReady` and `canRequestDownloads`, and no byte count
+                // anywhere, so a determinate bar would have to invent its number — and one sitting
+                // at zero while a gigabyte arrives is exactly what reads as hung.
                 ProgressView()
                     .progressViewStyle(.circular)
                     .controlSize(.mini)
@@ -141,24 +145,96 @@ struct AddressBar: View {
                     .progressViewStyle(.circular)
                     .controlSize(.mini)
                     .help("Translating…")
-            case .done:
-                button(symbol: "translate", tint: state.showsOriginal ? nil : AnyShapeStyle(.tint),
-                       help: state.showsOriginal ? "Show the translation" : "Translated — click for the original")
-            case .failed(let why):
-                button(symbol: "translate", tint: AnyShapeStyle(.orange), help: why)
-            case .offered:
-                button(symbol: "translate", tint: nil, help: "Translate this page")
+            default:
+                menu(state)
             }
         }
     }
 
-    private func button(symbol: String, tint: AnyShapeStyle?, help: String) -> some View {
-        Button { browser.toggleTranslation(of: tab) } label: {
-            Image(systemName: symbol).font(.system(size: 10))
+    /// The menu behind the button. Its first item is the whole answer to "into what?" — it names
+    /// the language rather than leaving the reader to find out by pressing it.
+    private func menu(_ state: TabTranslation) -> some View {
+        let target = browser.translationTarget
+        let translated = { if case .done = state.phase { return true } else { return false } }()
+
+        return Menu {
+            if translated {
+                Button(state.showsOriginal ? "Show Translation" : "Show Original") {
+                    browser.toggleTranslation(of: tab)
+                }
+            } else {
+                // Named, not implied. One or two, from the reader's own preferred languages, with
+                // the page's own language left out of them.
+                ForEach(browser.suggestedTargets(excluding: state.source), id: \.maximalIdentifier) { language in
+                    Button("Translate to \(AppleTranslator.name(of: language))") {
+                        browser.translate(tab, to: language)
+                    }
+                }
+            }
+
+            // Every language this Mac can translate into. Names come from Foundation in the
+            // reader's own language, so none of them reaches the string catalogue.
+            Menu("Translate to…") {
+                ForEach(browser.appleTranslator.languages, id: \.maximalIdentifier) { language in
+                    Button {
+                        browser.translate(tab, to: language)
+                    } label: {
+                        if language.languageCode == target.languageCode {
+                            Label(AppleTranslator.name(of: language), systemImage: "checkmark")
+                        } else {
+                            Text(AppleTranslator.name(of: language))
+                        }
+                    }
+                }
+            }
+            .disabled(browser.appleTranslator.languages.isEmpty)
+
+            if let host = tab.currentURL?.host() {
+                Divider()
+                Toggle("Always Translate \(host)", isOn: Binding(
+                    get: { browser.alwaysTranslates(host) },
+                    set: { browser.setAlwaysTranslates(host, $0) }
+                ))
+            }
+
+            if case .failed(let why) = state.phase {
+                Divider()
+                Text(why)
+            }
+        } label: {
+            Image(systemName: "translate").font(.system(size: 10))
         }
-        .buttonStyle(.borderless)
-        .foregroundStyle(tint ?? AnyShapeStyle(.tertiary))
-        .help(help)
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .foregroundStyle(tint(for: state))
+        .help(helpText(for: state, target: target))
+        .task { await browser.appleTranslator.loadLanguages() }
+    }
+
+    private func tint(for state: TabTranslation) -> AnyShapeStyle {
+        switch state.phase {
+        case .done: state.showsOriginal ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.tint)
+        case .failed: AnyShapeStyle(.orange)
+        default: AnyShapeStyle(.tertiary)
+        }
+    }
+
+    private func helpText(for state: TabTranslation, target: Locale.Language) -> String {
+        switch state.phase {
+        case .done:
+            state.showsOriginal
+                ? String(localized: "Showing the original")
+                : String(localized: "Translated into \(AppleTranslator.name(of: target))")
+        case .failed(let why):
+            why
+        default:
+            if let first = browser.suggestedTargets(excluding: state.source).first {
+                String(localized: "Translate this page into \(AppleTranslator.name(of: first))")
+            } else {
+                String(localized: "Translate this page")
+            }
+        }
     }
 
     // MARK: Blocking

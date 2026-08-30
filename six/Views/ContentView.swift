@@ -130,12 +130,18 @@ extension ContentView {
         }
         say("loaded \(tab.currentURL?.absoluteString ?? "nothing")")
 
+        await browser.appleTranslator.loadLanguages()
+        let offered = browser.appleTranslator.languages
+        say("menu offers \(offered.count) languages: \(offered.prefix(6).map { AppleTranslator.name(of: $0) }.joined(separator: ", "))…")
+        say("target from settings: \(AppleTranslator.name(of: browser.translationTarget))")
+
         guard let plan = try? await browser.translation.plan(tab) else { return say("no plan") }
         say("plan: lang=\(plan.language.isEmpty ? "-" : plan.language) unsupported=\(plan.unsupported.isEmpty ? "-" : plan.unsupported) sample=\(plan.sample.prefix(60))…")
         if let refusal = plan.refusal { return say("refused: \(refusal)") }
 
         guard let source = TranslationLanguage.source(of: plan) else { return say("no source language") }
         let target = Locale.Language(identifier: "en")
+        say("the button would offer: \(browser.suggestedTargets(excluding: source).map { AppleTranslator.name(of: $0) })")
         say("translating \(source.maximalIdentifier) -> \(target.maximalIdentifier)")
         say("status: \(await browser.appleTranslator.status(from: source, to: target))")
 

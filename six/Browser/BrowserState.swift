@@ -126,6 +126,59 @@ final class BrowserState {
         }
     }
 
+    /// What pages are translated into. Kept in the settings table, so it survives a relaunch and
+    /// is the same answer the automatic offer uses.
+    var translationTarget: Locale.Language {
+        get { settings.translationTarget }
+        set { settings.translationTarget = newValue }
+    }
+
+    /// The one or two languages worth naming on the button itself — "Translate to Spanish" rather
+    /// than "Translate", which makes the reader press it to find out.
+    ///
+    /// `Locale.preferredLanguages` is the reader's own list in the reader's own order, which is a
+    /// better guess than the single system language: someone reading Russian pages on an English
+    /// Mac has said so there. What the page is already written in is dropped — offering to
+    /// translate a Russian page into Russian is the offer that made this necessary — and so is
+    /// anything this Mac cannot translate into.
+    func suggestedTargets(excluding source: Locale.Language?) -> [Locale.Language] {
+        let supported = appleTranslator.languages
+        let sourceCode = source?.languageCode?.identifier
+        var seen = Set<String>()
+        var out: [Locale.Language] = []
+
+        for identifier in Locale.preferredLanguages + [translationTarget.maximalIdentifier, "en"] {
+            let language = Locale.Language(identifier: identifier)
+            guard let code = language.languageCode?.identifier, code != sourceCode else { continue }
+            guard seen.insert(code).inserted else { continue }
+            guard supported.isEmpty || supported.contains(where: { $0.languageCode?.identifier == code })
+            else { continue }
+            out.append(language)
+            if out.count == 2 { break }
+        }
+        return out
+    }
+
+    /// Sites translated the moment they load, without being asked.
+    func alwaysTranslates(_ host: String) -> Bool {
+        settings.alwaysTranslateHosts.contains(host)
+    }
+
+    func setAlwaysTranslates(_ host: String, _ on: Bool) {
+        var hosts = settings.alwaysTranslateHosts
+        hosts.removeAll { $0 == host }
+        if on { hosts.append(host) }
+        settings.alwaysTranslateHosts = hosts
+    }
+
+    /// Translate into a language the reader picked, and remember it as the new default — picking one
+    /// is how you say what you read, and being asked again next time is not an improvement.
+    func translate(_ tab: BrowserTab, to language: Locale.Language) {
+        translationTarget = language
+        translation.forget(tab.id)
+        toggleTranslation(of: tab)
+    }
+
     /// Look at the focused page and translate it, or put it back. One entry point, because that is
     /// what a button and a menu item both want.
     func toggleTranslation(of tab: BrowserTab) {

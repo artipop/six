@@ -271,6 +271,15 @@ final class AppleTranslator: PageTranslating {
         return Locale.current.localizedString(forIdentifier: identifier) ?? identifier
     }
 
+    /// The languages a menu can offer, once they have been asked for. `offeredLanguages` is async
+    /// and a menu is not, so the view loads this on appear and reads it synchronously after.
+    private(set) var languages: [Locale.Language] = []
+
+    func loadLanguages() async {
+        guard languages.isEmpty else { return }
+        languages = await offeredLanguages
+    }
+
     /// `supportedLanguages` is a list of *locales* — `en-Latn-US`, `en-Latn-CA`, `en-Latn-SG` are
     /// three entries and one language. A picker wants languages, so it gets one per language code,
     /// sorted by what they are called here.
