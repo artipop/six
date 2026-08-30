@@ -84,3 +84,51 @@ data class StripAxis(val along: Along) {
 
 /** A gesture, resolved into the strip's two directions. */
 data class StripDelta(val along: Double, val across: Double)
+
+/** What letting go of a drag should do. */
+enum class StripStep {
+    NONE,
+    PREVIOUS_COLUMN,
+    NEXT_COLUMN,
+    PREVIOUS_WORKSPACE,
+    NEXT_WORKSPACE,
+}
+
+/**
+ * The rubber band, read.
+ *
+ * ## The convention this depends on
+ *
+ * Content is drawn *plus* the band on both axes — columns at `frame.x - (offset - horizontalPreview)`
+ * and workspaces at `offset * step + verticalPreview` — so content follows the finger, and a
+ * positive band therefore reveals what comes **before**. Everything below is that sentence turned
+ * into steps, and `StripAxisTest` asserts the drawing and the stepping still agree, because a sign
+ * flipped in one of the two places is a gesture that shows one thing and commits its opposite.
+ *
+ * Across the strip wins over along when a drag was both: workspaces are the coarser move, and a
+ * diagonal that changes both at once is never what was meant.
+ */
+val NiriLayout.pendingStep: StripStep
+    get() {
+        val alongThreshold = viewport.width * NiriLayout.DRAG_COMMIT_FRACTION
+        val acrossThreshold = viewport.height * NiriLayout.DRAG_COMMIT_FRACTION
+        return when {
+            verticalPreview > acrossThreshold -> StripStep.PREVIOUS_WORKSPACE
+            verticalPreview < -acrossThreshold -> StripStep.NEXT_WORKSPACE
+            horizontalPreview > alongThreshold -> StripStep.PREVIOUS_COLUMN
+            horizontalPreview < -alongThreshold -> StripStep.NEXT_COLUMN
+            else -> StripStep.NONE
+        }
+    }
+
+/** Letting go either commits a step or springs back; nothing rests half-way. */
+fun NiriLayout.releaseDrag(): NiriLayout {
+    val stepped = when (pendingStep) {
+        StripStep.NONE -> this
+        StripStep.PREVIOUS_COLUMN -> focusColumn(-1)
+        StripStep.NEXT_COLUMN -> focusColumn(1)
+        StripStep.PREVIOUS_WORKSPACE -> focusWorkspace(-1)
+        StripStep.NEXT_WORKSPACE -> focusWorkspace(1)
+    }
+    return stepped.copy(horizontalPreview = 0.0, verticalPreview = 0.0)
+}

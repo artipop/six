@@ -2,13 +2,17 @@ package org.deffun.six.app
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
@@ -19,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -28,6 +33,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import org.deffun.six.R
 import java.util.UUID
+import org.deffun.six.core.Along
 import org.deffun.six.core.NiriLayout
 import org.deffun.six.core.Rect
 import org.deffun.six.core.Size
@@ -88,33 +94,68 @@ fun StripScreen(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.surfaceVariant),
         ) {
-            layout.columnFrames(workspace).forEachIndexed { index, frame ->
-                val column = workspace.columns.getOrNull(index) ?: return@forEachIndexed
-                val tab = state.tabs[column.tabId]
-                val placed = axis.screenRect(frame.translatedAlong(-scroll))
-                val profile = state.profiles.firstOrNull { it.id == tab?.profileId }
+            // The workspace on screen and its two neighbours.
+            //
+            // Drawing the neighbours is what makes the across-drag mean anything: without them
+            // `verticalPreview` moves a screen with nothing on it to move, and the gesture only
+            // becomes visible at the moment it commits. Their pages are deliberately not live —
+            // `visibleTabIds` never names them — so a workspace arriving is cards, and building web
+            // views for a gesture that has not decided where it lands is the worst possible moment
+            // to spend that.
+            val acrossStep = layout.viewport.height + layout.workspaceSpacing
 
-                ColumnWindow(
-                    tabId = column.tabId,
-                    frame = placed,
-                    isLive = column.tabId in liveTabIds,
-                    title = tab?.title.orEmpty(),
-                    url = tab?.url,
-                    profileStoreName = profile?.let { WebProfiles.storeName(it) },
-                    isFocused = index == workspace.focus,
-                    isEditing = state.editingTabId == column.tabId,
-                    axis = axis,
-                    onTap = { viewModel.handleTapped(column.tabId) },
-                    onSubmit = { viewModel.submitAddress(column.tabId, it) },
-                    onCancel = { viewModel.cancelEditing() },
-                    onClose = { viewModel.closeColumn(column.tabId) },
-                    onDrag = { along, across -> viewModel.previewDrag(along, across) },
-                    onDragEnd = { viewModel.commitDrag() },
-                    onDragCancel = { viewModel.endDrag() },
-                    onPageStarted = { viewModel.onPageStarted(column.tabId, it) },
-                    onTitleChanged = { viewModel.onTitleChanged(column.tabId, it) },
-                )
+            for (offset in -1..1) {
+                val index = layout.focusedWorkspaceIndex + offset
+                val neighbour = layout.workspaces.getOrNull(index) ?: continue
+                // Plus, not minus. Along the strip the columns are drawn at
+                // `frame.x - (offset - horizontalPreview)`, so a positive band moves content the way
+                // the finger went; across it has to do the same or the two axes would disagree —
+                // the strip following the finger and the workspaces running away from it. It also
+                // has to agree with `commitDrag`, which reads a positive band as revealing what
+                // comes *before*.
+                val across = offset * acrossStep + layout.verticalPreview
+                val isFocusedWorkspace = offset == 0
+                val scroll = layout.resolvedOffset(neighbour) -
+                    (if (isFocusedWorkspace) layout.horizontalPreview else 0.0)
+
+                layout.columnFrames(neighbour).forEachIndexed { columnIndex, frame ->
+                    val column = neighbour.columns.getOrNull(columnIndex) ?: return@forEachIndexed
+                    val tab = state.tabs[column.tabId]
+                    val placed = axis.screenRect(frame.translated(along = -scroll, across = across))
+                    val profile = state.profiles.firstOrNull { it.id == tab?.profileId }
+
+                    ColumnWindow(
+                        tabId = column.tabId,
+                        frame = placed,
+                        isLive = column.tabId in liveTabIds,
+                        title = tab?.title.orEmpty(),
+                        url = tab?.url,
+                        profileStoreName = profile?.let { WebProfiles.storeName(it) },
+                        isFocused = isFocusedWorkspace && columnIndex == neighbour.focus,
+                        isEditing = state.editingTabId == column.tabId,
+                        axis = axis,
+                        onTap = { viewModel.handleTapped(column.tabId) },
+                        onSubmit = { viewModel.submitAddress(column.tabId, it) },
+                        onCancel = { viewModel.cancelEditing() },
+                        onClose = { viewModel.closeColumn(column.tabId) },
+                        onDrag = { alongDelta, acrossDelta -> viewModel.previewDrag(alongDelta, acrossDelta) },
+                        onDragEnd = { viewModel.commitDrag() },
+                        onDragCancel = { viewModel.endDrag() },
+                        onPageStarted = { viewModel.onPageStarted(column.tabId, it) },
+                        onTitleChanged = { viewModel.onTitleChanged(column.tabId, it) },
+                    )
+                }
             }
+
+            WorkspaceIndicator(
+                count = layout.workspaces.size,
+                focused = layout.focusedWorkspaceIndex,
+                axis = axis,
+                onSelect = { viewModel.focusWorkspaceAt(it) },
+                modifier = Modifier.align(
+                    if (axis.along == Along.X) Alignment.CenterEnd else Alignment.BottomCenter,
+                ),
+            )
 
             // The Mac grows the strip from the `+` that the right-hand sliver becomes at its end,
             // which needs a pointer hovering a two-point gap. This is the placeholder for that
@@ -129,8 +170,56 @@ fun StripScreen(
     }
 }
 
-/** Along-space translation, before the axis turns it into a screen rectangle. */
-private fun Rect.translatedAlong(delta: Double) = copy(x = x + delta)
+/**
+ * Where you are in the stack of workspaces, and a way back to any of them.
+ *
+ * It sits across the strip — down the right edge when the strip runs sideways, along the bottom when
+ * it runs down the screen — because that is the direction it describes. The last workspace is always
+ * the empty one niri keeps at the end, so the final pip is a place to put something rather than
+ * somewhere you have been.
+ */
+@Composable
+private fun WorkspaceIndicator(
+    count: Int,
+    focused: Int,
+    axis: StripAxis,
+    onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val pip: @Composable (Int) -> Unit = { index ->
+        Box(
+            modifier = Modifier
+                .padding(4.dp)
+                .size(if (index == focused) 10.dp else 6.dp)
+                .clip(CircleShape)
+                .background(
+                    if (index == focused) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.outlineVariant,
+                )
+                .pointerInput(index) { detectTapGestures { onSelect(index) } },
+        )
+    }
+
+    if (axis.along == Along.X) {
+        Column(
+            modifier = modifier.padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            repeat(count) { pip(it) }
+        }
+    } else {
+        Row(
+            modifier = modifier.padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            repeat(count) { pip(it) }
+        }
+    }
+}
+
+/** Strip-space translation, before the axis turns it into a screen rectangle. */
+private fun Rect.translated(along: Double, across: Double) =
+    copy(x = x + along, y = y + across)
 
 @Composable
 private fun ColumnWindow(

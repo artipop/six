@@ -15,6 +15,7 @@ import org.deffun.six.core.AppStateSnapshot
 import org.deffun.six.core.BrowserSnapshot
 import org.deffun.six.core.NiriLayout
 import org.deffun.six.core.Profile
+import org.deffun.six.core.releaseDrag
 import org.deffun.six.core.SearchEngine
 import org.deffun.six.core.Size
 import org.deffun.six.core.StripSnapshot
@@ -165,6 +166,11 @@ class SixViewModel(application: Application) : AndroidViewModel(application) {
         save()
     }
 
+    fun focusWorkspaceAt(index: Int) {
+        _state.update { it.copy(layout = it.layout.focusWorkspaceAt(index)) }
+        save()
+    }
+
     /** Opens a column on the start page, focused, to the right of the focused one. */
     fun openColumn(url: String? = null): UUID {
         val id = UUID.randomUUID()
@@ -197,27 +203,10 @@ class SixViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /**
-     * Letting go either commits a step or springs back; nothing rests half-way.
-     *
-     * Across the strip wins over along when a drag was both, because the workspaces are the coarser
-     * move and a diagonal that changes both at once is never what was meant. The threshold is a
-     * fraction of the viewport rather than a distance in dp, for the same reason the gaps are.
-     */
+    /** Letting go either commits a step or springs back — the rule itself lives in `:core`. */
     fun commitDrag() {
-        val layout = _state.value.layout
-        val alongThreshold = layout.viewport.width * DRAG_COMMIT_FRACTION
-        val acrossThreshold = layout.viewport.height * DRAG_COMMIT_FRACTION
-
-        when {
-            layout.verticalPreview > acrossThreshold -> focusWorkspace(-1)
-            layout.verticalPreview < -acrossThreshold -> focusWorkspace(1)
-            // Dragging along-positive pulls the strip back towards its start, so it reveals the
-            // column before this one.
-            layout.horizontalPreview > alongThreshold -> focusColumn(-1)
-            layout.horizontalPreview < -alongThreshold -> focusColumn(1)
-        }
-        endDrag()
+        _state.update { it.copy(layout = it.layout.releaseDrag()) }
+        save()
     }
 
     fun endDrag() {
@@ -299,11 +288,6 @@ class SixViewModel(application: Application) : AndroidViewModel(application) {
             environment.history.updateTitle(title, url, tab.profileId)
         }
         save()
-    }
-
-    private companion object {
-        /** How far a drag has to travel before letting go steps rather than springs back. */
-        const val DRAG_COMMIT_FRACTION = 0.15
     }
 
     override fun onCleared() {
