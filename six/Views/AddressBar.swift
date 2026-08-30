@@ -91,17 +91,40 @@ struct AddressBar: View {
             if !isEditing { text = displayString(for: tab.currentURL) }
         }
         .onChange(of: isEditing) { _, editing in
-            text = editing ? (tab.currentURL?.absoluteString ?? "") : displayString(for: tab.currentURL)
+            guard editing, let url = tab.currentURL else {
+                text = displayString(for: tab.currentURL)
+                return
+            }
+            text = IDN.displayURL(url)
         }
     }
 
     /// The whole address once you are typing in it; the host and path at rest, because a query string
     /// the length of a paragraph is not what the field is for.
+    ///
+    /// Both halves are shown as they were written rather than as they travel. A host goes over the
+    /// wire in ASCII, so WebKit hands back `xn--j1ail.xn--p1ai` for a site whose name is `кто.рф`,
+    /// and a path goes over it percent-encoded, so a Russian Wikipedia article arrives as a line of
+    /// `%D0%` and nothing else. `IDN` decides when the name behind the ACE form is safe to show —
+    /// that decision is the whole of `IDN`, and a homograph is exactly what it is refusing.
     private func displayString(for url: URL?) -> String {
         guard let url else { return "" }
-        guard let host = url.host() else { return url.absoluteString }
-        let path = url.path()
-        return path.isEmpty || path == "/" ? host : host + path
+        guard let host = url.host(percentEncoded: false) else { return url.absoluteString }
+        let name = IDN.displayHost(host)
+        let path = readable(url.path(percentEncoded: false))
+        return path.isEmpty || path == "/" ? name : name + path
+    }
+
+    /// Percent-decoding puts back whatever was encoded, and some of what can be encoded does not
+    /// belong in a line of text: a direction override in a path rewrites the address around it, and
+    /// a newline hides everything after it.
+    private func readable(_ path: String) -> String {
+        String(String.UnicodeScalarView(path.unicodeScalars.filter {
+            switch $0.properties.generalCategory {
+            case .control, .format, .lineSeparator, .paragraphSeparator: return false
+            default: return true
+            }
+        }))
     }
 
     // MARK: Translation

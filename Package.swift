@@ -54,6 +54,10 @@ let package = Package(
                 "Data/SettingsStore.swift",
                 "Bookmarks/Bookmark.swift",
                 "Browser/SearchEngine.swift",
+                // Domain names as they are written: the ACE form is what every platform's URL type
+                // hands back, and deciding when it is safe to show the name behind it is the same
+                // decision on all of them.
+                "Browser/IDN.swift",
                 "Browser/History.swift",
                 // What a site was allowed. The decision, the queue and the suspension are the same
                 // on both platforms; only the type the request arrives as differs, and that part
