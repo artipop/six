@@ -35,3 +35,4 @@ dependencyResolutionManagement {
 rootProject.name = "six-android"
 
 include("core")
+include("app")

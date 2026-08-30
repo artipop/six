@@ -6,3 +6,6 @@ build
 
 # Ignore Kotlin plugin data
 .kotlin
+
+# The SDK location is this machine's, not the project's.
+local.properties
