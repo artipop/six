@@ -1,9 +1,20 @@
-# Android — plan
+# Android
 
-*Not built. This is the contract a fourth front end has to meet, and the order to meet it in — a
-browser first, the AI layer second.
+*The fourth front end: `android/`, Kotlin and Compose over the system WebView. The browser is built
+and runs; the AI layer is not. This page is the contract it meets and the reasoning behind each
+choice — the parts still ahead say so where they are.
 Related: [platforms.md](platforms.md), [storage.md](storage.md), [layout.md](layout.md),
 [sync.md](sync.md).*
+
+```sh
+cd android && ./gradlew :core:test          # the whole contract, no device needed
+cd android && ./gradlew :app:installDebug   # onto a running emulator or phone
+```
+
+`:core` is a plain JVM module — no Android plugin, no Compose, nothing from the SDK — so everything
+that has to agree with the Mac is tested without a device: the strip's geometry against a table
+compiled out of `NiriLayout.swift`, `state.json` against a file the Mac wrote, the schema against
+`grdb_migrations`, and the extraction script against the Swift literal it was copied from.
 
 Four decisions, taken before any code:
 
@@ -93,7 +104,7 @@ device.
 | passkeys ([passkeys.md](passkeys.md)) | unverified; feature-detect before promising anything |
 | `LanguageModelSession` | nothing equivalent — the seam moves up a level; Claude over the API first, Gemini Nano after ([the AI layer](#the-ai-layer--phase-two)) |
 | `MLXEmbedder` on MLX | the same `multilingual-e5-small` under ONNX Runtime, same 384 dimensions, same `modelID` |
-| `sqlite-vec` through `#if canImport` | brute-force cosine over the BLOB column, then `BundledSQLiteDriver.addExtension` if the numbers ask |
+| `sqlite-vec` through `#if canImport` | `BundledSQLiteDriver.addExtension` — proven to work, blocked on packaging ([measured](#the-index-what-was-measured)) |
 
 `minSdk` is **34**. The multi-profile API arrived there, and profiles are not an optional part of
 six — a build that cannot keep two profiles apart is a different app.
@@ -303,6 +314,30 @@ snapshot machinery yet gets durability for free from the database that is alread
 migrated. That reasoning is sound where it is written and does not reach Android, which has the
 machinery. It is worth revisiting there the day `settings` joins the sync list.
 
+## What is built
+
+Phase one, the browser. Everything below has been run on a device, not only compiled.
+
+- **The strip**, in Compose over `NiriLayout`: columns placed from `columnFrames`, the axis decided
+  by the viewport's shape, both neighbouring workspaces drawn so the across-drag has something to
+  move, a workspace indicator, and the overview's rescale.
+- **Windows**: the handle as title, address field and drag surface; a `×` that backs out of the field
+  before it closes anything; the profile's colour on the border and the loading dot.
+- **Pages**: one `WebView` per live column, the back gesture belonging to the page before the app,
+  and load failures reaching the browser rather than only the engine's error page.
+- **Discarding**: only the columns `visibleTabIds` names keep a page, the rest are cards carrying the
+  last picture of themselves, and memory pressure narrows that to the window being read.
+- **Profiles**, including a private one that leaves nothing behind — and, because this platform has
+  no ephemeral profile, deletes its store by hand and sweeps at launch for the times it could not.
+- **Persistence**: `state.json` and `six.sqlite`, both in the Mac's format, with history and settings.
+- **Bookmarks** without the index: the row, the passages and the readable Markdown file.
+- **Site permissions** and the four dialogs a page can put up.
+- **Both languages**, through `strings.xml`.
+
+Not built, and named rather than implied: the assistant, the embedder and any search by meaning;
+blocking and extensions, which are out of scope outright; an overview grid behind the rescale; moving
+a window between workspaces, which the iPhone does not have either.
+
 ## The steps
 
 Two phases. Phase one is a browser; phase two is what makes it six.
@@ -310,44 +345,67 @@ Two phases. Phase one is a browser; phase two is what makes it six.
 Following the shape the GTK port took — a spike that answers a small number of questions, then the
 layer, then the thing.
 
-### Phase one — the browser
+### Phase one — the browser · done
 
-0. **`android/` beside `linux/`**, in this repository. Gradle, Kotlin, Compose.
-1. **The spike**, answering two questions and nothing else: does a `WebView` render inside a
-   horizontally panned Compose strip without fighting for touches; and can Kotlin open the same
-   `state.json` and the same SQLite file the Mac wrote, and write back into them.
-2. **`NiriLayout` in Kotlin** — tests first, model second, no Android dependencies, JVM unit test.
-3. **Persistence** — the snapshot and the database, against the real schema.
-4. **The strip** — a column per page, the handle, the drag along and across, the tap that turns a
-   focused window's title into the address field.
-5. **Chrome and profiles** — `ProfileStore`, the address row, history, the start page.
+0. `android/` beside `linux/`. Gradle, Kotlin, Compose.
+1. The spike. Overtaken: the emulator arrived late, so the questions were answered by building the
+   thing and then running it. What that cost is written down under [what running found](#what-running-found).
+2. `NiriLayout` in Kotlin — tests first, model second, no Android dependencies.
+3. Persistence — the snapshot and the database, against the real schema.
+4. The strip — a column per page, the handle, the drag along and across, the address field.
+5. Chrome and profiles — `ProfileStore`, the toolbar, history, the start page.
 
-At the end of phase one the strip works, pages load, profiles are separate and the state survives a
-relaunch. That is a browser, and it is the point at which the thing can be used.
-
-### Phase two — the AI layer
+### Phase two — the AI layer · ahead
 
 6. **The embedder.** ONNX Runtime with `multilingual-e5-small`, weights fetched on first use. Golden
    token ids before golden vectors, and neither is a formality: they are the only thing standing
    between a shared vector space and a silently worse search.
-7. **Bookmarks end to end** — `ReadablePage`'s script, the same chunking, the readable Markdown file
-   per profile, brute-force cosine search over `bookmark_vectors`.
+7. **Search by meaning.** The bookmarks already have their passages, so an embedder can run over what
+   is saved rather than fetching every page again. Brute-force cosine first; `sqlite-vec` when the
+   numbers ask and its packaging is solved.
 8. **The assistant** — Claude over the API, `BrowserToolCatalog` re-declared in Kotlin as tool-use
    schemas. Gemini Nano behind the same seam afterwards, starting with `summarize_page`, which is the
    one tool ML Kit's task-shaped APIs actually fit.
 
-Then `sqlite-vec` through `BundledSQLiteDriver.addExtension`, if and only if the cosine numbers ask
-for it.
+## What running found
 
-## To measure in the spike, not assume
+Three things a green build and a hundred and thirty tests did not.
 
-- Whether `saveState` / `restoreState` really brings a discarded column back where it was — this is
-  the whole live-pages design, and it is the claim most likely to be half-true.
-- How many live `WebView`s the device carries before the system starts killing the app. The Mac's
-  budget is memory pressure; Android's is `onTrimMemory`, and the numbers will not be the Mac's.
+**The app could not start.** The manifest named `.MainActivity` against the namespace
+`org.deffun.six`, and the class is in `org.deffun.six.app`.
+
+**One SQLite connection, several coroutines.** A page committing a visit, the snapshot being written
+and a bookmark being saved are three writers on the IO dispatcher, and two transactions interleaving
+gets `cannot start a transaction within a transaction` — a crash, not a lost write. GRDB gives the
+Mac that guarantee by owning a writer queue; here it is a reentrant lock, and the connection is no
+longer handed out as a property so the shape cannot be written again. Every test until then used one
+database from one thread, the single arrangement in which this cannot happen.
+
+**Nothing reported a failed load.** The engine drew its own error page and the browser knew nothing —
+which is also how the emulator's missing DNS looked like a bug in the address bar.
+
+The lesson is the ordering rather than the bugs: none of the three is subtle, and none of them is
+findable by reading. Getting onto a device earlier would have been worth more than any amount of
+further care.
+
+## Still to measure
+
+The device has been used now, but only for the things a first launch exercises. These are the claims
+still standing on reasoning alone.
+
+- Whether `saveState` / `restoreState` really brings a discarded column back where it was. The whole
+  live-pages design rests on it and it is the claim most likely to be half-true — the documentation
+  promises the back/forward list and says nothing about the scroll offset.
+- How many live `WebView`s a device carries before the system starts killing the app. The Mac's
+  budget is a memory-pressure band; Android's is `onTrimMemory`, and the numbers will not be the
+  Mac's.
+- The gestures. Written and read carefully, never yet driven by a finger: the drag along and across
+  the handle, and what a real hand does at the boundary between them.
 - Passkeys: whether the WebView on a current device authenticates at all.
 - Multi-profile: present on every WebView version that ships with API 34+, or feature-detected with a
-  real fallback.
+  real fallback that has actually been seen.
+- Whether a page's thumbnail comes back with the parts the engine composited on the GPU, or with
+  holes where a video was.
 
 And before phase two starts, not during it:
 
@@ -355,4 +413,4 @@ And before phase two starts, not during it:
   shared vector space is not available and the whole phase is shaped differently — a remote embedder
   behind the same protocol, rather than a local one.
 - Brute-force cosine over a realistic number of chunks on a real device, which decides whether
-  sqlite-vec is needed at all.
+  sqlite-vec is worth its packaging problem at all.

@@ -1,16 +1,19 @@
 # Platforms
 
-six is two app targets in one Xcode project over one set of sources, and a third front end on Linux
-built by SwiftPM over the same files:
+six is two app targets in one Xcode project over one set of sources, a third front end on Linux built
+by SwiftPM over the same files, and a fourth in Kotlin that shares no code with any of them:
 
 | target | platform | built by | product |
 |---|---|---|---|
 | `six` | macOS 27 | `six.xcodeproj` | `six.app` |
 | `six-iOS` | iOS / iPadOS 27, iPhone + iPad | `six.xcodeproj` | `six.app` |
 | `six-linux` | Linux, GTK 4 + WebKitGTK 6.0 | `linux/Package.swift` | `six-linux` |
+| `six-android` | Android 14+, Compose + system WebView | `android/` (Gradle) | `org.deffun.six` |
 
-This page is about the two Apple targets; the third has [linux.md](linux.md) to itself. What the
-three share is `SixCore` — the layout, the database, the settings — and the file it writes.
+This page is about the two Apple targets; the third has [linux.md](linux.md) and the fourth
+[android.md](android.md). The first three share `SixCore` — the layout, the database, the settings —
+and the file it writes. The fourth shares only the file, the schema and the arithmetic, which is why
+its page spends most of its length on what "the same" has to mean without a shared compiler.
 
 ```sh
 xcodebuild -project six.xcodeproj -scheme six-iOS -configuration Debug \

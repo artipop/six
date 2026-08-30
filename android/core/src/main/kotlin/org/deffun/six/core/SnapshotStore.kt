@@ -33,6 +33,7 @@ import kotlinx.serialization.json.Json
  * platforms, so semantic equality is the bar; making the declaration order alphabetical to chase
  * byte-identity would trade a real property (fields grouped by meaning) for a decorative one.
  */
+@OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
 val SnapshotJson: Json = Json {
     prettyPrint = true
     prettyPrintIndent = "  "

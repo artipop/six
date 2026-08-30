@@ -22,10 +22,10 @@ reference.
 | [devtools.md](devtools.md) | Web Inspector on six's pages, and the console/network capture the agent tools read |
 | [mcp.md](mcp.md) | `six --mcp`: the browser as an MCP server, and its tools |
 | [localization.md](localization.md) | the String Catalogs, English and Russian, and the line between what a person reads and what a model reads |
+| [android.md](android.md) | the fourth front end: Kotlin and Compose on the system WebView, what it shares with the Mac and what it deliberately does not |
 | [build.md](build.md) | toolchain, SDK override, sandbox |
 | [deep-research.md](deep-research.md) | deep research: document windows, the run, the writing tools, Save As, highlighted passages |
 | [todo.md](todo.md) | what is planned and not built: geolocation and screen sharing, passkeys, CloudKit sync, SQLite + RAG, documents + Save As, fullscreen, PiP, and what the Linux front still owes |
 | [passkeys.md](passkeys.md) | plan: WebAuthn / passkeys and password autofill in a third-party WebKit browser |
-| [android.md](android.md) | plan: a fourth front end in Kotlin and Compose on the system WebView, and the contract it has to meet |
 | [storage.md](storage.md) | plan: where data lives, the portable core and the Apple/Linux adapters behind four protocol seams (diagram) |
 | [sync.md](sync.md) | plan: CloudKit sync of history and other records; what CloudKit can carry (and vectors) |

@@ -22,11 +22,6 @@ enum class SitePermission(val id: String) {
      */
     @SerialName("motion")
     MOTION("motion"),
-    ;
-
-    companion object {
-        fun from(id: String): SitePermission? = entries.firstOrNull { it.id == id }
-    }
 }
 
 /** One remembered answer. */

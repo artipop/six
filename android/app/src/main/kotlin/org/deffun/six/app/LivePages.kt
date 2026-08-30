@@ -77,8 +77,6 @@ object LivePages {
         discarded.remove(tabId)
     }
 
-    operator fun get(tabId: UUID): WebView? = live[tabId]
-
     /**
      * Runs a script in a page and hands back what it returned, as JSON.
      *

@@ -1,6 +1,5 @@
 package org.deffun.six.core
 
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
@@ -59,9 +58,3 @@ data class ReadablePage(
         }
     }
 }
-
-/** What the extraction is asked for, and what the page hands back. Kept for the tools later. */
-@Serializable
-internal data class ReadablePageEnvelope(
-    @SerialName("readable") val readable: ReadablePage? = null,
-)

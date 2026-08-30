@@ -127,11 +127,13 @@ var SettingsStore.searchEngine: SearchEngine
         this[SettingsKeys.SEARCH_ENGINE] = value.id
     }
 
-/** Keys in the shared `settings` table. Only the ones this platform reads or writes. */
+/**
+ * Keys in the shared `settings` table — only the ones this platform reads or writes.
+ *
+ * Only those, literally: a key listed here and used nowhere is a claim about what this front end
+ * does, and the Mac has a dozen more that it alone means anything to.
+ */
 object SettingsKeys {
     const val SEARCH_ENGINE = "search.engine"
-    const val CENTERS_FOCUS = "layout.centersFocus"
-    const val COLUMN_WIDTH = "layout.columnWidth"
-    const val DEFAULT_PROFILE = "profile.default"
     const val SITE_PERMISSIONS = "permissions.sites"
 }
