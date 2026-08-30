@@ -123,32 +123,12 @@
         }
       }
     },
-    "%@ did not translate this page reliably. Try Apple Translation instead." : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ перевёл эту страницу ненадёжно. Попробуйте Apple Translation."
-          }
-        }
-      }
-    },
     "%@ has not been downloaded. Add it in System Settings › General › Language & Region › Translation Languages." : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ не загружен. Добавьте его в Системных настройках › Основные › Язык и регион › Языки перевода."
-          }
-        }
-      }
-    },
-    "%@ is an agent, not a translator. Pick a model in the ⌘K menu." : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ — это агент, а не переводчик. Выберите модель в меню ⌘K."
           }
         }
       }
@@ -2730,6 +2710,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Прочитать страницу"
+          }
+        }
+      }
+    },
+    "Read Selection" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Прочитать выделенное"
           }
         }
       }

@@ -39,10 +39,9 @@ final class SettingsStore {
         /// that has no snapshot yet still needs the id to be the same one tomorrow, or every launch
         /// orphans its own history.
         case defaultProfile = "profile.default"
-        /// What pages are translated into, and by what. The list of sites translated without being
-        /// asked is a JSON array of hosts.
+        /// What pages are translated into, and the sites translated without being asked (a JSON
+        /// array of hosts).
         case translationTarget = "translation.target"
-        case translationEngine = "translation.engine"
         case translationHosts = "translation.hosts"
         /// The strip as it was left: workspaces, columns, and the address each column was on.
         /// On the Mac this lives in the state snapshot beside the database; a front without one
@@ -72,7 +71,6 @@ final class SettingsStore {
             case .sitePermissions: "six.permissions.sites"
             case .defaultProfile: "six.profile.default"
             case .translationTarget: "six.translation.target"
-            case .translationEngine: "six.translation.engine"
             case .translationHosts: "six.translation.hosts"
             case .stripState: "six.strip.state"
             }

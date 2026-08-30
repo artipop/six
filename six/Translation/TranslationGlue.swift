@@ -95,12 +95,6 @@ extension SettingsStore {
         set { self[.translationTarget] = newValue.languageCode?.identifier ?? "" }
     }
 
-    /// Which engine turns the words around.
-    var translationEngine: TranslationEngineChoice {
-        get { TranslationEngineChoice(rawValue: self[.translationEngine] ?? "") ?? .system }
-        set { self[.translationEngine] = newValue.rawValue }
-    }
-
     /// Sites translated without being asked.
     var alwaysTranslateHosts: [String] {
         get { decode(.translationHosts) ?? [] }

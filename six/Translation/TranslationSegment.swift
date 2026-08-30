@@ -30,18 +30,22 @@ nonisolated struct TranslationBatchLimits: Sendable {
 
 // MARK: - Engines
 
-/// Which machine turns the words around. A preference rather than a hard switch: a run asks the
-/// chosen engine whether it knows the pair, and says so in the bar when it had to use the other.
-nonisolated enum TranslationEngineChoice: String, Codable, Sendable, CaseIterable, Identifiable {
-    /// On this platform's own on-device translator. Free, offline, no key, no limit.
-    case system
-    /// Whatever ⌘K is pointed at — for the pairs the system translator does not have.
-    case model
-
-    var id: String { rawValue }
-}
-
-/// Where a page's words go to be turned into other words.
+/// Where a page's words go to be turned into other words — and the seam a second translator
+/// plugs into.
+///
+/// One conformer today, `AppleTranslator`. The seam is not speculative all the same: Linux has no
+/// `Translation.framework` and would use Bergamot's marian models, Android would use ML Kit, and
+/// anyone wanting a keyed API translator writes a third conformer without touching the page walk,
+/// the batching or the state machine above it.
+///
+/// **What deliberately does not go behind here is a language model.** Translating a page with one
+/// is the wrong shape three times over: a single Wikipedia article is roughly 14k input and 8k
+/// output tokens, which is real money per page against a local translator that is free; a thousand
+/// segments through a network in batches is minutes against seconds; and a model that quietly
+/// merges or drops a line leaves a page that looks translated and is wrong. Where a model *is* the
+/// right answer — a passage that needs nuance, a language pair Apple does not have — the way in is
+/// the agent, not this: `get_selection` hands the selected text to ⌘K and to MCP clients, and the
+/// model translates it in the conversation where the reader can see what it did.
 ///
 /// Deliberately not `Sendable`, and deliberately `@MainActor`: the project builds with
 /// `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`, and Apple's `TranslationSession` is a plain class
@@ -116,10 +120,6 @@ nonisolated enum PageTranslationError: LocalizedError, Equatable {
     case unsupportedPair(source: String, target: String)
     /// The pair exists but its language pack is not on this machine, and the user declined to get it.
     case notInstalled(language: String)
-    /// The model gave back too little of the batch to trust, twice.
-    case modelUnreliable(engine: String)
-    /// ⌘K is pointed at an agent, which is not a thing that translates.
-    case engineIsAgent(String)
     /// The session was taken away mid-batch — the window closed, or the view carrying it was rebuilt.
     case interrupted
     /// Anything the engine itself reported.
@@ -136,12 +136,8 @@ nonisolated enum PageTranslationError: LocalizedError, Equatable {
             "There is no translation from \(source) to \(target)"
         case .notInstalled(let language):
             "\(language) has not been downloaded"
-        case .modelUnreliable(let engine):
-            "\(engine) did not translate this page reliably"
         case .interrupted:
             "The translation was interrupted"
-        case .engineIsAgent(let name):
-            "\(name) is an agent, not a translator"
         case .engine(let name, let message):
             "\(name) could not translate this page: \(message)"
         }
@@ -153,12 +149,8 @@ nonisolated enum PageTranslationError: LocalizedError, Equatable {
             String(localized: "There is no translation from \(source) to \(target)")
         case .notInstalled(let language):
             String(localized: "\(language) has not been downloaded. Add it in System Settings › General › Language & Region › Translation Languages.")
-        case .modelUnreliable(let engine):
-            String(localized: "\(engine) did not translate this page reliably. Try Apple Translation instead.")
         case .interrupted:
             String(localized: "The translation was interrupted")
-        case .engineIsAgent(let name):
-            String(localized: "\(name) is an agent, not a translator. Pick a model in the ⌘K menu.")
         case .engine(let name, let message):
             String(localized: "\(name) could not translate this page: \(message)")
         }
