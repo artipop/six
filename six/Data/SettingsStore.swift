@@ -19,6 +19,9 @@ final class SettingsStore {
     enum Key: String, CaseIterable {
         case searchEngine = "search.engine"
         case assistantModel = "assistant.model"
+        /// The OpenAI-compatible endpoint the assistant talks to, and the model it names there.
+        case assistantOpenAIBaseURL = "assistant.openai.baseURL"
+        case assistantOpenAIModel = "assistant.openai.model"
         case centersFocus = "layout.centersFocus"
         case agentModel = "agent.model"
         case columnWidth = "layout.columnWidth"
@@ -53,6 +56,8 @@ final class SettingsStore {
             switch self {
             case .searchEngine: "six.searchEngine"
             case .assistantModel: "six.assistant.model"
+            case .assistantOpenAIBaseURL: "six.assistant.openai.baseURL"
+            case .assistantOpenAIModel: "six.assistant.openai.model"
             case .centersFocus: "six.layout.centerFocus"
             case .agentModel: "six.agent.model"
             case .columnWidth: "six.layout.columnWidth"

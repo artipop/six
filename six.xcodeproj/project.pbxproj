@@ -73,9 +73,20 @@
 				Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/TurnRecord.swift,
 				Vendor/ClaudeForFoundationModels/LICENSE,
 				Vendor/ClaudeForFoundationModels/VENDORED.md,
+				Vendor/FoundationModelsUtilities/ChatCompletionsLanguageModel.swift,
+				Vendor/FoundationModelsUtilities/LICENSE.txt,
+				Vendor/FoundationModelsUtilities/VENDORED.md,
 				Views/AgentPanel.swift,
 			);
 			target = AC9001010000000000000001 /* six-iOS */;
+		};
+		AC90010100000000000000A0 /* Exceptions for "six" folder in "six" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Vendor/ClaudeForFoundationModels/VENDORED.md,
+				Vendor/FoundationModelsUtilities/VENDORED.md,
+			);
+			target = AC897660303CEC20008426C2 /* six */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -84,6 +95,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				AC9001010000000000000009 /* Exceptions for "six" folder in "six-iOS" target */,
+				AC90010100000000000000A0 /* Exceptions for "six" folder in "six" target */,
 			);
 			path = six;
 			sourceTree = "<group>";

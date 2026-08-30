@@ -28,8 +28,12 @@ OS runtime ships) plus a `-plugin-path` for `SwiftUIMacros`. The installed Xcode
 Models *executor* ABI doesn't match the OS and crashes third-party `LanguageModel`s on launch. Drop both settings once
 Xcode's own SDK matches the OS.
 
-For the same reason `ClaudeForFoundationModels` is vendored into `six/Vendor/` and compiled into the app target: a
-SwiftPM dependency would ignore the `SDKROOT` override, and that library touches the Foundation Models executor ABI.
+For the same reason `ClaudeForFoundationModels` and Apple's own `ChatCompletionsLanguageModel` (from
+[foundation-models-utilities](https://github.com/apple/foundation-models-utilities)) are vendored into `six/Vendor/`
+and compiled into the app target: a SwiftPM dependency would ignore the `SDKROOT` override, and both touch the
+Foundation Models executor ABI. Each vendored tree keeps a `VENDORED.md` saying where it came from and what was
+changed; those notes are excluded from the app target, since two files of that name would otherwise land on the same
+path in `Resources`.
 Ordinary packages are fine — [SQLiteData](https://github.com/pointfreeco/sqlite-data) (GRDB, StructuredQueries and
 the rest of its tree), [sqlite-vec-data](https://github.com/mhayes853/sqlite-vec-data),
 [mlx-swift-lm](https://github.com/ml-explore/mlx-swift-lm) (`MLXEmbedders`, with mlx-swift underneath),
