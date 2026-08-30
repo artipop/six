@@ -65,7 +65,8 @@ let package = Package(
                 // built on Linux to prove it. `AppleTranslator` and the views are not.
                 "Translation/TranslationSegment.swift",
                 "Translation/TranslationBatch.swift",
-                "Translation/TranslationScript.swift"
+                "Translation/TranslationScript.swift",
+                "Translation/PageTranslator.swift"
                 //
                 // `SettingsStore` is in only because it was untangled first: it used to decode six
                 // subsystems' types out of the settings table, so taking it would have dragged most

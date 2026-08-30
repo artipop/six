@@ -60,6 +60,12 @@ final class BrowserState {
     let downloads = DownloadStore()
     /// The mark that flies from a click to the downloads button (`FlightStore`).
     let flights = FlightStore()
+    /// Translating a page in place, and the engine that does it. Both are `@Observable` themselves,
+    /// so the reference can be ignored here while the views still see them change.
+    @ObservationIgnored let translation = PageTranslator()
+    /// Apple's on-device translator. Held by name as well as behind the protocol, because the
+    /// hidden `.translationTask` host needs the concrete one — that is the whole point of it.
+    @ObservationIgnored let appleTranslator = AppleTranslator()
     /// Deep-research runs (see `ResearchRun`).
     var research: [ResearchRun] = []
     @ObservationIgnored private let settings: SettingsStore
@@ -99,6 +105,29 @@ final class BrowserState {
         thumbnails.prune(keeping: Set(tabs.map(\.id))) // windows closed in a launch that never cleaned up
         trackVisibleWindows()
         refreshLivePages() // the first strip, before any change has had a chance to fire
+        translation.engine = appleTranslator
+    }
+
+    // MARK: Translation
+
+    /// Look at the focused page and translate it, or put it back. One entry point, because that is
+    /// what a button and a menu item both want.
+    func toggleTranslation(of tab: BrowserTab) {
+        let target = settings.translationTarget
+        Task {
+            if let state = translation[tab.id], state.isTranslated {
+                if state.showsOriginal {
+                    await translation.showTranslation(tab, id: tab.id)
+                } else {
+                    await translation.showOriginal(tab, id: tab.id)
+                }
+                return
+            }
+            guard let plan = try? await translation.plan(tab) else { return }
+            guard plan.refusal == nil else { return }
+            guard let source = TranslationLanguage.source(of: plan) else { return }
+            await translation.translate(tab, id: tab.id, from: source, to: target)
+        }
     }
 
     // MARK: Live pages
@@ -406,7 +435,11 @@ final class BrowserState {
         tab.onNavigation = { [weak self] tab, outcome in
             guard let self, let page = tab.livePage, let url = page.url else { return }
             switch outcome {
-            case .committed: if !profile.isPrivate { history.record(url, title: page.title, in: tab.profileID) }
+            case .committed:
+                // Before `.finished`, so the old page's batches are dead before the new page is
+                // looked at. A private window translates like any other — the work never leaves it.
+                self.translation.forget(tab.id)
+                if !profile.isPrivate { history.record(url, title: page.title, in: tab.profileID) }
             case .finished:
                 guard !profile.isPrivate else { return } // no history, and highlights are not stored for it
                 history.updateTitle(page.title, for: url, in: tab.profileID)
