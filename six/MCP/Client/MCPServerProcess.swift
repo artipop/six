@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 
 /// Runs an MCP server as a subprocess and exposes its stdio as a JSON-RPC connection.
@@ -79,3 +80,4 @@ nonisolated final class MCPServerProcess: @unchecked Sendable {
         if process.isRunning { process.terminate() }
     }
 }
+#endif

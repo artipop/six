@@ -254,6 +254,16 @@ private struct ColumnView: View {
                                 .onTapGesture(perform: activate)
                         }
                     }
+            } else if let saved = tab.pendingApp {
+                MCPAppRestoreView(tab: tab, saved: saved)
+                    .allowsHitTesting(!capturesClicks)
+                    .overlay {
+                        if capturesClicks {
+                            Color.white.opacity(0.001)
+                                .contentShape(Rectangle())
+                                .onTapGesture(perform: activate)
+                        }
+                    }
             } else if let page = tab.builtIn {
                 // One of six's own, and pure SwiftUI like the start page: no web content process is
                 // spent on a list of servers.

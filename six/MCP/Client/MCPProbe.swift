@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 
 /// `six --mcp-probe …`: connect to an MCP server, say what it carries, and stop.
@@ -238,3 +239,4 @@ nonisolated enum MCPProbe {
         var value: Int32 = 0
     }
 }
+#endif

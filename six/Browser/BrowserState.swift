@@ -311,15 +311,18 @@ final class BrowserState {
         return BrowserSnapshot(
             profiles: profiles.filter { !$0.isPrivate },
             selectedProfileID: selected,
-            // An app window is not saved. What it *is* is a running connection to a server and a
-            // tool call already answered; an address and a title would restore neither, and a blank
-            // window with an app's name on it is worse than no window. Reopening one is Ф4's job
-            // (docs/mcp-apps.md) — until then a strip's apps end with the launch that opened them.
-            tabs: tabs.filter { !privateIDs.contains($0.profileID) && !$0.isApp }.map { tab in
+            tabs: tabs.filter { !privateIDs.contains($0.profileID) }.map { tab in
                 var entry = TabSnapshot(id: tab.id, profileID: tab.profileID, url: tab.showsStartPage ? nil : tab.currentURL, title: tab.title)
                 if let document = tab.document {
                     entry.document = DocumentSnapshot(id: document.id, title: document.title, modifiedAt: document.modifiedAt,
                                                       fileURL: document.fileURL, showsPreview: document.showsPreview)
+                }
+                // What an app window keeps is the question, not the answer: which server, which
+                // tool, with what. See `AppWindowSnapshot`.
+                if let app = tab.app {
+                    entry.app = app.snapshot
+                } else if let pending = tab.pendingApp {
+                    entry.app = pending // never run this launch; it comes back as it went
                 }
                 return entry
             },
@@ -365,6 +368,8 @@ final class BrowserState {
                 let text = documents.load(id: saved.id) ?? "# \(saved.title)\n"
                 let document = TextDocument(id: saved.id, text: text, modifiedAt: saved.modifiedAt, fileURL: saved.fileURL, showsPreview: saved.showsPreview)
                 add(makeDocumentTab(id: tab.id, profile: profile, document: document))
+            } else if let saved = tab.app {
+                add(makePendingAppTab(id: tab.id, profile: profile, saved: saved))
             } else if let url = tab.url, let page = BuiltInPage.page(for: url) {
                 // A `six://…` window comes back as the page it was, not as a window trying to fetch
                 // an address WebKit has never heard of.
@@ -719,6 +724,36 @@ final class BrowserState {
         }
         syncSelection()
         return tab
+    }
+
+    private func makePendingAppTab(id: UUID, profile: Profile, saved: AppWindowSnapshot) -> BrowserTab {
+        let tab = BrowserTab(id: id, profileID: profile.id, pendingApp: saved)
+        tab.onBuiltInAddress = { [weak self] _, page in self?.openBuiltIn(page) }
+        return tab
+    }
+
+    /// Swaps a window's contents in place, keeping its id — so the column it sits in, and the place
+    /// that column has in the strip, do not move. What a restored app becomes when it runs again.
+    func replaceWithApp(_ tabID: BrowserTab.ID, session: MCPAppSession) {
+        guard let index = tabs.firstIndex(where: { $0.id == tabID }) else { return }
+        let old = tabs[index]
+        let tab = BrowserTab(id: tabID, profileID: old.profileID, app: session)
+        tab.onDocumentLink = { [weak self] tab, url in self?.open(url, from: tab) }
+        session.onOpenLink = { [weak self, weak tab] url in
+            guard let self, let tab else { return }
+            self.open(url, from: tab)
+        }
+        old.close()
+        tabs[index] = tab
+        tabsByID[tabID] = tab
+        tab.cache = pages
+        tab.thumbnails = thumbnails
+        tab.blocker = blocker
+        tab.extensions = extensions
+        tab.pageControllers = pageControllers
+        tab.devTools = devTools
+        tab.permissions = permissions
+        if selectedTabID == tabID { syncSelection() }
     }
 
     private func makeBuiltInTab(id: UUID = UUID(), profile: Profile, page: BuiltInPage) -> BrowserTab {

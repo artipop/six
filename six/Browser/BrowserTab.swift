@@ -18,6 +18,8 @@ enum TabContent {
     case web
     case document(TextDocument)
     case app(MCPAppSession)
+    /// An app window from a previous launch, not running: what it was, waiting to be asked again.
+    case pendingApp(AppWindowSnapshot)
     case builtIn(BuiltInPage)
 }
 
@@ -121,6 +123,12 @@ final class BrowserTab: Identifiable {
     }
     var isApp: Bool { app != nil }
 
+    /// The app this window was before six was last quit, when it has not been run again yet.
+    var pendingApp: AppWindowSnapshot? {
+        if case .pendingApp(let saved) = content { return saved }
+        return nil
+    }
+
     /// One of six's own pages, when this window is one.
     var builtIn: BuiltInPage? {
         if case .builtIn(let page) = content { return page }
@@ -128,7 +136,7 @@ final class BrowserTab: Identifiable {
     }
     /// A window showing the web: not a document, not an app, not one of six's own pages. What
     /// history, highlights, bookmarks and the page tools are all about.
-    var isWebPage: Bool { !isDocument && !isApp && builtIn == nil }
+    var isWebPage: Bool { !isDocument && !isApp && builtIn == nil && pendingApp == nil }
     /// A link clicked in a document's preview: the document's own page never navigates away, the
     /// browser opens (or focuses) a window for the URL instead. Set by `BrowserState`.
     @ObservationIgnored var onDocumentLink: ((BrowserTab, URL) -> Void)?
@@ -249,6 +257,16 @@ final class BrowserTab: Identifiable {
             pendingURL = url
             savedTitle = title
         }
+    }
+
+    /// An app window brought back from the snapshot. Nothing is connected and nothing has run: the
+    /// column shows what it was until it is asked again.
+    init(id: UUID = UUID(), profileID: Profile.ID, pendingApp: AppWindowSnapshot) {
+        self.id = id
+        self.profileID = profileID
+        dataStore = nil
+        content = .pendingApp(pendingApp)
+        showsStartPage = false
     }
 
     /// One of six's own pages. Pure SwiftUI, like the start page: no `WebPage` is ever built for it,
@@ -376,7 +394,7 @@ final class BrowserTab: Identifiable {
     /// Is there any work behind showing this window — a page to build, an address waiting to load? A
     /// window that is ready costs nothing to show, and the focus can be moved through it for free.
     var needsBuilding: Bool {
-        guard !showsStartPage, builtIn == nil else { return false }
+        guard !showsStartPage, builtIn == nil, pendingApp == nil else { return false }
         return livePage == nil || pendingURL != nil
     }
 
@@ -385,7 +403,7 @@ final class BrowserTab: Identifiable {
     /// A window still on the start page is the exception — six's start page is SwiftUI, and building a
     /// page for it would spend a web content process on a text field.
     func prepareForDisplay() {
-        guard !showsStartPage, builtIn == nil else { return }
+        guard !showsStartPage, builtIn == nil, pendingApp == nil else { return }
         materialize()
         resumeIfNeeded()
     }
@@ -469,6 +487,7 @@ final class BrowserTab: Identifiable {
         if let document { return document.title }
         if let app { return app.title }
         if let builtIn { return builtIn.title }
+        if let pendingApp { return pendingApp.toolTitle }
         if showsStartPage { return String(localized: "New Window") }
         if let live = livePage, !live.title.isEmpty { return live.title }
         if !savedTitle.isEmpty { return savedTitle }

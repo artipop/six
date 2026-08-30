@@ -17,6 +17,7 @@ nonisolated protocol MCPTransport: AnyObject, Sendable {
     var diagnostics: String { get }
 }
 
+#if os(macOS)
 /// A server as a subprocess: newline-delimited JSON-RPC over its stdio.
 nonisolated final class MCPStdioTransport: MCPTransport {
     private let process: MCPServerProcess
@@ -51,6 +52,7 @@ nonisolated final class MCPStdioTransport: MCPTransport {
     var isRunning: Bool { process.isRunning }
     var diagnostics: String { process.recentStderr }
 }
+#endif
 
 /// A remote server over [Streamable HTTP](https://modelcontextprotocol.io/specification): every
 /// request is a POST, and the answer comes back either as one JSON object or as an event stream

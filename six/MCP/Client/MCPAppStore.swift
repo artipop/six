@@ -13,10 +13,19 @@ final class MCPAppStore {
     /// list to ship in front of everyone (see [mcp-apps.md](../../../docs/mcp-apps.md)).
     var servers: [MCPServerDefinition] { customServers }
 
-    /// The servers the user added, kept in the settings table with everything else.
+    /// The servers the user added, kept in the settings table with everything else — as JSON there,
+    /// because that table is shared with a front end that has never heard of MCP.
     var customServers: [MCPServerDefinition] {
-        get { settings?.mcpCustomServers ?? [] }
-        set { settings?.mcpCustomServers = newValue }
+        get {
+            guard let text = settings?.mcpCustomServers, !text.isEmpty,
+                  let servers = try? JSONDecoder().decode([MCPServerDefinition].self, from: Data(text.utf8))
+            else { return [] }
+            return servers
+        }
+        set {
+            guard let data = try? JSONEncoder().encode(newValue) else { return }
+            settings?.mcpCustomServers = String(decoding: data, as: UTF8.self)
+        }
     }
 
     func add(_ definition: MCPServerDefinition) {
@@ -53,7 +62,10 @@ final class MCPAppStore {
     @ObservationIgnored weak var browser: BrowserState? {
         didSet { authorization.browser = browser }
     }
+    #if os(macOS)
+    /// The agent panel, for `ui/message` and `ui/update-model-context`. There is none on a phone.
     @ObservationIgnored weak var agent: AgentSessionStore?
+    #endif
     @ObservationIgnored weak var settings: SettingsStore?
     @ObservationIgnored private var clients: [MCPServerDefinition.ID: MCPClient] = [:]
     /// `ui://` documents already read, per server. A template is the static half of an app — the
@@ -71,6 +83,7 @@ final class MCPAppStore {
     /// A distributed notification because that is the only one AppKit posts for the *system*
     /// appearance, rather than for a view of six's that happened to redraw.
     func watchAppearance() {
+        #if os(macOS)
         DistributedNotificationCenter.default().addObserver(
             forName: Notification.Name("AppleInterfaceThemeChangedNotification"),
             object: nil, queue: .main
@@ -80,6 +93,7 @@ final class MCPAppStore {
                 for session in self.sessions { session.refreshTheme() }
             }
         }
+        #endif
     }
 
     // MARK: Looking a server up
@@ -314,20 +328,68 @@ final class MCPAppStore {
     }
 
     /// Builds the session, gives it its window, and wires what it may ask six for.
+    ///
+    /// `replacing` is a window that is already in the strip — a restored one being run again — which
+    /// keeps its place instead of a second one appearing beside it.
     private func makeSession(client: MCPClient, definition: MCPServerDefinition, tool: MCPTool,
                              resource: MCPUIResource, arguments: ACPJSON,
-                             activate: Bool = true) -> MCPAppSession {
+                             activate: Bool = true, replacing tabID: UUID? = nil) -> MCPAppSession {
         let session = MCPAppSession(client: client, server: definition, tool: tool,
                                     resource: resource, arguments: arguments)
         // `ui/message`: the app has something to say in the conversation, so it goes where the
         // person's own prompts go.
+        #if os(macOS)
         session.onMessage = { [weak self] text in self?.agent?.send(text) }
+        #endif
         session.onClose = { [weak self] session in self?.forget(session) }
         sessions.append(session)
-        browser?.newApp(session, activate: activate)
+        if let tabID {
+            browser?.replaceWithApp(tabID, session: session)
+        } else {
+            browser?.newApp(session, activate: activate)
+        }
         return session
     }
 
+    // MARK: Windows that came back
+
+    /// Which restored windows have been looked at, so a column scrolling past twice asks once.
+    @ObservationIgnored private var examined: Set<UUID> = []
+    /// Called when a restored app window first comes on screen.
+    ///
+    /// Asks the server one question — is this tool `readOnlyHint`? — and re-runs it only if the
+    /// answer is yes. A tool call is much closer to a POST than to a GET: a browser re-fetches a
+    /// page without asking and refuses to re-submit a form without asking, and this is the second
+    /// kind. Everything else waits for the person to press the button.
+    func examine(_ tab: BrowserTab, _ saved: AppWindowSnapshot) {
+        guard examined.insert(tab.id).inserted else { return }
+        Task { await rerun(saved, in: tab.id, onlyIfSafe: true) }
+    }
+
+    /// Runs a restored window's tool again and puts the app back in its column.
+    func rerun(_ saved: AppWindowSnapshot, in tabID: UUID, onlyIfSafe: Bool = false) async {
+        let definition = MCPServerDefinition(saved)
+        do {
+            let client = client(for: definition)
+            try await client.connect()
+            _ = try await client.listTools()
+            guard let tool = await client.tool(named: saved.tool), let uri = tool.uiResourceURI else {
+                lastError = "\(saved.serverName) no longer has \(saved.tool)."
+                return
+            }
+            // Not read-only, and nobody pressed anything: the card stays and the question waits.
+            if onlyIfSafe, !tool.isReadOnly { return }
+            let resource = try await uiResource(uri, from: definition, client: client)
+            let arguments = (try? JSONDecoder().decode(ACPJSON.self, from: Data(saved.toolArguments.utf8))) ?? [:]
+            let session = makeSession(client: client, definition: definition, tool: tool,
+                                      resource: resource, arguments: arguments, replacing: tabID)
+            Task { await session.callTool() }
+        } catch {
+            lastError = "\(saved.serverName): \(error.localizedDescription)"
+        }
+    }
+
+    #if os(macOS)
     /// `ui/update-model-context` from every running app, as the agent's next turn should see it.
     /// Read once per prompt: the spec says the last update before a user message is the one that
     /// counts, and an app that has said nothing new says nothing again.
@@ -343,6 +405,7 @@ final class MCPAppStore {
         }
         return blocks
     }
+    #endif
 
     /// `SIX_MCP_APP_SELFTEST="basic-vanillajs"` — or `"map:show-map"` — opens one app on launch, the
     /// way `SIX_ACP_SELFTEST` sends one prompt: the whole path exercised without a click.

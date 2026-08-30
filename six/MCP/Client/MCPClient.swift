@@ -73,9 +73,15 @@ actor MCPClient {
                 }
                 transport = MCPHTTPTransport(url: url, headers: definition.headers, tokens: tokens, timeout: timeout)
             } else {
+                #if os(macOS)
                 transport = try MCPStdioTransport(definition: definition,
                                                   environment: await LoginShell.environment(),
                                                   trace: MCPClient.isTracing)
+                #else
+                // A phone launches no subprocesses. A remote server over HTTP works there like
+                // anywhere; a command line is a Mac's kind of server.
+                throw Failure.server("\(definition.name) is a local server, and six on this platform can only reach remote ones.")
+                #endif
             }
         }
         return try await handshake()

@@ -151,10 +151,14 @@ final class SettingsStore {
         set { encode(.mcpSharedServers, newValue) }
     }
 
-    /// MCP servers the user added by hand, alongside the built-in examples.
-    var mcpCustomServers: [MCPServerDefinition] {
-        get { decode(.mcpCustomServers) ?? [] }
-        set { encode(.mcpCustomServers, newValue) }
+    /// The MCP servers the user added, as the JSON text they were stored as.
+    ///
+    /// A string rather than the typed value on purpose: this file is one of the ones that has to
+    /// compile on Linux with nothing but Foundation (see `Package.swift`), and `MCPServerDefinition`
+    /// belongs to the Mac app. `MCPAppStore` owns the shape; the settings table only keeps it.
+    var mcpCustomServers: String {
+        get { self[.mcpCustomServers] ?? "" }
+        set { self[.mcpCustomServers] = newValue.isEmpty ? nil : newValue }
     }
 
     /// How often filter lists are fetched again; 0 is never (what is on disk keeps blocking).

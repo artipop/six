@@ -511,6 +511,11 @@ final class BrowserToolCatalog {
         guard allowsApps || !tab.isApp else {
             throw BrowserTool.Failure(message: "\(Self.describe(tab)) is an MCP app, not a page; use get_page_content for what it is showing")
         }
+        // A restored app window has no page at all yet — reaching for one would build a web view for
+        // a window that is showing a card.
+        guard tab.pendingApp == nil else {
+            throw BrowserTool.Failure(message: "\(Self.describe(tab)) is a restored MCP app that has not been run again; use get_page_content")
+        }
         return tab
     }
 
@@ -634,6 +639,12 @@ final class BrowserToolCatalog {
                         window["kind"] = "document"
                         window["url"] = .string("six://document/\(document.id.uuidString)")
                         window["characters"] = .number(Double(document.text.count))
+                    } else if let saved = tab.pendingApp {
+                        window["kind"] = "app"
+                        window["url"] = .string(saved.resourceURI)
+                        window["server"] = .string(saved.serverName)
+                        window["tool"] = .string(saved.tool)
+                        window["restored"] = true
                     } else if let app = tab.app {
                         window["kind"] = "app"
                         window["url"] = .string(app.resource.uri)
@@ -760,6 +771,16 @@ final class BrowserToolCatalog {
         let tab = try tab(args)
         if let document = tab.document { return "\(Self.describe(tab))\n\n\(document.text)" }
         if let app = tab.app { return "\(Self.describe(tab))\n\n\(app.summaryForModel)" }
+        if let saved = tab.pendingApp {
+            return """
+                \(Self.describe(tab))
+
+                MCP app \(saved.tool) from \(saved.serverName) (\(saved.resourceURI)), restored from the \
+                previous launch and not running. It was called with: \(saved.toolArguments)
+                The tool has not been run again — six only does that by itself for a tool the server \
+                marks read-only. Ask the user before running it.
+                """
+        }
         let limit = max(200, args["max_chars"]?.intValue ?? 20_000)
         guard !tab.showsStartPage else { return "\(Self.describe(tab))\n\nThis window shows six's start page; nothing is loaded yet." }
         await Self.waitForLoad(tab)

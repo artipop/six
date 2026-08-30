@@ -3168,6 +3168,16 @@
         }
       }
     },
+    "Run Again" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запустить снова"
+          }
+        }
+      }
+    },
     "Run JavaScript" : {
       "localizations" : {
         "ru" : {
@@ -4453,6 +4463,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "six"
+          }
+        }
+      }
+    },
+    "six does not run a tool again by itself unless the server says it changes nothing." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "six не запускает инструмент повторно сам, если сервер не сказал, что тот ничего не меняет."
           }
         }
       }

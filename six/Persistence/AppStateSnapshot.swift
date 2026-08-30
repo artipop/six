@@ -33,6 +33,28 @@ nonisolated struct TabSnapshot: Codable, Sendable {
     var title: String
     /// A document window: the id of its Markdown file under `Documents/`; the text lives there.
     var document: DocumentSnapshot? = nil
+    /// An MCP app window: where its server is and what drew it. Absent for every other kind.
+    var app: AppWindowSnapshot? = nil
+}
+
+/// What the snapshot keeps of an MCP app window.
+///
+/// Not the session, and not the answer: an app is a live connection and a tool call that already
+/// happened. What comes back is the *question* — which server, which tool, with what — and six
+/// re-asks it only when re-asking is safe or when the person says so (see docs/mcp-apps.md).
+/// Plain values, no MCP types, so this file stays what its header promises.
+nonisolated struct AppWindowSnapshot: Codable, Sendable {
+    var serverID: String
+    var serverName: String
+    /// A remote server's endpoint; nil for one six launches.
+    var url: URL?
+    var command: String = ""
+    var commandArguments: [String] = []
+    var tool: String
+    var toolTitle: String
+    /// What the tool was called with, as JSON text.
+    var toolArguments: String
+    var resourceURI: String
 }
 
 /// What the snapshot keeps of a document — everything but the text.

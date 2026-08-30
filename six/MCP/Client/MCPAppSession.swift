@@ -92,6 +92,22 @@ final class MCPAppSession: Identifiable {
 
     var title: String { tool.display }
 
+    /// What survives a relaunch: the question this window was, never the answer.
+    var snapshot: AppWindowSnapshot {
+        let arguments = (try? JSONEncoder().encode(self.arguments)).map { String(decoding: $0, as: UTF8.self) } ?? "{}"
+        return AppWindowSnapshot(
+            serverID: server.id,
+            serverName: server.name,
+            url: server.url,
+            command: server.command,
+            commandArguments: server.arguments,
+            tool: tool.name,
+            toolTitle: tool.display,
+            toolArguments: arguments,
+            resourceURI: resource.uri
+        )
+    }
+
     /// What an app window is, in words, for a model reading the strip (`get_page_content`).
     ///
     /// The app's own pixels are not readable: its document is in a frame of its own origin, and six
