@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.deffun.six.core.AppStateSnapshot
-import org.deffun.six.core.BrowserSnapshot
+import org.deffun.six.core.buildBrowserSnapshot
 import org.deffun.six.core.NiriLayout
 import org.deffun.six.core.PageDialogAnswer
 import org.deffun.six.core.PageDialogQueue
@@ -100,7 +100,11 @@ class SixViewModel(application: Application) : AndroidViewModel(application) {
         },
     ).apply {
         onQuestionsChanged = { publishQuestion() }
+        isPrivate = { profileId -> this@SixViewModel.isPrivate(profileId) }
     }
+
+    private fun isPrivate(profileId: UUID): Boolean =
+        _state.value.profiles.firstOrNull { it.id == profileId }?.isPrivate == true
 
     /** The page waiting on an answer that has already been given, pending the system's own. */
     private var pendingGrant: ((Boolean) -> Unit)? = null
@@ -129,6 +133,11 @@ class SixViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun restore() {
         viewModelScope.launch {
+            // A private profile is never in the file, so after a kill nothing left knows its store
+            // existed — except the engine, which still has it. Swept before anything else opens one.
+            launch(Dispatchers.IO) {
+                runCatching { WebProfiles.deleteOrphanedPrivateStores(profilesOnFile()) }
+            }
             val snapshot = withContext(Dispatchers.IO) { environment.snapshots.load() }
             val engine = withContext(Dispatchers.IO) {
                 runCatching { environment.settings.searchEngine }.getOrDefault(SearchEngine.DEFAULT)
@@ -187,7 +196,10 @@ class SixViewModel(application: Application) : AndroidViewModel(application) {
             val previous = runCatching { environment.snapshots.load() }.getOrNull()
             environment.snapshots.save(
                 AppStateSnapshot(
-                    browser = BrowserSnapshot(
+                    // Through the core's builder, which is where "a private profile leaves nothing
+                    // here" is written down and tested — not open-coded at the call site, where a
+                    // forgotten filter would be silent.
+                    browser = buildBrowserSnapshot(
                         profiles = current.profiles,
                         selectedProfileId = current.layout.activeProfileId,
                         tabs = current.tabs.values.map {
@@ -237,13 +249,77 @@ class SixViewModel(application: Application) : AndroidViewModel(application) {
         save()
     }
 
+    /** The private profile, if one is open. There is at most one, as on the Mac. */
+    private val SixState.privateProfile: Profile?
+        get() = profiles.firstOrNull { it.isPrivate }
+
+    /**
+     * A window in the private profile, creating the profile on the first call.
+     *
+     * One profile for all private windows rather than one each, so two private tabs share a session
+     * the way two ordinary tabs do — and closing private browsing ends all of it at once.
+     */
+    fun newPrivateWindow(url: String? = null) {
+        val existing = _state.value.privateProfile
+        if (existing != null) {
+            // Switching to it as well as opening in it: the column would otherwise land in a strip
+            // that is not the one on screen, which reads as the menu item doing nothing.
+            _state.update { it.copy(layout = it.layout.setActiveProfile(existing.id)) }
+            openColumn(url, profileId = existing.id)
+            return
+        }
+        val profile = Profile(
+            id = UUID.randomUUID(),
+            name = Profile.PRIVATE_NAME,
+            colorHex = Profile.PRIVATE_COLOR_HEX,
+            dataStoreId = UUID.randomUUID(),
+            isPrivate = true,
+        )
+        _state.update {
+            it.copy(
+                profiles = it.profiles + profile,
+                layout = it.layout.setActiveProfile(profile.id),
+            )
+        }
+        openColumn(url, profileId = profile.id)
+    }
+
+    /** Closes every private window, forgets the profile, and with it the site data. */
+    fun closePrivateBrowsing() {
+        val current = _state.value
+        val profile = current.privateProfile ?: return
+        val storeName = WebProfiles.storeName(profile)
+
+        val goneTabs = current.tabs.values.filter { it.profileId == profile.id }
+        for (tab in goneTabs) {
+            onWindowGone(tab.id)
+            LivePages.forget(tab.id)
+        }
+
+        val fallback = current.profiles.firstOrNull { !it.isPrivate }?.id
+        _state.update { state ->
+            var layout = state.layout.removeProfile(profile.id)
+            if (fallback != null) layout = layout.setActiveProfile(fallback)
+            state.copy(
+                profiles = state.profiles.filterNot { it.isPrivate },
+                tabs = state.tabs.filterValues { it.profileId != profile.id },
+                layout = layout,
+            )
+        }
+        sitePermissions.forgetProfile(profile.id)
+
+        viewModelScope.launch(Dispatchers.IO) { WebProfiles.deletePrivateStore(storeName) }
+        save()
+    }
+
     /** Opens a column on the start page, focused, to the right of the focused one. */
-    fun openColumn(url: String? = null): UUID {
+    fun openColumn(url: String? = null, profileId: UUID? = null): UUID {
         val id = UUID.randomUUID()
         _state.update { current ->
+            val profile = profileId ?: current.layout.activeProfileId
             current.copy(
-                layout = current.layout.insertColumn(id),
-                tabs = current.tabs + (id to TabState(id, current.layout.activeProfileId, url)),
+                layout = current.layout.insertColumn(id, profile),
+                tabs = current.tabs + (id to TabState(id, profile, url)),
             )
         }
         save()
@@ -278,6 +354,11 @@ class SixViewModel(application: Application) : AndroidViewModel(application) {
 
     fun endDrag() {
         _state.update { it.copy(layout = it.layout.copy(horizontalPreview = 0.0, verticalPreview = 0.0)) }
+    }
+
+    /** What the file says the profiles are, for the launch-time sweep. */
+    private suspend fun profilesOnFile(): List<Profile> = withContext(Dispatchers.IO) {
+        runCatching { environment.snapshots.load()?.browser?.profiles }.getOrNull().orEmpty()
     }
 
     /** The profile on screen, newest first. Reading the database is not the main thread's work. */
@@ -475,8 +556,10 @@ class SixViewModel(application: Application) : AndroidViewModel(application) {
             current.copy(tabs = current.tabs + (tabId to tab.copy(url = url, isLoading = true)))
         }
         val tab = _state.value.tabs[tabId] ?: return
-        viewModelScope.launch(Dispatchers.IO) {
-            environment.history.record(url, tab.title, tab.profileId)
+        if (!isPrivate(tab.profileId)) {
+            viewModelScope.launch(Dispatchers.IO) {
+                environment.history.record(url, tab.title, tab.profileId)
+            }
         }
         save()
     }
@@ -508,8 +591,10 @@ class SixViewModel(application: Application) : AndroidViewModel(application) {
         }
         val tab = _state.value.tabs[tabId] ?: return
         val url = tab.url ?: return
-        viewModelScope.launch(Dispatchers.IO) {
-            environment.history.updateTitle(title, url, tab.profileId)
+        if (!isPrivate(tab.profileId)) {
+            viewModelScope.launch(Dispatchers.IO) {
+                environment.history.updateTitle(title, url, tab.profileId)
+            }
         }
         save()
     }

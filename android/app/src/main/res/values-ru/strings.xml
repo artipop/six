@@ -39,4 +39,6 @@
     <string name="denied">Запрещено</string>
     <string name="page_says">%1$s сообщает:</string>
     <string name="this_page">Эта страница</string>
+    <string name="new_private_window">Новое приватное окно</string>
+    <string name="close_private_browsing">Закрыть приватный просмотр</string>
 </resources>

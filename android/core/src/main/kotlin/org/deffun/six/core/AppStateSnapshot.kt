@@ -72,7 +72,19 @@ data class Profile(
     @SerialName("dataStoreID")
     val dataStoreId: UUID,
     val isPrivate: Boolean = false,
-)
+) {
+    companion object {
+        /**
+         * The private profile's name and colour, both the Mac's literals rather than anything chosen
+         * here — a profile is a shared record, and two front ends inventing two names for the same
+         * thing is two profiles.
+         *
+         * Not translated, on either platform: it is written into the file.
+         */
+        const val PRIVATE_NAME = "Private"
+        const val PRIVATE_COLOR_HEX = "#5C5C66"
+    }
+}
 
 @Serializable
 data class TabSnapshot(
@@ -87,6 +99,39 @@ data class TabSnapshot(
     /** A document window: the id of its Markdown file under `Documents/`; the text lives there. */
     val document: DocumentSnapshot? = null,
 )
+
+/**
+ * The browser's half of the snapshot, with private browsing left out of it.
+ *
+ * A private profile leaves nothing here: not the profile, not its windows, not its strip. That is the
+ * whole promise of the thing, and it is one line away from being broken silently — a filter forgotten
+ * on any of the three lists writes a private session to disk and nothing complains.
+ *
+ * The selection falls back too. Saving "the profile on screen" while that profile is not in the file
+ * would restore into a profile that does not exist.
+ */
+fun buildBrowserSnapshot(
+    profiles: List<Profile>,
+    selectedProfileId: UUID,
+    tabs: List<TabSnapshot>,
+    strips: List<StripSnapshot>,
+    research: JsonElement? = null,
+): BrowserSnapshot {
+    val privateIds = profiles.filter { it.isPrivate }.map { it.id }.toSet()
+    val public = profiles.filterNot { it.isPrivate }
+    val selected = if (selectedProfileId in privateIds) {
+        public.firstOrNull()?.id ?: selectedProfileId
+    } else {
+        selectedProfileId
+    }
+    return BrowserSnapshot(
+        profiles = public,
+        selectedProfileId = selected,
+        tabs = tabs.filterNot { it.profileId in privateIds },
+        strips = strips.filterNot { it.profileId in privateIds },
+        research = research,
+    )
+}
 
 /** What the snapshot keeps of a document — everything but the text. */
 @Serializable

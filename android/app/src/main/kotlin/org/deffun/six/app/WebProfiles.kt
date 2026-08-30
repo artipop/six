@@ -86,6 +86,35 @@ object WebProfiles {
         }
     }
 
+    /**
+     * Ends a private profile by deleting its store outright.
+     *
+     * The Mac gets this for nothing: a private profile is a `WKWebsiteDataStore.nonPersistent()`, so
+     * closing it *is* forgetting it. `androidx.webkit` has no ephemeral profile — every one of them
+     * is on disk — so the promise has to be kept by hand, and kept even when the app is killed
+     * before it can. That is why [deleteOrphanedPrivateStores] exists and runs at launch.
+     */
+    fun deletePrivateStore(storeName: String?) {
+        if (storeName == null || !isSupported) return
+        runCatching {
+            // Data first, then the profile: a delete that fails half-way should fail having removed
+            // the cookies rather than having kept them under a name nothing points at any more.
+            clearSiteData(storeName)
+            ProfileStore.getInstance().deleteProfile(storeName)
+        }
+    }
+
+    /**
+     * Stores left behind by a private session the app did not outlive.
+     *
+     * A private profile is never written to `state.json`, so after a kill there is nothing left that
+     * knows the store existed — except the engine, which still has it. Anything the engine holds and
+     * six does not is either that, or a profile deleted on another device; both should go.
+     */
+    fun deleteOrphanedPrivateStores(profiles: List<Profile>) {
+        for (name in orphanedStores(profiles)) deletePrivateStore(name)
+    }
+
     /** The platform's own, which exists whether or not six ever asks for it. */
     const val DEFAULT_PROFILE_NAME = "Default"
 }

@@ -45,6 +45,9 @@ fun PhoneToolbar(
     onBack: () -> Unit,
     onForward: () -> Unit,
     onNewWindow: () -> Unit,
+    onNewPrivateWindow: () -> Unit,
+    isPrivateOpen: Boolean,
+    onClosePrivate: () -> Unit,
     onToggleOverview: () -> Unit,
     onShowHistory: () -> Unit,
     onShowPermissions: () -> Unit,
@@ -79,6 +82,22 @@ fun PhoneToolbar(
                             onNewWindow()
                         },
                     )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.new_private_window)) },
+                        onClick = {
+                            menuOpen = false
+                            onNewPrivateWindow()
+                        },
+                    )
+                    if (isPrivateOpen) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.close_private_browsing)) },
+                            onClick = {
+                                menuOpen = false
+                                onClosePrivate()
+                            },
+                        )
+                    }
                     HorizontalDivider()
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.history_ellipsis)) },

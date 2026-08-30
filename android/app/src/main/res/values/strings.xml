@@ -44,4 +44,6 @@
     <string name="denied">Denied</string>
     <string name="page_says">%1$s says:</string>
     <string name="this_page">This page</string>
+    <string name="new_private_window">New Private Window</string>
+    <string name="close_private_browsing">Close Private Browsing</string>
 </resources>
