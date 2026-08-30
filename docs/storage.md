@@ -83,7 +83,7 @@ CloudKit Web Services"]
 ## Reading it
 
 - **Solid arrows** are the portable core: the JSON snapshot, SQLite through GRDB, and four protocol seams. Only
-  the Linux build of SQLiteData itself is unverified.
+  the Linux build of SQLiteData itself was the open question, and it now has an answer — below.
 - **Dotted arrows** are implementations of the seams — Apple on the left, the Linux replacement on the right. The
   core doesn't know which one is plugged in.
 - **SQLite is the only system of record.** The `vec0` tables (sqlite-vec) are rebuildable indexes over it, as Wax or
@@ -103,3 +103,40 @@ CloudKit Web Services"]
 | Embedder | multilingual-e5-small over MLX (built); `NLContextualEmbedding` as the no-download alternative | the same model over llama.cpp / ONNX | model ids + re-embedding is what is built: every vector carries its model, a query only meets its own |
 | Retrieval | sqlite-vec `vec0` (built) | the same; `sqlite3_auto_extension` works there | on macOS the extension is entered per connection (`sqlite3_vec_init`), since the system SQLite has extension loading compiled out — [bookmarks.md](bookmarks.md#the-index) |
 | Sync | SQLiteData's `SyncEngine` over CloudKit | no-op / own server | without an Apple account a Linux build cannot reach iCloud at all; accept that |
+
+## SQLiteData on Linux: it builds, and the pins are why
+
+Swift 6.3.3, aarch64, Ubuntu 24.04, in a container: **GRDB, SQLiteData, sqlite-vec and the `@Table` /
+`#sql` macros all build, and so do `AppDatabase`, `SettingsStore`, `History`, `Bookmark` and
+`SearchEngine`.** Nothing had to be vendored, and the query layer did not have to be swapped for
+`swift-structured-queries` on its own.
+
+What made it look impossible at first was resolving *newer* transitive versions than the app uses.
+Both breakages are recent regressions, and both are upstream, not ours:
+
+| package | app's version | newest | what the newest does on Linux |
+|---|---|---|---|
+| `swift-sharing` | 2.9.1 ✅ | 2.10.0 ❌ | `package import Foundation.NSData` — no such module off Apple |
+| `combine-schedulers` | 1.2.0 ✅ | 1.2.1 ❌ | `pthread_mutex_t` under a bare `import Foundation`; Swift 6.3 wants `CoreFoundation` |
+
+2.9.1, 2.8.2 and 2.5.2 of `swift-sharing` all build clean, so 2.10.0 is a regression — and its own CI
+claims Linux on Swift 6.3, which makes it worth reporting upstream.
+
+There is a third trap in the same family, and it is not about Linux at all: `sqlite-data` 1.11.0 does not
+compile against `swift-structured-queries` 0.38. A free resolve picks a set that fails on **both**
+platforms.
+
+So the package's `Package.resolved` is **seeded from the app's own**, and that one file answers all
+three. It is the honest statement of the arrangement anyway: a database written by one build is opened
+by the other, and they should agree on the library that wrote it.
+
+**The consequence to remember:** `swift package update` is a Linux-breaking command here. Re-seed from
+`six.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` and let the project's own
+graph move first.
+
+([sqlite-data#459](https://github.com/pointfreeco/sqlite-data/pull/459) is a separate Linux effort —
+CloudKit gating in its own tests, and its GRDB floor. Orthogonal to this, and not needed for it.)
+
+What did have to move is Apple-only Foundation, twice: `String(localized:)` in `NiriLayout` and in
+`BookmarkScope.title`. The strings catalog is Apple's too, so on Linux those are the keys and a GTK
+front translates them through gettext.

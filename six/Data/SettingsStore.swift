@@ -35,6 +35,14 @@ final class SettingsStore {
         case devToolsInspector = "devtools.inspector"
         case devToolsCapture = "devtools.capture"
         case sitePermissions = "permissions.sites"
+        /// The default profile's identifier. On the Mac profiles live in the state snapshot; a front
+        /// that has no snapshot yet still needs the id to be the same one tomorrow, or every launch
+        /// orphans its own history.
+        case defaultProfile = "profile.default"
+        /// The strip as it was left: workspaces, columns, and the address each column was on.
+        /// On the Mac this lives in the state snapshot beside the database; a front without one
+        /// keeps it here, where it is migrated and backed up with everything else.
+        case stripState = "strip.state"
 
         /// Where the value lived before the database.
         var legacyDefaultsKey: String {
@@ -57,6 +65,8 @@ final class SettingsStore {
             case .devToolsInspector: "six.devtools.inspector"
             case .devToolsCapture: "six.devtools.capture"
             case .sitePermissions: "six.permissions.sites"
+            case .defaultProfile: "six.profile.default"
+            case .stripState: "six.strip.state"
             }
         }
     }
@@ -80,16 +90,6 @@ final class SettingsStore {
 
     // MARK: Typed settings
 
-    var searchEngine: SearchEngine {
-        get { SearchEngine(rawValue: self[.searchEngine] ?? "") ?? .duckDuckGo }
-        set { self[.searchEngine] = newValue.rawValue }
-    }
-
-    var assistantModel: ModelChoice {
-        get { ModelChoice(rawValue: self[.assistantModel] ?? "") ?? .onDevice }
-        set { self[.assistantModel] = newValue.rawValue }
-    }
-
     /// niri's `center-focused-column`; on by default.
     var centersFocus: Bool {
         get { self[.centersFocus].map { $0 == "1" } ?? true }
@@ -102,29 +102,10 @@ final class SettingsStore {
         set { self[.columnWidth] = String(newValue) }
     }
 
-    /// What the assistant and the agents search: this profile's bookmarks, or every profile's.
-    var bookmarkScope: BookmarkScope {
-        get { BookmarkScope(rawValue: self[.bookmarkScope] ?? "") ?? .profile }
-        set { self[.bookmarkScope] = newValue.rawValue }
-    }
-
     /// The deep-research preset as edited by the user; empty means the built-in one.
     var researchTemplate: String {
         get { self[.researchTemplate] ?? "" }
         set { self[.researchTemplate] = newValue.isEmpty ? nil : newValue }
-    }
-
-    /// How many sources a research run opens.
-    var researchSources: Int {
-        get { Int(self[.researchSources] ?? "") ?? ResearchPreset.defaultSources }
-        set { self[.researchSources] = String(newValue) }
-    }
-
-    /// How many windows keep a live `WebPage` at once; the rest are discarded and built again when
-    /// they are next shown. Defaults to what the machine's memory can carry (see `LivePageCache`).
-    var livePageBudget: Int {
-        get { self[.livePages].flatMap(Int.init) ?? LivePageCache.defaultBudget }
-        set { self[.livePages] = String(newValue) }
     }
 
     /// How often a saved page is re-read from its site and re-embedded if it changed; 0 is never.
@@ -140,50 +121,16 @@ final class SettingsStore {
         set { self[.blockingEnabled] = newValue ? "1" : "0" }
     }
 
-    /// The filter lists and what the user chose about each. Healed against the built-in catalogue
-    /// on read, so a list added in a later version of six appears by itself (`FilterList.merge`).
-    var blockingLists: [FilterList] {
-        get {
-            guard let json = self[.blockingLists], let data = json.data(using: .utf8),
-                  let stored = try? JSONDecoder().decode([FilterList].self, from: data) else { return [] }
-            return stored
-        }
-        set {
-            guard let data = try? JSONEncoder().encode(newValue) else { return }
-            self[.blockingLists] = String(decoding: data, as: UTF8.self)
-        }
-    }
-
     /// Sites the user asked six to leave alone, as bare hostnames.
     var blockingAllowlist: [String] {
-        get {
-            guard let json = self[.blockingAllowlist], let data = json.data(using: .utf8),
-                  let stored = try? JSONDecoder().decode([String].self, from: data) else { return [] }
-            return stored
-        }
-        set {
-            guard let data = try? JSONEncoder().encode(newValue) else { return }
-            self[.blockingAllowlist] = String(decoding: data, as: UTF8.self)
-        }
+        get { decode(.blockingAllowlist) ?? [] }
+        set { encode(.blockingAllowlist, newValue) }
     }
 
     /// How often filter lists are fetched again; 0 is never (what is on disk keeps blocking).
     var blockingRefreshDays: Int {
         get { self[.blockingRefreshDays].flatMap(Int.init) ?? 3 }
         set { self[.blockingRefreshDays] = String(newValue) }
-    }
-
-    /// The extensions six has unpacked, and what the user decided about each.
-    var installedExtensions: [InstalledExtension] {
-        get {
-            guard let json = self[.installedExtensions], let data = json.data(using: .utf8),
-                  let stored = try? JSONDecoder().decode([InstalledExtension].self, from: data) else { return [] }
-            return stored
-        }
-        set {
-            guard let data = try? JSONEncoder().encode(newValue) else { return }
-            self[.installedExtensions] = String(decoding: data, as: UTF8.self)
-        }
     }
 
     /// Web Inspector: Safari's Develop menu can attach to six's pages. Off by default — an
@@ -200,24 +147,43 @@ final class SettingsStore {
         set { self[.devToolsCapture] = newValue ? "1" : "0" }
     }
 
-    /// What sites were allowed — or refused — the camera, the microphone and the motion sensors.
-    /// A private profile's answers never reach here; see `SitePermissions`.
-    var sitePermissions: [SitePermissions.Decision] {
-        get {
-            guard let json = self[.sitePermissions], let data = json.data(using: .utf8),
-                  let stored = try? JSONDecoder().decode([SitePermissions.Decision].self, from: data) else { return [] }
-            return stored
-        }
-        set {
-            guard let data = try? JSONEncoder().encode(newValue) else { return }
-            self[.sitePermissions] = newValue.isEmpty ? nil : String(decoding: data, as: UTF8.self)
-        }
+    /// The profile a front uses when it has no other. Made once and kept, so history and cookies
+    /// belong to the same profile across launches.
+    ///
+    /// Stored as `uuidString`, which is uppercase, while GRDB writes the `visits` column lowercase.
+    /// Nothing compares them as text — `UUID(uuidString:)` reads either — but a hand-written SQL
+    /// query joining the two will find nothing, which is worth knowing before it wastes an hour.
+    var defaultProfileID: UUID {
+        if let stored = self[.defaultProfile], let id = UUID(uuidString: stored) { return id }
+        let fresh = UUID()
+        self[.defaultProfile] = fresh.uuidString
+        return fresh
     }
 
     /// Optional model id for the ACP agent (`ANTHROPIC_MODEL`).
     var agentModel: String {
         get { self[.agentModel] ?? "" }
         set { self[.agentModel] = newValue }
+    }
+
+    // MARK: Codable values
+
+    /// Four of these settings are a JSON document rather than a scalar, and were the same eight
+    /// lines four times over. The accessors that use them live beside the types they decode.
+    func decode<T: Decodable>(_ key: Key, as type: T.Type = T.self) -> T? {
+        guard let json = self[key], let data = json.data(using: .utf8) else { return nil }
+        return try? JSONDecoder().decode(T.self, from: data)
+    }
+
+    /// `keepingEmpty: false` deletes the row instead of storing `[]` — for a setting whose absence
+    /// and whose empty value mean the same thing, and which is better off not taking up a row.
+    func encode(_ key: Key, _ value: some Collection & Encodable, keepingEmpty: Bool = true) {
+        guard let data = try? JSONEncoder().encode(value) else { return }
+        if value.isEmpty, !keepingEmpty {
+            self[key] = nil
+        } else {
+            self[key] = String(decoding: data, as: UTF8.self)
+        }
     }
 
     // MARK: Raw access
@@ -230,7 +196,15 @@ final class SettingsStore {
             do {
                 try database.write { db in
                     if let newValue {
-                        try Setting.insert { Setting(key: key.rawValue, value: newValue) }.execute(db)
+                        // `upsert`, not `insert`. A plain insert is only ever right the first time a
+                        // key is written, and every change after that failed on the primary key —
+                        // *"UNIQUE constraint failed: settings.key"*, caught, printed to stderr and
+                        // stepped over. The in-memory cache took the new value, so nothing looked
+                        // wrong until the next launch read the old one back.
+                        //
+                        // Found on Linux, answering a site's request for the camera and the
+                        // microphone: the second of the two answers never reached the table.
+                        try Setting.upsert { Setting(key: key.rawValue, value: newValue) }.execute(db)
                     } else {
                         try Setting.where { $0.key.eq(key.rawValue) }.delete().execute(db)
                     }

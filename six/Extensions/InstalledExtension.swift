@@ -53,3 +53,15 @@ nonisolated struct ExtensionCompatibility: Sendable, Hashable, Codable {
         }
     }
 }
+
+// MARK: - Settings
+
+/// The setting lives in the settings table; the knowledge of what its string means lives here,
+/// beside the type it means it as. `SettingsStore` itself keeps only keys and strings.
+extension SettingsStore {
+    /// The extensions six has unpacked, and what the user decided about each.
+    var installedExtensions: [InstalledExtension] {
+        get { decode(.installedExtensions) ?? [] }
+        set { encode(.installedExtensions, newValue) }
+    }
+}

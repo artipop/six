@@ -153,7 +153,7 @@ final class DownloadStore {
     static let folder: URL = {
         #if os(macOS)
         let search = FileManager.SearchPathDirectory.downloadsDirectory
-        #else
+        #elseif os(iOS)
         let search = FileManager.SearchPathDirectory.documentDirectory
         #endif
         if let url = FileManager.default.urls(for: search, in: .userDomainMask).first { return url }

@@ -56,10 +56,19 @@ nonisolated enum BookmarkScope: String, CaseIterable, Identifiable, Sendable {
     var id: String { rawValue }
 
     var title: String {
+        #if os(Linux)
+        // `String(localized:)` and the strings catalog behind it are Apple Foundation's; a GTK front
+        // localises through gettext, so these are the keys and it translates them itself.
+        switch self {
+        case .profile: "This Profile"
+        case .all: "All Profiles"
+        }
+        #else
         switch self {
         case .profile: String(localized: "This Profile")
         case .all: String(localized: "All Profiles")
         }
+        #endif
     }
 }
 
@@ -71,4 +80,16 @@ nonisolated struct BookmarkHit: Identifiable, Sendable {
     var snippet: String
 
     var id: Bookmark.ID { bookmark.id }
+}
+
+// MARK: - Settings
+
+/// The setting lives in the settings table; the knowledge of what its string means lives here,
+/// beside the type it means it as. `SettingsStore` itself keeps only keys and strings.
+extension SettingsStore {
+    /// What the assistant and the agents search: this profile's bookmarks, or every profile's.
+    var bookmarkScope: BookmarkScope {
+        get { BookmarkScope(rawValue: self[.bookmarkScope] ?? "") ?? .profile }
+        set { self[.bookmarkScope] = newValue.rawValue }
+    }
 }

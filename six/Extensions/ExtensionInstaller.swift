@@ -1,4 +1,9 @@
+#if canImport(CryptoKit)
 import CryptoKit
+#else
+// swift-crypto: the same SHA-256, so digests written by an Apple build read back identically.
+import Crypto
+#endif
 import Foundation
 import WebKit
 
@@ -100,11 +105,11 @@ enum ExtensionInstaller {
     /// `ditto` rather than a zip library: it ships with the OS, it handles what the world produces,
     /// and an extension archive is not a place to be clever.
     private static func unzip(_ archive: URL, into destination: URL) throws {
-        #if !os(macOS)
+        #if os(iOS)
         // No `ditto`, and no `Process` to run it with. Unpacking an archive on the phone waits for a
         // zip reader of our own — as does the file panel that would hand us one.
         throw Failure.unpackFailed(String(localized: "Archives cannot be unpacked on this device"))
-        #else
+        #elseif os(macOS)
         try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: true)
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")

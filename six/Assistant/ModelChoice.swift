@@ -21,7 +21,7 @@ enum ModelChoice: String, CaseIterable, Identifiable, Codable {
     #if os(macOS)
     static let languageModels: [ModelChoice] = [.onDevice, .privateCloudCompute, .claudeSonnet, .claudeOpus]
     static let agents: [ModelChoice] = [.claudeCodeAgent, .codexAgent]
-    #else
+    #elseif os(iOS)
     static let languageModels: [ModelChoice] = [.onDevice, .privateCloudCompute]
     static let agents: [ModelChoice] = []
     #endif
@@ -53,7 +53,7 @@ enum ModelChoice: String, CaseIterable, Identifiable, Codable {
     var isClaude: Bool {
         #if os(macOS)
         self == .claudeSonnet || self == .claudeOpus
-        #else
+        #elseif os(iOS)
         false
         #endif
     }
@@ -145,5 +145,17 @@ enum AssistantError: LocalizedError {
         case .unavailable(let reason): reason
         case .missingAPIKey: "Add an Anthropic API key in the model menu to use Claude."
         }
+    }
+}
+
+// MARK: - Settings
+
+/// The setting lives in the settings table; the knowledge of what its string means lives here,
+/// beside the type it means it as. `SettingsStore` itself keeps only keys and strings.
+extension SettingsStore {
+    /// Which model answers ⌘K.
+    var assistantModel: ModelChoice {
+        get { ModelChoice(rawValue: self[.assistantModel] ?? "") ?? .onDevice }
+        set { self[.assistantModel] = newValue.rawValue }
     }
 }

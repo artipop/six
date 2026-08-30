@@ -1,0 +1,52 @@
+# The Linux build environment.
+#
+# Ubuntu 26.04 LTS rather than one of swift.org's own images, and the toolchain unpacked by hand,
+# because the GTK version turned out to decide which UI library is usable at all:
+#
+#   24.04  GTK 4.14  — adwaita-swift's own C shim will not compile (`GtkInterfaceColorScheme`)
+#   25.10  GTK 4.20  — shim compiles, `gtk_picture_set_isolate_contents` is still missing
+#   26.04  GTK 4.22  — builds
+#
+# adwaita-swift's main tracks GNOME 50, so the container has to track it too. That is an ongoing
+# cost of the choice and it belongs written down rather than rediscovered.
+#
+# 26.04 also carries libadwaita 1.9.1 and WebKitGTK 2.52.3 — the branch where `WebKitWebExtension`
+# arrived — so the whole stack comes from one LTS with nothing pinned by hand.
+#
+#   container build --tag six-gnome:26.04 linux
+#   container run --rm -v "$PWD:/work/six" -w /work/six/linux six-gnome:26.04 swift build
+
+FROM docker.io/library/swift:6.3.3-noble AS toolchain
+
+FROM docker.io/library/ubuntu:26.04
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update -qq && apt-get install -y -qq --no-install-recommends \
+      curl ca-certificates gnupg pkg-config git \
+      binutils libcurl4 libncurses6 libpython3-stdlib tzdata zlib1g-dev g++ \
+      libsqlite3-dev sqlite3 \
+      libgtk-4-dev libadwaita-1-dev libwebkitgtk-6.0-dev \
+      xvfb x11-utils imagemagick x11vnc novnc websockify xdotool fonts-dejavu-core \
+ && rm -rf /var/lib/apt/lists/*
+
+RUN curl -fsSL https://download.swift.org/swift-6.3.3-release/ubuntu2404-aarch64/swift-6.3.3-RELEASE/swift-6.3.3-RELEASE-ubuntu24.04-aarch64.tar.gz \
+      -o /tmp/swift.tar.gz \
+ && mkdir -p /opt/swift && tar -xzf /tmp/swift.tar.gz -C /opt/swift --strip-components=1 \
+ && rm /tmp/swift.tar.gz
+
+# The toolchain is built against 24.04 and links libxml2.so.2 and ICU 74; 26.04 ships libxml2.so.16
+# and a newer ICU, and the ABIs differ, so those two 24.04 libraries ride along in a directory of
+# their own. Only the Swift binaries look there — nothing the app links against changes.
+COPY --from=toolchain /usr/lib/aarch64-linux-gnu/libxml2.so.2* /opt/swift-compat/
+COPY --from=toolchain /usr/lib/aarch64-linux-gnu/libicu*.so.74* /opt/swift-compat/
+ENV LD_LIBRARY_PATH=/opt/swift-compat:$LD_LIBRARY_PATH
+ENV PATH=/opt/swift/usr/bin:$PATH
+
+# WebKit's bubblewrap sandbox cannot create namespaces inside a container. Off here and only here.
+ENV WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1 \
+    WEBKIT_FORCE_SANDBOX=0 \
+    WEBKIT_DISABLE_COMPOSITING_MODE=1 \
+    WEBKIT_DISABLE_DMABUF_RENDERER=1 \
+    GDK_BACKEND=x11
+
+RUN swift --version && pkg-config --modversion gtk4 libadwaita-1 webkitgtk-6.0

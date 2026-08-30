@@ -1,6 +1,6 @@
 #if os(macOS)
 import AppKit
-#else
+#elseif os(iOS)
 import UIKit
 #endif
 import Foundation

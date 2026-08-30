@@ -1,4 +1,9 @@
+#if canImport(CryptoKit)
 import CryptoKit
+#else
+// swift-crypto: the same SHA-256, so digests written by an Apple build read back identically.
+import Crypto
+#endif
 import Foundation
 
 /// Where filter lists live on disk, and how they are kept fresh.

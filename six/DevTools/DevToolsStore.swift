@@ -1,5 +1,5 @@
 import Foundation
-#if !os(macOS)
+#if os(iOS)
 import UIKit
 #endif
 import Observation
@@ -154,7 +154,7 @@ final class DevToolsStore {
     static var machineName: String {
         #if os(macOS)
         Host.current().localizedName ?? ProcessInfo.processInfo.hostName
-        #else
+        #elseif os(iOS)
         UIDevice.current.name
         #endif
     }

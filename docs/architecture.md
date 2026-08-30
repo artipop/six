@@ -22,6 +22,19 @@ six/Vendor      ClaudeForFoundationModels sources
 six/*.xcstrings Localizable + InfoPlist String Catalogs (English source, Russian) — see [localization](localization.md)
 ```
 
+The Linux front is a second set of modules over some of the same files, built by SwiftPM rather than
+Xcode. Its module boundaries are enforced rather than agreed — see [linux.md](linux.md):
+
+```
+Package.swift          SixCore: the files above that are Foundation-only — NiriLayout, Data/, Persistence/,
+                       Bookmark, History, SearchEngine, SitePermissions. Listed, not moved.
+linux/  SixWebKitCore  the WebKitGTK interop, no toolkit: NetworkSession, PageRegistry, Thumbnails,
+                       PermissionRequests, Signal
+        SixWebKit      the page as a widget adwaita can place
+        SixBrowser     BrowserModel, LivePages, StripState, Bookmarks — the Linux six/Browser
+        SixUI          the only module that knows what a toolkit is
+```
+
 ## State
 
 `BrowserState` owns the profiles and the flat list of `BrowserTab`s; `NiriLayout` owns where they sit. A tab's

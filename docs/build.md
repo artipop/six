@@ -113,3 +113,26 @@ comes out twice as big on a Retina Mac, which actool rejects.
 ## Sandbox
 
 App Sandbox is off — the ACP layer spawns `npx` / `claude` / `codex` from the user's toolchain.
+
+## Linux
+
+The Linux front is built by SwiftPM, not Xcode, and in a container rather than on the Mac — see
+[linux.md](linux.md) for what it is and why the packages are split.
+
+```sh
+swift build --package-path linux            # the app
+swift build && swift test                   # SixCore and its tests, either platform
+```
+
+It needs GTK 4, libadwaita 1 and WebKitGTK 6.0 development packages plus `pkg-config`; `linux/Containerfile`
+pins the versions that were used and says why each one. On an Apple Silicon Mac the container runs
+natively through Apple's own `container` CLI, so there is no emulation in the loop.
+
+Two SwiftPM notes that cost time once each:
+
+- `swift package update` is a Linux-breaking command. `Package.resolved` is seeded from the app's own
+  graph, and newer swift-sharing and combine-schedulers do not build on Linux — the reasons are
+  written out at the top of `Package.swift`. Re-seed from the app instead.
+- Editing the root `Package.swift` does not invalidate the Linux build plan: llbuild caches the whole
+  description, `swift build` reports success in a tenth of a second, and the file that was added is
+  never compiled. Delete the scratch path's `build.db` after a manifest edit.

@@ -1,4 +1,9 @@
+#if canImport(CryptoKit)
 import CryptoKit
+#else
+// swift-crypto: the same SHA-256, so digests written by an Apple build read back identically.
+import Crypto
+#endif
 import Foundation
 import GRDB
 import NaturalLanguage

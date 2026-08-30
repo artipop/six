@@ -84,3 +84,15 @@ nonisolated enum ResearchPreset {
         "# \(question.trimmingCharacters(in: .whitespacesAndNewlines))\n\n_Researching…_\n"
     }
 }
+
+// MARK: - Settings
+
+/// The setting lives in the settings table; the knowledge of what its string means lives here,
+/// beside the type it means it as. `SettingsStore` itself keeps only keys and strings.
+extension SettingsStore {
+    /// How many sources a research run opens.
+    var researchSources: Int {
+        get { Int(self[.researchSources] ?? "") ?? ResearchPreset.defaultSources }
+        set { self[.researchSources] = String(newValue) }
+    }
+}

@@ -57,7 +57,7 @@ extension View {
             // edge now, so the page's menu is where the mouse can still reach them.
             Menu("This Window") { ColumnMenu(tab: tab).environment(browser) }
         }
-        #else
+        #elseif os(iOS)
         // A phone has no context menu on a page: the long press is WebKit's own, and there is no
         // `webViewContextMenu` there to take it over.
         self

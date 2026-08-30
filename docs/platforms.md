@@ -1,11 +1,16 @@
 # Platforms
 
-six is two app targets in one project, over one set of sources:
+six is two app targets in one Xcode project over one set of sources, and a third front end on Linux
+built by SwiftPM over the same files:
 
-| target | platform | product |
-|---|---|---|
-| `six` | macOS 27 | `six.app` |
-| `six-iOS` | iOS / iPadOS 27, iPhone + iPad | `six.app` |
+| target | platform | built by | product |
+|---|---|---|---|
+| `six` | macOS 27 | `six.xcodeproj` | `six.app` |
+| `six-iOS` | iOS / iPadOS 27, iPhone + iPad | `six.xcodeproj` | `six.app` |
+| `six-linux` | Linux, GTK 4 + WebKitGTK 6.0 | `linux/Package.swift` | `six-linux` |
+
+This page is about the two Apple targets; the third has [linux.md](linux.md) to itself. What the
+three share is `SixCore` — the layout, the database, the settings — and the file it writes.
 
 ```sh
 xcodebuild -project six.xcodeproj -scheme six-iOS -configuration Debug \
