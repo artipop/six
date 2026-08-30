@@ -7,6 +7,9 @@ nonisolated struct TabTranslation: Sendable, Equatable {
     enum Phase: Sendable, Equatable {
         /// The page is in another language and nothing has been asked for yet.
         case offered
+        /// The platform is fetching a language. No percentage exists to show — see
+        /// `PageTranslating.isFetchingLanguages` — and the system's own sheet says the rest.
+        case downloading
         case working(done: Int, of: Int)
         case done
         case failed(String)
@@ -20,6 +23,7 @@ nonisolated struct TabTranslation: Sendable, Equatable {
     var engine: String = ""
 
     var isTranslated: Bool {
+        if case .downloading = phase { return true }
         if case .working = phase { return true }
         if case .done = phase { return true }
         return false
@@ -132,6 +136,13 @@ final class PageTranslator {
         return try Self.decode(value, as: TranslationPlan.self)
     }
 
+    /// The page has settled and it is in another language: offer it, so the address field has
+    /// something to show. Does nothing if a run is already under way for this page.
+    func offer(source: Locale.Language, target: Locale.Language, id: UUID) {
+        guard states[id] == nil else { return }
+        states[id] = TabTranslation(source: source, target: target, phase: .offered)
+    }
+
     // MARK: Translating
 
     func translate(
@@ -161,6 +172,13 @@ final class PageTranslator {
             let total = found.segments.count
             states[id]?.phase = .working(done: 0, of: total)
 
+            // Nothing has come back yet, and there are two very different reasons for that: the
+            // engine is working, or the platform is still fetching a language. Only the second one
+            // can take minutes, and a bar sitting at zero without saying which is the complaint
+            // this exists to answer. The watcher stops as soon as a batch lands.
+            let watcher = watchForDownload(id: id)
+            defer { watcher.cancel() }
+
             let limits = engine.limits
             for batch in TranslationBatch.chunks(found.segments,
                                                  limit: limits.segments,
@@ -181,6 +199,26 @@ final class PageTranslator {
             // The page went somewhere else. Its state went with it.
         } catch {
             states[id]?.phase = .failed(error.localizedDescription)
+        }
+    }
+
+    /// Mirrors the engine's "I am waiting on the platform" into the page's state, for as long as
+    /// nothing has been translated yet.
+    private func watchForDownload(id: UUID) -> Task<Void, Never> {
+        Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(400))
+                guard let self, let engine = self.engine else { return }
+                guard let phase = self.states[id]?.phase else { return }
+                switch phase {
+                case .working(let done, _) where done == 0:
+                    if engine.isFetchingLanguages { self.states[id]?.phase = .downloading }
+                case .downloading:
+                    if !engine.isFetchingLanguages { self.states[id]?.phase = .working(done: 0, of: 0) }
+                default:
+                    return                      // a batch landed, or it ended; nothing left to say
+                }
+            }
         }
     }
 

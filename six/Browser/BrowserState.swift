@@ -110,6 +110,22 @@ final class BrowserState {
 
     // MARK: Translation
 
+    /// After a page settles: is it in a language the reader does not read? Then the address field
+    /// gets something to click. A site in `alwaysTranslateHosts` skips the offer and just goes.
+    private func offerTranslation(of tab: BrowserTab) {
+        let target = settings.translationTarget
+        Task {
+            guard let plan = try? await translation.plan(tab), plan.refusal == nil,
+                  let source = TranslationLanguage.source(of: plan),
+                  TranslationLanguage.isForeign(source, to: target) else { return }
+            if let host = tab.currentURL?.host(), settings.alwaysTranslateHosts.contains(host) {
+                await translation.translate(tab, id: tab.id, from: source, to: target)
+            } else {
+                translation.offer(source: source, target: target, id: tab.id)
+            }
+        }
+    }
+
     /// Look at the focused page and translate it, or put it back. One entry point, because that is
     /// what a button and a menu item both want.
     func toggleTranslation(of tab: BrowserTab) {
@@ -441,6 +457,11 @@ final class BrowserState {
                 self.translation.forget(tab.id)
                 if !profile.isPrivate { history.record(url, title: page.title, in: tab.profileID) }
             case .finished:
+                // Above the private guard, deliberately. A private window keeps no history and
+                // stores no highlights, but a page in another language is still a page in another
+                // language — and translating it never leaves the machine, so there is nothing for
+                // the profile to protect it from.
+                offerTranslation(of: tab)
                 guard !profile.isPrivate else { return } // no history, and highlights are not stored for it
                 history.updateTitle(page.title, for: url, in: tab.profileID)
                 highlights?.apply(to: tab)

@@ -70,6 +70,14 @@ protocol PageTranslating: AnyObject {
         to target: Locale.Language
     ) async throws -> [Int: String]
 
+    /// True while the platform is fetching what it needs before a single word can be translated.
+    ///
+    /// There is no progress to report — `Translation.framework` offers `status(from:to:)`,
+    /// `isReady` and `canRequestDownloads`, and no byte count anywhere — so this is a flag and not
+    /// a fraction. Saying "downloading" is still the whole difference between a bar that looks
+    /// stuck at zero and one that is honest about what it is waiting for.
+    var isFetchingLanguages: Bool { get }
+
     /// Stop whatever is in flight. Called on navigation — without it, leaving a three-thousand
     /// segment page keeps the engine grinding for a minute on text nobody will see.
     func cancel()

@@ -159,11 +159,30 @@ nonisolated enum TranslationScript {
         else entry.original = entry.el.getAttribute(entry.attr);
     }
 
+    /// An engine returns its translation trimmed, and the page needs the spacing back.
+    ///
+    /// `<p>see <a>the docs</a> for more</p>` is three text nodes, and the first one really is
+    /// `"see "` with the space that holds it off the link. Write back a trimmed `"смотри"` and the
+    /// words run together — `contentWeb documents, Computer filesAnd their catalogs`, which is what
+    /// ru.wikipedia.org looked like before this existed. So the original's own leading and trailing
+    /// whitespace is put back around whatever comes out.
+    function padded(text, original) {
+        if (original === undefined || original === null) return text;
+        const lead = (original.match(/^\s+/) || [''])[0];
+        const tail = (original.match(/\s+$/) || [''])[0];
+        return lead + text.trim() + tail;
+    }
+
     function write(entry, text) {
         if (entry.kind === 'text') {
-            entry.node.data = text;
+            entry.node.data = padded(text, entry.original);
         } else if (entry.kind === 'flat') {
-            entry.nodes[0].data = text;
+            // The unit's whole translation lands in the first node, so it is held off its
+            // neighbours by the first node's lead and the last node's tail.
+            const last = entry.originals ? entry.originals[entry.originals.length - 1] : '';
+            const lead = (((entry.originals || [''])[0]).match(/^\s+/) || [''])[0];
+            const tail = ((last || '').match(/\s+$/) || [''])[0];
+            entry.nodes[0].data = lead + text.trim() + tail;
             for (let i = 1; i < entry.nodes.length; i++) entry.nodes[i].data = '';
         } else {
             entry.el.setAttribute(entry.attr, text);

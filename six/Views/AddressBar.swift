@@ -70,6 +70,7 @@ struct AddressBar: View {
                     tab.navigate(to: text)
                     addressFocus.wrappedValue = nil
                 }
+            translate
             if tab.isLoading {
                 ProgressView(value: min(max(tab.estimatedProgress, 0.03), 1))
                     .progressViewStyle(.circular)
@@ -105,6 +106,53 @@ struct AddressBar: View {
         guard let host = url.host() else { return url.absoluteString }
         let path = url.path()
         return path.isEmpty || path == "/" ? host : host + path
+    }
+
+    // MARK: Translation
+
+    /// Translating this page, in four states.
+    ///
+    /// The trailing end of the field, where Safari puts it — the lock and the shield sit at the
+    /// leading end and talk about safety, which is the other half of the field's job.
+    ///
+    /// **Downloading gets a spinner and an indeterminate one.** `Translation.framework` has no
+    /// progress to offer: `status(from:to:)`, `isReady` and `canRequestDownloads`, and no byte
+    /// count anywhere. A determinate bar would have to invent its number, and a bar stuck at zero
+    /// while a gigabyte arrives is exactly the thing that makes a person think it has hung. So the
+    /// spinner turns, the tooltip says what it is waiting for, and the system's own sheet — which
+    /// is up at that moment — carries the rest.
+    @ViewBuilder
+    private var translate: some View {
+        if let state = browser.translation[tab.id] {
+            switch state.phase {
+            case .downloading:
+                ProgressView()
+                    .progressViewStyle(.circular)
+                    .controlSize(.mini)
+                    .help("Downloading a language — it continues in the background")
+            case .working(let done, let total):
+                ProgressView(value: total > 0 ? Double(done) / Double(total) : 0)
+                    .progressViewStyle(.circular)
+                    .controlSize(.mini)
+                    .help("Translating…")
+            case .done:
+                button(symbol: "translate", tint: state.showsOriginal ? nil : AnyShapeStyle(.tint),
+                       help: state.showsOriginal ? "Show the translation" : "Translated — click for the original")
+            case .failed(let why):
+                button(symbol: "translate", tint: AnyShapeStyle(.orange), help: why)
+            case .offered:
+                button(symbol: "translate", tint: nil, help: "Translate this page")
+            }
+        }
+    }
+
+    private func button(symbol: String, tint: AnyShapeStyle?, help: String) -> some View {
+        Button { browser.toggleTranslation(of: tab) } label: {
+            Image(systemName: symbol).font(.system(size: 10))
+        }
+        .buttonStyle(.borderless)
+        .foregroundStyle(tint ?? AnyShapeStyle(.tertiary))
+        .help(help)
     }
 
     // MARK: Blocking

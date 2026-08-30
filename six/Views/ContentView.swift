@@ -155,6 +155,7 @@ extension ContentView {
             case .done: say("DONE"); return
             case .failed(let why): say("FAILED: \(why)"); return
             case .working(let d, let n): if n > 0 { say("working \(d)/\(n)") }
+            case .downloading: say("downloading a language — the system sheet is up")
             case .offered: break
             }
         }

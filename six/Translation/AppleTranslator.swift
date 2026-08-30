@@ -71,7 +71,9 @@ final class AppleTranslator: PageTranslating {
             let responses: [TranslationSession.Response]
             if let owned = try await session(from: source, to: target) {
                 running = owned
-                defer { running = nil }
+                isSessionReady = false
+                refreshReadiness(of: owned)
+                defer { running = nil; isSessionReady = true }
                 responses = try await owned.translations(from: requests)
             } else {
                 responses = try await enqueue(requests, for: Pair(source, target))
@@ -90,9 +92,29 @@ final class AppleTranslator: PageTranslating {
         }
     }
 
+    /// Two ways to be waiting on the platform rather than on the words, and the spinner owes the
+    /// reader both: a pair parked in front of the framework's own download sheet, and a session
+    /// that exists but is not ready yet — the model is on disk and still being brought up.
+    ///
+    /// `TranslationSession.isReady` is `get async`, so it cannot be read from here. It is refreshed
+    /// beside the session instead and the last answer is cached; a spinner wants a recent value, not
+    /// a synchronous one.
+    var isFetchingLanguages: Bool { !armed.isEmpty || !isSessionReady }
+
+    private(set) var isSessionReady = true
+
+    private func refreshReadiness(of session: TranslationSession) {
+        Task { [weak self] in
+            let ready = await session.isReady
+            guard let self, self.running === session else { return }
+            self.isSessionReady = ready
+        }
+    }
+
     func cancel() {
         running?.cancel()
         running = nil
+        isSessionReady = true
     }
 
     // MARK: Sessions
@@ -194,9 +216,11 @@ final class AppleTranslator: PageTranslating {
         let (stream, doorbell) = AsyncStream<Void>.makeStream()
         doorbells[pair] = doorbell
         running = session
+        isSessionReady = false
+        refreshReadiness(of: session)
         defer {
             doorbells[pair] = nil
-            if running === session { running = nil }
+            if running === session { running = nil; isSessionReady = true }
             // Whatever is still parked here is never going to be answered by this session.
             for job in queues.removeValue(forKey: pair) ?? [] {
                 job.reply.resume(throwing: PageTranslationError.interrupted)
