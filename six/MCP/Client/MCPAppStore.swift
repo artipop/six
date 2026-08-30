@@ -348,9 +348,20 @@ final class MCPAppStore {
     /// way `SIX_ACP_SELFTEST` sends one prompt: the whole path exercised without a click.
     func runSelfTestIfRequested() {
         guard let value = ProcessInfo.processInfo.environment["SIX_MCP_APP_SELFTEST"], !value.isEmpty else { return }
-        let parts = value.split(separator: ":", maxSplits: 1).map(String.init)
-        let definition = server(named: parts[0]) ?? .example(parts[0])
-        let tool = parts.count > 1 ? parts[1] : nil
+        // `http://host/mcp#tool` for a server that is not in the list yet, `<name>:<tool>` for one
+        // that is. A URL has colons of its own, so it is recognised before the split.
+        let definition: MCPServerDefinition
+        let tool: String?
+        if value.hasPrefix("http://") || value.hasPrefix("https://") {
+            let halves = value.split(separator: "#", maxSplits: 1).map(String.init)
+            guard let url = URL(string: halves[0]) else { return }
+            definition = MCPServerDefinition(id: url.host() ?? "selftest", url: url)
+            tool = halves.count > 1 ? halves[1] : nil
+        } else {
+            let parts = value.split(separator: ":", maxSplits: 1).map(String.init)
+            definition = server(named: parts[0]) ?? .example(parts[0])
+            tool = parts.count > 1 ? parts[1] : nil
+        }
         Task {
             do {
                 _ = try await open(definition, tool: tool)

@@ -74,8 +74,17 @@ final class MCPAppSession: Identifiable {
     private let handler = MCPAppMessageHandler()
     let schemeHandler: MCPAppSchemeHandler
 
+    /// Outgoing requests six is waiting on — only `ui/resource-teardown` ever uses this, but a
+    /// reply six asked for and then ignores is worse than not asking.
+    private var pendingReplies: [Int: CheckedContinuation<Void, Never>] = [:]
+    private var nextRequestID = 1
+    /// Holds the page alive while the app answers a teardown. The window is already gone from the
+    /// strip; this is the difference between "told it" and "gave it a moment".
+    private var teardownHold: WebPage?
     private var allowedTools: Set<String> = []
     private var blockedTools: Set<String> = []
+    /// The window is going. A question put up now is a question with nobody left to answer it.
+    private var isClosing = false
     private var viewport: CGSize?
     private(set) var toolResult: ACPJSON?
     private var toolResultSent = false
@@ -113,7 +122,7 @@ final class MCPAppSession: Identifiable {
         url = MCPAppScheme.shellURL(host: MCPAppScheme.host(for: resource))
         handler.session = self
         contentController.add(handler, contentWorld: .page, name: MCPAppBridge.handlerName)
-        contentController.addUserScript(WKUserScript(source: MCPAppBridge.source,
+        contentController.addUserScript(WKUserScript(source: MCPAppBridge.source(host: MCPAppScheme.host(for: resource)),
                                                      injectionTime: .atDocumentStart,
                                                      forMainFrameOnly: true,
                                                      in: .page))
@@ -148,9 +157,25 @@ final class MCPAppSession: Identifiable {
         return modelContext
     }
 
-    func teardown(reason: String) {
-        guard isReady else { return }
-        request("ui/resource-teardown", ["reason": .string(reason)])
+    /// Tells the app it is going and waits for it to say it is done — the spec asks a host to,
+    /// because the alternative is taking the page away mid-save. Bounded: an app that does not
+    /// answer costs a second, not the close.
+    func teardown(reason: String) async {
+        guard isReady, let page else { return }
+        teardownHold = page
+        defer { teardownHold = nil }
+        let id = request("ui/resource-teardown", ["reason": .string(reason)])
+        // The timer runs on this actor, so whichever of the two arrives first takes the
+        // continuation out of the table and the other finds nothing to resume.
+        let patience = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(1))
+            guard !Task.isCancelled else { return }
+            self?.pendingReplies.removeValue(forKey: id)?.resume()
+        }
+        await withCheckedContinuation { continuation in
+            pendingReplies[id] = continuation
+        }
+        patience.cancel()
     }
 
     // MARK: What the app says
@@ -167,7 +192,12 @@ final class MCPAppSession: Identifiable {
             if isReady { notify("ui/notifications/host-context-changed", ["containerDimensions": dimensions]) }
             return
         }
-        guard let message = envelope["sixMessage"], let method = message["method"]?.stringValue else { return }
+        guard let message = envelope["sixMessage"] else { return }
+        guard let method = message["method"]?.stringValue else {
+            // No method: this is an answer to something six asked. Only teardown is ever asked.
+            if let id = message["id"]?.intValue { pendingReplies.removeValue(forKey: id)?.resume() }
+            return
+        }
         if let id = message["id"], !id.isNull {
             Task { await answer(method: method, params: message["params"], id: id) }
         } else {
@@ -273,6 +303,11 @@ final class MCPAppSession: Identifiable {
     private func allows(_ tool: MCPTool, arguments: ACPJSON) async -> Bool {
         if allowedTools.contains(tool.name) { return true }
         if blockedTools.contains(tool.name) { return false }
+        // Closing: what was already allowed still is — an app saving its work on the way out is the
+        // whole reason six waits for it — and anything new is refused rather than asked about. The
+        // bar would be drawn over a window that is no longer there, and the app would wait on an
+        // answer nobody can give.
+        if isClosing { return false }
         // One question at a time. A second call while the bar is up waits for the same answer.
         if pendingToolRequest != nil {
             while pendingToolRequest != nil { await Task.yield() }
@@ -297,9 +332,12 @@ final class MCPAppSession: Identifiable {
     /// doing; six does not wait for the reply, because the page it would come back through is the
     /// one being taken away.
     func windowClosed() {
-        teardown(reason: "window closed")
+        isClosing = true
         answerToolRequest(false)
-        onClose?(self)
+        Task {
+            await teardown(reason: "window closed")
+            onClose?(self)
+        }
     }
 
     // MARK: What six says back
@@ -330,12 +368,18 @@ final class MCPAppSession: Identifiable {
                 "serverTools": ["listChanged": false],
                 "serverResources": ["listChanged": false],
                 "logging": [:],
-                "sandbox": ["csp": .object([
-                    "connectDomains": .array(resource.csp.connectDomains.map(ACPJSON.string)),
-                    "resourceDomains": .array(resource.csp.resourceDomains.map(ACPJSON.string)),
-                    "frameDomains": .array(resource.csp.frameDomains.map(ACPJSON.string)),
-                    "baseUriDomains": .array(resource.csp.baseUriDomains.map(ACPJSON.string)),
-                ])],
+                "sandbox": .object([
+                    "csp": .object([
+                        "connectDomains": .array(resource.csp.connectDomains.map(ACPJSON.string)),
+                        "resourceDomains": .array(resource.csp.resourceDomains.map(ACPJSON.string)),
+                        "frameDomains": .array(resource.csp.frameDomains.map(ACPJSON.string)),
+                        "baseUriDomains": .array(resource.csp.baseUriDomains.map(ACPJSON.string)),
+                    ]),
+                    // What the frame is *allowed* to ask for. Not what it will get: the camera is
+                    // still the profile's question, asked of the app's origin when it is used. An
+                    // app is told to feature-detect anyway, and this is why.
+                    "permissions": grantedPermissions,
+                ]),
             ],
             "hostContext": .object(context),
         ]
@@ -349,6 +393,16 @@ final class MCPAppSession: Identifiable {
             "theme": .string(isDark ? "dark" : "light"),
             "styles": ["variables": MCPAppStyles.variables],
         ])
+    }
+
+    /// The permission-policy features six put on the app's frame, out of those it declared.
+    private var grantedPermissions: ACPJSON {
+        var granted: [String: ACPJSON] = [:]
+        if resource.permissions.camera { granted["camera"] = [:] }
+        if resource.permissions.microphone { granted["microphone"] = [:] }
+        if resource.permissions.geolocation { granted["geolocation"] = [:] }
+        if resource.permissions.clipboardWrite { granted["clipboardWrite"] = [:] }
+        return .object(granted)
     }
 
     /// The column is a fixed viewport: the app fills it rather than growing inside it.
@@ -375,8 +429,12 @@ final class MCPAppSession: Identifiable {
         deliver(.object(["jsonrpc": "2.0", "method": .string(method), "params": params]))
     }
 
-    private func request(_ method: String, _ params: ACPJSON) {
-        deliver(.object(["jsonrpc": "2.0", "id": .number(1), "method": .string(method), "params": params]))
+    @discardableResult
+    private func request(_ method: String, _ params: ACPJSON) -> Int {
+        let id = nextRequestID
+        nextRequestID += 1
+        deliver(.object(["jsonrpc": "2.0", "id": .number(Double(id)), "method": .string(method), "params": params]))
+        return id
     }
 
     /// Hands one message to the shell, which posts it into the app's frame. Before the app says it

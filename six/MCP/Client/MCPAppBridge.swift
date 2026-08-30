@@ -13,8 +13,11 @@ nonisolated enum MCPAppBridge {
     static let frameID = "six-mcp-view"
     static let handlerName = "sixMcpApp"
 
-    static let source = """
+    /// `host` is the app's own origin — the script is built per app so the relay can name it.
+    static func source(host: String) -> String {
+        """
     (function () {
+      var expectedHost = "\(host)";
       var pending = [];
       function view() {
         var frame = document.getElementById("\(frameID)");
@@ -26,14 +29,20 @@ nonisolated enum MCPAppBridge {
       function flush() {
         var target = view();
         if (!target) return;
-        while (pending.length) target.postMessage(pending.shift(), "*");
+        // Addressed, not broadcast: `"*"` would hand six's messages to whatever the app happened to
+        // navigate its own frame to.
+        var origin = "\(MCPAppScheme.content)://" + expectedHost;
+        while (pending.length) target.postMessage(pending.shift(), origin);
       }
       function viewport() {
         send({ sixViewport: { width: window.innerWidth, height: window.innerHeight } });
       }
       window.addEventListener("message", function (event) {
         var target = view();
+        // Both halves, the way the reference sandbox does it: the right window, and the origin six
+        // served it from. A frame the app opened inside itself is not the app.
         if (!target || event.source !== target) return;
+        if (event.origin !== "\(MCPAppScheme.content)://" + expectedHost) return;
         send({ sixMessage: event.data });
         flush();
       });
@@ -45,6 +54,7 @@ nonisolated enum MCPAppBridge {
       };
     })();
     """
+    }
 
     /// Delivers one JSON-RPC message to the app. A function body, no `await` — see `PageScripts`.
     static let deliverBody = "window.__sixMcpApp.deliver(text);"

@@ -8,7 +8,9 @@ import Foundation
 nonisolated protocol MCPTransport: AnyObject, Sendable {
     func request(_ method: String, params: ACPJSON?) async throws -> ACPJSON
     func notify(_ method: String, params: ACPJSON?) async throws
-    func close()
+    /// Async because closing is a message too: an HTTP session is ended by a request, and a request
+    /// fired at a process that is about to exit is a request nobody sends.
+    func close() async
     /// Whether the far end is still there. HTTP has no such thing between calls, and says so.
     var isRunning: Bool { get }
     /// Whatever the transport can say when a connection fails — a server's stderr, an HTTP status.
@@ -45,7 +47,7 @@ nonisolated final class MCPStdioTransport: MCPTransport {
         try await process.connection.notify(method, params: params)
     }
 
-    func close() { process.terminate() }
+    func close() async { process.terminate() }
     var isRunning: Bool { process.isRunning }
     var diagnostics: String { process.recentStderr }
 }
@@ -123,9 +125,25 @@ nonisolated final class MCPHTTPTransport: MCPTransport, @unchecked Sendable {
         _ = try await post(.object(envelope), expectsAnswer: false)
     }
 
-    func close() {
+    /// A session six no longer needs is ended rather than left to time out — the spec asks clients
+    /// to say so, and a server holding state for a window that closed an hour ago is holding it for
+    /// nobody. Sent and not waited on: the answer changes nothing here.
+    func close() async {
+        let ending = lock.withLock { () -> String? in
+            defer { sessionID = nil }
+            return sessionID
+        }
+        if let ending {
+            var request = URLRequest(url: url)
+            request.httpMethod = "DELETE"
+            request.setValue(ending, forHTTPHeaderField: "Mcp-Session-Id")
+            for (name, value) in extraHeaders { request.setValue(value, forHTTPHeaderField: name) }
+            request.timeoutInterval = 5
+            // Awaited so it actually leaves, and ignored either way: a server that does not allow
+            // clients to end sessions answers 405, which is an answer, not a problem.
+            _ = try? await session.data(for: request)
+        }
         session.invalidateAndCancel()
-        lock.withLock { sessionID = nil }
     }
 
     /// Between calls there is nothing to be running. Saying `true` is the honest answer for a
@@ -134,6 +152,11 @@ nonisolated final class MCPHTTPTransport: MCPTransport, @unchecked Sendable {
     var diagnostics: String { lock.withLock { lastFailure } }
 
     // MARK: The POST
+
+    /// The server forgot this session. The spec is explicit about what a client does next — start a
+    /// new one with a fresh `initialize` and no session id — so this is thrown for `MCPClient` to
+    /// shake hands again on the same transport.
+    struct SessionExpired: Error {}
 
     private func post(_ message: ACPJSON, expectsAnswer: Bool) async throws -> [ACPJSON] {
         do {
@@ -179,6 +202,12 @@ nonisolated final class MCPHTTPTransport: MCPTransport, @unchecked Sendable {
         }
         if http.statusCode == 401, tokens != nil {
             throw Unauthorized(challenge: http.value(forHTTPHeaderField: "WWW-Authenticate"))
+        }
+        // 404 to a request carrying a session id means the session is gone, not that the endpoint
+        // is. The id is dropped here so the handshake that follows goes out without one.
+        if http.statusCode == 404, storedSession != nil {
+            lock.withLock { sessionID = nil }
+            throw SessionExpired()
         }
         guard (200...299).contains(http.statusCode) else {
             let body = String(decoding: data.prefix(400), as: UTF8.self)

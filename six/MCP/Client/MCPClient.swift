@@ -62,41 +62,68 @@ actor MCPClient {
     @discardableResult
     func connect() async throws -> ServerInfo {
         if let info { return info }
-        if let url = definition.url {
-            let server = definition
-            let tokens = authorization.map { authorization in
-                MCPHTTPTransport.Tokens(
-                    current: { await authorization.token(for: server) },
-                    renew: { challenge in await authorization.authorize(server, challenge: challenge) }
-                )
+        if transport == nil {
+            if let url = definition.url {
+                let server = definition
+                let tokens = authorization.map { authorization in
+                    MCPHTTPTransport.Tokens(
+                        current: { await authorization.token(for: server) },
+                        renew: { challenge in await authorization.authorize(server, challenge: challenge) }
+                    )
+                }
+                transport = MCPHTTPTransport(url: url, headers: definition.headers, tokens: tokens, timeout: timeout)
+            } else {
+                transport = try MCPStdioTransport(definition: definition,
+                                                  environment: await LoginShell.environment(),
+                                                  trace: MCPClient.isTracing)
             }
-            transport = MCPHTTPTransport(url: url, headers: definition.headers, tokens: tokens, timeout: timeout)
-        } else {
-            transport = try MCPStdioTransport(definition: definition,
-                                              environment: await LoginShell.environment(),
-                                              trace: MCPClient.isTracing)
         }
+        return try await handshake()
+    }
 
-        let result = try await request("initialize", params: [
-            "protocolVersion": .string(MCPApps.supportedProtocolVersions[0]),
-            "capabilities": [
-                "extensions": .object([
-                    MCPApps.extensionID: ["mimeTypes": [.string(MCPApps.mimeType)]],
-                ]),
-            ],
-            "clientInfo": MCPApps.clientInfo,
-        ])
+    /// `initialize`, the version check, and the notification that follows.
+    ///
+    /// Separate from `connect` because it is run twice: once when the connection is made, and again
+    /// if the server forgets the session underneath it. Goes straight to the transport rather than
+    /// through `request`, which is what would call this — a handshake that re-handshakes has no
+    /// bottom.
+    @discardableResult
+    private func handshake() async throws -> ServerInfo {
+        guard let transport else { throw Failure.notConnected }
+        info = nil
+        let result: ACPJSON
+        do {
+            result = try await transport.request("initialize", params: [
+                "protocolVersion": .string(MCPApps.supportedProtocolVersions[0]),
+                "capabilities": [
+                    "extensions": .object([
+                        MCPApps.extensionID: ["mimeTypes": [.string(MCPApps.mimeType)]],
+                    ]),
+                ],
+                "clientInfo": MCPApps.clientInfo,
+            ])
+        } catch let error as JSONRPCError {
+            throw Failure.server(error.message)
+        }
+        let negotiated = result["protocolVersion"]?.stringValue ?? ""
+        // A version six does not speak is a conversation that goes wrong later rather than here.
+        // Saying so now, by name, beats a `tools/list` that comes back shaped differently.
+        guard MCPApps.supportedProtocolVersions.contains(negotiated) else {
+            await transport.close()
+            self.transport = nil
+            throw Failure.server("\(definition.name) speaks MCP \(negotiated.isEmpty ? "an unnamed version" : negotiated), which six does not.")
+        }
         let server = result["serverInfo"]
         let info = ServerInfo(
             name: server?["name"]?.stringValue ?? definition.name,
             title: server?["title"]?.stringValue,
             version: server?["version"]?.stringValue,
-            protocolVersion: result["protocolVersion"]?.stringValue ?? "",
+            protocolVersion: negotiated,
             acknowledgedUIExtension: result["capabilities"]?["extensions"]?[MCPApps.extensionID] != nil,
             instructions: result["instructions"]?.stringValue
         )
         self.info = info
-        try? await transport?.notify("notifications/initialized", params: nil)
+        try? await transport.notify("notifications/initialized", params: nil)
         return info
     }
 
@@ -106,8 +133,8 @@ actor MCPClient {
         Task { await close() }
     }
 
-    func close() {
-        transport?.close()
+    func close() async {
+        await transport?.close()
         transport = nil
         info = nil
         tools = []
@@ -159,6 +186,15 @@ actor MCPClient {
         guard let transport else { throw Failure.notConnected }
         do {
             return try await transport.request(method, params: params)
+        } catch is MCPHTTPTransport.SessionExpired {
+            // The server dropped the session — restarted, or timed it out. Shake hands again on the
+            // same connection and ask once more; the caller never sees it happen.
+            try await handshake()
+            do {
+                return try await transport.request(method, params: params)
+            } catch let error as JSONRPCError {
+                throw Failure.server(error.message)
+            }
         } catch let error as JSONRPCError {
             throw Failure.server(error.message)
         }

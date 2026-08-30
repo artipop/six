@@ -855,6 +855,10 @@ final class BrowserState {
         guard let index = tabs.firstIndex(where: { $0.id == id }) else { return }
         let closed = tabs.remove(at: index)
         tabsByID[id] = nil
+        // Before the page goes, not after: `ui/resource-teardown` is a question asked of code that
+        // has to still be running to answer it. The session holds the page for as long as that
+        // takes, up to a second.
+        closed.app?.windowClosed()
         closed.close() // drops its page, its place in the budget and its picture
         blocker?.forget(id)
         extensions?.noteClosed(closed)
@@ -864,9 +868,6 @@ final class BrowserState {
             documents.remove(id: document.id)
             research.removeAll { $0.documentTabID == closed.id }
         }
-        // The app is told it is going before its page is taken away (`ui/resource-teardown`), and
-        // the store hears about it too — a server whose last window closed has no one left to serve.
-        closed.app?.windowClosed()
         let wasActive = closed.profileID == selectedProfileID
         withAnimation(NiriLayout.switchAnimation) {
             layout.removeColumn(tabID: id)

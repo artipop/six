@@ -155,10 +155,14 @@ nonisolated struct MCPUIResource: Hashable, Sendable {
         var resourceDomains: [String] = []
         var frameDomains: [String] = []
         var baseUriDomains: [String] = []
+        /// Whether the server said anything about CSP at all. Not the same as saying nothing
+        /// useful: `_meta.ui.csp: {}` is a declaration, and an absent `_meta.ui.csp` is not.
+        var isDeclared = false
 
         init() {}
 
         init(json: ACPJSON?) {
+            isDeclared = json != nil
             func list(_ key: String) -> [String] {
                 (json?[key]?.arrayValue ?? []).compactMap(\.stringValue)
             }
@@ -170,20 +174,44 @@ nonisolated struct MCPUIResource: Hashable, Sendable {
 
         /// The `Content-Security-Policy` header value for this app.
         ///
-        /// What is *declared* only ever adds origins: a domain the server did not name is never
-        /// reachable, and nothing here reads a wildcard back out of the metadata. What is not
-        /// declared — the floor — is a harder question than it looks.
+        /// A declared domain only ever *adds* an origin: one the server did not name is never
+        /// reachable, and nothing here reads a wildcard back out of the metadata. The floor under
+        /// that is the interesting part, and it is two different floors.
         ///
-        /// The written default in the spec is `script-src 'self' 'unsafe-inline'` with no `blob:`
-        /// and no `'unsafe-eval'`. Taken literally it renders none of the spec's own examples:
-        /// CesiumJS dies on `Refused to evaluate a string as JavaScript`, and every WebGL app that
-        /// decodes tiles in a worker dies on `blob:`. There is no field in `ui.csp` to ask for
-        /// either, so an app *cannot* declare its way out. The reference host in `ext-apps` resolves
-        /// this by shipping a looser floor than the prose — `'unsafe-eval'`, `blob:`, `worker-src` —
-        /// and since that is the policy app authors actually test against, it is the real contract.
-        /// six follows it, and stays stricter where it costs an app nothing: `default-src` is still
-        /// `'none'` rather than `'self'`, so anything not enumerated below is refused.
+        /// **Nothing declared.** The spec says the host MUST use one exact policy, and six uses it,
+        /// to the character. An app that asked for nothing gets nothing: no eval, no `blob:`, no
+        /// network at all.
+        ///
+        /// **Something declared.** Here the spec states no floor — only that undeclared origins stay
+        /// out — and the written default is unusable anyway: CesiumJS dies on `Refused to evaluate a
+        /// string as JavaScript`, and every WebGL app that decodes tiles in a worker dies without
+        /// `blob:`. There is no field in `ui.csp` to ask for either. The reference host in
+        /// `ext-apps` resolves this by shipping a looser floor than the prose, and that is what app
+        /// authors test against, so six matches it for apps that declared something — which is
+        /// where the heavy frameworks are, and where the network they use was declared anyway.
+        ///
+        /// The split is deliberate: the letter of the MUST is kept exactly where the MUST applies,
+        /// and `'unsafe-eval'` never appears in a policy that also allows no network.
         var header: String {
+            isDeclared ? declaredHeader : Self.mandatoryDefault
+        }
+
+        /// Word for word out of the specification, for a resource whose `_meta.ui.csp` is absent.
+        static let mandatoryDefault = [
+            "default-src 'none'",
+            "script-src 'self' 'unsafe-inline'",
+            "style-src 'self' 'unsafe-inline'",
+            "img-src 'self' data:",
+            "media-src 'self' data:",
+            "connect-src 'none'",
+            // Not in the spec's block, and only ever narrower: plugins and a rewritten base are
+            // things nothing declared can need.
+            "object-src 'none'",
+            "frame-src 'none'",
+            "base-uri 'self'",
+        ].joined(separator: "; ")
+
+        private var declaredHeader: String {
             func source(_ base: String, _ domains: [String]) -> String {
                 ([base] + domains).joined(separator: " ")
             }
@@ -198,8 +226,8 @@ nonisolated struct MCPUIResource: Hashable, Sendable {
                 source("worker-src 'self' blob:", resourceDomains),
                 "object-src 'none'",
             ]
-            // `'self'` here is the app's own origin, which only six's scheme handler answers — it
-            // reaches no network, so it costs nothing and spares apps a needless failure.
+            // `'self'` is the app's own origin, which only six's scheme handler answers, so it
+            // reaches no network of anyone's.
             directives.append(source("connect-src 'self'", connectDomains))
             directives.append(frameDomains.isEmpty ? "frame-src 'none'" : source("frame-src", frameDomains))
             directives.append(baseUriDomains.isEmpty ? "base-uri 'self'" : source("base-uri", baseUriDomains))
