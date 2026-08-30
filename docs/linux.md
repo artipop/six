@@ -111,6 +111,46 @@ body was already evaluated with the old value.
 | `SIX_UI_DEBUG=1` | what the model was asked to do and what it thought it was doing |
 | `SIX_MOCK_CAPTURE=1` | a camera and a microphone that are not there, for testing permissions |
 
+## Why the container, and not Homebrew on the Mac
+
+The obvious shortcut is to skip the container: `brew install gtk4 libadwaita webkitgtk` and run the
+third front natively beside the first. Two thirds of that works, and the third that does not is the
+one the front end exists for.
+
+**`webkitgtk` cannot be installed on macOS at all.** The homebrew-core formula says so in one line:
+
+```ruby
+depends_on :linux # Use JavaScriptCore.Framework on macOS.
+```
+
+`brew install webkitgtk` refuses on the requirement check. `--build-from-source` does not help:
+the flag chooses source over bottle, and this formula has no bottle on any platform, so it was
+always going to be a WebKit source build — CMake, hours. What it does not do is relax `depends_on`.
+
+`brew install --dry-run` is worth running once for the shape of it: 161 dependencies, and among them
+`systemd`, `util-linux`, `libcap`, `polkit`, `libxcrypt`, `wayland`, `libdrm`, `mesa`, `libwpe`,
+`wpebackend-fdo` and `libx11`. Dry-run does not evaluate requirements, so it prints a plan that
+cannot run — several of those formulae are themselves Linux-only.
+
+**And it is the wrong API even then.** The formula builds `-DPORT=GTK -DUSE_GTK4=OFF`, depends on
+`gtk+3`, and its own test compiles `<webkit2/webkit2.h>` against `gtk_container_add` and `gtk_main`.
+That is WebKitGTK 4.1 over GTK 3, `pkg-config webkit2gtk-4.1`. six asks for **`webkitgtk-6.0`**,
+which is the GTK 4 API — a different library with different signal signatures, and the one where
+`WebKitNetworkSession` and `WebKitWebExtension` live at all. Homebrew packages no GTK 4 build of
+WebKit, on either platform. Version is not the issue: brew's 2.52.6 and the container's 2.52.3 are
+the same branch.
+
+**The toolkit half would genuinely work**, which is what makes the idea tempting. `gtk4` (4.22.4)
+and `libadwaita` (1.9.3) are both bottled for `arm64_tahoe` — native, no source build — and
+adwaita-swift declares `.macOS(.v13)`. So `SixUI` builds and a window opens over GTK's quartz
+backend. But `CWebKitGTK` cannot resolve `webkitgtk-6.0`, and with it go `SixWebKitCore`,
+`SixWebKit`, `SixBrowser` and the executable. What is left is a strip of cards with no page in any
+of them — the layout, which the Mac already renders, and nothing that is actually under test.
+
+One difference worth knowing if this is ever revisited: adwaita-swift appends `CSQLite` only under
+`#if os(Linux)` and uses the system SQLite elsewhere. The Clang collision that keeps sqlite-vec out
+of the Linux build is therefore a Linux-only problem, not something inherent to the dependency.
+
 ## Where it is behind the Mac
 
 - **The strip clamps at its ends.** `resolvedOffset` centres the focused column, and the Mac places
