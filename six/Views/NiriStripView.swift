@@ -269,10 +269,12 @@ private struct ColumnView: View {
             }
         }
         .background(.background)
-        // The window's own progress, on the window: the top bar's field carries a spinner for the
-        // focused page, and this is the one thing a *neighbour* still has to be able to say.
+        // The window's own progress, on the window: this is the one thing a *neighbour* still has
+        // to be able to say. The focused window's own line is under the address field that is
+        // already describing it, an inch above this one — two hairlines for one page is one of them
+        // saying nothing.
         .overlay(alignment: .top) {
-            if !tab.isDocument, tab.isLoading {
+            if !tab.isDocument, tab.isLoading, !isFocused {
                 LoadingLine(progress: tab.estimatedProgress, accent: accent)
             }
         }
@@ -327,24 +329,6 @@ private struct ColumnCloseBadge: View {
         .onHover { hovering = $0 }
         .animation(.easeOut(duration: 0.12), value: hovering)
         .help("Close Window (⌘W)")
-    }
-}
-
-/// The loading line, drawn by hand: a linear `ProgressView` brings a track and a thickness of its
-/// own, and a browser wants a hairline the page seems to push along, not a control.
-private struct LoadingLine: View {
-    let progress: Double
-    let accent: Color
-
-    var body: some View {
-        GeometryReader { proxy in
-            Capsule()
-                .fill(accent)
-                .frame(width: max(3, proxy.size.width * min(max(progress, 0.03), 1)))
-                .animation(.easeOut(duration: 0.25), value: progress)
-        }
-        .frame(height: 2)
-        .transition(.opacity)
     }
 }
 

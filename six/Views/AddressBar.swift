@@ -72,11 +72,6 @@ struct AddressBar: View {
                     addressFocus.wrappedValue = nil
                 }
             translate
-            if tab.isLoading {
-                ProgressView(value: min(max(tab.estimatedProgress, 0.03), 1))
-                    .progressViewStyle(.circular)
-                    .controlSize(.mini)
-            }
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 3)

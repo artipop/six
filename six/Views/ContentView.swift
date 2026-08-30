@@ -246,7 +246,22 @@ private struct TopBar: View {
         .padding(.horizontal, 10)
         .frame(height: 40)
         .background(.bar)
-        .overlay(alignment: .bottom) { Divider() }
+        // The focused page's progress, along the bottom edge of the bar that carries its address —
+        // where the hairline under a window's title bar used to be, before the description moved up
+        // here and the window became the page. It replaces the divider rather than sitting beside
+        // it: two lines a point apart is a border with a bug in it.
+        .overlay(alignment: .bottom) {
+            if let tab = browser.selectedTab, !tab.isDocument, tab.isLoading {
+                LoadingLine(progress: tab.estimatedProgress, accent: accent(of: tab))
+            } else {
+                Divider()
+            }
+        }
+        .animation(.easeOut(duration: 0.2), value: browser.selectedTab?.isLoading)
+    }
+
+    private func accent(of tab: BrowserTab) -> Color {
+        browser.profiles.first { $0.id == tab.profileID }?.color ?? .accentColor
     }
 
     /// A share of the window rather than a number of points: on a 5K panel a fixed field is a slot in
