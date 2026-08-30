@@ -42,4 +42,6 @@
     <string name="forget_site">Forget</string>
     <string name="allowed">Allowed</string>
     <string name="denied">Denied</string>
+    <string name="page_says">%1$s says:</string>
+    <string name="this_page">This page</string>
 </resources>

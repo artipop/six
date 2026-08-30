@@ -95,6 +95,8 @@ fun PhoneContent(
         )
     }
 
+    PageDialogHost(request = state.pageDialog, onAnswer = viewModel::answerPageDialog)
+
     if (confirmClearHistory) {
         val profileName = state.profiles
             .firstOrNull { it.id == state.layout.activeProfileId }?.name.orEmpty()

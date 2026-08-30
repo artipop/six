@@ -2,7 +2,11 @@ package org.deffun.six.app
 
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
+import android.net.Uri
+import android.webkit.JsPromptResult
+import android.webkit.JsResult
 import android.webkit.PermissionRequest
+import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -11,6 +15,9 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
+import org.deffun.six.core.PageDialogAnswer
+import org.deffun.six.core.PageDialogKind
+import org.deffun.six.core.PageDialogRequest
 import java.util.UUID
 
 /**
@@ -37,6 +44,7 @@ fun PageView(
     onPageFinished: () -> Unit,
     onPermissionRequest: (List<org.deffun.six.core.SitePermission>, String?, (Boolean) -> Unit) -> Unit,
     onGone: () -> Unit,
+    onDialog: (org.deffun.six.core.PageDialogRequest, (org.deffun.six.core.PageDialogAnswer) -> Unit) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // Keyed on the profile: a WebView cannot be moved between profiles once it has been used, so a
@@ -103,6 +111,89 @@ fun PageView(
                     override fun onPermissionRequestCanceled(request: PermissionRequest) {
                         // The page stopped waiting. Nothing to resume, and nothing to write down.
                     }
+
+                    // The four dialogs a page can put up. A WebChromeClient that does not handle
+                    // them makes the engine answer for us: `alert()` shows a dialog naming the app
+                    // rather than the site, and `<input type="file">` does nothing at all.
+
+                    override fun onJsAlert(
+                        view: WebView,
+                        url: String?,
+                        message: String?,
+                        result: JsResult,
+                    ): Boolean {
+                        onDialog(
+                            PageDialogRequest(hostOf(url), message.orEmpty(), PageDialogKind.Alert),
+                        ) { result.confirm() }
+                        return true
+                    }
+
+                    override fun onJsConfirm(
+                        view: WebView,
+                        url: String?,
+                        message: String?,
+                        result: JsResult,
+                    ): Boolean {
+                        onDialog(
+                            PageDialogRequest(hostOf(url), message.orEmpty(), PageDialogKind.Confirm),
+                        ) { answer ->
+                            if (answer is PageDialogAnswer.Ok) result.confirm() else result.cancel()
+                        }
+                        return true
+                    }
+
+                    override fun onJsPrompt(
+                        view: WebView,
+                        url: String?,
+                        message: String?,
+                        defaultValue: String?,
+                        result: JsPromptResult,
+                    ): Boolean {
+                        onDialog(
+                            PageDialogRequest(
+                                hostOf(url),
+                                message.orEmpty(),
+                                PageDialogKind.Prompt(defaultValue.orEmpty()),
+                            ),
+                        ) { answer ->
+                            if (answer is PageDialogAnswer.Ok) {
+                                result.confirm(answer.text)
+                            } else {
+                                result.cancel()
+                            }
+                        }
+                        return true
+                    }
+
+                    /**
+                     * Returning true means we own the callback, and it must be invoked exactly once:
+                     * an input whose callback never lands can never be opened again, for the life of
+                     * the page, with no error anywhere.
+                     */
+                    override fun onShowFileChooser(
+                        webView: WebView,
+                        filePathCallback: ValueCallback<Array<Uri>>,
+                        fileChooserParams: FileChooserParams,
+                    ): Boolean {
+                        val request = PageDialogRequest(
+                            hostOf(webView.url),
+                            "",
+                            PageDialogKind.File(
+                                allowsMultiple =
+                                    fileChooserParams.mode == FileChooserParams.MODE_OPEN_MULTIPLE,
+                                acceptTypes = fileChooserParams.acceptTypes
+                                    .filter { it.isNotBlank() },
+                            ),
+                        )
+                        onDialog(request) { answer ->
+                            val uris = (answer as? PageDialogAnswer.Files)?.uris.orEmpty()
+                            filePathCallback.onReceiveValue(
+                                if (uris.isEmpty()) null
+                                else uris.map(Uri::parse).toTypedArray(),
+                            )
+                        }
+                        return true
+                    }
                 }
 
                 requested[0] = url
@@ -136,3 +227,14 @@ fun PageView(
         )
     }
 }
+
+/**
+ * Which site is asking. A dialog with no return address is a demand from nowhere, and on a phone the
+ * page that asked is often not the one being looked at.
+ *
+ * Empty when there is no host to name — a `data:` page, or one that has not loaded. The dialog puts
+ * a translated "This page" in its place, because that substitution is text a person reads and does
+ * not belong down here.
+ */
+private fun hostOf(url: String?): String =
+    runCatching { java.net.URI(url).host }.getOrNull().orEmpty()

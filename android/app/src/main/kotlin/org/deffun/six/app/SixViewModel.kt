@@ -14,6 +14,9 @@ import kotlinx.coroutines.withContext
 import org.deffun.six.core.AppStateSnapshot
 import org.deffun.six.core.BrowserSnapshot
 import org.deffun.six.core.NiriLayout
+import org.deffun.six.core.PageDialogAnswer
+import org.deffun.six.core.PageDialogQueue
+import org.deffun.six.core.PageDialogRequest
 import org.deffun.six.core.Profile
 import org.deffun.six.core.releaseDrag
 import org.deffun.six.core.SearchEngine
@@ -66,6 +69,8 @@ data class SixState(
     val pendingSystemPermissions: Set<String> = emptySet(),
     /** Bumped whenever an answer is written or taken back, so an open panel re-reads. */
     val permissionRevision: Int = 0,
+    /** The dialog a page is waiting on, if any. One at a time, for the whole window. */
+    val pageDialog: PageDialogRequest? = null,
     val isRestored: Boolean = false,
 )
 
@@ -102,6 +107,16 @@ class SixViewModel(application: Application) : AndroidViewModel(application) {
 
     /** Which window's bar is showing. One at a time, like the Mac's. */
     private var questionWindowId: UUID? = null
+
+    /**
+     * `alert()`, `confirm()`, `prompt()` and `<input type="file">`.
+     *
+     * One queue for the whole window rather than one per column, because a phone has one window: a
+     * second page asking waits for the first to be answered.
+     */
+    private val pageDialogs = PageDialogQueue().apply {
+        onChanged = { _state.update { it.copy(pageDialog = current) } }
+    }
 
     private val _state = MutableStateFlow(SixState())
     val state: StateFlow<SixState> = _state.asStateFlow()
@@ -373,6 +388,14 @@ class SixViewModel(application: Application) : AndroidViewModel(application) {
         sitePermissions.forgetWindow(tabId)
     }
 
+    override fun onCleared() {
+        // Nothing is going to answer these now, and a request merely dropped leaves a page suspended
+        // for as long as it lives.
+        pageDialogs.cancelAll()
+        environment.close()
+        super.onCleared()
+    }
+
     /** Every site with a remembered answer, for the panel. */
     fun permissionSites(): List<PermissionSite> = sitePermissions.sites
 
@@ -395,6 +418,16 @@ class SixViewModel(application: Application) : AndroidViewModel(application) {
                 },
             )
         }
+    }
+
+    // MARK: What a page puts up
+
+    fun askPageDialog(request: PageDialogRequest, answer: (PageDialogAnswer) -> Unit) {
+        pageDialogs.ask(request, answer)
+    }
+
+    fun answerPageDialog(id: UUID, answer: PageDialogAnswer) {
+        pageDialogs.resolve(id, answer)
     }
 
     // MARK: The address field
@@ -481,8 +514,4 @@ class SixViewModel(application: Application) : AndroidViewModel(application) {
         save()
     }
 
-    override fun onCleared() {
-        environment.close()
-        super.onCleared()
-    }
 }

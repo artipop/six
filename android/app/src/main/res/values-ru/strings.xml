@@ -37,4 +37,6 @@
     <string name="forget_site">Забыть</string>
     <string name="allowed">Разрешено</string>
     <string name="denied">Запрещено</string>
+    <string name="page_says">%1$s сообщает:</string>
+    <string name="this_page">Эта страница</string>
 </resources>

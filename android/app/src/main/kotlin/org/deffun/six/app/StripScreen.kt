@@ -38,6 +38,8 @@ import org.deffun.six.R
 import java.util.UUID
 import org.deffun.six.core.Along
 import org.deffun.six.core.NiriLayout
+import org.deffun.six.core.PageDialogAnswer
+import org.deffun.six.core.PageDialogRequest
 import org.deffun.six.core.Rect
 import org.deffun.six.core.SitePermission
 import org.deffun.six.core.Size
@@ -167,6 +169,7 @@ fun StripScreen(
                             viewModel.onPagePermissionRequest(column.tabId, asked, origin, grant)
                         },
                         onGone = { viewModel.onWindowGone(column.tabId) },
+                        onDialog = viewModel::askPageDialog,
                         permissionQuestion = state.permissionQuestion
                             ?.takeIf { it.tabId == column.tabId },
                         onAnswerPermission = viewModel::answerPermission,
@@ -277,6 +280,7 @@ private fun ColumnWindow(
     onPageFinished: () -> Unit,
     onPermissionRequest: (List<SitePermission>, String?, (Boolean) -> Unit) -> Unit,
     onGone: () -> Unit,
+    onDialog: (PageDialogRequest, (PageDialogAnswer) -> Unit) -> Unit,
     permissionQuestion: PermissionQuestion?,
     onAnswerPermission: (Boolean) -> Unit,
 ) {
@@ -329,6 +333,7 @@ private fun ColumnWindow(
                     onPageFinished = onPageFinished,
                     onPermissionRequest = onPermissionRequest,
                     onGone = onGone,
+                    onDialog = onDialog,
                 )
                 // Leaving the composition is what discards the page: `onRelease` saves its bundle.
                 else -> DiscardedPage(title = title, url = url)
