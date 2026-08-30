@@ -25,7 +25,7 @@ import PackageDescription
 // let the project's own graph move first. See docs/storage.md.
 let package = Package(
     name: "six",
-    platforms: [.macOS(.v15)],
+    platforms: [.macOS("26.0")],
     products: [
         .library(name: "SixCore", targets: ["SixCore"])
     ],
@@ -58,7 +58,14 @@ let package = Package(
                 // What a site was allowed. The decision, the queue and the suspension are the same
                 // on both platforms; only the type the request arrives as differs, and that part
                 // stays behind `#if canImport(WebKit)`.
-                "Browser/SitePermissions.swift"
+                "Browser/SitePermissions.swift",
+                // Translation. The engine is a seam — `Translation.framework` is Apple's, Linux
+                // would use Bergamot and Android ML Kit — but the vocabulary, the JavaScript and
+                // the batching are the same feature on every front, so they live here and are
+                // built on Linux to prove it. `AppleTranslator` and the views are not.
+                "Translation/TranslationSegment.swift",
+                "Translation/TranslationBatch.swift",
+                "Translation/TranslationScript.swift"
                 //
                 // `SettingsStore` is in only because it was untangled first: it used to decode six
                 // subsystems' types out of the settings table, so taking it would have dragged most
