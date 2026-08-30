@@ -2,6 +2,7 @@ package org.deffun.six.app
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,7 +22,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -30,7 +34,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import org.deffun.six.R
 import java.util.UUID
 import org.deffun.six.core.Along
@@ -48,13 +51,14 @@ import org.deffun.six.core.StripAxis
  */
 @Composable
 fun StripScreen(
-    viewModel: SixViewModel = viewModel(),
+    viewModel: SixViewModel,
     onExit: () -> Unit = {},
+    modifier: Modifier = Modifier,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val density = LocalDensity.current
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val viewportDp = Size(maxWidth.value.toDouble(), maxHeight.value.toDouble())
         val axis = StripAxis.of(viewportDp)
 
@@ -92,7 +96,16 @@ fun StripScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surfaceVariant),
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                // The overview, which on a phone only rescales the strip — the same as the iPhone,
+                // where there is no grid behind it yet. `overviewScale` is the layout's own number,
+                // and `visibleWidth` already divides by it, so the arithmetic underneath does not
+                // change: only how much of it is on screen.
+                .graphicsLayer {
+                    val scale = layout.overviewScale.toFloat()
+                    scaleX = scale
+                    scaleY = scale
+                },
         ) {
             // The workspace on screen and its two neighbours.
             //
@@ -131,6 +144,8 @@ fun StripScreen(
                         title = tab?.title.orEmpty(),
                         url = tab?.url,
                         profileStoreName = profile?.let { WebProfiles.storeName(it) },
+                        accent = profileColor(profile?.colorHex),
+                        isLoading = tab?.isLoading == true,
                         isFocused = isFocusedWorkspace && columnIndex == neighbour.focus,
                         isEditing = state.editingTabId == column.tabId,
                         axis = axis,
@@ -143,6 +158,10 @@ fun StripScreen(
                         onDragCancel = { viewModel.endDrag() },
                         onPageStarted = { viewModel.onPageStarted(column.tabId, it) },
                         onTitleChanged = { viewModel.onTitleChanged(column.tabId, it) },
+                        onHistoryChanged = { back, forward ->
+                            viewModel.onHistoryChanged(column.tabId, back, forward)
+                        },
+                        onPageFinished = { viewModel.onPageFinished(column.tabId) },
                     )
                 }
             }
@@ -156,16 +175,6 @@ fun StripScreen(
                     if (axis.along == Along.X) Alignment.CenterEnd else Alignment.BottomCenter,
                 ),
             )
-
-            // The Mac grows the strip from the `+` that the right-hand sliver becomes at its end,
-            // which needs a pointer hovering a two-point gap. This is the placeholder for that
-            // gesture, not a considered answer to it.
-            FloatingActionButton(
-                onClick = { viewModel.openColumn() },
-                modifier = Modifier.align(Alignment.BottomEnd).padding(24.dp),
-            ) {
-                Text(text = "+", style = MaterialTheme.typography.headlineSmall)
-            }
         }
     }
 }
@@ -217,6 +226,19 @@ private fun WorkspaceIndicator(
     }
 }
 
+/**
+ * A profile's colour, as `#RRGGBB` in the file the Mac wrote.
+ *
+ * A profile with no colour, or one written in a form this cannot read, gets the theme's accent
+ * rather than a crash or black: the colour is decoration, and the profile still has to work.
+ */
+@Composable
+private fun profileColor(hex: String?): Color {
+    val fallback = MaterialTheme.colorScheme.primary
+    if (hex == null) return fallback
+    return runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrDefault(fallback)
+}
+
 /** Strip-space translation, before the axis turns it into a screen rectangle. */
 private fun Rect.translated(along: Double, across: Double) =
     copy(x = x + along, y = y + across)
@@ -228,6 +250,8 @@ private fun ColumnWindow(
     isLive: Boolean,
     title: String,
     url: String?,
+    accent: Color,
+    isLoading: Boolean,
     profileStoreName: String?,
     isFocused: Boolean,
     isEditing: Boolean,
@@ -241,8 +265,11 @@ private fun ColumnWindow(
     onDragCancel: () -> Unit,
     onPageStarted: (String) -> Unit,
     onTitleChanged: (String) -> Unit,
+    onHistoryChanged: (Boolean, Boolean) -> Unit,
+    onPageFinished: () -> Unit,
 ) {
     val density = LocalDensity.current
+    val shape = RoundedCornerShape(16.dp)
 
     Box(
         modifier = Modifier
@@ -250,8 +277,22 @@ private fun ColumnWindow(
                 with(density) { IntOffset(frame.x.dp.roundToPx(), frame.y.dp.roundToPx()) }
             }
             .size(width = frame.width.dp, height = frame.height.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surface),
+            // The window's own chrome, matching the phone's: a rounded card, a border that takes
+            // the profile's colour when this is the window being read, a shadow that says which one
+            // that is, and everything else half a step back.
+            .alpha(if (isFocused) 1f else 0.92f)
+            .shadow(
+                elevation = if (isFocused) 14.dp else 8.dp,
+                shape = shape,
+                clip = false,
+            )
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(
+                width = if (isFocused) 2.dp else 1.dp,
+                color = if (isFocused) accent else MaterialTheme.colorScheme.outlineVariant,
+                shape = shape,
+            ),
     ) {
         Box(modifier = Modifier.fillMaxSize().padding(top = HandleHeight)) {
             when {
@@ -262,6 +303,8 @@ private fun ColumnWindow(
                     profileStoreName = profileStoreName,
                     onPageStarted = onPageStarted,
                     onTitleChanged = onTitleChanged,
+                    onHistoryChanged = onHistoryChanged,
+                    onPageFinished = onPageFinished,
                 )
                 // Leaving the composition is what discards the page: `onRelease` saves its bundle.
                 else -> DiscardedPage(title = title, url = url)
@@ -271,6 +314,8 @@ private fun ColumnWindow(
         ColumnHandle(
             title = title,
             url = url,
+            accent = accent,
+            isLoading = isLoading,
             isFocused = isFocused,
             isEditing = isEditing,
             axis = axis,

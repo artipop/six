@@ -1,10 +1,12 @@
 package org.deffun.six.app
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -23,8 +25,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -33,6 +37,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import kotlin.math.abs
 import org.deffun.six.R
 import org.deffun.six.core.StripAxis
 
@@ -50,6 +55,8 @@ val HandleHeight = 36.dp
 fun ColumnHandle(
     title: String,
     url: String?,
+    accent: Color,
+    isLoading: Boolean,
     isFocused: Boolean,
     isEditing: Boolean,
     axis: StripAxis,
@@ -62,6 +69,11 @@ fun ColumnHandle(
     onDragCancel: () -> Unit,
 ) {
     val density = LocalDensity.current
+
+    // Focus moving away closes the field, the way it does on the phone: otherwise the keyboard
+    // stays up for a window that is no longer the one being read.
+    LaunchedEffect(isFocused) { if (!isFocused && isEditing) onCancel() }
+
     val background =
         if (isFocused) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface
 
@@ -97,43 +109,66 @@ fun ColumnHandle(
                                 )
                                 along += delta.along
                                 across += delta.across
-                                onDrag(along, across)
+                                // The dominant direction decides and the other band is zeroed while
+                                // the drag is still happening — the iPhone's rule. A hand that is
+                                // not quite straight walks the strip rather than doing a little of
+                                // both, and the strip never drifts diagonally under the finger.
+                                if (abs(along) > abs(across)) {
+                                    onDrag(along, 0.0)
+                                } else {
+                                    onDrag(0.0, across)
+                                }
                             }
                         }
                 }
             ),
         contentAlignment = Alignment.Center,
     ) {
-        if (isEditing) {
-            AddressField(initial = url.orEmpty(), onSubmit = onSubmit, onCancel = onCancel)
-        } else {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(
-                    text = title.ifEmpty { url ?: stringResource(R.string.start_page_title) },
-                    style = MaterialTheme.typography.labelLarge,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-                if (isFocused) {
-                    // The Mac puts the × on the window's own corner and waits for the pointer.
-                    // A finger has no hover, so it lives in the chrome that is already there.
+        // One row, always: the dot, the title *or* the field, and the ×. The iPhone's handle keeps
+        // all three at once, which is what makes the × the way out of the address field as well as
+        // the way to close a window.
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(start = 14.dp, end = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(accent.copy(alpha = if (isLoading) 0.4f else 1f)),
+            )
+
+            Box(modifier = Modifier.weight(1f).padding(horizontal = 10.dp)) {
+                if (isEditing) {
+                    AddressField(initial = url.orEmpty(), onSubmit = onSubmit, onCancel = onCancel)
+                } else {
                     Text(
-                        text = "×",
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier
-                            .padding(start = 12.dp)
-                            .pointerInput(Unit) { detectTapGestures { onClose() } },
+                        text = title.ifEmpty { url?.let(::host) ?: stringResource(R.string.start_page_title) },
+                        style = MaterialTheme.typography.labelLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
+
+            // As on the phone, it backs out of the address field before it closes anything.
+            Text(
+                text = "×",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .size(36.dp)
+                    .wrapContentSize(Alignment.Center)
+                    .pointerInput(isEditing) {
+                        detectTapGestures { if (isEditing) onCancel() else onClose() }
+                    },
+            )
         }
     }
 }
+
+private fun host(url: String): String =
+    runCatching { java.net.URI(url).host }.getOrNull() ?: url
 
 @Composable
 private fun AddressField(

@@ -76,6 +76,13 @@ object LivePages {
         return true
     }
 
+    fun goForward(tabId: UUID?): Boolean {
+        val page = tabId?.let { live[it] } ?: return false
+        if (!page.canGoForward()) return false
+        page.goForward()
+        return true
+    }
+
     /**
      * Memory pressure is not answered from here.
      *

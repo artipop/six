@@ -21,6 +21,7 @@ import org.deffun.six.core.Size
 import org.deffun.six.core.StripSnapshot
 import org.deffun.six.core.TabSnapshot
 import org.deffun.six.core.UserInput
+import org.deffun.six.core.Visit
 import org.deffun.six.core.searchEngine
 
 /** One window in the strip, as the UI needs it: what the column points at. */
@@ -29,6 +30,13 @@ data class TabState(
     val profileId: UUID,
     val url: String? = null,
     val title: String = "",
+    /**
+     * Whether the page has anywhere to go. A `WebView` does not publish this, so it is read from the
+     * view whenever it says its history changed — the toolbar has to know without asking every frame.
+     */
+    val canGoBack: Boolean = false,
+    val canGoForward: Boolean = false,
+    val isLoading: Boolean = false,
 )
 
 /** Everything the strip draws from, in one value. */
@@ -213,6 +221,46 @@ class SixViewModel(application: Application) : AndroidViewModel(application) {
         _state.update { it.copy(layout = it.layout.copy(horizontalPreview = 0.0, verticalPreview = 0.0)) }
     }
 
+    /** The profile on screen, newest first. Reading the database is not the main thread's work. */
+    suspend fun historyEntries(): List<Visit> = withContext(Dispatchers.IO) {
+        runCatching {
+            environment.history.entries(_state.value.layout.activeProfileId, limit = 500)
+        }.getOrDefault(emptyList())
+    }
+
+    /**
+     * "Clear history?" for the profile on screen — not for every profile, which is the whole point
+     * of profiles. The Mac asks the same question with the same two answers.
+     *
+     * Site data is the profile's cookies and local storage: clearing it signs you out everywhere in
+     * that profile. Bookmarks are a different table and are not touched by either answer.
+     */
+    fun clearHistory(includingSiteData: Boolean) {
+        val current = _state.value
+        val profileId = current.layout.activeProfileId
+        val storeName = current.profiles.firstOrNull { it.id == profileId }
+            ?.let { WebProfiles.storeName(it) }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { environment.history.clear(profileId) }
+            if (includingSiteData) WebProfiles.clearSiteData(storeName)
+        }
+    }
+
+    fun goBack() {
+        LivePages.goBack(_state.value.layout.focusedTabId)
+    }
+
+    fun goForward() {
+        LivePages.goForward(_state.value.layout.focusedTabId)
+    }
+
+    /** The overview: on a phone this only rescales the strip — there is no grid behind it yet. */
+    fun toggleOverview() {
+        _state.update { it.copy(layout = it.layout.setOverview(!it.layout.isOverview)) }
+        save()
+    }
+
     /**
      * The system asking for memory back.
      *
@@ -266,13 +314,31 @@ class SixViewModel(application: Application) : AndroidViewModel(application) {
     fun onPageStarted(tabId: UUID, url: String) {
         _state.update { current ->
             val tab = current.tabs[tabId] ?: return@update current
-            current.copy(tabs = current.tabs + (tabId to tab.copy(url = url)))
+            current.copy(tabs = current.tabs + (tabId to tab.copy(url = url, isLoading = true)))
         }
         val tab = _state.value.tabs[tabId] ?: return
         viewModelScope.launch(Dispatchers.IO) {
             environment.history.record(url, tab.title, tab.profileId)
         }
         save()
+    }
+
+    fun onPageFinished(tabId: UUID) {
+        _state.update { current ->
+            val tab = current.tabs[tabId] ?: return@update current
+            current.copy(tabs = current.tabs + (tabId to tab.copy(isLoading = false)))
+        }
+    }
+
+    /** The page's history moved. Only the two flags the toolbar draws from. */
+    fun onHistoryChanged(tabId: UUID, canGoBack: Boolean, canGoForward: Boolean) {
+        _state.update { current ->
+            val tab = current.tabs[tabId] ?: return@update current
+            if (tab.canGoBack == canGoBack && tab.canGoForward == canGoForward) return@update current
+            current.copy(
+                tabs = current.tabs + (tabId to tab.copy(canGoBack = canGoBack, canGoForward = canGoForward)),
+            )
+        }
     }
 
     /** Titles arrive after the navigation commits, on both platforms. */

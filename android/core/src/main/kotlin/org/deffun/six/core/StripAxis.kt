@@ -1,5 +1,7 @@
 package org.deffun.six.core
 
+import kotlin.math.abs
+
 /**
  * Which way round the strip runs on this screen.
  *
@@ -105,18 +107,27 @@ enum class StripStep {
  * into steps, and `StripAxisTest` asserts the drawing and the stepping still agree, because a sign
  * flipped in one of the two places is a gesture that shows one thing and commits its opposite.
  *
- * Across the strip wins over along when a drag was both: workspaces are the coarser move, and a
- * diagonal that changes both at once is never what was meant.
+ * ## Which axis a drag was on
+ *
+ * The **dominant direction decides**, which is the iPhone's rule (`PhoneStripView.stripDrag`) and
+ * not a precedence between the two. A phone has no Mod key to tell one gesture from the other, so
+ * the larger component wins outright and the smaller is not a smaller version of anything — it is
+ * the hand not being straight. Ties go across, because that is the coarser move.
+ *
+ * The gesture handler zeroes the losing band while the drag is still happening, so in practice only
+ * one is ever non-zero by the time this is read; the comparison here is what makes that a rule
+ * rather than a convention the view happens to follow.
  */
 val NiriLayout.pendingStep: StripStep
     get() {
         val alongThreshold = viewport.width * NiriLayout.DRAG_COMMIT_FRACTION
         val acrossThreshold = viewport.height * NiriLayout.DRAG_COMMIT_FRACTION
+        val alongWins = abs(horizontalPreview) > abs(verticalPreview)
         return when {
-            verticalPreview > acrossThreshold -> StripStep.PREVIOUS_WORKSPACE
-            verticalPreview < -acrossThreshold -> StripStep.NEXT_WORKSPACE
-            horizontalPreview > alongThreshold -> StripStep.PREVIOUS_COLUMN
-            horizontalPreview < -alongThreshold -> StripStep.NEXT_COLUMN
+            alongWins && horizontalPreview > alongThreshold -> StripStep.PREVIOUS_COLUMN
+            alongWins && horizontalPreview < -alongThreshold -> StripStep.NEXT_COLUMN
+            !alongWins && verticalPreview > acrossThreshold -> StripStep.PREVIOUS_WORKSPACE
+            !alongWins && verticalPreview < -acrossThreshold -> StripStep.NEXT_WORKSPACE
             else -> StripStep.NONE
         }
     }

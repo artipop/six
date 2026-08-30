@@ -117,9 +117,27 @@ class DragTest {
     }
 
     /**
-     * Across beats along when a drag was both: workspaces are the coarser move, and a diagonal that
-     * changes the column *and* the workspace is never what was meant.
+     * The dominant direction decides, which is the iPhone's rule and not a precedence between the
+     * two. A hand that is not quite straight should still walk the strip.
      */
+    @Test
+    fun theLargerComponentWinsOutright() {
+        val (layout, ids) = strip(columns = 5)
+        val focused = layout.focus(ids[2])
+
+        // Along dominant, across still over its own threshold: this is a column move.
+        assertEquals(
+            StripStep.NEXT_COLUMN,
+            focused.copy(horizontalPreview = -500.0, verticalPreview = -300.0).pendingStep,
+        )
+        // And the other way round.
+        assertEquals(
+            StripStep.NEXT_WORKSPACE,
+            focused.copy(horizontalPreview = -300.0, verticalPreview = -500.0).pendingStep,
+        )
+    }
+
+    /** A tie goes across, because that is the coarser move. */
     @Test
     fun aDiagonalIsAWorkspaceMoveAndNotBoth() {
         val (layout, ids) = strip(columns = 5)
@@ -134,6 +152,12 @@ class DragTest {
             released.focusedWorkspaceIndex,
             "the workspace did not change",
         )
+    }
+
+    /** The threshold is the iPhone's 0.12 of the viewport, not a number invented here. */
+    @Test
+    fun theThresholdIsTheOneThePhoneUses() {
+        assertEquals(0.12, NiriLayout.DRAG_COMMIT_FRACTION)
     }
 
     /** The threshold scales with the screen, for the same reason the gaps do. */

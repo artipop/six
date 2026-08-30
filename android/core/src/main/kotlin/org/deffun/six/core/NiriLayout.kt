@@ -91,10 +91,13 @@ data class NiriLayout(
         const val OVERVIEW_WORKSPACE_GAP_FRACTION = 0.11
 
         /**
-         * How far a drag has to travel before letting go steps rather than springs back — a
-         * fraction of the viewport, for the same reason the gaps are.
+         * How far a drag has to travel before letting go steps rather than springs back.
+         *
+         * A finger's worth of travel along the strip, so a tap that slipped moves nothing. The
+         * number is the iPhone's — `PhoneStripView` uses `viewport.width * 0.12` — and it is a
+         * fraction of the viewport for the same reason the gaps are.
          */
-        const val DRAG_COMMIT_FRACTION = 0.15
+        const val DRAG_COMMIT_FRACTION = 0.12
 
         private const val MINIMUM_USABLE_WIDTH = 360.0
         private const val MINIMUM_COLUMN_WIDTH = 280.0

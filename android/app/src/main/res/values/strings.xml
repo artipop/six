@@ -6,6 +6,19 @@
     <string name="workspace_numbered">Workspace %1$d</string>
     <string name="new_window">New Window</string>
     <string name="close_window">Close Window</string>
+    <string name="back">Back</string>
+    <string name="forward">Forward</string>
+    <string name="overview">Overview</string>
+    <string name="more">More</string>
+    <string name="new_window_in_strip">New Window in Strip</string>
+    <string name="history_ellipsis">History…</string>
+    <string name="clear_history_ellipsis">Clear History…</string>
+    <string name="clear_history_title">Clear %1$s history?</string>
+    <string name="clear_history_message">Site data is the profile\u2019s cookies, local storage and caches \u2014 clearing it signs you out everywhere, and the profile\u2019s open pages reload.</string>
+    <string name="clear_history_only">Clear History Only</string>
+    <string name="clear_history_and_site_data">Clear History and Site Data</string>
+    <string name="cancel">Cancel</string>
+    <string name="history_empty">Nothing here yet</string>
 
     <!-- Column widths. The keys are NiriLayout.WIDTH_PRESET_KEYS, in that order. -->
     <string name="width_half">Half</string>

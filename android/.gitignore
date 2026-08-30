@@ -9,3 +9,5 @@ build
 
 # The SDK location is this machine's, not the project's.
 local.properties
+
+.idea/

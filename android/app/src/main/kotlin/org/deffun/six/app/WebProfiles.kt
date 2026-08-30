@@ -69,6 +69,23 @@ object WebProfiles {
         }.getOrDefault(emptyList())
     }
 
+    /**
+     * The profile's cookies, local storage and caches — the logins.
+     *
+     * The Mac's "Clear History and Site Data" clears the `WKWebsiteDataStore`; here it is the same
+     * two things the platform exposes per profile. Anything holding an open page in this profile
+     * will find itself signed out, which is what the dialog says will happen.
+     */
+    fun clearSiteData(storeName: String?) {
+        if (storeName == null || !isSupported) return
+        runCatching {
+            val profile = ProfileStore.getInstance().getOrCreateProfile(storeName)
+            profile.cookieManager.removeAllCookies(null)
+            profile.cookieManager.flush()
+            profile.webStorage.deleteAllData()
+        }
+    }
+
     /** The platform's own, which exists whether or not six ever asks for it. */
     const val DEFAULT_PROFILE_NAME = "Default"
 }

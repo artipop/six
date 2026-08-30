@@ -32,6 +32,8 @@ fun PageView(
     profileStoreName: String?,
     onPageStarted: (String) -> Unit,
     onTitleChanged: (String) -> Unit,
+    onHistoryChanged: (canGoBack: Boolean, canGoForward: Boolean) -> Unit,
+    onPageFinished: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // Keyed on the profile: a WebView cannot be moved between profiles once it has been used, so a
@@ -58,6 +60,18 @@ fun PageView(
                 webViewClient = object : WebViewClient() {
                     override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
                         onPageStarted(url)
+                        onHistoryChanged(view.canGoBack(), view.canGoForward())
+                    }
+
+                    override fun onPageFinished(view: WebView, url: String) {
+                        onPageFinished()
+                        onHistoryChanged(view.canGoBack(), view.canGoForward())
+                    }
+
+                    // The one callback that fires whenever the back/forward list moves, including
+                    // for in-page navigation that never starts a page load.
+                    override fun doUpdateVisitedHistory(view: WebView, url: String, isReload: Boolean) {
+                        onHistoryChanged(view.canGoBack(), view.canGoForward())
                     }
                 }
                 webChromeClient = object : WebChromeClient() {
