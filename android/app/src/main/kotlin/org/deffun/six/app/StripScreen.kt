@@ -1,6 +1,7 @@
 package org.deffun.six.app
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -20,15 +21,21 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
@@ -165,6 +172,7 @@ fun StripScreen(
                             viewModel.onHistoryChanged(column.tabId, back, forward)
                         },
                         onPageFinished = { viewModel.onPageFinished(column.tabId) },
+                        thumbnail = viewModel::thumbnail,
                         onPermissionRequest = { asked, origin, grant ->
                             viewModel.onPagePermissionRequest(column.tabId, asked, origin, grant)
                         },
@@ -278,6 +286,7 @@ private fun ColumnWindow(
     onTitleChanged: (String) -> Unit,
     onHistoryChanged: (Boolean, Boolean) -> Unit,
     onPageFinished: () -> Unit,
+    thumbnail: suspend (UUID) -> ImageBitmap?,
     onPermissionRequest: (List<SitePermission>, String?, (Boolean) -> Unit) -> Unit,
     onGone: () -> Unit,
     onDialog: (PageDialogRequest, (PageDialogAnswer) -> Unit) -> Unit,
@@ -336,7 +345,13 @@ private fun ColumnWindow(
                     onDialog = onDialog,
                 )
                 // Leaving the composition is what discards the page: `onRelease` saves its bundle.
-                else -> DiscardedPage(title = title, url = url)
+                else -> DiscardedPage(
+                    tabId = tabId,
+                    title = title,
+                    url = url,
+                    accent = accent,
+                    thumbnail = thumbnail,
+                )
             }
             }
         }
@@ -363,30 +378,61 @@ private fun ColumnWindow(
 /**
  * A column whose page has been discarded.
  *
- * It is still a window in the strip — the address, the title and its place are all still here — and
- * scrolling back to it builds the page again. The Mac also keeps a picture of the page; capturing a
- * bitmap per column is a memory decision that should not be made without being able to measure it,
- * so this is text for now.
+ * It is still a window in the strip — the address, the title and its place are all here — and
+ * scrolling back to it builds the page again. What it shows meanwhile is the last picture of it,
+ * over the profile's colour; a window that never had one keeps the colour alone rather than a broken
+ * frame, which is what a page that was never drawn actually looks like.
  */
 @Composable
-private fun DiscardedPage(title: String, url: String) {
+private fun DiscardedPage(
+    tabId: UUID,
+    title: String,
+    url: String,
+    accent: Color,
+    thumbnail: suspend (UUID) -> ImageBitmap?,
+) {
+    var picture by remember(tabId) { mutableStateOf<ImageBitmap?>(null) }
+
+    // Read when the card appears and not before: a strip of a hundred windows is a hundred files
+    // nobody has looked at yet.
+    LaunchedEffect(tabId) { picture = thumbnail(tabId) }
+
     Box(
-        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerLow),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.linearGradient(
+                    listOf(accent.copy(alpha = 0.16f), accent.copy(alpha = 0.04f)),
+                ),
+            ),
         contentAlignment = Alignment.Center,
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = title.ifEmpty { url },
-                style = MaterialTheme.typography.titleSmall,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(horizontal = 16.dp),
+        val image = picture
+        if (image != null) {
+            Image(
+                bitmap = image,
+                contentDescription = title.ifEmpty { url },
+                // Filling rather than fitting: a card is a glimpse of the page, and letterboxing it
+                // would make every discarded window look like a document instead of a window.
+                contentScale = ContentScale.Crop,
+                alignment = Alignment.TopCenter,
+                modifier = Modifier.fillMaxSize(),
             )
-            Text(
-                text = host(url),
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(top = 4.dp),
-            )
+        } else {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = title.ifEmpty { url },
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+                Text(
+                    text = host(url),
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
         }
     }
 }

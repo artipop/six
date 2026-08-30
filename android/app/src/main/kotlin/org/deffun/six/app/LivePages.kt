@@ -27,6 +27,14 @@ object LivePages {
     private val live = mutableMapOf<UUID, WebView>()
     private val discarded = mutableMapOf<UUID, Bundle>()
 
+    /**
+     * Where a picture goes when a column is discarded.
+     *
+     * Set once, by whoever owns the files. Null until then, and a discard without it simply keeps no
+     * picture — a card with no picture is a card, and a crash on the way out of a page is not.
+     */
+    var onCapture: ((UUID, WebView) -> Unit)? = null
+
     /** A view has been built for this column. */
     fun register(tabId: UUID, webView: WebView) {
         live[tabId] = webView
@@ -37,6 +45,9 @@ object LivePages {
      * a fresh request — the case the whole design is tuned for.
      */
     fun discard(tabId: UUID, webView: WebView) {
+        // Before the state and before the destroy: this is the last moment the page is drawable.
+        onCapture?.invoke(tabId, webView)
+
         val state = Bundle()
         // `saveState` returns null when there is nothing worth keeping — a view that never loaded.
         if (webView.saveState(state) != null) discarded[tabId] = state

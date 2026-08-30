@@ -96,6 +96,16 @@ class SixViewModel(application: Application) : AndroidViewModel(application) {
         profileNameFor = { id -> _state.value.profiles.firstOrNull { it.id == id }?.name }
     }
 
+    init {
+        // Drawing is quick and on the main thread because the view is; writing the file is not.
+        LivePages.onCapture = { tabId, webView ->
+            // Drawn where the view is, encoded and filed where nothing is waiting.
+            environment.thumbnails.capture(webView)?.let { bitmap ->
+                viewModelScope.launch(Dispatchers.IO) { environment.thumbnails.write(tabId, bitmap) }
+            }
+        }
+    }
+
     /**
      * The Mac's own permission model, unchanged. It calls back when a question appears or is
      * answered, because a `WebChromeClient` callback assigns nothing a `StateFlow` would notice.
@@ -192,6 +202,7 @@ class SixViewModel(application: Application) : AndroidViewModel(application) {
                     )
                 }
             }
+            pruneThumbnails()
         }
     }
 
@@ -339,6 +350,7 @@ class SixViewModel(application: Application) : AndroidViewModel(application) {
     fun closeColumn(tabId: UUID) {
         onWindowGone(tabId)
         LivePages.forget(tabId)
+        viewModelScope.launch(Dispatchers.IO) { environment.thumbnails.remove(tabId) }
         _state.update { it.copy(layout = it.layout.removeColumn(tabId), tabs = it.tabs - tabId) }
         save()
     }
@@ -480,6 +492,9 @@ class SixViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     override fun onCleared() {
+        // The hook holds this view model; a dead one drawing into a dead scope is a leak with a
+        // bitmap attached.
+        LivePages.onCapture = null
         // Nothing is going to answer these now, and a request merely dropped leaves a page suspended
         // for as long as it lives.
         pageDialogs.cancelAll()
@@ -510,6 +525,22 @@ class SixViewModel(application: Application) : AndroidViewModel(application) {
             )
         }
     }
+
+    /**
+     * Pictures of windows that no longer exist — closed while the app was not running, or in a
+     * launch that never got to clean up. Run once the strip is known and not before, or it would
+     * throw away everything on the grounds that nothing has been restored yet.
+     */
+    private fun pruneThumbnails() {
+        val ids = _state.value.tabs.keys
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { environment.thumbnails.prune(ids) }
+        }
+    }
+
+    /** The picture of a window, read off disk the first time a card asks for it. */
+    suspend fun thumbnail(tabId: UUID): androidx.compose.ui.graphics.ImageBitmap? =
+        withContext(Dispatchers.IO) { environment.thumbnails.read(tabId) }
 
     // MARK: Bookmarks
 

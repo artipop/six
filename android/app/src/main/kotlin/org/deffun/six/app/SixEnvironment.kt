@@ -7,6 +7,7 @@ import java.io.File
 import java.util.UUID
 import org.deffun.six.core.AppDatabase
 import org.deffun.six.core.BookmarkStore
+import org.deffun.six.core.ThumbnailStore
 import org.deffun.six.core.FileSnapshotStore
 import org.deffun.six.core.HistoryStore
 import org.deffun.six.core.SettingsStore
@@ -50,6 +51,11 @@ class SixEnvironment(private val context: Context) {
      */
     val bookmarks: BookmarkStore by lazy {
         BookmarkStore(database) { profileId -> bookmarksFolder(profileId) }
+    }
+
+    /** One PNG per window, in the folder the Mac uses. */
+    val thumbnails: PageThumbnails by lazy {
+        PageThumbnails(ThumbnailStore(File(root, "Thumbnails")))
     }
 
     /** Set by whoever knows the profiles; without it a bookmark has a row but nowhere to write. */
