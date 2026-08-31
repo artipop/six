@@ -14,12 +14,8 @@ import Foundation
     for (name, size) in viewports {
         let l = NiriLayout()
         l.updateViewport(size)
-        var widths: [String] = []
-        for i in 0..<NiriLayout.widthPresets.count {
-            widths.append(String(format: "%.6f", l.width(of: NiriColumn(tabID: UUID(), widthIndex: i))))
-        }
         var ws = NiriWorkspace()
-        ws.columns = [0, 2, 3, 1].map { NiriColumn(tabID: UUID(), widthIndex: $0) }
+        ws.columns = (0..<4).map { _ in NiriColumn(tabID: UUID()) }
         let frames = l.columnFrames(ws).map {
             String(format: "%.6f,%.6f,%.6f,%.6f", $0.origin.x, $0.origin.y, $0.width, $0.height)
         }
@@ -27,7 +23,7 @@ import Foundation
         {"name":"\(name)","viewport":[\(size.width),\(size.height)],\
         "gap":\(String(format: "%.6f", l.gap)),\
         "columnHeight":\(String(format: "%.6f", l.columnHeight)),\
-        "widths":[\(widths.joined(separator: ","))],\
+        "columnWidth":\(String(format: "%.6f", l.columnWidth)),\
         "frames":["\(frames.joined(separator: "\",\""))"],\
         "contentWidth":\(String(format: "%.6f", l.contentWidth(ws)))}
         """)

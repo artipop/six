@@ -16,8 +16,8 @@ import kotlinx.serialization.json.Json
  *   default; Swift's synthesised `encode(to:)` writes every non-optional property whether or not it
  *   matches one. And the synthesised `init(from:)` on the other side does **not** fall back to a
  *   default when a key is missing — it throws `keyNotFound`. So a snapshot written with Kotlin's
- *   default settings drops `widthIndex`, `focus`, `name`, `columns` and `isPrivate`, and the Mac
- *   then fails to decode the file at all: not a column with the wrong width, the whole session gone.
+ *   default settings drops `focus`, `name`, `columns` and `isPrivate`, and the Mac then fails to
+ *   decode the file at all: not one field defaulted, the whole session gone.
  *   Found by reading a file the Mac had actually written, which no amount of round-tripping our own
  *   output would have caught.
  * - [Json.ignoreUnknownKeys] on, because `JSONDecoder` ignores them too. This is not forward

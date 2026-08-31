@@ -196,7 +196,7 @@ so `resolve(_:)` opens what it points at rather than the file.
 ## Persistence
 
 Everything that makes up a session — profiles, the selected one, every tab (URL + title) and every profile's strip
-(workspaces with their names, columns with their widths, focus) plus the agent chats — is one `AppStateSnapshot`,
+(workspaces with their names, their columns, focus) plus the agent chats — is one `AppStateSnapshot`,
 written to `~/Library/Application Support/org.deffun.six/state.json` — the folder is the bundle identifier, so a Debug
 build writes to `org.deffun.six.dev/` and the two never meet (`AppSupport`, and
 [build.md](build.md#two-apps-the-one-you-use-and-the-one-you-build)). The snapshot types, `SnapshotStore` and `StatePersistence`

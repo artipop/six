@@ -15,7 +15,6 @@ data class NiriColumn(
     @Serializable(with = UuidSerializer::class)
     @SerialName("tabID")
     val tabId: UUID,
-    val widthIndex: Int = NiriLayout.DEFAULT_WIDTH_INDEX,
 )
 
 /** A niri workspace: an infinite horizontal strip of full-height columns. */
@@ -36,11 +35,12 @@ data class NiriWorkspace(
 }
 
 /**
- * How much room the focused window is given. The widths in [NiriLayout.WIDTH_PRESETS] are the tiled
- * case; the other two step outside the tiling entirely, and the strip goes on working underneath both.
+ * How much room the focused window is given, and the whole of what there is to choose. A window is a
+ * screen's worth of page in all three: the strip leaves it the gaps it needs to read as a card in a
+ * row of them, the other two take even those away. There is deliberately nothing smaller.
  */
 enum class NiriFill {
-    /** The strip as usual: gaps, title bars, and the width the column's preset asks for. */
+    /** The strip as usual: the gaps, and a window as wide as the screen leaves room for. */
     TILED,
 
     /**

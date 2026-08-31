@@ -317,10 +317,10 @@ public final class BrowserModel {
 
     /// The layout's own gap, so the front never invents a spacing of its own.
     public var gap: Double { Double(layout.gap) }
-    /// What a column should be, in points, from the same presets the Mac cycles with ⌥R.
+    /// What a column should be, in points. There is one width in the strip — a screen's worth of
+    /// page, less the gaps — and this is it.
     public var columnSize: CGSize {
-        CGSize(width: layout.width(of: .init(tabID: UUID(), widthIndex: layout.preferredWidthIndex)),
-               height: layout.columnHeight)
+        CGSize(width: layout.columnWidth, height: layout.columnHeight)
     }
     public var canGoBack: Bool { focusedID.map(PageRegistry.canGoBack) ?? false }
     public var canGoForward: Bool { focusedID.map(PageRegistry.canGoForward) ?? false }
@@ -329,9 +329,6 @@ public final class BrowserModel {
 
     private func fill() {
         trace("fill")
-        if let width = ProcessInfo.processInfo.environment["SIX_WIDTH"].flatMap(Int.init) {
-            layout.preferredWidthIndex = width
-        }
         let requested = (ProcessInfo.processInfo.environment["SIX_URL"] ?? "")
             .split(separator: " ")
             .compactMap { URL(string: String($0)) }
@@ -427,13 +424,6 @@ public final class BrowserModel {
         save()
         urls[focused] = nil
         titles[focused] = nil
-    }
-
-    /// Cycle the width every column uses, which is ⌥R there. One value for the whole strip rather
-    /// than per column, because a strip where each window has its own width reads as a mess.
-    public func cycleWidth() {
-        let next = (layout.preferredWidthIndex + 1) % NiriLayout.widthPresets.count
-        layout.setPreferredWidth(next)
     }
 
     public func goBack() { focusedID.map(PageRegistry.goBack) }

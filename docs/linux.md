@@ -53,7 +53,7 @@ command here — see the comment at the top of `Package.swift` for the three rea
 ## What is built
 
 - The strip: `NiriLayout` shared with the Mac, columns along it and workspaces across, ⌥←/⌥→,
-  ⌥↑/⌥↓, ⌥R for the width preset, ⌥O for the overview.
+  ⌥↑/⌥↓, ⌥O for the overview.
 - The overview is one `GskTransform` on a `GtkFixed` child, not a second layout — the same idea as
   the Mac's, which is that the overview is a way of *looking* at the strip.
 - Pages: navigation, address bar, back/forward/reload, the live-page budget
@@ -106,7 +106,6 @@ body was already evaluated with the old value.
 | | |
 |---|---|
 | `SIX_URL` | space-separated addresses to open on a first launch |
-| `SIX_WIDTH` | index into `NiriLayout.widthPresets` |
 | `SIX_LIVE_PAGES` | pin the live-page budget, for measuring |
 | `SIX_UI_DEBUG=1` | what the model was asked to do and what it thought it was doing |
 | `SIX_MOCK_CAPTURE=1` | a camera and a microphone that are not there, for testing permissions |

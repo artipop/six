@@ -24,7 +24,6 @@ final class SettingsStore {
         case assistantOpenAIModel = "assistant.openai.model"
         case centersFocus = "layout.centersFocus"
         case agentModel = "agent.model"
-        case columnWidth = "layout.columnWidth"
         case bookmarkScope = "bookmarks.scope"
         case bookmarkRefreshDays = "bookmarks.refreshDays"
         case researchTemplate = "research.template"
@@ -64,7 +63,6 @@ final class SettingsStore {
             case .assistantOpenAIModel: "six.assistant.openai.model"
             case .centersFocus: "six.layout.centerFocus"
             case .agentModel: "six.agent.model"
-            case .columnWidth: "six.layout.columnWidth"
             case .bookmarkScope: "six.bookmarks.scope"
             case .bookmarkRefreshDays: "six.bookmarks.refreshDays"
             case .researchTemplate: "six.research.template"
@@ -111,12 +109,6 @@ final class SettingsStore {
     var centersFocus: Bool {
         get { self[.centersFocus].map { $0 == "1" } ?? true }
         set { self[.centersFocus] = newValue ? "1" : "0" }
-    }
-
-    /// Index into `NiriLayout.widthPresets` used by every window.
-    var columnWidthIndex: Int {
-        get { self[.columnWidth].flatMap(Int.init) ?? NiriLayout.defaultWidthIndex }
-        set { self[.columnWidth] = String(newValue) }
     }
 
     /// The deep-research preset as edited by the user; empty means the built-in one.

@@ -14,8 +14,8 @@ Nothing needs the keyboard: every layout operation has a mouse equivalent. `⌥`
 | ⌘-click a link | opens it in a new window right of this one, **behind** — the focus stays on the page you are reading, and the strip leans right for a moment to show what arrived. To go there instead, the context menu's Open Link in New Window: WebKit swallows every shift-click before six sees it, and a middle click cannot be told from a plain one ([links.md](links.md)) |
 | right-click a page | six's own menu: on a link, Open Link / in New Window / Behind / Download Linked File / Copy Link; always Back, Forward, Reload and the clipboard. WebKit's menu could not be repaired in place — [links.md](links.md) has why |
 | the download ring (top bar) | there once something has been downloaded: what is coming in, Stop, and Show in Finder when it is done. A download flies there from the click, so it is clear both that it started and where it went ([links.md](links.md)) |
-| right-click a page → This Window | close, column width (checked), compact width, full window, fullscreen, move left/right, move to the workspace above/below. It used to hang off the window's title bar; the page runs edge to edge now, so it hangs off the page |
-| the layout button (top left, beside the profile) | click fills the window and back (`⌥W`); hold for the list — strip / full window / fullscreen, the shared column width, compact width, overview, centring, and where the focused window goes in the strip (move left/right, to the workspace above/below, close) |
+| right-click a page → This Window | close, full window, fullscreen, move left/right, move to the workspace above/below. It used to hang off the window's title bar; the page runs edge to edge now, so it hangs off the page |
+| the layout button (top left, beside the profile) | click fills the window and back (`⌥W`); hold for the list — strip / full window / fullscreen, overview, centring, and where the focused window goes in the strip (move left/right, to the workspace above/below, close) |
 | right-click the background | new window, workspace up/down, overview, centring on/off |
 | scroll over a gap or the background | one window sideways / one workspace up-down per gesture — over a page or a panel, scrolling stays the page's, and over the top bar it does nothing (its buttons would be a gamble otherwise) |
 | the address field (top bar) | one field, for the window you are reading, with back/forward/reload beside it, and the lock, the shield, the camera light and the highlighter with it. `⌘L` puts the caret in it. A window has no title bar of its own at all: it is a page from edge to edge |
@@ -32,5 +32,5 @@ Nothing needs the keyboard: every layout operation has a mouse equivalent. `⌥`
 
 ## Keyboard
 
-Every binding is in [hotkeys.md](hotkeys.md). In short: `⌥` + arrows / scroll move around the strip, `⌥R` `⌥F` `⌥W`
+Every binding is in [hotkeys.md](hotkeys.md). In short: `⌥` + arrows / scroll move around the strip, `⌥W`
 `⌥⇧F` `⌥O` `⌥C` change how a window is shown, `⌘T` `⌘W` `⌘L` `⌘K` `⌘D` `⌘⌥B` `⌘Y` `⌘⇧A` are the browser's.

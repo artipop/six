@@ -124,7 +124,6 @@ public struct BrowserContent: View {
             Button("") { model.focusColumn(1); refresh() }.keyboardShortcut("<Alt>Right")
             Button("") { model.focusWorkspace(-1); refresh() }.keyboardShortcut("<Alt>Up")
             Button("") { model.focusWorkspace(1); refresh() }.keyboardShortcut("<Alt>Down")
-            Button("") { model.cycleWidth(); refresh() }.keyboardShortcut("<Alt>r")
             Button("") { model.toggleOverview(); refresh() }.keyboardShortcut("<Alt>o")
             Button("") { model.toggleBookmark(); refresh() }.keyboardShortcut("<Ctrl>d")
             Button("") { showsBookmarks = true }.keyboardShortcut("<Ctrl>b")

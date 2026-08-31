@@ -90,8 +90,6 @@ stays the page's.
 | `⌥` + horizontal scroll | one column per gesture while centring is on, so the strip never rests half-way; free panning with `⌥C` off |
 | `⌥` `←` `→` / `⌥⇧` `←` `→` | focus / move a column |
 | `⌥` `↑` `↓` / `⌥⇧` `↑` `↓` | focus a workspace / move the focused column to it |
-| `⌥R` / `⌥⇧R` | wider / narrower columns — one preset for every window (½, ⅔, peek, full) |
-| `⌥F` | compact width — this window at the widest preset, and back |
 | `⌥W` | full window: the page fills the window, the top bar stays |
 | `⌥C` | centre the focused window (default) or scroll the strip as little as possible |
 | `⌥⇧F`, `Esc` | fullscreen: the page edge to edge, and `⌥←` `⌥→` still walk the strip |

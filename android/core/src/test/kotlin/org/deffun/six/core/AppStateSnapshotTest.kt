@@ -50,7 +50,6 @@ class AppStateSnapshotTest {
         val strip = snapshot.browser.strips.single().strip
         assertEquals(2, strip.workspaces.size)
         assertEquals(2, strip.workspaces[0].columns.size)
-        assertEquals(2, strip.workspaces[0].columns[0].widthIndex)
         assertEquals(-85.55999999999995, strip.workspaces[0].viewOffset)
         // A named workspace with no columns: the one shape `normalize` must not prune.
         assertEquals("Reading", strip.workspaces[1].name)
@@ -128,15 +127,15 @@ class AppStateSnapshotTest {
      *
      * Kotlin's instinct is to omit a value equal to its default; Swift's synthesised `init(from:)`
      * does not fall back to a default for a missing key, it throws `keyNotFound`. So omitting these
-     * does not cost a column its width — it costs the Mac the whole file, at the next launch, with
-     * no way back. The five below are every property in the snapshot that has a default and is not
-     * an optional; adding a sixth without adding it here is the way this returns.
+     * does not cost one field its default — it costs the Mac the whole file, at the next launch,
+     * with no way back. The four below are every property in the snapshot that has a default and is
+     * not an optional; adding a fifth without adding it here is the way this returns.
      */
     @Test
     fun defaultedPropertiesAreWrittenBecauseSwiftWillNotInferThem() {
         val json = SnapshotJson.encodeToString(AppStateSnapshot.serializer(), decoded())
 
-        for (key in listOf("widthIndex", "focus", "name", "columns", "isPrivate")) {
+        for (key in listOf("focus", "name", "columns", "isPrivate")) {
             assertContains(json, "\"$key\"", message = "the Mac's decoder requires `$key` and it was omitted")
         }
     }

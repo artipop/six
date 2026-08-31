@@ -37,26 +37,6 @@ struct LayoutCommands: Commands {
 
             Divider()
 
-            Button("Wider Columns") { browser.stepColumnWidth(1) }
-                .keyboardShortcut("r", modifiers: .option)
-                .disabled(browser.layout.preferredWidthIndex == NiriLayout.widthPresets.count - 1)
-            Button("Narrower Columns") { browser.stepColumnWidth(-1) }
-                .keyboardShortcut("r", modifiers: [.option, .shift])
-                .disabled(browser.layout.preferredWidthIndex == 0)
-            Picker("Column Width", selection: Binding(
-                get: { browser.layout.preferredWidthIndex },
-                set: { browser.setColumnWidth($0) }
-            )) {
-                ForEach(Array(NiriLayout.widthPresets.enumerated()), id: \.offset) { index, fraction in
-                    Text(NiriLayout.widthPresetTitles[index]).tag(index)
-                }
-            }
-            .pickerStyle(.inline)
-            Toggle("Compact Width", isOn: Binding(
-                get: { browser.layout.focusedColumnIsFullWidth },
-                set: { _ in browser.toggleCompactWidth() }
-            ))
-            .keyboardShortcut("f", modifiers: .option)
             Toggle("Full Window", isOn: Binding(
                 get: { browser.layout.fill == .window },
                 set: { _ in browser.toggleFullWindow() }

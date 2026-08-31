@@ -70,7 +70,7 @@ struct NiriLayoutGestureTests {
 
         layout.newColumnHover = 1
         let far = layout.newColumnFrame
-        #expect(far?.width == layout.newColumnWidth)
+        #expect(far?.width == layout.columnWidth)
         #expect(abs((far?.minX ?? 0) - (frames.last!.maxX + layout.gap)) < 0.5)
         #expect(far?.height == layout.columnHeight)
 

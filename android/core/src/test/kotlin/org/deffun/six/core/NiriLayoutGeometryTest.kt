@@ -13,9 +13,10 @@ import kotlin.test.assertTrue
  *
  * A port of `Tests/SixCoreTests/NiriLayoutGeometryTests.swift`, test for test. Like the original it
  * is written against the *intent* stated in `NiriLayout`'s own comments rather than against the
- * numbers it happens to produce today: that N columns of 1/N fill the screen, that gaps are a
- * fraction of the viewport and not a point constant, and that the frames and the content width
- * agree. Breaking one of these here is what would silently desynchronise Android from the Mac.
+ * numbers it happens to produce today: that a window is a screen's worth of page and there is
+ * nothing narrower to choose, that gaps are a fraction of the viewport and not a point constant,
+ * and that the frames and the content width agree. Breaking one of these here is what would
+ * silently desynchronise Android from the Mac.
  *
  * Where the two differ in shape rather than in meaning — `setFill` returns a new layout instead of
  * mutating one — the assertion is the same and only the plumbing changed.
@@ -25,29 +26,21 @@ class NiriLayoutGeometryTest {
     private fun layout(viewport: Size = Size(1600.0, 1000.0)): NiriLayout =
         NiriLayout().updateViewport(viewport)
 
-    private fun workspace(widths: List<Int>): NiriWorkspace =
-        NiriWorkspace(columns = widths.map { NiriColumn(UUID.randomUUID(), it) })
+    private fun workspace(count: Int): NiriWorkspace =
+        NiriWorkspace(columns = List(count) { NiriColumn(UUID.randomUUID()) })
 
     // MARK: The load-bearing invariant
 
     /**
-     * `usableWidth` folds one gap in "so N columns of 1/N exactly fill the screen". That sentence is
-     * the whole reason the arithmetic looks odd, so it is the first thing to pin down.
+     * One window, one screen: a column is the viewport with the outer gaps taken off it, so exactly
+     * one of them fits and the next one starts a screen away. There is no fraction to choose, which
+     * is the whole of the width story.
      */
     @Test
-    fun columnsOfOneOverNFillTheViewport() {
-        for ((index, count) in listOf(0 to 2, 3 to 1)) {
-            val layout = layout()
-            val column = NiriColumn(UUID.randomUUID(), index)
-            val width = layout.width(column)
+    fun aColumnIsTheScreenLessItsGaps() {
+        val layout = layout()
 
-            val occupied = width * count + layout.gap * (count - 1) + 2 * layout.outerGap
-
-            assertTrue(
-                abs(occupied - layout.viewport.width) < 0.5,
-                "widthIndex $index × $count occupied $occupied, viewport ${layout.viewport.width}",
-            )
-        }
+        assertTrue(abs(layout.columnWidth + 2 * layout.outerGap - layout.viewport.width) < 0.5)
     }
 
     // MARK: Gaps scale, they are not constants
@@ -80,14 +73,14 @@ class NiriLayoutGeometryTest {
     @Test
     fun columnFramesAdvanceByWidthPlusGap() {
         val layout = layout()
-        val workspace = workspace(listOf(2, 0, 3, 2))
+        val workspace = workspace(4)
         val frames = layout.columnFrames(workspace)
 
         assertEquals(workspace.columns.size, frames.size)
         assertEquals(layout.outerGap, frames.first().minX)
 
         frames.forEachIndexed { index, frame ->
-            assertEquals(layout.width(workspace.columns[index]), frame.width)
+            assertEquals(layout.columnWidth, frame.width)
             assertEquals(layout.outerGap, frame.minY)
             assertEquals(layout.columnHeight, frame.height)
             if (index > 0) {
@@ -121,24 +114,25 @@ class NiriLayoutGeometryTest {
     // MARK: Fill modes
 
     /**
-     * Filling overrides the preset without touching it: the widths are all still there on the way
-     * out. Both halves of that sentence are tested — the override, and the restoration.
+     * Filling takes the gaps and gives the page what they were holding, and gives them back on the
+     * way out. That difference — a gap and a corner radius — is the whole of what the three modes
+     * are about.
      */
     @Test
     fun fillingTakesTheWholeViewportAndIsReversible() {
         for (fill in listOf(NiriFill.WINDOW, NiriFill.SCREEN)) {
             val layout = layout()
-            val column = NiriColumn(UUID.randomUUID(), 0)
-            val tiled = layout.width(column)
+            val tiled = layout.columnWidth
 
             val filled = layout.setFill(fill)
             assertTrue(filled.fillsViewport)
             assertEquals(0.0, filled.gap)
-            assertEquals(filled.viewport.width, filled.width(column))
+            assertEquals(filled.viewport.width, filled.columnWidth)
 
             val restored = filled.setFill(NiriFill.TILED)
             assertFalse(restored.fillsViewport)
-            assertEquals(tiled, restored.width(column))
+            assertEquals(tiled, restored.columnWidth)
+            assertTrue(tiled < layout.viewport.width)
         }
     }
 
@@ -154,37 +148,14 @@ class NiriLayoutGeometryTest {
         assertFalse(layout.showsFullscreen)
     }
 
-    // MARK: Width presets
+    // MARK: Floors
 
-    /**
-     * A column asking for a preset outside the table is clamped rather than trapping — the index is
-     * persisted state, and a file written by a future version must not crash an older one.
-     */
-    @Test
-    fun outOfRangeWidthIndexIsClamped() {
-        val layout = layout()
-        val widths = NiriLayout.WIDTH_PRESETS.indices.map {
-            layout.width(NiriColumn(UUID.randomUUID(), it))
-        }
-        for (index in listOf(-5, -1, 4, 99)) {
-            assertContains(widths, layout.width(NiriColumn(UUID.randomUUID(), index)))
-        }
-    }
-
-    @Test
-    fun widthPresetsAreOrderedAndNamed() {
-        assertEquals(NiriLayout.WIDTH_PRESETS.sorted(), NiriLayout.WIDTH_PRESETS)
-        assertEquals(NiriLayout.WIDTH_PRESETS.size, NiriLayout.WIDTH_PRESET_KEYS.size)
-        assertContains(NiriLayout.WIDTH_PRESETS.indices, NiriLayout.DEFAULT_WIDTH_INDEX)
-    }
-
-    /** Even on a viewport too small for the fraction, a column keeps a usable minimum. */
+    /** Even on a viewport too small for the gaps it wants, a window keeps a usable minimum. */
     @Test
     fun narrowViewportKeepsAMinimumColumnWidth() {
         val layout = layout(Size(320.0, 240.0))
-        val column = NiriColumn(UUID.randomUUID(), 0)
 
-        assertTrue(layout.width(column) >= 280.0)
+        assertTrue(layout.columnWidth >= 280.0)
         assertTrue(layout.columnHeight >= 200.0)
     }
 }

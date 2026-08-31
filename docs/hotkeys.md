@@ -13,8 +13,6 @@ row is backed by a menu item or a view — the file is named so nothing here can
 | `⌥Home` `⌥End` | first / last window in the strip |
 | `⌥↑` `⌥↓` | focus the workspace above / below |
 | `⌥⇧↑` `⌥⇧↓` | move the window to the workspace above / below (and follow it) |
-| `⌥R` / `⌥⇧R` | wider / narrower — every window steps one preset (½, ⅔, peek, full), stopping at the ends; the current one is checked in the menu |
-| `⌥F` | compact width — this window at the widest tiled preset, the gaps still there; again to go back |
 | `⌥W` | full window — the page fills the window under the top bar; again to leave |
 | `⌥⇧F` | fullscreen — the page edge to edge, `⌥←` `⌥→` still walk the strip; again or `Esc` to leave |
 | `⌥O` | overview on / off; `Esc` also leaves it |
@@ -98,8 +96,7 @@ row is backed by a menu item or a view — the file is named so nothing here can
 
 ## Notes
 
-- Because the Layout menu owns `⌥R` / `⌥F` / `⌥W` / `⌥O` / `⌥C`, those `⌥`+letter characters can't be typed into the
-  address field.
+- Because the Layout menu owns `⌥W` / `⌥O` / `⌥C`, those `⌥`+letter characters can't be typed into the address field.
 - To move the whole layout set to another modifier, change `NiriScrollMonitor.modifier` and the matching
   `.keyboardShortcut` modifiers in `LayoutCommands`.
 - A web view that is first responder gets key equivalents before the menu bar, and keeps `⌥←` / `⌥→` (word

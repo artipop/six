@@ -96,7 +96,7 @@ class StripAxisTest {
             val axis = StripAxis.of(viewport)
             val layout = NiriLayout().updateViewport(axis.stripSpace(viewport))
             val workspace = NiriWorkspace(
-                columns = List(4) { NiriColumn(UUID.randomUUID(), it % NiriLayout.WIDTH_PRESETS.size) },
+                columns = List(4) { NiriColumn(UUID.randomUUID()) },
             )
 
             for (frame in layout.columnFrames(workspace).map { axis.screenRect(it) }) {

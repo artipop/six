@@ -89,7 +89,6 @@ final class BrowserState {
         self.devTools = devTools
         self.permissions = permissions
         layout.centersFocus = settings.centersFocus
-        layout.preferredWidthIndex = settings.columnWidthIndex
         var loaded = snapshot?.profiles ?? Self.legacyProfiles() ?? Profile.defaults
         if loaded.isEmpty { loaded = Profile.defaults }
         profiles = loaded
@@ -99,7 +98,6 @@ final class BrowserState {
         if let snapshot { restore(snapshot) }
         research = (snapshot?.research ?? []).filter { run in tabs.contains { $0.id == run.documentTabID } }
         for i in research.indices { research[i].isRunning = false } // nothing survives a relaunch mid-turn
-        layout.setPreferredWidth(settings.columnWidthIndex) // one width everywhere, whatever the file says
         if layout.hasColumns { syncSelection() } else { newTab() }
         pages.setBudget(settings.livePageBudget)
         thumbnails.prune(keeping: Set(tabs.map(\.id))) // windows closed in a launch that never cleaned up
@@ -926,16 +924,6 @@ final class BrowserState {
     func focusColumn(_ delta: Int) { animateLayout { layout.focusColumn(delta) } }
     func focusColumnEdge(last: Bool) { animateLayout { layout.focusColumnEdge(last: last) } }
     func moveColumn(_ delta: Int) { animateLayout { layout.moveColumn(delta) } }
-    func stepColumnWidth(_ delta: Int) {
-        animateLayout { layout.stepColumnWidth(delta) }
-        settings.columnWidthIndex = layout.preferredWidthIndex
-    }
-
-    func setColumnWidth(_ index: Int) {
-        animateLayout { layout.setPreferredWidth(index) }
-        settings.columnWidthIndex = layout.preferredWidthIndex
-    }
-    func toggleCompactWidth() { animateLayout { layout.toggleCompactWidth() } }
     func focusWorkspace(_ delta: Int) { animateLayout { layout.focusWorkspace(delta) } }
     func focusWorkspace(at index: Int) { animateLayout { layout.focusWorkspace(at: index) } }
     func moveColumnToWorkspace(_ delta: Int) { animateLayout { layout.moveColumnToWorkspace(delta) } }

@@ -793,29 +793,10 @@ private struct StripMenu: View {
         Toggle("Full Window", isOn: Binding(get: { browser.layout.fill == .window }, set: { _ in browser.toggleFullWindow() }))
         Toggle("Fullscreen", isOn: Binding(get: { browser.layout.fill == .screen }, set: { _ in browser.toggleFullscreen() }))
         Divider()
-        ColumnWidthPicker()
-        Divider()
         Toggle("Center Focused Window", isOn: Binding(
             get: { browser.layout.centersFocus },
             set: { _ in browser.toggleCenterFocus() }
         ))
-    }
-}
-
-/// The shared width preset, with the current one checked — the same list as in the Layout menu.
-struct ColumnWidthPicker: View {
-    @Environment(BrowserState.self) private var browser
-
-    var body: some View {
-        Picker("Column Width", selection: Binding(
-            get: { browser.layout.preferredWidthIndex },
-            set: { browser.setColumnWidth($0) }
-        )) {
-            ForEach(Array(NiriLayout.widthPresetTitles.enumerated()), id: \.offset) { index, title in
-                Text(title).tag(index)
-            }
-        }
-        .pickerStyle(.inline)
     }
 }
 
@@ -832,12 +813,6 @@ struct ColumnMenu: View {
         Button("New Document") { browser.newDocument() }
         Button("Close Window") { browser.closeTab(tab.id) }
         Divider()
-        ColumnWidthPicker()
-        Divider()
-        Toggle("Compact Width", isOn: Binding(
-            get: { browser.layout.isFullWidth(tabID: tab.id) },
-            set: { _ in browser.selectTab(tab.id); browser.toggleCompactWidth() }
-        ))
         Toggle("Full Window", isOn: Binding(
             get: { browser.layout.fill == .window && browser.selectedTabID == tab.id },
             set: { _ in browser.selectTab(tab.id); browser.toggleFullWindow() }

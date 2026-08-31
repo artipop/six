@@ -294,13 +294,6 @@ private struct LayoutModeButton: View {
             }
             .pickerStyle(.inline)
             Divider()
-            ColumnWidthPicker()
-            Toggle("Compact Width (⌥F)", isOn: Binding(
-                get: { layout.focusedColumnIsFullWidth },
-                set: { _ in browser.toggleCompactWidth() }
-            ))
-            .disabled(layout.fillsViewport)
-            Divider()
             Toggle("Overview (⌥O)", isOn: Binding(get: { layout.isOverview }, set: { _ in browser.toggleOverview() }))
             Toggle("Centre Focused Window (⌥C)", isOn: Binding(
                 get: { layout.centersFocus },

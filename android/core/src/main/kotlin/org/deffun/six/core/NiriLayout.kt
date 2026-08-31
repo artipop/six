@@ -29,9 +29,9 @@ import kotlin.math.round
  *   eases belongs to whoever draws it. On the Mac that is SwiftUI's `withAnimation`; here it is an
  *   `Animatable` in the composable, so `peek()` — the strip's lean to the right when a window opens
  *   behind — lives in the UI layer and writes [horizontalPreview] the same way a gesture does.
- * - **Display strings.** `widthPresetTitles` and `title(at:)` return localised text on the Mac.
- *   Android localises through `strings.xml`, so [WIDTH_PRESET_KEYS] are keys and [workspaceName]
- *   returns null rather than inventing "Workspace 3" — the same split the Linux front already makes.
+ * - **Display strings.** `title(at:)` returns localised text on the Mac. Android localises through
+ *   `strings.xml`, so [workspaceName] returns null rather than inventing "Workspace 3" — the same
+ *   split the Linux front already makes.
  */
 data class NiriLayout(
     val viewport: Size = Size(1280.0, 800.0),
@@ -46,11 +46,6 @@ data class NiriLayout(
      * scrolling as little as possible. Off means the strip only moves when focus would fall off it.
      */
     val centersFocus: Boolean = true,
-    /**
-     * The preset every window uses; new windows open with it. Unlike niri this is one value for the
-     * whole app, not per column — a strip where each window has its own width reads as a mess.
-     */
-    val preferredWidthIndex: Int = DEFAULT_WIDTH_INDEX,
     /** Rubber-band offsets while a gesture is still below the switch threshold. */
     val verticalPreview: Double = 0.0,
     val horizontalPreview: Double = 0.0,
@@ -59,17 +54,6 @@ data class NiriLayout(
 ) {
 
     companion object {
-        /**
-         * Column widths, as a fraction of the working area — niri's `preset-column-widths`. The
-         * default is "almost full": a normal browser window, with the next one peeking in at the edge.
-         */
-        val WIDTH_PRESETS = listOf(0.5, 2.0 / 3.0, 0.88, 1.0)
-
-        /** Keys for the presets, in the same order; the UI resolves them against `strings.xml`. */
-        val WIDTH_PRESET_KEYS = listOf("half", "two_thirds", "peek", "full")
-
-        const val DEFAULT_WIDTH_INDEX = 2
-
         /**
          * Gaps are a fraction of the viewport, not a pixel count: the layout should look the same on
          * a phone and on a tablet. The floor only guards tiny windows. (Control metrics — title bar
@@ -99,7 +83,6 @@ data class NiriLayout(
          */
         const val DRAG_COMMIT_FRACTION = 0.12
 
-        private const val MINIMUM_USABLE_WIDTH = 360.0
         private const val MINIMUM_COLUMN_WIDTH = 280.0
         private const val MINIMUM_COLUMN_HEIGHT = 200.0
     }
@@ -161,10 +144,6 @@ data class NiriLayout(
 
     val outerGap: Double get() = gap
 
-    /** Working area, with one gap folded in so N columns of 1/N exactly fill the screen. */
-    private val usableWidth: Double
-        get() = max(MINIMUM_USABLE_WIDTH, viewport.width - 2 * outerGap + gap)
-
     val columnHeight: Double
         get() = max(MINIMUM_COLUMN_HEIGHT, viewport.height - 2 * outerGap)
 
@@ -185,30 +164,31 @@ data class NiriLayout(
     val visibleWidth: Double get() = viewport.width / overviewScale
 
     /**
-     * Filling overrides the preset without touching it: the widths are all still there on the way out.
+     * One window, one screen. Every column in the strip is this wide — the viewport with the outer
+     * gaps taken off it — and filling takes the gaps too, so the difference between the three ways of
+     * showing a window is a gap and a corner radius, never a fraction of the page.
      */
-    fun width(column: NiriColumn): Double {
-        if (fillsViewport) return viewport.width
-        val fraction = WIDTH_PRESETS[column.widthIndex.coerceIn(0, WIDTH_PRESETS.size - 1)]
-        return max(MINIMUM_COLUMN_WIDTH, usableWidth * fraction - gap)
-    }
+    val columnWidth: Double
+        get() {
+            if (fillsViewport) return viewport.width
+            return max(MINIMUM_COLUMN_WIDTH, viewport.width - 2 * outerGap)
+        }
 
     /** Column rectangles in content space (x grows along the strip, origin at the strip's start). */
     fun columnFrames(workspace: NiriWorkspace): List<Rect> {
         val frames = ArrayList<Rect>(workspace.columns.size)
         var x = outerGap
         for (column in workspace.columns) {
-            val w = width(column)
-            frames.add(Rect(x = x, y = outerGap, width = w, height = columnHeight))
-            x += w + gap
+            frames.add(Rect(x = x, y = outerGap, width = columnWidth, height = columnHeight))
+            x += columnWidth + gap
         }
         return frames
     }
 
     fun contentWidth(workspace: NiriWorkspace): Double {
         if (workspace.columns.isEmpty()) return 0.0
-        val widths = workspace.columns.sumOf { width(it) }
-        return widths + gap * (workspace.columns.size - 1) + 2 * outerGap
+        val count = workspace.columns.size
+        return columnWidth * count + gap * (count - 1) + 2 * outerGap
     }
 
     /**
@@ -409,7 +389,7 @@ data class NiriLayout(
         val index = if (ws.columns.isEmpty()) 0 else ws.focus + 1
         val at = min(index, ws.columns.size)
         var next = ws.copy(
-            columns = ws.columns.inserting(at, NiriColumn(tabId, preferredWidthIndex)),
+            columns = ws.columns.inserting(at, NiriColumn(tabId)),
         )
         if (!focus) return@mutate s.copy(workspaces = s.workspaces.replacing(target, next))
         next = scrollFocusIntoView(next.copy(focus = min(at, next.columns.size - 1)))
@@ -484,53 +464,6 @@ data class NiriLayout(
             )
             s.copy(workspaces = workspaces)
         }
-
-    /** One preset wider or narrower, for every window in every strip. Stops at the ends. */
-    fun stepColumnWidth(delta: Int): NiriLayout = setPreferredWidth(preferredWidthIndex + delta)
-
-    /** Applies a preset to every window everywhere (a restored setting, or the width action). */
-    fun setPreferredWidth(index: Int): NiriLayout {
-        val clamped = index.coerceIn(0, WIDTH_PRESETS.size - 1)
-        var result = copy(preferredWidthIndex = clamped)
-        for (profileId in strips.keys.toList()) {
-            result = result.mutate(profileId) { s ->
-                s.copy(
-                    workspaces = s.workspaces.map { ws ->
-                        result.scrollFocusIntoView(
-                            ws.copy(columns = ws.columns.map { it.copy(widthIndex = clamped) }),
-                        )
-                    },
-                )
-            }
-        }
-        return result
-    }
-
-    /** Is this window at the widest preset (compact width)? */
-    fun isFullWidth(tabId: UUID): Boolean =
-        strip.workspaces.asSequence().flatMap { it.columns }
-            .firstOrNull { it.tabId == tabId }?.widthIndex == WIDTH_PRESETS.size - 1
-
-    val focusedColumnIsFullWidth: Boolean
-        get() = focusedWorkspace?.focusedColumn?.widthIndex == WIDTH_PRESETS.size - 1
-
-    /**
-     * niri's "maximize column": the widest preset, or back to the default. Still tiled — the gaps and
-     * the title bar stay, which is what makes it the compact one next to [NiriFill.WINDOW].
-     */
-    fun toggleCompactWidth(): NiriLayout = mutateFocusedWorkspace { ws ->
-        if (ws.focus !in ws.columns.indices) return@mutateFocusedWorkspace ws
-        val full = WIDTH_PRESETS.size - 1
-        // Back to the shared preset — unless that is the full width itself, then to the default, so
-        // the toggle always has somewhere to go.
-        val narrow = if (preferredWidthIndex == full) DEFAULT_WIDTH_INDEX else preferredWidthIndex
-        val current = ws.columns[ws.focus]
-        val columns = ws.columns.replacing(
-            ws.focus,
-            current.copy(widthIndex = if (current.widthIndex == full) narrow else full),
-        )
-        scrollFocusIntoView(ws.copy(columns = columns))
-    }
 
     // MARK: - Strip scrolling
 

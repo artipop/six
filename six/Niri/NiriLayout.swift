@@ -22,7 +22,6 @@ func withAnimation<Result>(_ animation: Animation? = nil, _ body: () throws -> R
 /// One window in the strip: a tab plus its niri-style sizing.
 nonisolated struct NiriColumn: Identifiable, Hashable, Sendable, Codable {
     var tabID: UUID
-    var widthIndex: Int = NiriLayout.defaultWidthIndex
     var id: UUID { tabID }
 }
 
@@ -41,10 +40,13 @@ nonisolated struct NiriWorkspace: Identifiable, Sendable, Codable {
     var focusedColumn: NiriColumn? { columns.indices.contains(focus) ? columns[focus] : nil }
 }
 
-/// How much room the focused window is given. The widths in `widthPresets` are the tiled case; the
-/// other two step outside the tiling entirely, and the strip goes on working underneath both.
+/// How much room the focused window is given, and the whole of what there is to choose. A window is
+/// a screen's worth of page in all three: the strip leaves it the gaps it needs to read as a card in
+/// a row of them, the other two take even those away. There is deliberately nothing smaller — a
+/// browser window at two thirds of a screen is a page with a hole beside it, and choosing between
+/// four fractions of one is a decision nobody asked for.
 nonisolated enum NiriFill: String, Sendable, Codable {
-    /// The strip as usual: gaps, title bars, and the width the column's preset asks for.
+    /// The strip as usual: the gaps, and a window as wide as the screen leaves room for.
     case tiled
     /// The page fills the window under the top bar — no gaps, no title bar. The layout's own controls
     /// stay where they are.
@@ -95,20 +97,6 @@ nonisolated struct NiriStrip: Sendable, Codable {
 @MainActor
 @Observable
 final class NiriLayout {
-    /// Column widths, as a fraction of the working area — same idea as niri's `preset-column-widths`.
-    /// The default is "almost full": a normal browser window, with the next one peeking in at the edge.
-    static let widthPresets: [CGFloat] = [0.5, 2.0 / 3.0, 0.88, 1.0]
-    /// Menu names for the presets, in the same order.
-    static var widthPresetTitles: [String] {
-        #if os(Linux)
-        // `String(localized:)` is Apple Foundation's; the strings catalog is Apple's too. A GTK
-        // front localises through gettext, so these are the keys and it translates them itself.
-        ["Half", "Two Thirds", "Peek", "Full"]
-        #else
-        [String(localized: "Half"), String(localized: "Two Thirds"), String(localized: "Peek"), String(localized: "Full")]
-        #endif
-    }
-    nonisolated static let defaultWidthIndex = 2
     /// Gaps are a fraction of the viewport, not a pixel count: the layout should look the same on a
     /// laptop and on a 5K panel. The floor only guards tiny windows. (Control metrics — title bar
     /// heights, buttons, corner radii — stay in points, because text and controls don't scale either.)
@@ -153,10 +141,6 @@ final class NiriLayout {
     /// scrolling as little as possible. Off means the strip only moves when the focus would fall off it.
     /// Set from settings by `BrowserState`, which also writes the toggle back.
     var centersFocus = true
-    /// The preset every window uses (⌥R cycles it for all of them at once); new windows open with
-    /// it. Unlike niri this is one value for the whole app, not per column — a strip where each
-    /// window has its own width reads as a mess. Compact width (⌥F) still widens one window against it.
-    var preferredWidthIndex = NiriLayout.defaultWidthIndex
     /// Rubber-band offsets while a scroll gesture is still below the switch threshold.
     var verticalPreview: CGFloat = 0
     var horizontalPreview: CGFloat = 0
@@ -301,17 +285,14 @@ final class NiriLayout {
     var gap: CGFloat { fillsViewport ? 0 : max(Self.minimumGap, (viewport.width * Self.gapFraction).rounded()) }
     var outerGap: CGFloat { gap }
 
-    /// Working area, with one gap folded in so N columns of 1/N exactly fill the screen.
-    private var usableWidth: CGFloat { max(360, viewport.width - 2 * outerGap + gap) }
-
     var columnHeight: CGFloat { max(200, viewport.height - 2 * outerGap) }
 
-    func width(of column: NiriColumn) -> CGFloat {
-        // Filling overrides the preset without touching it: the widths are all still there on the way
-        // out.
+    /// One window, one screen. Every column in the strip is this wide — the viewport with the outer
+    /// gaps taken off it — and filling takes the gaps too, so the difference between the three ways
+    /// of showing a window is a gap and a corner radius, never a fraction of the page.
+    var columnWidth: CGFloat {
         guard !fillsViewport else { return viewport.width }
-        let fraction = Self.widthPresets[min(max(0, column.widthIndex), Self.widthPresets.count - 1)]
-        return max(280, usableWidth * fraction - gap)
+        return max(280, viewport.width - 2 * outerGap)
     }
 
     /// The windows the strip is actually showing: the focused workspace's columns that fall inside the
@@ -345,18 +326,17 @@ final class NiriLayout {
     func columnFrames(_ columns: [NiriColumn]) -> [CGRect] {
         var frames: [CGRect] = []
         var x = outerGap
-        for column in columns {
-            let w = width(of: column)
-            frames.append(CGRect(x: x, y: outerGap, width: w, height: columnHeight))
-            x += w + gap
+        for _ in columns {
+            frames.append(CGRect(x: x, y: outerGap, width: columnWidth, height: columnHeight))
+            x += columnWidth + gap
         }
         return frames
     }
 
     func contentWidth(_ workspace: NiriWorkspace) -> CGFloat {
         guard !workspace.columns.isEmpty else { return 0 }
-        let widths = workspace.columns.reduce(CGFloat.zero) { $0 + width(of: $1) }
-        return widths + gap * CGFloat(workspace.columns.count - 1) + 2 * outerGap
+        let count = CGFloat(workspace.columns.count)
+        return columnWidth * count + gap * (count - 1) + 2 * outerGap
     }
 
     /// Where a workspace's row sits on the canvas: the focused one is at zero, the others a screen
@@ -497,11 +477,6 @@ final class NiriLayout {
 
     // MARK: Looking ahead at a window that isn't there yet
 
-    /// The width a new window would open at — the shared preset, the same one it will actually get.
-    var newColumnWidth: CGFloat {
-        width(of: NiriColumn(tabID: UUID(), widthIndex: preferredWidthIndex))
-    }
-
     /// How far the strip leans while a `+` is under the pointer: exactly as far as it leans to show a
     /// window that opened behind (`peek`), and never further than the window it is revealing is wide.
     /// One distance for both, because they are the same sentence — *there is something over here* —
@@ -511,7 +486,7 @@ final class NiriLayout {
     /// leaning towards the far end of the strip is a negative number.
     var newColumnLean: CGFloat {
         guard newColumnHover != 0, newColumnFrame != nil else { return 0 }
-        let amount = min(newColumnWidth + gap, peekAmount)
+        let amount = min(columnWidth + gap, peekAmount)
         return newColumnHover > 0 ? -amount : amount
     }
 
@@ -521,7 +496,7 @@ final class NiriLayout {
     var newColumnFrame: CGRect? {
         guard newColumnHover != 0, !isOverview, let workspace = focusedWorkspace, !workspace.isEmpty else { return nil }
         let frames = columnFrames(workspace.columns)
-        let width = newColumnWidth
+        let width = columnWidth
         let x: CGFloat
         if newColumnHover > 0 {
             x = (frames.last?.maxX ?? outerGap) + gap
@@ -548,7 +523,7 @@ final class NiriLayout {
             guard s.workspaces.indices.contains(s.focus) else { return }
             var ws = s.workspaces[s.focus]
             let index = insertionIndex(in: ws, on: side)
-            ws.columns.insert(NiriColumn(tabID: tabID, widthIndex: preferredWidthIndex), at: min(index, ws.columns.count))
+            ws.columns.insert(NiriColumn(tabID: tabID), at: min(index, ws.columns.count))
             ws.focus = min(index, ws.columns.count - 1)
             scrollFocusIntoView(&ws)
             s.workspaces[s.focus] = ws
@@ -572,7 +547,7 @@ final class NiriLayout {
             guard s.workspaces.indices.contains(target) else { return }
             var ws = s.workspaces[target]
             let index = insertionIndex(in: ws, on: side)
-            ws.columns.insert(NiriColumn(tabID: tabID, widthIndex: preferredWidthIndex), at: min(index, ws.columns.count))
+            ws.columns.insert(NiriColumn(tabID: tabID), at: min(index, ws.columns.count))
             if focus {
                 ws.focus = min(index, ws.columns.count - 1)
                 scrollFocusIntoView(&ws)
@@ -804,52 +779,6 @@ final class NiriLayout {
             moved = true
         }
         return moved
-    }
-
-    /// One preset wider or narrower, for every window in every strip. Stops at the ends — no
-    /// wrapping around, so the key always does what its name says.
-    func stepColumnWidth(_ delta: Int) {
-        setPreferredWidth(preferredWidthIndex + delta)
-    }
-
-    /// Is this window at the widest preset (compact width)?
-    func isFullWidth(tabID: UUID) -> Bool {
-        strip.workspaces.lazy.flatMap(\.columns).first { $0.tabID == tabID }?.widthIndex == Self.widthPresets.count - 1
-    }
-
-    /// Is the focused window at the widest preset (compact width)?
-    var focusedColumnIsFullWidth: Bool {
-        focusedWorkspace?.focusedColumn?.widthIndex == Self.widthPresets.count - 1
-    }
-
-    /// Applies a preset to every window everywhere (a restored setting, or ⌥R).
-    func setPreferredWidth(_ index: Int) {
-        preferredWidthIndex = min(max(0, index), Self.widthPresets.count - 1)
-        for profile in strips.keys {
-            mutate(profile: profile) { s in
-                for w in s.workspaces.indices {
-                    for c in s.workspaces[w].columns.indices { s.workspaces[w].columns[c].widthIndex = preferredWidthIndex }
-                    scrollFocusIntoView(&s.workspaces[w])
-                }
-            }
-        }
-    }
-
-    /// niri's "maximize column": the widest preset, or back to the default. Still tiled — the gaps and
-    /// the title bar stay, which is what makes it the compact one next to `NiriFill.window`.
-    func toggleCompactWidth() {
-        mutate { s in
-            guard s.workspaces.indices.contains(s.focus) else { return }
-            var ws = s.workspaces[s.focus]
-            guard ws.columns.indices.contains(ws.focus) else { return }
-            let full = Self.widthPresets.count - 1
-            // Back to the shared preset — unless that is the full width itself, then to the default,
-            // so the toggle always has somewhere to go.
-            let narrow = preferredWidthIndex == full ? Self.defaultWidthIndex : preferredWidthIndex
-            ws.columns[ws.focus].widthIndex = ws.columns[ws.focus].widthIndex == full ? narrow : full
-            scrollFocusIntoView(&ws)
-            s.workspaces[s.focus] = ws
-        }
     }
 
     // MARK: Strip scrolling

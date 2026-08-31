@@ -11,7 +11,7 @@ import kotlin.test.assertTrue
  * The numbers, not the intent.
  *
  * [NiriLayoutGeometryTest] is the Mac's suite ported test for test, and it checks that the *rules*
- * hold — N columns of 1/N fill the screen, gaps scale, frames and content width agree. Two
+ * hold — a window is the screen less its gaps, gaps scale, frames and content width agree. Two
  * implementations can satisfy every one of those rules and still lay a strip out differently, and
  * that failure is silent: the strip simply loses its place when the same `state.json` is opened on
  * the other device.
@@ -32,7 +32,7 @@ class NiriLayoutGoldenTest {
         val viewport: Size,
         val gap: Double,
         val columnHeight: Double,
-        val widths: List<Double>,
+        val columnWidth: Double,
         val frames: List<Rect>,
         val contentWidth: Double,
     )
@@ -57,7 +57,7 @@ class NiriLayoutGoldenTest {
         var viewport = Size(0.0, 0.0)
         var gap = 0.0
         var columnHeight = 0.0
-        var widths = emptyList<Double>()
+        var columnWidth = 0.0
         var frames = emptyList<Rect>()
 
         for (raw in text.lineSequence()) {
@@ -71,14 +71,14 @@ class NiriLayoutGoldenTest {
                 }
                 "gap" -> gap = parts[1].toDouble()
                 "columnHeight" -> columnHeight = parts[1].toDouble()
-                "widths" -> widths = parts.drop(1).map { it.toDouble() }
+                "columnWidth" -> columnWidth = parts[1].toDouble()
                 "frames" -> frames = parts.drop(1).map { spec ->
                     val n = spec.split(",").map { it.toDouble() }
                     Rect(n[0], n[1], n[2], n[3])
                 }
                 // `contentWidth` closes a case: everything before it has been read.
                 "contentWidth" -> cases.add(
-                    Case(name, viewport, gap, columnHeight, widths, frames, parts[1].toDouble()),
+                    Case(name, viewport, gap, columnHeight, columnWidth, frames, parts[1].toDouble()),
                 )
                 else -> error("unexpected line in niri-golden.txt: $line")
             }
@@ -86,8 +86,8 @@ class NiriLayoutGoldenTest {
         return cases
     }
 
-    /** The frames in the table are for this shape, and the generator uses the same one. */
-    private val goldenWidthIndices = listOf(0, 2, 3, 1)
+    /** The frames in the table are for a strip of this many windows, as in the generator. */
+    private val goldenColumnCount = 4
 
     @Test
     fun kotlinComputesTheMacsGeometry() {
@@ -101,14 +101,10 @@ class NiriLayoutGoldenTest {
             assertClose(case.gap, layout.outerGap, "${case.name} outerGap")
             assertClose(case.columnHeight, layout.columnHeight, "${case.name} columnHeight")
 
-            assertEquals(NiriLayout.WIDTH_PRESETS.size, case.widths.size, "${case.name} preset count")
-            case.widths.forEachIndexed { index, expected ->
-                val actual = layout.width(NiriColumn(UUID.randomUUID(), index))
-                assertClose(expected, actual, "${case.name} width[$index]")
-            }
+            assertClose(case.columnWidth, layout.columnWidth, "${case.name} columnWidth")
 
             val workspace = NiriWorkspace(
-                columns = goldenWidthIndices.map { NiriColumn(UUID.randomUUID(), it) },
+                columns = List(goldenColumnCount) { NiriColumn(UUID.randomUUID()) },
             )
             val computed = layout.columnFrames(workspace)
             assertEquals(case.frames.size, computed.size, "${case.name} frame count")
@@ -135,10 +131,7 @@ class NiriLayoutGoldenTest {
 
         val tiny = assertNotNull(cases["tiny"], "no `tiny` case")
         assertEquals(NiriLayout.MINIMUM_GAP, tiny.gap, "the gap floor is not exercised any more")
-        assertTrue(
-            tiny.widths.any { it == 280.0 },
-            "the column-width floor is not exercised any more",
-        )
+        assertEquals(280.0, tiny.columnWidth, "the column-width floor is not exercised any more")
 
         val portrait = assertNotNull(cases["phone-portrait"], "no `phone-portrait` case")
         val landscape = assertNotNull(cases["phone-landscape"], "no `phone-landscape` case")

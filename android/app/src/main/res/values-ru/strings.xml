@@ -17,11 +17,6 @@
     <string name="cancel">Отмена</string>
     <string name="history_empty">Пока пусто</string>
 
-    <string name="width_half">Половина</string>
-    <string name="width_two_thirds">Две трети</string>
-    <string name="width_peek">Почти во всю</string>
-    <string name="width_full">Во всю ширину</string>
-
     <string name="address_hint">Поиск или адрес</string>
     <string name="start_page_title">Новое окно</string>
     <string name="permission_camera">камеру</string>

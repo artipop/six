@@ -23,7 +23,7 @@ two. See [linux.md](linux.md).*
 ```
 NiriStrip     workspaces: [NiriWorkspace], focus: Int      // one per profile
 NiriWorkspace name: String, columns: [NiriColumn], focus: Int, viewOffset: CGFloat
-NiriColumn    tabID: UUID, widthIndex: Int                 // points at a BrowserTab
+NiriColumn    tabID: UUID                                 // points at a BrowserTab
 ```
 
 Every mutation goes through `mutate { }`, which runs `normalize` afterwards, so the invariants hold by construction:
@@ -35,17 +35,17 @@ Every mutation goes through `mutate { }`, which runs `normalize` afterwards, so 
 ## Geometry
 
 **Everything here is a fraction of the viewport, never a pixel count** — the layout has to read the same on a laptop
-and on a 5K panel. Widths are fractions of the working area (`widthPresets = [0.5, 2/3, 0.88, 1.0]`, default `0.88`). The
-preset is one value for the whole app (`preferredWidthIndex`, kept in settings): `⌥R` / `⌥⇧R` step it wider / narrower for every window in every
-strip, and new windows open with it — unlike niri, where each column has its own; a strip of mixed widths reads as a mess.
-gaps are `gapFraction` (1 % of the width), the vertical space between workspaces is `workspaceGapFraction` (2 % of the
-height). The absolute numbers left in the file are floors (`minimumGap`, the 280 pt minimum column) that only matter
-in a tiny window. Control metrics — title bar heights, button sizes, corner radii — deliberately stay in points, since
-text and controls don't scale with the screen either.
+and on a 5K panel. Gaps are `gapFraction` (1 % of the width), the vertical space between workspaces is
+`workspaceGapFraction` (2 % of the height). The absolute numbers left in the file are floors (`minimumGap`, the 280 pt
+minimum column) that only matter in a tiny window. Control metrics — title bar heights, button sizes, corner radii —
+deliberately stay in points, since text and controls don't scale with the screen either.
 
-So the default column keeps ~7 % of the screen visible of each neighbour at any size: 89 pt at 1280 wide, 178 pt at
-2560, 238 pt at 3440. One gap is folded into `usableWidth`, so N columns of `1/N` fill the screen exactly, and a strip
-narrower than the viewport is centred instead of pinned left.
+**There is one width.** `columnWidth` is the viewport less its outer gaps, so exactly one window fits on the screen and
+the next one starts a screen away. niri's `preset-column-widths` — halves, two thirds, a strip of mixed widths — went,
+along with the compact-width toggle that widened one window against the rest: a browser window at two thirds of a
+screen is a page with a hole beside it, and choosing between four fractions of one is a decision nobody asked for.
+What is left is which of three ways a window is shown, and a strip narrower than the viewport is centred instead of
+pinned left.
 
 The focused column is **centred** by default (niri's `center-focused-column`), so both neighbours peek in by the same
 amount; while centring is on the strip may scroll until the first/last column reaches the middle, which is what lets
@@ -114,11 +114,12 @@ one click.
 
 ## Filling the window, and the screen
 
-Three steps, each one taking away more of what is not the page:
+Three ways of showing a window, each one taking away more of what is not the page — and the whole of what there is to
+choose:
 
 | | | |
 |---|---|---|
-| `⌥F` | **compact width** | the widest preset (`1.0`), still tiled: the outer gaps and the card stay |
+| — | **the strip** | the ordinary one: a window is the screen less its outer gaps, in a card with corners |
 | `⌥W` | **full window** | the page fills the window under the top bar — no gaps, no card, no corners. Also the layout button in the top bar: a click there fills and unfills |
 | `⌥⇧F` | **fullscreen** | the top bar goes too; only a bar hiding at the top edge comes back |
 
@@ -128,11 +129,11 @@ the overview is open, so it keeps its gaps and title bars and the mode returns w
 working underneath either one: `⌥←` `⌥→` walk from window to window and the next one arrives filled too, so a
 workspace reads like a stack of pages.
 
-The geometry is the ordinary one with two overrides: `gap` (and with it `outerGap`) is 0, and `width(of:)` returns the
-viewport width whatever the column's preset says — the presets are untouched, so leaving restores them. Every column
-being exactly one screen wide is what makes the alignment fall out for free: centred or not, the resolved offset of the
-focused column lands on a whole multiple of the viewport. Changing the mode changes every width, so `setFill`
-re-centres every strip, as `⌥C` and a resize do.
+The geometry is the ordinary one with two overrides: `gap` (and with it `outerGap`) is 0, and `columnWidth` is the
+whole viewport rather than the viewport less those gaps. So the difference between the three is a gap and a corner
+radius, never a fraction of the page. Every column being exactly one screen wide is what makes the alignment fall out
+for free: centred or not, the resolved offset of the focused column lands on a whole multiple of the viewport. Changing
+the mode changes every width, so `setFill` re-centres every strip, as `⌥C` and a resize do.
 
 Switching is deliberately **not** animated, unlike everything else the layout does. Every switch resizes every live
 page, and a web view changing size costs a hitch you can see — around 50 ms with three columns live. Running that

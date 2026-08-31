@@ -6,10 +6,11 @@ import Testing
 /// The strip's geometry, which is the part a second front end has to reproduce exactly.
 ///
 /// These are written against the *intent* stated in `NiriLayout`'s own comments rather than against
-/// the numbers it happens to produce today: that N columns of 1/N fill the screen, that gaps are a
-/// fraction of the viewport and not a point constant, and that the frames and the content width
-/// agree. A GTK front computing positions from `columnFrames()` inherits exactly these promises, so
-/// breaking one here is the thing that would silently desynchronise the two.
+/// the numbers it happens to produce today: that a window is a screen's worth of page and there is
+/// nothing narrower to choose, that gaps are a fraction of the viewport and not a point constant,
+/// and that the frames and the content width agree. A GTK front computing positions from
+/// `columnFrames()` inherits exactly these promises, so breaking one here is the thing that would
+/// silently desynchronise the two.
 @MainActor
 struct NiriLayoutGeometryTests {
 
@@ -19,30 +20,21 @@ struct NiriLayoutGeometryTests {
         return layout
     }
 
-    private func workspace(widths: [Int]) -> NiriWorkspace {
+    private func workspace(count: Int) -> NiriWorkspace {
         var workspace = NiriWorkspace()
-        workspace.columns = widths.map { NiriColumn(tabID: UUID(), widthIndex: $0) }
+        workspace.columns = (0..<count).map { _ in NiriColumn(tabID: UUID()) }
         return workspace
     }
 
     // MARK: The load-bearing invariant
 
-    /// `usableWidth` folds one gap in "so N columns of 1/N exactly fill the screen". That sentence is
-    /// the whole reason the arithmetic looks odd, so it is the first thing to pin down.
-    @Test(arguments: [
-        (index: 0, count: 2),  // 1/2
-        (index: 3, count: 1),  // 1/1
-    ])
-    func columnsOfOneOverNFillTheViewport(index: Int, count: Int) {
+    /// One window, one screen: a column is the viewport with the outer gaps taken off it, so exactly
+    /// one of them fits and the next one starts a screen away. There is no fraction to choose, which
+    /// is the whole of the width story.
+    @Test func aColumnIsTheScreenLessItsGaps() {
         let layout = layout()
-        let column = NiriColumn(tabID: UUID(), widthIndex: index)
-        let width = layout.width(of: column)
 
-        let occupied = width * CGFloat(count)
-            + layout.gap * CGFloat(count - 1)
-            + 2 * layout.outerGap
-
-        #expect(abs(occupied - layout.viewport.width) < 0.5)
+        #expect(abs(layout.columnWidth + 2 * layout.outerGap - layout.viewport.width) < 0.5)
     }
 
     // MARK: Gaps scale, they are not constants
@@ -69,14 +61,14 @@ struct NiriLayoutGeometryTests {
     /// column. A front end that lays columns out from this list depends on all of it.
     @Test func columnFramesAdvanceByWidthPlusGap() {
         let layout = layout()
-        let workspace = workspace(widths: [2, 0, 3, 2])
+        let workspace = workspace(count: 4)
         let frames = layout.columnFrames(workspace)
 
         #expect(frames.count == workspace.columns.count)
         #expect(frames.first?.minX == layout.outerGap)
 
         for (index, frame) in frames.enumerated() {
-            #expect(frame.width == layout.width(of: workspace.columns[index]))
+            #expect(frame.width == layout.columnWidth)
             #expect(frame.minY == layout.outerGap)
             #expect(frame.height == layout.columnHeight)
             if index > 0 {
@@ -90,7 +82,7 @@ struct NiriLayoutGeometryTests {
     /// uses the first to size its canvas and the second to place children inside it. They must agree.
     @Test func contentWidthAgreesWithTheFrames() {
         let layout = layout()
-        let workspace = workspace(widths: [0, 1, 2, 3, 2])
+        let workspace = workspace(count: 5)
         let frames = layout.columnFrames(workspace)
 
         let fromFrames = (frames.last?.maxX ?? 0) + layout.outerGap
@@ -105,22 +97,23 @@ struct NiriLayoutGeometryTests {
 
     // MARK: Fill modes
 
-    /// Filling overrides the preset without touching it: the widths are all still there on the way
-    /// out. Both halves of that sentence are tested — the override, and the restoration.
+    /// Filling takes the gaps and gives the page what they were holding, and gives them back on the
+    /// way out. That difference — a gap and a corner radius — is the whole of what the three modes
+    /// are about.
     @Test(arguments: [NiriFill.window, NiriFill.screen])
     func fillingTakesTheWholeViewportAndIsReversible(fill: NiriFill) {
         let layout = layout()
-        let column = NiriColumn(tabID: UUID(), widthIndex: 0)
-        let tiled = layout.width(of: column)
+        let tiled = layout.columnWidth
 
         layout.setFill(fill)
         #expect(layout.fillsViewport)
         #expect(layout.gap == 0)
-        #expect(layout.width(of: column) == layout.viewport.width)
+        #expect(layout.columnWidth == layout.viewport.width)
 
         layout.setFill(.tiled)
         #expect(!layout.fillsViewport)
-        #expect(layout.width(of: column) == tiled)
+        #expect(layout.columnWidth == tiled)
+        #expect(tiled < layout.viewport.width) // tiled is the same page with room to breathe
     }
 
     /// The overview is a way of looking at the strip, not a layout of its own, so it reports the
@@ -134,34 +127,13 @@ struct NiriLayoutGeometryTests {
         #expect(!layout.showsFullscreen)
     }
 
-    // MARK: Width presets
+    // MARK: Floors
 
-    /// A column asking for a preset outside the table is clamped rather than trapping — the index is
-    /// persisted state, and a file written by a future version must not crash an older one.
-    @Test(arguments: [-5, -1, 4, 99])
-    func outOfRangeWidthIndexIsClamped(index: Int) {
-        let layout = layout()
-        let column = NiriColumn(tabID: UUID(), widthIndex: index)
-        let width = layout.width(of: column)
-
-        let widths = NiriLayout.widthPresets.map {
-            layout.width(of: NiriColumn(tabID: UUID(), widthIndex: NiriLayout.widthPresets.firstIndex(of: $0)!))
-        }
-        #expect(widths.contains(width))
-    }
-
-    @Test func widthPresetsAreOrderedAndNamed() {
-        #expect(NiriLayout.widthPresets == NiriLayout.widthPresets.sorted())
-        #expect(NiriLayout.widthPresetTitles.count == NiriLayout.widthPresets.count)
-        #expect(NiriLayout.widthPresets.indices.contains(NiriLayout.defaultWidthIndex))
-    }
-
-    /// Even on a viewport too small for the fraction, a column keeps a usable minimum.
+    /// Even on a viewport too small for the gaps it wants, a window keeps a usable minimum.
     @Test func narrowViewportKeepsAMinimumColumnWidth() {
         let layout = layout(viewport: CGSize(width: 320, height: 240))
-        let column = NiriColumn(tabID: UUID(), widthIndex: 0)
 
-        #expect(layout.width(of: column) >= 280)
+        #expect(layout.columnWidth >= 280)
         #expect(layout.columnHeight >= 200)
     }
 }
