@@ -1,4 +1,10 @@
 import Foundation
+// On Linux `URLSession` and `HTTPURLResponse` live in a module of their own, and without this
+// `HTTPURLResponse` resolves to a bare `AnyObject` with no `statusCode` on it. Apple's Foundation
+// re-exports both, so the import is absent there rather than redundant.
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 /// The [official MCP Registry](https://registry.modelcontextprotocol.io) — the metadata index of
 /// public servers, kept by Anthropic, GitHub, PulseMCP and Microsoft.
