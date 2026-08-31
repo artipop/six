@@ -237,6 +237,16 @@
         }
       }
     },
+    "%@, swept %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, обход %2$@"
+          }
+        }
+      }
+    },
     "%lld bookmarks" : {
       "localizations" : {
         "en" : {

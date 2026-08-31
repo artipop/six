@@ -1,3 +1,7 @@
+// CryptoKit and the Keychain are Apple's, and PKCE needs both a SHA-256 and a source of
+// randomness. A front end on another platform would reach for swift-crypto here; until one
+// does, this whole file is simply absent there rather than half-ported.
+#if canImport(CryptoKit)
 import CryptoKit
 import Foundation
 
@@ -339,3 +343,4 @@ extension Data {
             .replacingOccurrences(of: "=", with: "")
     }
 }
+#endif

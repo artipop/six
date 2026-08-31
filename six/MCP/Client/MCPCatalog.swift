@@ -13,6 +13,8 @@ import Foundation
 nonisolated struct MCPCatalog: Codable, Sendable {
     /// When the sweep ran. An entry is a fact about a server on a day, not a promise about today.
     var generated: Date
+    /// Where the entries came from — the registry the sweep asked. An entry that came from
+    /// somewhere else says so itself; see `Entry.source`.
     var source: String
     var entries: [Entry]
 
@@ -23,16 +25,37 @@ nonisolated struct MCPCatalog: Codable, Sendable {
         var description: String
         /// The registry namespace, which is the provenance the registry actually verifies.
         var namespace: String
-        var url: URL
+        /// Where to post, for a server the sweep found. Absent for the other kind — see `command`.
+        var url: URL?
+        /// What to launch, for a server that is a process rather than an address.
+        ///
+        /// The sweep never writes one of these: it will not run somebody's code to find out what it
+        /// does. They are written by hand, for servers six knows carry an app because somebody
+        /// looked — and they name a program, never a path, because a path is true on one machine.
+        /// `MCPServerProcess` resolves it against the login shell's `PATH`, so a checkout that has
+        /// been `bun link`-ed or `npm link`-ed is on it and one that has not says so plainly.
+        var command: String?
+        var arguments: [String]?
         var websiteURL: URL?
+        /// Where this one came from, when it was not the sweep. Nil means the catalogue's own
+        /// `source`: the registry, asked on the day in `generated`. The entries that have to say
+        /// otherwise are the hand-written ones — a `command` is never something a sweep wrote, and
+        /// a list that does not distinguish "the registry published this" from "somebody here
+        /// added it" is a list nobody can audit.
+        var source: String?
         /// How many tools the server has, and how many of them draw a window.
         var tools: Int
         var apps: Int
         /// The tools that carry an interface, by name — what to open first.
         var appTools: [String]
 
+        /// Whether this is an address the sweep can ask again, or a process it must leave alone.
+        var isRemote: Bool { url != nil }
+
         var definition: MCPServerDefinition {
-            MCPServerDefinition(id: id, name: name, url: url)
+            if let url { return MCPServerDefinition(id: id, name: name, url: url) }
+            return MCPServerDefinition(id: id, name: name, command: command ?? "",
+                                       arguments: arguments ?? [])
         }
     }
 
@@ -79,8 +102,12 @@ nonisolated struct MCPCatalog: Codable, Sendable {
     /// Concurrent and deadlined, because most of them will not answer: a registry entry is a claim
     /// that a URL existed when somebody published it, and a good few are gone, moved, or waiting
     /// behind a sign-in. One that hangs must cost fifteen seconds, not the sweep.
+    ///
+    /// `keeping` is carried through untouched. The sweep only ever *asks* remote servers, so it can
+    /// only ever answer for them: a hand-written entry for a server that is a process is not a stale
+    /// observation the sweep refuted, it is one the sweep never made.
     static func sweep(limit: Int, query: String = "", concurrency: Int = 8,
-                      timeout: TimeInterval = 12,
+                      timeout: TimeInterval = 12, keeping: [Entry] = [],
                       report: @escaping @Sendable (String) -> Void) async throws -> MCPCatalog {
         let servers = try await MCPRegistry.all(limit: limit, search: query) { count in
             report("registry: \(count) servers")
@@ -88,8 +115,9 @@ nonisolated struct MCPCatalog: Codable, Sendable {
         let remote = servers.filter(\.isRemote)
         report("\(servers.count) servers, \(remote.count) of them remote; asking each")
 
-        var found: [Entry] = []
+        var found: [Entry] = keeping
         var asked = 0
+        if !keeping.isEmpty { report("keeping \(keeping.count) written by hand") }
         // Batches of independent `Task`s rather than a task group. Measured, not preferred: in the
         // command-line process that builds this file — no AppKit, no run loop, the main thread
         // parked on a semaphore — a `withTaskGroup` never scheduled a single child, while a plain

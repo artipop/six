@@ -172,9 +172,15 @@ struct MCPAppsView: View {
         }
     }
 
+    /// Where the list came from and when. Both, because an entry is a fact about a server on a
+    /// day, and the day on its own does not say who was asked.
     private var swept: String {
         guard apps.catalog.generated > .distantPast else { return "" }
-        return String(localized: "swept \(apps.catalog.generated.formatted(date: .abbreviated, time: .omitted))")
+        let day = apps.catalog.generated.formatted(date: .abbreviated, time: .omitted)
+        guard let host = URL(string: apps.catalog.source)?.host() else {
+            return String(localized: "swept \(day)")
+        }
+        return String(localized: "\(host), swept \(day)")
     }
 
 }
@@ -186,7 +192,11 @@ private struct MCPCatalogRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: "macwindow").foregroundStyle(.tint)
+            // A window either way, with the mark of a process on the ones that are one: adding a
+            // remote server is remembering an address, and adding a local one is agreeing to launch
+            // something. The row should not make those look like the same button.
+            Image(systemName: entry.isRemote ? "macwindow" : "terminal")
+                .foregroundStyle(.tint)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     Text(entry.name).lineLimit(1)
@@ -197,10 +207,17 @@ private struct MCPCatalogRow: View {
                 if !entry.description.isEmpty {
                     Text(entry.description).font(.caption).foregroundStyle(.secondary).lineLimit(2)
                 }
-                Text(entry.appTools.joined(separator: ", "))
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                    .lineLimit(1)
+                HStack(spacing: 6) {
+                    Text(entry.appTools.joined(separator: ", ")).lineLimit(1)
+                    // Only for an entry that did not come from the sweep the section header names.
+                    // Saying "registry" on all three hundred rows would be noise; saying nothing on
+                    // the one that somebody added by hand would be a list nobody can audit.
+                    if let source = entry.source {
+                        Text(source).foregroundStyle(.tint)
+                    }
+                }
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
             }
             Spacer(minLength: 8)
             if isAdded {

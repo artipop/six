@@ -4993,6 +4993,21 @@
       "namespace": "com.zernio",
       "tools": 52,
       "url": "https://mcp.zernio.com/mcp"
+    },
+    {
+      "appTools": [
+        "list_my_cards"
+      ],
+      "apps": 1,
+      "arguments": [],
+      "command": "kaiten-mcp",
+      "description": "Карточки Kaiten, назначенные на вас: доска в колонке, чеклисты и комментарии.",
+      "id": "kaiten",
+      "name": "Kaiten",
+      "namespace": "ru.kaiten",
+      "source": "by hand",
+      "tools": 14,
+      "websiteURL": "https://kaiten.ru"
     }
   ],
   "generated": "2026-08-30T16:20:43Z",

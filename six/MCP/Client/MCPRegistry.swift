@@ -87,7 +87,7 @@ nonisolated enum MCPRegistry {
 
     // MARK: Reading one entry
 
-    private static func entry(from json: ACPJSON) -> Entry? {
+    static func entry(from json: ACPJSON) -> Entry? {
         guard let name = json["name"]?.stringValue, !name.isEmpty else { return nil }
         // Only Streamable HTTP. The registry also lists `sse`, the transport MCP replaced; six does
         // not speak it, and pretending otherwise would list servers it cannot open.

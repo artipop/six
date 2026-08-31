@@ -81,7 +81,17 @@ let package = Package(
                 "Translation/TranslationSegment.swift",
                 "Translation/TranslationBatch.swift",
                 "Translation/TranslationScript.swift",
-                "Translation/PageTranslator.swift"
+                "Translation/PageTranslator.swift",
+                // The wire, and only the wire. JSON-RPC's own two types, the shape of an MCP
+                // server's answers, and the registry that lists servers: text in, values out, no
+                // window and no process. What six *does* with an app — the scheme handler, the
+                // session, the store — is WebKit and AppKit and stays in the app target. This much
+                // is the same conversation on any platform, and it is the half worth a test.
+                "ACP/ACPJSON.swift",
+                "ACP/JSONRPCError.swift",
+                "MCP/Client/MCPAppTypes.swift",
+                "MCP/Client/MCPRegistry.swift",
+                "MCP/Client/MCPOAuth.swift"
                 //
                 // `SettingsStore` is in only because it was untangled first: it used to decode six
                 // subsystems' types out of the settings table, so taking it would have dragged most

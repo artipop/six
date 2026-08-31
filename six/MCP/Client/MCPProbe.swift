@@ -112,9 +112,17 @@ nonisolated enum MCPProbe {
             }
             index += 1
         }
+        // What is already in the file six is about to overwrite, minus everything the sweep is
+        // about to establish for itself. A hand-written entry — a server that is a command rather
+        // than an address — is not something the registry can be asked about, so a sweep that
+        // dropped it would silently delete work nobody told it to touch.
+        let byHand: [MCPCatalog.Entry] = out
+            .flatMap { try? Data(contentsOf: URL(fileURLWithPath: $0)) }
+            .flatMap { try? MCPCatalog.decoder.decode(MCPCatalog.self, from: $0) }?
+            .entries.filter { !$0.isRemote } ?? []
         do {
             let catalog = try await MCPCatalog.sweep(limit: limit, query: query, concurrency: concurrency,
-                                                     timeout: timeout) { line in
+                                                     timeout: timeout, keeping: byHand) { line in
                 FileHandle.standardError.write(Data((line + "\n").utf8))
             }
             let data = try MCPCatalog.encoder.encode(catalog)

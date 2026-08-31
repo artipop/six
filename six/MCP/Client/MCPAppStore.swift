@@ -434,3 +434,13 @@ final class MCPAppStore {
         }
     }
 }
+
+extension MCPServerDefinition {
+    /// The server a restored window remembers. Lives here rather than beside the type: `MCPAppTypes`
+    /// is the wire format and knows nothing about what six writes to disk.
+    init(_ saved: AppWindowSnapshot) {
+        self.init(id: saved.serverID, name: saved.serverName, command: saved.command,
+                  arguments: saved.commandArguments)
+        url = saved.url
+    }
+}

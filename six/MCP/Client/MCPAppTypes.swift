@@ -69,15 +69,6 @@ nonisolated struct MCPServerDefinition: Identifiable, Hashable, Codable, Sendabl
         self.headers = headers
     }
 
-    /// The server a restored window remembers.
-    init(_ saved: AppWindowSnapshot) {
-        id = saved.serverID
-        name = saved.serverName
-        url = saved.url
-        command = saved.command
-        arguments = saved.commandArguments
-    }
-
     /// A remote server, or a local process.
     var isRemote: Bool { url != nil }
     /// What to show for "where this is".
@@ -173,12 +164,29 @@ nonisolated struct MCPUIResource: Hashable, Sendable {
 
         init(json: ACPJSON?) {
             func list(_ key: String) -> [String] {
-                (json?[key]?.arrayValue ?? []).compactMap(\.stringValue)
+                (json?[key]?.arrayValue ?? []).compactMap(\.stringValue).filter(CSP.isPlausibleSource)
             }
             connectDomains = list("connectDomains")
             resourceDomains = list("resourceDomains")
             frameDomains = list("frameDomains")
             baseUriDomains = list("baseUriDomains")
+        }
+
+        /// Whether a declared source is one six is willing to put in a policy.
+        ///
+        /// These lists are strings a server wrote, and they are joined into a header — so a value
+        /// is not data, it is policy. `"https://x; script-src *"` is a second directive; `"'unsafe-eval'"`
+        /// is the one keyword this whole policy exists to withhold, and it would land in `script-src`
+        /// because that is where `resourceDomains` goes. A source therefore has to look like the
+        /// origin the extension says it is, and anything else is dropped rather than argued with.
+        static func isPlausibleSource(_ source: String) -> Bool {
+            guard !source.isEmpty, source.count <= 512, source != "*" else { return false }
+            return source.unicodeScalars.allSatisfy { scalar in
+                // Printable ASCII, so no space and no control character can split a source in two,
+                // less the punctuation that ends one and begins something else. `'` is in there
+                // because it is how every CSP keyword — `'unsafe-eval'` above all — is spelled.
+                (0x21...0x7E).contains(scalar.value) && !";'\",\\<>".unicodeScalars.contains(scalar)
+            }
         }
 
         /// The `Content-Security-Policy` header value for this app.
@@ -194,10 +202,13 @@ nonisolated struct MCPUIResource: Hashable, Sendable {
         /// looser floor than the prose, so this is stricter than what app authors test against, and
         /// some of the specification's own examples do not run under it. There is no field in
         /// `ui.csp` for `'unsafe-eval'`, `blob:` or `worker-src`, so an app cannot declare its way
-        /// out either — the gap is upstream's. six enforces what is written.
+        /// out either — the gap is upstream's, and `isPlausibleSource` is what keeps a server from
+        /// writing its way out through a domain list. six enforces what is written.
         var header: String {
+            // Filtered here as well as at parse time: this is the line where a string becomes
+            // policy, and it is the only place the guarantee is worth making.
             func source(_ base: String, _ domains: [String]) -> String {
-                ([base] + domains).joined(separator: " ")
+                ([base] + domains.filter(Self.isPlausibleSource)).joined(separator: " ")
             }
             var directives = [
                 "default-src 'none'",
@@ -211,12 +222,15 @@ nonisolated struct MCPUIResource: Hashable, Sendable {
             ]
             // `resourceDomains` covers fonts too, but with nothing declared there is no font
             // directive at all: `default-src 'none'` is what the spec leaves in its place.
-            if !resourceDomains.isEmpty { directives.append(source("font-src 'self'", resourceDomains)) }
-            directives.append(connectDomains.isEmpty
-                              ? "connect-src 'none'"
-                              : source("connect-src", connectDomains))
-            directives.append(frameDomains.isEmpty ? "frame-src 'none'" : source("frame-src", frameDomains))
-            directives.append(baseUriDomains.isEmpty ? "base-uri 'self'" : source("base-uri", baseUriDomains))
+            if resourceDomains.contains(where: Self.isPlausibleSource) {
+                directives.append(source("font-src 'self'", resourceDomains))
+            }
+            let connect = connectDomains.filter(Self.isPlausibleSource)
+            let frames = frameDomains.filter(Self.isPlausibleSource)
+            let bases = baseUriDomains.filter(Self.isPlausibleSource)
+            directives.append(connect.isEmpty ? "connect-src 'none'" : source("connect-src", connect))
+            directives.append(frames.isEmpty ? "frame-src 'none'" : source("frame-src", frames))
+            directives.append(bases.isEmpty ? "base-uri 'self'" : source("base-uri", bases))
             return directives.joined(separator: "; ")
         }
     }
