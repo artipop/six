@@ -536,14 +536,15 @@ final class BrowserState {
     }
 
     @discardableResult
-    func newTab(url: URL? = nil, in profileID: Profile.ID? = nil) -> BrowserTab {
-        newTab(url: url, in: profileID, workspace: nil, activate: true)
+    func newTab(url: URL? = nil, in profileID: Profile.ID? = nil, on side: NiriPlacement = .right) -> BrowserTab {
+        newTab(url: url, in: profileID, workspace: nil, activate: true, on: side)
     }
 
     /// Opens a window in a specific workspace of a profile's strip. With `activate` off (an agent adding
     /// windows in the background) nothing on screen changes — not even the profile.
     @discardableResult
-    func newTab(url: URL?, in profileID: Profile.ID?, workspace: Int?, activate: Bool) -> BrowserTab {
+    func newTab(url: URL?, in profileID: Profile.ID?, workspace: Int?, activate: Bool,
+                on side: NiriPlacement = .right) -> BrowserTab {
         let profile = profiles.first { $0.id == profileID } ?? selectedProfile
         let tab = makeTab(profile: profile)
         add(tab)
@@ -552,7 +553,7 @@ final class BrowserState {
             layout.activeProfileID = profile.id
         }
         withAnimation(NiriLayout.switchAnimation) {
-            layout.insertColumn(tabID: tab.id, in: profile.id, workspace: workspace, focus: activate)
+            layout.insertColumn(tabID: tab.id, in: profile.id, workspace: workspace, focus: activate, on: side)
         }
         if activate { syncSelection() }
         if let url { tab.load(url) }
@@ -939,6 +940,31 @@ final class BrowserState {
     func focusWorkspace(at index: Int) { animateLayout { layout.focusWorkspace(at: index) } }
     func moveColumnToWorkspace(_ delta: Int) { animateLayout { layout.moveColumnToWorkspace(delta) } }
 
+    // MARK: Carrying a window across the overview
+
+    /// Picked up. Deliberately un-animated from here on: the card follows the pointer, and a card that
+    /// eases towards the pointer is a card that is never quite under it. What *is* animated is the gap
+    /// the rest of the row opens up, and the views do that off the target the drag is reporting.
+    func beginColumnDrag(tabID: BrowserTab.ID) {
+        layout.beginColumnDrag(tabID: tabID)
+    }
+
+    func updateColumnDrag(translation: CGSize) {
+        layout.updateColumnDrag(translation: translation)
+    }
+
+    /// Let go. The window lands where the gap was, and the focus goes with it — a window dropped into
+    /// another row that left the view behind in the old one would be a window you have just lost.
+    func endColumnDrag() {
+        var moved = false
+        withAnimation(NiriLayout.switchAnimation) { moved = layout.commitColumnDrag() }
+        if moved { syncSelection() }
+    }
+
+    func cancelColumnDrag() {
+        withAnimation(NiriLayout.switchAnimation) { layout.cancelColumnDrag() }
+    }
+
     /// Free strip panning is driven directly by the trackpad, so it is deliberately un-animated.
     func panStrip(by delta: CGFloat) {
         layout.panStrip(by: delta)
@@ -969,6 +995,7 @@ final class BrowserState {
     func exitOverview() {
         NiriLayout.trace("exitOverview (isOverview \(layout.isOverview))")
         guard layout.isOverview else { return }
+        layout.cancelColumnDrag() // a window in the hand is put back where it was, not carried out
         withAnimation(NiriLayout.switchAnimation) {
             layout.isOverview = false
             // Free overview scrolling leaves the offset anywhere, and a strip going back to fullscreen

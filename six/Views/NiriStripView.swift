@@ -6,6 +6,11 @@ import WebKit
 /// The niri canvas: every workspace is a full-screen horizontal strip of columns; the workspaces are
 /// stacked vertically and only one of them is on screen at a time.
 struct NiriStripView: View {
+    /// The strip's own coordinate space: the canvas *before* the overview scales it, which is the
+    /// space every column frame is already in. A pointer position that arrives in these units can be
+    /// compared with `columnFrames()` directly, at any zoom.
+    static let canvasSpace = "six.strip.canvas"
+
     @Environment(BrowserState.self) private var browser
     @State private var monitor = NiriScrollMonitor()
     /// Where the strip sits in the window, for the scroll monitor: what is above it is the top bar,
@@ -28,8 +33,16 @@ struct NiriStripView: View {
                             .offset(y: offset(of: index, height: proxy.size.height, layout: layout))
                     }
                 }
+                // Above every row, and last so it is: the window in the hand, and the layer that put
+                // it there. Both live on the canvas rather than on a card, which is what lets a window
+                // be carried out of the row that was drawing it.
+                if layout.isOverview {
+                    CarriedColumn()
+                    OverviewPointerLayer(size: proxy.size)
+                }
             }
             .frame(width: proxy.size.width, height: proxy.size.height, alignment: .topLeading)
+            .coordinateSpace(.named(Self.canvasSpace))
             .scaleEffect(layout.overviewScale, anchor: .center)
             .overlay { if layout.isOverview { WorkspacePlates(size: proxy.size) } }
             .onChange(of: proxy.size, initial: true) { layout.updateViewport(proxy.size) }
@@ -93,24 +106,40 @@ private struct WorkspaceView: View {
 
     var body: some View {
         let layout = browser.layout
-        let frames = layout.columnFrames(workspace)
+        // What this row draws, which is its own columns unless a window is being carried across the
+        // overview: then the carried one is out of the row it came from and holding a place open in the
+        // row it would land in (`NiriLayout.arrangement`). The card itself is drawn above the canvas,
+        // following the pointer, so here it is only ever the gap.
+        let columns = layout.arrangement(workspaceAt: index)
+        let frames = layout.columnFrames(columns)
         let isCurrent = index == layout.focusedWorkspaceIndex
-        let scroll = layout.resolvedOffset(workspace) - (isCurrent ? layout.horizontalPreview : 0)
+        let scroll = layout.resolvedOffset(workspace) - (isCurrent ? layout.horizontalPreview + layout.newColumnLean : 0)
         // The overview scales the canvas down, so a workspace layer covers proportionally more than the
         // window: it has to be that wide, and centred on the same point, or the strip is cut off at the
         // window edges instead of running the full width of the screen.
         let layerWidth = layout.visibleWidth
+        let carried = layout.columnDrag?.tabID
+        let focusedTabID = workspace.focusedColumn?.tabID
 
         ZStack(alignment: .topLeading) {
             Color.clear
-            if workspace.isEmpty {
+            if columns.isEmpty {
                 EmptyWorkspaceHint()
                     .frame(width: layerWidth, height: size.height)
             }
-            ForEach(Array(workspace.columns.enumerated()), id: \.element.id) { position, column in
-                if let tab = browser.tab(column.tabID), frames.indices.contains(position) {
+            // The window the `+` under the pointer would open, where it would open: the strip has
+            // leaned aside to make room for it, and this is what stands in the room.
+            if isCurrent, let outline = layout.newColumnFrame {
+                NewColumnOutline()
+                    .frame(width: outline.width, height: outline.height)
+                    .offset(x: outline.minX - scroll, y: outline.minY)
+                    .allowsHitTesting(false)
+                    .transition(.opacity)
+            }
+            ForEach(Array(columns.enumerated()), id: \.element.id) { position, column in
+                if let tab = browser.tab(column.tabID), frames.indices.contains(position), column.tabID != carried {
                     let frame = frames[position]
-                    let isFocused = isCurrent && position == workspace.focus
+                    let isFocused = isCurrent && column.tabID == focusedTabID
                     ColumnView(
                         tab: tab,
                         isFocused: isFocused,
@@ -130,6 +159,9 @@ private struct WorkspaceView: View {
                 }
             }
         }
+        // The row shuffles to open the gap, and only then: the carried card is a layer of its own and
+        // has to keep up with the pointer, so animating every change here would make it swim.
+        .animation(.smooth(duration: 0.22), value: layout.columnDrag.map { [$0.toWorkspace, $0.toIndex] })
         .frame(width: layerWidth, height: size.height, alignment: .topLeading)
         .clipped()
         .offset(x: -(layerWidth - size.width) / 2)
@@ -186,6 +218,147 @@ private struct EmptyWorkspaceHint: View {
                 .font(.caption)
                 .foregroundStyle(.tertiary)
         }
+    }
+}
+
+// MARK: - Carrying a window across the overview
+
+/// The window in the hand: the card the pointer picked up, drawn above every row at the place it has
+/// been carried to and lifted off the canvas a little, so it reads as being in the air rather than in
+/// the strip. The gap it left, and the one it would fill, are the rows' own business
+/// (`NiriLayout.arrangement`).
+private struct CarriedColumn: View {
+    @Environment(BrowserState.self) private var browser
+
+    var body: some View {
+        let layout = browser.layout
+        if let drag = layout.columnDrag, let frame = layout.carriedCardFrame, let tab = browser.tab(drag.tabID) {
+            ColumnView(tab: tab, isFocused: true, isCurrentWorkspace: true, isLive: false)
+                .frame(width: frame.width, height: frame.height)
+                .scaleEffect(1.03)
+                .shadow(color: .black.opacity(0.35), radius: 30, y: 14)
+                .offset(x: frame.minX, y: frame.minY)
+                .allowsHitTesting(false)
+                .transition(.identity)
+        }
+    }
+}
+
+/// Everything the pointer does in the overview, in one place.
+///
+/// Up there every window is a picture at a place the layout already knows, so which one is under the
+/// pointer is arithmetic rather than a view's own opinion — and a gesture that belongs to the canvas
+/// instead of to a card survives the card being carried out of the row that was drawing it, which is
+/// exactly what this gesture does to it. A card's own click handling stays where it is for the strip;
+/// in the overview this layer is on top and answers first.
+///
+/// It answers *only where the windows are*: the shape it presents to the mouse is the cards
+/// themselves, so a click that lands between them still reaches whatever is underneath — the New
+/// Window button on an empty workspace, for one.
+private struct OverviewPointerLayer: View {
+    let size: CGSize
+
+    @Environment(BrowserState.self) private var browser
+    /// The window being carried, if the press has travelled far enough to be a carry rather than a
+    /// click. Held here as well as in the layout because it is what tells the two apart on the way up.
+    @State private var carrying: UUID?
+
+    var body: some View {
+        let layout = browser.layout
+        let cards = cards(layout)
+        let bounds = bounds(layout)
+        Color.clear
+            .frame(width: bounds.width, height: bounds.height)
+            .contentShape(CardsShape(rects: cards.map { $0.rect.offsetBy(dx: -bounds.minX, dy: -bounds.minY) }))
+            .offset(x: bounds.minX, y: bounds.minY)
+            .gesture(gesture(cards: cards))
+    }
+
+    /// Every window on the canvas, in canvas points.
+    private func cards(_ layout: NiriLayout) -> [(id: UUID, rect: CGRect)] {
+        var cards: [(id: UUID, rect: CGRect)] = []
+        for index in layout.workspaces.indices {
+            let columns = layout.arrangement(workspaceAt: index)
+            let frames = layout.columnFrames(columns)
+            let top = layout.rowY(index)
+            for (position, column) in columns.enumerated() where frames.indices.contains(position) {
+                let frame = frames[position]
+                cards.append((column.tabID, CGRect(x: layout.canvasX(content: frame.minX, workspace: index),
+                                                   y: top + frame.minY,
+                                                   width: frame.width, height: frame.height)))
+            }
+        }
+        return cards
+    }
+
+    /// The whole stack of rows, which reaches well above and below the window itself — the overview is
+    /// zoomed out, and the rows it shows are laid out a screen apart at full size.
+    private func bounds(_ layout: NiriLayout) -> CGRect {
+        let width = layout.visibleWidth
+        let step = size.height + layout.workspaceSpacing
+        return CGRect(x: -(width - size.width) / 2,
+                      y: layout.rowY(0),
+                      width: width,
+                      height: step * CGFloat(max(1, layout.workspaces.count)))
+    }
+
+    private func card(_ cards: [(id: UUID, rect: CGRect)], at point: CGPoint) -> UUID? {
+        cards.first { $0.rect.contains(point) }?.id
+    }
+
+    private func gesture(cards: [(id: UUID, rect: CGRect)]) -> some Gesture {
+        DragGesture(minimumDistance: 0, coordinateSpace: .named(NiriStripView.canvasSpace))
+            .onChanged { value in
+                if carrying == nil {
+                    // A press is a click until it has gone somewhere. The threshold is in canvas
+                    // points, which the overview then shrinks — so the hand has to move further than
+                    // this on screen, and a click never turns into a carry by accident.
+                    guard hypot(value.translation.width, value.translation.height) > 6,
+                          let id = card(cards, at: value.startLocation) else { return }
+                    carrying = id
+                    browser.beginColumnDrag(tabID: id)
+                }
+                browser.updateColumnDrag(translation: value.translation)
+            }
+            .onEnded { value in
+                if carrying != nil {
+                    carrying = nil
+                    browser.endColumnDrag()
+                    return
+                }
+                guard let id = card(cards, at: value.startLocation) else { return }
+                browser.selectTab(id)
+                browser.exitOverview()
+            }
+    }
+}
+
+/// The cards, as one shape: what the pointer layer offers the mouse, so the space between the windows
+/// is not covered by it.
+private struct CardsShape: Shape {
+    let rects: [CGRect]
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        for rect in rects { path.addRoundedRect(in: rect, cornerSize: CGSize(width: 12, height: 12)) }
+        return path
+    }
+}
+
+/// The window that isn't there yet: the place the `+` under the pointer would fill, drawn as an
+/// outline so it reads as a promise rather than as a window. Most of it is off the edge of the
+/// screen — the strip only leans far enough for a glance — and the part that is on it is the point.
+private struct NewColumnOutline: View {
+    @Environment(BrowserState.self) private var browser
+
+    var body: some View {
+        let accent = browser.selectedProfile.color
+        RoundedRectangle(cornerRadius: 12, style: .continuous)
+            .fill(accent.opacity(0.07))
+            .overlay {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(accent.opacity(0.5), style: StrokeStyle(lineWidth: 2, dash: [9, 7]))
+            }
     }
 }
 
@@ -451,9 +624,15 @@ private struct StripEdgeButtons: View {
     }
 }
 
-/// A sliver standing in the gap beside the focused window: one click steps one column. At the end of
-/// the strip the right one turns into a `+`, so the way to add a window is where you run out of them;
-/// on the left there is simply nothing, and the empty gap tells you the strip is over.
+/// A sliver standing in the gap beside the focused window: one click steps one column. At either end
+/// of the strip it opens a window instead — and the one at the near end opens it *there*, to the left
+/// of the one you are reading, which is the only way the strip offers to grow backwards.
+///
+/// Where it steps it draws a chevron. Where it opens a window it draws nothing at all: resting on it
+/// leans the whole strip aside far enough to show the window that would be there, outlined where it
+/// would stand (`NiriLayout.newColumnHover`). The button says what it does before it does it, and it
+/// says it with the thing itself rather than with a symbol standing in for it — so there is no
+/// symbol, on the edge or anywhere else.
 ///
 /// It is as narrow as the gap it stands in — a button wide enough to read comfortably is a button
 /// covering the page next to it, and the page is what the window is for. Tiled, it rests at a quarter
@@ -472,41 +651,78 @@ private struct StripEdgeButton: View {
     }
 
     /// A tall thin pill — enough of a target to hit without aiming, and it reaches nowhere sideways.
-    /// Taller with the window filled, where it is invisible until the pointer finds it: a target you
-    /// cannot see has to be one you cannot miss along the edge you are sweeping.
-    private func pillHeight(_ layout: NiriLayout) -> CGFloat {
-        let fraction = layout.fillsViewport ? 0.3 : 0.16
+    /// Taller wherever there is nothing to see: with the window filled, and at the ends of the strip,
+    /// where the button has no symbol of its own at all. A target you cannot see has to be one you
+    /// cannot miss along the edge you are sweeping.
+    private func pillHeight(_ layout: NiriLayout, opens: Bool = false) -> CGFloat {
+        let fraction = (layout.fillsViewport || opens) ? 0.3 : 0.16
         return max(52, min(280, layout.viewport.height * fraction))
     }
 
     var body: some View {
         let layout = browser.layout
+        let opens = step(layout: layout)?.opens == true
         // Hosted in AppKit like the fullscreen bar: over a page a SwiftUI button never sees the
         // mouse (see `ClickCatcher`), and with the window filled there is nothing but page here.
         HostedOverlay {
             content(layout: layout)
         }
-        .frame(width: Self.lane(layout), height: pillHeight(layout))
+        .frame(width: Self.lane(layout), height: pillHeight(layout, opens: opens))
     }
 
     @ViewBuilder
     private func content(layout: NiriLayout) -> some View {
         if let step = step(layout: layout) {
-            pill(symbol: step.symbol, help: step.help, layout: layout, action: step.action)
-                .animation(.easeOut(duration: 0.15), value: hovering)
+            if step.opens {
+                target(layout: layout, help: step.help, action: step.action)
+            } else {
+                pill(symbol: step.symbol, help: step.help, layout: layout, action: step.action)
+                    .animation(.easeOut(duration: 0.15), value: hovering)
+            }
         }
     }
 
-    private func step(layout: NiriLayout) -> (symbol: String, help: String, action: () -> Void)? {
+    private func step(layout: NiriLayout) -> (symbol: String, help: String, opens: Bool, action: () -> Void)? {
         if layout.canFocusColumn(direction) {
             return (direction < 0 ? "chevron.left" : "chevron.right",
                     direction < 0 ? String(localized: "Previous window (⌥←)") : String(localized: "Next window (⌥→)"),
+                    false,
                     { browser.focusColumn(direction) })
         }
-        if direction > 0, layout.focusedWorkspace?.isEmpty == false {
-            return ("plus", String(localized: "New window (⌘T)"), { browser.newTab() })
+        // Nothing that way, so the button offers the only other thing that can be there: a window.
+        // An empty workspace is left alone — it says the same thing in the middle of the screen, with
+        // room to say it properly.
+        if layout.focusedWorkspace?.isEmpty == false {
+            let side: NiriPlacement = direction < 0 ? .left : .right
+            return ("plus",
+                    direction < 0 ? String(localized: "New window on the left") : String(localized: "New window (⌘T)"),
+                    true,
+                    { browser.newTab(on: side) })
         }
         return nil
+    }
+
+    /// The peek belongs to the button that is showing the `+`, and it lets go of it by name: the
+    /// pointer going straight from one end of the strip to the other cannot leave it leaning the
+    /// wrong way.
+    private func peek(_ layout: NiriLayout, _ hovering: Bool) {
+        withAnimation(NiriLayout.peekAnimation) { layout.hoverNewColumn(direction, hovering) }
+    }
+
+    /// The end of the strip: no symbol, only the place to sweep to. What answers is the strip itself,
+    /// leaning over to show the window that would open there — which is the whole of the offer, and
+    /// a sliver drawing a `+` of its own would be that offer made twice.
+    private func target(layout: NiriLayout, help: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Color.clear.contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .frame(width: Self.lane(layout), height: pillHeight(layout, opens: true))
+        .onHover { peek(layout, $0) }
+        // Gone from under the cursor — the strip grew a window this way, or lost the one it had —
+        // and a view that is gone never reports the exit. The strip would stay leaning on nothing.
+        .onDisappear { peek(layout, false) }
+        .help(help)
     }
 
     private func pill(symbol: String, help: String, layout: NiriLayout, action: @escaping () -> Void) -> some View {
@@ -795,7 +1011,7 @@ private struct OverviewHint: View {
 
     var body: some View {
         if browser.layout.isOverview {
-            Text("scroll up/down for workspaces · sideways to run along a strip · click a window to open it · double-click a name to rename · ⌥O to close")
+            Text("scroll up/down for workspaces · sideways to run along a strip · click a window to open it · drag one to move it · double-click a name to rename · ⌥O to close")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .padding(.bottom, 12)

@@ -8,7 +8,7 @@ Nothing needs the keyboard: every layout operation has a mouse equivalent. `⌥`
 |---|---|
 | click a window | focuses it and scrolls it into view — the first click on a background window never reaches the page |
 | `‹` `›` in the gaps beside the focused window | one window left/right. They are as narrow as the gap they stand in, they follow the focused window as the strip scrolls, and they only appear when the strip continues that way. With the window filled there is no gap left, so they wait at the edge of the screen and come up under the pointer |
-| `+` on the right | at the end of the strip the right chevron becomes a `+`: a new window after the last one |
+| the gap at either end of the strip | where the strip runs out the chevron gives way to nothing at all — sweep the pointer into the gap and the strip leans over to show the window that would open there: after the last one, or, at the near end, **before the first**, which is the only way the strip grows backwards. Click anywhere in that sliver of gap to open it; move off and it all goes back |
 | `⌃`/`⌄` beside the workspace pips | one workspace up/down |
 | click a workspace pip | jump to that workspace |
 | ⌘-click a link | opens it in a new window right of this one, **behind** — the focus stays on the page you are reading, and the strip leans right for a moment to show what arrived. To go there instead, the context menu's Open Link in New Window: WebKit swallows every shift-click before six sees it, and a middle click cannot be told from a plain one ([links.md](links.md)) |
@@ -22,6 +22,7 @@ Nothing needs the keyboard: every layout operation has a mouse equivalent. `⌥`
 | the bookmark star (top bar) | save the focused page — filled when it is saved, a spinner while it is being indexed; again to remove. `⌘⌥B` lists and searches them |
 | overview button (top right) | zoom out to all workspaces; scroll sideways to run along a strip, click a window to open it |
 | double-click a workspace name (overview) | rename it; right-click the name to rename or clear it. A named workspace stays even when empty |
+| drag a window (overview) | carry it along its strip to reorder it, or up and down onto another workspace — including the empty one at the bottom, which is how a workspace gets made. The row it came from closes up, a gap opens where it would land, and the focus goes with it when it is let go |
 | the lock / globe in the address field | once a site has been answered about the camera, the microphone or the motion sensors: flip an answer, forget the site, or open the whole list ([permissions.md](permissions.md)) |
 | the red camera / mic in the address field | only while the page is actually using one — click to mute it, click again to let it see and hear |
 | `×` on a window's top right corner | close that window. It sits on the corner itself — mostly over the gap, so the page keeps its clicks — and it is invisible until the pointer is on it, so a strip of a dozen windows is not a row of a dozen crosses |

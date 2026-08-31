@@ -162,6 +162,18 @@ button at zero opacity still answers the mouse, which is what makes the sliver i
 steps plus the workspaces, the overview and the way out; the ⌘K line tucks itself away there until it is asked for or
 has an answer to show. The window buttons stay where macOS puts them, so the bar leaves room for them.
 
+At either end of the strip the chevron gives way to a button that opens a window, and the one at the near end opens it
+*before* the focused one (`NiriPlacement`) — the strip has no other way of growing backwards. That button draws
+**nothing**: resting on it leans the whole strip aside (`newColumnHover`, `newColumnLean`) and stands a dashed outline
+of the window in the room it makes (`newColumnFrame`). That outline is the whole of the offer — a `+` on the edge, or
+in the room, would be the same thing said twice.
+
+Two decisions hold it together. The lean goes exactly as far as the glance a window opening behind gets
+(`peekAmount`, a fraction of the viewport) — one distance for both, because they are the same sentence, *there is
+something over here*. It is deliberately *not* `horizontalPreview`: that band belongs to the scroll gesture, and a peek
+held by the mouse has to survive one arriving. And `focusedColumnFrame` deliberately does not include it, so the button
+does not slide out from under the pointer holding it.
+
 Three things share the word "fullscreen" and are not the same: this (a layout state), macOS fullscreen (the green
 button — the strip just fills a bigger window), and a page's own `requestFullscreen`, which WebKit handles inside the
 web view.
@@ -177,3 +189,24 @@ puts the strip back under the focused window.
 
 Pages keep rendering but stop taking clicks — the same `ClickCatcher` covers every column — so one click focuses a
 window and leaves the overview.
+
+### Carrying a window
+
+A window can be picked up in the overview and carried along its strip or onto another workspace. The gesture belongs to
+the **canvas**, not to the card (`OverviewPointerLayer`): up there every window is a picture at a place the layout
+already knows, so which one is under the pointer is arithmetic against `columnFrames()`, and a gesture that is not
+attached to a card survives the card being carried out of the row that was drawing it. The layer sits in the strip's
+own coordinate space (`NiriStripView.canvasSpace`, the canvas *before* the overview scales it, which is the space the
+frames are already in), and offers the mouse only the cards themselves (`CardsShape`) — a click between two windows
+still reaches what is under it, the New Window button on an empty workspace included.
+
+Nothing in the strip moves until the drop. Until then `arrangement(workspaceAt:)` is what each row draws: the carried
+window out of the row it came from and holding a place open in the row it would land in, with the card itself drawn
+above every row at `carriedCardFrame` — where it was lifted from, plus how far the pointer has gone, so it stays under
+the pointer exactly. Only the shuffle is animated; animating the card would mean it never quite catches up.
+
+Where it would land is counted against the row **as it is**, not as it is being drawn: one window has gone past another
+when their middles have crossed, which is a fixed line. Measuring against the shuffled row instead moves that line
+towards the card every time it moves — the window to the right slides into the gap and its middle arrives under the
+pointer at once, and the drop target flips back and forth for a pixel of travel. The focus goes with the window on the
+drop: a window put in another row that left the view behind in the old one is a window you have just lost.

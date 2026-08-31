@@ -53,6 +53,33 @@ nonisolated enum NiriFill: String, Sendable, Codable {
     case screen
 }
 
+/// Which side of the focused column a new window opens on. Right is niri's own answer and stays the
+/// default; left is what the `+` at the near end of the strip asks for, where there is no window to
+/// step to and the empty gap used to mean nothing at all.
+nonisolated enum NiriPlacement: Sendable {
+    case left
+    case right
+}
+
+/// A window being carried across the overview: where it was picked up, how far the pointer has
+/// travelled, and where it would land if it were let go now.
+///
+/// The strip itself is not touched until the drop. Until then this is what the canvas draws instead:
+/// the carried window taken out of the row it came from, a gap of its size held open where it would
+/// land, and the card itself following the pointer above both.
+nonisolated struct NiriColumnDrag: Sendable, Equatable {
+    var tabID: UUID
+    var fromWorkspace: Int
+    var fromIndex: Int
+    var toWorkspace: Int
+    var toIndex: Int
+    /// Pointer travel since the card was picked up, in canvas points (the overview's scale is applied
+    /// to the whole canvas afterwards, so these are the same units the column frames are in).
+    var translation: CGSize = .zero
+
+    var movedSomewhere: Bool { toWorkspace != fromWorkspace || toIndex != fromIndex }
+}
+
 /// The vertical stack of workspaces belonging to one profile.
 nonisolated struct NiriStrip: Sendable, Codable {
     var workspaces: [NiriWorkspace] = [NiriWorkspace()]
@@ -96,6 +123,15 @@ final class NiriLayout {
     static let workspaceGapFraction: CGFloat = 0.02
     static let overviewWorkspaceGapFraction: CGFloat = 0.11
     static let switchAnimation: Animation = .smooth(duration: 0.34, extraBounce: 0.05)
+    /// How far the strip leans to show something just off its edge: the glance a window opening
+    /// behind gets (`peek`), and the ceiling on the one a hovered `+` holds open. A fraction of the
+    /// viewport like every other size here — a glance is a proportion of the screen, not a count of
+    /// points — with a floor so it stays a glance on a small window.
+    static let peekFraction: CGFloat = 0.045
+    static let minimumPeek: CGFloat = 56
+    /// Deliberately slower than a layout step: nothing has happened yet. The strip is leaning over to
+    /// show what *would* happen, and at the speed of a step that reads as the thing itself.
+    static let peekAnimation: Animation = .smooth(duration: 0.55)
 
     /// `SIX_UI_DEBUG=1`: what the layout was asked to do, and what it thought it was doing. A gesture
     /// that does nothing is either not arriving or not meaning what it looks like, and this says which.
@@ -124,6 +160,14 @@ final class NiriLayout {
     /// Rubber-band offsets while a scroll gesture is still below the switch threshold.
     var verticalPreview: CGFloat = 0
     var horizontalPreview: CGFloat = 0
+    /// The pointer resting on a `+`: -1 for the one at the near end of the strip, 1 for the far end,
+    /// 0 for neither. The strip leans that way while it is held, and an outline of the window the
+    /// button would open stands in the gap it opens up — the button shows what it does before it does
+    /// it. Deliberately not `horizontalPreview`: that band belongs to the scroll gesture, and a peek
+    /// held by the mouse has to survive one arriving.
+    var newColumnHover = 0
+    /// A window being carried across the overview, or `nil`. See `NiriColumnDrag`.
+    var columnDrag: NiriColumnDrag?
     @ObservationIgnored private var peekTask: Task<Void, Never>?
     /// The strip on screen. Switching to another profile shows a strip that was last laid out at
     /// whatever the viewport was then, so it gets put back under its focused window on the way in.
@@ -293,9 +337,15 @@ final class NiriLayout {
 
     /// Column rectangles in content space (x grows along the strip, origin at the strip's left edge).
     func columnFrames(_ workspace: NiriWorkspace) -> [CGRect] {
+        columnFrames(workspace.columns)
+    }
+
+    /// The same, for a row that is not (yet) a workspace's own: what the overview draws while a window
+    /// is being carried is the columns rearranged around the gap, and they are laid out the same way.
+    func columnFrames(_ columns: [NiriColumn]) -> [CGRect] {
         var frames: [CGRect] = []
         var x = outerGap
-        for column in workspace.columns {
+        for column in columns {
             let w = width(of: column)
             frames.append(CGRect(x: x, y: outerGap, width: w, height: columnHeight))
             x += w + gap
@@ -307,6 +357,26 @@ final class NiriLayout {
         guard !workspace.columns.isEmpty else { return 0 }
         let widths = workspace.columns.reduce(CGFloat.zero) { $0 + width(of: $1) }
         return widths + gap * CGFloat(workspace.columns.count - 1) + 2 * outerGap
+    }
+
+    /// Where a workspace's row sits on the canvas: the focused one is at zero, the others a screen
+    /// (and a gap) above or below it. The canvas is what the overview scales as a whole, so this is in
+    /// the same points the column frames are.
+    func rowY(_ index: Int) -> CGFloat {
+        CGFloat(index - focusedWorkspaceIndex) * (viewport.height + workspaceSpacing) + verticalPreview
+    }
+
+    /// A workspace row is drawn wider than the window and centred on it — the overview shows more of
+    /// the strip than the window is wide — so a column at `x` in that row's content space lands here on
+    /// the canvas, and back again.
+    func canvasX(content x: CGFloat, workspace index: Int) -> CGFloat {
+        guard workspaces.indices.contains(index) else { return x }
+        return x - resolvedOffset(workspaces[index]) - (visibleWidth - viewport.width) / 2
+    }
+
+    func contentX(canvas x: CGFloat, workspace index: Int) -> CGFloat {
+        guard workspaces.indices.contains(index) else { return x }
+        return x + resolvedOffset(workspaces[index]) + (visibleWidth - viewport.width) / 2
     }
 
     private func centeredOffset(_ frame: CGRect) -> CGFloat {
@@ -407,7 +477,10 @@ final class NiriLayout {
     ///
     /// A second ⌘-click restarts it rather than queueing: the strip stays leaned while they keep
     /// coming and settles once, at the end.
-    func peek(_ amount: CGFloat = 72) {
+    var peekAmount: CGFloat { max(Self.minimumPeek, viewport.width * Self.peekFraction) }
+
+    func peek(_ amount: CGFloat? = nil) {
+        let amount = amount ?? peekAmount
         peekTask?.cancel()
         peekTask = Task { @MainActor [weak self] in
             guard let self else { return }
@@ -422,11 +495,59 @@ final class NiriLayout {
         }
     }
 
-    func insertColumn(tabID: UUID) {
+    // MARK: Looking ahead at a window that isn't there yet
+
+    /// The width a new window would open at — the shared preset, the same one it will actually get.
+    var newColumnWidth: CGFloat {
+        width(of: NiriColumn(tabID: UUID(), widthIndex: preferredWidthIndex))
+    }
+
+    /// How far the strip leans while a `+` is under the pointer: exactly as far as it leans to show a
+    /// window that opened behind (`peek`), and never further than the window it is revealing is wide.
+    /// One distance for both, because they are the same sentence — *there is something over here* —
+    /// and a strip that says it twice at two different volumes is a strip saying it badly.
+    ///
+    /// Same sense as `horizontalPreview` — the columns are drawn at `frame.minX - (offset - lean)`, so
+    /// leaning towards the far end of the strip is a negative number.
+    var newColumnLean: CGFloat {
+        guard newColumnHover != 0, newColumnFrame != nil else { return 0 }
+        let amount = min(newColumnWidth + gap, peekAmount)
+        return newColumnHover > 0 ? -amount : amount
+    }
+
+    /// Where the window that `+` would open is going to stand, in content space, or `nil` when no `+`
+    /// is being hovered. The button only ever appears at the end of the strip it points at, so the
+    /// outline goes beyond the last column or before the first one.
+    var newColumnFrame: CGRect? {
+        guard newColumnHover != 0, !isOverview, let workspace = focusedWorkspace, !workspace.isEmpty else { return nil }
+        let frames = columnFrames(workspace.columns)
+        let width = newColumnWidth
+        let x: CGFloat
+        if newColumnHover > 0 {
+            x = (frames.last?.maxX ?? outerGap) + gap
+        } else {
+            x = (frames.first?.minX ?? outerGap) - gap - width
+        }
+        return CGRect(x: x, y: outerGap, width: width, height: columnHeight)
+    }
+
+    /// Sets or clears the peek. A button only ever lets go of the side it took, so the pointer moving
+    /// straight from one end of the strip to the other cannot leave it leaning the wrong way.
+    func hoverNewColumn(_ direction: Int, _ hovering: Bool) {
+        if hovering {
+            newColumnHover = direction
+        } else if newColumnHover == direction {
+            newColumnHover = 0
+        }
+    }
+
+    // MARK: Columns
+
+    func insertColumn(tabID: UUID, on side: NiriPlacement = .right) {
         mutate { s in
             guard s.workspaces.indices.contains(s.focus) else { return }
             var ws = s.workspaces[s.focus]
-            let index = ws.columns.isEmpty ? 0 : ws.focus + 1
+            let index = insertionIndex(in: ws, on: side)
             ws.columns.insert(NiriColumn(tabID: tabID, widthIndex: preferredWidthIndex), at: min(index, ws.columns.count))
             ws.focus = min(index, ws.columns.count - 1)
             scrollFocusIntoView(&ws)
@@ -434,15 +555,23 @@ final class NiriLayout {
         }
     }
 
+    /// Where a new window goes in a row: after the focused column, or — for the `+` at the near end —
+    /// before it. An empty row has only one place either way.
+    private func insertionIndex(in workspace: NiriWorkspace, on side: NiriPlacement) -> Int {
+        guard !workspace.columns.isEmpty else { return 0 }
+        return side == .right ? workspace.focus + 1 : workspace.focus
+    }
+
     /// Opens a tab in a given workspace of a given profile's strip — what an agent asks for through MCP.
     /// `workspace` defaults to the strip's focused one; with `focus` off the window is added right of
     /// the focused column but nothing on screen moves.
-    func insertColumn(tabID: UUID, in profileID: UUID, workspace: Int? = nil, focus: Bool = true) {
+    func insertColumn(tabID: UUID, in profileID: UUID, workspace: Int? = nil, focus: Bool = true,
+                      on side: NiriPlacement = .right) {
         mutate(profile: profileID) { s in
             let target = min(max(0, workspace ?? s.focus), s.workspaces.count - 1)
             guard s.workspaces.indices.contains(target) else { return }
             var ws = s.workspaces[target]
-            let index = ws.columns.isEmpty ? 0 : ws.focus + 1
+            let index = insertionIndex(in: ws, on: side)
             ws.columns.insert(NiriColumn(tabID: tabID, widthIndex: preferredWidthIndex), at: min(index, ws.columns.count))
             if focus {
                 ws.focus = min(index, ws.columns.count - 1)
@@ -550,6 +679,131 @@ final class NiriLayout {
             scrollFocusIntoView(&ws)
             s.workspaces[s.focus] = ws
         }
+    }
+
+    // MARK: Carrying a window across the overview
+
+    /// Where a window is in the strip on screen.
+    func location(of tabID: UUID) -> (workspace: Int, index: Int)? {
+        for (w, workspace) in workspaces.enumerated() {
+            if let index = workspace.columns.firstIndex(where: { $0.tabID == tabID }) { return (w, index) }
+        }
+        return nil
+    }
+
+    private func column(_ tabID: UUID) -> NiriColumn? {
+        strip.workspaces.lazy.flatMap(\.columns).first { $0.tabID == tabID }
+    }
+
+    /// The columns a workspace draws right now: its own, unless a window is being carried, in which
+    /// case the carried one is out of the row it came from and standing in the place it would land.
+    /// The gap the overview opens up is that column's own frame, held by nothing — the card itself is
+    /// drawn above the canvas, following the pointer (`carriedCardFrame`).
+    func arrangement(workspaceAt index: Int) -> [NiriColumn] {
+        guard workspaces.indices.contains(index) else { return [] }
+        var columns = workspaces[index].columns
+        // Only while the overview is open. A drag that somehow outlived it would otherwise go on
+        // rearranging the strip itself, which draws from here too.
+        guard isOverview, let drag = columnDrag else { return columns }
+        if index == drag.fromWorkspace, let at = columns.firstIndex(where: { $0.tabID == drag.tabID }) {
+            columns.remove(at: at)
+        }
+        if index == drag.toWorkspace, let carried = column(drag.tabID) {
+            columns.insert(carried, at: min(max(0, drag.toIndex), columns.count))
+        }
+        return columns
+    }
+
+    /// The frame the picked-up card had before it moved, in its own row's content space.
+    private func liftedFrame(_ drag: NiriColumnDrag) -> CGRect? {
+        guard workspaces.indices.contains(drag.fromWorkspace) else { return nil }
+        let frames = columnFrames(workspaces[drag.fromWorkspace].columns)
+        guard frames.indices.contains(drag.fromIndex) else { return nil }
+        return frames[drag.fromIndex]
+    }
+
+    /// Where the carried card is on the canvas: where it was lifted from, plus how far the pointer has
+    /// gone since. The strip underneath does not move while it is in the air, so the card stays under
+    /// the pointer exactly.
+    var carriedCardFrame: CGRect? {
+        guard isOverview, let drag = columnDrag, let frame = liftedFrame(drag) else { return nil }
+        return CGRect(
+            x: canvasX(content: frame.minX, workspace: drag.fromWorkspace) + drag.translation.width,
+            y: rowY(drag.fromWorkspace) + frame.minY + drag.translation.height,
+            width: frame.width,
+            height: frame.height
+        )
+    }
+
+    func beginColumnDrag(tabID: UUID) {
+        guard isOverview, let at = location(of: tabID) else { return }
+        columnDrag = NiriColumnDrag(tabID: tabID, fromWorkspace: at.workspace, fromIndex: at.index,
+                                    toWorkspace: at.workspace, toIndex: at.index)
+    }
+
+    /// Where the window would land if it were let go now: the row whose middle its own middle is
+    /// nearest, and the place along that row it has reached — counted the way a hand does, by how many
+    /// windows it has gone past.
+    func updateColumnDrag(translation: CGSize) {
+        guard var drag = columnDrag, let frame = liftedFrame(drag) else { return }
+        drag.translation = translation
+
+        let step = viewport.height + workspaceSpacing
+        let centreY = rowY(drag.fromWorkspace) + frame.midY + translation.height
+        let rows = ((centreY - verticalPreview - viewport.height / 2) / step).rounded()
+        drag.toWorkspace = min(max(0, focusedWorkspaceIndex + Int(rows)), workspaces.count - 1)
+
+        let centreX = canvasX(content: frame.midX, workspace: drag.fromWorkspace) + translation.width
+        let content = contentX(canvas: centreX, workspace: drag.toWorkspace)
+        // Counted against the row as it *is*, not as it is being drawn: one window has gone past
+        // another when their middles have crossed, and that is a fixed line. Measuring against the
+        // shuffled row instead would move the line towards the card every time it moved — the window
+        // to the right slides into the gap, and its middle arrives under the pointer at once.
+        let frames = columnFrames(workspaces[drag.toWorkspace].columns)
+        var index = 0
+        for (position, other) in frames.enumerated() {
+            if drag.toWorkspace == drag.fromWorkspace, position == drag.fromIndex { continue }
+            if other.midX < content { index += 1 }
+        }
+        drag.toIndex = index
+
+        columnDrag = drag
+    }
+
+    func cancelColumnDrag() {
+        columnDrag = nil
+    }
+
+    /// Drops the carried window where the drag left it, and returns whether the strip changed.
+    @discardableResult
+    func commitColumnDrag() -> Bool {
+        guard let drag = columnDrag else { return false }
+        columnDrag = nil
+        guard drag.movedSomewhere else { return false }
+        var moved = false
+        mutate { s in
+            guard s.workspaces.indices.contains(drag.fromWorkspace),
+                  let at = s.workspaces[drag.fromWorkspace].columns.firstIndex(where: { $0.tabID == drag.tabID })
+            else { return }
+            let column = s.workspaces[drag.fromWorkspace].columns.remove(at: at)
+            s.workspaces[drag.fromWorkspace].focus =
+                min(s.workspaces[drag.fromWorkspace].focus, max(0, s.workspaces[drag.fromWorkspace].columns.count - 1))
+            scrollFocusIntoView(&s.workspaces[drag.fromWorkspace])
+
+            let target = min(max(0, drag.toWorkspace), s.workspaces.count - 1)
+            var destination = s.workspaces[target]
+            let index = min(max(0, drag.toIndex), destination.columns.count)
+            destination.columns.insert(column, at: index)
+            destination.focus = index
+            scrollFocusIntoView(&destination)
+            s.workspaces[target] = destination
+            // The window is where the hand left it, so that is where the focus is — dropping a window
+            // into another row and being left looking at the row it came from is the one thing this
+            // gesture must not do.
+            s.focus = target
+            moved = true
+        }
+        return moved
     }
 
     /// One preset wider or narrower, for every window in every strip. Stops at the ends — no
