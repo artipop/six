@@ -33,6 +33,8 @@ final class MCPAppStore {
         current.removeAll { $0.id == definition.id }
         current.append(definition)
         customServers = current
+        // Editing a server that is already shared changes its tools too — a new URL is a new list.
+        if isShared(definition) { onSharedServersChanged?() }
     }
 
     func remove(_ definition: MCPServerDefinition) {
@@ -44,6 +46,7 @@ final class MCPAppStore {
         customServers.removeAll { $0.id == definition.id }
         disconnect(definition)
     }
+
 
     private(set) var lastError: String?
     /// What is running, newest last.
@@ -65,6 +68,10 @@ final class MCPAppStore {
     #if os(macOS)
     /// The agent panel, for `ui/message` and `ui/update-model-context`. There is none on a phone.
     @ObservationIgnored weak var agent: AgentSessionStore?
+    /// Somebody to tell that what the agent would be given has changed — `MCPHost.toolsChanged`,
+    /// set where the two halves are wired together. A closure rather than a reference back to the
+    /// host: the store is what six is host *to*, and it has no business knowing about the socket.
+    @ObservationIgnored var onSharedServersChanged: (() -> Void)?
     #endif
     @ObservationIgnored weak var settings: SettingsStore?
     @ObservationIgnored private var clients: [MCPServerDefinition.ID: MCPClient] = [:]
@@ -171,49 +178,81 @@ final class MCPAppStore {
         if shared { current.insert(definition.id) } else { current.remove(definition.id) }
         sharedWithAgent = current
         if !shared, !sessions.contains(where: { $0.server.id == definition.id }) { disconnect(definition) }
+        onSharedServersChanged?()
     }
+
+    /// How long the whole of a shared server's answer to "what have you got" may take.
+    ///
+    /// Not `MCPClient`'s own two minutes. Those are for *calling* a tool, where somebody asked for
+    /// work and is waiting on it; this is for reading a list of names, and the launch of an `npx`
+    /// package with a cold cache is the slowest honest thing in it.
+    private static let listingDeadline = Duration.seconds(15)
 
     /// Every shared server's model-visible tools, as MCP descriptors under six's own name.
     ///
-    /// A server that will not start is skipped rather than failing the list: an agent asking six
-    /// what it can do should get the browser's own tools even when somebody's npm package is broken.
+    /// Asked all at once and each on a short clock. A server that will not start is skipped rather
+    /// than failing the list — an agent asking six what it can do should get the browser's own tools
+    /// even when somebody's npm package is broken — but skipping is not enough on its own: six's
+    /// twenty-nine are collected before this is called and still leave only after it returns, so a
+    /// server that accepts the connection and then says nothing would take the whole list with it,
+    /// and the agent would find itself without a browser rather than without a server.
     func agentTools() async -> [ACPJSON] {
-        var descriptors: [ACPJSON] = []
-        for definition in servers where isShared(definition) {
+        // Independent `Task`s rather than a task group, the way `MCPCatalog.sweep` does it and for
+        // the same measured reason. Each one is a client of its own, so nothing here is shared but
+        // the order they are read back in.
+        let running = servers.filter(isShared).map { definition in
             let client = client(for: definition)
-            do {
-                try await client.connect()
-                for tool in try await client.listTools() where tool.visibility.contains(.model) {
-                    var object: [String: ACPJSON] = [
-                        "name": .string(qualified(definition, tool)),
-                        "inputSchema": tool.inputSchema ?? ["type": "object", "properties": [:]],
-                    ]
-                    object["title"] = .string(tool.title ?? tool.name)
-                    // The agent is told which tools draw something, because that changes what it
-                    // should say afterwards: the window is the answer, and repeating it in prose is
-                    // reading the screen aloud.
-                    let note = tool.hasApp
-                        ? " Opens a window in the browser showing this result as an interface; describe it briefly rather than repeating its contents."
-                        : ""
-                    // The server's name is said in the description and not left to the prefix of the
-                    // tool's name. Somebody asking for "my cards in Kaiten" is naming the *server*,
-                    // and the description is what that gets matched against — while a server's own
-                    // text has no reason to repeat its own name, and usually does not. Without this
-                    // the nearest match to the question is the browser's own `open_url`, and the
-                    // answer is the company's website instead of the window its server would draw.
-                    let from = "From \(definition.name), a server this browser is connected to."
-                    var text = (tool.description ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-                    // Somebody else's sentence, which may or may not have been finished. six's own
-                    // half follows it either way, and "as a member Opens a window" is not a sentence.
-                    if let last = text.last, !".!?".contains(last) { text += "." }
-                    object["description"] = .string("\(from) \(text)\(note)")
-                    descriptors.append(.object(object))
+            return Task { () -> (MCPServerDefinition, [MCPTool], String?) in
+                do {
+                    let tools = try await MCPApps.withDeadline(Self.listingDeadline) {
+                        try await client.connect()
+                        return try await client.listTools()
+                    }
+                    return (definition, tools, nil)
+                } catch {
+                    return (definition, [], error.localizedDescription)
                 }
-            } catch {
-                lastError = "\(definition.name): \(error.localizedDescription)"
             }
         }
+        var descriptors: [ACPJSON] = []
+        for task in running {
+            let (definition, tools, failure) = await task.value
+            if let failure {
+                lastError = "\(definition.name): \(failure)"
+                continue
+            }
+            descriptors += tools.filter { $0.visibility.contains(.model) }
+                .map { descriptor(for: $0, of: definition) }
+        }
         return descriptors
+    }
+
+    /// One tool, as the agent will read it.
+    private func descriptor(for tool: MCPTool, of definition: MCPServerDefinition) -> ACPJSON {
+        var object: [String: ACPJSON] = [
+            "name": .string(qualified(definition, tool)),
+            "inputSchema": tool.inputSchema ?? ["type": "object", "properties": [:]],
+        ]
+        object["title"] = .string(tool.title ?? tool.name)
+        // The agent is told which tools draw something, because that changes what it should say
+        // afterwards: the window is the answer, and repeating it in prose is reading the screen
+        // aloud.
+        let note = tool.hasApp
+            ? " Opens a window in the browser showing this result as an interface; describe it briefly rather than repeating its contents."
+            : ""
+        // The server's name is said in the description and not left to the prefix of the tool's
+        // name. Somebody asking for "my cards in Kaiten" is naming the *server*, and the description
+        // is what that gets matched against — while a server's own text has no reason to repeat its
+        // own name, and usually does not. Without this the nearest match to the question is the
+        // browser's own `open_url`, and the answer is the company's website instead of the window
+        // its server would draw.
+        let from = "From \(definition.name), a server this browser is connected to."
+        var text = (tool.description ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        // Somebody else's sentence, which may or may not have been finished. six's own half follows
+        // it either way, and "as a member Opens a window" is not a sentence.
+        if let last = text.last, !".!?".contains(last) { text += "." }
+        object["description"] = .string("\(from) \(text)\(note)")
+        return .object(object)
     }
 
     /// Runs a tool the agent asked for by its qualified name. `nil` means the name is not six's to

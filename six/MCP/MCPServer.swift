@@ -27,7 +27,7 @@ final class MCPServer {
             let version = Self.supportedProtocolVersions.contains(requested) ? requested : Self.supportedProtocolVersions[0]
             return [
                 "protocolVersion": .string(version),
-                "capabilities": ["tools": ["listChanged": false]],
+                "capabilities": ["tools": ["listChanged": true]],
                 "serverInfo": Self.serverInfo,
                 "instructions": .string(BrowserToolCatalog.instructions),
             ]
@@ -91,6 +91,18 @@ final class MCPHost {
             status = String(localized: "listening at \(listener.path)")
         } catch {
             status = error.localizedDescription
+        }
+    }
+
+    /// Tells every connected agent that six's tool list is not what it was.
+    ///
+    /// An agent asks `tools/list` once, when it connects, and keeps the answer — so without this a
+    /// server handed over mid-session (**Apps ▸ Give to the Agent**) arrives at the next launch, and
+    /// one taken away stays in front of the model until then. Which is why `listChanged` is `true`
+    /// in the capabilities: the flag is a promise to send this, not a description of the list.
+    func toolsChanged() {
+        for connection in connections.values {
+            Task { try? await connection.notify("notifications/tools/list_changed") }
         }
     }
 

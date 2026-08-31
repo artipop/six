@@ -120,6 +120,10 @@ struct sixApp: App {
         // A shared server's tools reach the agent through six's own MCP server, so a call to one
         // lands here and can open a window before it answers.
         mcp.server.apps = mcpApps
+        // And back the other way, which is the only thing the store knows about the socket: when
+        // what the agent would be given changes, whoever is connected has to be told, because it
+        // asked for the list once and would otherwise keep the old one until the next launch.
+        mcpApps.onSharedServersChanged = { [weak mcp] in mcp?.toolsChanged() }
         agentSession.appContext = { [weak mcpApps] in mcpApps?.pendingModelContext() ?? [] }
         mcpApps.watchAppearance()
         mcpApps.runSelfTestIfRequested()
