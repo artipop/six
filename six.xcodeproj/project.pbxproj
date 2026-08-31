@@ -94,8 +94,8 @@
 		AC897663303CEC20008426C2 /* six */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				AC9001010000000000000009 /* Exceptions for "six" folder in "six-iOS" target */,
 				AC90010100000000000000A0 /* Exceptions for "six" folder in "six" target */,
+				AC9001010000000000000009 /* Exceptions for "six" folder in "six-iOS" target */,
 			);
 			path = six;
 			sourceTree = "<group>";
