@@ -92,6 +92,12 @@ final class BrowserToolCatalog {
         calls (`kind: app`, with the server and tool that opened it). You cannot read or drive its page — \
         `get_page_content` returns what the tool was called with and what it answered, and that is all there \
         is to read. The window is the answer; describe it, don't narrate it.
+
+        A connected server's own tools are named `<server>__<tool>` and listed here with the rest. \
+        When one of them answers what was asked, call it — do not open that service's website \
+        instead. A question naming a service six is connected to (its cards, its issues, its \
+        inbox) is a question for that server's tool; the web is what the browser has for the \
+        services it is not connected to.
         """
 
     func tools(for surface: BrowserTool.Surface) -> [BrowserTool] {

@@ -195,7 +195,18 @@ final class MCPAppStore {
                     let note = tool.hasApp
                         ? " Opens a window in the browser showing this result as an interface; describe it briefly rather than repeating its contents."
                         : ""
-                    object["description"] = .string((tool.description ?? "") + note)
+                    // The server's name is said in the description and not left to the prefix of the
+                    // tool's name. Somebody asking for "my cards in Kaiten" is naming the *server*,
+                    // and the description is what that gets matched against — while a server's own
+                    // text has no reason to repeat its own name, and usually does not. Without this
+                    // the nearest match to the question is the browser's own `open_url`, and the
+                    // answer is the company's website instead of the window its server would draw.
+                    let from = "From \(definition.name), a server this browser is connected to."
+                    var text = (tool.description ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                    // Somebody else's sentence, which may or may not have been finished. six's own
+                    // half follows it either way, and "as a member Opens a window" is not a sentence.
+                    if let last = text.last, !".!?".contains(last) { text += "." }
+                    object["description"] = .string("\(from) \(text)\(note)")
                     descriptors.append(.object(object))
                 }
             } catch {

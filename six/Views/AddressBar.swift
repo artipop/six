@@ -30,6 +30,10 @@ struct AddressBar: View {
         HStack(spacing: 6) {
             if let document = tab.document {
                 documentControls(document)
+            } else if let app = tab.app {
+                appControls(app)
+            } else if let pending = tab.pendingApp {
+                appField(MCPServerDefinition(pending), tool: pending.toolTitle) {}
             } else {
                 Button(action: tab.goBack) { Image(systemName: "chevron.left") }
                     .disabled(!tab.canGoBack)
@@ -395,6 +399,68 @@ struct AddressBar: View {
                 .foregroundStyle(.secondary)
                 .font(.system(size: 10))
         }
+    }
+
+    // MARK: Apps
+
+    /// An app window has no address either, and for a stronger reason than a document: `mcp-app://…`
+    /// is a URL nobody can type, revisit or bookmark, and the origin behind it is one six made up so
+    /// that somebody else's HTML would have a stable one. What belongs in the field's place is the
+    /// only thing worth knowing about that HTML — **whose it is** — and, when the tool it draws never
+    /// answered, that it never answered. `MCPAppSession.status` had nowhere to be shown until now.
+    @ViewBuilder
+    private func appControls(_ app: MCPAppSession) -> some View {
+        appField(app.server, tool: app.title) {
+            switch app.status {
+            case .loading:
+                ProgressView().controlSize(.mini)
+            case .running:
+                EmptyView()
+            case .failed(let why):
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                    .font(.system(size: 10))
+                    .help(why)
+            }
+        }
+    }
+
+    /// The server first and the tool second: the strip already carries the tool's name as the
+    /// window's title, and what it cannot say is who drew it.
+    private func appField<Trailing: View>(
+        _ server: MCPServerDefinition, tool: String, @ViewBuilder trailing: () -> Trailing
+    ) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: server.isRemote ? "network" : "terminal")
+                .foregroundStyle(.secondary)
+                .font(.system(size: 10))
+            Text(server.name)
+                .lineLimit(1)
+                .truncationMode(.tail)
+            Text(tool)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .truncationMode(.tail)
+            trailing()
+            Spacer(minLength: 0)
+            Text(origin(of: server))
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .help(server.location)
+        }
+        .padding(.horizontal, 8)
+        .frame(height: 24)
+        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+    }
+
+    /// Where this window's HTML came from, short enough to sit at the end of the bar: a remote
+    /// server's host, a local one's program without the path it was found at. The whole of it — the
+    /// endpoint, or the command line as a shell would read it — is in the tooltip.
+    private func origin(of server: MCPServerDefinition) -> String {
+        if let url = server.url { return url.host() ?? url.absoluteString }
+        return server.command.split(separator: "/").last.map(String.init) ?? server.command
     }
 
     // MARK: Documents
