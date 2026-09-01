@@ -35,12 +35,25 @@ nonisolated enum SearchEngine: String, CaseIterable, Identifiable, Sendable {
     /// "паша · DuckDuckGo Search" instead of the results page's title.
     func query(from url: URL) -> String? {
         guard let host = url.host()?.lowercased(),
-              let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems,
-              let q = items.first(where: { $0.name == "q" })?.value, !q.isEmpty else { return nil }
+              let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.percentEncodedQueryItems,
+              let raw = items.first(where: { $0.name == "q" })?.value else { return nil }
+        let q = Self.decoded(raw)
+        guard !q.isEmpty else { return nil }
         switch self {
         case .duckDuckGo: return host == "duckduckgo.com" || host.hasSuffix(".duckduckgo.com") ? q : nil
         case .google: return host.hasPrefix("www.google.") && url.path() == "/search" ? q : nil
         }
+    }
+
+    /// A query string's space, however the page that wrote it spelled one.
+    ///
+    /// six writes `%20`; both engines write `+` in the address their own search box produces, and
+    /// `URLComponents` decodes the escapes without touching the `+` — which is how history came to
+    /// show "слово+раз". Substituting before the decode rather than after is what keeps a
+    /// searched-for plus, which arrives as `%2B`, a plus.
+    private static func decoded(_ percentEncoded: String) -> String {
+        let spaced = percentEncoded.replacingOccurrences(of: "+", with: "%20")
+        return spaced.removingPercentEncoding ?? percentEncoded
     }
 
     /// Whichever engine's results page this is.
