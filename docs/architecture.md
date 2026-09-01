@@ -195,7 +195,7 @@ so `resolve(_:)` opens what it points at rather than the file.
 
 ## Persistence
 
-Everything that makes up a session — profiles, the selected one, every tab (URL + title) and every profile's strip
+Everything that makes up a session — the selected profile, every tab (URL + title) and every profile's strip
 (workspaces with their names, their columns, focus) plus the agent chats — is one `AppStateSnapshot`,
 written to `~/Library/Application Support/org.deffun.six/state.json` — the folder is the bundle identifier, so a Debug
 build writes to `org.deffun.six.dev/` and the two never meet (`AppSupport`, and
@@ -203,6 +203,28 @@ build writes to `org.deffun.six.dev/` and the two never meet (`AppSupport`, and
 use only Foundation and Observation (no SwiftData, no AppKit), so the format and the machinery are portable as they
 are; only the mapping to the live objects (`BrowserState.snapshot` / `init(snapshot:)`, `NiriLayout.allStrips` /
 `restore(strips:)`, `AgentSessionStore.snapshot` / `init(snapshot:)`) is app code.
+
+Who the profiles *are* is not in that file. They are two tables in the database, behind `ProfileStore`,
+because a profile is the identity `visits`, `bookmarks` and every cookie jar are already keyed by — and while it
+lived only in the snapshot, one file that would not decode cost all of it: the app started with `Profile.defaults`,
+minted fresh `WKWebsiteDataStore` identifiers, and the autosave wrote them over the only copy of the old ones a
+second later. Every login in every profile, gone; the site data on disk orphaned rather than deleted. The snapshot
+still *carries* the profiles, for the fronts that have no table of their own, but on the Mac it is never read back:
+an empty table is a new browser. Losing `state.json` now costs a session, which is what a session snapshot should
+cost.
+Two tables and not one because of the sync engine that is not written yet: `profiles(id, name, colorHex, ord)` is
+who the profile is, under an id two Macs could agree on, and may one day be named to a `SyncEngine`;
+`profile_storage(id, dataStoreID, workingDirectoryPath)` is where *this* Mac keeps that profile's things, and never
+may be. A `SyncEngine` names tables and there is no filter below one, so a device-local column is safe only until
+somebody opts its table in, while a device-local table is safe by being left off a list ([sync.md](sync.md)).
+`ProfileStore` splits on the way in and joins on the way out, so nothing above it sees the seam — and a profile that
+turns up with no storage beside it, the shape a synced one would have, is given a new data store on the spot:
+cookies do not travel, so a profile met for the first time on a Mac is signed out.
+
+`FileSnapshotStore` writes the file, flushes it and only then lets it take the name — `Data.write(.atomic)` renames
+a temporary file into place but never flushes it, so a machine that goes down unclean could come back with the
+rename and none of the bytes behind it. A file that will not decode is moved to `state.json.unreadable-<time>`
+rather than left to be overwritten by the fresh one.
 
 `StatePersistence` reads the snapshot under `withObservationTracking`, so any change to anything it touches — a
 page's URL, a column moving, a chat line — schedules a debounced (1 s) write off the main thread; `NSApplication`'s
@@ -217,7 +239,8 @@ History and settings live in SQLite — `~/Library/Application Support/org.deffu
 through [SQLiteData](https://github.com/pointfreeco/sqlite-data) (GRDB + StructuredQueries; `@Table` structs, typed
 queries, `#sql` for the schema). Tables follow SQLiteData's CloudKit rules from the start — UUID text primary keys,
 no `UNIQUE` elsewhere, columns only ever added — so turning its `SyncEngine` on later is configuration
-([storage.md](storage.md), [sync.md](sync.md)). `visits(id, profileID, url, title, visitedAt)` is history:
+([storage.md](storage.md), [sync.md](sync.md)). `profiles` and `profile_storage` are who the profiles are and where they are kept, above.
+`visits(id, profileID, url, title, visitedAt)` is history:
 each `BrowserTab` feeds `WebPage.navigations` to `BrowserState`, which records the committed URL under the tab's
 profile and fills in the title when the load finishes. `settings(key, value)` holds the preferences (search engine,
 assistant model, `⌥C`, agent model override) behind the typed `SettingsStore`; the Anthropic API key stays in

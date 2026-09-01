@@ -10,6 +10,13 @@
 2. **Profiles** — name, colour, and a stable id so two Macs agree on which history belongs where. The
    `WKWebsiteDataStore` (cookies, logins) does **not** sync — CloudKit is not the place for session cookies, and
    passkeys already come through iCloud Keychain.
+
+   The schema is already cut for it. `SyncEngine(for:tables:privateTables:)` names what travels and there is no
+   filter below the table, so the profile is two tables: **`profiles(id, name, colorHex, ord)`** — the half that may
+   be named — and **`profile_storage(id, dataStoreID, workingDirectoryPath)`**, which never may be, because both of
+   its columns are paths on *this* machine. `ProfileStore` joins them, so nothing above it knows. A profile arriving
+   from another Mac has no `profile_storage` row and is given a fresh data store on arrival, which is the right
+   answer: it is a profile you have not signed into here.
 3. **Highlights, documents, named workspaces** — once they exist ([todo.md](todo.md)). Not the live strip: which
    windows are open on *this* Mac is per-device state, like Safari's "iCloud Tabs" which is a list, not the layout.
 4. **Chats** — the ACP session id is only valid on the machine whose agent created it, so a chat can sync as a

@@ -70,6 +70,10 @@ let package = Package(
                 // decision on all of them.
                 "Browser/IDN.swift",
                 "Browser/History.swift",
+                // Who the profiles are. The row and the table are plain values and plain SQL, and
+                // the reason they exist at all — that the identity every other table is keyed by
+                // must not live in a file that can fail to decode — is the same on every front.
+                "Browser/ProfileStore.swift",
                 // What a site was allowed. The decision, the queue and the suspension are the same
                 // on both platforms; only the type the request arrives as differs, and that part
                 // stays behind `#if canImport(WebKit)`.

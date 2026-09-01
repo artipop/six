@@ -125,6 +125,35 @@ nonisolated enum AppDatabase {
                 DROP TABLE IF EXISTS "bookmark_vectors"
                 """).execute(db)
         }
+        migrator.registerMigration("v5 profiles") { db in
+            // The profiles come off `state.json` and into the file that already holds everything
+            // keyed by them (`visits`, `bookmarks`, `bookmark_vectors`). While the identity lived
+            // only in the snapshot, one file that would not decode logged the user out of every
+            // profile at once — see `ProfileStore` for the whole of it.
+            //
+            // Two tables, not one, and the reason is the sync engine that isn't written yet:
+            // `SyncEngine(for:tables:privateTables:)` names tables and there is no filter below one.
+            // So who the profile *is* — a name, a colour, an order, under an id two Macs can agree
+            // on — is a table that may be named, and where this Mac keeps the profile's things is a
+            // table that never is. `dataStoreID` addresses a folder under
+            // `~/Library/WebKit/<bundle identifier>` and `workingDirectoryPath` a folder on this
+            // disk; neither means anything anywhere else. See docs/sync.md.
+            try #sql("""
+                CREATE TABLE "profiles" (
+                  "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE,
+                  "name" TEXT NOT NULL DEFAULT '',
+                  "colorHex" TEXT NOT NULL DEFAULT '',
+                  "ord" INTEGER NOT NULL DEFAULT 0
+                ) STRICT
+                """).execute(db)
+            try #sql("""
+                CREATE TABLE "profile_storage" (
+                  "id" TEXT PRIMARY KEY NOT NULL ON CONFLICT REPLACE,
+                  "dataStoreID" TEXT NOT NULL,
+                  "workingDirectoryPath" TEXT
+                ) STRICT
+                """).execute(db)
+        }
         try migrator.migrate(database)
         return database
     }

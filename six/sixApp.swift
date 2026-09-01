@@ -60,6 +60,9 @@ struct sixApp: App {
         let settings = SettingsStore(database: database)
         SettingsStore.shared = settings
         let history = HistoryStore(database: database)
+        // The profiles live here now, not in the snapshot beside it: they are the identity the
+        // visits, the bookmarks and every cookie jar are keyed by (`ProfileStore`).
+        let profileStore = ProfileStore(database: database)
         // Built before the browser, and handed to it: `BrowserState.init` builds and loads the
         // windows it restores, and a page is built once with what it was given.
         let pageControllers = PageControllers()
@@ -69,8 +72,8 @@ struct sixApp: App {
         // the camera the moment it loads, and a question with nowhere to go is answered no.
         let permissions = SitePermissions(settings: settings)
         let browser = BrowserState(snapshot: snapshot?.browser, history: history, settings: settings,
-                                   pageControllers: pageControllers, blocker: blocker, devTools: devTools,
-                                   permissions: permissions)
+                                   profileStore: profileStore, pageControllers: pageControllers,
+                                   blocker: blocker, devTools: devTools, permissions: permissions)
         permissions.isPrivate = { [weak browser] id in browser?.isPrivate(id) ?? false }
         blocker.startRefreshSchedule()
         devTools.browser = browser

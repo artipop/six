@@ -76,29 +76,46 @@ final class BrowserState {
     /// second front end would have to agree with, only whether this one asks for a peek.
     var peeksAtEdges = SettingsStore.peeksByDefault
     @ObservationIgnored private let settings: SettingsStore
+    /// Who the profiles are, in the database beside the history and the bookmarks that are keyed by
+    /// them. Not the snapshot: see `ProfileStore` for what the snapshot losing them used to cost.
+    @ObservationIgnored private let profileStore: ProfileStore
 
     @ObservationIgnored private var dataStores: [UUID: WKWebsiteDataStore] = [:]
     /// Tabs by id. The strip asks for one per column per layout pass, and a linear scan over a
     /// hundred windows on every pass is a hundred times nothing that adds up to something.
     @ObservationIgnored private var tabsByID: [UUID: BrowserTab] = [:]
 
-    /// Starts from a snapshot when there is one; otherwise with the default profiles and one window.
+    /// Starts from the profiles in the database and the windows in the snapshot; with the default
+    /// profiles and one window when there is neither.
     /// `pageControllers`, `blocker` and `devTools` are arguments rather than properties assigned
     /// afterwards because this initializer *builds and loads* the first windows: anything wired later
     /// would arrive after that page had already started loading.
     init(snapshot: BrowserSnapshot? = nil, history: HistoryStore, settings: SettingsStore,
-         pageControllers: PageControllers? = nil, blocker: ContentBlocker? = nil,
+         profileStore: ProfileStore, pageControllers: PageControllers? = nil, blocker: ContentBlocker? = nil,
          devTools: DevToolsStore? = nil, permissions: SitePermissions? = nil) {
         self.history = history
         self.settings = settings
+        self.profileStore = profileStore
         self.pageControllers = pageControllers ?? PageControllers()
         self.blocker = blocker
         self.devTools = devTools
         self.permissions = permissions
         layout.centersFocus = settings.centersFocus
         peeksAtEdges = settings.peeksAtEdges
-        var loaded = snapshot?.profiles ?? Self.legacyProfiles() ?? Profile.defaults
-        if loaded.isEmpty { loaded = Profile.defaults }
+        // Who the profiles are comes from the table; what was open comes from the snapshot. The two
+        // used to be one file, and the day it would not decode the profiles were born again with new
+        // data stores behind them — every login in every profile, gone (`ProfileStore`).
+        //
+        // The table is the only place asked. It could have been seeded from the snapshot on the
+        // launch that creates it, and that would have carried the identifiers over once — but it
+        // would also have left the reading of `snapshot.profiles` in the code for one launch's sake,
+        // where the next person to look would have to work out whether it still ran. An empty table
+        // means a new browser, which is the honest reading of an empty table.
+        var loaded = profileStore.all().map(Profile.init)
+        if loaded.isEmpty {
+            loaded = Profile.defaults
+            profileStore.save(Self.records(of: loaded))
+        }
         profiles = loaded
         let selected = loaded.first { $0.id == snapshot?.selectedProfileID }?.id ?? loaded[0].id
         selectedProfileID = selected
@@ -402,11 +419,16 @@ final class BrowserState {
         return makeTab(id: saved.id, profile: profile, restoring: saved.url, title: saved.title)
     }
 
-    /// Profiles used to live in `UserDefaults`; read them once for the first launch with a snapshot file.
-    private static func legacyProfiles() -> [Profile]? {
-        guard let data = UserDefaults.standard.data(forKey: "six.profiles"),
-              let stored = try? JSONDecoder().decode([Profile].self, from: data), !stored.isEmpty else { return nil }
-        return stored
+    /// The profile list as rows, in the order it is shown. A private profile is recorded nowhere —
+    /// here as everywhere else, that is the whole of what private means.
+    private static func records(of profiles: [Profile]) -> [ProfileRecord] {
+        profiles.filter { !$0.isPrivate }.enumerated().map { ProfileRecord($1, ord: $0) }
+    }
+
+    /// The table, made equal to the list. Called by every edit to the profiles; the write is small
+    /// and immediate, the way a setting's is, because this is identity and not session state.
+    private func saveProfiles() {
+        profileStore.save(Self.records(of: profiles))
     }
 
     // MARK: Profiles
@@ -438,6 +460,7 @@ final class BrowserState {
     func addProfile(name: String, colorHex: String) {
         let profile = Profile(name: name, colorHex: colorHex)
         profiles.append(profile)
+        saveProfiles()
         selectProfile(profile.id)
     }
 
@@ -452,6 +475,7 @@ final class BrowserState {
               profiles[index].name != trimmed else { return }
         let old = profiles[index].folder
         profiles[index].name = trimmed
+        saveProfiles()
         let new = profiles[index].folder
         guard old != new, FileManager.default.fileExists(atPath: old.path(percentEncoded: false)) else { return }
         try? FileManager.default.createDirectory(at: new.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -462,6 +486,7 @@ final class BrowserState {
     func setProfileColor(_ id: Profile.ID, hex: String) {
         guard let index = profiles.firstIndex(where: { $0.id == id }), profiles[index].colorHex != hex else { return }
         profiles[index].colorHex = hex
+        saveProfiles()
     }
 
     func removeProfile(_ id: Profile.ID) {
@@ -469,6 +494,7 @@ final class BrowserState {
         for tab in tabs(in: id) { closeTab(tab.id) }
         research.removeAll { $0.profileID == id }
         profiles.removeAll { $0.id == id }
+        saveProfiles()
         dataStores[profile.dataStoreID] = nil // a private store dies with its last reference: that is the whole point
         layout.removeProfile(id)
         permissions?.forgetProfile(id) // what a site was allowed inside this profile went with it
@@ -519,6 +545,7 @@ final class BrowserState {
     func setWorkingDirectory(_ url: URL?, for id: Profile.ID) {
         guard let index = profiles.firstIndex(where: { $0.id == id }) else { return }
         profiles[index].workingDirectoryPath = url?.standardizedFileURL.path
+        saveProfiles()
     }
 
     /// Ensures the profile's working directory exists and returns it.

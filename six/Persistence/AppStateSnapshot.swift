@@ -17,6 +17,10 @@ nonisolated struct AppStateSnapshot: VersionedSnapshot {
 
 /// Profiles, the windows in them and where each sits in its profile's strip.
 nonisolated struct BrowserSnapshot: Codable, Sendable {
+    /// Written, and on the Mac never read back: `ProfileStore` is where the profiles live, and an
+    /// empty table means a new browser rather than one to fill from here. It stays in the format
+    /// because the fronts without a table of their own keep theirs here — Android reads exactly this
+    /// key, and `state-fixture.json` is built on it.
     var profiles: [Profile]
     var selectedProfileID: UUID
     var tabs: [TabSnapshot]

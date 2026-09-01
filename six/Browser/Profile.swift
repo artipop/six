@@ -68,6 +68,25 @@ nonisolated struct Profile: Identifiable, Codable, Hashable, Sendable {
     ]
 }
 
+// MARK: The row it is kept as
+
+extension Profile {
+    /// A profile as the database has it. `isPrivate` is not among the columns and never will be:
+    /// a private profile is the one that is written down nowhere, so anything read back is real.
+    init(_ record: ProfileRecord) {
+        self.init(id: record.id, name: record.name, colorHex: record.colorHex, dataStoreID: record.dataStoreID)
+        workingDirectoryPath = record.workingDirectoryPath
+    }
+}
+
+extension ProfileRecord {
+    init(_ profile: Profile, ord: Int) {
+        self.init(id: profile.id, name: profile.name, colorHex: profile.colorHex,
+                  dataStoreID: profile.dataStoreID, workingDirectoryPath: profile.workingDirectoryPath,
+                  ord: ord)
+    }
+}
+
 extension Color {
     init(hex: String) {
         var value: UInt64 = 0

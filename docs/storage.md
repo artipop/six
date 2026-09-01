@@ -15,9 +15,10 @@ flowchart TB
         HS["HistoryStore"]
         AS["AgentSessionStore / ACP / MCP"]
         Snap["AppStateSnapshot · JSON
-tabs · strips · profiles · chats"]
+tabs · strips · chats"]
         DB[("SQLite — system of record, via SQLiteData over GRDB
-visits · settings · bookmarks
+profiles · profile_storage · visits · settings
+bookmarks
 bookmark_chunks · bookmark_vectors")]
         RET{{"Retrieval protocol
 index chunks · search query"}}
