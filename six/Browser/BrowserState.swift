@@ -620,9 +620,9 @@ final class BrowserState {
             return
         }
         let opened = newTab(url: url, in: tab.profileID, workspace: nil, activate: !background)
-        // Remembered so the column can be taken back if the link turns out to be a file — see
-        // `closeIfOnlyCarriedALink`.
-        opened.openedForLink = true
+        // Remembered so the column can be taken back — and this one handed the focus back — if the
+        // link turns out to be a file. See `closeIfOnlyCarriedALink`.
+        opened.openedFrom = tab.id
         // Only for the ones that go behind: a window that comes forward takes the eye with it and
         // needs no announcing. The one that does not is otherwise invisible — see `NiriLayout.peek`.
         if background { layout.peek() }
@@ -642,16 +642,28 @@ final class BrowserState {
     /// committed, nothing to go back to, and nothing to show but the blank it was born as. It goes
     /// with the download it turned into — the file is in the bar, which is where the answer is.
     ///
+    /// And the focus goes back to the window the link was clicked in, which `closeTab` alone will not
+    /// do: closing a column focuses whatever slides into its place, and what slides into this one's
+    /// place is the window that happened to be to its right. That is right for ⌘W — the strip closes
+    /// up and the eye carries on the way it was going — and wrong here, where nothing was read and
+    /// nothing was meant to be left behind. With no window right of the link there was nothing to
+    /// slide in and the two rules agreed, which is why this only ever went wrong sometimes.
+    ///
     /// A download asked for from a page the user is reading leaves that page alone, and so does one
     /// asked for in a window that had already shown something.
     private func closeIfOnlyCarriedALink(_ tab: BrowserTab) {
-        guard tab.openedForLink, !tab.hasCommitted else { return }
+        guard let opener = tab.openedFrom, !tab.hasCommitted else { return }
         // Not here: this runs inside the policy decision that turned the link into a download, and
         // the page is still waiting for the answer to it. One turn later there is nothing to unwind.
         Task { @MainActor [weak self, weak tab] in
             try? await Task.sleep(for: .milliseconds(50))
             guard let self, let tab, !tab.hasCommitted else { return }
+            let wasFocused = selectedTabID == tab.id
             closeTab(tab.id)
+            // Only when the eye was in the window being closed. A link opened behind (⌘-click) never
+            // had the focus, and taking it to the opener would move a reader who never left it.
+            guard wasFocused, tabsByID[opener] != nil else { return }
+            selectTab(opener)
         }
     }
 

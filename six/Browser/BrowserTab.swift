@@ -150,10 +150,11 @@ final class BrowserTab: Identifiable {
     /// A fresh window shows six's own start page instead of loading someone's home page. The first
     /// navigation replaces it for good.
     private(set) var showsStartPage = true
-    /// Was this window opened to carry a link — a ⌘-click, `target=_blank`, Open Link in New Window
-    /// — rather than by the user or a restore? Set by `BrowserState`, which reads it together with
-    /// `hasCommitted` to take the window back if the link turns out to be a file.
-    @ObservationIgnored var openedForLink = false
+    /// The window a link was followed out of, when this one was opened to carry that link — a
+    /// ⌘-click, `target=_blank`, Open Link in New Window — rather than by the user or a restore. Set
+    /// by `BrowserState`, which reads it together with `hasCommitted` to take the window back if the
+    /// link turns out to be a file, and to put the reader back where they clicked.
+    @ObservationIgnored var openedFrom: BrowserTab.ID?
     /// Has anything ever been shown here? A window whose only navigation became a download never
     /// commits one, and has neither a page to show nor a page to go back to.
     private(set) var hasCommitted = false
