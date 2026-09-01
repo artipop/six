@@ -68,6 +68,9 @@ final class BrowserState {
     @ObservationIgnored let appleTranslator = AppleTranslator()
     /// Deep-research runs (see `ResearchRun`).
     var research: [ResearchRun] = []
+    /// Windows that were closed, oldest first — what ⌘⇧T puts back. Observed rather than ignored so
+    /// the menu item can go grey the moment the last one is used up.
+    private var closedWindows: [ClosedWindow] = []
     /// Whether the strip's edge buttons wait to be found or stand on the screen (`SettingsStore`).
     /// Chrome rather than geometry, so it lives here and not in `NiriLayout`: it changes nothing a
     /// second front end would have to agree with, only whether this one asks for a peek.
@@ -314,27 +317,33 @@ final class BrowserState {
         return BrowserSnapshot(
             profiles: profiles.filter { !$0.isPrivate },
             selectedProfileID: selected,
-            tabs: tabs.filter { !privateIDs.contains($0.profileID) }.map { tab in
-                var entry = TabSnapshot(id: tab.id, profileID: tab.profileID, url: tab.showsStartPage ? nil : tab.currentURL, title: tab.title)
-                if let document = tab.document {
-                    entry.document = DocumentSnapshot(id: document.id, title: document.title, modifiedAt: document.modifiedAt,
-                                                      fileURL: document.fileURL, showsPreview: document.showsPreview)
-                }
-                // What an app window keeps is the question, not the answer: which server, which
-                // tool, with what. See `AppWindowSnapshot`.
-                if let app = tab.app {
-                    entry.app = app.snapshot
-                } else if let pending = tab.pendingApp {
-                    entry.app = pending // never run this launch; it comes back as it went
-                }
-                return entry
-            },
+            tabs: tabs.filter { !privateIDs.contains($0.profileID) }.map(Self.entry(for:)),
             strips: layout.allStrips
                 .filter { !privateIDs.contains($0.key) }
                 .map { StripSnapshot(profileID: $0.key, strip: $0.value) }
                 .sorted { $0.profileID.uuidString < $1.profileID.uuidString },
             research: research.filter { !privateIDs.contains($0.profileID) }
         )
+    }
+
+    /// What is kept of one window: its address and title, and — for the two kinds that are not a page
+    /// — the document beside it or the question an app window was opened with. Written by the session
+    /// snapshot and by `remember`, because a window that can be brought back after a relaunch and one
+    /// that can be brought back with ⌘⇧T are the same window described twice.
+    private static func entry(for tab: BrowserTab) -> TabSnapshot {
+        var entry = TabSnapshot(id: tab.id, profileID: tab.profileID, url: tab.showsStartPage ? nil : tab.currentURL, title: tab.title)
+        if let document = tab.document {
+            entry.document = DocumentSnapshot(id: document.id, title: document.title, modifiedAt: document.modifiedAt,
+                                              fileURL: document.fileURL, showsPreview: document.showsPreview)
+        }
+        // What an app window keeps is the question, not the answer: which server, which tool, with
+        // what. See `AppWindowSnapshot`.
+        if let app = tab.app {
+            entry.app = app.snapshot
+        } else if let pending = tab.pendingApp {
+            entry.app = pending // never run this launch; it comes back as it went
+        }
+        return entry
     }
 
     /// Document text is autosaved on its own; this is for the way out. A private profile's documents
@@ -367,21 +376,30 @@ final class BrowserState {
         }
         for tab in snapshot.tabs where placed.contains(tab.id) {
             guard let profile = profiles.first(where: { $0.id == tab.profileID }) else { continue }
-            if let saved = tab.document {
-                let text = documents.load(id: saved.id) ?? "# \(saved.title)\n"
-                let document = TextDocument(id: saved.id, text: text, modifiedAt: saved.modifiedAt, fileURL: saved.fileURL, showsPreview: saved.showsPreview)
-                add(makeDocumentTab(id: tab.id, profile: profile, document: document))
-            } else if let saved = tab.app {
-                add(makePendingAppTab(id: tab.id, profile: profile, saved: saved))
-            } else if let url = tab.url, let page = BuiltInPage.page(for: url) {
-                // A `six://…` window comes back as the page it was, not as a window trying to fetch
-                // an address WebKit has never heard of.
-                add(makeBuiltInTab(id: tab.id, profile: profile, page: page))
-            } else {
-                add(makeTab(id: tab.id, profile: profile, restoring: tab.url, title: tab.title))
-            }
+            add(makeTab(from: tab, profile: profile))
         }
         layout.restore(strips: strips)
+    }
+
+    /// One window rebuilt from the record kept of it — the session file's, or the one `closeTab` keeps
+    /// for ⌘⇧T. Four kinds, in the order that tells them apart; the last is an ordinary page.
+    ///
+    /// `text` is for the reopened document, whose file under `Documents/` was deleted along with the
+    /// window: by the time anyone asks for it back, what `closeTab` kept is the only copy left.
+    private func makeTab(from saved: TabSnapshot, profile: Profile, text: String? = nil) -> BrowserTab {
+        if let document = saved.document {
+            let text = text ?? documents.load(id: document.id) ?? "# \(document.title)\n"
+            return makeDocumentTab(id: saved.id, profile: profile,
+                                   document: TextDocument(id: document.id, text: text, modifiedAt: document.modifiedAt,
+                                                          fileURL: document.fileURL, showsPreview: document.showsPreview))
+        }
+        if let app = saved.app { return makePendingAppTab(id: saved.id, profile: profile, saved: app) }
+        // A `six://…` window comes back as the page it was, not as a window trying to fetch an address
+        // WebKit has never heard of.
+        if let url = saved.url, let page = BuiltInPage.page(for: url) {
+            return makeBuiltInTab(id: saved.id, profile: profile, page: page)
+        }
+        return makeTab(id: saved.id, profile: profile, restoring: saved.url, title: saved.title)
     }
 
     /// Profiles used to live in `UserDefaults`; read them once for the first launch with a snapshot file.
@@ -906,6 +924,9 @@ final class BrowserState {
         guard let index = tabs.firstIndex(where: { $0.id == id }) else { return }
         let closed = tabs.remove(at: index)
         tabsByID[id] = nil
+        // Before anything is taken apart: `remember` reads where the column stands and what a
+        // document window is holding, and both are gone by the end of this function.
+        remember(closed)
         // Before the page goes, not after: `ui/resource-teardown` is a question asked of code that
         // has to still be running to answer it. The session holds the page for as long as that
         // takes, up to a second.
@@ -934,6 +955,61 @@ final class BrowserState {
 
     func closeSelectedTab() {
         if let id = selectedTabID { closeTab(id) }
+    }
+
+    // MARK: Putting a closed window back
+
+    /// How many closed windows are held for ⌘⇧T. Deep enough to undo a run of ⌘W, and bounded at all
+    /// because nothing else ever clears the list: what is kept is a description of a window rather
+    /// than the window, so it costs little, but a browser open for a week should not go on
+    /// accumulating every window it has ever had.
+    static let rememberedWindows = 10
+
+    /// Is there anything for ⌘⇧T to put back? Only ever a guess at the menu item: the profile a
+    /// remembered window belongs to can be deleted while it waits, and `reopenClosedWindow` is the
+    /// one that finds out.
+    var canReopenClosedWindow: Bool { !closedWindows.isEmpty }
+
+    /// Keeps what a closed window was, so ⌘⇧T can build it again. The record is the session
+    /// snapshot's (`entry(for:)`), plus where in the strip the window stood.
+    ///
+    /// Two kinds are not kept. A private window leaves nothing behind — not on disk, and not in a
+    /// list in memory either; that is the whole of what the profile promises. And a window that never
+    /// showed anything is nothing to put back: a start page closed with ⌘W, or the window a link
+    /// opened that turned out to be a download (`closeIfOnlyCarriedALink`) and would otherwise push
+    /// the window somebody actually wants off the end of the list.
+    private func remember(_ tab: BrowserTab) {
+        guard !isPrivate(tab.profileID) else { return }
+        let entry = Self.entry(for: tab)
+        guard entry.url != nil || entry.document != nil || entry.app != nil else { return }
+        guard let place = layout.location(ofTabID: tab.id, in: tab.profileID) else { return }
+        // The document's text, before `closeTab` deletes the file holding it.
+        closedWindows.append(ClosedWindow(tab: entry, workspace: place.workspace, index: place.index,
+                                          text: tab.document?.text))
+        if closedWindows.count > Self.rememberedWindows { closedWindows.removeFirst() }
+    }
+
+    /// ⌘⇧T. The last window closed comes back where it stood, showing what it showed, and takes the
+    /// focus — it was asked for, so it is the one being looked at.
+    ///
+    /// The loop is for the windows that cannot come back: a profile deleted since takes its windows
+    /// with it (`closeProfile` closes them one by one, and each is remembered), and those are not
+    /// keystrokes that should do nothing. It walks past them to the last window that still can.
+    func reopenClosedWindow() {
+        while let closed = closedWindows.popLast() {
+            guard let profile = profiles.first(where: { $0.id == closed.tab.profileID }) else { continue }
+            let tab = makeTab(from: closed.tab, profile: profile, text: closed.text)
+            add(tab)
+            if selectedProfileID != profile.id {
+                selectedProfileID = profile.id
+                layout.activeProfileID = profile.id
+            }
+            withAnimation(NiriLayout.switchAnimation) {
+                layout.restoreColumn(tabID: tab.id, in: profile.id, workspace: closed.workspace, at: closed.index)
+            }
+            syncSelection()
+            return
+        }
     }
 
     // MARK: niri operations
@@ -1067,4 +1143,17 @@ final class BrowserState {
     private func syncSelection() {
         selectedTabID = layout.focusedTabID
     }
+}
+
+/// A window that was closed, kept whole enough to be built again by ⌘⇧T.
+///
+/// `TabSnapshot` is the record the session file keeps, so a reopened window comes back the way a
+/// relaunched one does — the same kinds, rebuilt by the same call. What the session file has no use
+/// for is the rest: where in the strip the window stood, and a document's text, which lives in a file
+/// that goes when the window does.
+private struct ClosedWindow {
+    var tab: TabSnapshot
+    var workspace: Int
+    var index: Int
+    var text: String?
 }

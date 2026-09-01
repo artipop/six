@@ -235,6 +235,9 @@ struct sixApp: App {
             CommandGroup(replacing: .newItem) {
                 Button("New Window in Strip") { browser.newTab() }
                     .keyboardShortcut("t")
+                Button("Reopen Closed Window") { browser.reopenClosedWindow() }
+                    .keyboardShortcut("t", modifiers: [.command, .shift])
+                    .disabled(!browser.canReopenClosedWindow)
                 Button("New Private Window") { browser.newPrivateWindow() }
                     .keyboardShortcut("p", modifiers: [.command, .shift])
                 Button("Close Private Browsing") { browser.closePrivateBrowsing() }

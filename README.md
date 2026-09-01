@@ -96,6 +96,7 @@ stays the page's.
 | `⌥⇧F`, `Esc` | fullscreen: the page edge to edge, and `⌥←` `⌥→` still walk the strip |
 | `⌥O`, `Esc` | overview — zoomed out just enough to show the focused strip end to end, scrolling sideways runs along it; no modifier needed there, a click opens a window |
 | `⌘T` / `⌘W` | new window in the strip, right of the focused one / close it |
+| `⌘⇧T` | put the last closed window back where it stood |
 | `⌘Y` | the profile's history — searchable; the History menu lists the last 20 pages |
 
 Only columns near the viewport get a real `WebView`; the rest render as cards, so a long strip stays cheap.

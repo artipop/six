@@ -561,6 +561,32 @@ final class NiriLayout {
         }
     }
 
+    /// Where a window stands in a profile's strip: which row, and how far along it. Read before the
+    /// column goes, so a window that comes back can come back where it was.
+    func location(ofTabID tabID: UUID, in profileID: UUID) -> (workspace: Int, index: Int)? {
+        for (w, workspace) in strip(for: profileID).workspaces.enumerated() {
+            if let index = workspace.columns.firstIndex(where: { $0.tabID == tabID }) { return (w, index) }
+        }
+        return nil
+    }
+
+    /// Puts a column back where one was taken from — reopening a closed window. The row it left is not
+    /// the row it returns to: windows have opened and closed since, so the place is a preference and
+    /// not a promise, and both numbers land wherever the row can still take them.
+    func restoreColumn(tabID: UUID, in profileID: UUID, workspace: Int, at index: Int) {
+        mutate(profile: profileID) { s in
+            guard !s.workspaces.isEmpty else { return }
+            let target = min(max(0, workspace), s.workspaces.count - 1)
+            var ws = s.workspaces[target]
+            let at = min(max(0, index), ws.columns.count)
+            ws.columns.insert(NiriColumn(tabID: tabID), at: at)
+            ws.focus = at
+            scrollFocusIntoView(&ws)
+            s.focus = target
+            s.workspaces[target] = ws
+        }
+    }
+
     /// Index of the workspace with this name in a profile's strip, creating it (as the trailing
     /// empty workspace, which gets the name and so survives being empty) when there is none.
     func workspaceIndex(named name: String, in profileID: UUID, createIfMissing: Bool) -> Int? {

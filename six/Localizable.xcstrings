@@ -3089,6 +3089,16 @@
         }
       }
     },
+    "Reopen Closed Window" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть закрытое окно"
+          }
+        }
+      }
+    },
     "Research…" : {
       "localizations" : {
         "ru" : {
