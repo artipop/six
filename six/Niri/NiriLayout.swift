@@ -144,12 +144,11 @@ final class NiriLayout {
     /// Rubber-band offsets while a scroll gesture is still below the switch threshold.
     var verticalPreview: CGFloat = 0
     var horizontalPreview: CGFloat = 0
-    /// The pointer resting on a `+`: -1 for the one at the near end of the strip, 1 for the far end,
-    /// 0 for neither. The strip leans that way while it is held, and an outline of the window the
-    /// button would open stands in the gap it opens up — the button shows what it does before it does
-    /// it. Deliberately not `horizontalPreview`: that band belongs to the scroll gesture, and a peek
-    /// held by the mouse has to survive one arriving.
-    var newColumnHover = 0
+    /// The pointer resting on one of the strip's edge buttons: -1 for the near end, 1 for the far end,
+    /// 0 for neither. The strip leans that way while it is held, showing what is over there — the next
+    /// window, or an outline of the one the `+` would open. Deliberately not `horizontalPreview`: that
+    /// band belongs to the scroll gesture, and a peek held by the mouse has to survive one arriving.
+    var edgeHover = 0
     /// A window being carried across the overview, or `nil`. See `NiriColumnDrag`.
     var columnDrag: NiriColumnDrag?
     @ObservationIgnored private var peekTask: Task<Void, Never>?
@@ -475,30 +474,35 @@ final class NiriLayout {
         }
     }
 
-    // MARK: Looking ahead at a window that isn't there yet
+    // MARK: Looking ahead at what is off the edge
 
-    /// How far the strip leans while a `+` is under the pointer: exactly as far as it leans to show a
-    /// window that opened behind (`peek`), and never further than the window it is revealing is wide.
-    /// One distance for both, because they are the same sentence — *there is something over here* —
-    /// and a strip that says it twice at two different volumes is a strip saying it badly.
+    /// How far the strip leans while an edge button is under the pointer: exactly as far as it leans
+    /// to show a window that opened behind (`peek`), and never further than the window it is revealing
+    /// is wide. One distance for all of them, because they are the same sentence — *there is something
+    /// over here* — and a strip that says it three times at three volumes is a strip saying it badly.
     ///
     /// Same sense as `horizontalPreview` — the columns are drawn at `frame.minX - (offset - lean)`, so
     /// leaning towards the far end of the strip is a negative number.
-    var newColumnLean: CGFloat {
-        guard newColumnHover != 0, newColumnFrame != nil else { return 0 }
+    var edgeLean: CGFloat {
+        guard edgeHover != 0, !isOverview else { return 0 }
+        // Something has to be over there to be worth showing: the next window, or the room a new one
+        // would take. On an empty workspace there is neither, and the strip stays where it is.
+        guard canFocusColumn(edgeHover) || newColumnFrame != nil else { return 0 }
         let amount = min(columnWidth + gap, peekAmount)
-        return newColumnHover > 0 ? -amount : amount
+        return edgeHover > 0 ? -amount : amount
     }
 
-    /// Where the window that `+` would open is going to stand, in content space, or `nil` when no `+`
-    /// is being hovered. The button only ever appears at the end of the strip it points at, so the
-    /// outline goes beyond the last column or before the first one.
+    /// Where the window that `+` would open is going to stand, in content space, or `nil` when the
+    /// hovered button is not a `+` at all. The `+` only appears at the end of the strip it points at —
+    /// where there is no window to walk to — so the outline goes beyond the last column or before the
+    /// first one.
     var newColumnFrame: CGRect? {
-        guard newColumnHover != 0, !isOverview, let workspace = focusedWorkspace, !workspace.isEmpty else { return nil }
+        guard edgeHover != 0, !canFocusColumn(edgeHover), !isOverview else { return nil }
+        guard let workspace = focusedWorkspace, !workspace.isEmpty else { return nil }
         let frames = columnFrames(workspace.columns)
         let width = columnWidth
         let x: CGFloat
-        if newColumnHover > 0 {
+        if edgeHover > 0 {
             x = (frames.last?.maxX ?? outerGap) + gap
         } else {
             x = (frames.first?.minX ?? outerGap) - gap - width
@@ -508,11 +512,11 @@ final class NiriLayout {
 
     /// Sets or clears the peek. A button only ever lets go of the side it took, so the pointer moving
     /// straight from one end of the strip to the other cannot leave it leaning the wrong way.
-    func hoverNewColumn(_ direction: Int, _ hovering: Bool) {
+    func hoverStripEdge(_ direction: Int, _ hovering: Bool) {
         if hovering {
-            newColumnHover = direction
-        } else if newColumnHover == direction {
-            newColumnHover = 0
+            edgeHover = direction
+        } else if edgeHover == direction {
+            edgeHover = 0
         }
     }
 

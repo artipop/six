@@ -113,7 +113,7 @@ private struct WorkspaceView: View {
         let columns = layout.arrangement(workspaceAt: index)
         let frames = layout.columnFrames(columns)
         let isCurrent = index == layout.focusedWorkspaceIndex
-        let scroll = layout.resolvedOffset(workspace) - (isCurrent ? layout.horizontalPreview + layout.newColumnLean : 0)
+        let scroll = layout.resolvedOffset(workspace) - (isCurrent ? layout.horizontalPreview + layout.edgeLean : 0)
         // The overview scales the canvas down, so a workspace layer covers proportionally more than the
         // window: it has to be that wide, and centred on the same point, or the strip is cut off at the
         // window edges instead of running the full width of the screen.
@@ -357,7 +357,7 @@ private struct NewColumnOutline: View {
             .fill(accent.opacity(0.07))
             .overlay {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(accent.opacity(0.5), style: StrokeStyle(lineWidth: 2, dash: [9, 7]))
+                    .strokeBorder(accent.opacity(0.5), lineWidth: 2)
             }
     }
 }
@@ -598,8 +598,8 @@ private struct ColumnPlaceholder: View {
 /// They stand in the gap the layout already leaves beside that window — the strip between two
 /// windows — rather than against the edge of the screen, where the neighbour peeking in is and where
 /// they used to cover it. They follow the focused window as the strip scrolls, and when the window
-/// fills the viewport there is no gap left to stand in, so they fall back to the edge and stay out of
-/// sight until the pointer comes looking (`StripEdgeButton`).
+/// fills the viewport there is no gap left to stand in, so they fall back to the edge. Either way they
+/// are invisible until the pointer comes looking (`StripEdgeButton`).
 private struct StripEdgeButtons: View {
     @Environment(BrowserState.self) private var browser
 
@@ -609,9 +609,13 @@ private struct StripEdgeButtons: View {
             GeometryReader { proxy in
                 let lane = StripEdgeButton.lane(layout)
                 let frame = layout.focusedColumnFrame
-                let inset = lane / 2 + 1
+                let inset = lane / 2
                 // Half a gap out from the window's edge, and never off the screen: a window as wide as
-                // the viewport leaves nowhere to stand but the edge itself.
+                // the viewport leaves nowhere to stand but the edge itself. Half a lane and not one
+                // point more — pushed against the edge the sliver has to *contain* it. With the window
+                // maximised the strip's edge is the screen's, and throwing the pointer at the wall is
+                // the way you reach a sliver you cannot see; a target starting one point in is a target
+                // that wall never hits.
                 let left = min(max(inset, (frame?.minX ?? 0) - layout.gap / 2), proxy.size.width - inset)
                 let right = max(min(proxy.size.width - inset, (frame?.maxX ?? proxy.size.width) + layout.gap / 2), inset)
                 StripEdgeButton(direction: -1)
@@ -628,21 +632,23 @@ private struct StripEdgeButtons: View {
 /// of the strip it opens a window instead — and the one at the near end opens it *there*, to the left
 /// of the one you are reading, which is the only way the strip offers to grow backwards.
 ///
-/// Where it steps it draws a chevron. Where it opens a window it draws nothing at all: resting on it
-/// leans the whole strip aside far enough to show the window that would be there, outlined where it
-/// would stand (`NiriLayout.newColumnHover`). The button says what it does before it does it, and it
-/// says it with the thing itself rather than with a symbol standing in for it — so there is no
-/// symbol, on the edge or anywhere else.
+/// Either way it draws nothing until the pointer arrives. Resting on it leans the whole strip aside
+/// far enough to show what is over there (`NiriLayout.edgeHover`): the next window, or an outline of
+/// the one that would open. The button says what it does before it does it, and it says it with the
+/// thing itself rather than with a symbol standing in for it — the glyph that fades in with the lean,
+/// `‹ ›` or `+`, only names which of the two this is.
 ///
 /// It is as narrow as the gap it stands in — a button wide enough to read comfortably is a button
-/// covering the page next to it, and the page is what the window is for. Tiled, it rests at a quarter
-/// and lights up under the pointer; with the window filled there is no gap left at all, so it stays
-/// away entirely until the pointer comes to the edge looking for it.
+/// covering the page next to it, and the page is what the window is for. The strip at rest is windows
+/// and gaps: a chevron parked in every gap would be chrome charged against every window in it.
 private struct StripEdgeButton: View {
     let direction: Int
 
     @Environment(BrowserState.self) private var browser
     @State private var hovering = false
+    /// The `+` arrived under a pointer that was already here — the strip ran out of windows while it
+    /// rested — so it does nothing and holds no peek until the pointer comes back of its own accord.
+    @State private var disarmed = false
 
     /// The lane tracks the layout, not the screen: it is the gap the layout already leaves between
     /// two windows, floored so it stays clickable and capped so it never becomes a margin.
@@ -650,35 +656,86 @@ private struct StripEdgeButton: View {
         layout.fillsViewport ? 22 : max(13, min(28, layout.gap))
     }
 
-    /// A tall thin pill — enough of a target to hit without aiming, and it reaches nowhere sideways.
-    /// Taller wherever there is nothing to see: with the window filled, and at the ends of the strip,
-    /// where the button has no symbol of its own at all. A target you cannot see has to be one you
-    /// cannot miss along the edge you are sweeping.
-    private func pillHeight(_ layout: NiriLayout, opens: Bool = false) -> CGFloat {
-        let fraction = (layout.fillsViewport || opens) ? 0.3 : 0.16
-        return max(52, min(280, layout.viewport.height * fraction))
+    /// What answers the mouse. Nothing is drawn here until the pointer arrives, and a target you
+    /// cannot see has to be one you cannot miss along the edge you are sweeping — so in the gap, where
+    /// the whole lane is background and the height costs nothing, it runs the length of the window
+    /// beside it. With the window filled the lane is over the page, and a page is not somewhere to put
+    /// a strip that swallows the mouse for its full height: there it shrinks to a band around the
+    /// middle, deep enough to sweep into and short enough to leave the page its edge.
+    private func targetHeight(_ layout: NiriLayout) -> CGFloat {
+        layout.fillsViewport ? max(52, min(280, layout.viewport.height * 0.3)) : layout.columnHeight
     }
 
     var body: some View {
         let layout = browser.layout
-        let opens = step(layout: layout)?.opens == true
         // Hosted in AppKit like the fullscreen bar: over a page a SwiftUI button never sees the
         // mouse (see `ClickCatcher`), and with the window filled there is nothing but page here.
         HostedOverlay {
             content(layout: layout)
         }
-        .frame(width: Self.lane(layout), height: pillHeight(layout, opens: opens))
+        .frame(width: Self.lane(layout), height: targetHeight(layout))
     }
 
+    /// One button for both jobs, and deliberately one: it is what keeps its identity when the strip
+    /// runs out of windows under a resting pointer and the chevron becomes a `+`. Two views would make
+    /// that an exit and an entry, and the entry would arm the `+` under a hand that never moved.
     @ViewBuilder
     private func content(layout: NiriLayout) -> some View {
         if let step = step(layout: layout) {
-            if step.opens {
-                target(layout: layout, help: step.help, action: step.action)
-            } else {
-                pill(symbol: step.symbol, help: step.help, layout: layout, action: step.action)
-                    .animation(.easeOut(duration: 0.15), value: hovering)
+            Button {
+                guard !(step.opens && disarmed) else { return }
+                step.action()
+            } label: {
+                ZStack {
+                    Color.clear
+                    // Nothing is drawn until the pointer comes: the strip at rest is windows and gaps,
+                    // and a symbol parked in every gap is chrome charged against every window in it.
+                    // Invisible is not gone — a button behind a transparent label still answers the
+                    // mouse, which is the whole trick: the sliver is its own hover target and nothing
+                    // else has to be laid over the page.
+                    //
+                    // Both symbols, `‹ ›` and `+`, and neither of them carries the message: the strip
+                    // leaning over is what says there is something on that side, and the outline is
+                    // what says it does not exist yet. The glyph only names which of the two this is,
+                    // the way a dashed edge used to name it before the outline went solid.
+                    glyph(step.symbol, layout: layout)
+                }
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            .frame(width: Self.lane(layout), height: targetHeight(layout))
+            .onHover { inside in
+                hovering = inside
+                disarmed = false // the hand moved to get here, so it meant to be here
+                if browser.peeksAtEdges { peek(layout, inside) }
+            }
+            // The strip just ran out this way with the pointer still resting in the lane: what is
+            // under the hand is a `+` now, and a hand that has not moved has not asked for a window —
+            // which is exactly what a run of clicks along the chevron ends in. Let go of the peek and
+            // wait to be hovered again. Only where the button is invisible: a `+` you can see turn
+            // into a `+` is one you meant to click, and refusing it would be the surprise.
+            .onChange(of: step.opens) { _, opens in
+                guard browser.peeksAtEdges else { return }
+                disarmed = opens && hovering
+                if disarmed { peek(layout, false) }
+            }
+            // Gone from under the cursor — the workspace emptied, or the overview opened — and a view
+            // that is gone never reports the exit. The flag would stay set and the next button here
+            // would come up already lit with the mouse nowhere near it; the strip would stay leaning.
+            .onDisappear {
+                hovering = false
+                disarmed = false
+                peek(layout, false)
+            }
+            // Switched off with the pointer resting here: the button stops asking for peeks, so it has
+            // to hand back the one it is holding. `BrowserState` cannot — it does not know which side.
+            .onChange(of: browser.peeksAtEdges) { _, peeks in
+                disarmed = false
+                if peeks, hovering { peek(layout, true) }
+            }
+            .help(step.help)
+            .animation(.easeOut(duration: 0.15), value: hovering)
+            .animation(.easeOut(duration: 0.15), value: disarmed)
         }
     }
 
@@ -702,52 +759,38 @@ private struct StripEdgeButton: View {
         return nil
     }
 
-    /// The peek belongs to the button that is showing the `+`, and it lets go of it by name: the
-    /// pointer going straight from one end of the strip to the other cannot leave it leaning the
-    /// wrong way.
+    /// Every edge button peeks — the one that walks to the next window and the one that opens a new
+    /// one — and each lets go of the side it took by name: the pointer going straight from one end of
+    /// the strip to the other cannot leave it leaning the wrong way.
     private func peek(_ layout: NiriLayout, _ hovering: Bool) {
-        withAnimation(NiriLayout.peekAnimation) { layout.hoverNewColumn(direction, hovering) }
+        withAnimation(NiriLayout.peekAnimation) { layout.hoverStripEdge(direction, hovering) }
     }
 
-    /// The end of the strip: no symbol, only the place to sweep to. What answers is the strip itself,
-    /// leaning over to show the window that would open there — which is the whole of the offer, and
-    /// a sliver drawing a `+` of its own would be that offer made twice.
-    private func target(layout: NiriLayout, help: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Color.clear.contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .frame(width: Self.lane(layout), height: pillHeight(layout, opens: true))
-        .onHover { peek(layout, $0) }
-        // Gone from under the cursor — the strip grew a window this way, or lost the one it had —
-        // and a view that is gone never reports the exit. The strip would stay leaning on nothing.
-        .onDisappear { peek(layout, false) }
-        .help(help)
-    }
-
-    private func pill(symbol: String, help: String, layout: NiriLayout, action: @escaping () -> Void) -> some View {
+    /// The symbol: the glyph and nothing else — no plate, no border, no shadow. Where it is peeked at,
+    /// the strip has already leaned aside to answer, and anything drawn around the glyph is a second,
+    /// smaller answer sitting on top of the real one. Where it stands on the screen it is on its own
+    /// against a page, and a plate there would be a permanent one.
+    ///
+    /// Peeked at, it follows the peek rather than the pointer: a `+` that arrived under a hand that
+    /// never moved is disarmed, and drawing it would offer a window the next click would not open.
+    /// Standing, it rests at a little under half and comes up to full under the pointer — quiet enough
+    /// to live in every gap, and there is no lean coming to say anything louder.
+    ///
+    /// The profile's colour by name rather than `.tint`: an `NSHostingView` starts a fresh environment
+    /// (see the `ClickCatcher` overlay, which has to hand `browser` back in), so a tint set on the
+    /// window's root never reaches this far and the glyph would come up in the system accent.
+    private func glyph(_ symbol: String, layout: NiriLayout) -> some View {
         let width = max(11, Self.lane(layout) - 2)
-        return Button(action: action) {
-            Image(systemName: symbol)
-                .font(.system(size: min(11, width), weight: .bold))
-                .foregroundStyle(hovering ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
-                .frame(width: width, height: pillHeight(layout))
-                .background(.regularMaterial, in: Capsule())
-                .overlay { Capsule().strokeBorder(.separator, lineWidth: 0.5) }
+        let shown: Double
+        if browser.peeksAtEdges {
+            shown = hovering && !disarmed ? 1 : 0
+        } else {
+            shown = hovering ? 1 : 0.45
         }
-        .buttonStyle(.plain)
-        // Filled, the strip has no gap to stand in and the sliver is over the page: it stays out of
-        // sight until the pointer is at the edge. Tiled it lives in the gap and can rest there faintly.
-        // Invisible is not gone — a button at zero opacity still answers the mouse, which is the whole
-        // trick: the sliver is its own hover target and nothing else has to be laid over the page.
-        .opacity(hovering ? 1 : (layout.fillsViewport ? 0 : 0.3))
-        .onHover { hovering = $0 }
-        // The button goes away under the cursor whenever the strip runs out of columns on this side,
-        // and a view that is gone never reports the exit — the flag would stay set and the next
-        // button to appear here would come up already lit, with the mouse nowhere near it.
-        .onDisappear { hovering = false }
-        .help(help)
-        .transition(.opacity)
+        return Image(systemName: symbol)
+            .font(.system(size: min(11, width), weight: .bold))
+            .foregroundStyle(browser.selectedProfile.color)
+            .opacity(shown)
     }
 }
 
@@ -796,6 +839,10 @@ private struct StripMenu: View {
         Toggle("Center Focused Window", isOn: Binding(
             get: { browser.layout.centersFocus },
             set: { _ in browser.toggleCenterFocus() }
+        ))
+        Toggle("Peek at the Edges", isOn: Binding(
+            get: { browser.peeksAtEdges },
+            set: { _ in browser.togglePeeksAtEdges() }
         ))
     }
 }

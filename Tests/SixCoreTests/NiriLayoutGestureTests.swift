@@ -65,34 +65,70 @@ struct NiriLayoutGestureTests {
     /// first for the near one, one gap out and at the width a new window actually opens at.
     @Test func theOutlineStandsWhereTheWindowWould() {
         let layout = layout()
-        fill(layout, 3)
+        fill(layout, 3) // focus on the last, so the far end is a `+` and the near one a chevron
         let frames = layout.columnFrames(layout.focusedWorkspace!)
 
-        layout.newColumnHover = 1
+        layout.edgeHover = 1
         let far = layout.newColumnFrame
         #expect(far?.width == layout.columnWidth)
         #expect(abs((far?.minX ?? 0) - (frames.last!.maxX + layout.gap)) < 0.5)
         #expect(far?.height == layout.columnHeight)
 
-        layout.newColumnHover = -1
+        layout.focusColumn(-2) // to the first, so the near end is the `+` now
+        layout.edgeHover = -1
         let near = layout.newColumnFrame
         #expect(abs((near?.maxX ?? 0) - (frames.first!.minX - layout.gap)) < 0.5)
     }
 
-    /// The lean is towards the outline and goes exactly as far as the glance a window opening behind
-    /// gets — one distance for both, because they are the same sentence. Its sign is
+    /// And only there. A button with a window to walk to is a chevron, not a `+`, and an outline drawn
+    /// on top of that window would be promising one that already exists.
+    @Test func thereIsNoOutlineWhereThereIsAlreadyAWindow() {
+        let layout = layout()
+        fill(layout, 3) // focus on the last
+        layout.edgeHover = -1
+        #expect(layout.newColumnFrame == nil)
+    }
+
+    /// The lean is towards the button and goes exactly as far as the glance a window opening behind
+    /// gets — one distance for all of them, because they are the same sentence. Its sign is
     /// `horizontalPreview`'s: the far end is reached by scrolling further along the strip, which the
     /// columns are drawn as a *subtraction*.
-    @Test func theLeanIsTowardsTheOutlineAndNoFurtherThanAGlance() {
+    @Test func theLeanIsTowardsTheButtonAndNoFurtherThanAGlance() {
         let layout = layout(viewport: CGSize(width: 900, height: 700))
         fill(layout, 2)
 
-        layout.newColumnHover = 1
-        #expect(layout.newColumnLean < 0)
-        #expect(abs(abs(layout.newColumnLean) - layout.peekAmount) < 0.5)
+        layout.edgeHover = 1
+        #expect(layout.edgeLean < 0)
+        #expect(abs(abs(layout.edgeLean) - layout.peekAmount) < 0.5)
 
-        layout.newColumnHover = -1
-        #expect(layout.newColumnLean > 0)
+        layout.edgeHover = -1
+        #expect(layout.edgeLean > 0)
+    }
+
+    /// The chevron leans too, and by the same amount: the window it steps to is exactly the thing a
+    /// glance over there is for, and it is a real one rather than an outline.
+    @Test func theArrowLeansTheSameWayAsThePlus() {
+        let layout = layout()
+        fill(layout, 3) // focus on the last, so the near end steps and the far end opens
+
+        layout.edgeHover = -1
+        #expect(layout.newColumnFrame == nil) // a chevron, not a `+`
+        #expect(layout.edgeLean > 0)
+        #expect(abs(abs(layout.edgeLean) - layout.peekAmount) < 0.5)
+
+        layout.edgeHover = 1
+        #expect(layout.newColumnFrame != nil)
+        #expect(abs(abs(layout.edgeLean) - layout.peekAmount) < 0.5)
+    }
+
+    /// An empty workspace has neither a window to step to nor a `+` to open one with — it says that
+    /// in the middle of the screen instead — so there is nothing over there to lean towards.
+    @Test func anEmptyWorkspaceHasNothingToLeanTowards() {
+        let layout = layout()
+        layout.edgeHover = 1
+        #expect(layout.edgeLean == 0)
+        layout.edgeHover = -1
+        #expect(layout.edgeLean == 0)
     }
 
     /// And it is a fraction of the viewport, like every other size in the layout — a glance is a
@@ -108,11 +144,12 @@ struct NiriLayoutGestureTests {
     /// other cannot leave it leaning the wrong way.
     @Test func onlyTheSideThatTookThePeekLetsGoOfIt() {
         let layout = layout()
-        layout.hoverNewColumn(1, true)
-        layout.hoverNewColumn(-1, false) // the other button's exit
-        #expect(layout.newColumnHover == 1)
-        layout.hoverNewColumn(1, false)
-        #expect(layout.newColumnHover == 0)
+        fill(layout, 2)
+        layout.hoverStripEdge(1, true)
+        layout.hoverStripEdge(-1, false) // the other button's exit
+        #expect(layout.edgeHover == 1)
+        layout.hoverStripEdge(1, false)
+        #expect(layout.edgeHover == 0)
     }
 
     // MARK: Carrying a window
