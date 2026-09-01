@@ -244,8 +244,7 @@ no `UNIQUE` elsewhere, columns only ever added — so turning its `SyncEngine` o
 each `BrowserTab` feeds `WebPage.navigations` to `BrowserState`, which records the committed URL under the tab's
 profile and fills in the title when the load finishes. `settings(key, value)` holds the preferences (search engine,
 assistant model, `⌥C`, agent model override) behind the typed `SettingsStore`; the Anthropic API key stays in
-`UserDefaults` — a credential has no business in a table that may sync. On first launch with the database the
-old `history.json` and the `UserDefaults` keys are imported once. `HistoryStore` keeps a `revision` that every write
+`UserDefaults` — a credential has no business in a table that may sync. `HistoryStore` keeps a `revision` that every write
 bumps, so a view reading through it under observation re-queries on change; searching and ranking run in Swift over
 the profile's recent visits because SQLite's `LIKE`/`lower()` are ASCII-only. The **History** menu lists the selected profile's 20 most recent pages
 (a click opens a new window in the strip); ⌘Y opens `HistoryView` — the profile's whole history, searchable, by day.

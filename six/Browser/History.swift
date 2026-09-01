@@ -40,7 +40,6 @@ final class HistoryStore {
 
     init(database: any DatabaseWriter) {
         self.database = database
-        importLegacyFile()
     }
 
     // MARK: Writing
@@ -175,27 +174,5 @@ final class HistoryStore {
     private static func isRecordable(_ url: URL) -> Bool {
         guard let scheme = url.scheme?.lowercased() else { return false }
         return scheme == "http" || scheme == "https" || scheme == "file"
-    }
-
-    /// History used to be `history.json`; import it once and set the file aside.
-    private func importLegacyFile() {
-        let url = AppDatabase.url.deletingLastPathComponent().appending(path: "history.json")
-        guard FileManager.default.fileExists(atPath: url.path) else { return }
-        struct Legacy: Decodable {
-            struct Entry: Decodable { var id: UUID; var profileID: UUID; var url: URL; var title: String; var visitedAt: Date }
-            var entries: [Entry]
-        }
-        do {
-            let legacy = try JSONDecoder().decode(Legacy.self, from: Data(contentsOf: url))
-            try database.write { db in
-                for e in legacy.entries {
-                    try Visit.insert { Visit(id: e.id, profileID: e.profileID, url: e.url, title: e.title, visitedAt: e.visitedAt) }.execute(db)
-                }
-            }
-            try FileManager.default.moveItem(at: url, to: url.appendingPathExtension("imported"))
-            revision += 1
-        } catch {
-            FileHandle.standardError.write(Data("[six] history.json import failed: \(error)\n".utf8))
-        }
     }
 }

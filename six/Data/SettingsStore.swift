@@ -54,38 +54,6 @@ final class SettingsStore {
         /// On the Mac this lives in the state snapshot beside the database; a front without one
         /// keeps it here, where it is migrated and backed up with everything else.
         case stripState = "strip.state"
-
-        /// Where the value lived before the database.
-        var legacyDefaultsKey: String {
-            switch self {
-            case .searchEngine: "six.searchEngine"
-            case .assistantModel: "six.assistant.model"
-            case .assistantOpenAIBaseURL: "six.assistant.openai.baseURL"
-            case .assistantOpenAIModel: "six.assistant.openai.model"
-            case .centersFocus: "six.layout.centerFocus"
-            case .peeksAtEdges: "six.layout.peeksAtEdges"
-            case .agentModel: "six.agent.model"
-            case .bookmarkScope: "six.bookmarks.scope"
-            case .bookmarkRefreshDays: "six.bookmarks.refreshDays"
-            case .researchTemplate: "six.research.template"
-            case .researchSources: "six.research.sources"
-            case .livePages: "six.browser.livePages"
-            case .blockingEnabled: "six.blocking.enabled"
-            case .blockingLists: "six.blocking.lists"
-            case .blockingAllowlist: "six.blocking.allowlist"
-            case .blockingRefreshDays: "six.blocking.refreshDays"
-            case .installedExtensions: "six.extensions.installed"
-            case .devToolsInspector: "six.devtools.inspector"
-            case .devToolsCapture: "six.devtools.capture"
-            case .sitePermissions: "six.permissions.sites"
-            case .defaultProfile: "six.profile.default"
-            case .translationTarget: "six.translation.target"
-            case .translationHosts: "six.translation.hosts"
-            case .mcpSharedServers: "six.mcpApps.shared"
-            case .mcpCustomServers: "six.mcpApps.servers"
-            case .stripState: "six.strip.state"
-            }
-        }
     }
 
     /// The app's instance, for the few static call sites (`SearchEngine.current`). Set at launch.
@@ -102,7 +70,6 @@ final class SettingsStore {
         } catch {
             FileHandle.standardError.write(Data("[six] settings load failed: \(error)\n".utf8))
         }
-        importLegacyDefaults()
     }
 
     // MARK: Typed settings
@@ -258,17 +225,4 @@ final class SettingsStore {
         }
     }
 
-    /// First launch with the database: carry the `UserDefaults` values over, once.
-    private func importLegacyDefaults() {
-        let defaults = UserDefaults.standard
-        for key in Key.allCases where values[key.rawValue] == nil {
-            guard let stored = defaults.object(forKey: key.legacyDefaultsKey) else { continue }
-            switch stored {
-            case let string as String: self[key] = string
-            case let bool as Bool: self[key] = bool ? "1" : "0"
-            default: continue
-            }
-            defaults.removeObject(forKey: key.legacyDefaultsKey)
-        }
-    }
 }
