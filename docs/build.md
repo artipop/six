@@ -11,6 +11,19 @@ brings Swift macros (`@Table`, `#sql`), which Xcode wants trusted once in the UI
 xcodebuild -project six.xcodeproj -scheme six -configuration Debug -skipMacroValidation -skipPackagePluginValidation build
 ```
 
+The iOS target is a second scheme, and it wants a **destination** rather than an SDK:
+
+```sh
+xcodebuild -project six.xcodeproj -scheme six-iOS -configuration Debug \
+  -destination 'generic/platform=iOS Simulator' -skipMacroValidation -skipPackagePluginValidation build
+```
+
+`-sdk iphonesimulator` hands the simulator platform to the SwiftPM macro plugins too. A macro plugin is a host tool,
+so the simulator-linked one cannot be executed (`DYLD_ROOT_PATH not set for simulator program`), the compiler reports
+`StructuredQueriesSQLiteMacros … produced malformed response`, and every `@Table` in the app fails to expand — dozens
+of errors that look like the app's own and are not. Deleting the bad plugins from `Build/Products/Debug-iphonesimulator`
+does not help on its own; the destination is what fixes it.
+
 `-skipPackagePluginValidation` is the same story for build plugins: mlx-swift ships one (`CudaBuild`). mlx-swift
 also compiles Metal shaders, which needs the **Metal Toolchain** component — once,
 `xcodebuild -downloadComponent MetalToolchain` (~840 MB); without it the build stops at `cannot execute tool 'metal'`.

@@ -68,11 +68,15 @@ final class MCPAppStore {
     #if os(macOS)
     /// The agent panel, for `ui/message` and `ui/update-model-context`. There is none on a phone.
     @ObservationIgnored weak var agent: AgentSessionStore?
+    #endif
     /// Somebody to tell that what the agent would be given has changed — `MCPHost.toolsChanged`,
     /// set where the two halves are wired together. A closure rather than a reference back to the
     /// host: the store is what six is host *to*, and it has no business knowing about the socket.
+    ///
+    /// Not behind `#if os(macOS)` even though only the Mac sets it: `add` and `setShared` call it,
+    /// and they are the same code on both platforms. Guarding the property and not its two call
+    /// sites is what stopped the iOS target building.
     @ObservationIgnored var onSharedServersChanged: (() -> Void)?
-    #endif
     @ObservationIgnored weak var settings: SettingsStore?
     @ObservationIgnored private var clients: [MCPServerDefinition.ID: MCPClient] = [:]
     /// `ui://` documents already read, per server. A template is the static half of an app — the
