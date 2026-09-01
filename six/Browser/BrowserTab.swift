@@ -690,6 +690,21 @@ private final class TabNavigationDecider: WebPage.NavigationDeciding {
     /// A file rather than a page.
     var onDownload: ((URLRequest, String?) -> Void)?
 
+    /// The site's certificate could not be traced back to anything the system trusts.
+    ///
+    /// Left alone this is where a Russian bank's page stops: the chain is signed by an authority no
+    /// Apple machine has ever heard of, and to WebKit that is indistinguishable from somebody
+    /// standing in the middle. `CertificateStore` gets to answer with the anchors the user switched
+    /// on — and with none switched on, which is the default, it hands the question straight back and
+    /// WebKit's own error page is what appears. See `CertificateStore.decide(_:)`.
+    ///
+    /// Only the *page's* handshakes come through here. A subresource fetched by a `URLSession` of
+    /// six's own — a download — asks `DownloadStore`'s delegate instead, which asks the same store.
+    func decideAuthenticationChallengeDisposition(for challenge: URLAuthenticationChallenge) async -> (URLSession.AuthChallengeDisposition, URLCredential?) {
+        guard let certificates = CertificateStore.shared else { return (.performDefaultHandling, nil) }
+        return await certificates.decide(challenge)
+    }
+
     func decidePolicy(for action: WebPage.NavigationAction, preferences: inout WebPage.NavigationPreferences) async -> WKNavigationActionPolicy {
         guard let url = action.request.url else { return .allow }
         LinkTrace.log("action \(url.absoluteString) target=\(action.target == nil ? "none" : "frame") type=\(action.navigationType.rawValue) button=\(action.buttonNumber) mods=\(action.modifierFlags.rawValue) cmd=\(action.modifierFlags.contains(.command)) download=\(action.shouldPerformDownload)")

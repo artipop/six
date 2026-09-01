@@ -45,6 +45,14 @@ in the address field — a reload rather than a ten-second recompile. The **Priv
 off: nothing fetched, nothing compiled), the lists and the sites left alone.
 See [docs/blocking.md](docs/blocking.md).
 
+Some sites are served under a certificate authority no Apple machine has ever heard of — Russian banks under the
+Ministry of Digital Development's CA are the case this was built for — and to a browser those look exactly like an
+attack. six carries that authority switched **off** and puts a switch beside it in the **Privacy** menu, along with a
+way to import your own. Turning one on does less than the keychain would: the system judges every chain first,
+untouched, and only a chain it has already turned down is read a second time with the extra anchors *added*. So trust
+here belongs to six alone, nothing else on the machine is affected, and switching it off takes it back.
+See [docs/certificates.md](docs/certificates.md).
+
 Browser extensions run too, on `WKWebExtension` — installed from a folder, a `.zip`, a `.crx` or an `.xpi`, one
 controller per profile, never in a private window. There is one thing six cannot give them: a tab's `WKWebView`,
 which `WebPage` does not hand out, so a content script runs but cannot message its extension. That boundary is
@@ -102,7 +110,8 @@ stays the page's.
 Only columns near the viewport get a real `WebView`; the rest render as cards, so a long strip stays cheap.
 
 Full reference: [docs/](docs/) — [controls](docs/controls.md), [hotkeys](docs/hotkeys.md), [layout](docs/layout.md),
-[architecture](docs/architecture.md), [blocking](docs/blocking.md), [extensions](docs/extensions.md),
+[architecture](docs/architecture.md), [blocking](docs/blocking.md), [certificates](docs/certificates.md),
+[extensions](docs/extensions.md),
 [devtools](docs/devtools.md), [assistant](docs/assistant.md),
 [agents](docs/agents.md), [MCP server](docs/mcp.md), [build](docs/build.md),
 [platforms](docs/platforms.md), [Linux](docs/linux.md).
@@ -123,6 +132,7 @@ six/Browser     Profile, BrowserTab (WebPage), BrowserState, SearchEngine + Sear
 six/DevTools    DevToolsStore (Web Inspector + capture), PageInstrumentation (the page-world hooks)
 six/Extensions  ExtensionStore (a controller per profile), ExtensionInstaller (+ the compatibility verdict), adapters
 six/Blocking    ContentBlocker (compiles + attaches rules), FilterList/FilterListStore (the lists), RuleConversion
+six/Browser     CertificateStore + ServerTrust (extra trust anchors), BundledCertificates (the ones six ships)
 six/Views       ContentView (top bar), NiriStripView (strip + overview), WindowChrome, StartPage, AssistantBar, AgentPanel
 six/Assistant   ModelChoice/AssistantSettings (model selection), AssistantStore (streaming), FM compatibility probe
 six/ACP         ACPJSON, JSONRPCConnection, ACPTypes, ACPAgent (process), ACPClient (actor), AgentSessionStore (VM)

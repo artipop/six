@@ -46,6 +46,7 @@ struct sixApp: App {
     @State private var extensions: ExtensionStore
     @State private var devTools: DevToolsStore
     @State private var permissions: SitePermissions
+    @State private var certificates: CertificateStore
 
     init() {
         let store = FileSnapshotStore<AppStateSnapshot>(fileNamed: "state.json")
@@ -71,6 +72,10 @@ struct sixApp: App {
         // Built before the browser for the same reason as the blocker: a restored window can ask for
         // the camera the moment it loads, and a question with nowhere to go is answered no.
         let permissions = SitePermissions(settings: settings)
+        // And before the browser for the third time: a restored window starts loading the moment it
+        // is built, and a site under an anchor the user switched on must not miss its first handshake.
+        let certificates = CertificateStore(settings: settings)
+        CertificateStore.shared = certificates
         let browser = BrowserState(snapshot: snapshot?.browser, history: history, settings: settings,
                                    profileStore: profileStore, pageControllers: pageControllers,
                                    blocker: blocker, devTools: devTools, permissions: permissions)
@@ -172,6 +177,7 @@ struct sixApp: App {
         _extensions = State(initialValue: extensions)
         _devTools = State(initialValue: devTools)
         _permissions = State(initialValue: permissions)
+        _certificates = State(initialValue: certificates)
     }
 
     /// A file that won't load starts fresh — better than not starting.
@@ -205,6 +211,7 @@ struct sixApp: App {
                 .environment(extensions)
                 .environment(devTools)
                 .environment(permissions)
+                .environment(certificates)
                 .background(WindowObserver(state: window))
                 // The two doors from outside: a link or file handed to six, and a Handoff tile from an
                 // iPhone. macOS delivers through them but leaves the app that was clicked in front,
@@ -273,6 +280,7 @@ struct sixApp: App {
                 .environment(extensions)
                 .environment(devTools)
                 .environment(permissions)
+                .environment(certificates)
                 .onOpenURL { url in browser.newTab(url: url) }
                 .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
                     guard let url = activity.webpageURL else { return }

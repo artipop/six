@@ -107,6 +107,22 @@
         }
       }
     },
+    "%@ and %lld more" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ and %2$lld more"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ и ещё %2$lld"
+          }
+        }
+      }
+    },
     "%@ could not translate this page: %@" : {
       "localizations" : {
         "en" : {
@@ -129,6 +145,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ не загружен. Добавьте его в Системных настройках › Основные › Язык и регион › Языки перевода."
+          }
+        }
+      }
+    },
+    "%@ is already in the list." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ уже есть в списке."
           }
         }
       }
@@ -553,6 +579,16 @@
         }
       }
     },
+    "A site is checked against the system's certificate authorities first. These are only consulted for a site the system has already turned down." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сайт сначала проверяется по удостоверяющим центрам системы. Эти нужны лишь тогда, когда система уже отказала."
+          }
+        }
+      }
+    },
     "A workspace named after the question, a document the agent writes into, and the sources it read open next to it." : {
       "localizations" : {
         "ru" : {
@@ -563,9 +599,7 @@
         }
       }
     },
-    "API Key" : {
-
-    },
+    "API Key" : {},
     "Add" : {
       "localizations" : {
         "ru" : {
@@ -592,6 +626,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Добавить закладку (⌘D)"
+          }
+        }
+      }
+    },
+    "Add Certificate…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавить сертификат…"
           }
         }
       }
@@ -849,12 +893,8 @@
         }
       }
     },
-    "Any other colour" : {
-
-    },
-    "Any server speaking the OpenAI /chat/completions format: OpenAI, a gateway, or llama.cpp and Ollama on this machine — those want no key." : {
-
-    },
+    "Any other colour" : {},
+    "Any server speaking the OpenAI /chat/completions format: OpenAI, a gateway, or llama.cpp and Ollama on this machine — those want no key." : {},
     "Apps" : {
       "localizations" : {
         "ru" : {
@@ -1111,8 +1151,36 @@
         }
       }
     },
-    "Centre Focused Window (⌥C)" : {
-
+    "Centre Focused Window (⌥C)" : {},
+    "Certificate" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сертификат"
+          }
+        }
+      }
+    },
+    "Certificates" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сертификаты"
+          }
+        }
+      }
+    },
+    "Certificates…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сертификаты…"
+          }
+        }
+      }
     },
     "Checking %@…" : {
       "localizations" : {
@@ -1164,9 +1232,7 @@
         }
       }
     },
-    "Claude" : {
-
-    },
+    "Claude" : {},
     "Claude unavailable: SDK/OS Foundation Models mismatch" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1268,9 +1334,7 @@
         }
       }
     },
-    "Close Window (⌘W)" : {
-
-    },
+    "Close Window (⌘W)" : {},
     "Color" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1384,6 +1448,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Скопировать ссылку"
+          }
+        }
+      }
+    },
+    "Could not add the certificate" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось добавить сертификат"
           }
         }
       }
@@ -1599,9 +1673,7 @@
         }
       }
     },
-    "Edit this profile" : {
-
-    },
+    "Edit this profile" : {},
     "Empty prompt" : {
       "localizations" : {
         "ru" : {
@@ -1622,9 +1694,7 @@
         }
       }
     },
-    "Endpoint" : {
-
-    },
+    "Endpoint" : {},
     "Error: %@" : {
       "localizations" : {
         "ru" : {
@@ -1646,6 +1716,26 @@
         }
       }
     },
+    "Expired %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Истёк %@"
+          }
+        }
+      }
+    },
+    "Expired — it can no longer vouch for anything" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Истёк — больше ни за что не ручается"
+          }
+        }
+      }
+    },
     "Extensions" : {
       "localizations" : {
         "ru" : {
@@ -1662,6 +1752,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Расширения работают в рамках профиля и никогда — в приватном окне. Что здесь работает, а что нет, проверено на деле: content-скрипт выполняется, но расширение не может ни написать ему, ни внедрить что-то ещё."
+          }
+        }
+      }
+    },
+    "Extra Certificate Authorities" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дополнительные удостоверяющие центры"
           }
         }
       }
@@ -1876,9 +1976,7 @@
         }
       }
     },
-    "Full Window (⌥W)" : {
-
-    },
+    "Full Window (⌥W)" : {},
     "Fullscreen" : {
       "localizations" : {
         "ru" : {
@@ -1889,9 +1987,7 @@
         }
       }
     },
-    "Fullscreen (⌥⇧F)" : {
-
-    },
+    "Fullscreen (⌥⇧F)" : {},
     "Give this server's tools to the agent" : {
       "localizations" : {
         "ru" : {
@@ -1918,6 +2014,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Перейти по адресу"
+          }
+        }
+      }
+    },
+    "Hide Details" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скрыть подробности"
           }
         }
       }
@@ -1952,15 +2058,23 @@
         }
       }
     },
-    "How the strip is shown — click fills the window (⌥W)" : {
-
-    },
+    "How the strip is shown — click fills the window (⌥W)" : {},
     "Idle" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Простой"
+          }
+        }
+      }
+    },
+    "Imported from %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Импортирован из %@"
           }
         }
       }
@@ -2211,6 +2325,16 @@
         }
       }
     },
+    "Ministry of Digital Development of Russia — needed by Russian bank and government sites" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Минцифры России — нужен сайтам российских банков и госуслуг"
+          }
+        }
+      }
+    },
     "Mode" : {
       "localizations" : {
         "ru" : {
@@ -2231,9 +2355,7 @@
         }
       }
     },
-    "Model Providers…" : {
-
-    },
+    "Model Providers…" : {},
     "Model override (ANTHROPIC_MODEL, optional)" : {
       "localizations" : {
         "ru" : {
@@ -2304,9 +2426,7 @@
         }
       }
     },
-    "Move Left (⌥⇧←)" : {
-
-    },
+    "Move Left (⌥⇧←)" : {},
     "Move Right" : {
       "localizations" : {
         "ru" : {
@@ -2317,9 +2437,7 @@
         }
       }
     },
-    "Move Right (⌥⇧→)" : {
-
-    },
+    "Move Right (⌥⇧→)" : {},
     "Move Window" : {
       "localizations" : {
         "ru" : {
@@ -2340,9 +2458,7 @@
         }
       }
     },
-    "Move to Workspace Above (⌥⇧↑)" : {
-
-    },
+    "Move to Workspace Above (⌥⇧↑)" : {},
     "Move to Workspace Below" : {
       "localizations" : {
         "ru" : {
@@ -2353,9 +2469,7 @@
         }
       }
     },
-    "Move to Workspace Below (⌥⇧↓)" : {
-
-    },
+    "Move to Workspace Below (⌥⇧↓)" : {},
     "Muted — click to let this page see and hear again" : {
       "localizations" : {
         "ru" : {
@@ -2476,9 +2590,7 @@
         }
       }
     },
-    "New window (⌘T)" : {
-
-    },
+    "New window (⌘T)" : {},
     "New window on the left" : {
       "localizations" : {
         "ru" : {
@@ -2489,9 +2601,7 @@
         }
       }
     },
-    "Next window (⌥→)" : {
-
-    },
+    "Next window (⌥→)" : {},
     "No Bookmarks" : {
       "localizations" : {
         "ru" : {
@@ -2538,6 +2648,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Пока ни одного сайта"
+          }
+        }
+      }
+    },
+    "No certificate in this file. six reads PEM (.pem, .crt) and DER (.cer, .der)." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В этом файле нет сертификата. six читает PEM (.pem, .crt) и DER (.cer, .der)."
           }
         }
       }
@@ -2602,9 +2722,7 @@
         }
       }
     },
-    "Nothing is kept in this profile. Closing it forgets the session." : {
-
-    },
+    "Nothing is kept in this profile. Closing it forgets the session." : {},
     "OK" : {
       "localizations" : {
         "ru" : {
@@ -2735,9 +2853,17 @@
         }
       }
     },
-    "OpenAI-compatible" : {
-
+    "Open the Publisher's Page" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть страницу издателя"
+          }
+        }
+      }
     },
+    "OpenAI-compatible" : {},
     "Overview" : {
       "localizations" : {
         "ru" : {
@@ -2844,9 +2970,7 @@
         }
       }
     },
-    "Previous window (⌥←)" : {
-
-    },
+    "Previous window (⌥←)" : {},
     "Privacy" : {
       "localizations" : {
         "ru" : {
@@ -2857,15 +2981,9 @@
         }
       }
     },
-    "Private Window" : {
-
-    },
-    "Private browsing — nothing is kept; close it to forget the session" : {
-
-    },
-    "Profiles" : {
-
-    },
+    "Private Window" : {},
+    "Private browsing — nothing is kept; close it to forget the session" : {},
+    "Profiles" : {},
     "Question" : {
       "localizations" : {
         "ru" : {
@@ -2996,9 +3114,7 @@
         }
       }
     },
-    "Remote models unavailable: SDK/OS Foundation Models mismatch" : {
-
-    },
+    "Remote models unavailable: SDK/OS Foundation Models mismatch" : {},
     "Remove" : {
       "localizations" : {
         "ru" : {
@@ -3161,6 +3277,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Выполнить JavaScript"
+          }
+        }
+      }
+    },
+    "Russian Trusted CA" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Минцифры России (Russian Trusted CA)"
           }
         }
       }
@@ -3351,6 +3477,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Показать закладки…"
+          }
+        }
+      }
+    },
+    "Show Details" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показать подробности"
           }
         }
       }
@@ -3586,9 +3722,7 @@
         }
       }
     },
-    "Strip" : {
-
-    },
+    "Strip" : {},
     "Summarize Page" : {
       "localizations" : {
         "ru" : {
@@ -3639,9 +3773,17 @@
         }
       }
     },
-    "The last profile stays" : {
-
+    "The file could not be read." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Файл не удалось прочитать."
+          }
+        }
+      }
     },
+    "The last profile stays" : {},
     "The translation was interrupted" : {
       "localizations" : {
         "ru" : {
@@ -3882,6 +4024,16 @@
         }
       }
     },
+    "Trust here belongs to six alone — nothing else on this machine is affected, and switching one off takes it back." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доверие остаётся внутри six — ничто другое на устройстве его не получает, а выключатель забирает его обратно."
+          }
+        }
+      }
+    },
     "Try Again" : {
       "localizations" : {
         "ru" : {
@@ -3948,6 +4100,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Обновляю…"
+          }
+        }
+      }
+    },
+    "Used for %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Использован для %@"
+          }
+        }
+      }
+    },
+    "Used for %@ and %lld more" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Used for %1$@ and %2$lld more"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Использован для %1$@ и ещё %2$lld"
+          }
+        }
+      }
+    },
+    "Valid until %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Действителен до %@"
           }
         }
       }
@@ -4282,15 +4470,9 @@
         }
       }
     },
-    "gpt-5" : {
-
-    },
-    "https://api.openai.com/v1" : {
-
-    },
-    "https://example.com/mcp" : {
-
-    },
+    "gpt-5" : {},
+    "https://api.openai.com/v1" : {},
+    "https://example.com/mcp" : {},
     "listening at %@" : {
       "localizations" : {
         "ru" : {
@@ -4361,9 +4543,7 @@
         }
       }
     },
-    "npx -y @modelcontextprotocol/server-map --stdio" : {
-
-    },
+    "npx -y @modelcontextprotocol/server-map --stdio" : {},
     "optional — sent as a bearer token" : {
       "localizations" : {
         "ru" : {
@@ -4444,9 +4624,7 @@
         }
       }
     },
-    "sk-… (blank for a local server)" : {
-
-    },
+    "sk-… (blank for a local server)" : {},
     "starting…" : {
       "localizations" : {
         "ru" : {
@@ -4487,9 +4665,7 @@
         }
       }
     },
-    "weather" : {
-
-    },
+    "weather" : {},
     "{question} {workspace} {document} {profile} {sources} are filled in." : {
       "localizations" : {
         "ru" : {

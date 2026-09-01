@@ -180,6 +180,7 @@ struct PrivacyCommands: Commands {
     let blocker: ContentBlocker
     @FocusedValue(\.showFilterLists) private var showFilterLists
     @FocusedValue(\.showSitePermissions) private var showSitePermissions
+    @FocusedValue(\.showCertificates) private var showCertificates
 
     var body: some Commands {
         CommandMenu("Privacy") {
@@ -202,6 +203,8 @@ struct PrivacyCommands: Commands {
             Divider()
             Button("Site Permissions…") { showSitePermissions?.perform() }
                 .disabled(showSitePermissions == nil)
+            Button("Certificates…") { showCertificates?.perform() }
+                .disabled(showCertificates == nil)
         }
     }
 }

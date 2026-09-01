@@ -15,6 +15,7 @@ struct ContentView: View {
     @State private var showFilterLists = false
     @State private var showExtensions = false
     @State private var showSitePermissions = false
+    @State private var showCertificates = false
     @State private var confirmClearHistory = false
 
     var body: some View {
@@ -54,16 +55,9 @@ struct ContentView: View {
             addressFocus = browser.selectedTabID
         })
         .focusedSceneValue(\.toggleAgentPanel, FocusAddressBarAction { showAgentPanel.toggle() })
-        .focusedSceneValue(\.showHistory, FocusAddressBarAction { showHistory = true })
-        .sheet(isPresented: $showHistory) { HistoryView() }
-        .focusedSceneValue(\.showBookmarks, FocusAddressBarAction { showBookmarks = true })
-        .sheet(isPresented: $showBookmarks) { BookmarksView() }
-        .focusedSceneValue(\.showFilterLists, FocusAddressBarAction { showFilterLists = true })
-        .sheet(isPresented: $showFilterLists) { BlockingView() }
-        .focusedSceneValue(\.showExtensions, FocusAddressBarAction { showExtensions = true })
-        .sheet(isPresented: $showExtensions) { ExtensionsView() }
-        .focusedSceneValue(\.showSitePermissions, FocusAddressBarAction { showSitePermissions = true })
-        .sheet(isPresented: $showSitePermissions) { PermissionsView() }
+        .modifier(Panels(history: $showHistory, bookmarks: $showBookmarks, filterLists: $showFilterLists,
+                         extensions: $showExtensions, sitePermissions: $showSitePermissions,
+                         certificates: $showCertificates))
         .focusedSceneValue(\.clearHistory, FocusAddressBarAction { confirmClearHistory = true })
         .focusedSceneValue(\.translatePage, FocusAddressBarAction {
             if let tab = browser.selectedTab { browser.toggleTranslation(of: tab) }
@@ -214,6 +208,38 @@ extension ContentView {
 /// window's address, because that band of the window was empty and an address field is exactly the
 /// shape of it. Right: everything about the strip rather than the page — what is bookmarked and
 /// downloading, where in the stack of workspaces you are, the overview, the agent.
+/// The five panels that are opened from a menu item and are otherwise unrelated to each other: each
+/// one is a focused value the menu reaches across the scene, and a sheet that answers it.
+///
+/// They are a modifier rather than ten more lines on the body because the body had reached the size
+/// where the type checker gives up on it — *"unable to type-check this expression in reasonable
+/// time"*, which arrives all at once when a chain grows by one. Anything added here goes in this
+/// list, not up there.
+private struct Panels: ViewModifier {
+    @Binding var history: Bool
+    @Binding var bookmarks: Bool
+    @Binding var filterLists: Bool
+    @Binding var extensions: Bool
+    @Binding var sitePermissions: Bool
+    @Binding var certificates: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .focusedSceneValue(\.showHistory, FocusAddressBarAction { history = true })
+            .sheet(isPresented: $history) { HistoryView() }
+            .focusedSceneValue(\.showBookmarks, FocusAddressBarAction { bookmarks = true })
+            .sheet(isPresented: $bookmarks) { BookmarksView() }
+            .focusedSceneValue(\.showFilterLists, FocusAddressBarAction { filterLists = true })
+            .sheet(isPresented: $filterLists) { BlockingView() }
+            .focusedSceneValue(\.showExtensions, FocusAddressBarAction { extensions = true })
+            .sheet(isPresented: $extensions) { ExtensionsView() }
+            .focusedSceneValue(\.showSitePermissions, FocusAddressBarAction { sitePermissions = true })
+            .sheet(isPresented: $sitePermissions) { PermissionsView() }
+            .focusedSceneValue(\.showCertificates, FocusAddressBarAction { certificates = true })
+            .sheet(isPresented: $certificates) { CertificatesView() }
+    }
+}
+
 private struct TopBar: View {
     @Binding var showAgentPanel: Bool
     var addressFocus: FocusState<UUID?>.Binding

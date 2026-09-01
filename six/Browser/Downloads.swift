@@ -244,6 +244,15 @@ private final class Transfers: NSObject, URLSessionDownloadDelegate, @unchecked 
         }
     }
 
+    /// The same second reading a page's own handshake gets (`CertificateStore.decide(_:)`). Without
+    /// it a site six can *show* — under an anchor the user switched on — is a site six cannot
+    /// download a statement from, because the transfer is this session's and not WebKit's.
+    func urlSession(_ session: URLSession, task: URLSessionTask,
+                    didReceive challenge: URLAuthenticationChallenge) async -> (URLSession.AuthChallengeDisposition, URLCredential?) {
+        guard let certificates = await CertificateStore.shared else { return (.performDefaultHandling, nil) }
+        return await certificates.decide(challenge)
+    }
+
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: (any Error)?) {
         defer { forget(task) }
         guard let error, let id = id(of: task), let store else { return }

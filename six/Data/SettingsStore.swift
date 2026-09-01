@@ -54,6 +54,9 @@ final class SettingsStore {
         /// On the Mac this lives in the state snapshot beside the database; a front without one
         /// keeps it here, where it is migrated and backed up with everything else.
         case stripState = "strip.state"
+        /// The certificate bundles six trusts on top of the system's, by id (a JSON array). Empty
+        /// until somebody switches one on; see `CertificateStore`.
+        case trustedCertificates = "trust.certificates"
     }
 
     /// The app's instance, for the few static call sites (`SearchEngine.current`). Set at launch.
