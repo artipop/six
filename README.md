@@ -76,9 +76,10 @@ unless you gave it a name (double-click its plate in the overview).
 A new window opens on six's own start page — one field for both queries and addresses, with completions from the
 search engine, so the first thing a window does isn't a network request. See [docs/start-page.md](docs/start-page.md).
 
-Nothing needs the keyboard: click a background window to pull it in, use the `‹` `›` slivers standing in the gaps
-beside the focused window — at the end of the strip the right one becomes a `+` that adds a window — the workspace
-stepper in the top bar, and a right-click on a title bar or on the background for the rest. Scrolling over the
+Nothing needs the keyboard: click a background window to pull it in, sweep the pointer into the gap beside the focused
+window — the strip leans over to show what is on that side, a `‹` or `›` if it is a window and an outline if it is the
+one a click would open there — use the workspace stepper in the top bar, and a right-click on a title bar or on the
+background for the rest. Scrolling over the
 layout's own chrome (title bars, gaps, background) pans the strip and changes workspace too — over a page, scrolling
 stays the page's.
 

@@ -90,6 +90,24 @@ The handle is also where the address is typed: a phone has no ⌘L and no room f
 so a tap on the window that already has focus turns its title into the field. A tap on any other
 window just brings it to focus, so walking the strip never opens the keyboard.
 
+## The buttons at the ends
+
+The Mac keeps its two edge slivers out of sight and answers a pointer resting on one by leaning the
+whole strip aside — the peek, [layout.md](layout.md). That is a pointer idea: it is asked for by
+*resting* somewhere, and a finger has nowhere to rest, it is touching or it is not. So `PhoneStripView`
+draws them where they stand: `‹ ›` at the two ends of the focused window, turned to `∧ ∨` when the
+strip runs down the screen, and a `+` at whichever end the strip has run out of — the same two
+answers `StripEdgeButton.step` gives, with the arrow facing along the strip instead of across it.
+
+This is what `SettingsStore.peeksAtEdges` being **off** looks like, and why it defaults off away from
+macOS. Touch deliberately does not read the flag: honouring an "on" would leave the strip with no
+button anything could reach.
+
+The gap the glyph sits in is about a tenth of a finger, so the target reaches out of it — 44 points,
+Apple's minimum and the same order as the handle's own close button — and overlaps the rounded
+corners it stands between. At the ends of the screen it is clamped by half its own width, which is
+why the leading arrow sits a little inside the window rather than in the gap above it.
+
 ## Not there yet
 
 - Extension popups and extension permission prompts (`ExtensionStore`): the Mac puts up an
@@ -105,3 +123,13 @@ up, upright and on the side. There is no Simulator.app in this Xcode, so a devic
 the landscape axis was checked by pinning `UISupportedInterfaceOrientations_iPad` to landscape for
 one build (with `UIRequiresFullScreen`, without which iPadOS ignores the restriction). Gestures —
 the drag along and across the handle — are still unexercised, for the same missing-GUI reason.
+
+The edge buttons were checked the same way, by seeding `state.json` and reading the screen back
+(`simctl io … screenshot`): one window shows `+` at both ends, the middle of three shows `‹ ›`, and
+the last of three shows a step back and a `+` ahead. With the keyboard up the strip is wider than it
+is tall and the axis turns with it, which is how both orientations came out of one device.
+
+**Build it with a destination, not an SDK.** `-sdk iphonesimulator` hands the simulator platform to
+the SwiftPM macro plugins as well, which then cannot run as host tools — the compiler reports
+`StructuredQueriesSQLiteMacros … produced malformed response` and every `@Table` in the app fails.
+`-destination 'generic/platform=iOS Simulator'` builds them for the host and the target compiles.

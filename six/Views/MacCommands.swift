@@ -57,6 +57,13 @@ struct LayoutCommands: Commands {
                 set: { _ in browser.toggleCenterFocus() }
             ))
             .keyboardShortcut("c", modifiers: .option)
+            // Off, the slivers at the edges of the strip stand on the screen and do their job on the
+            // way in, the way they did before the peek existed. That is the only thing that works
+            // where there is no pointer to rest, so it is the default on a touch screen.
+            Toggle("Peek at the Edges", isOn: Binding(
+                get: { browser.peeksAtEdges },
+                set: { _ in browser.togglePeeksAtEdges() }
+            ))
 
             Divider()
 

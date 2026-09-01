@@ -157,20 +157,48 @@ update passes never settle.
 
 The chevrons stand in the **gap beside the focused window** (`focusedColumnFrame`), not against the edge of the screen
 where the neighbour peeking in is, and they are as narrow as that gap — a button wide enough to read comfortably is a
-button covering the page next to it. Tiled they rest at a third of their opacity; filled, the gap is gone and the
-sliver is over the page, so it drops to nothing and comes back under the pointer. Invisible is not absent: a SwiftUI
-button at zero opacity still answers the mouse, which is what makes the sliver its own hover target. In fullscreen the chevrons give way to the bar at the top edge, which carries the same two
+button covering the page next to it. Nothing is drawn there at rest, in either mode: the strip is windows and gaps, and
+a chevron parked in every gap is chrome charged against every window in it. Invisible is not absent: a SwiftUI
+button at zero opacity still answers the mouse, which is what makes the sliver its own hover target.
+
+All of that is the **peek**, and it is a pointer idea: it is asked for by resting somewhere and answered by the strip
+leaning over. A finger has nowhere to rest — it is touching or it is not — so the whole arrangement has a switch,
+`BrowserState.peeksAtEdges` (View ▸ Peek at the Edges, stored in settings). Off, there is no lean and no outline: the
+slivers are simply drawn where they stand, at a little under half, and do their job on the way in — which is what the
+strip did before the peek existed, and the only thing that works without a pointer. It defaults on for macOS and off
+everywhere else, and it is chrome rather than geometry, so it lives in `BrowserState` and not in `NiriLayout`: a second
+front end inherits nothing it has to agree with.
+
+Both jobs are **one button**, which matters for one case: walking the chevron to the end of the strip leaves the
+pointer resting on a button that has just become a `+`. Two views would make that an exit and an entry, and the entry
+would arm the `+` under a hand that never moved — the last click of a run would open a window nobody asked for. One
+view keeps its identity, sees the change (`disarmed`), lets go of the peek and does nothing until it is hovered again.
+
+What answers the mouse and what gets drawn are two different things. What is drawn is the glyph, and only the glyph —
+no plate, border or shadow under it, because the strip has already leaned aside to answer and anything around the
+glyph is a second, smaller answer sitting on top of the real one. It follows the peek rather than the pointer: a `+`
+that arrived under a hand that never moved is disarmed, and drawing it would offer a window the next click would not
+open. The **target** runs the whole height of the window beside it while the
+lane is a gap — background costs nothing, and a target you cannot see
+has to be one you cannot miss along the edge you are sweeping — and shrinks to a band around the middle once the
+window is filled and the lane is over the page. It also reaches the **edge of the viewport exactly**, half a lane and
+not one point more: with the window maximised the strip's edge is the screen's, and throwing the pointer at the wall is
+how you find a sliver you cannot see. A target starting one point in is a target that wall never hits. In fullscreen the chevrons give way to the bar at the top edge, which carries the same two
 steps plus the workspaces, the overview and the way out; the ⌘K line tucks itself away there until it is asked for or
 has an answer to show. The window buttons stay where macOS puts them, so the bar leaves room for them.
 
 At either end of the strip the chevron gives way to a button that opens a window, and the one at the near end opens it
-*before* the focused one (`NiriPlacement`) — the strip has no other way of growing backwards. That button draws
-**nothing**: resting on it leans the whole strip aside (`newColumnHover`, `newColumnLean`) and stands a dashed outline
-of the window in the room it makes (`newColumnFrame`). That outline is the whole of the offer — a `+` on the edge, or
-in the room, would be the same thing said twice.
+*before* the focused one (`NiriPlacement`) — the strip has no other way of growing backwards.
 
-Two decisions hold it together. The lean goes exactly as far as the glance a window opening behind gets
-(`peekAmount`, a fraction of the viewport) — one distance for both, because they are the same sentence, *there is
+Resting on **either** button leans the whole strip aside (`edgeHover`, `edgeLean`) to show what is over there. For the
+chevron that is the next window itself. For the `+` there is no window yet, so an outline of one stands in the room the
+lean opens up (`newColumnFrame`, drawn only where there is nothing to step to). The lean and the outline carry the
+message between them — *there is something over here*, *it does not exist yet* — and the glyph that fades in with the
+lean, `‹ ›` or `+`, only names which of the two this is, the way the outline's dashed edge used to before it went
+solid.
+
+Three decisions hold it together. The lean goes exactly as far as the glance a window opening behind gets
+(`peekAmount`, a fraction of the viewport) — one distance for all of them, because they are the same sentence, *there is
 something over here*. It is deliberately *not* `horizontalPreview`: that band belongs to the scroll gesture, and a peek
 held by the mouse has to survive one arriving. And `focusedColumnFrame` deliberately does not include it, so the button
 does not slide out from under the pointer holding it.

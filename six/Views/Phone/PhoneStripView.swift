@@ -71,6 +71,7 @@ struct PhoneStripView: View {
             .frame(width: size.width, height: size.height)
             .clipped()
             .contentShape(Rectangle())
+            .overlay { PhoneEdgeButtons(axis: axis, size: size) }
             .onChange(of: size, initial: true) { _, new in
                 // Turning the device turns the strip: the same columns, measured the other way.
                 let turned = StripAxis.forViewport(new)
@@ -260,6 +261,93 @@ private struct PhoneColumn: View {
                 .contentShape(Rectangle())
                 .onTapGesture { browser.selectTab(tab.id) }
         }
+    }
+}
+
+/// The two step buttons, one at each end of the focused window, and a `+` where the strip runs out.
+///
+/// The Mac keeps these out of sight until the pointer comes looking and answers by leaning the whole
+/// strip aside (`StripEdgeButton`, docs/layout.md). That is a pointer idea: a peek is asked for by
+/// *resting* somewhere, and a finger has nowhere to rest — it is touching or it is not. So here they
+/// simply stand where they are, which is what `SettingsStore.peeksAtEdges` being off looks like and
+/// why it defaults off away from macOS. Touch does not read the flag: honouring an "on" would leave
+/// the strip with no button anything could reach.
+private struct PhoneEdgeButtons: View {
+    let axis: StripAxis
+    let size: CGSize
+
+    @Environment(BrowserState.self) private var browser
+
+    var body: some View {
+        let layout = browser.layout
+        if !layout.isOverview, let frame = layout.focusedColumnFrame {
+            PhoneEdgeButton(direction: -1, axis: axis, along: frame.minX - layout.gap / 2, size: size)
+            PhoneEdgeButton(direction: 1, axis: axis, along: frame.maxX + layout.gap / 2, size: size)
+        }
+    }
+}
+
+/// One of them. It stands in the gap beside the focused window, at the middle of the way across, and
+/// steps one window — or, where there is no window that way, opens one there.
+private struct PhoneEdgeButton: View {
+    let direction: Int
+    let axis: StripAxis
+    /// Where it goes *along* the strip, in the same space `focusedColumnFrame` is measured in.
+    let along: CGFloat
+    let size: CGSize
+
+    @Environment(BrowserState.self) private var browser
+
+    /// A finger, not a pointer: the gap the glyph sits in is a tenth of this, so the target has to
+    /// reach out of it and over the corners it stands between. Apple's minimum, and the same order as
+    /// the handle's own close button.
+    private static let touch: CGFloat = 44
+
+    var body: some View {
+        let layout = browser.layout
+        if let step = step(layout: layout) {
+            Button(action: step.action) {
+                Image(systemName: step.symbol)
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(browser.selectedProfile.color.opacity(0.8))
+                    .frame(width: Self.touch, height: Self.touch)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .position(point(in: size))
+            .animation(NiriLayout.switchAnimation, value: along)
+        }
+    }
+
+    /// The gap, put on the screen — and never off it: a window as wide as the viewport leaves nowhere
+    /// to stand but the edge itself, and half a target is what fits there.
+    private func point(in size: CGSize) -> CGPoint {
+        let extent = axis == .vertical ? size.height : size.width
+        let inset = Self.touch / 2
+        let placed = min(max(inset, along), extent - inset)
+        return axis == .vertical
+            ? CGPoint(x: size.width / 2, y: placed)
+            : CGPoint(x: placed, y: size.height / 2)
+    }
+
+    /// The same two answers the Mac gives, with the arrow turned to face along the strip: upright it
+    /// runs down the screen, on its side across it.
+    private func step(layout: NiriLayout) -> (symbol: String, action: () -> Void)? {
+        if layout.canFocusColumn(direction) {
+            let symbol: String
+            switch axis {
+            case .horizontal: symbol = direction < 0 ? "chevron.left" : "chevron.right"
+            case .vertical: symbol = direction < 0 ? "chevron.up" : "chevron.down"
+            }
+            return (symbol, { browser.focusColumn(direction) })
+        }
+        // Nothing that way, so the button offers the only other thing that can be there: a window.
+        // An empty workspace is left alone — it says the same thing in the middle of the screen.
+        if layout.focusedWorkspace?.isEmpty == false {
+            let side: NiriPlacement = direction < 0 ? .left : .right
+            return ("plus", { browser.newTab(on: side) })
+        }
+        return nil
     }
 }
 

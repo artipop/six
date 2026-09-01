@@ -68,6 +68,10 @@ final class BrowserState {
     @ObservationIgnored let appleTranslator = AppleTranslator()
     /// Deep-research runs (see `ResearchRun`).
     var research: [ResearchRun] = []
+    /// Whether the strip's edge buttons wait to be found or stand on the screen (`SettingsStore`).
+    /// Chrome rather than geometry, so it lives here and not in `NiriLayout`: it changes nothing a
+    /// second front end would have to agree with, only whether this one asks for a peek.
+    var peeksAtEdges = SettingsStore.peeksByDefault
     @ObservationIgnored private let settings: SettingsStore
 
     @ObservationIgnored private var dataStores: [UUID: WKWebsiteDataStore] = [:]
@@ -89,6 +93,7 @@ final class BrowserState {
         self.devTools = devTools
         self.permissions = permissions
         layout.centersFocus = settings.centersFocus
+        peeksAtEdges = settings.peeksAtEdges
         var loaded = snapshot?.profiles ?? Self.legacyProfiles() ?? Profile.defaults
         if loaded.isEmpty { loaded = Profile.defaults }
         profiles = loaded
@@ -978,6 +983,14 @@ final class BrowserState {
     func toggleCenterFocus() {
         animateLayout { layout.setCentersFocus(!layout.centersFocus) }
         settings.centersFocus = layout.centersFocus
+    }
+
+    func togglePeeksAtEdges() {
+        peeksAtEdges.toggle()
+        settings.peeksAtEdges = peeksAtEdges
+        // Turned off with the strip mid-lean — the pointer is resting on a button that is about to
+        // stop taking peeks, and nothing would ever tell it to let go.
+        if !peeksAtEdges { withAnimation(NiriLayout.peekAnimation) { layout.edgeHover = 0 } }
     }
 
     func toggleOverview() {

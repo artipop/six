@@ -23,6 +23,7 @@ final class SettingsStore {
         case assistantOpenAIBaseURL = "assistant.openai.baseURL"
         case assistantOpenAIModel = "assistant.openai.model"
         case centersFocus = "layout.centersFocus"
+        case peeksAtEdges = "layout.peeksAtEdges"
         case agentModel = "agent.model"
         case bookmarkScope = "bookmarks.scope"
         case bookmarkRefreshDays = "bookmarks.refreshDays"
@@ -62,6 +63,7 @@ final class SettingsStore {
             case .assistantOpenAIBaseURL: "six.assistant.openai.baseURL"
             case .assistantOpenAIModel: "six.assistant.openai.model"
             case .centersFocus: "six.layout.centerFocus"
+            case .peeksAtEdges: "six.layout.peeksAtEdges"
             case .agentModel: "six.agent.model"
             case .bookmarkScope: "six.bookmarks.scope"
             case .bookmarkRefreshDays: "six.bookmarks.refreshDays"
@@ -110,6 +112,21 @@ final class SettingsStore {
         get { self[.centersFocus].map { $0 == "1" } ?? true }
         set { self[.centersFocus] = newValue ? "1" : "0" }
     }
+
+    /// Whether the strip's edge buttons wait to be found or stand on the screen. A peek is a pointer
+    /// idea: it is asked for by resting somewhere, and answered by the strip leaning over. A finger
+    /// has nowhere to rest — it is either touching or not — so on a touch screen the buttons are drawn
+    /// where they are and do their job on the way in, the way they did before the peek existed.
+    var peeksAtEdges: Bool {
+        get { self[.peeksAtEdges].map { $0 == "1" } ?? Self.peeksByDefault }
+        set { self[.peeksAtEdges] = newValue ? "1" : "0" }
+    }
+
+    #if os(macOS)
+    static let peeksByDefault = true
+    #else
+    static let peeksByDefault = false
+    #endif
 
     /// The deep-research preset as edited by the user; empty means the built-in one.
     var researchTemplate: String {

@@ -2479,6 +2479,16 @@
     "New window (⌘T)" : {
 
     },
+    "New window on the left" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Новое окно слева"
+          }
+        }
+      }
+    },
     "Next window (⌥→)" : {
 
     },
@@ -2764,6 +2774,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Вставить"
+          }
+        }
+      }
+    },
+    "Peek at the Edges" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Подглядывать у краёв"
           }
         }
       }
@@ -4364,12 +4384,12 @@
         }
       }
     },
-    "scroll up/down for workspaces · sideways to run along a strip · click a window to open it · double-click a name to rename · ⌥O to close" : {
+    "scroll up/down for workspaces · sideways to run along a strip · click a window to open it · drag one to move it · double-click a name to rename · ⌥O to close" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "вверх-вниз — рабочие столы · вбок — вдоль ленты · клик по окну — открыть · двойной клик по имени — переименовать · ⌥O — закрыть"
+            "value" : "вверх-вниз — рабочие столы · вбок — вдоль ленты · клик по окну — открыть · перетащить — переместить · двойной клик по имени — переименовать · ⌥O — закрыть"
           }
         }
       }
