@@ -109,6 +109,8 @@ stays the page's.
 
 Only columns near the viewport get a real `WebView`; the rest render as cards, so a long strip stays cheap.
 
+User guide (Russian and English, published on the deffun site under `/docs/vi/`): [docs/guide/](docs/guide/).
+
 Full reference: [docs/](docs/) — [controls](docs/controls.md), [hotkeys](docs/hotkeys.md), [layout](docs/layout.md),
 [architecture](docs/architecture.md), [blocking](docs/blocking.md), [certificates](docs/certificates.md),
 [extensions](docs/extensions.md),

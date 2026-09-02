@@ -3,3 +3,6 @@ build/
 xcuserdata/
 dist/
 .build/
+docs/guide/node_modules/
+docs/guide/.vitepress/cache/
+docs/guide/.vitepress/dist/

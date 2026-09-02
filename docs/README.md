@@ -3,6 +3,26 @@
 Short, practical notes on how the app is put together. The [top-level README](../README.md) is the pitch; this is the
 reference.
 
+Everything on this page is written for whoever changes the code. What is written for whoever *uses* the browser is
+[`guide/`](guide/) — the user guide, in Russian and English, published on the deffun site under `/docs/vi/` (where the
+product is called **VI**, beside XCIII and XXVI; in the app it stays `six`). It is a VitePress site whose root is that
+folder, so nothing else in `docs/` can be published by accident:
+
+```sh
+cd docs/guide
+npm ci
+npm run dev      # http://localhost:5176/docs/vi/
+npm run build    # into ../../../xciii/site/dist/docs/vi — the deffun site's own dist
+```
+
+The port is pinned, and the build writes into the site repository next door, which has to be checked out beside this
+one. Normally it is built from there instead: `npm run build:all` in `xciii/site` does the landing and all three
+guides in the order their output directories require.
+
+A feature is not finished until `docs/guide/` says how to use it — in both languages, naming buttons with the strings
+from [`six/Localizable.xcstrings`](../six/Localizable.xcstrings) rather than translating them by eye
+([localization.md](localization.md)).
+
 | | |
 |---|---|
 | [controls.md](controls.md) | every mouse control, and the keyboard in short |
