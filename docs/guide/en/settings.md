@@ -18,8 +18,8 @@ menus is what a menu is for: things you do, with a key beside them.
 
 ## General
 
-**Search engine** — DuckDuckGo or Google. The same choice is the chip on the left
-of the field on the start page.
+**Search engine** — DuckDuckGo, Google, Bing or Yandex. The same choice is the
+chip on the left of the field on the start page.
 
 **Translation** — the language pages are translated into (`⌘⇧L`). The list is
 whichever languages macOS has a model for.

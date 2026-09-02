@@ -46,8 +46,9 @@ As you type, completions gather under it, in this order:
 2. up to two **pages you saved**, found by meaning rather than by their titles;
 3. up to four pages **from this profile's history**, by title and host, the
    often-visited ones first;
-4. the search engine's own suggestions, each labelled *DuckDuckGo Search* or
-   *Google Search*, so it is clear where `↩` goes.
+4. the search engine's own suggestions, each labelled with the engine — *DuckDuckGo
+   Search*, *Google Search*, *Bing Search*, *Yandex Search* — so it is clear where
+   `↩` goes.
 
 Saved above visited above guessed: a bookmark is a page you decided to keep,
 history is a page you happened to open, and a completion is what everybody else
