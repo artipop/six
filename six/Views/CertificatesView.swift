@@ -1,17 +1,10 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// What six trusts on top of what the machine trusts, and the switch for each one.
-///
-/// Opened from the Privacy menu. Everything here starts off; see `CertificateStore` for what
-/// switching one on actually does, and [certificates.md](../../docs/certificates.md) for why the
-/// answer is not "put it in the keychain".
+/// The sheet the phone opens: `CertificateSettings` under a title and a Done button. On the Mac the
+/// same content is a section of `six://settings`.
 struct CertificatesView: View {
-    @Environment(CertificateStore.self) private var certificates
     @Environment(\.dismiss) private var dismiss
-    @State private var importing = false
-    @State private var failure: String?
-    @State private var expanded: Set<String> = []
 
     var body: some View {
         VStack(spacing: 0) {
@@ -23,7 +16,30 @@ struct CertificatesView: View {
             }
             .padding(12)
             Divider()
+            CertificateSettings()
+        }
+        .frame(width: sheetSize.width, height: sheetSize.height)
+    }
 
+    /// Relative to the screen, like the rest of the layout.
+    private var sheetSize: CGSize {
+        let screen = Platform.screenSize
+        return CGSize(width: (screen.width * 0.36).rounded(), height: (screen.height * 0.56).rounded())
+    }
+}
+
+/// What six trusts on top of what the machine trusts, and the switch for each one.
+///
+/// Everything here starts off; see `CertificateStore` for what switching one on actually does, and
+/// [certificates.md](../../docs/certificates.md) for why the answer is not "put it in the keychain".
+struct CertificateSettings: View {
+    @Environment(CertificateStore.self) private var certificates
+    @State private var importing = false
+    @State private var failure: String?
+    @State private var expanded: Set<String> = []
+
+    var body: some View {
+        VStack(spacing: 0) {
             List {
                 Section {
                     ForEach(certificates.bundles) { bundle in
@@ -52,7 +68,6 @@ struct CertificatesView: View {
             }
             .padding(10)
         }
-        .frame(width: sheetSize.width, height: sheetSize.height)
         .fileImporter(isPresented: $importing, allowedContentTypes: [.x509Certificate, .data]) { result in
             guard case .success(let url) = result else { return }
             do {
@@ -72,11 +87,6 @@ struct CertificatesView: View {
         if expanded.contains(id) { expanded.remove(id) } else { expanded.insert(id) }
     }
 
-    /// Relative to the screen, like the rest of the layout.
-    private var sheetSize: CGSize {
-        let screen = Platform.screenSize
-        return CGSize(width: (screen.width * 0.36).rounded(), height: (screen.height * 0.56).rounded())
-    }
 }
 
 private struct BundleRow: View {
@@ -178,6 +188,3 @@ private struct BundleRow: View {
     }
 }
 
-extension FocusedValues {
-    @Entry var showCertificates: FocusAddressBarAction?
-}

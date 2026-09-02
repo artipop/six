@@ -2,7 +2,7 @@
 
 An MCP server can return not only text but an **interface**: a ready page the
 host shows instead of a tool result and then talks to. In a chat that becomes a
-picture inside the conversation. Here an app is **a window in the strip**, level
+picture inside the conversation. Here an app is **a window on the rail**, level
 with a website: it can be moved, carried to another workspace, left open and come
 back to tomorrow.
 
@@ -17,7 +17,7 @@ storage, which is a stronger sandbox than an iframe.
 | the list of servers | a click runs that server's first tool with an interface |
 | **Give to the Agent ▸ …** | hand a server's tools to the [agent](/en/agents) — then it opens such windows itself |
 
-The list of servers is not a sheet but **a page in the strip**: it stands next to
+The list of servers is not a sheet but **a page on the rail**: it stands next to
 the app it is about and survives a relaunch. Its address is shown in full, scheme
 and all: `apps` without `six://` would read as somebody's domain.
 
@@ -70,7 +70,7 @@ own.
 
 A shared server's tools reach the agent as **the browser's own**, and then the
 agent opens app windows itself: ask about the weather and get a weather window in
-the strip rather than a paragraph. The agent's tool list is live: share a server
+the rail rather than a paragraph. The agent's tool list is live: share a server
 or take it back, and it finds out at once.
 
 App windows are visible to the agent like pages: it can list them, read them and

@@ -29,7 +29,6 @@ final class SettingsStore {
         case bookmarkRefreshDays = "bookmarks.refreshDays"
         case researchTemplate = "research.template"
         case researchSources = "research.sources"
-        case livePages = "browser.livePages"
         case blockingEnabled = "blocking.enabled"
         case blockingLists = "blocking.lists"
         case blockingAllowlist = "blocking.allowlist"

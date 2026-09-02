@@ -2,86 +2,66 @@
 import SwiftUI
 import WebKit
 
-/// niri's bindings, with ⌥ standing in for Mod.
-struct LayoutCommands: Commands {
+/// What six's menu bar is left with, and why.
+///
+/// It used to carry thirteen menus. Five of them — Layout, Navigate, Privacy, Extensions, Develop —
+/// were one feature each, and most of what was in them was a switch that stayed where it was put.
+/// A switch is not a command: it has no key, it does not answer "what can I do here", and a person
+/// hunting for one has no way to guess which of five menus it filed itself under. Those went to
+/// `six://settings` (⌘,).
+///
+/// What is left is the shape every browser has — File, Edit, View, History, Bookmarks — plus Apps,
+/// which is six's own and is a list of things to *open*. The rule for anything new: a menu item is
+/// a verb with a key beside it; everything else is a setting.
+
+/// The window in front, and how the rail is showing it.
+///
+/// The ⌥ bindings that walk the rail are deliberately *not* here — they live in
+/// `NiriScrollMonitor.handleLayoutKey`, which sees a key before the focused web view does. A menu
+/// item cannot: WebKit takes `⌥←` and `⌥→` for word movement and the layout key never arrives.
+/// The two that are here are the two a person reaches for with a pointer as often as with a key.
+struct ViewCommands: Commands {
     let browser: BrowserState
+    @FocusedValue(\.focusAssistant) private var focusAssistant
+    @FocusedValue(\.toggleAgentPanel) private var toggleAgentPanel
+    @FocusedValue(\.translatePage) private var translatePage
+    @FocusedValue(\.translateSelection) private var translateSelection
 
     var body: some Commands {
-        CommandMenu("Layout") {
-            Button("Focus Column Left") { browser.focusColumn(-1) }
-                .keyboardShortcut(.leftArrow, modifiers: .option)
-            Button("Focus Column Right") { browser.focusColumn(1) }
-                .keyboardShortcut(.rightArrow, modifiers: .option)
-            Button("Focus First Column") { browser.focusColumnEdge(last: false) }
-                .keyboardShortcut(.home, modifiers: .option)
-            Button("Focus Last Column") { browser.focusColumnEdge(last: true) }
-                .keyboardShortcut(.end, modifiers: .option)
-
-            Divider()
-
-            Button("Move Column Left") { browser.moveColumn(-1) }
-                .keyboardShortcut(.leftArrow, modifiers: [.option, .shift])
-            Button("Move Column Right") { browser.moveColumn(1) }
-                .keyboardShortcut(.rightArrow, modifiers: [.option, .shift])
-
-            Divider()
-
-            Button("Focus Workspace Up") { browser.focusWorkspace(-1) }
-                .keyboardShortcut(.upArrow, modifiers: .option)
-            Button("Focus Workspace Down") { browser.focusWorkspace(1) }
-                .keyboardShortcut(.downArrow, modifiers: .option)
-            Button("Move Column to Workspace Up") { browser.moveColumnToWorkspace(-1) }
-                .keyboardShortcut(.upArrow, modifiers: [.option, .shift])
-            Button("Move Column to Workspace Down") { browser.moveColumnToWorkspace(1) }
-                .keyboardShortcut(.downArrow, modifiers: [.option, .shift])
-
-            Divider()
-
-            Toggle("Full Window", isOn: Binding(
+        CommandMenu("View") {
+            Toggle("Full Width", isOn: Binding(
                 get: { browser.layout.fill == .window },
                 set: { _ in browser.toggleFullWindow() }
             ))
             .keyboardShortcut("w", modifiers: .option)
-            Toggle("Fullscreen", isOn: Binding(
-                get: { browser.layout.fill == .screen },
-                set: { _ in browser.toggleFullscreen() }
+            Toggle("Overview", isOn: Binding(
+                get: { browser.layout.isOverview },
+                set: { _ in browser.toggleOverview() }
             ))
-            .keyboardShortcut("f", modifiers: [.option, .shift])
-            Button("Toggle Overview") { browser.toggleOverview() }
-                .keyboardShortcut("o", modifiers: .option)
+            .keyboardShortcut("o", modifiers: .option)
 
             Divider()
 
-            Toggle("Center Focused Window", isOn: Binding(
-                get: { browser.layout.centersFocus },
-                set: { _ in browser.toggleCenterFocus() }
-            ))
-            .keyboardShortcut("c", modifiers: .option)
-            // Off, the slivers at the edges of the strip stand on the screen and do their job on the
-            // way in, the way they did before the peek existed. That is the only thing that works
-            // where there is no pointer to rest, so it is the default on a touch screen.
-            Toggle("Peek at the Edges", isOn: Binding(
-                get: { browser.peeksAtEdges },
-                set: { _ in browser.togglePeeksAtEdges() }
-            ))
+            // ⌘⇧L: "L" for language, next to ⌘L in the hand. Deliberately not ⌘⇧T, which is free
+            // today but is "reopen closed tab" in every other browser.
+            Button("Translate Page") { translatePage?.perform() }
+                .keyboardShortcut("l", modifiers: [.command, .shift])
+                .disabled(translatePage == nil)
+            // ⌥⇧T beside ⌥⇧H "Highlight Selection": the same shape of gesture on the same thing.
+            // Always enabled, because nothing here can know whether there is a selection without
+            // asking the page, and a menu cannot await — pressing it with none says so.
+            Button("Translate Selection…") { translateSelection?.perform() }
+                .keyboardShortcut("t", modifiers: [.option, .shift])
+                .disabled(translateSelection == nil)
 
             Divider()
 
-            // Windows off the screen give their pages back when the app runs over this (see
-            // `LivePageCache`); they keep everything it takes to put the same page back when they
-            // come round again. The default is sized from the machine's memory.
-            Section("Loaded Windows: \(browser.pages.liveCount) of \(browser.tabs.count)") {
-                Picker("Keep Loaded", selection: Binding(
-                    get: { browser.pages.budget },
-                    set: { browser.setLivePageBudget($0) }
-                )) {
-                    ForEach([4, 6, 8, 12, 16, 24, 40], id: \.self) { count in
-                        Text("\(count) windows").tag(count)
-                    }
-                }
-                .pickerStyle(.inline)
-                Button("Unload Background Windows") { browser.pages.discardBackgroundPages() }
-            }
+            Button("Ask Assistant…") { focusAssistant?.perform() }
+                .keyboardShortcut("k")
+                .disabled(focusAssistant == nil)
+            Button("Agent Panel") { toggleAgentPanel?.perform() }
+                .keyboardShortcut("a", modifiers: [.command, .shift])
+                .disabled(toggleAgentPanel == nil)
         }
     }
 }
@@ -117,11 +97,13 @@ struct HistoryCommands: Commands {
     }
 }
 
-/// ⌘D saves the page; the menu lists the profile's recent bookmarks and sets what the assistant searches.
+/// ⌘D saves the page; the menu lists the profile's recent bookmarks.
+///
+/// What the assistant searches and how often a saved page is re-read were pickers here. They are
+/// settings — nobody changes them twice — and they are on `six://settings` under General.
 struct BookmarkCommands: Commands {
     let browser: BrowserState
     let bookmarks: BookmarkStore
-    let settings: SettingsStore
     @FocusedValue(\.showBookmarks) private var showBookmarks
 
     var body: some Commands {
@@ -142,24 +124,11 @@ struct BookmarkCommands: Commands {
                 .keyboardShortcut("b", modifiers: [.command, .option])
                 .disabled(showBookmarks == nil)
             Divider()
-            @Bindable var settings = settings
-            Picker("Assistant Searches", selection: $settings.bookmarkScope) {
-                ForEach(BookmarkScope.allCases) { Text($0.title).tag($0) }
-            }
-            Divider()
-            let profile = browser.selectedProfile
             let current = tab.flatMap { tab in tab.currentURL.flatMap { bookmarks.bookmark(for: $0, in: tab.profileID) } }
             Button("Refresh Bookmark") { if let current { Task { await bookmarks.refresh(current.id) } } }
                 .disabled(current == nil)
-            Button("Refresh \(profile.name) Bookmarks") { bookmarks.refreshAll(in: profile.id) }
-                .disabled(bookmarks.count(in: profile.id) == 0)
-            Picker("Re-read Saved Pages", selection: $settings.bookmarkRefreshDays) {
-                Text("Never").tag(0)
-                Text("Daily").tag(1)
-                Text("Weekly").tag(7)
-                Text("Monthly").tag(30)
-            }
             Divider()
+            let profile = browser.selectedProfile
             Section(profile.name) {
                 let recent = bookmarks.entries(in: .profile, profileID: profile.id).prefix(15)
                 if recent.isEmpty {
@@ -167,70 +136,6 @@ struct BookmarkCommands: Commands {
                 }
                 ForEach(Array(recent)) { entry in
                     Button(entry.displayTitle) { browser.newTab(url: entry.url, in: entry.profileID) }
-                }
-            }
-        }
-    }
-}
-
-/// Blocking, and the two things a person actually does with it: let this site through, and look at
-/// the lists.
-struct PrivacyCommands: Commands {
-    let browser: BrowserState
-    let blocker: ContentBlocker
-    @FocusedValue(\.showFilterLists) private var showFilterLists
-    @FocusedValue(\.showSitePermissions) private var showSitePermissions
-    @FocusedValue(\.showCertificates) private var showCertificates
-
-    var body: some Commands {
-        CommandMenu("Privacy") {
-            @Bindable var blocker = blocker
-            Toggle("Block Ads and Trackers", isOn: $blocker.isEnabled)
-            let tab = browser.selectedTab
-            let url = tab?.currentURL
-            let host = url?.host() ?? ""
-            let allowed = url.map { blocker.allows($0) && blocker.isEnabled } ?? false
-            Button(allowed ? "Block Ads on \(host)" : "Allow Ads on \(host)") {
-                guard let tab else { return }
-                browser.setBlockingAllowed(!allowed, for: tab)
-            }
-            .disabled(!blocker.isEnabled || url == nil || host.isEmpty)
-            Divider()
-            Button("Update Filter Lists Now") { Task { await blocker.updateNow() } }
-                .disabled(!blocker.isEnabled || blocker.isWorking)
-            Button("Filter Lists…") { showFilterLists?.perform() }
-                .disabled(showFilterLists == nil)
-            Divider()
-            Button("Site Permissions…") { showSitePermissions?.perform() }
-                .disabled(showSitePermissions == nil)
-            Button("Certificates…") { showCertificates?.perform() }
-                .disabled(showCertificates == nil)
-        }
-    }
-}
-
-/// Extensions: the panel, and each extension's own action for the focused window.
-struct ExtensionCommands: Commands {
-    let browser: BrowserState
-    let extensions: ExtensionStore
-    @FocusedValue(\.showExtensions) private var showExtensions
-
-    var body: some Commands {
-        CommandMenu("Extensions") {
-            Button("Manage Extensions…") { showExtensions?.perform() }
-                .disabled(showExtensions == nil)
-            Divider()
-            let tab = browser.selectedTab
-            let actions = tab.map { extensions.actions(for: $0) } ?? []
-            if actions.isEmpty {
-                Text(extensions.installed.isEmpty ? "None installed" : "Nothing for this window")
-            } else {
-                ForEach(actions, id: \.record.id) { pair in
-                    Button(pair.action.label ?? pair.record.name) {
-                        guard let tab else { return }
-                        extensions.performAction(pair.record, for: tab, anchor: nil)
-                    }
-                    .disabled(!pair.action.isEnabled)
                 }
             }
         }
@@ -271,79 +176,6 @@ struct AppCommands: Commands {
             if let error = apps.lastError {
                 Divider()
                 Text(error)
-            }
-        }
-    }
-}
-
-/// Developer tools: Safari's inspector on six's pages, and the capture the agent tools read.
-struct DevelopCommands: Commands {
-    let devTools: DevToolsStore
-
-    var body: some Commands {
-        CommandMenu("Develop") {
-            @Bindable var devTools = devTools
-            // six has no inspector window of its own — WebKit lets an app allow inspection, not open
-            // it. Where to attach from is in the help tag and in devtools.md, not in the menu.
-            Toggle("Web Inspector", isOn: $devTools.isInspectable)
-                .help("Then attach from Safari: Develop › \(DevToolsStore.machineName) › six")
-            if devTools.isInspectable {
-                Button("Open Safari to Attach") {
-                    if let safari = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.Safari") {
-                        NSWorkspace.shared.openApplication(at: safari, configuration: NSWorkspace.OpenConfiguration())
-                    }
-                }
-            }
-            Toggle("Capture Console and Network", isOn: $devTools.isCapturing)
-                .help("For list_console_messages and list_network_requests; runs a hook in the page's own world")
-            Divider()
-            Button("Clear Captured Logs") { devTools.clear() }
-                .disabled(!devTools.isCapturing)
-        }
-    }
-}
-
-struct BrowserCommands: Commands {
-    let settings: SettingsStore
-    @FocusedValue(\.focusAddressBar) private var focusAddressBar
-    @FocusedValue(\.focusAssistant) private var focusAssistant
-    @FocusedValue(\.toggleAgentPanel) private var toggleAgentPanel
-    @FocusedValue(\.translatePage) private var translatePage
-    @FocusedValue(\.translateSelection) private var translateSelection
-
-    var body: some Commands {
-        CommandMenu("Navigate") {
-            Button("Open Location…") { focusAddressBar?.perform() }
-                .keyboardShortcut("l")
-                .disabled(focusAddressBar == nil)
-            Button("Ask Assistant…") { focusAssistant?.perform() }
-                .keyboardShortcut("k")
-                .disabled(focusAssistant == nil)
-            Button("Toggle Agent Panel") { toggleAgentPanel?.perform() }
-                .keyboardShortcut("a", modifiers: [.command, .shift])
-                .disabled(toggleAgentPanel == nil)
-
-            Divider()
-
-            // ⌘⇧L: "L" for language, next to ⌘L in the hand. Deliberately not ⌘⇧T, which is free
-            // today but is "reopen closed tab" in every other browser.
-            Button("Translate Page") { translatePage?.perform() }
-                .keyboardShortcut("l", modifiers: [.command, .shift])
-                .disabled(translatePage == nil)
-            // ⌥⇧T beside ⌥⇧H "Highlight Selection": the same shape of gesture on the same thing.
-            // Always enabled, because nothing here can know whether there is a selection without
-            // asking the page, and a menu cannot await — pressing it with none says so.
-            Button("Translate Selection…") { translateSelection?.perform() }
-                .keyboardShortcut("t", modifiers: [.option, .shift])
-                .disabled(translateSelection == nil)
-
-            Divider()
-
-            @Bindable var settings = settings
-            Picker("Search Engine", selection: $settings.searchEngine) {
-                ForEach(SearchEngine.allCases) { engine in
-                    Text(engine.title).tag(engine)
-                }
             }
         }
     }

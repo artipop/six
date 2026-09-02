@@ -27,17 +27,31 @@ enum TabContent {
 ///
 /// Not a sheet. A sheet belongs to the application and stops everything else; a browser's answer to
 /// "show me a list of things" is a page — it goes in a column, it has an address, it can be left
-/// open next to what it is about, and the strip already knows how to carry it. The start page is the
-/// same idea without an address of its own.
+/// open next to what it is about, and the rail already knows how to carry it. The start page is the
+/// same idea without an address of its own. Settings is the case that makes the argument: reading
+/// what a site is allowed while looking at the site is the whole point, and a sheet cannot.
 nonisolated enum BuiltInPage: String, Codable, Sendable, CaseIterable {
     /// The MCP servers six is host to, and what they carry (`MCPAppsView`).
     case apps
+    /// Everything that used to be a menu item nobody could find: what six searches with, what it
+    /// blocks, what a site is allowed, what the assistant talks to (`SettingsPageView`).
+    ///
+    /// The Mac only. A page of settings is a Mac shape — a column standing beside the thing it is
+    /// about — and the phone has one column and a menu of its own (`PhoneContentView`). A snapshot
+    /// carrying a settings column onto a phone finds no case for the name and opens a web window,
+    /// which is what `page(for:)` returning nil already meant.
+    #if os(macOS)
+    case settings
+    #endif
 
     var url: URL { URL(string: "six://\(rawValue)")! }
 
     var title: String {
         switch self {
         case .apps: String(localized: "MCP Apps")
+        #if os(macOS)
+        case .settings: String(localized: "Settings")
+        #endif
         }
     }
 

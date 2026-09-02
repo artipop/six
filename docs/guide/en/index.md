@@ -6,17 +6,17 @@ titleTemplate: ':title — the guide'
 hero:
   name: VI
   text: The guide
-  tagline: 'A browser without tabs. A page is a window in an endless strip, there are as many strips as you have jobs on, and a model or an agent is one keystroke away on any of them.'
+  tagline: 'A browser without tabs. A page is a window on an endless rail, there are as many rails as you have jobs on, and a model or an agent is one keystroke away on any of them.'
   actions:
     - theme: brand
       text: First launch
       link: /en/start
     - theme: alt
-      text: The strip and workspaces
+      text: The rail and workspaces
       link: /en/layout
 
 features:
-  - title: A strip, not tabs
+  - title: A rail, not tabs
     details: A page takes a whole window, windows stand in a row and scroll sideways. Workspaces stack up and down.
     link: /en/layout
   - title: Ads never load

@@ -12,22 +12,15 @@ struct ContentView: View {
     @State private var showAgentPanel = false
     @State private var showHistory = false
     @State private var showBookmarks = false
-    @State private var showFilterLists = false
-    @State private var showExtensions = false
-    @State private var showSitePermissions = false
-    @State private var showCertificates = false
     @State private var confirmClearHistory = false
 
     var body: some View {
         VStack(spacing: 0) {
-            // Fullscreen gives the whole window to the strip; its own bar comes back on hover.
-            if !browser.layout.showsFullscreen {
-                TopBar(showAgentPanel: $showAgentPanel, addressFocus: $addressFocus)
-                    // In front of the strip, not behind it. They are siblings in a stack, so the strip
-                    // is drawn — and hit-tested — after the bar; anything of the strip's that reaches
-                    // up into the bar's band would take the click off its buttons.
-                    .zIndex(1)
-            }
+            TopBar(showAgentPanel: $showAgentPanel, addressFocus: $addressFocus)
+                // In front of the rail, not behind it. They are siblings in a stack, so the rail is
+                // drawn — and hit-tested — after the bar; anything of the rail's that reaches up into
+                // the bar's band would take the click off its buttons.
+                .zIndex(1)
             NiriStripView()
                 .overlay(alignment: .bottom) {
                     if !browser.layout.isOverview {
@@ -51,13 +44,10 @@ struct ContentView: View {
         .navigationTitle(browser.selectedTab?.title ?? "six")
         .focusedSceneValue(\.focusAddressBar, FocusAddressBarAction {
             browser.exitOverview()
-            browser.restoreChrome() // the top bar is chrome, and a fullscreen window has none
             addressFocus = browser.selectedTabID
         })
         .focusedSceneValue(\.toggleAgentPanel, FocusAddressBarAction { showAgentPanel.toggle() })
-        .modifier(Panels(history: $showHistory, bookmarks: $showBookmarks, filterLists: $showFilterLists,
-                         extensions: $showExtensions, sitePermissions: $showSitePermissions,
-                         certificates: $showCertificates))
+        .modifier(Panels(history: $showHistory, bookmarks: $showBookmarks))
         .focusedSceneValue(\.clearHistory, FocusAddressBarAction { confirmClearHistory = true })
         .focusedSceneValue(\.translatePage, FocusAddressBarAction {
             if let tab = browser.selectedTab { browser.toggleTranslation(of: tab) }
@@ -69,15 +59,9 @@ struct ContentView: View {
         .onKeyPress(.escape) {
             // The scroll monitor usually gets there first (a page holds the focus); this is the path
             // for when nothing in the window has taken the key.
-            if browser.layout.isOverview {
-                browser.exitOverview()
-                return .handled
-            }
-            if browser.layout.fill == .screen {
-                browser.exitFullscreen()
-                return .handled
-            }
-            return .ignored
+            guard browser.layout.isOverview else { return .ignored }
+            browser.exitOverview()
+            return .handled
         }
         .task {
             // SwiftUI hands a new window's focus to the first field it finds, and that is now the
@@ -208,20 +192,22 @@ extension ContentView {
 /// window's address, because that band of the window was empty and an address field is exactly the
 /// shape of it. Right: everything about the strip rather than the page — what is bookmarked and
 /// downloading, where in the stack of workspaces you are, the overview, the agent.
-/// The five panels that are opened from a menu item and are otherwise unrelated to each other: each
-/// one is a focused value the menu reaches across the scene, and a sheet that answers it.
+/// The two panels that are opened from a menu item: each one is a focused value the menu reaches
+/// across the scene, and a sheet that answers it.
 ///
-/// They are a modifier rather than ten more lines on the body because the body had reached the size
+/// There were six. Filter lists, extensions, site permissions and certificates were the other four,
+/// and every one of them was a settings screen wearing a sheet — a thing that covers the window it
+/// is describing so that it can describe it. They are sections of `six://settings` now. History and
+/// bookmarks stay sheets because they are not settings: they are a search over everything, asked in
+/// passing (⌘Y, ⌘⌥B) and closed again.
+///
+/// They are a modifier rather than more lines on the body because the body had reached the size
 /// where the type checker gives up on it — *"unable to type-check this expression in reasonable
 /// time"*, which arrives all at once when a chain grows by one. Anything added here goes in this
 /// list, not up there.
 private struct Panels: ViewModifier {
     @Binding var history: Bool
     @Binding var bookmarks: Bool
-    @Binding var filterLists: Bool
-    @Binding var extensions: Bool
-    @Binding var sitePermissions: Bool
-    @Binding var certificates: Bool
 
     func body(content: Content) -> some View {
         content
@@ -229,14 +215,6 @@ private struct Panels: ViewModifier {
             .sheet(isPresented: $history) { HistoryView() }
             .focusedSceneValue(\.showBookmarks, FocusAddressBarAction { bookmarks = true })
             .sheet(isPresented: $bookmarks) { BookmarksView() }
-            .focusedSceneValue(\.showFilterLists, FocusAddressBarAction { filterLists = true })
-            .sheet(isPresented: $filterLists) { BlockingView() }
-            .focusedSceneValue(\.showExtensions, FocusAddressBarAction { extensions = true })
-            .sheet(isPresented: $extensions) { ExtensionsView() }
-            .focusedSceneValue(\.showSitePermissions, FocusAddressBarAction { sitePermissions = true })
-            .sheet(isPresented: $sitePermissions) { PermissionsView() }
-            .focusedSceneValue(\.showCertificates, FocusAddressBarAction { certificates = true })
-            .sheet(isPresented: $certificates) { CertificatesView() }
     }
 }
 
@@ -250,7 +228,7 @@ private struct TopBar: View {
         HStack(spacing: 8) {
             Color.clear.frame(width: 68, height: 1) // room for the window buttons
             ProfileMenuButton()
-            LayoutModeButton()
+            FullWidthButton()
             Spacer(minLength: 8)
             if let tab = browser.selectedTab {
                 AddressBar(tab: tab, addressFocus: addressFocus)
@@ -301,70 +279,32 @@ private struct TopBar: View {
     }
 }
 
-/// How the strip is showing the focused window, as one control: click to fill the window and back
-/// (⌥W), hold for the rest — the three fills, the shared column width, the overview.
+/// Full width, as one button: the focused page keeps its gaps and its rounded corners, or takes the
+/// whole window (⌥W).
 ///
-/// It replaces the button that used to sit inside a compact window and expand it. That button could
-/// only ever say one thing and could only be reached in one mode; a mode picker says where you are
-/// as well as where you can go, and it is in the same place whichever mode you are in.
-private struct LayoutModeButton: View {
+/// It used to be a mode picker with a menu hanging off it — three fills, the overview, the centring
+/// switch, and where the focused window goes in the rail. Two of those three fills were the same
+/// answer to the same question, the two switches are settings and now live on `six://settings`, and
+/// moving a window is what the page's own right-click menu is for. What was left is one thing with
+/// two states, and a thing with two states is a button.
+private struct FullWidthButton: View {
     @Environment(BrowserState.self) private var browser
 
     var body: some View {
-        let layout = browser.layout
-        Menu {
-            Picker("View", selection: Binding(get: { layout.fill }, set: { setFill($0) })) {
-                Label("Strip", systemImage: "rectangle.split.3x1").tag(NiriFill.tiled)
-                Label("Full Window (⌥W)", systemImage: "rectangle.inset.filled").tag(NiriFill.window)
-                Label("Fullscreen (⌥⇧F)", systemImage: "arrow.up.left.and.arrow.down.right").tag(NiriFill.screen)
-            }
-            .pickerStyle(.inline)
-            Divider()
-            Toggle("Overview (⌥O)", isOn: Binding(get: { layout.isOverview }, set: { _ in browser.toggleOverview() }))
-            Toggle("Centre Focused Window (⌥C)", isOn: Binding(
-                get: { layout.centersFocus },
-                set: { _ in browser.toggleCenterFocus() }
-            ))
-            Divider()
-            // Where a window is in the strip, and the way out of it. These used to hang off its
-            // title bar; the page runs edge to edge now, so they hang off the layout button and off
-            // the page's own context menu.
-            Button("Move Left (⌥⇧←)") { browser.moveColumn(-1) }
-            Button("Move Right (⌥⇧→)") { browser.moveColumn(1) }
-            Button("Move to Workspace Above (⌥⇧↑)") { browser.moveColumnToWorkspace(-1) }
-            Button("Move to Workspace Below (⌥⇧↓)") { browser.moveColumnToWorkspace(1) }
-            Divider()
-            Button("Close Window (⌘W)") { browser.closeSelectedTab() }
-                .disabled(browser.selectedTabID == nil)
-        } label: {
-            Image(systemName: symbol(layout.showsFill))
+        let filled = browser.layout.showsFill == .window
+        Button { browser.toggleFullWindow() } label: {
+            Image(systemName: filled ? "rectangle.inset.filled" : "rectangle.split.3x1")
                 .font(.system(size: 12))
-        } primaryAction: {
-            browser.toggleFullWindow()
         }
-        .menuStyle(.borderlessButton)
+        .buttonStyle(.borderless)
         .controlSize(.small)
         .fixedSize()
         .padding(.horizontal, 5)
         .frame(height: 24)
-        .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-        .help("How the strip is shown — click fills the window (⌥W)")
-    }
-
-    private func setFill(_ fill: NiriFill) {
-        switch fill {
-        case .tiled: browser.restoreChrome()
-        case .window: if browser.layout.fill != .window { browser.toggleFullWindow() }
-        case .screen: if browser.layout.fill != .screen { browser.toggleFullscreen() }
-        }
-    }
-
-    private func symbol(_ fill: NiriFill) -> String {
-        switch fill {
-        case .tiled: "rectangle.split.3x1"
-        case .window: "rectangle.inset.filled"
-        case .screen: "arrow.up.left.and.arrow.down.right"
-        }
+        .background(filled ? AnyShapeStyle(browser.selectedProfile.color.opacity(0.22))
+                           : AnyShapeStyle(.quaternary.opacity(0.35)),
+                    in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+        .help(filled ? "Back to the rail (⌥W)" : "Full Width (⌥W)")
     }
 }
 

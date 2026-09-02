@@ -1,20 +1,20 @@
 # Keyboard shortcuts
 
-`⌥` is the layout (the **Layout** menu), `⌘` is the browser. None of it is
+`⌥` is the rail, `⌘` is the browser. There is no menu for the `⌥` keys: they are
+read before the page is, which is what makes them always answer. None of it is
 required: [every operation has a mouse
 equivalent](/en/layout#with-the-mouse-alone).
 
-## Layout
+## The rail
 
 | | |
 |---|---|
 | `⌥←` `⌥→` | focus the window left / right |
 | `⌥⇧←` `⌥⇧→` | move the window left / right |
-| `⌥Home` `⌥End` | first / last window in the strip |
+| `⌥Home` `⌥End` | first / last window on the rail |
 | `⌥↑` `⌥↓` | workspace above / below |
 | `⌥⇧↑` `⌥⇧↓` | move the window to the workspace above / below and follow it |
-| `⌥W` | full window |
-| `⌥⇧F` | fullscreen (`Esc` to leave) |
+| `⌥W` | full width |
 | `⌥O` | overview (`Esc` to leave) |
 | `⌥C` | centre the focused window (on by default) |
 | `⌥` + vertical scroll | one workspace per gesture |
@@ -24,7 +24,8 @@ equivalent](/en/layout#with-the-mouse-alone).
 
 | | |
 |---|---|
-| `⌘T` | a new window in the strip, right of the focused one |
+| `⌘,` | settings — `six://settings`, a column of the rail like any other address |
+| `⌘T` | a new window on the rail, right of the focused one |
 | `⌘W` | close the focused window |
 | `⌘⇧T` | put the last closed window back where it stood |
 | `⌘⇧N` | a new document |
@@ -40,7 +41,7 @@ equivalent](/en/layout#with-the-mouse-alone).
 | `⌥⇧T` | translate the selection |
 | `⌥⇧H` | highlight the selection on the page |
 | `⌘` + click a link | open it in a new window to the right, behind |
-| `Esc` | leave fullscreen or close the overview; otherwise the page's own |
+| `Esc` | close the overview; otherwise the page's own |
 
 ## The start page
 
@@ -83,10 +84,10 @@ equivalent](/en/layout#with-the-mouse-alone).
 | `↩` | commit a workspace's name while renaming it |
 
 ::: tip Two things worth knowing
-The Layout menu owns `⌥W`, `⌥O` and `⌥C`, so those characters cannot be typed
-into the address field.
+`⌥W`, `⌥O` and `⌥C` are taken before anything else sees them, so those characters
+cannot be typed into a field.
 
-A page holding the focus keeps `⌥←` and `⌥→` for itself (word movement). After
-full window the layout keys may not answer until something outside the page is
-clicked.
+The arrows are not: while the caret is in the address field or the ⌘K line, `⌥←`
+and `⌥→` are word movement, as they always were. Inside a page they belong to the
+rail — a text field on a page cannot be told apart from the page around it.
 :::

@@ -51,7 +51,6 @@ struct NiriStripView: View {
         .background(StripBackground())
         .clipped()
         .overlay { StripEdgeButtons() }
-        .overlay(alignment: .top) { if layout.showsFullscreen { FullscreenBar() } }
         .overlay(alignment: .bottom) { OverviewHint() }
         .contextMenu { StripMenu() }
         .onAppear(perform: startMonitor)
@@ -87,9 +86,23 @@ struct NiriStripView: View {
         monitor.onPan = { browser.panStrip(by: $0) }
         monitor.onPanEnded = { browser.endStripPan() }
         monitor.onEscape = {
-            if layout.isOverview { browser.exitOverview(); return true }
-            if layout.fill == .screen { browser.exitFullscreen(); return true }
-            return false
+            guard layout.isOverview else { return false }
+            browser.exitOverview()
+            return true
+        }
+        // niri's ⌥ bindings. They come through the monitor rather than through menu items so that a
+        // focused page cannot swallow them — see `NiriScrollMonitor.onLayoutKey`.
+        monitor.onLayoutKey = { key in
+            switch key {
+            case .focusColumn(let step): browser.focusColumn(step)
+            case .moveColumn(let step): browser.moveColumn(step)
+            case .focusColumnEdge(let last): browser.focusColumnEdge(last: last)
+            case .focusWorkspace(let step): browser.focusWorkspace(step)
+            case .moveColumnToWorkspace(let step): browser.moveColumnToWorkspace(step)
+            case .toggleFullWidth: browser.toggleFullWindow()
+            case .toggleOverview: browser.toggleOverview()
+            case .toggleCenterFocus: browser.toggleCenterFocus()
+            }
         }
         monitor.start()
     }
@@ -388,7 +401,7 @@ private struct ColumnView: View {
 
     /// A filled window is the page and nothing else: no title bar, no rounded corners, no border to
     /// separate a column from a neighbour that is a whole screen away.
-    private var fullscreen: Bool { browser.layout.fillsViewport }
+    private var filled: Bool { browser.layout.fillsViewport }
 
     private func activate() {
         browser.selectTab(tab.id)
@@ -397,7 +410,7 @@ private struct ColumnView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Above the page even in fullscreen: the page is suspended waiting for this answer, and a
+            // Above the page even at full width: the page is suspended waiting for this answer, and a
             // window with nowhere to say yes is a window that seems to have broken the site.
             if let question = permissions.question(for: tab.id) {
                 PermissionBar(tab: tab, question: question)
@@ -479,23 +492,23 @@ private struct ColumnView: View {
                 LoadingLine(progress: tab.estimatedProgress, accent: accent)
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: fullscreen ? 0 : 12, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: filled ? 0 : 12, style: .continuous))
         .overlay {
-            if !fullscreen {
+            if !filled {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .strokeBorder(isFocused ? accent : Color.primary.opacity(0.12),
                                   lineWidth: isFocused ? 2.5 : 1)
             }
         }
         .overlay(alignment: .topTrailing) {
-            if !fullscreen, isCurrentWorkspace, !browser.layout.isOverview {
+            if !filled, isCurrentWorkspace, !browser.layout.isOverview {
                 // Sitting on the corner rather than inside it: most of the button is over the gap
                 // between the windows, so the page underneath keeps the clicks it should have.
                 ColumnCloseBadge(tab: tab).offset(x: 11, y: -11)
             }
         }
-        .shadow(color: .black.opacity(fullscreen ? 0 : (isFocused ? 0.28 : 0.16)),
-                radius: fullscreen ? 0 : (isFocused ? 18 : 10), y: fullscreen ? 0 : 5)
+        .shadow(color: .black.opacity(filled ? 0 : (isFocused ? 0.28 : 0.16)),
+                radius: filled ? 0 : (isFocused ? 18 : 10), y: filled ? 0 : 5)
         .animation(.easeOut(duration: 0.18), value: isFocused)
     }
 }
@@ -605,7 +618,7 @@ private struct StripEdgeButtons: View {
 
     var body: some View {
         let layout = browser.layout
-        if !layout.isOverview, !layout.showsFullscreen {
+        if !layout.isOverview {
             GeometryReader { proxy in
                 let lane = StripEdgeButton.lane(layout)
                 let frame = layout.focusedColumnFrame
@@ -668,7 +681,7 @@ private struct StripEdgeButton: View {
 
     var body: some View {
         let layout = browser.layout
-        // Hosted in AppKit like the fullscreen bar: over a page a SwiftUI button never sees the
+        // Hosted in AppKit, like every control drawn over a page: a SwiftUI button never sees the
         // mouse (see `ClickCatcher`), and with the window filled there is nothing but page here.
         HostedOverlay {
             content(layout: layout)
@@ -833,17 +846,9 @@ private struct StripMenu: View {
         Button("Workspace Below") { browser.focusWorkspace(1) }
             .disabled(!browser.layout.canFocusWorkspace(1))
         Toggle("Overview", isOn: Binding(get: { browser.layout.isOverview }, set: { _ in browser.toggleOverview() }))
-        Toggle("Full Window", isOn: Binding(get: { browser.layout.fill == .window }, set: { _ in browser.toggleFullWindow() }))
-        Toggle("Fullscreen", isOn: Binding(get: { browser.layout.fill == .screen }, set: { _ in browser.toggleFullscreen() }))
+        Toggle("Full Width", isOn: Binding(get: { browser.layout.fill == .window }, set: { _ in browser.toggleFullWindow() }))
         Divider()
-        Toggle("Center Focused Window", isOn: Binding(
-            get: { browser.layout.centersFocus },
-            set: { _ in browser.toggleCenterFocus() }
-        ))
-        Toggle("Peek at the Edges", isOn: Binding(
-            get: { browser.peeksAtEdges },
-            set: { _ in browser.togglePeeksAtEdges() }
-        ))
+        Button("Settings…") { browser.openBuiltIn(.settings) }
     }
 }
 
@@ -860,82 +865,15 @@ struct ColumnMenu: View {
         Button("New Document") { browser.newDocument() }
         Button("Close Window") { browser.closeTab(tab.id) }
         Divider()
-        Toggle("Full Window", isOn: Binding(
+        Toggle("Full Width", isOn: Binding(
             get: { browser.layout.fill == .window && browser.selectedTabID == tab.id },
             set: { _ in browser.selectTab(tab.id); browser.toggleFullWindow() }
-        ))
-        Toggle("Fullscreen", isOn: Binding(
-            get: { browser.layout.fill == .screen && browser.selectedTabID == tab.id },
-            set: { _ in browser.selectTab(tab.id); browser.toggleFullscreen() }
         ))
         Divider()
         Button("Move Left") { browser.selectTab(tab.id); browser.moveColumn(-1) }
         Button("Move Right") { browser.selectTab(tab.id); browser.moveColumn(1) }
         Button("Move to Workspace Above") { browser.selectTab(tab.id); browser.moveColumnToWorkspace(-1) }
         Button("Move to Workspace Below") { browser.selectTab(tab.id); browser.moveColumnToWorkspace(1) }
-    }
-}
-
-/// The strip's controls while fullscreen hides everything else: push the pointer against the top edge
-/// and the bar comes down, move away and it goes. It is hosted in an AppKit view of its own, because
-/// SwiftUI drawn over a page never sees the mouse — `WKWebView` is a real AppKit view and takes it
-/// first, the same reason `ClickCatcher` exists.
-private struct FullscreenBar: View {
-    @Environment(BrowserState.self) private var browser
-    @State private var revealed = false
-
-    var body: some View {
-        HostedOverlay {
-            // A hosted view starts a SwiftUI hierarchy of its own: nothing is inherited, so the model
-            // has to be handed over explicitly.
-            content.environment(browser)
-        }
-        .frame(height: revealed ? 40 : 6)
-    }
-
-    private var content: some View {
-        Group {
-            if revealed {
-                bar
-            } else {
-                Color.clear.contentShape(Rectangle()) // the strip of screen that brings the bar back
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // Deliberately not animated: the hosted view's height changes with it, and an animation turns
-        // one resize into a hundred, each one a layout pass through the window.
-        .onHover { revealed = $0 }
-    }
-
-    private var bar: some View {
-        let layout = browser.layout
-        return HStack(spacing: 10) {
-            Color.clear.frame(width: 68, height: 1) // the window buttons are still there, over the page
-            button("chevron.left", "Previous window (⌥←)", enabled: layout.canFocusColumn(-1)) { browser.focusColumn(-1) }
-            button("chevron.right", "Next window (⌥→)", enabled: layout.canFocusColumn(1)) { browser.focusColumn(1) }
-            Text(browser.selectedTab?.title ?? "")
-                .font(.callout)
-                .lineLimit(1)
-                .foregroundStyle(.secondary)
-            Spacer(minLength: 12)
-            button("chevron.up", "Workspace above (⌥↑)", enabled: layout.canFocusWorkspace(-1)) { browser.focusWorkspace(-1) }
-            button("chevron.down", "Workspace below (⌥↓)", enabled: layout.canFocusWorkspace(1)) { browser.focusWorkspace(1) }
-            button("rectangle.grid.1x2", "Overview (⌥O)", enabled: true) { browser.toggleOverview() }
-            button("arrow.down.right.and.arrow.up.left", "Leave fullscreen (⌥⇧F or ⎋)", enabled: true) {
-                browser.exitFullscreen()
-            }
-        }
-        .padding(.horizontal, 10)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(.regularMaterial)
-        .overlay(alignment: .bottom) { Divider() }
-    }
-
-    private func button(_ symbol: String, _ help: String, enabled: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) { Image(systemName: symbol) }
-            .buttonStyle(.borderless)
-            .disabled(!enabled)
-            .help(help)
     }
 }
 
@@ -1033,7 +971,7 @@ private struct OverviewHint: View {
 
     var body: some View {
         if browser.layout.isOverview {
-            Text("scroll up/down for workspaces · sideways to run along a strip · click a window to open it · drag one to move it · double-click a name to rename · ⌥O to close")
+            Text("scroll up/down for workspaces · sideways to run along a rail · click a window to open it · drag one to move it · double-click a name to rename · ⌥O to close")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .padding(.bottom, 12)

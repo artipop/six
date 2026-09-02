@@ -64,7 +64,7 @@ every question queued for it with a no (`SitePermissions.forget(_:)`, called fro
 Both read `tab.livePage`, never `tab.page`. A title bar is drawn for every column in the strip, and reaching for the
 page would build one for each of them just to ask whether the camera is on (see `BrowserTab.page`).
 
-**Privacy → Site Permissions…** lists every site with a remembered answer, across profiles, with a switch per device
+`six://settings` ▸ **Privacy** ▸ Site Permissions lists every site with a remembered answer, across profiles, with a switch per device
 and an `×` that makes the site ask again.
 
 ## macOS is asking too

@@ -32,14 +32,38 @@ var title: String {
 After a build, fold them into the catalog:
 
 ```sh
-D=$(ls -d ~/Library/Developer/Xcode/DerivedData/six-*/Build/Intermediates.noindex/six.build/Debug/six.build/Objects-normal/arm64)
-xcrun xcstringstool sync six/Localizable.xcstrings --stringsdata "$D"/*.stringsdata
+M=$(ls -d ~/Library/Developer/Xcode/DerivedData/six-*/Build/Intermediates.noindex/six.build/Debug/six.build/Objects-normal/arm64)
+I=$(ls -d ~/Library/Developer/Xcode/DerivedData/six-*/Build/Intermediates.noindex/six.build/Debug-iphonesimulator/six-iOS.build/Objects-normal/arm64)
+xcrun xcstringstool sync six/Localizable.xcstrings --stringsdata "$M"/*.stringsdata "$I"/*.stringsdata
 ```
+
+**Both targets, in one call.** A sync against the Mac's `.stringsdata` alone marks every iOS-only string
+stale — `PhoneContentView`'s menu is the whole of that list — and a sync against the phone's alone does the
+same to the Mac. Build both first, pass both, and the stale set is then exactly the keys the change removed.
 
 (`xcstringstool` comes from the Xcode toolchain — `/Applications/Xcode*.app/Contents/Developer/usr/bin/` — so
 `xcode-select -p` must point at Xcode, not at the Command Line Tools; otherwise call it by its full path.) New keys
 appear with `"extractionState": "stale"` cleared and no translation; keys that no longer occur in the source are
 marked stale. Opening the catalog in Xcode does the same thing through the UI.
+
+## The source language is English, and the key is the English string
+
+A literal in the source *is* the key. So a Russian literal in a `Text(...)` does not make the app Russian — it
+makes the key Russian, and an English reader sees Cyrillic while the catalog carries two entries for one field.
+That is what `TextField("Поиск или адрес")` on the phone did until it was found. If a string is worth showing,
+it is written in English in the source and translated in the catalog; there is no third option.
+
+## Names a person is given
+
+`Profile.defaults` — «Личный» and «Рабочий» to a Russian reader, Personal and Work to an English one — and
+`Profile.privateName` are `String(localized:)` like anything else, but they behave differently once used: the
+name is written into the `profiles` table the moment the browser first starts, and is the person's from then
+on. Changing the app's language later renames nothing, which is right — it is their profile now, not a
+template. It is also the folder under `Profiles/` the scratchpad and the saved pages are filed in, so the name
+has to be settled before anything goes under it.
+
+`privateName` is the exception that proves it: a private profile is written down nowhere, so nothing is keyed
+by that string and it is free to follow the language every time.
 
 ## Counting
 

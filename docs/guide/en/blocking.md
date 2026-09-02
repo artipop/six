@@ -22,7 +22,7 @@ The same two actions are in the **Privacy** menu.
 
 ## The lists
 
-**Privacy ▸ Filter Lists…**
+**Settings ▸ Privacy ▸ Blocking**
 
 | list | what it is | default |
 |---|---|---|
@@ -33,7 +33,7 @@ The same two actions are in the **Privacy** menu.
 
 Any other list can be added by address — EasyList, a regional one, your own. The
 panel shows how many rules each has and when it was last updated; **Refresh Now**
-and **Privacy ▸ Update Filter Lists Now** re-read them on demand, and otherwise
+re-reads them on demand, and otherwise
 it happens by itself every three days.
 
 ::: tip The first launch is the one that costs
@@ -44,7 +44,7 @@ lookups.
 
 ## Off means off
 
-**Privacy ▸ Block Ads and Trackers** is not a filter that lets everything
+**Block Ads and Trackers** is not a filter that lets everything
 through. With it off, nothing is fetched, converted, compiled or attached to a
 page: somebody who brings their own blocker does not pay for ours.
 

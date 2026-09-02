@@ -4,7 +4,7 @@ A Dia-style one-line input pinned to the bottom of the strip; the answer floats 
 
 It is out of sight until asked for: a bar resting over the bottom of every page covers what the page puts there —
 a video's controls, most obviously. `⌘K` brings it up, an answer keeps it up, and it goes again when both are done.
-(Temporary shape: it used to step aside only in fullscreen. What it should be — a hover strip, a setting — is open.)
+(Temporary shape: it used to step aside only when the layout hid the chrome, and now it always does. What it should be — a hover band, a setting — is open.)
 
 Everything runs through Foundation Models' `LanguageModelSession`, so switching providers only swaps the model:
 

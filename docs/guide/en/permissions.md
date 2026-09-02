@@ -26,7 +26,7 @@ that only applies to the next call is not an answer.
 
 ## The whole list
 
-**Privacy ▸ Site Permissions…** lists every site with a remembered answer, across
+**Settings ▸ Privacy ▸ Site Permissions** lists every site with a remembered answer, across
 profiles, with a switch per device and an `×` that makes the site ask again.
 **Forget All** clears them at once.
 

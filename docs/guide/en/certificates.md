@@ -12,7 +12,7 @@ and mark it *Always Trust* by hand. That works, and it changes what **every
 application on the machine** trusts, permanently, with nothing to look at
 afterwards.
 
-VI keeps the same decision inside itself: **Privacy ▸ Certificates…** — a list
+VI keeps the same decision inside itself: **Settings ▸ Privacy ▸ Certificates** — a list
 you can read, a switch you can flip back, and a certificate that stops mattering
 the moment it is off.
 

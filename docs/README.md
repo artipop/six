@@ -46,7 +46,7 @@ from [`six/Localizable.xcstrings`](../six/Localizable.xcstrings) rather than tra
 | [android.md](android.md) | the fourth front end: Kotlin and Compose on the system WebView, what it shares with the Mac and what it deliberately does not |
 | [build.md](build.md) | toolchain, SDK override, sandbox |
 | [deep-research.md](deep-research.md) | deep research: document windows, the run, the writing tools, Save As, highlighted passages |
-| [todo.md](todo.md) | what is planned and not built: geolocation and screen sharing, passkeys, CloudKit sync, SQLite + RAG, documents + Save As, fullscreen, PiP, and what the Linux front still owes |
+| [todo.md](todo.md) | what is planned and not built: geolocation and screen sharing, passkeys, CloudKit sync, SQLite + RAG, PiP, and what the Linux front still owes |
 | [passkeys.md](passkeys.md) | plan: WebAuthn / passkeys and password autofill in a third-party WebKit browser |
 | [storage.md](storage.md) | plan: where data lives, the portable core and the Apple/Linux adapters behind four protocol seams (diagram) |
 | [sync.md](sync.md) | plan: CloudKit sync of history and other records; what CloudKit can carry (and vectors) |

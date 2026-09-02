@@ -4,11 +4,37 @@ import AppKit
 import SwiftUI
 import WebKit
 
-/// The extensions panel: what is installed, what each one can and cannot do here, and the way in —
-/// a folder or an archive, since `WKWebExtension` only takes an unpacked extension.
+/// The sheet the phone opens: `ExtensionSettings` under a title and a Done button. On the Mac the
+/// same content is a section of `six://settings`.
 struct ExtensionsView: View {
-    @Environment(ExtensionStore.self) private var extensions
     @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                Image(systemName: "puzzlepiece.extension")
+                Text("Extensions").font(.headline)
+                Spacer()
+                Button("Done") { dismiss() }.keyboardShortcut(.cancelAction)
+            }
+            .padding(12)
+            Divider()
+            ExtensionSettings()
+        }
+        .frame(width: sheetSize.width, height: sheetSize.height)
+    }
+
+    /// Relative to the screen, like the rest of the layout.
+    private var sheetSize: CGSize {
+        let screen = Platform.screenSize
+        return CGSize(width: (screen.width * 0.36).rounded(), height: (screen.height * 0.56).rounded())
+    }
+}
+
+/// What is installed, what each one can and cannot do here, and the way in — a folder or an archive,
+/// since `WKWebExtension` only takes an unpacked extension.
+struct ExtensionSettings: View {
+    @Environment(ExtensionStore.self) private var extensions
     @State private var pending: PendingInstall?
     @State private var failure: String?
 
@@ -23,16 +49,6 @@ struct ExtensionsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 8) {
-                Image(systemName: "puzzlepiece.extension")
-                Text("Extensions").font(.headline)
-                Spacer()
-                Button("Install…", action: pickExtension)
-                Button("Done") { dismiss() }.keyboardShortcut(.cancelAction)
-            }
-            .padding(12)
-            Divider()
-
             if extensions.installed.isEmpty {
                 ContentUnavailableView {
                     Label("No Extensions", systemImage: "puzzlepiece.extension")
@@ -52,12 +68,16 @@ struct ExtensionsView: View {
             }
 
             Divider()
-            Text("Extensions run per profile and never in a private window. What works in six and what does not is measured — a content script runs, but an extension cannot message it or inject anything more.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .padding(10)
+            HStack(alignment: .firstTextBaseline) {
+                Text("Extensions run per profile and never in a private window. What works in six and what does not is measured — a content script runs, but an extension cannot message it or inject anything more.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 8)
+                Button("Install…", action: pickExtension)
+                    .controlSize(.small)
+            }
+            .padding(10)
         }
-        .frame(width: sheetSize.width, height: sheetSize.height)
         .sheet(item: $pending) { install in
             InstallSheet(install: install) { adopted in
                 if adopted { extensions.adopt(install.ext, staged: install.staged, origin: install.origin) }
@@ -96,10 +116,6 @@ struct ExtensionsView: View {
         #endif
     }
 
-    private var sheetSize: CGSize {
-        let screen = Platform.screenSize
-        return CGSize(width: (screen.width * 0.36).rounded(), height: (screen.height * 0.56).rounded())
-    }
 }
 
 private struct ExtensionRow: View {
@@ -154,7 +170,7 @@ private struct ExtensionRow: View {
 
 /// The one moment where saying what will not work is worth something: before it is installed.
 private struct InstallSheet: View {
-    let install: ExtensionsView.PendingInstall
+    let install: ExtensionSettings.PendingInstall
     let finish: (Bool) -> Void
 
     var body: some View {
@@ -288,6 +304,3 @@ private struct ExtensionActionButton: View {
     }
 }
 
-extension FocusedValues {
-    @Entry var showExtensions: FocusAddressBarAction?
-}

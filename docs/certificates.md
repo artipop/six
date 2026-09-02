@@ -2,7 +2,7 @@
 
 Some sites are served under a certificate authority the operating system has never heard of, and to a browser those
 are indistinguishable from an attack. six carries a list of extra authorities, everything on it switched **off**, and
-a switch per entry. **Privacy → Certificates…**
+a switch per entry. `six://settings` ▸ **Privacy** ▸ Certificates
 
 The case it was written for is Russian: since 2022 the western authorities will not issue for a good part of that
 internet — banks first of all — and those sites are served under the Ministry of Digital Development's CA instead

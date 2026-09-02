@@ -5,7 +5,7 @@ import SwiftUI
 ///
 /// A **page**, at `six://apps`, not a sheet. A sheet belongs to the application and stops the other
 /// nineteen windows to be answered; this is a list of things to look at and come back to, which is
-/// what a browser has columns for. It sits in the strip beside the app it is about, keeps its place
+/// what a browser has columns for. It sits on the rail beside the app it is about, keeps its place
 /// across a relaunch, and can be typed into the address field like any other address.
 ///
 /// Three lists. **Found** is the [official registry](https://registry.modelcontextprotocol.io)
@@ -112,7 +112,7 @@ struct MCPAppsView: View {
         if let error = apps.authorization.lastError ?? apps.lastError {
             Text(error).font(.caption).foregroundStyle(.red).padding(10)
         } else {
-            Text("An app is a window in the strip, drawn by the server that answered the tool call. The registry does not say which servers carry one, so six asks them.")
+            Text("An app is a window on the rail, drawn by the server that answered the tool call. The registry does not say which servers carry one, so six asks them.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .padding(10)
@@ -465,6 +465,9 @@ struct BuiltInPageView: View {
     var body: some View {
         switch page {
         case .apps: MCPAppsView(tab: tab)
+        #if os(macOS)
+        case .settings: SettingsPageView(tab: tab)
+        #endif
         }
     }
 }

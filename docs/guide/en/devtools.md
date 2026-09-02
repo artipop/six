@@ -4,7 +4,7 @@ The **Develop** menu; both switches are off by default.
 
 ## Web Inspector
 
-**Develop ▸ Web Inspector** lets **Safari's inspector** attach to VI's pages.
+**Settings ▸ Develop ▸ Allow Safari to Inspect VI's Pages** lets **Safari's inspector** attach to them.
 There is no inspector window of VI's own and there cannot be one: WebKit lets an
 application declare its pages inspectable, and no more. Safari's inspector,
 though, is the real thing — elements, console, network, sources, breakpoints.
@@ -31,7 +31,7 @@ machine can attach to.
 
 ## Capturing the console and the network
 
-**Develop ▸ Capture Console and Network** is not for a person but for an
+**Settings ▸ Develop ▸ Capture Console and Network** is not for a person but for an
 [agent](/en/agents): with it on, the agent can ask what a page logged and what it
 requested — what Chrome's devtools MCP does, on WebKit.
 

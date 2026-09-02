@@ -17,8 +17,6 @@ struct AddressBar: View {
     @Environment(BrowserState.self) private var browser
     @Environment(ContentBlocker.self) private var blocker
     @Environment(SitePermissions.self) private var permissions
-    @FocusedValue(\.showFilterLists) private var showFilterLists
-    @FocusedValue(\.showSitePermissions) private var showSitePermissions
     @State private var text = ""
 
     private var isEditing: Bool { addressFocus.wrappedValue == tab.id }
@@ -307,8 +305,9 @@ struct AddressBar: View {
                 browser.setBlockingAllowed(!isAllowed, for: tab)
             }
             .disabled(!blocker.isEnabled)
-            Button("Filter Lists…") { showFilterLists?.perform() }
-                .disabled(showFilterLists == nil)
+            // The page, not a sheet: what is blocked is worth reading beside the site it is
+            // blocked on, and a sheet covers exactly that.
+            Button("Filter Lists…") { browser.openBuiltIn(.settings) }
         } label: {
             Image(systemName: isAllowed ? "shield.slash" : "shield.lefthalf.filled")
                 .font(.system(size: 10))
@@ -383,8 +382,7 @@ struct AddressBar: View {
                 Button("Forget This Site's Choices") {
                     permissions.forget(origin: origin, profileID: tab.profileID)
                 }
-                Button("Site Permissions…") { showSitePermissions?.perform() }
-                    .disabled(showSitePermissions == nil)
+                Button("Site Permissions…") { browser.openBuiltIn(.settings) }
             } label: {
                 Image(systemName: symbol)
                     .font(.system(size: 10))

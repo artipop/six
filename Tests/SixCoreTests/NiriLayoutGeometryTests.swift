@@ -98,14 +98,13 @@ struct NiriLayoutGeometryTests {
     // MARK: Fill modes
 
     /// Filling takes the gaps and gives the page what they were holding, and gives them back on the
-    /// way out. That difference — a gap and a corner radius — is the whole of what the three modes
-    /// are about.
-    @Test(arguments: [NiriFill.window, NiriFill.screen])
-    func fillingTakesTheWholeViewportAndIsReversible(fill: NiriFill) {
+    /// way out. That difference — a gap and a corner radius — is the whole of what the two modes are
+    /// about.
+    @Test func fillingTakesTheWholeViewportAndIsReversible() {
         let layout = layout()
         let tiled = layout.columnWidth
 
-        layout.setFill(fill)
+        layout.setFill(.window)
         #expect(layout.fillsViewport)
         #expect(layout.gap == 0)
         #expect(layout.columnWidth == layout.viewport.width)
@@ -116,15 +115,15 @@ struct NiriLayoutGeometryTests {
         #expect(tiled < layout.viewport.width) // tiled is the same page with room to breathe
     }
 
-    /// The overview is a way of looking at the strip, not a layout of its own, so it reports the
+    /// The overview is a way of looking at the rail, not a layout of its own, so it reports the
     /// tiled geometry even while a fill is set.
     @Test func overviewShowsTiledGeometry() {
         let layout = layout()
-        layout.setFill(.screen)
+        layout.setFill(.window)
         layout.isOverview = true
 
         #expect(layout.showsFill == .tiled)
-        #expect(!layout.showsFullscreen)
+        #expect(!layout.fillsViewport)
     }
 
     // MARK: Floors

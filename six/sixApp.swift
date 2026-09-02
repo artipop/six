@@ -47,6 +47,11 @@ struct sixApp: App {
     @State private var devTools: DevToolsStore
     @State private var permissions: SitePermissions
     @State private var certificates: CertificateStore
+    #if os(macOS)
+    /// For File › Open Location… — the caret in the address field belongs to whichever window has
+    /// the focus, so the menu reaches it across the scene like every other panel does.
+    @FocusedValue(\.focusAddressBar) private var focusAddressBar
+    #endif
 
     init() {
         let store = FileSnapshotStore<AppStateSnapshot>(fileNamed: "state.json")
@@ -232,18 +237,15 @@ struct sixApp: App {
         .defaultSize(width: 1500, height: 950)
         .windowStyle(.hiddenTitleBar)
         .commands {
-            CommandGroup(after: .appInfo) {
-                // Read once, when the menus are built: if six already holds http/https there is
-                // nothing to ask macOS for. A development build never offers at all — it is a second
-                // app wearing the same face, and giving it the web would send every link from every
-                // other app into a browser that is about to be killed and built again.
-                Button("Set six as Default Browser…") {
-                    Task { await DefaultBrowser.makeDefault() }
-                }
-                .disabled(DefaultBrowser.isDefault || AppSupport.isDevelopment)
+            // ⌘, opens `six://settings` in a column, like any other address — see `SettingsPageView`
+            // for why settings are a page and not a window. `CommandGroup(replacing:)` rather than a
+            // Button of our own, so it lands where macOS puts Settings in every other app.
+            CommandGroup(replacing: .appSettings) {
+                Button("Settings…") { browser.openBuiltIn(.settings) }
+                    .keyboardShortcut(",")
             }
             CommandGroup(replacing: .newItem) {
-                Button("New Window in Strip") { browser.newTab() }
+                Button("New Window on the Rail") { browser.newTab() }
                     .keyboardShortcut("t")
                 Button("Reopen Closed Window") { browser.reopenClosedWindow() }
                     .keyboardShortcut("t", modifiers: [.command, .shift])
@@ -254,16 +256,17 @@ struct sixApp: App {
                     .disabled(browser.privateProfile == nil)
                 Button("Close Window") { browser.closeSelectedTab() }
                     .keyboardShortcut("w")
+                Divider()
+                // Safari's home for it, and the only menu that already means "an address".
+                Button("Open Location…") { focusAddressBar?.perform() }
+                    .keyboardShortcut("l")
+                    .disabled(focusAddressBar == nil)
             }
             FileCommands(browser: browser, highlights: highlights)
-            LayoutCommands(browser: browser)
-            BrowserCommands(settings: settings)
-            PrivacyCommands(browser: browser, blocker: blocker)
-            ExtensionCommands(browser: browser, extensions: extensions)
-            DevelopCommands(devTools: devTools)
-            AppCommands(browser: browser, apps: mcpApps)
+            ViewCommands(browser: browser)
             HistoryCommands(browser: browser)
-            BookmarkCommands(browser: browser, bookmarks: bookmarks, settings: settings)
+            BookmarkCommands(browser: browser, bookmarks: bookmarks)
+            AppCommands(browser: browser, apps: mcpApps)
         }
         #elseif os(iOS)
         // A `WindowGroup`, because that is the only scene a phone has; it still comes up as one

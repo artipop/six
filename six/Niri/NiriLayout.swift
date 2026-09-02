@@ -41,18 +41,21 @@ nonisolated struct NiriWorkspace: Identifiable, Sendable, Codable {
 }
 
 /// How much room the focused window is given, and the whole of what there is to choose. A window is
-/// a screen's worth of page in all three: the strip leaves it the gaps it needs to read as a card in
-/// a row of them, the other two take even those away. There is deliberately nothing smaller — a
-/// browser window at two thirds of a screen is a page with a hole beside it, and choosing between
-/// four fractions of one is a decision nobody asked for.
+/// a screen's worth of page in both: the rail leaves it the gaps it needs to read as a card in a row
+/// of them, full width takes even those away. There is deliberately nothing smaller — a browser
+/// window at two thirds of a screen is a page with a hole beside it, and choosing between four
+/// fractions of one is a decision nobody asked for.
+///
+/// There was a third — a fullscreen that took the top bar too and gave the page every edge, with a
+/// bar of its own hiding at the top. It went: it was a second answer to the question full width
+/// already answers, it cost the address field and the only way back was a key or a pointer thrown at
+/// the top of the screen. A page's own `requestFullscreen` is untouched — that one is WebKit's.
 nonisolated enum NiriFill: String, Sendable, Codable {
-    /// The strip as usual: the gaps, and a window as wide as the screen leaves room for.
+    /// The rail as usual: the gaps, and a window as wide as the screen leaves room for.
     case tiled
     /// The page fills the window under the top bar — no gaps, no title bar. The layout's own controls
     /// stay where they are.
     case window
-    /// Fullscreen: the top bar goes too, and only the bar hiding at the top edge comes back.
-    case screen
 }
 
 /// Which side of the focused column a new window opens on. Right is niri's own answer and stays the
@@ -132,13 +135,13 @@ final class NiriLayout {
 
     var viewport: CGSize = CGSize(width: 1280, height: 800)
     var isOverview = false
-    /// niri's fullscreen, as a mode rather than per-window state — and one step short of it, filling the
-    /// window instead of the screen. Either way the strip goes on working underneath, so ⌥←/⌥→ walks
-    /// from one full window to the next. Neither is macOS fullscreen (the green button), and neither is
-    /// a page asking for `requestFullscreen`, which WebKit handles on its own inside the web view.
+    /// Whether the focused window is given the whole window, as a mode rather than per-window state.
+    /// The rail goes on working underneath, so ⌥←/⌥→ walks from one full-width window to the next.
+    /// Not macOS fullscreen (the green button), and not a page asking for `requestFullscreen`, which
+    /// WebKit handles on its own inside the web view.
     private(set) var fill: NiriFill = .tiled
     /// niri's `center-focused-column`: park the focused window in the middle of the screen instead of
-    /// scrolling as little as possible. Off means the strip only moves when the focus would fall off it.
+    /// scrolling as little as possible. Off means the rail only moves when the focus would fall off it.
     /// Set from settings by `BrowserState`, which also writes the toggle back.
     var centersFocus = true
     /// Rubber-band offsets while a scroll gesture is still below the switch threshold.
@@ -245,14 +248,12 @@ final class NiriLayout {
 
     // MARK: Geometry
 
-    /// The overview is another way of looking at the same strip, so filling steps aside while it is
+    /// The overview is another way of looking at the same rail, so filling steps aside while it is
     /// open — with the gaps and the title bars back, the columns can be told apart — and comes back
     /// when it closes.
     var showsFill: NiriFill { isOverview ? .tiled : fill }
-    /// One column, one screen: no gaps and no title bars, in both filling modes.
+    /// One column, one screen: no gaps and no title bars.
     var fillsViewport: Bool { showsFill != .tiled }
-    /// Only fullscreen takes the top bar with it.
-    var showsFullscreen: Bool { showsFill == .screen }
 
     /// Scale of the whole canvas: 1 normally, zoomed out in the overview.
     var overviewScale: CGFloat {
@@ -279,16 +280,16 @@ final class NiriLayout {
         return frame
     }
 
-    /// Space between two columns, and between a column and the edge of the screen. Fullscreen has none:
+    /// Space between two columns, and between a column and the edge of the screen. Full width has none:
     /// the page runs to every edge, and the next window starts exactly one screen away.
     var gap: CGFloat { fillsViewport ? 0 : max(Self.minimumGap, (viewport.width * Self.gapFraction).rounded()) }
     var outerGap: CGFloat { gap }
 
     var columnHeight: CGFloat { max(200, viewport.height - 2 * outerGap) }
 
-    /// One window, one screen. Every column in the strip is this wide — the viewport with the outer
-    /// gaps taken off it — and filling takes the gaps too, so the difference between the three ways
-    /// of showing a window is a gap and a corner radius, never a fraction of the page.
+    /// One window, one screen. Every column in the rail is this wide — the viewport with the outer
+    /// gaps taken off it — and filling takes the gaps too, so the difference between the two ways of
+    /// showing a window is a gap and a corner radius, never a fraction of the page.
     var columnWidth: CGFloat {
         guard !fillsViewport else { return viewport.width }
         return max(280, viewport.width - 2 * outerGap)
@@ -417,7 +418,7 @@ final class NiriLayout {
         }
     }
 
-    /// Every strip, not just the one on screen: the viewport, the centring switch and fullscreen all
+    /// Every strip, not just the one on screen: the viewport, the centring switch and the fill all
     /// belong to the window, so a strip left alone would still be scrolled for the geometry it last saw.
     func recenterStrips() {
         for profileID in Array(strips.keys) { recenterStrip(profileID) }

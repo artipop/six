@@ -36,7 +36,10 @@ nonisolated struct Profile: Identifiable, Codable, Hashable, Sendable {
         isPrivate = try c.decodeIfPresent(Bool.self, forKey: .isPrivate) ?? false
     }
 
-    static let privateName = "Private"
+    /// The private profile's name, in the reader's language like the two templates below it. It is
+    /// never written down — a private profile is the one that exists nowhere — so nothing is keyed
+    /// by this string and translating it costs nothing.
+    static var privateName: String { String(localized: "Private") }
     static let privateColorHex = "#5C5C66"
 
     var color: Color { Color(hex: colorHex) }
@@ -62,10 +65,21 @@ nonisolated struct Profile: Identifiable, Codable, Hashable, Sendable {
 
     var hasCustomWorkingDirectory: Bool { workingDirectoryPath != nil }
 
-    static let defaults: [Profile] = [
-        Profile(name: String(localized: "Personal"), colorHex: "#5B8DEF"),
-        Profile(name: String(localized: "Work"), colorHex: "#E8743B"),
-    ]
+    /// The two profiles a new browser starts with, named in the language six is running in — «Личный»
+    /// and «Рабочий» to a Russian reader. Computed rather than a stored `static let`: a stored one is
+    /// evaluated once, at whatever moment something first touched it, and these are read exactly
+    /// once anyway (`BrowserState.init`, when the profiles table is empty).
+    ///
+    /// The name is written to the table at that moment and is the person's from then on — changing
+    /// the app's language later renames nothing, which is right: it is their profile now, not a
+    /// template. It is also the folder under `Profiles/` that the scratchpad and the saved pages go
+    /// in, so the name has to be settled before anything is filed under it.
+    static var defaults: [Profile] {
+        [
+            Profile(name: String(localized: "Personal"), colorHex: "#5B8DEF"),
+            Profile(name: String(localized: "Work"), colorHex: "#E8743B"),
+        ]
+    }
 }
 
 // MARK: The row it is kept as

@@ -34,9 +34,34 @@ final class NiriScrollMonitor {
     /// True when the gesture works without holding Mod (the overview has no page to scroll).
     var modifierOptional: () -> Bool = { false }
     /// ⎋ arrives through the same monitor rather than through SwiftUI: while a page is first responder
-    /// a key press never reaches the view hierarchy, and the way out of fullscreen must not depend on
-    /// where the focus happens to be. Returning true swallows the event.
+    /// a key press never reaches the view hierarchy, and the way out of the overview must not depend
+    /// on where the focus happens to be. Returning true swallows the event.
     var onEscape: () -> Bool = { false }
+    /// niri's ⌥ bindings, for the same reason and then some. They used to be a menu — a **Layout**
+    /// menu of eleven items, ten of which were an arrow key. That menu is gone (`ViewCommands` says
+    /// why), and it could not have kept them working anyway: a first-responder `WKWebView` answers a
+    /// key equivalent before the menu bar ever sees it and keeps `⌥←` / `⌥→` for word movement, so
+    /// after clicking into a page the layout keys went quiet until something else was clicked. A
+    /// local monitor runs before all of it.
+    ///
+    /// The one thing that has to be given back is a text field: `⌥←` in the address field is word
+    /// movement and always was, so the arrows step aside while the caret is in one of six's own.
+    /// (A field *inside a page* cannot be told apart from the page around it, and the rail wins
+    /// there — it is what the key is for in this browser.)
+    var onLayoutKey: (LayoutKey) -> Void = { _ in }
+
+    /// One ⌥ binding, named. `NiriScrollMonitor` decides which key it was; `NiriStripView` decides
+    /// what it does, the way it already does for a scroll gesture.
+    enum LayoutKey: Sendable {
+        case focusColumn(Int)
+        case moveColumn(Int)
+        case focusColumnEdge(last: Bool)
+        case focusWorkspace(Int)
+        case moveColumnToWorkspace(Int)
+        case toggleFullWidth
+        case toggleOverview
+        case toggleCenterFocus
+    }
 
     private var monitor: Any?
     private var keyMonitor: Any?
@@ -92,13 +117,61 @@ final class NiriScrollMonitor {
     }
 
     private static let escapeKeyCode: UInt16 = 53
+    private static let leftArrow: UInt16 = 123
+    private static let rightArrow: UInt16 = 124
+    private static let downArrow: UInt16 = 125
+    private static let upArrow: UInt16 = 126
+    private static let home: UInt16 = 115
+    private static let end: UInt16 = 119
 
     private func handleKey(_ event: NSEvent) -> NSEvent? {
-        guard event.keyCode == Self.escapeKeyCode,
-              event.modifierFlags.intersection(.deviceIndependentFlagsMask).isEmpty else { return event }
-        // A video playing full screen is WebKit's own window with its own ⎋; that one is not ours to take.
-        if let window = event.window, String(describing: type(of: window)).contains("FullScreen") { return event }
-        return onEscape() ? nil : event
+        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        if flags.isEmpty, event.keyCode == Self.escapeKeyCode {
+            // A video playing full screen is WebKit's own window with its own ⎋; that one is not
+            // ours to take.
+            if let window = event.window, String(describing: type(of: window)).contains("FullScreen") { return event }
+            return onEscape() ? nil : event
+        }
+        guard let key = Self.layoutKey(for: event, flags: flags) else { return event }
+        // ⌥ and an arrow is word and paragraph movement in a text field, and was long before it was
+        // niri's. While the caret is in one of six's own fields the rail does not take it; ⌥W ⌥O ⌥C
+        // are not text movement, so those still answer.
+        if Self.movesTheCaret(event.keyCode), isEditingText(event) { return event }
+        onLayoutKey(key)
+        return nil
+    }
+
+    private static func movesTheCaret(_ keyCode: UInt16) -> Bool {
+        [leftArrow, rightArrow, upArrow, downArrow, home, end].contains(keyCode)
+    }
+
+    /// niri's table, in the order [hotkeys.md](../../docs/hotkeys.md) lists it. Letters are read from
+    /// `charactersIgnoringModifiers` because ⌥W is `∑` and ⌥C is `ç` once the layout has had them.
+    private static func layoutKey(for event: NSEvent, flags: NSEvent.ModifierFlags) -> LayoutKey? {
+        let shifted = flags == [modifier, .shift]
+        guard flags == modifier || shifted else { return nil }
+        switch event.keyCode {
+        case leftArrow: return shifted ? .moveColumn(-1) : .focusColumn(-1)
+        case rightArrow: return shifted ? .moveColumn(1) : .focusColumn(1)
+        case upArrow: return shifted ? .moveColumnToWorkspace(-1) : .focusWorkspace(-1)
+        case downArrow: return shifted ? .moveColumnToWorkspace(1) : .focusWorkspace(1)
+        case home where !shifted: return .focusColumnEdge(last: false)
+        case end where !shifted: return .focusColumnEdge(last: true)
+        default: break
+        }
+        guard !shifted else { return nil }
+        switch event.charactersIgnoringModifiers?.lowercased() {
+        case "w": return .toggleFullWidth
+        case "o": return .toggleOverview
+        case "c": return .toggleCenterFocus
+        default: return nil
+        }
+    }
+
+    /// The caret is in one of six's own fields — the address bar, the ⌘K line, a document. AppKit
+    /// edits through a shared field editor, so the first responder for any of them is an `NSText`.
+    private func isEditingText(_ event: NSEvent) -> Bool {
+        event.window?.firstResponder is NSText
     }
 
     private func handle(_ event: NSEvent) -> NSEvent? {

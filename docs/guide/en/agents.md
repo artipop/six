@@ -58,7 +58,7 @@ available through the SDK.
 
 ## What an agent can do in the browser
 
-The vocabulary is the product's: a **window** (page) in a **workspace** (strip)
+The vocabulary is the product's: a **window** (page) in a **workspace** (rail)
 of a **profile**. Everything defaults to what is on screen.
 
 | | |
@@ -70,7 +70,7 @@ of a **profile**. Everything defaults to what is on screen.
 | write | create a document, write into it section by section, cite a source, highlight the paragraphs that answer a question |
 | bookmarks | list, search by meaning, read, add, refresh, remove |
 
-The two console-and-network lines need **Develop ▸ Capture Console and Network** —
+The two console-and-network lines need **Settings ▸ Develop ▸ Capture Console and Network** —
 see [developer tools](/en/devtools).
 
 ## The same agent on the ⌘K line

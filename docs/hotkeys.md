@@ -1,22 +1,28 @@
 # Hotkeys
 
 Every key binding in six, in one place. `⌥` stands in for niri's `Mod`; `⌘` bindings are the browser's own. Each
-row is backed by a menu item or a view — the file is named so nothing here can drift from the code:
-`LayoutCommands` / `BrowserCommands` / `HistoryCommands` in `six/sixApp.swift`, `FileCommands` in `six/Documents/Export.swift`, the rest in `six/Views/`.
+row is backed by a key monitor, a menu item or a view — the file is named so nothing here can drift from the code:
+`NiriScrollMonitor` in `six/Niri/`, `ViewCommands` / `HistoryCommands` / `BookmarkCommands` in `six/Views/MacCommands.swift`,
+the File menu in `six/sixApp.swift`, `FileCommands` in `six/Documents/Export.swift`, the rest in `six/Views/`.
 
-## Layout (`⌥` — Layout menu)
+## The rail (`⌥` — `NiriScrollMonitor.onLayoutKey`)
+
+Not a menu. These used to be a **Layout** menu of eleven items, ten of which were an arrow key, and that menu
+could not make them work anyway: a first-responder `WKWebView` answers a key equivalent before the menu bar sees
+it and keeps `⌥←` / `⌥→` for word movement, so after clicking into a page the layout keys went quiet. They come
+through a local `NSEvent` monitor now, which runs before all of it. The one thing given back is a text field:
+while the caret is in one of six's own, `⌥` and an arrow is word and paragraph movement, as it always was.
 
 | | |
 |---|---|
 | `⌥←` `⌥→` | focus the window left / right |
 | `⌥⇧←` `⌥⇧→` | move the window left / right |
-| `⌥Home` `⌥End` | first / last window in the strip |
+| `⌥Home` `⌥End` | first / last window on the rail |
 | `⌥↑` `⌥↓` | focus the workspace above / below |
 | `⌥⇧↑` `⌥⇧↓` | move the window to the workspace above / below (and follow it) |
-| `⌥W` | full window — the page fills the window under the top bar; again to leave |
-| `⌥⇧F` | fullscreen — the page edge to edge, `⌥←` `⌥→` still walk the strip; again or `Esc` to leave |
-| `⌥O` | overview on / off; `Esc` also leaves it |
-| `⌥C` | centre the focused window (on by default) — off means the strip moves as little as possible |
+| `⌥W` | full width — the page fills the window under the top bar; again to leave (also View ▸ Full Width, and the button beside the profile) |
+| `⌥O` | overview on / off; `Esc` also leaves it (also View ▸ Overview) |
+| `⌥C` | centre the focused window (on by default) — off means the rail moves as little as possible. The switch is on `six://settings` ▸ Windows |
 | `⌥` + vertical scroll | one workspace per gesture |
 | `⌥` + horizontal scroll | one window per gesture while centring is on; free panning with `⌥C` off |
 
@@ -24,7 +30,8 @@ row is backed by a menu item or a view — the file is named so nothing here can
 
 | | |
 |---|---|
-| `⌘T` | new window in the strip, right of the focused one |
+| `⌘,` | settings — `six://settings`, in a column of the rail like any other address |
+| `⌘T` | new window on the rail, right of the focused one |
 | `⌘⇧N` | new document — a Markdown column next to the pages (edit / preview in the top bar, where its address would be) |
 | `⌘⇧P` | new private window — in the private profile (created on the first press; in-memory session, nothing recorded); File → Close Private Browsing forgets it |
 | `⌘W` | close the focused window |
@@ -38,8 +45,8 @@ row is backed by a menu item or a view — the file is named so nothing here can
 | `⌘Y` | history of the current profile |
 | `⌘D` | bookmark the focused page (again: remove the bookmark) |
 | `⌘⌥B` | bookmarks, searchable by meaning |
-| `⌘` + click a link | open it in a new window right of this one, behind — the strip leans right for a moment to show it. `⇧` and `⌘⇧` clicks do nothing at all: WebKit never passes them on, and a middle click arrives indistinguishable from a plain one ([links.md](links.md)) |
-| `Esc` | leave fullscreen, or close the overview; otherwise the page's own |
+| `⌘` + click a link | open it in a new window right of this one, behind — the rail leans right for a moment to show it. `⇧` and `⌘⇧` clicks do nothing at all: WebKit never passes them on, and a middle click arrives indistinguishable from a plain one ([links.md](links.md)) |
+| `Esc` | close the overview; otherwise the page's own |
 
 ## Start page (a new window)
 
@@ -97,9 +104,9 @@ row is backed by a menu item or a view — the file is named so nothing here can
 
 ## Notes
 
-- Because the Layout menu owns `⌥W` / `⌥O` / `⌥C`, those `⌥`+letter characters can't be typed into the address field.
-- To move the whole layout set to another modifier, change `NiriScrollMonitor.modifier` and the matching
-  `.keyboardShortcut` modifiers in `LayoutCommands`.
-- A web view that is first responder gets key equivalents before the menu bar, and keeps `⌥←` / `⌥→` (word
-  movement) for itself; after Full Window the layout keys may not answer until something outside the page is
-  clicked. Known; the fix (routing `⌥` keys to the menu first) is on hold.
+- `⌥W` / `⌥O` / `⌥C` are taken before anything else sees them, so those `⌥`+letter characters can't be typed
+  into a field. The arrows are not: `NiriScrollMonitor.isEditingText` lets them through while the caret is in one
+  of six's own fields. A field *inside a page* can't be told apart from the page around it, and the rail wins there.
+- To move the whole layout set to another modifier, change `NiriScrollMonitor.modifier` — one constant now, since
+  the keys are read there and nowhere else. The two `.keyboardShortcut`s left in `ViewCommands` (`⌥W`, `⌥O`) are
+  for display and for the pointer; the monitor swallows the key before the menu can act on it.

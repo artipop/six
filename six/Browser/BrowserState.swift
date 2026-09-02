@@ -124,7 +124,6 @@ final class BrowserState {
         research = (snapshot?.research ?? []).filter { run in tabs.contains { $0.id == run.documentTabID } }
         for i in research.indices { research[i].isRunning = false } // nothing survives a relaunch mid-turn
         if layout.hasColumns { syncSelection() } else { newTab() }
-        pages.setBudget(settings.livePageBudget)
         thumbnails.prune(keeping: Set(tabs.map(\.id))) // windows closed in a launch that never cleaned up
         trackVisibleWindows()
         refreshLivePages() // the first strip, before any change has had a chance to fire
@@ -285,12 +284,6 @@ final class BrowserState {
                 trackVisibleWindows()
             }
         }
-    }
-
-    /// How many windows may hold a live page at once, from the menu.
-    func setLivePageBudget(_ value: Int) {
-        settings.livePageBudget = value
-        pages.setBudget(value)
     }
 
     /// True while the overview is up, so entering it can be told from moving around inside it.
@@ -593,6 +586,13 @@ final class BrowserState {
     @discardableResult
     func newTab(url: URL?, in profileID: Profile.ID?, workspace: Int?, activate: Bool,
                 on side: NiriPlacement = .right) -> BrowserTab {
+        // One of six's own addresses is one of six's own pages, however it arrives — typed, handed
+        // over by another app, or asked for by an agent's `open_window`. Without this the window is
+        // built as a web one, `onBuiltInAddress` fires on the way to loading it, and the person is
+        // left with the page they asked for *and* an empty window beside it.
+        if let url, let page = BuiltInPage.page(for: url) {
+            return openBuiltIn(page, in: profileID, activate: activate)
+        }
         let profile = profiles.first { $0.id == profileID } ?? selectedProfile
         let tab = makeTab(profile: profile)
         add(tab)
@@ -762,28 +762,28 @@ final class BrowserState {
 
     // MARK: Six's own pages
 
-    /// Shows one of six's own pages (`six://apps`) — the one that is already open in this profile if
-    /// there is one, otherwise a new column beside the focus.
+    /// Shows one of six's own pages (`six://settings`, `six://apps`) — the one that is already open
+    /// in this profile if there is one, otherwise a new column beside the focus.
     ///
     /// Focusing rather than opening a second is the difference between a page and a panel: a person
     /// who asks for the server list twice wants the list, not two of them.
     @discardableResult
-    func openBuiltIn(_ page: BuiltInPage, in profileID: Profile.ID? = nil) -> BrowserTab {
+    func openBuiltIn(_ page: BuiltInPage, in profileID: Profile.ID? = nil, activate: Bool = true) -> BrowserTab {
         let profile = profiles.first { $0.id == profileID } ?? selectedProfile
         if let existing = tabs(in: profile.id).first(where: { $0.builtIn == page }) {
-            selectTab(existing.id)
+            if activate { selectTab(existing.id) }
             return existing
         }
         let tab = makeBuiltInTab(profile: profile, page: page)
         add(tab)
-        if selectedProfileID != profile.id {
+        if activate, selectedProfileID != profile.id {
             selectedProfileID = profile.id
             layout.activeProfileID = profile.id
         }
         withAnimation(NiriLayout.switchAnimation) {
-            layout.insertColumn(tabID: tab.id, in: profile.id, workspace: nil, focus: true)
+            layout.insertColumn(tabID: tab.id, in: profile.id, workspace: nil, focus: activate)
         }
-        syncSelection()
+        if activate { syncSelection() }
         return tab
     }
 
@@ -1103,7 +1103,7 @@ final class BrowserState {
         } else {
             withAnimation(NiriLayout.switchAnimation) {
                 layout.isOverview = true
-                layout.recenterStrips() // the overview has its own widths, and fullscreen's are not them
+                layout.recenterStrips() // the overview has its own widths, and a filled window's are not them
             }
         }
     }
@@ -1114,8 +1114,8 @@ final class BrowserState {
         layout.cancelColumnDrag() // a window in the hand is put back where it was, not carried out
         withAnimation(NiriLayout.switchAnimation) {
             layout.isOverview = false
-            // Free overview scrolling leaves the offset anywhere, and a strip going back to fullscreen
-            // changes every width on the way out.
+            // Free overview scrolling leaves the offset anywhere, and a rail going back to a filled
+            // window changes every width on the way out.
             layout.recenterStrips()
         }
     }
@@ -1123,22 +1123,6 @@ final class BrowserState {
     /// The page fills the window under the top bar; the layout's own controls stay where they are.
     func toggleFullWindow() {
         setFill(layout.fill == .window ? .tiled : .window)
-    }
-
-    /// niri's fullscreen: the focused window fills the screen and the strip keeps working under it.
-    func toggleFullscreen() {
-        setFill(layout.fill == .screen ? .tiled : .screen)
-    }
-
-    /// ⎋ leaves fullscreen only: filling the window is ordinary browsing, and a page's own ⎋ is worth
-    /// more there than a second way out.
-    func exitFullscreen() {
-        if layout.fill == .screen { setFill(.tiled) }
-    }
-
-    /// Back to the tiled strip, whichever mode was on — the chrome has to come back for the address bar.
-    func restoreChrome() {
-        setFill(.tiled)
     }
 
     private func setFill(_ value: NiriFill) {

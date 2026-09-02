@@ -1,7 +1,7 @@
 # Extensions
 
 VI can install browser extensions — from a folder, a `.zip`, a `.crx` or an
-`.xpi`. **Extensions ▸ Manage Extensions…**
+`.xpi`. **Settings ▸ Extensions**
 
 ::: warning Read this before installing
 Extensions here have a **measured boundary**: a content script runs in the page,

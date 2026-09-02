@@ -15,14 +15,14 @@ the list, and neither is one that never showed anything.
 
 The `×` sits on the window's own top right corner. It is mostly over the gap, so
 the page keeps its clicks, and it is invisible until the pointer is on it: a
-strip of a dozen windows should not be a row of a dozen crosses.
+rail of a dozen windows should not be a row of a dozen crosses.
 
 ## Links
 
 | | |
 |---|---|
 | a plain click | as everywhere |
-| `⌘` + click | a new window to the right, **behind** — the focus stays on the page you are reading, and the strip leans right for a moment to show what arrived |
+| `⌘` + click | a new window to the right, **behind** — the focus stays on the page you are reading, and the rail leans right for a moment to show what arrived |
 | right-click ▸ **Open Link in New Window** | the same, and take me there |
 | right-click ▸ **Open Link Behind** | the same as `⌘`-click |
 | right-click ▸ **Download Linked File** | download it without opening |
@@ -91,8 +91,8 @@ A page saves as `.html`, `.pdf` or `.txt`; a document as `.md`, `.html` or
 
 ## The "This Window" menu
 
-A right-click on the page opens it too: close, full window, fullscreen, move
-left/right, move to the workspace above or below. It used to hang off the
+A right-click on the page opens it too: close, full width, move left/right,
+move to the workspace above or below. It used to hang off the
 window's title bar; there are no title bars any more — the page runs edge to edge
 — so it hangs off the page.
 

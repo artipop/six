@@ -70,7 +70,7 @@ private struct PhoneToolbar: View {
             }
 
             Menu {
-                Button("New Window in Strip", systemImage: "plus") { browser.newTab() }
+                Button("New Window on the Rail", systemImage: "plus") { browser.newTab() }
                 Button("New Private Window", systemImage: "hand.raised") { _ = browser.newPrivateWindow() }
                 Divider()
                 Button("Bookmarks…", systemImage: "book") { showBookmarks = true }

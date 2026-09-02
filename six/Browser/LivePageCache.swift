@@ -87,21 +87,16 @@ final class LivePageCache {
         return min(32, max(8, Int(gigabytes)))
     }
 
-    /// Set from the environment, and then the settings can't move it — for measuring.
-    @ObservationIgnored private let isPinnedByEnvironment: Bool
-
     /// `SIX_LIVE_PAGES=n` overrides the budget, `SIX_PAGE_CACHE_DEBUG=1` narrates evictions on stderr.
+    ///
+    /// Nothing else moves it. It used to be a picker in the Layout menu, which asked a person to
+    /// answer a question they have no way to answer — how many web content processes this Mac can
+    /// carry is what `defaultBudget` reads off the machine, and what memory pressure adjusts while
+    /// the app runs. The environment variable stays because measuring wants a fixed number.
     init(budget: Int? = nil) {
         let override = ProcessInfo.processInfo.environment["SIX_LIVE_PAGES"].flatMap(Int.init)
         self.budget = override ?? budget ?? Self.defaultBudget
-        self.isPinnedByEnvironment = override != nil
         watchMemoryPressure()
-    }
-
-    /// The user's setting, if the environment isn't holding the budget.
-    func setBudget(_ value: Int) {
-        guard !isPinnedByEnvironment else { return }
-        budget = max(2, value)
     }
 
     // MARK: Bookkeeping
@@ -299,15 +294,3 @@ final class LivePageCache {
     }
 }
 
-// MARK: - Settings
-
-/// The setting lives in the settings table; the knowledge of what its string means lives here,
-/// beside the type it means it as. `SettingsStore` itself keeps only keys and strings.
-extension SettingsStore {
-    /// How many windows keep a live `WebPage` at once; the rest are discarded and built again when
-    /// they are next shown. Defaults to what the machine's memory can carry.
-    var livePageBudget: Int {
-        get { self[.livePages].flatMap(Int.init) ?? LivePageCache.defaultBudget }
-        set { self[.livePages] = String(newValue) }
-    }
-}

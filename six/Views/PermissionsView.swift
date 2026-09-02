@@ -1,15 +1,10 @@
 import SwiftUI
 
-/// Every site that was ever answered about the camera, the microphone or the motion sensors — the
-/// place to change an answer you are not standing on. Opened from the Privacy menu; the site icon in
-/// a window's address field does the same for the one site in front of you.
-///
-/// Answers given in a private profile are not here, because they were never written down.
+/// The sheet the phone opens and the site icon in a window's address field asks for:
+/// `PermissionSettings` under a title and a Done button. On the Mac the same content is a section of
+/// `six://settings`.
 struct PermissionsView: View {
-    @Environment(SitePermissions.self) private var permissions
-    @Environment(BrowserState.self) private var browser
     @Environment(\.dismiss) private var dismiss
-    @State private var confirmForgetAll = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -21,7 +16,23 @@ struct PermissionsView: View {
             }
             .padding(12)
             Divider()
+            PermissionSettings()
+        }
+        .frame(width: 560, height: 420)
+    }
+}
 
+/// Every site that was ever answered about the camera, the microphone or the motion sensors — the
+/// place to change an answer you are not standing on.
+///
+/// Answers given in a private profile are not here, because they were never written down.
+struct PermissionSettings: View {
+    @Environment(SitePermissions.self) private var permissions
+    @Environment(BrowserState.self) private var browser
+    @State private var confirmForgetAll = false
+
+    var body: some View {
+        VStack(spacing: 0) {
             if permissions.sites.isEmpty {
                 ContentUnavailableView {
                     Label("No Sites Yet", systemImage: "video.slash")
@@ -48,7 +59,6 @@ struct PermissionsView: View {
             }
             .padding(12)
         }
-        .frame(width: 560, height: 420)
         .confirmationDialog("Forget every site's answer?", isPresented: $confirmForgetAll, titleVisibility: .visible) {
             Button("Forget All", role: .destructive) { permissions.forgetAll() }
             Button("Cancel", role: .cancel) {}
@@ -112,6 +122,3 @@ private struct SiteRow: View {
     }
 }
 
-extension FocusedValues {
-    @Entry var showSitePermissions: FocusAddressBarAction?
-}

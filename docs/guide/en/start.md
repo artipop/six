@@ -11,10 +11,10 @@ manager for Linux. Three words describe it, and they are worth learning at once:
 | | |
 |---|---|
 | **window** | one page. Not a tab: a window has no title bar, it *is* the page, edge to edge |
-| **strip** | a row of windows running to the right. Scrolls endlessly |
-| **workspace** | one whole strip. Workspaces stack up; exactly one is on screen |
+| **rail** | a row of windows running to the right. Scrolls endlessly |
+| **workspace** | one whole rail. Workspaces stack up; exactly one is on screen |
 
-The strip moves sideways, workspaces switch up and down. That is the whole of
+The rail moves sideways, workspaces switch up and down. That is the whole of
 the navigation.
 
 ## What is on screen
@@ -22,7 +22,7 @@ the navigation.
 At the top, one row for the whole application, and it is about the window you
 are reading: the address, the lock, the blocking shield, the bookmark star, back
 and forward. No individual window has a title bar of its own — a dozen windows in
-a strip do not want a dozen address fields.
+a rail do not want a dozen address fields.
 
 On the left of that row: the profile button, with its name and colour, and the
 layout button. On the right: the workspace stepper, the overview, and the
@@ -50,7 +50,7 @@ As you type, completions gather under it, in this order:
 `↑` `↓` walk the rows, `↩` opens the selected one, `Esc` clears the field.
 
 The engine is switched from the chip to the left of the field, or from
-**Navigate ▸ Search Engine**; DuckDuckGo by default. The choice is shared by the
+**Settings ▸ General ▸ Search Engine**; DuckDuckGo by default. The choice is shared by the
 start page, the address bar and the assistant.
 
 ::: tip The query leaves the machine as you type
@@ -63,14 +63,14 @@ touches the network not at all.
 
 The order worth trying:
 
-1. `⌘T` three or four times, open something in each. That is a strip.
+1. `⌘T` three or four times, open something in each. That is a rail.
 2. `⌥←` and `⌥→` walk along it. `⌥` stands in for niri's `Mod`.
 3. `⌥↓` goes to the workspace below. It is empty; open something of your own
    there.
 4. `⌥O` is the overview: everything at once, workspaces stacked. A click opens a
    window, a drag moves it, a double-click on a workspace's name renames it.
 5. `⌥W` fills the window, gaps and all. Again to leave.
-6. Sweep the pointer into the gap beside the focused window. The strip leans over
+6. Sweep the pointer into the gap beside the focused window. The rail leans over
    to show what is there: `‹` or `›` if it is a window, an outline if there is no
    window there yet — and a click makes one.
 
@@ -95,4 +95,4 @@ their addresses and scroll offsets, and agent chats carry on.
 
 The **six ▸ Set six as Default Browser…** menu item, or System Settings › Desktop
 & Dock › Default web browser. After that, links from other applications and
-`.html` files from the Finder arrive as windows in the strip.
+`.html` files from the Finder arrive as windows on the rail.

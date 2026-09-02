@@ -1,6 +1,6 @@
 # The ⌘K assistant
 
-One line at the bottom of the strip: ask about the page you are reading. The
+One line at the bottom of the rail: ask about the page you are reading. The
 answer floats above it as a card.
 
 The line is out of sight until it is asked for — a bar resting over the bottom of

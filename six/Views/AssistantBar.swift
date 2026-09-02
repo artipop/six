@@ -106,7 +106,7 @@ private struct AnswerCard: View {
 private struct ModelMenu: View {
     @Environment(AssistantStore.self) private var assistant
     @Environment(SettingsStore.self) private var store
-    @State private var showingKeySheet = false
+    @Environment(BrowserState.self) private var browser
 
     var body: some View {
         @Bindable var settings = assistant.settings
@@ -134,7 +134,9 @@ private struct ModelMenu: View {
                 ForEach(BookmarkScope.allCases) { Text($0.title).tag($0) }
             }
             Divider()
-            Button("Model Providers…") { showingKeySheet = true }
+            // The keys and endpoints live on `six://settings` ▸ Assistant, which is one place and
+            // not two. This used to open a sheet carrying the same three fields.
+            Button("Settings…") { browser.openBuiltIn(.settings) }
             Button("New Conversation") { assistant.resetConversation() }
         } label: {
             Image(systemName: settings.model.symbol)
@@ -144,45 +146,33 @@ private struct ModelMenu: View {
         .menuIndicator(.hidden)
         .fixedSize()
         .help(settings.model == .openAICompatible ? settings.openAIModel : settings.model.title)
-        .sheet(isPresented: $showingKeySheet) {
-            ProvidersSheet()
-        }
     }
 }
 
-/// Where the two remote providers are told who to call and as whom. Both are development-shaped:
-/// the keys sit in `UserDefaults`, not the Keychain.
-private struct ProvidersSheet: View {
+/// Where the two remote providers are told who to call and as whom — `Section`s, so whatever `Form`
+/// they land in styles them. Both are development-shaped: the keys sit in `UserDefaults`, not the
+/// Keychain. One home only, `six://settings` ▸ Assistant; the ⌘K line's own menu links to it.
+struct AssistantProviderSettings: View {
     @Environment(AssistantStore.self) private var assistant
-    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         @Bindable var settings = assistant.settings
-        Form {
-            Section("Claude") {
-                SecureField("API Key", text: $settings.anthropicAPIKey, prompt: Text("sk-ant-…"))
-            }
-            Section("OpenAI-compatible") {
-                TextField("Endpoint", text: $settings.openAIBaseURL, prompt: Text("https://api.openai.com/v1"))
-                    .textContentType(.URL)
-                TextField("Model", text: $settings.openAIModel, prompt: Text("gpt-5"))
-                SecureField("API Key", text: $settings.openAIAPIKey, prompt: Text("sk-… (blank for a local server)"))
-                Text("Any server speaking the OpenAI /chat/completions format: OpenAI, a gateway, or llama.cpp and Ollama on this machine — those want no key.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Text("Stored locally for development. Production builds should use App Attest or a proxy.")
+        Section("Claude") {
+            SecureField("API Key", text: $settings.anthropicAPIKey, prompt: Text("sk-ant-…"))
+        }
+        Section("OpenAI-compatible") {
+            TextField("Endpoint", text: $settings.openAIBaseURL, prompt: Text("https://api.openai.com/v1"))
+                .textContentType(.URL)
+            TextField("Model", text: $settings.openAIModel, prompt: Text("gpt-5"))
+            SecureField("API Key", text: $settings.openAIAPIKey, prompt: Text("sk-… (blank for a local server)"))
+            Text("Any server speaking the OpenAI /chat/completions format: OpenAI, a gateway, or llama.cpp and Ollama on this machine — those want no key.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
-        .formStyle(.grouped)
-        .frame(width: 460)
-        .safeAreaInset(edge: .bottom) {
-            HStack {
-                Spacer()
-                Button("Done") { dismiss() }.keyboardShortcut(.defaultAction)
-            }
-            .padding()
+        Section {
+            Text("Stored locally for development. Production builds should use App Attest or a proxy.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 }

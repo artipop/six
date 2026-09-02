@@ -8,7 +8,7 @@ The entry point is `SixMain`, not the `App`: with `--mcp` the process never touc
 six/Niri        NiriLayout (workspaces, columns, geometry, focus/move ops), NiriScrollMonitor (scroll gestures)
 six/Browser     Profile, BrowserTab (WebPage), LivePageCache (the live-page budget), BrowserState, History, SitePermissions + PageDialogs (camera/microphone per site, the page's own dialogs), SearchEngine, SearchSuggestions, WebSearch
 six/Bookmarks   Bookmark (tables), ReadablePage (page → Markdown), Embedder + MLXEmbedder (multilingual-e5 over MLX), BookmarkStore (files, vec0 index, search)
-six/Views       ContentView (top bar), NiriStripView (strip + overview), WindowChrome, StartPage, AssistantBar, AgentPanel, HistoryView, BookmarksView
+six/Views       ContentView (top bar), NiriStripView (the rail + overview), SettingsPageView (six://settings), StartPage, AssistantBar, AgentPanel, HistoryView, BookmarksView
 six/Assistant   ModelChoice/AssistantSettings, AssistantStore (streaming), FoundationModelsCompatibility
 six/ACP         ACPJSON, JSONRPCConnection, ACPTypes, ACPAgent (process), ACPClient (actor), AgentSessionStore
 six/Tools       BrowserToolCatalog (the tools, over BrowserState), BrowserModelTool (Foundation Models adapter)
@@ -107,7 +107,9 @@ still on them.
   everything is a card — a live page in the overview is a page being laid out and composited at a fraction of its size
   for a picture of itself, a dozen times over, every time the view moves. The pictures are taken on the way in.
 - **The rest is LRU**, `budget` deep. The default is sized from the machine — about one page per gigabyte of RAM,
-  clamped to 8…32 — and the Layout menu has it (`Loaded Windows`), stored in the settings table.
+  clamped to 8…32. Nothing sets it: it was a picker in the Layout menu, under a status line, and how many web
+  content processes a Mac can carry is not a thing a person knows. `six://settings` ▸ Windows shows the number
+  and offers no way to change it; `SIX_LIVE_PAGES=n` pins it for measuring.
 - **Guards**, the ones Chrome's Memory Saver uses: a page loading (for the last 20 s — plenty of pages never stop
   loading at all), playing audio or video, or holding a draft in a `textarea` or a filled-in password is skipped and
   the next candidate taken. Deliberately *not* "a field whose value differs from its attribute": that calls every

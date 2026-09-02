@@ -23,7 +23,7 @@ field, and a click opens a row directly.
 `SearchEngine` (`six/Browser/SearchEngine.swift`) holds both the search URL and the suggestions URL. DuckDuckGo and
 Google answer in the same OpenSearch shape — `["query", ["suggestion", …]]` — so one parser serves both.
 
-Switch engines from the chip on the left of the search field, or from **Navigate → Search Engine**. Both are
+Switch engines from the chip on the left of the search field, or from `six://settings` ▸ **General** ▸ Search Engine. Both are
 `@AppStorage` on `SearchEngine.defaultsKey`, which is the same `UserDefaults` key behind `SearchEngine.current`
 (DuckDuckGo is the default), so the choice takes effect everywhere at once — every open start page, the address bar,
 and the assistant's `open_window(query:)`.

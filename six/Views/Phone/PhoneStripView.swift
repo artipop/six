@@ -161,7 +161,7 @@ private struct PhoneColumn: View {
                 .fill(accent.opacity(tab.isLoading ? 0.4 : 1))
                 .frame(width: 8, height: 8)
             if editingAddress {
-                TextField("Поиск или адрес", text: $address)
+                TextField("Search or enter address", text: $address)
                     .textFieldStyle(.plain)
                     .font(.callout)
                     .textInputAutocapitalization(.never)

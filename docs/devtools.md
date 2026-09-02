@@ -9,7 +9,7 @@ one**: WebKit lets an app declare its pages inspectable, and nothing more — op
 is `_WKInspector`, which is private API. What the switch does is let *Safari's* Web Inspector attach, and that one
 is the real thing — elements, console, network, sources, breakpoints.
 
-**How to attach**, once **Develop › Web Inspector** is on in six:
+**How to attach**, once `six://settings` ▸ **Develop** ▸ Allow Safari to Inspect six's Pages is on:
 
 1. In Safari: **Settings › Advanced › Show features for web developers**. Without it Safari's own Develop menu is
    hidden and there is nowhere to attach from. (This is the usual reason "I turned it on and nothing happened".)
@@ -18,7 +18,7 @@ is the real thing — elements, console, network, sources, breakpoints.
    content, so it has nothing to inspect; so does a window whose page was discarded by the memory budget until you
    scroll back to it.
 
-six's Develop menu carries the same instruction in the switch's help tag, with this Mac's name filled in, and
+six's settings page carries the same instruction under the switch, with this Mac's name filled in, and
 turning the switch on writes it to stderr as well.
 
 Off by default because an inspectable page is one another process on the machine can attach to. The switch applies
@@ -26,7 +26,7 @@ to the pages that are open at once, and to every page built after it.
 
 ## Capture, for agents
 
-An agent driving the browser does not want an inspector window; it wants its facts. **Develop › Capture Console and
+An agent driving the browser does not want an inspector window; it wants its facts. `six://settings` ▸ Develop ▸ **Capture Console and
 Network** turns on a running record per window — what the page logged, what it requested — and three MCP tools read
 it ([mcp.md](mcp.md)):
 

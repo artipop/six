@@ -1,11 +1,12 @@
 import SwiftUI
 
-/// The filter lists, what each one costs, and the sites left alone. Opened from the Privacy menu or
-/// from the shield in a window's address field.
+/// The sheet the phone opens and the shield in a window's address field asks for: `BlockingSettings`
+/// under a title and a Done button. On the Mac the same content is a section of `six://settings`,
+/// which is why the two are separate types — a sheet is a frame and a way out, and a page has
+/// neither.
 struct BlockingView: View {
     @Environment(ContentBlocker.self) private var blocker
     @Environment(\.dismiss) private var dismiss
-    @State private var newListAddress = ""
 
     var body: some View {
         @Bindable var blocker = blocker
@@ -23,7 +24,27 @@ struct BlockingView: View {
             }
             .padding(12)
             Divider()
+            BlockingSettings()
+        }
+        .frame(width: sheetSize.width, height: sheetSize.height)
+    }
 
+    /// Relative to the screen, like the rest of the layout.
+    private var sheetSize: CGSize {
+        let screen = Platform.screenSize
+        return CGSize(width: (screen.width * 0.36).rounded(), height: (screen.height * 0.58).rounded())
+    }
+}
+
+/// The filter lists, what each one costs, and the sites left alone — the content, with no frame and
+/// no way out of its own, so a page and a sheet can each put it where it belongs.
+struct BlockingSettings: View {
+    @Environment(ContentBlocker.self) private var blocker
+    @State private var newListAddress = ""
+
+    var body: some View {
+        @Bindable var blocker = blocker
+        VStack(spacing: 0) {
             List {
                 Section("Filter Lists") {
                     ForEach(blocker.lists) { list in
@@ -86,7 +107,6 @@ struct BlockingView: View {
             }
             .padding(10)
         }
-        .frame(width: sheetSize.width, height: sheetSize.height)
     }
 
     private var footnote: String {
@@ -102,12 +122,6 @@ struct BlockingView: View {
         guard let url = URL(string: text), url.host() != nil else { return }
         blocker.addList(source: url, title: "")
         newListAddress = ""
-    }
-
-    /// Relative to the screen, like the rest of the layout.
-    private var sheetSize: CGSize {
-        let screen = Platform.screenSize
-        return CGSize(width: (screen.width * 0.36).rounded(), height: (screen.height * 0.58).rounded())
     }
 }
 
@@ -155,6 +169,3 @@ private struct FilterListRow: View {
     }
 }
 
-extension FocusedValues {
-    @Entry var showFilterLists: FocusAddressBarAction?
-}

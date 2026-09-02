@@ -34,7 +34,7 @@ same lists with the modifiers WebKit cannot express already removed, so conversi
 | AdGuard Russian | ads on Russian-language sites | on when the system prefers Russian |
 
 Any other list can be added by address — EasyList, a regional list, one written by hand and served from a file. The
-panel is the Privacy menu's **Filter Lists…**.
+panel is `six://settings` ▸ **Privacy** ▸ Blocking (⌘,), which the shield in the address field also opens.
 
 What it costs, measured on this machine (M-series, 8 GB):
 
@@ -92,7 +92,7 @@ Every window's address field carries it, next to the lock:
 - **crossed out** — they are not: either the switch is off, or the site is on the allowlist.
 
 Clicking it allows (or blocks again) every site under this one's host — `example.com` covers `www.example.com` and
-`cdn.example.com` — and offers the filter list panel. The same two actions are in the Privacy menu, which also has
+`cdn.example.com` — and offers the filter list panel. The same two actions are on `six://settings` ▸ Privacy ▸ Blocking, which also has
 **Update Filter Lists Now**.
 
 ## What this does not do, and why

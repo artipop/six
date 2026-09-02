@@ -8,7 +8,7 @@ then works offline.
 |---|---|
 | `⌘⇧L` | translate the page |
 | `⌥⇧T` | translate the selection |
-| **Navigate ▸ Translate Page / Translate to… / Translate Selection…** | the same menu |
+| **View ▸ Translate Page / Translate Selection…** | the same thing |
 
 The control lives in the address field, because that is where you go to *ask* for
 a translation. When a page is not in your language, it offers itself.

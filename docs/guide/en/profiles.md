@@ -2,7 +2,7 @@
 
 A profile is a separate person behind one browser: its own cookies and sign-ins,
 its own history, its own bookmarks, its own extensions and **its own stack of
-workspaces**. Switching profiles swaps the whole strip.
+workspaces**. Switching profiles swaps the whole rail.
 
 The profile button is on the left of the top bar, with its name and colour. A
 click opens the list:
