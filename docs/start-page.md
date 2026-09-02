@@ -94,13 +94,16 @@ of the page. In a window too short to hold both, the top inset gives way first, 
 
 ## Suggestions
 
-`SearchEngine` (`six/Browser/SearchEngine.swift`) holds both the search URL and the suggestions URL. DuckDuckGo and
-Google answer in the same OpenSearch shape — `["query", ["suggestion", …]]` — so one parser serves both.
+`SearchEngine` (`six/Browser/SearchEngine.swift`) holds both the search URL and the suggestions URL. All four engines
+— DuckDuckGo, Google, Bing, Yandex — answer in the same OpenSearch shape — `["query", ["suggestion", …]]` — so one
+parser serves them all. What they do not agree on is what to call the query in an address: three say `q` and Yandex
+says `text`, so the name is the engine's to say, and both building a search and recognising one ask it rather than
+assuming.
 
-Switch engines from the chip on the left of the search field, or from `six://settings` ▸ **General** ▸ Search Engine. Both are
-`@AppStorage` on `SearchEngine.defaultsKey`, which is the same `UserDefaults` key behind `SearchEngine.current`
-(DuckDuckGo is the default), so the choice takes effect everywhere at once — every open start page, the address bar,
-and the assistant's `open_window(query:)`.
+Switch engines from the chip on the left of the search field, or from `six://settings` ▸ **General** ▸ Search Engine. Both
+bind to `settings.searchEngine` on the observed `SettingsStore`, which is the `search.engine` row of the settings table
+and the same value `SearchEngine.current` reads (DuckDuckGo is the default), so the choice takes effect everywhere at
+once — every open start page, the address bar, and the assistant's `open_window(query:)`.
 
 `SearchSuggestions` debounces by 140 ms and cancels the request in flight on every keystroke, so a fast typist makes
 one request rather than ten, and late answers to stale queries are dropped.
