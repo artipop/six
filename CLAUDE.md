@@ -169,7 +169,10 @@ re-testing:
 Two things follow. A **manifest edit is not the trigger** — the error fires on a pristine manifest, and it fires
 because the macOS graph differs, full stop; do not go looking for what you changed. And the reason the flag usually
 seems to work is that a warm `.build` already holds a satisfying workspace state, so no resolve is attempted at all —
-which is why this only bites on the machine that just cleaned its build directory.
+which is why this only bites on the machine that just cleaned its build directory. The corollary is the useful half:
+**a green flagged build is not evidence that the pins satisfy the manifest**, only that no resolve ran. The two rows
+above differ in nothing but the scratch path. So a warm build will also happily build against pins that no longer
+reflect an edited `Package.swift`, and say nothing about it.
 
 What not to do: take the flag off to get past it. The command then succeeds, and *that* is the commit that kills the
 pin. The file is not out of date for the platform it was written for. Build with a warm `.build`, or accept the error
