@@ -130,9 +130,13 @@ Pages change, and so do our models. Two things keep the index honest:
 
 - **Bookmarks menu**: *Add Bookmark* `⌘D` (becomes *Remove Bookmark* on a saved page), *Show Bookmarks…* `⌘⌥B`,
   **Assistant Searches: This Profile / All Profiles**, the refresh commands and interval, the profile's 15 most recent.
-- **The star** in the top bar: filled when the focused page is saved, a spinner while it is being indexed.
+- **The star** in the top bar, against the right edge of the address field: filled when the focused page is saved,
+  a spinner while it is being indexed. It sits with the address rather than out among the rail's buttons, because
+  both are about the one page you are reading.
 - **`⌘⌥B`** (`BookmarksView`): the profile's or everyone's bookmarks, a search field that searches by meaning as you
   type (with the matching passage and a score), double-click to open, *Show File in Finder*, ⌫ to remove.
+- **The start page's field**, without being asked: what you saved comes back as the top rows under it, matched by
+  meaning against the same index — [start-page.md](start-page.md#your-own-pages-first).
 
 ## The assistant and the agents
 

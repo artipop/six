@@ -6,6 +6,8 @@ struct ContentView: View {
     @Environment(BrowserState.self) private var browser
     @Environment(AgentSessionStore.self) private var agentSession
     @Environment(AssistantStore.self) private var assistant
+    @Environment(BookmarkStore.self) private var bookmarks
+    @Environment(SettingsStore.self) private var settings
     /// The address field lives in the top bar now, so the focus that ⌘L moves lives beside it —
     /// above the strip, which no longer has one.
     @FocusState private var addressFocus: UUID?
@@ -97,11 +99,53 @@ struct ContentView: View {
                let url = URL(string: address) {
                 await translateSelfTest(url)
             }
+            // `SIX_PERSONAL_SELFTEST="плов"` asks the start page's personal rows what they would
+            // show for that query and prints both what the index answered and what survived the
+            // floor — which is the only way to tune the floor against real bookmarks.
+            if let query = ProcessInfo.processInfo.environment["SIX_PERSONAL_SELFTEST"], !query.isEmpty {
+                await personalSelfTest(query)
+            }
         }
     }
 }
 
 extension ContentView {
+    /// Runs each `;`-separated query through the personal rows the way the start page does, and says
+    /// what the index answered before `PersonalSuggestions` had its say — which is the only way to
+    /// tune the cutoff against real bookmarks. The first query pays for loading the embedder (and,
+    /// if the weights aren't down yet, for downloading them).
+    fileprivate func personalSelfTest(_ queries: String) async {
+        for query in queries.split(separator: ";").map({ $0.trimmingCharacters(in: .whitespaces) }) where !query.isEmpty {
+            await personalSelfTest(one: query)
+        }
+    }
+
+    fileprivate func personalSelfTest(one query: String) async {
+        func say(_ text: String) { print("[personal] \(text)"); fflush(stdout) }
+
+        let profileID = browser.selectedProfile.id
+        let scope = settings.bookmarkScope
+        say("query \(query.debugDescription) · scope \(scope.rawValue) · profile \(browser.selectedProfile.name)")
+        say("bookmarks in scope: \(bookmarks.count(in: scope, profileID: profileID)) · embedder \(bookmarks.embedder.modelID)")
+
+        let started = ContinuousClock.now
+        let all = await bookmarks.search(query, in: scope, profileID: profileID, limit: 12)
+        say("the index answered \(all.count) in \(ContinuousClock.now - started):")
+        for hit in all {
+            say(String(format: "  %.3f  ", hit.score) + hit.bookmark.displayTitle + "  — " + hit.snippet.prefix(70).replacingOccurrences(of: "\n", with: " "))
+        }
+
+        let personal = PersonalSuggestions()
+        personal.update(for: query, in: bookmarks, scope: scope, profileID: profileID)
+        for _ in 0..<80 where personal.hits.isEmpty {
+            try? await Task.sleep(for: .milliseconds(250))
+        }
+        say("the field would show \(personal.hits.count):")
+        for hit in personal.hits {
+            say(String(format: "  %.3f  ", hit.score) + hit.bookmark.displayTitle + "  · " + hit.bookmark.displayDetail)
+        }
+    }
+
     /// Drives one page through translation from launch, printing what happened. A harness, in the
     /// shape the ACP and assistant ones already have.
     fileprivate func translateSelfTest(_ url: URL) async {
@@ -189,9 +233,10 @@ extension ContentView {
 /// The bar in the (hidden) title bar area — the window's one piece of chrome, and now the only one.
 ///
 /// Left: which profile you are in, and how the layout is showing the strip. Middle: the focused
-/// window's address, because that band of the window was empty and an address field is exactly the
-/// shape of it. Right: everything about the strip rather than the page — what is bookmarked and
-/// downloading, where in the stack of workspaces you are, the overview, the agent.
+/// window's address, with the star against its trailing edge — the two things that are about the
+/// page you are reading, because that band of the window was empty and an address field is exactly
+/// the shape of it. Right: everything about the strip rather than the page — what is downloading,
+/// where in the stack of workspaces you are, the overview, the agent.
 /// The two panels that are opened from a menu item: each one is a focused value the menu reaches
 /// across the scene, and a sheet that answers it.
 ///
@@ -234,8 +279,12 @@ private struct TopBar: View {
                 AddressBar(tab: tab, addressFocus: addressFocus)
                     .frame(maxWidth: addressWidth)
             }
-            Spacer(minLength: 8)
+            // Against the field, not out with the rail's buttons. The star is about the page whose
+            // address is right there — it fills for that page and ⌘D toggles it — and every browser
+            // that has one keeps it at the end of the address field for exactly that reason. Out on
+            // the right it sat among the things that describe the *strip*, and read as one of them.
             BookmarkButton()
+            Spacer(minLength: 8)
             DownloadsButton()
             ExtensionActionBar()
             WorkspaceStepper()

@@ -281,6 +281,19 @@ final class BookmarkStore {
         return (try? database.read { db in try Bookmark.where { $0.profileID.eq(profileID) }.count().fetchOne(db) }) ?? 0
     }
 
+    /// How many bookmarks a search in this scope would look at. A count rather than `entries`
+    /// because it is asked on a keystroke — `PersonalSuggestions` won't embed a query with nothing
+    /// to compare it to, and that is what keeps a field on a fresh install from pulling the model.
+    func count(in scope: BookmarkScope, profileID: Profile.ID) -> Int {
+        _ = revision
+        return (try? database.read { db in
+            switch scope {
+            case .profile: try Bookmark.where { $0.profileID.eq(profileID) }.count().fetchOne(db)
+            case .all: try Bookmark.count().fetchOne(db)
+            }
+        }) ?? 0
+    }
+
     func bookmark(_ id: Bookmark.ID) -> Bookmark? {
         read { db in try Bookmark.where { $0.id.eq(id) }.fetchAll(db) }.first
     }

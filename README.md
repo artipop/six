@@ -81,8 +81,12 @@ stacked vertically and exactly one is on screen at a time. The bottom workspace 
 and a fresh empty one appears below (niri's dynamic workspaces); a workspace that runs out of windows disappears,
 unless you gave it a name (double-click its plate in the overview).
 
-A new window opens on six's own start page — one field for both queries and addresses, with completions from the
-search engine, so the first thing a window does isn't a network request. See [docs/start-page.md](docs/start-page.md).
+A new window opens on six's own start page — one field for both queries and addresses, so the first thing a window
+does isn't a network request. Under it, in this order: what you **saved**, what you **visited**, what the engine
+**guesses**. The first of those is the search being personal — the query is embedded on this Mac and put to the
+bookmarks' vector index, so it answers across languages and without the words matching («плов» finds the English page
+about pilaf you kept), and a question about nothing you saved gets no row at all rather than the nearest one. See
+[docs/start-page.md](docs/start-page.md).
 
 Nothing needs the keyboard: click a background window to pull it in, sweep the pointer into the gap beside the focused
 window — the rail leans over to show what is on that side, a `‹` or `›` if it is a window and an outline if it is the
