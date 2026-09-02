@@ -156,7 +156,9 @@ automatic dependency resolution is disabled; … Running resolver because the fo
 were added: 'swift-issue-reporting'
 ```
 
-Measured at `ca47ef6`, in a throwaway worktree, `Package.resolved` md5 checked after every run:
+Measured at `ca47ef6`, in a throwaway worktree, `Package.resolved` md5 checked after every run — the untouched file
+is `47a22feb`, and three sessions reached this table from three separate worktrees, so it is settled and does not want
+re-testing:
 
 | scratch path | flag | result | the file |
 |---|---|---|---|
