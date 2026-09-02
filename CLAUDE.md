@@ -105,8 +105,12 @@ Read this before touching any manifest, `Package.resolved`, or the `sources:` li
 | file | resolves for | the constraint on it |
 |---|---|---|
 | `six.xcodeproj/…/swiftpm/Package.resolved` | the Mac and iOS app | the leader — the app's graph moves first |
-| `Package.resolved` (root) | `SixCore` + its tests, on **both** platforms | seeded from the app's, plus the Linux-only pins |
+| `Package.resolved` (root) | `SixCore` + its tests, on **both** platforms | a **superset** of the app's, and the surplus is the point |
 | `linux/Package.resolved` | the GTK front, which depends on the root by path | must agree with the root on the shared subset |
+
+The asymmetry is the whole rule: the app's graph leads on **versions**, but the root file holds pins the app has never
+heard of — `opencombine` appears once there and zero times in the app's, because only Linux pulls it in. A resolve run
+on a Mac cannot know that, which is why it deletes it.
 
 They must agree on **GRDB, sqlite-data, swift-structured-queries** above all, because a database written by one build
 is opened by the other — a schema written by GRDB 7.11 and read by another version is the one failure that costs data
@@ -120,21 +124,25 @@ it. Both are regressions, both are written up with repros in [UPSTREAM.md](UPSTR
 upstream the only defence is the pin.
 
 **So: `swift package update` is a Linux-breaking command in this repo.** So is a plain `swift build` or `swift test` —
-they resolve first, and a resolve *on macOS* silently rewrites the root file: the `originHash` changes, the Linux-only
-`opencombine` pin (which only Linux pulls in, through swift-sharing) is dropped, and `swift-issue-reporting` appears
-in its place. Pass `--disable-automatic-resolution` to **every** `swift build` / `swift test` here — even
-`swift test --help` triggers the rewrite. `--skip-update` is not the same flag; it still writes.
+they resolve first, and a resolve *on macOS* silently rewrites the root file: the `originHash` changes, the
+`opencombine` pin is dropped, and `swift-issue-reporting` appears in its place. Pass `--disable-automatic-resolution`
+to **every** `swift build` / `swift test` here, including the one inside the container — even `swift test --help`
+triggers the rewrite. `--skip-update` is not the same flag; it skips the fetch and still writes.
 
-**How to spot the damage**, since nothing fails at the time:
+**`xcodebuild` is not the culprit.** The Xcode project holds only remote package references and no
+`XCLocalSwiftPackageReference` at all, so it cannot see the root `Package.swift`: it resolves into the app's own file
+and leaves the root one alone. Blame `swift build` / `swift test`, and only those.
+
+**How to spot the damage**, since nothing fails at the time — and the tell is the *missing pin*, not the hash:
 
 ```sh
-git diff Package.resolved     # a -opencombine hunk and a changed originHash mean a resolve ran
-git checkout -- Package.resolved
+grep -c opencombine Package.resolved     # must be 1
+git checkout -- Package.resolved         # the answer whenever it is 0
 ```
 
-The committed state is the one with `opencombine` (last written by `04e3e70`). This has flip-flopped in history —
-`25da59a` committed the macOS shape, `ae4ca3a` put `opencombine` back — so if the file is dirty and nobody claims it,
-it is a stray resolve and the answer is `git checkout`, not a commit.
+The committed state is the one with `opencombine` (originHash `cf9bc021`, last written by `04e3e70`). This has
+flip-flopped in history — `25da59a` committed the macOS shape, `ae4ca3a` put `opencombine` back — so if the file is
+dirty and nobody claims it, it is a stray resolve, and the answer is `git checkout`, never a commit.
 
 **When a version genuinely has to move** — a real upgrade, not an accident:
 
@@ -165,9 +173,12 @@ anything added there has to exist on both:
 - **A file joins `SixCore` by being listed in `sources:`** — and from that moment it is compiled on Linux. Anything
   Apple in it needs `#if canImport(WebKit)` / `#if os(macOS)`, and networking needs
   `#if canImport(FoundationNetworking) import FoundationNetworking`.
-- **Editing the root `Package.swift` does not reach the Linux build.** llbuild caches the whole build description and
-  a path-dependency manifest edit does not bump its key: `swift build` reports "Build complete!" in a tenth of a
-  second and never compiles the file that was added. `rm -f <scratch-path>/build.db` after any manifest edit.
+- **Editing the root `Package.swift` does not reach the Linux build, and the symptom is a *success*.** llbuild caches
+  the whole build description in the scratch path's `build.db`, keyed on the manifest it was planned from, and a
+  *path*-dependency edit does not bump that key: `swift build` prints "Build complete!" in a tenth of a second and the
+  file you just added is never compiled. `rm -f <scratch-path>/build.db` after any manifest edit — `/tmp/g/build.db`
+  for the GTK front, `/tmp/gcore` for the root package's own scratch, which `swift test` uses. Object files survive,
+  so the rebuild is incremental. Clearing `~/.cache/org.swift.swiftpm/manifests` does **not** help.
 - **WebKitGTK cannot be brewed on the Mac** — `depends_on :linux`, and brew's formula is GTK3 / WebKitGTK 4.1 anyway,
   while six needs the GTK 4 `webkitgtk-6.0` API. The Linux front stays in the container; the full checked list is in
   [docs/linux.md](docs/linux.md#why-the-container-and-not-homebrew-on-the-mac) so it does not get retried every few
