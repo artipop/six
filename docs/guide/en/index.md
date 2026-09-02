@@ -26,7 +26,7 @@ features:
     details: ⌘K asks a model about the page; ⌘⇧A brings in Claude Code or Codex, and they drive the browser themselves.
     link: /en/agents
   - title: Bookmarks found by meaning
-    details: A saved page stays a readable copy on disk and is found by what it was about.
+    details: A saved page stays a readable copy on disk, is found by what it was about, and comes back on its own under the search field.
     link: /en/bookmarks
 ---
 

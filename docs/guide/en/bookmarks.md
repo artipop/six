@@ -7,7 +7,7 @@ was about rather than by its title.
 | | |
 |---|---|
 | `⌘D` | bookmark the focused page (again: remove it) |
-| the star in the top bar | the same; filled when the page is saved, spinning while it is being indexed |
+| the star beside the address field | the same; filled when the page is saved |
 | `⌘⌥B` | the list, and the search across it |
 
 ## What is saved
@@ -42,6 +42,16 @@ can lose to an unrelated English page.
 `↑` `↓` walk the rows, `↩` opens the selected one in a new window, `⌫` removes
 the bookmark and its file, `Esc` closes. The context menu has **Show File in
 Finder**.
+
+## Without being asked
+
+The same search runs where you are not searching for anything — under the
+[start page's field](/en/start#the-personal-half). As you type, up to two of your
+saved pages stand above the engine's completions, when they are about it. There
+is nothing to switch on: with bookmarks the rows appear, without them nothing
+does, and the model is not downloaded for it.
+
+A private window has none of them.
 
 ## Pages change
 

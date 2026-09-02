@@ -20,9 +20,10 @@ the navigation.
 ## What is on screen
 
 At the top, one row for the whole application, and it is about the window you
-are reading: the address, the lock, the blocking shield, the bookmark star, back
-and forward. No individual window has a title bar of its own — a dozen windows in
-a rail do not want a dozen address fields.
+are reading: back and forward, the lock, the blocking shield, the address — and
+right against the field, the bookmark star, because it is about that same page.
+No individual window has a title bar of its own — a dozen windows in a rail do
+not want a dozen address fields.
 
 On the left of that row: the profile button, with its name and colour, and the
 layout button. On the right: the workspace stepper, the overview, and the
@@ -42,10 +43,15 @@ As you type, completions gather under it, in this order:
 1. an **address row**, when what you typed looks like one (`apple.com`,
    `localhost:3000`, anything with a scheme), so that `↩` opens it rather than
    searching for it;
-2. up to four pages **from this profile's history**, by title and host, the
+2. up to two **pages you saved**, found by meaning rather than by their titles;
+3. up to four pages **from this profile's history**, by title and host, the
    often-visited ones first;
-3. the search engine's own suggestions, each labelled *DuckDuckGo Search* or
+4. the search engine's own suggestions, each labelled *DuckDuckGo Search* or
    *Google Search*, so it is clear where `↩` goes.
+
+Saved above visited above guessed: a bookmark is a page you decided to keep,
+history is a page you happened to open, and a completion is what everybody else
+is typing.
 
 `↑` `↓` walk the rows, `↩` opens the selected one, `Esc` clears the field.
 
@@ -57,6 +63,36 @@ start page, the address bar and the assistant.
 That is what a suggestion service is. VI sends them over a session of their own —
 no cookies, no cache, nothing tied to a profile. Beyond that, the start page
 touches the network not at all.
+:::
+
+## The personal half
+
+The second row in that list is the one thing a search engine cannot have: your
+own bookmarks, found [by meaning](/en/bookmarks#search-by-meaning). The same way
+`⌘⌥B` finds them, and the same way **across languages** — «плов» finds the
+English page about pilaf you once saved, "rate limiting" finds the article you
+kept about it whatever language you ask in. All of it is worked out on your
+machine; nothing goes anywhere.
+
+Three things keep it out of the way:
+
+- **with no bookmarks, nothing happens** — the query is not even worked out, and
+  the model behind search-by-meaning is not downloaded because somebody typed in
+  the field. An address is skipped too: a host is not a question;
+- **two rows at most**, and they are not always there. Search by meaning answers
+  anything — the nearest page is still the nearest page when nothing is near —
+  so for a question about something you never saved, VI shows nothing rather than
+  the closest thing it has;
+- **a private window has none of it**: nothing is saved from there, and answering
+  with your bookmarks in a window opened precisely to leave nothing behind would
+  be the wrong thing.
+
+::: tip What is honest to say about the quality
+The order of the rows is nearly always right; the closeness *number* behind it is
+not. For this model a question about something you never saved scores as high as
+a real one, so it does miss sometimes: one stray row under a query that has
+nothing to do with what you kept. It is harmless — `↩` with nothing selected
+still goes to the search engine.
 :::
 
 ## The first ten minutes
