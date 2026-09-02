@@ -125,18 +125,37 @@
     --vp-code-bg: rgba(233, 233, 236, 0.08);
 }
 
-/* ------------------------------------------------------------ square corners */
+/* ------------------------------------------------------------------- corners */
 
-/* The product draws none, and the theme rounds everything from a button to a
-   feature card. These are the surfaces big enough for the radius to read. */
-.VPButton,
-.VPFeature,
+/* The XCIII guide squares everything off, because that product draws no
+   corners. This one is the browser, whose window *is* a page inside a rounded
+   card — so the surfaces that stand for a window keep a radius, and only the
+   small typographic ones are squared to keep the family resemblance. */
 .DocSearch-Button,
 .VPNavBarSearchButton,
 .vp-doc :not(pre) > code,
 .vp-doc div[class*='language-'],
 .vp-doc .custom-block {
     border-radius: 2px;
+}
+
+/* Buttons. Two things have to be got past, and both are specificity.
+
+   The radius is not on `.VPButton` at all — `.VPButton.medium` carries it — so
+   a bare `.VPButton { border-radius }` rule loses and does nothing. And the
+   theme's own rule is scoped, `.VPButton.medium[data-v-93dc4167]`, which an
+   attribute selector makes stronger again. Repeating the class matches that
+   weight without naming a hash that changes with every VitePress release.
+
+   (The XCIII guide's copy of this file has the bare rule, and the same silence.
+   It is not fixed from here.) */
+.VPButton.medium.medium,
+.VPButton.big.big {
+    border-radius: 4px;
+}
+
+.VPFeature {
+    border-radius: 8px;
 }
 
 /* ------------------------------------------------------------ the two voices */
@@ -181,4 +200,177 @@
 /* The home page's own heading: the product's name, spaced like a stamp. */
 .VPHero .name {
     letter-spacing: 0.16em;
+}
+
+
+/* ---------------------------------------------------------------------------
+   The rail, drawn.
+
+   The home page opens with a picture of the product, because the product is a
+   shape and one paragraph of prose is a poor way to say it: one top bar for the
+   whole application, full-height windows in a row with a gap between them, the
+   focused one in the middle, its neighbours cropped by the edges — which is
+   what says "the row goes on" — and the workspaces as pips down the right.
+
+   The same drawing is on the deffun landing's VI card (site/styles.css there);
+   it is a dozen rectangles in CSS rather than an image, so it follows the theme
+   with no second file and stays sharp on a 5K panel.
+   --------------------------------------------------------------------------- */
+
+/* The figure sits in the hero's own container and starts at the hero's own left
+   edge: centred in the full width it floats away from the text it illustrates.
+   The paddings below are the default theme's hero paddings at the same
+   breakpoints, which is what keeps the two edges lined up. */
+.rail-figure {
+    max-width: 1152px;
+    margin: 0 auto;
+    padding: 0 24px 16px;
+}
+
+@media (min-width: 640px) {
+    .rail-figure { padding: 0 48px 24px; }
+}
+
+@media (min-width: 960px) {
+    .rail-figure { padding: 0 64px 32px; }
+}
+
+.rail {
+    --rail-gap: 8px;
+    --rail-radius: 8px;
+    /* How much of a neighbour each edge cuts off. */
+    --rail-col-peek: 96px;
+
+    border: 1px solid var(--vp-c-divider);
+    border-radius: 10px;
+    background: var(--vp-c-bg);
+    overflow: hidden;
+    user-select: none;
+}
+
+.rail-bar {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--vp-c-divider);
+}
+
+.rail-profile {
+    width: 13px;
+    height: 13px;
+    border-radius: 2px;
+    background: var(--vp-c-brand-1);
+    flex: none;
+}
+
+.rail-address {
+    flex: 1;
+    height: 13px;
+    border-radius: 999px;
+    background: var(--vp-c-bg-soft);
+    position: relative;
+}
+
+.rail-address::before {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 3.5px;
+    width: 6px;
+    height: 6px;
+    border-radius: 1px;
+    background: var(--vp-c-text-3);
+}
+
+.rail-pips {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex: none;
+}
+
+.rail-pips i {
+    width: 13px;
+    height: 2px;
+    border-radius: 999px;
+    background: var(--vp-c-text-3);
+}
+
+.rail-pips i.on {
+    background: var(--vp-c-brand-1);
+}
+
+/* Wider than its frame and pulled out at both ends on purpose: a row that ended
+   inside the picture would be a row of three, not an endless one. */
+.rail-strip {
+    display: flex;
+    gap: var(--rail-gap);
+    padding: var(--rail-gap);
+    margin: 0 calc(var(--rail-col-peek) * -1);
+    height: 190px;
+}
+
+.rail-col {
+    flex: 1 0 0;
+    min-width: 0;
+    border-radius: var(--rail-radius);
+    background: var(--vp-c-bg-soft);
+    border: 1px solid var(--vp-c-divider);
+    padding: 11px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    /* The neighbours are there to be seen, not read. */
+    opacity: 0.45;
+}
+
+.rail-col.is-focused {
+    opacity: 1;
+    border-color: var(--vp-c-border);
+}
+
+.rail-line {
+    /* Flex items in a column: without this they are free to shrink and the
+       lines lose their heights. */
+    flex: none;
+    height: 5px;
+    border-radius: 1px;
+    background: var(--vp-c-text-3);
+    opacity: 0.5;
+}
+
+.rail-col.is-focused .rail-line:first-child {
+    background: var(--vp-c-brand-1);
+    opacity: 1;
+    height: 7px;
+    width: 58%;
+}
+
+.rail-line.w-90 { width: 90%; }
+.rail-line.w-75 { width: 75%; }
+.rail-line.w-60 { width: 60%; }
+.rail-line.w-40 { width: 40%; }
+
+/* The caption under the drawing: the machine naming the parts, in the voice the
+   rest of the site gives it — and under the drawing's left edge, not centred,
+   because everything above it starts there. */
+.rail-legend {
+    margin: 14px 0 0;
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    line-height: 1.7;
+    color: var(--vp-c-text-3);
+}
+
+@media (max-width: 640px) {
+    .rail-strip {
+        height: 126px;
+        --rail-col-peek: 30px;
+    }
+
+    .rail-legend {
+        letter-spacing: 0.1em;
+    }
 }
