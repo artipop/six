@@ -275,15 +275,20 @@ private struct TopBar: View {
             ProfileMenuButton()
             FullWidthButton()
             Spacer(minLength: 8)
-            if let tab = browser.selectedTab {
-                AddressBar(tab: tab, addressFocus: addressFocus)
-                    .frame(maxWidth: addressWidth)
-            }
             // Against the field, not out with the rail's buttons. The star is about the page whose
             // address is right there — it fills for that page and ⌘D toggles it — and every browser
             // that has one keeps it at the end of the address field for exactly that reason. Out on
             // the right it sat among the things that describe the *strip*, and read as one of them.
-            BookmarkButton()
+            //
+            // Which is also why it comes and goes with the field rather than outliving it. On an
+            // empty workspace there is no focused window, the field is not drawn, and a star left
+            // behind on its own is a control about nothing — greyed out, in the middle of the bar,
+            // beside a page that says "New Window".
+            if let tab = browser.selectedTab {
+                AddressBar(tab: tab, addressFocus: addressFocus)
+                    .frame(maxWidth: addressWidth)
+                BookmarkButton(tab: tab)
+            }
             Spacer(minLength: 8)
             DownloadsButton()
             ExtensionActionBar()
@@ -357,17 +362,20 @@ private struct FullWidthButton: View {
     }
 }
 
-/// The star: filled when the focused page is bookmarked; a click saves it (or forgets it).
+/// The star: filled when the page this bar is describing is bookmarked; a click saves it (or forgets
+/// it). It takes that window rather than reading the selection, because it is only ever drawn beside
+/// that window's address — there is no state of this button that means "no window".
 private struct BookmarkButton: View {
+    let tab: BrowserTab
+
     @Environment(BrowserState.self) private var browser
     @Environment(BookmarkStore.self) private var bookmarks
 
     var body: some View {
-        let tab = browser.selectedTab
-        let saved = tab.map { bookmarks.isBookmarked($0) } ?? false
-        let indexing = tab.flatMap { tab in tab.currentURL.flatMap { bookmarks.bookmark(for: $0, in: tab.profileID) } }.map { bookmarks.indexing.contains($0.id) } ?? false
+        let saved = bookmarks.isBookmarked(tab)
+        let indexing = tab.currentURL.flatMap { bookmarks.bookmark(for: $0, in: tab.profileID) }
+            .map { bookmarks.indexing.contains($0.id) } ?? false
         Button {
-            guard let tab else { return }
             if saved, let url = tab.currentURL, let existing = bookmarks.bookmark(for: url, in: tab.profileID) {
                 bookmarks.remove(existing.id)
             } else {
@@ -380,7 +388,7 @@ private struct BookmarkButton: View {
                 .foregroundStyle(saved ? AnyShapeStyle(browser.selectedProfile.color) : AnyShapeStyle(.secondary))
         }
         .buttonStyle(.borderless)
-        .disabled(tab == nil || tab?.showsStartPage == true || tab.map { browser.isPrivate($0.profileID) } == true)
+        .disabled(tab.showsStartPage || browser.isPrivate(tab.profileID))
         .help(saved ? (indexing ? "Saved; indexing for search… Remove Bookmark (⌘D)" : "Remove Bookmark (⌘D)") : "Add Bookmark (⌘D)")
     }
 }
