@@ -144,6 +144,39 @@ The committed state is the one with `opencombine` (originHash `cf9bc021`, last w
 flip-flopped in history — `25da59a` committed the macOS shape, `ae4ca3a` put `opencombine` back — so if the file is
 dirty and nobody claims it, it is a stray resolve, and the answer is `git checkout`, never a commit.
 
+**The flag will fail on a cold build, and that failure is the flag working.** This is the trap that has produced every
+flip-flop, so read it before you conclude the flag is broken. The root package genuinely resolves to *different* pin
+sets on the two platforms: macOS wants `swift-issue-reporting`, Linux wants `opencombine`, and one file cannot hold
+both. The committed file is the **Linux** shape. So whenever SwiftPM actually has to run the resolver on a Mac — a
+fresh clone, a cleaned `.build`, a new worktree — the flagged command stops:
+
+```
+error: an out-of-date resolved file was detected at …/Package.resolved, which is not allowed when
+automatic dependency resolution is disabled; … Running resolver because the following dependencies
+were added: 'swift-issue-reporting'
+```
+
+Measured at `ca47ef6`, in a throwaway worktree, `Package.resolved` md5 checked after every run:
+
+| scratch path | flag | result | the file |
+|---|---|---|---|
+| cold | `--disable-automatic-resolution` | exit 1, the error above | **byte-identical** |
+| warm | `--disable-automatic-resolution` | exit 0, builds | **byte-identical** |
+| either | *none* | exit 0 | `opencombine` gone, `swift-issue-reporting` in |
+
+Two things follow. A **manifest edit is not the trigger** — the error fires on a pristine manifest, and it fires
+because the macOS graph differs, full stop; do not go looking for what you changed. And the reason the flag usually
+seems to work is that a warm `.build` already holds a satisfying workspace state, so no resolve is attempted at all —
+which is why this only bites on the machine that just cleaned its build directory.
+
+What not to do: take the flag off to get past it. The command then succeeds, and *that* is the commit that kills the
+pin. The file is not out of date for the platform it was written for. Build with a warm `.build`, or accept the error
+and leave the file alone; if `SixCore` genuinely has to be built cold on the Mac, restore the file afterwards
+(`grep -c opencombine` back to 1) before committing anything.
+
+Whether the root file should stay the Linux shape, or the Mac should be given a resolved graph of its own, is an open
+decision and not something to settle mid-task.
+
 **When a version genuinely has to move** — a real upgrade, not an accident:
 
 1. Move the **app's** graph first, in Xcode, and build both Apple schemes.
