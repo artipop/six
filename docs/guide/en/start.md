@@ -74,11 +74,14 @@ English page about pilaf you once saved, "rate limiting" finds the article you
 kept about it whatever language you ask in. All of it is worked out on your
 machine; nothing goes anywhere.
 
-Three things keep it out of the way:
+Four things keep it out of the way:
 
 - **with no bookmarks, nothing happens** — the query is not even worked out, and
   the model behind search-by-meaning is not downloaded because somebody typed in
   the field. An address is skipped too: a host is not a question;
+- **nothing appears while you are still typing the first word**. An unfinished
+  word is not yet a question: «руд», three letters into a word about mines,
+  should not fetch a pilaf recipe merely for being the nearest thing to it;
 - **two rows at most**, and they are not always there. Search by meaning answers
   anything — the nearest page is still the nearest page when nothing is near —
   so for a question about something you never saved, VI shows nothing rather than
@@ -90,9 +93,9 @@ Three things keep it out of the way:
 ::: tip What is honest to say about the quality
 The order of the rows is nearly always right; the closeness *number* behind it is
 not. For this model a question about something you never saved scores as high as
-a real one, so it does miss sometimes: one stray row under a query that has
-nothing to do with what you kept. It is harmless — `↩` with nothing selected
-still goes to the search engine.
+a real one, so on a whole phrase it does miss sometimes: one stray row under a
+query that has nothing to do with what you kept. It is harmless — `↩` with
+nothing selected still goes to the search engine.
 :::
 
 ## The first ten minutes

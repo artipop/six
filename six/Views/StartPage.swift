@@ -74,20 +74,41 @@ struct StartPage: View {
         return rows
     }
 
+    /// Where the name and the field stand, as a share of the window's height rather than a number of
+    /// points — the rest of six sizes itself that way, and a start page is a page.
+    private static let restingHeight = 0.32
+    /// What the name, the field and a full list want under them, in points, because that is what a
+    /// font is measured in. In a window too short for both, the field gives up its share of the
+    /// height rather than the list going off the bottom edge.
+    private static let contentHeight: CGFloat = 480
+
+    private func topInset(_ height: CGFloat) -> CGFloat {
+        min(height * Self.restingHeight, max(24, height - Self.contentHeight))
+    }
+
     var body: some View {
-        ZStack {
+        ZStack(alignment: .top) {
             LinearGradient(colors: [accent.opacity(0.16), accent.opacity(0.02)],
                            startPoint: .top, endPoint: .bottom)
-            VStack(spacing: 14) {
-                Text("six")
-                    .font(.system(size: 46, weight: .light, design: .rounded))
-                    .foregroundStyle(accent)
-                field
-                list
+            // The stack hangs from a fixed point near the top instead of being centred, and that is
+            // the whole reason for the geometry reader. Centred, the field moved every time the list
+            // under it changed height: a row arrives from the engine and the thing you are typing
+            // into jumps upward under the caret. The list is the only part that may grow, and it
+            // grows downward into the empty half of the page, where there is room for it.
+            GeometryReader { geometry in
+                VStack(spacing: 14) {
+                    Text("six")
+                        .font(.system(size: 46, weight: .light, design: .rounded))
+                        .foregroundStyle(accent)
+                    field
+                    list
+                    Spacer(minLength: 0)
+                }
+                .frame(maxWidth: 560)
+                .padding(.horizontal, 24)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.top, topInset(geometry.size.height))
             }
-            .frame(maxWidth: 560)
-            .padding(.horizontal, 24)
-            .padding(.bottom, 90) // a touch above centre, where the eye lands
         }
         .background(.background)
         .onChange(of: isActive, initial: true) { _, active in

@@ -36,34 +36,47 @@ final class PersonalSuggestions {
     /// Under this, a query is a prefix rather than a subject: "th" is about nothing.
     private static let minimumQuery = 3
     private static let limit = 2
-    /// How close the *best* passage has to be before any row is worth showing.
-    /// - **And what it is not: a measure of relevance.** `SIX_PERSONAL_SELFTEST` over three saved
-    ///   pages, one query per line (the scores are `1 − cosine distance`):
+    /// How close the *best* passage has to be before any row is worth showing — **and it depends on
+    /// how much was typed**, which is the whole of what these two numbers know.
     ///
-    ///   | query | best | runner-up |
-    ///   |---|---|---|
-    ///   | плов → *Pilaf* | 0.843 | 0.768 |
-    ///   | рецепт риса с бараниной → *Pilaf* | 0.811 | 0.755 |
-    ///   | rate limiting → *Rate limiting* | 0.922 | 0.800 |
-    ///   | data race → *data-race safety* | 0.848 | 0.812 |
-    ///   | погода в москве завтра → nothing saved | 0.767 | 0.744 |
-    ///   | купить билеты в тбилиси → nothing saved | 0.811 | 0.787 |
+    /// `SIX_PERSONAL_SELFTEST` over three saved pages, one query per line (the score is
+    /// `1 − cosine distance`, against the same page every time — an English Wikipedia article about
+    /// pilaf):
     ///
-    ///   The ranking is right every time — the query about pilaf finds the English page about pilaf,
-    ///   which is what the multilingual embedder is for — and the *number* is worth nothing across
-    ///   queries: a question about nothing saved scores 0.811 against a recipe, exactly what a real
-    ///   question about that recipe scores. E5-small compresses everything into a narrow band and
-    ///   shifts the whole band per query.
-    /// - So the cutoff is two rules, and neither one is the score alone. `floor`: the best hit must
-    ///   clear it, or the field shows nothing rather than the nearest thing to a question about
-    ///   nothing. `band`: the rows after the first have to be within this of the best, so a runner-up
-    ///   rides along only when it is nearly as close — which is what happens when two saved pages
-    ///   really are about the same thing, and not what happens when the index is scraping. 0.02 is
-    ///   narrow on purpose: at 0.05 the runner-up in the table above came along every time, and it
-    ///   was a different page about a different subject each time.
-    /// - Re-tune with `SIX_PERSONAL_SELFTEST="one; two"` against a real library, which prints both
-    ///   what the index answered and what survived this.
-    private static let floor = 0.80
+    /// | typed | best | | typed | best |
+    /// |---|---|---|---|---|
+    /// | плов | **0.843** | | руд | 0.821 |
+    /// | рецепт | **0.841** | | рудник | 0.823 |
+    /// | pilaf | **0.907** | | рудники урала | 0.812 |
+    /// | рецепт риса с бараниной | **0.811** | | пло | 0.819 |
+    /// | | | | асд | 0.813 |
+    ///
+    /// The left column is what the page is about. The right column is a word about mines, a fragment
+    /// of one, and three letters mashed on the keyboard — and *«асд» scores 0.813*, between a real
+    /// query about mines and a real query about a recipe. A single absolute cutoff cannot tell those
+    /// apart, and the reason is not subtle: the score carries an offset that has nothing to do with
+    /// the subject. A Cyrillic anything leans toward the page whose text has Cyrillic in it, a long
+    /// document has more passages and so more chances to hold one near anything, and a query gets
+    /// *lower* as words are added to it — «рецепт» 0.841, «рецепт риса с бараниной» 0.811, both about
+    /// the page they found.
+    ///
+    /// So the floor moves with the query instead:
+    ///
+    /// - **One word: 0.83.** A lone word being typed is a prefix until proven otherwise, and every
+    ///   fragment measured above lands at 0.81–0.823 while every real single word lands at 0.84 and
+    ///   up. This is the rule that stops «руд» from offering a recipe.
+    /// - **More than one: 0.80.** Words dilute the score, so the same bar would throw away the
+    ///   questions that are most clearly questions.
+    ///
+    /// `band` is the second rule, and it is not about the score at all: the rows after the first have
+    /// to be within this of the best, so a runner-up rides along only when it is nearly as close —
+    /// what happens when two saved pages really are about one thing, and not what happens when the
+    /// index is scraping. At 0.05 the runner-up came along every time, a different subject each time.
+    ///
+    /// Both are measured, not reasoned, and neither travels: re-run `SIX_PERSONAL_SELFTEST="one; two"`
+    /// against a real library before moving either.
+    private static let wordFloor = 0.83
+    private static let phraseFloor = 0.80
     private static let band = 0.02
 
     /// Searches for `input`, or clears the rows when there is nothing to search.
@@ -91,13 +104,15 @@ final class PersonalSuggestions {
             guard !Task.isCancelled else { return }
             let found = await store.search(query, in: scope, profileID: profileID, limit: Self.limit * 4)
             guard !Task.isCancelled else { return }
-            let terms = query.split(whereSeparator: \.isWhitespace).map { $0.lowercased() }.filter { $0.count >= 3 }
+            let words = query.split(whereSeparator: \.isWhitespace)
+            let floor = words.count > 1 ? Self.phraseFloor : Self.wordFloor
+            let terms = words.map { $0.lowercased() }.filter { $0.count >= 3 }
             // A page with every word of the query in its title, address or excerpt is offered
             // whatever the vectors think: the words being *there* is its own evidence, and a flat
             // 0.7 is all `BookmarkStore.search` gives a text match.
             let literal = found.filter { Self.containsEveryWord($0.bookmark, terms) }
             var near: [BookmarkHit] = []
-            if let best = found.first, best.score >= Self.floor {
+            if let best = found.first, best.score >= floor {
                 near = found.filter { $0.score >= best.score - Self.band }
             }
             var seen: Set<Bookmark.ID> = []

@@ -43,20 +43,54 @@ Three rules keep it out of the way:
 - **It waits longer than the engine does** — 240 ms rather than 140, and the query in flight is cancelled by the next
   keystroke, because here a keystroke costs a forward pass on the GPU rather than a request somebody else answers.
 - **It would rather show nothing.** A KNN always answers: the nearest page is still the nearest page when nothing is
-  near. So the best hit has to clear an absolute floor (0.80) and the rows after it have to be within 0.02 of the
-  best, or nothing is shown at all — with a page whose title or address literally contains every word of the query
-  let through regardless.
+  near. So the best hit has to clear a floor — **0.83 for a single word, 0.80 for more than one** — and the rows after
+  it have to be within 0.02 of the best, or nothing is shown at all. A page whose title or address literally contains
+  every word of the query is let through regardless, which is what makes `swi` offer the Swift page it is a prefix of.
 
-Those two numbers are measured rather than guessed, and `SIX_PERSONAL_SELFTEST="плов; rate limiting"` on launch is how
-they were measured: it prints, per query, everything the index answered with its score and then what the field would
-show. Against three saved pages the ranking was right for every real query — and *the score was worth nothing on its
-own*: «купить билеты в тбилиси», about nothing saved, scored 0.811 against the pilaf page, exactly what «рецепт риса с
-бараниной» scored against the same page. E5-small compresses similarity into a narrow band and shifts the whole band
-per query, which is why the cutoff is a floor *and* a distance from the best rather than a single threshold. Re-run it
-against a real library before touching either number.
+### The floor moves with the query, and here is why
+
+`SIX_PERSONAL_SELFTEST="плов; руд"` on launch prints, per query, everything the index answered with its score and then
+what the field would show. Against three saved pages — one of them an English Wikipedia article about pilaf — every
+score below is against *that* page:
+
+| typed | best | | typed | best |
+|---|---|---|---|---|
+| плов | **0.843** | | руд | 0.821 |
+| рецепт | **0.841** | | рудник | 0.823 |
+| pilaf | **0.907** | | рудники урала | 0.812 |
+| рецепт риса с бараниной | **0.811** | | пло | 0.819 |
+| ограничение частоты запросов | **0.830** | | асд | 0.813 |
+
+The left column is what the page is about. The right column is a word about mines, a fragment of one, and three
+letters mashed on the keyboard — and **«асд» scores 0.813**, between a real query about mines and a real query about a
+recipe. The ranking inside a query is right every time; the number across queries carries an offset that has nothing
+to do with the subject. Cyrillic anything leans toward the page whose text has Cyrillic in it; a long document has more
+passages and so more chances to hold one near anything; and a query's score *falls* as words are added — «рецепт»
+0.841, «рецепт риса с бараниной» 0.811, both about the page they found.
+
+Hence two floors rather than one. A lone word is a prefix until proven otherwise — that is what somebody typing looks
+like — and every fragment measured lands at 0.81–0.823 while every real single word lands at 0.84 and up, so 0.83
+separates them and «руд» offers nothing. Adding words dilutes the score, so a phrase is held to 0.80 instead.
+
+What survives: nothing at all for `руд`, `рудн`, `рудник`, `пло`, `рец`, `асд`, «квантовая гравитация», «погода в
+москве завтра»; the right page and only the right page for «плов», «рецепт», `pilaf`, `swift`, `rate limiting`,
+`data race`, «ограничение частоты запросов», «рецепт риса с бараниной». Two queries still miss — «рудники урала» and
+«купить билеты в тбилиси» both score 0.812 against the pilaf page, which is what a true query scores, and no threshold
+can separate those. That is the residue, and it is one row under a phrase somebody meant to type rather than a row
+under a half-typed word.
+
+Both numbers are measured, not reasoned, and neither travels. Re-run the self-test against a real library before
+moving either.
 
 A **private window searches nothing of yours**: the star is disabled there, no page is saved from there, and a field
 that answered with your bookmarks would hand back the one thing that window was opened to leave behind.
+
+## The field does not move
+
+The name and the field hang from a fixed point — a third of the way down the window — rather than being centred with
+the list. Centred, every row that arrived (and the engine's arrive a moment after the local ones) changed the stack's
+height and moved the field upward under the caret. Only the list may grow, and it grows downward into the empty half
+of the page. In a window too short to hold both, the top inset gives way first, so the last row stays on screen.
 
 ## Suggestions
 
