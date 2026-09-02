@@ -13,6 +13,13 @@ const {lang} = useData()
 const legend = computed(() => lang.value.startsWith('ru')
     ? 'одна строка сверху · окно — это страница · вбок по ленте · вверх-вниз по рабочим столам'
     : 'one bar at the top · a window is a page · sideways along the rail · up and down through workspaces')
+
+// The debt is to the layout, so the credit stands under the drawing of it
+// rather than in the prose. `target`/`rel` by hand: markdown links get them
+// from VitePress, raw markup in a component does not.
+const credit = computed(() => lang.value.startsWith('ru')
+    ? 'Раскладка вдохновлена'
+    : 'Layout inspired by')
 </script>
 
 <template>
@@ -50,6 +57,10 @@ const legend = computed(() => lang.value.startsWith('ru')
             </div>
         </div>
         <p class="rail-legend">{{ legend }}</p>
+        <p class="rail-credit">
+            {{ credit }}
+            <a href="https://github.com/YaLTeR/niri" target="_blank" rel="noreferrer">niri</a>
+        </p>
     </div>
 </template>
 

@@ -364,6 +364,22 @@
     color: var(--vp-c-text-3);
 }
 
+/* Where the shape came from, under the drawing of it. */
+.rail-credit {
+    margin: 10px 0 0;
+    font-size: 14px;
+    color: var(--vp-c-text-2);
+}
+
+.rail-credit a {
+    color: var(--vp-c-brand-1);
+    text-underline-offset: 3px;
+}
+
+.rail-credit a:hover {
+    text-decoration: underline;
+}
+
 @media (max-width: 640px) {
     .rail-strip {
         height: 126px;
