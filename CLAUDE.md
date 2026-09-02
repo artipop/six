@@ -95,21 +95,94 @@ MCP server instead — that is what it is for:
 `open_window` with a `six://` address, `list_workspaces`, `get_page_content`, `evaluate_javascript`,
 `list_console_messages`, `take_screenshot` (only for windows with a real `WebPage`). See [docs/mcp.md](docs/mcp.md).
 
+## Three fronts, one dependency graph
+
+This is where the repository bites most often: a version moves in one place and a *different* front stops building.
+Read this before touching any manifest, `Package.resolved`, or the `sources:` list.
+
+**There are three resolved graphs, and they are not independent.**
+
+| file | resolves for | the constraint on it |
+|---|---|---|
+| `six.xcodeproj/…/swiftpm/Package.resolved` | the Mac and iOS app | the leader — the app's graph moves first |
+| `Package.resolved` (root) | `SixCore` + its tests, on **both** platforms | seeded from the app's, plus the Linux-only pins |
+| `linux/Package.resolved` | the GTK front, which depends on the root by path | must agree with the root on the shared subset |
+
+They must agree on **GRDB, sqlite-data, swift-structured-queries** above all, because a database written by one build
+is opened by the other — a schema written by GRDB 7.11 and read by another version is the one failure that costs data
+rather than time. They currently sit at GRDB 7.11.1 / sqlite-data 1.11.0 / structured-queries 0.37.0 everywhere.
+
+**Why the pins are frozen, in three sentences.** sqlite-data 1.11.0 does not compile against structured-queries 0.38,
+so a free resolve picks a set that builds nowhere. swift-sharing 2.10.0 imports `Foundation.NSData` — a Clang
+submodule that does not exist on Linux — and combine-schedulers 1.2.1 uses `pthread_mutex_t` without importing
+CoreFoundation; both arrive through SQLiteData, which depends on Sharing unconditionally even though six uses none of
+it. Both are regressions, both are written up with repros in [UPSTREAM.md](UPSTREAM.md), and until they are fixed
+upstream the only defence is the pin.
+
+**So: `swift package update` is a Linux-breaking command in this repo.** So is a plain `swift build` or `swift test` —
+they resolve first, and a resolve *on macOS* silently rewrites the root file: the `originHash` changes, the Linux-only
+`opencombine` pin (which only Linux pulls in, through swift-sharing) is dropped, and `swift-issue-reporting` appears
+in its place. Pass `--disable-automatic-resolution` to **every** `swift build` / `swift test` here — even
+`swift test --help` triggers the rewrite. `--skip-update` is not the same flag; it still writes.
+
+**How to spot the damage**, since nothing fails at the time:
+
+```sh
+git diff Package.resolved     # a -opencombine hunk and a changed originHash mean a resolve ran
+git checkout -- Package.resolved
+```
+
+The committed state is the one with `opencombine` (last written by `04e3e70`). This has flip-flopped in history —
+`25da59a` committed the macOS shape, `ae4ca3a` put `opencombine` back — so if the file is dirty and nobody claims it,
+it is a stray resolve and the answer is `git checkout`, not a commit.
+
+**When a version genuinely has to move** — a real upgrade, not an accident:
+
+1. Move the **app's** graph first, in Xcode, and build both Apple schemes.
+2. Reconcile the root file to the app's versions by hand for the shared packages; keep `opencombine`.
+3. Prove `SixCore` still builds on **Linux** before committing — that is the only step that catches Linux-only
+   breakage, and it has already caught one (`URLSession` and `HTTPURLResponse` live in `FoundationNetworking` there,
+   which nothing on macOS can tell you):
+
+```sh
+container run --rm --memory 4g -v "$PWD:/work" -w /work docker.io/library/swift:6.3.3-noble \
+  bash -c 'apt-get update -qq && apt-get install -y -qq --no-install-recommends libsqlite3-dev >/dev/null \
+           && swift build --disable-automatic-resolution --scratch-path /tmp/linuxbuild -j 2'
+```
+
+The plain toolchain image has **no `libsqlite3-dev`**, so GRDB dies on `'sqlite3.h' file not found` before `SixCore`
+is reached; and `container run` defaults to 1024 MB, at which the build stalls around 120/453 with no error and no
+progress for as long as you leave it. With `--memory 4g -j 2` it is about three minutes.
+
+**The other direction — breaking the Mac from the Linux side.** The root `Package.swift` is compiled on both, so
+anything added there has to exist on both:
+
+- **No sqlite-vec in the root manifest.** Its `CSQLiteVec` reads the system SQLite headers while adwaita-swift's
+  `meta-sqlite` vendors its own, and Clang refuses two definitions of `sqlite3_api_routines` in one compilation unit.
+  `AppDatabase` asks for it with `#if canImport(…)` so the app keeps vectors and the Linux build does without. The
+  same reason keeps `SixBrowser` free of Adwaita in `linux/Package.swift` — the seam is enforced by the compiler, not
+  by discipline.
+- **A file joins `SixCore` by being listed in `sources:`** — and from that moment it is compiled on Linux. Anything
+  Apple in it needs `#if canImport(WebKit)` / `#if os(macOS)`, and networking needs
+  `#if canImport(FoundationNetworking) import FoundationNetworking`.
+- **Editing the root `Package.swift` does not reach the Linux build.** llbuild caches the whole build description and
+  a path-dependency manifest edit does not bump its key: `swift build` reports "Build complete!" in a tenth of a
+  second and never compiles the file that was added. `rm -f <scratch-path>/build.db` after any manifest edit.
+- **WebKitGTK cannot be brewed on the Mac** — `depends_on :linux`, and brew's formula is GTK3 / WebKitGTK 4.1 anyway,
+  while six needs the GTK 4 `webkitgtk-6.0` API. The Linux front stays in the container; the full checked list is in
+  [docs/linux.md](docs/linux.md#why-the-container-and-not-homebrew-on-the-mac) so it does not get retried every few
+  months.
+- **The container tracks GNOME, not convenience.** adwaita-swift's `main` follows GNOME 50, so `linux/Containerfile`
+  is Ubuntu 26.04 (GTK 4.22): on 24.04 adwaita's own C shim will not compile, on 25.10
+  `gtk_picture_set_isolate_contents` is still missing. adwaita-swift itself is pinned to a **commit**, because its
+  only tag does not build on Linux. Moving any of those three is a deliberate act with a rebuild behind it.
+
 ## Things that have cost hours
 
 - **The SDK override is load-bearing.** The target sets `SDKROOT` to the *Command Line Tools* macOS 27 SDK because
   Xcode's own SDK has an older Foundation Models executor ABI than the OS and crashes third-party `LanguageModel`s on
   launch. That is also why `six/Vendor/` exists: a SwiftPM target would ignore the override. Don't move those back to
   packages until Xcode's SDK matches.
-- **`Package.resolved` is frozen on purpose**, seeded from the app's own graph. `swift package update` is a
-  Linux-breaking command here (see [UPSTREAM.md](UPSTREAM.md)), and a plain `swift build`/`swift test` rewrites the
-  file. If one slipped through: `git checkout -- Package.resolved`.
-- **Linux build plans are cached.** Editing the root `Package.swift` does not invalidate llbuild's description —
-  `swift build` says "Build complete!" in 0.1 s and never compiles the added file. `rm -f <scratch>/build.db` first.
-  To prove `SixCore` still builds on Linux without the whole GTK front: the plain `swift:6.3.3-noble` image needs
-  `libsqlite3-dev` and `--memory 4g`, or it stalls silently around 120/453.
-- **WebKitGTK cannot be brewed on macOS** (`depends_on :linux`, and brew's build is GTK3/4.1 anyway). The Linux front
-  stays in the container. [docs/linux.md](docs/linux.md) has the full checked list.
 - **`WebPage.callJavaScript` is not `callAsyncJavaScript`** — an `await` in the body fails at parse time with a bare
   "A JavaScript exception occurred". Page scripts stay synchronous; poll from Swift for anything that must wait.
 - **sqlite-vec on Apple's SQLite** works only per connection (`sqlite3_vec_init` from GRDB's `prepareDatabase`);
