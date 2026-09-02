@@ -214,7 +214,9 @@ anything added there has to exist on both:
 - **Commit when asked ("закомить"), never push unless asked.** Work lands on `main` unless a branch was requested.
 - **Other Claude sessions edit this repo at the same time.** Check `git status` before committing and stage only your
   own files; an unexpected diff is usually another session's work in progress (or Xcode re-sorting `project.pbxproj`),
-  not something to revert.
+  not something to revert. Ask the session rather than guessing — a source file under someone's hand looks exactly
+  like debris. `Package.resolved` is the **one exception**: nobody edits it deliberately, so an unclaimed diff there
+  is a stray resolve and gets reverted (above).
 - **Commit messages are prose.** A sentence for the title — what changed, in the voice of the thing that changed
   ("The window that was closed comes back where it stood") — and a body that explains the why, the measurement, and
   what was left honest. No conventional-commits prefixes. Quotes in the subject break the shell; commit via
