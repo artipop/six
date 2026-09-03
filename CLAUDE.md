@@ -70,6 +70,14 @@ Details, and the SDK override, in [docs/build.md](docs/build.md).
 
 ### The Linux front
 
+**Run it only when the work is about Linux, and say so before starting one.** The container is the heaviest thing
+this machine does: a cold `six-linux.sh core` is **17 minutes** at 4 GB on a Mac that has 8, and everything else on
+the desktop swaps for the duration — the three-minute figure below is a *warm* scratch path. A Swift change that
+compiles on the Mac does not need proving on Linux unless it touches something the two platforms spell differently:
+`Foundation` against `FoundationNetworking`, paths, processes, threads, a manifest, or a pin. Those are the cases,
+plus a version move ([above](#three-fronts-one-dependency-graph)). Everything else waits for a session that is about
+the Linux front, and `swift build --disable-automatic-resolution` on the Mac is the check in the meantime.
+
 It is built and run **in a container** — never on the Mac, and `swift build --package-path linux` on macOS cannot
 work, because `CWebKitGTK` has no `webkitgtk-6.0` to resolve against. Apple's own `container` CLI runs it natively on
 Apple Silicon, and the system service has to be up first (`container system start`).
@@ -246,7 +254,8 @@ container run --rm --memory 4g -v "$PWD:/work" -w /work docker.io/library/swift:
 
 The plain toolchain image has **no `libsqlite3-dev`**, so GRDB dies on `'sqlite3.h' file not found` before `SixCore`
 is reached; and `container run` defaults to 1024 MB, at which the build stalls around 120/453 with no error and no
-progress for as long as you leave it. With `--memory 4g -j 2` it is about three minutes.
+progress for as long as you leave it. With `--memory 4g -j 2` it is three minutes onto a warm scratch path and
+seventeen onto a cold one — which is why this is the version-move check and not a habit ([above](#the-linux-front)).
 
 **The other direction — breaking the Mac from the Linux side.** The root `Package.swift` is compiled on both, so
 anything added there has to exist on both:
@@ -280,6 +289,15 @@ anything added there has to exist on both:
   Xcode's own SDK has an older Foundation Models executor ABI than the OS and crashes third-party `LanguageModel`s on
   launch. That is also why `six/Vendor/` exists: a SwiftPM target would ignore the override. Don't move those back to
   packages until Xcode's SDK matches.
+- **The app target compiles main-actor-by-default** (`SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`), so anything that
+  does not say `nonisolated` is on the main actor — and the compiler complains at the *reader*, not at the
+  declaration: a `static let` holding a path becomes a warning inside the detached save three files away. Say
+  `nonisolated` as the code is written, on what is read off the main actor — pure value work (paths, hashing, wire
+  decoding, an extension on `Data` or `Color`), the constants a background closure reads, and every top-level
+  declaration of a vendored tree, which was written for a package where nothing is isolated unless it says so. And a
+  non-Sendable value cannot cross an isolation line at all: `MainActor.assumeIsolated` handing back an `NSEvent` is a
+  warning, handing back the verdict about it is not. Eighty-seven of these had accumulated by `09dd84c`; a build that
+  prints nothing is the state worth keeping, because a build that prints eighty-seven is one nobody reads.
 - **`WebPage.callJavaScript` is not `callAsyncJavaScript`** — an `await` in the body fails at parse time with a bare
   "A JavaScript exception occurred". Page scripts stay synchronous; poll from Swift for anything that must wait.
 - **sqlite-vec on Apple's SQLite** works only per connection (`sqlite3_vec_init` from GRDB's `prepareDatabase`);
