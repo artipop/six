@@ -278,6 +278,7 @@ private struct PhoneColumn: View {
         } else if let live = tab.livePage {
             WebView(live)
                 .webViewBackForwardNavigationGestures(.enabled)
+                .webViewElementFullscreenBehavior(.enabled)
                 .id(tab.generation)
                 .onAppear(perform: tab.resumeIfNeeded)
         } else {

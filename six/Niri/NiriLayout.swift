@@ -51,7 +51,9 @@ nonisolated struct NiriWorkspace: Identifiable, Sendable, Codable {
 /// There was a third — a fullscreen that took the top bar too and gave the page every edge, with a
 /// bar of its own hiding at the top. It went: it was a second answer to the question full width
 /// already answers, it cost the address field and the only way back was a key or a pointer thrown at
-/// the top of the screen. A page's own `requestFullscreen` is untouched — that one is WebKit's.
+/// the top of the screen. A page's own `requestFullscreen` is a separate thing, and not a free one:
+/// WebKit hands it out only if the view asked for it (`webViewElementFullscreenBehavior`), which is
+/// what the rail's `WebView` does.
 nonisolated enum NiriFill: String, Sendable, Codable {
     /// The rail as usual: the gaps, and a window as wide as the screen leaves room for.
     case tiled

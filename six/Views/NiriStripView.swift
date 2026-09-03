@@ -463,6 +463,11 @@ private struct ColumnView: View {
                 // again is showing a different `WebPage`, and the view has to be built again with it.
                 WebView(page)
                     .webViewBackForwardNavigationGestures(.enabled)
+                    // A video asking for the whole screen gets it. WebKit's default here is
+                    // `.automatic`, which on macOS means off — the same default `WKPreferences`
+                    // has always had, and the reason the fullscreen button on YouTube did nothing
+                    // at all. The window WebKit opens for it is already known to the key router.
+                    .webViewElementFullscreenBehavior(.enabled)
                     .pageContextMenu(for: tab, in: browser)
                     .id(tab.generation)
                     .onAppear(perform: tab.resumeIfNeeded)

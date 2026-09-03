@@ -143,8 +143,9 @@ deliberately does **not** leave it: that is ordinary reading, where a page's own
 A *fullscreen* that took the top bar with it and gave back only a band of a bar
 hiding at the top edge. It is gone: it was a second answer to the question full
 width already answers — the difference between them is one 40-point bar — and it
-cost the address field. macOS fullscreen via the green button and a video
-player's own fullscreen are untouched and work as they always did.
+cost the address field. macOS fullscreen via the green button still does what
+people actually want from the word, and a video player's own fullscreen button
+now works too — it had been quietly refused before.
 :::
 
 ## The overview

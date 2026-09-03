@@ -241,8 +241,15 @@ every edge, with a bar of its own hiding at the top of the screen and `⎋` to l
 went with it — the mode, `⌥⇧F`, `showsFullscreen`, `FullscreenBar`, `exitFullscreen`. It was a second answer to the
 question full width already answers, the difference between the two being one 40-point bar; it cost the address
 field, and the only ways back were a key and a pointer thrown at the top of the screen. macOS fullscreen (the green
-button) still does the thing people actually want from the word, and a page's own `requestFullscreen` is WebKit's and
-untouched.
+button) still does the thing people actually want from the word.
+
+A page's own `requestFullscreen` — the button in a video player — is a third thing again, and the one place where
+WebKit does not do it for you. `WebView.ElementFullscreenBehavior` defaults to `.automatic`, which on macOS means
+*off*: the same default `WKPreferences.isElementFullscreenEnabled` has always had, the one Safari sets for itself.
+Left alone, `video.requestFullscreen()` is rejected and the player's button does nothing at all — no error, no
+window, nothing to see. The rail's `WebView` says `.webViewElementFullscreenBehavior(.enabled)`, and so does the
+phone strip's. What WebKit then opens is a window of its own, with its own `⎋`; `KeyEvents` already knows to keep
+its hands off it, by the class name.
 
 Full width is `NiriFill.window` on the layout — a mode, not per-window state. `fillsViewport` is what the geometry
 asks, and it is false while the overview is open, so the overview keeps its gaps and title bars and the mode returns
