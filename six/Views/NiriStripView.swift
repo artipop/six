@@ -51,6 +51,7 @@ struct NiriStripView: View {
         .background(StripBackground())
         .clipped()
         .overlay { StripEdgeButtons() }
+        .overlay { StripWalls() }
         .overlay(alignment: .bottom) { OverviewHint() }
         .contextMenu { StripMenu() }
         .onAppear(perform: startMonitor)
@@ -68,21 +69,12 @@ struct NiriStripView: View {
         monitor.modifierOptional = { layout.isOverview }
         monitor.onStepWorkspace = { browser.focusWorkspace($0) }
         monitor.onStepColumn = { browser.focusColumn($0) }
-        monitor.onPreview = { preview in
-            if preview == 0 {
-                withAnimation(NiriLayout.switchAnimation) { layout.verticalPreview = 0 }
-            } else {
-                layout.verticalPreview = preview
-            }
-        }
+        // The rubber band belongs to the layout, not to the view: how far it gives, and what it means
+        // when there is nothing behind the edge being pushed (`NiriLayout.previewColumn`), is the same
+        // sentence on both front ends.
+        monitor.onPreview = { layout.previewWorkspace($0) }
         monitor.snapsHorizontally = { layout.centersFocus && !layout.isOverview }
-        monitor.onPreviewColumn = { preview in
-            if preview == 0 {
-                withAnimation(NiriLayout.switchAnimation) { layout.horizontalPreview = 0 }
-            } else {
-                layout.horizontalPreview = preview
-            }
-        }
+        monitor.onPreviewColumn = { layout.previewColumn($0) }
         monitor.onPan = { browser.panStrip(by: $0) }
         monitor.onPanEnded = { browser.endStripPan() }
         monitor.onEscape = {
@@ -874,6 +866,85 @@ struct ColumnMenu: View {
         Button("Move Right") { browser.selectTab(tab.id); browser.moveColumn(1) }
         Button("Move to Workspace Above") { browser.selectTab(tab.id); browser.moveColumnToWorkspace(-1) }
         Button("Move to Workspace Below") { browser.selectTab(tab.id); browser.moveColumnToWorkspace(1) }
+    }
+}
+
+/// The light along an edge the rail was pushed into with nothing behind it (`NiriLayout.hitWall`).
+///
+/// It is the answer to a gesture that changed nothing, so it has to be visible without being an
+/// event: a rail that flashed a bar of colour every time you reached its end would be a rail that
+/// scolds. What is drawn is a band of the profile's own colour lying along that edge, brightest
+/// against it and gone within a fraction of the screen — the light a wall would catch, not a wall
+/// drawn on the screen. It fades out towards both corners for the same reason: a band that ran the
+/// full height, corner to corner, would read as a border the window had grown.
+///
+/// The depth is a fraction of the viewport like everything else here, and the brightness is the
+/// layout's (`wallGlow`) — a push held by a finger keeps it lit for as long as it is held, a refused
+/// step lights it once and lets it go.
+private struct StripWalls: View {
+    @Environment(BrowserState.self) private var browser
+
+    var body: some View {
+        let layout = browser.layout
+        if let edge = layout.wall, layout.wallGlow > 0.005 {
+            GeometryReader { proxy in
+                band(edge, glow: layout.wallGlow, in: proxy.size)
+            }
+            .allowsHitTesting(false)
+        }
+    }
+
+    private func band(_ edge: NiriEdge, glow: CGFloat, in size: CGSize) -> some View {
+        let sideways = edge == .leading || edge == .trailing
+        let depth = max(30, (sideways ? size.width : size.height) * 0.055)
+        let accent = browser.selectedProfile.color
+        let stops: [Gradient.Stop] = [
+            .init(color: accent.opacity(0.5 * glow), location: 0),
+            .init(color: accent.opacity(0.14 * glow), location: 0.4),
+            .init(color: accent.opacity(0), location: 1)
+        ]
+        return Rectangle()
+            .fill(LinearGradient(stops: stops, startPoint: from(edge), endPoint: to(edge)))
+            .frame(width: sideways ? depth : nil, height: sideways ? nil : depth)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment(edge))
+            // Softest at the corners: the light is on the edge the gesture pushed into, and the
+            // corners belong to the two edges it did not.
+            .mask {
+                LinearGradient(stops: [
+                    .init(color: .clear, location: 0),
+                    .init(color: .white, location: 0.16),
+                    .init(color: .white, location: 0.84),
+                    .init(color: .clear, location: 1)
+                ], startPoint: sideways ? .top : .leading, endPoint: sideways ? .bottom : .trailing)
+            }
+    }
+
+    private func alignment(_ edge: NiriEdge) -> Alignment {
+        switch edge {
+        case .leading: .leading
+        case .trailing: .trailing
+        case .above: .top
+        case .below: .bottom
+        }
+    }
+
+    /// The gradient runs *from* the edge that was pushed into, inwards.
+    private func from(_ edge: NiriEdge) -> UnitPoint {
+        switch edge {
+        case .leading: .leading
+        case .trailing: .trailing
+        case .above: .top
+        case .below: .bottom
+        }
+    }
+
+    private func to(_ edge: NiriEdge) -> UnitPoint {
+        switch edge {
+        case .leading: .trailing
+        case .trailing: .leading
+        case .above: .bottom
+        case .below: .top
+        }
     }
 }
 

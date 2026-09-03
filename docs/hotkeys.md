@@ -26,6 +26,10 @@ while the caret is in one of six's own, `⌥` and an arrow is word and paragraph
 | `⌥` + vertical scroll | one workspace per gesture |
 | `⌥` + horizontal scroll | one window per gesture while centring is on; free panning with `⌥C` off |
 
+Where the rail runs out, the gesture is answered rather than ignored: the edge pushed into lights up
+in the profile's colour and the rubber band gives less, and nothing moves, because there is nothing
+that way ([layout.md](layout.md#the-ends-of-the-rail)).
+
 ## Browser (`⌘`)
 
 | | |

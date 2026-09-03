@@ -247,6 +247,75 @@ struct NiriLayoutGestureTests {
         #expect(layout.arrangement(workspaceAt: 0).map(\.tabID) == ids)
     }
 
+    // MARK: The end of the rail
+
+    /// A step that had nowhere to go is answered by the edge it was aimed at. The rail does not move
+    /// — that is the whole point of the light — and the edge that lights is the one that was pushed.
+    @Test func aStepWithNowhereToGoLightsThatEdge() {
+        let layout = layout()
+        let ids = fill(layout, 3) // focus on the last
+
+        layout.focusColumn(1)
+        #expect(layout.wall == .trailing)
+        #expect(layout.wallGlow == 1)
+        #expect(layout.focusedTabID == ids[2]) // and nothing moved
+
+        layout.focusColumnEdge(last: false)
+        layout.focusColumn(-1)
+        #expect(layout.wall == .leading)
+        #expect(layout.focusedTabID == ids[0])
+    }
+
+    /// A step that lands says nothing. The light is for the gesture that changed nothing, and a rail
+    /// that lit up on every step would be a rail saying it about all of them.
+    @Test func aStepThatLandsLightsNothing() {
+        let layout = layout()
+        fill(layout, 3)
+        layout.focusColumn(-1)
+        #expect(layout.wallGlow == 0)
+    }
+
+    /// The vertical stack has two ends of its own: nothing above the first workspace, and nothing
+    /// below the empty one niri keeps at the bottom.
+    @Test func theStackHasWallsToo() {
+        let layout = layout()
+        fill(layout, 1)
+        layout.focusWorkspace(-1)
+        #expect(layout.wall == .above)
+        #expect(layout.wallGlow == 1)
+
+        // The one below exists — niri keeps an empty workspace at the bottom — so that step lands.
+        // (The light from the refused one is still fading; it is a beat of time, not a state, and
+        // nothing that lands has to put it out.)
+        layout.focusWorkspace(1)
+        layout.focusWorkspace(1) // and there is nothing under that one
+        #expect(layout.wall == .below)
+        #expect(layout.wallGlow == 1)
+    }
+
+    /// The rubber band gives less where there is nothing behind it, and the light rises with the
+    /// push — the two halves of the same sentence, so a front end drawing one draws the other.
+    @Test func theBandGivesLessAtTheEndOfTheRail() {
+        let layout = layout()
+        fill(layout, 2) // focus on the last: the far end is a wall, the near end is a window
+
+        layout.previewColumn(-10) // leaning towards the far end, where there is nothing
+        #expect(layout.wall == .trailing)
+        #expect(abs(layout.wallGlow - 10 / NiriLayout.wallPush) < 0.001)
+        #expect(abs(layout.horizontalPreview - -10 * NiriLayout.wallResistance) < 0.001)
+
+        layout.previewColumn(10) // and back towards the window that is there
+        #expect(layout.horizontalPreview == 10)
+        #expect(layout.wallGlow == 0)
+
+        layout.previewColumn(-1000) // however hard it is pushed, the light is lit and no more
+        #expect(layout.wallGlow == 1)
+
+        layout.previewColumn(0) // the gesture ends: the band and the light both let go
+        #expect(layout.horizontalPreview == 0)
+        #expect(layout.wallGlow == 0)
+    }
+
     /// Only in the overview: in the strip a window is a page being read, and a drag on it belongs to
     /// the page.
     @Test func aWindowIsOnlyPickedUpInTheOverview() {

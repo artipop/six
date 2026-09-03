@@ -109,6 +109,34 @@ release focus snaps to the column nearest the middle and scrolls it fully into v
 
 Tuning lives at the top of the file: `threshold` (55 pt), `minimumCommitInterval` (0.28 s), `idleReset` (0.25 s).
 
+## The ends of the rail
+
+A rail is finite in both directions and a stack of workspaces is finite in one, so every gesture that
+walks them has a way of asking for something that is not there. It used to be answered with nothing at
+all: the strip did not move, the key gave nothing back, and the honest reading of that is *the gesture
+was lost*, not *there is nothing that way*.
+
+`NiriLayout` answers instead. The edge that was pushed into lights up — `wall` says which of the four
+it is, `wallGlow` how brightly (0…1) — and the rail still does not move, because that is the thing
+being said. Two ways in:
+
+- **`hitWall(edge)`** — a step that had nowhere to go (`focusColumn`, `focusWorkspace`). Full
+  brightness, held for a beat, then half a second of fading.
+- **`pushWall(edge, by:)`** — a gesture leaning on that edge, from `previewColumn` / `previewWorkspace`
+  and from a free pan that clamped. The light follows the finger and lets go with it, un-animated,
+  because it *is* the finger's position; it reaches full at `wallPush` (19 pt — `threshold` through
+  the rubber band's 0.35, which is the whole travel a gesture has before it commits).
+
+The rubber band gives less at a wall, too: `wallResistance` (0.4) of what it would give where there is
+a window behind the edge. That is the other half of the sentence, and the half a hand feels rather
+than sees. Both live in the model rather than in the view, so a second front end draws the same
+answer — [linux.md](linux.md).
+
+Deliberately not a bounce and not a sound. A bounce is the rail moving, and the one thing that has to
+stay true here is that it did not. The drawing is `StripWalls` in `NiriStripView`: a band of the
+profile's colour along that edge, 5.5 % of the viewport deep, fading out towards both corners so it
+reads as light caught on an edge rather than as a border the window grew.
+
 ## Clicking
 
 A window that isn't focused is a target, not a page: the first click flies to it (and centres it) instead of reaching

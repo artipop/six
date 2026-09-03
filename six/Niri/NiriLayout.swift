@@ -66,6 +66,16 @@ nonisolated enum NiriPlacement: Sendable {
     case right
 }
 
+/// A side of the canvas, as the rail feels it when there is nothing behind it. Named for the
+/// gesture rather than for the screen: `leading` is the end of the rail you scroll back towards,
+/// `above` the workspace you scroll up to.
+nonisolated enum NiriEdge: Sendable {
+    case leading
+    case trailing
+    case above
+    case below
+}
+
 /// A window being carried across the overview: where it was picked up, how far the pointer has
 /// travelled, and where it would land if it were let go now.
 ///
@@ -123,6 +133,15 @@ final class NiriLayout {
     /// Deliberately slower than a layout step: nothing has happened yet. The strip is leaning over to
     /// show what *would* happen, and at the speed of a step that reads as the thing itself.
     static let peekAnimation: Animation = .smooth(duration: 0.55)
+    /// How far a gesture has to push at an end of the rail for the wall to be fully lit — in points,
+    /// like the threshold that produces it, because this is a measure of a finger and not of a
+    /// screen: it is `NiriScrollMonitor.threshold` (55) through the rubber band's 0.35, the whole
+    /// travel a gesture has before it commits. Everything the wall *draws* is a fraction of the
+    /// viewport again; only the push that lights it is a hand's distance.
+    static let wallPush: CGFloat = 19
+    /// What is left of the rubber band at an end of the rail. A band that gives as freely where there
+    /// is nothing behind it as where there is a window says the same thing about both.
+    static let wallResistance: CGFloat = 0.4
 
     /// `SIX_UI_DEBUG=1`: what the layout was asked to do, and what it thought it was doing. A gesture
     /// that does nothing is either not arriving or not meaning what it looks like, and this says which.
@@ -154,7 +173,12 @@ final class NiriLayout {
     var edgeHover = 0
     /// A window being carried across the overview, or `nil`. See `NiriColumnDrag`.
     var columnDrag: NiriColumnDrag?
+    /// The side the rail was last pushed into with nothing behind it, and how brightly it is lit
+    /// (0…1). See `hitWall`.
+    private(set) var wall: NiriEdge?
+    private(set) var wallGlow: CGFloat = 0
     @ObservationIgnored private var peekTask: Task<Void, Never>?
+    @ObservationIgnored private var wallTask: Task<Void, Never>?
     /// The strip on screen. Switching to another profile shows a strip that was last laid out at
     /// whatever the viewport was then, so it gets put back under its focused window on the way in.
     var activeProfileID: UUID = UUID() {
@@ -475,6 +499,91 @@ final class NiriLayout {
         }
     }
 
+    // MARK: The end of the rail
+
+    /// The rail was asked to go where there is nothing, and the light along that edge is the whole
+    /// answer.
+    ///
+    /// A rail that simply refuses looks like a rail that did not hear: the strip does not move, the
+    /// key gives nothing back, and the honest reading is that the gesture was lost. Everything else
+    /// six does at an edge — the lean towards a window opening behind, the lean towards a hovered `+`
+    /// — says *there is something over there* by leaning that way. This is the other half of the
+    /// sentence, said the same way round: the edge you pushed into lights up, briefly, and nothing
+    /// moves, because nothing is there to move to.
+    ///
+    /// Deliberately not a sound and not a bounce. A bounce is the rail moving, and the one thing that
+    /// must stay true is that it did not.
+    func hitWall(_ edge: NiriEdge) {
+        wallTask?.cancel()
+        wall = edge
+        withAnimation(.smooth(duration: 0.12)) { wallGlow = 1 }
+        NiriLayout.trace("wall \(edge)")
+        wallTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(140))
+            guard !Task.isCancelled, let self else { return }
+            withAnimation(.smooth(duration: 0.5)) { self.wallGlow = 0 }
+        }
+    }
+
+    /// A gesture leaning on an edge with nothing behind it: the light follows the finger and lets go
+    /// with it, so pushing gently at the end of the rail says the same thing quietly. `nil` is the
+    /// gesture ending — or arriving somewhere there is a window after all.
+    func pushWall(_ edge: NiriEdge?, by amount: CGFloat) {
+        wallTask?.cancel()
+        wallTask = nil
+        guard let edge else {
+            guard wallGlow != 0 else { return }
+            withAnimation(NiriLayout.switchAnimation) { wallGlow = 0 }
+            return
+        }
+        wall = edge
+        // Un-animated on purpose: it is the finger's own position, and easing towards it would leave
+        // the light still rising after the hand has stopped.
+        wallGlow = min(1, abs(amount) / Self.wallPush)
+    }
+
+    /// Is there a window that way, or is that side a wall? The rubber band and the light both need
+    /// the same answer, and an empty row is a wall on both sides.
+    private func wallEdge(column delta: Int) -> NiriEdge? {
+        guard !canFocusColumn(delta) else { return nil }
+        return delta > 0 ? .trailing : .leading
+    }
+
+    private func wallEdge(workspace delta: Int) -> NiriEdge? {
+        guard !canFocusWorkspace(delta) else { return nil }
+        return delta > 0 ? .below : .above
+    }
+
+    /// The rubber band a horizontal gesture holds below the threshold, and what it means at the ends
+    /// of the rail. The view hands over the raw band and gets both: a band that gives less where
+    /// there is nothing behind it, and the light that says why.
+    ///
+    /// Sense as everywhere else here — the columns are drawn at `frame.minX - (offset - band)` — so a
+    /// negative band is the rail leaning towards its far end.
+    func previewColumn(_ amount: CGFloat) {
+        guard amount != 0 else {
+            pushWall(nil, by: 0)
+            withAnimation(NiriLayout.switchAnimation) { horizontalPreview = 0 }
+            return
+        }
+        let edge = wallEdge(column: amount < 0 ? 1 : -1)
+        pushWall(edge, by: amount)
+        horizontalPreview = edge == nil ? amount : amount * Self.wallResistance
+    }
+
+    /// The same for the vertical stack: one workspace per gesture, and a wall above the first row and
+    /// below the last.
+    func previewWorkspace(_ amount: CGFloat) {
+        guard amount != 0 else {
+            pushWall(nil, by: 0)
+            withAnimation(NiriLayout.switchAnimation) { verticalPreview = 0 }
+            return
+        }
+        let edge = wallEdge(workspace: amount < 0 ? 1 : -1)
+        pushWall(edge, by: amount)
+        verticalPreview = edge == nil ? amount : amount * Self.wallResistance
+    }
+
     // MARK: Looking ahead at what is off the edge
 
     /// How far the strip leans while an edge button is under the pointer: exactly as far as it leans
@@ -653,6 +762,10 @@ final class NiriLayout {
     }
 
     func focusColumn(_ delta: Int) {
+        // Asked for a window that is not there. The step is still clamped below — walking two columns
+        // from the second-to-last one lands on the last, as it always did — but a step with nowhere at
+        // all to go is answered by the edge it was aimed at rather than by silence.
+        if let edge = wallEdge(column: delta > 0 ? 1 : -1), delta != 0 { hitWall(edge) }
         mutate { s in
             guard s.workspaces.indices.contains(s.focus) else { return }
             var ws = s.workspaces[s.focus]
@@ -819,16 +932,25 @@ final class NiriLayout {
     /// in the middle.
     func panStrip(by delta: CGFloat) {
         guard !centersFocus || isOverview else { return }
+        var refused: CGFloat = 0
         mutate { s in
             guard s.workspaces.indices.contains(s.focus) else { return }
             var ws = s.workspaces[s.focus]
-            ws.viewOffset = clampOffset(ws.viewOffset + delta, in: ws)
+            let wanted = ws.viewOffset + delta
+            ws.viewOffset = clampOffset(wanted, in: ws)
+            // How much of the push the rail could not take. A free pan has no rubber band to give —
+            // the strip is under the fingers and stays where it is clamped — so what a wall has to
+            // show is the light, and it brightens with the part of the gesture that went nowhere.
+            refused = wanted - ws.viewOffset
             s.workspaces[s.focus] = ws
         }
+        guard refused != 0 else { return pushWall(nil, by: 0) }
+        pushWall(refused > 0 ? .trailing : .leading, by: refused)
     }
 
     /// After a pan, focus follows the view: the column nearest the middle of the screen wins.
     func snapFocusToView() {
+        pushWall(nil, by: 0) // the fingers are off the rail, so the wall stops being pushed
         mutate { s in
             guard s.workspaces.indices.contains(s.focus) else { return }
             var ws = s.workspaces[s.focus]
@@ -845,6 +967,7 @@ final class NiriLayout {
     // MARK: Workspaces
 
     func focusWorkspace(_ delta: Int) {
+        if let edge = wallEdge(workspace: delta > 0 ? 1 : -1), delta != 0 { hitWall(edge) }
         mutate { s in
             s.focus = min(max(0, s.focus + delta), s.workspaces.count - 1)
         }

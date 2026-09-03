@@ -20,6 +20,10 @@ equivalent](/en/layout#with-the-mouse-alone).
 | `⌥` + vertical scroll | one workspace per gesture |
 | `⌥` + horizontal scroll | one window per gesture |
 
+Where the rail has run out, the gesture is not lost in silence: the edge you
+pushed into lights up in the profile's colour, the rubber band stiffens, and
+nothing moves — because there is nothing that way.
+
 ## Browser
 
 | | |

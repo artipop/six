@@ -69,6 +69,15 @@ With `⌥` held the gestures work anywhere, the page included:
 | `⌥` + vertical scroll | one workspace per gesture. Below the threshold the next one rubber-bands into view; once the switch commits, the rest of the gesture (trackpad momentum included) is swallowed, so a flick never skips two |
 | `⌥` + horizontal scroll | one window per gesture while centring is on; with `⌥C` off, free panning |
 
+**Pushing into a wall.** The rail is finite in both directions, the stack of
+workspaces at the top and at the bottom. A gesture towards where there is nothing
+used to be answered with nothing at all: the rail did not move, and the honest
+reading of that is *the gesture got lost*. Now the edge you push into lights up
+in the profile's colour and the rubber band stiffens — and the rail still does
+not move, because that is exactly what is being said. The light fades on its own.
+There is no bounce and no sound: a bounce is the rail moving, and the one thing
+that has to stay true here is that it did not.
+
 **Right-click the background** — a new window, a document, workspaces, the
 overview, full width, settings. **Right-click a page ▸ This Window** — close,
 full width, move left/right, move to the workspace above/below.
