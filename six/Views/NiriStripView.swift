@@ -867,12 +867,23 @@ private struct StripWalls: View {
 
     var body: some View {
         let layout = browser.layout
-        if let edge = layout.wall, layout.wallGlow > 0.005 {
-            GeometryReader { proxy in
-                band(edge, glow: layout.wallGlow, in: proxy.size)
+        GeometryReader { proxy in
+            // All four edges are laid out, and the dark ones cost a transparent gradient each. One
+            // band that moved to whichever edge was lit would be *animated* from edge to edge, which
+            // is what it did: a rail with one window (or none) is a wall on both sides, so ⌥← then
+            // ⌥→ sent the light flying across the window like something being thrown. Which edge is
+            // lit is a fact about a gesture that has already happened, not a movement.
+            ZStack {
+                ForEach(NiriEdge.allCases, id: \.self) { edge in
+                    band(edge, glow: layout.wall == edge ? layout.wallGlow : 0, in: proxy.size)
+                }
             }
-            .allowsHitTesting(false)
         }
+        .allowsHitTesting(false)
+        // The brightness eases, the *place* never does: changing edges puts one out where it stands
+        // and lights the other where it stands, in the same frame. Without this the swap inherits
+        // whatever animation the step that caused it is running under — a layout step, 0.34s of it.
+        .animation(nil, value: layout.wall)
     }
 
     private func band(_ edge: NiriEdge, glow: CGFloat, in size: CGSize) -> some View {

@@ -122,12 +122,33 @@ enum KeySelfTest {
             ("⌥↓", .option, .downArrow),
             ("⌥↑", .option, .upArrow),
             ("⌥W", .option, .w),
+            ("⌥W (back)", .option, .w),
             ("⌥O", .option, .o),
             ("⌥O", .option, .o)
         ] {
             post(flags: flags, code: code, in: window)
             try? await Task.sleep(for: .milliseconds(350))
             note("\(name) → \(rail(browser))")
+        }
+
+        // The ends of the rail, where a step has nowhere to go and the edge lights instead
+        // (`NiriLayout.hitWall`). The empty workspace at the bottom is the sharpest case and the one
+        // that was reported: a rail with nothing on it is a wall on *both* sides, so ⌥← and ⌥→ in
+        // turn light one edge and then the other, and the light must not travel between them.
+        for (name, flags, code) in [
+            ("⌥↓ (to the empty one)", NSEvent.ModifierFlags.option, KeyCode.downArrow),
+            ("⌥←", .option, .leftArrow),
+            ("⌥→", .option, .rightArrow),
+            ("⌥←", .option, .leftArrow),
+            ("⌥↑ (back)", .option, .upArrow)
+        ] {
+            post(flags: flags, code: code, in: window)
+            // Read while the flash is still lit. `wallGlow` is set to 1 and then to 0 by a task a
+            // beat later — SwiftUI interpolates what is *drawn*, so the stored number is back to
+            // zero long before a step has finished settling, and a reading taken then says nothing.
+            try? await Task.sleep(for: .milliseconds(80))
+            note("\(name) → \(rail(browser))")
+            try? await Task.sleep(for: .milliseconds(300))
         }
     }
 
@@ -139,9 +160,13 @@ enum KeySelfTest {
             ? strip.workspaces[layout.focusedWorkspaceIndex] : nil
         let column = workspace.flatMap { $0.focusedColumn?.tabID }
         let position = workspace.flatMap { space in column.flatMap { id in space.columns.firstIndex { $0.tabID == id } } }
+        // The wall belongs here for the same reason the focus does: it is what the rail answered
+        // with, and on an end of the rail it is the *only* thing it answered with.
+        let wall = layout.wallGlow > 0.005 ? layout.wall.map { ", wall \($0) \(String(format: "%.2f", layout.wallGlow))" } : nil
         return "workspace \(layout.focusedWorkspaceIndex + 1)/\(strip.workspaces.count),"
             + " window \(position.map { $0 + 1 } ?? 0)/\(workspace?.columns.count ?? 0)"
             + ", fill \(layout.fill)\(layout.isOverview ? ", overview" : "")"
+            + (wall ?? "")
     }
 
     private static func post(flags: NSEvent.ModifierFlags, code: KeyCode, in window: NSWindow) {

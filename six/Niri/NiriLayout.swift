@@ -88,7 +88,7 @@ nonisolated struct NiriWorkspaceRemoval: Identifiable, Sendable, Equatable {
 /// A side of the canvas, as the rail feels it when there is nothing behind it. Named for the
 /// gesture rather than for the screen: `leading` is the end of the rail you scroll back towards,
 /// `above` the workspace you scroll up to.
-nonisolated enum NiriEdge: Sendable {
+nonisolated enum NiriEdge: Sendable, Hashable, CaseIterable {
     case leading
     case trailing
     case above
