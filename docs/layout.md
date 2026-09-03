@@ -9,7 +9,9 @@ Modelled on [niri](https://github.com/YaLTeR/niri). There are no tabs and no sid
 - Columns sit left to right on an endlessly scrollable **rail**. One rail is a **workspace**.
 - Workspaces are stacked **vertically**; exactly one is on screen. Each profile has its own stack.
 - A workspace can be **named** (double-click its plate in the overview). Naming is optional; an unnamed one is just
-  "Workspace N". A named workspace survives running out of windows, an unnamed one disappears — same as niri.
+  "Workspace N". A workspace *you* named survives running out of windows, like niri's; one a program named — a
+  research run, an agent's `workspace: "notes"` — gives the name back when its last window goes, and disappears
+  with every other empty row.
 
 *The interface calls it the rail; the code calls it a strip — `NiriStrip`, `allStrips`, `strip.state`, the
 `StripState` JSON, the Kotlin beside it and the golden geometry those two agree on. That name is a wire format shared
@@ -27,7 +29,7 @@ two. See [linux.md](linux.md).*
 
 ```
 NiriStrip     workspaces: [NiriWorkspace], focus: Int      // one per profile
-NiriWorkspace name: String, columns: [NiriColumn], focus: Int, viewOffset: CGFloat
+NiriWorkspace name: String, namedByHand: Bool?, columns: [NiriColumn], focus: Int, viewOffset: CGFloat
 NiriColumn    tabID: UUID                                 // points at a BrowserTab
 ```
 
@@ -36,6 +38,20 @@ Every mutation goes through `mutate { }`, which runs `normalize` afterwards, so 
 - **Dynamic workspaces.** Exactly one empty workspace is kept at the bottom; empty ones in between are dropped, unless
   they are named. The trailing workspace keeps its identity across the prune, so focus survives it.
 - Column focus stays in range, and `viewOffset` stays clamped.
+
+**Who named it decides whether the name survives.** `namedByHand` is set by `rename(workspaceAt:to:)` — the plate in
+the overview, the one place a person types a name — and cleared with the name. Every other way a workspace gets one is
+a program: `workspaceIndex(named:createIfMissing:)`, which a research run and the MCP tools call, marks it `false`.
+A row that *becomes* empty then gives a machine name back (`unnameIfEmptied`, called wherever a column leaves a row:
+`removeColumn`, both `moveColumn`s, `commitColumnDrag`) and `normalize` prunes it like any other empty one.
+
+That rule is a transition and deliberately not part of `normalize`, because normalize cannot tell a row that has
+become empty from one that was made a moment ago — and every caller of `workspaceIndex(named:createIfMissing:)`
+creates a named empty row and fills it on the next line. `restore` covers the rest: a named empty row that is not
+`namedByHand` does not come back, which is what clears out both the rows written before the distinction existed and
+the one a research run leaves behind if it dies between naming its workspace and opening the document in it.
+`namedByHand` is absent in files from before this and read as *not* a reservation; Android carries the same field and
+the same four rules (`WorkspaceNameTest` there, `NiriLayoutWorkspaceNameTests` here).
 
 ## Geometry
 

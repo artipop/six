@@ -13,7 +13,10 @@ sentences that earned them.
 ```
 
 The workspace *is* the result: it stays open, survives a relaunch, and can be
-come back to.
+come back to. Close the last window on it and the workspace goes too, taking the
+question it was named after with it: that name is a label on a room, not a
+booking ([more](/en/layout#workspaces-make-themselves)). To keep the row, type a
+name for it yourself — double-click its plate in the overview.
 
 ## Starting a run
 

@@ -28,8 +28,18 @@ nonisolated struct NiriColumn: Identifiable, Hashable, Sendable, Codable {
 /// A niri workspace: an infinite horizontal strip of full-height columns.
 nonisolated struct NiriWorkspace: Identifiable, Sendable, Codable {
     var id = UUID()
-    /// Optional, like niri's named workspaces. A named one survives running out of windows.
+    /// Optional, like niri's named workspaces. A named one survives running out of windows — if a
+    /// person is behind the name.
     var name: String = ""
+    /// Whether a person typed that name. A name typed into the plate is a reservation: it holds the
+    /// row open before there is anything in it, which is the whole point of naming one. A name a
+    /// program made up — the question a research run started with, an agent's `workspace: "notes"` —
+    /// is a label on a room that already existed, and it must not outlive the room, or a browser
+    /// that answers questions for a living fills up with empty rows nobody named.
+    ///
+    /// Absent in files from before the distinction, and read as *not* a reservation: those rows are
+    /// the pile this was written for.
+    var namedByHand: Bool? = nil
     var columns: [NiriColumn] = []
     /// Index of the focused column.
     var focus: Int = 0
@@ -243,13 +253,37 @@ final class NiriLayout {
     func restore(strips saved: [UUID: NiriStrip]) {
         strips = [:]
         for (profileID, strip) in saved {
-            mutate(profile: profileID) { $0 = strip }
+            mutate(profile: profileID) { s in
+                s = strip
+                // A named row with nothing in it and nobody behind the name does not come back. At
+                // runtime such a row loses its name the moment it empties (`unnameIfEmptied`) and is
+                // pruned with every other empty one; this is for the rows that emptied before that
+                // rule existed, and for the one a research run leaves behind if it dies between
+                // naming its workspace and opening the document in it.
+                let focusedID = s.workspaces.indices.contains(s.focus) ? s.workspaces[s.focus].id : nil
+                s.workspaces.removeAll { $0.isEmpty && !$0.name.isEmpty && $0.namedByHand != true }
+                if let focusedID, let index = s.workspaces.firstIndex(where: { $0.id == focusedID }) {
+                    s.focus = index
+                }
+            }
         }
         recenterStrips() // the offsets on disk were written for whatever viewport wrote them
     }
 
+    /// A row that has just lost its last window gives back a name it did not ask for.
+    ///
+    /// Deliberately here and not in `normalize`: the difference between a row that has *become*
+    /// empty and one that is empty because it was made a moment ago is exactly the difference
+    /// between a label outliving its room and a workspace being created by name and filled on the
+    /// next line — which is what every `workspaceIndex(named:createIfMissing:)` caller does.
+    private func unnameIfEmptied(_ workspace: inout NiriWorkspace) {
+        guard workspace.isEmpty, workspace.namedByHand != true else { return }
+        workspace.name = ""
+    }
+
     /// Keeps exactly one trailing empty workspace and drops the empty ones in between — niri's
-    /// dynamic workspaces. A named workspace stays even when it is empty, also like niri.
+    /// dynamic workspaces. A workspace a person named stays even when it is empty, also like niri;
+    /// one a program named has already given the name back by the time it gets here.
     private func normalize(_ s: inout NiriStrip) {
         let focusedID = s.workspaces.indices.contains(s.focus) ? s.workspaces[s.focus].id : nil
         var kept = s.workspaces.filter { !$0.isEmpty || !$0.name.isEmpty }
@@ -709,10 +743,13 @@ final class NiriLayout {
         guard createIfMissing else { return nil }
         var created: Int?
         mutate(profile: profileID) { s in
+            // `namedByHand` false rather than absent: this is a program naming a row it is about to
+            // fill, and saying so is what lets the row give the name back when it empties again.
             if s.workspaces.last?.isEmpty == true, s.workspaces.last?.name.isEmpty == true {
                 s.workspaces[s.workspaces.count - 1].name = wanted
+                s.workspaces[s.workspaces.count - 1].namedByHand = false
             } else {
-                s.workspaces.append(NiriWorkspace(name: wanted))
+                s.workspaces.append(NiriWorkspace(name: wanted, namedByHand: false))
             }
             created = s.workspaces.count - 1
         }
@@ -729,6 +766,7 @@ final class NiriLayout {
             let column = s.workspaces[from].columns.remove(at: at)
             s.workspaces[from].focus = min(s.workspaces[from].focus, max(0, s.workspaces[from].columns.count - 1))
             scrollFocusIntoView(&s.workspaces[from])
+            unnameIfEmptied(&s.workspaces[from])
             while target >= s.workspaces.count { s.workspaces.append(NiriWorkspace()) }
             var destination = s.workspaces[target]
             let index = destination.columns.isEmpty ? 0 : destination.focus + 1
@@ -744,6 +782,7 @@ final class NiriLayout {
                 s.workspaces[i].columns.remove(at: index)
                 s.workspaces[i].focus = max(0, min(index, s.workspaces[i].columns.count - 1))
                 scrollFocusIntoView(&s.workspaces[i])
+                unnameIfEmptied(&s.workspaces[i])
                 return
             }
         }
@@ -908,6 +947,7 @@ final class NiriLayout {
             s.workspaces[drag.fromWorkspace].focus =
                 min(s.workspaces[drag.fromWorkspace].focus, max(0, s.workspaces[drag.fromWorkspace].columns.count - 1))
             scrollFocusIntoView(&s.workspaces[drag.fromWorkspace])
+            unnameIfEmptied(&s.workspaces[drag.fromWorkspace])
 
             let target = min(max(0, drag.toWorkspace), s.workspaces.count - 1)
             var destination = s.workspaces[target]
@@ -990,6 +1030,7 @@ final class NiriLayout {
             let column = source.columns.remove(at: source.focus)
             source.focus = min(source.focus, max(0, source.columns.count - 1))
             scrollFocusIntoView(&source)
+            unnameIfEmptied(&source)
             s.workspaces[s.focus] = source
 
             if target >= s.workspaces.count { s.workspaces.append(NiriWorkspace()) }
@@ -1015,10 +1056,14 @@ final class NiriLayout {
         return workspaces[index].name
     }
 
+    /// The one place a *person* names a workspace — the plate in the overview. That is what makes the
+    /// name a reservation; clearing it hands the row back to the dynamic-workspace rule.
     func rename(workspaceAt index: Int, to name: String) {
         mutate { s in
             guard s.workspaces.indices.contains(index) else { return }
-            s.workspaces[index].name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+            let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+            s.workspaces[index].name = trimmed
+            s.workspaces[index].namedByHand = trimmed.isEmpty ? nil : true
         }
     }
 

@@ -162,8 +162,18 @@ last picture of its page.
 
 There is always exactly one empty workspace at the bottom. Move a window into it
 and a fresh empty one appears below. A workspace that runs out of windows
-disappears — unless you gave it a name. **A named workspace survives being
-empty**, and that is the only way to book a place for a job in advance.
+disappears — unless **you** gave it a name. **A workspace you named survives
+being empty**, and that is the only way to book a place for a job in advance.
+
+::: tip A name a program gave is not a booking
+Research names a workspace after the question; an agent asks for
+`workspace: "notes"` and gets one. That is a label on a room, not a booking: when
+the last window leaves such a workspace the name goes with it and the row
+disappears like any other empty one — otherwise a browser that answers questions
+for a living silts up with empty workspaces carrying week-old questions. To keep
+one, type the name yourself (double-click its plate in the overview) and it
+becomes a booking.
+:::
 
 ## How many pages are actually live
 

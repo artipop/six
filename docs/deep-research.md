@@ -30,6 +30,11 @@ question, profile, workspace id, document tab id, source window ids, running fla
 `BrowserState.research` and so in the snapshot (`isRunning` is reset on relaunch; nothing survives a turn). Then it
 sends the preset to the agent session the panel uses.
 
+That name is a label and not a reservation: the workspace stands for as long as it holds windows, and closing the last
+one takes the question off the row and the row off the rail with it ([layout.md](layout.md#model--sixnirinirilayoutswift)).
+It has to be that way round — a browser that starts a named workspace per question and keeps every empty one is a
+browser whose overview fills up with last week's questions.
+
 The preset asks the agent to `web_search` first, open the sources worth comparing in *this* workspace with
 `activate: false` (the user's screen does not jump), write the outline into the document, then fill it in section by
 section, citing as it goes, and leave every window open — the workspace is the record. The bounds (how many sources,
