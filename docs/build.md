@@ -137,9 +137,24 @@ The Linux front is built by SwiftPM, not Xcode, and in a container rather than o
 [linux.md](linux.md) for what it is and why the packages are split.
 
 ```sh
-swift build --package-path linux            # the app
-swift build && swift test                   # SixCore and its tests, either platform
+./scripts/six-linux.sh image                # the container image, from linux/Containerfile
+./scripts/six-linux.sh up                   # build and run it; prints a noVNC URL to watch it at
+./scripts/six-linux.sh core                 # SixCore alone on Linux, without the GTK front
 ```
+
+That script is the whole recipe — the image, a long-lived `six-live` with the repository mounted live, `container
+exec` to rebuild without restarting, a still screenshot, and the logs. Underneath it, and only ever *inside* the
+container:
+
+```sh
+swift build --package-path linux --disable-automatic-resolution   # the app
+swift build --disable-automatic-resolution                        # SixCore
+swift test  --disable-automatic-resolution                        # and its tests, either platform
+```
+
+The flag belongs on every one of them, on both platforms — [storage.md](storage.md) and the comment at the top of
+`Package.swift` say why, and a run without it rewrites `Package.resolved` into a shape the Linux build cannot use.
+The first command cannot run on the Mac at all: `CWebKitGTK` has no `webkitgtk-6.0` to resolve against there.
 
 It needs GTK 4, libadwaita 1 and WebKitGTK 6.0 development packages plus `pkg-config`; `linux/Containerfile`
 pins the versions that were used and says why each one. On an Apple Silicon Mac the container runs

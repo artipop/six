@@ -24,6 +24,7 @@ the single LLM API, ACP for agents, and the browser itself as an MCP server. Swi
 
 ```
 six/Niri          NiriLayout (workspaces, columns, geometry, focus/move), NiriScrollMonitor (⌥+scroll gestures)
+six/Input         KeyRouter (the one key monitor), KeyBindings (the table), KeyContext, KeySelfTest
 six/Browser       BrowserState, BrowserTab (WebPage), Profile/ProfileStore, History, SearchEngine, LivePageCache,
                   SitePermissions, CertificateStore, Downloads, IDN, PersonalSuggestions, PageThumbnails
 six/Views         ContentView (top bar), NiriStripView (rail + overview), StartPage, SettingsPageView, AssistantBar,
@@ -73,25 +74,27 @@ It is built and run **in a container** — never on the Mac, and `swift build --
 work, because `CWebKitGTK` has no `webkitgtk-6.0` to resolve against. Apple's own `container` CLI runs it natively on
 Apple Silicon, and the system service has to be up first (`container system start`).
 
+All of it is [`scripts/six-linux.sh`](scripts/six-linux.sh) — the recipe used to live in scripts written into the
+container's own filesystem, so it died with every container and was rebuilt from memory each time:
+
 ```sh
-container build --tag six-gnome:26.04 linux          # the image; tracks GNOME, see below
-
-# a long-lived container, the repo mounted live, noVNC published
-container run -d --name six-live --cpus 2 --memory 4g \
-  -v "$PWD:/work/six" -v "<scratch>:/scripts" -p 6080:6080 six-gnome:26.04 bash /scripts/run-six.sh
-
-# afterwards, iterate without restarting it
-container exec six-live bash -lc 'cd /work/six/linux && swift build -j 2 --scratch-path /tmp/g'
-container exec six-live bash -lc 'cd /work/six      && swift test  --scratch-path /tmp/gcore --disable-automatic-resolution'
+./scripts/six-linux.sh image        # build six-gnome:26.04 from linux/Containerfile
+./scripts/six-linux.sh up           # start six-live, then open the URL it prints
+./scripts/six-linux.sh build fresh  # rebuild inside it; `fresh` also drops the cached build plan
+./scripts/six-linux.sh test         # SixCore's tests, on Linux
+./scripts/six-linux.sh core         # SixCore alone in a plain toolchain image — the pre-version-bump check
+./scripts/six-linux.sh shot out.png # one still picture, no VNC
+./scripts/six-linux.sh logs / sh / down
 ```
 
-`run-six.sh` builds, then starts `Xvfb :99`, the binary at `/tmp/g/debug/six-linux`, `x11vnc` and `websockify`, and
-the window is then **watchable in a browser at `http://localhost:6080/vnc_lite.html`** — that is how the Linux UI gets
-looked at, since there is no display in the container. Keep the app under a restart loop: a crashed front leaves a
-permanently black screen that says nothing about *when* it died. For a still picture without VNC, run a second display
-(`Xvfb :98`) and `import -window root shot.png` — ImageMagick is in the image for exactly this.
+`up` runs [`scripts/linux-run.sh`](scripts/linux-run.sh) inside the container: it builds, then starts `Xvfb :99`, the
+binary at `/tmp/g/debug/six-linux`, `x11vnc` and `websockify`, so the window is **watchable in a browser at
+`http://localhost:6080/vnc_lite.html`**. There is no display in a container; this is how the Linux UI gets looked at.
+The app runs under a restart loop on purpose — a front that has crashed and a front drawing nothing are the same black
+screen, and a restart at least says *when*.
 
-Three things that cost real time here:
+Three things that cost real time, all of them now handled by those two scripts — the reason to know them anyway is
+that they apply to anything else you run in there:
 
 - **Never pipe the build into `grep`.** `swift build … | grep -E "error:|Build complete"` makes a *failed* build exit
   0 through a successful grep, `set -e` never fires, and the supervisor cheerfully relaunches the **previous** binary
@@ -99,10 +102,7 @@ Three things that cost real time here:
   log.
 - `--cpus 2 --memory 4g`, and `-j 2`. The default 1024 MB stalls with no error and no output ([above](#three-fronts-one-dependency-graph)), and this Mac has 8 GB to share with everything else.
 - The scratch paths are conventions, and the `build.db` rule above is about *these two*: `/tmp/g` for the GTK front,
-  `/tmp/gcore` for the root package's tests.
-
-The helper scripts used to live inside the container rather than in the repo, so they died with it — if the recipe
-above needs running often, commit it as `scripts/` instead of rebuilding it from memory.
+  `/tmp/gcore` for the root package's tests. `build fresh` is what drops them.
 
 What the front does and does not have, the GTK traps (a `Task` never runs under `g_main_loop_run`; every signal has
 its own C signature; only value types in `@State`), and the run-time environment variables — `SIX_URL`,
