@@ -67,6 +67,47 @@ swift test  --disable-automatic-resolution
 
 Details, and the SDK override, in [docs/build.md](docs/build.md).
 
+### The Linux front
+
+It is built and run **in a container** — never on the Mac, and `swift build --package-path linux` on macOS cannot
+work, because `CWebKitGTK` has no `webkitgtk-6.0` to resolve against. Apple's own `container` CLI runs it natively on
+Apple Silicon, and the system service has to be up first (`container system start`).
+
+```sh
+container build --tag six-gnome:26.04 linux          # the image; tracks GNOME, see below
+
+# a long-lived container, the repo mounted live, noVNC published
+container run -d --name six-live --cpus 2 --memory 4g \
+  -v "$PWD:/work/six" -v "<scratch>:/scripts" -p 6080:6080 six-gnome:26.04 bash /scripts/run-six.sh
+
+# afterwards, iterate without restarting it
+container exec six-live bash -lc 'cd /work/six/linux && swift build -j 2 --scratch-path /tmp/g'
+container exec six-live bash -lc 'cd /work/six      && swift test  --scratch-path /tmp/gcore --disable-automatic-resolution'
+```
+
+`run-six.sh` builds, then starts `Xvfb :99`, the binary at `/tmp/g/debug/six-linux`, `x11vnc` and `websockify`, and
+the window is then **watchable in a browser at `http://localhost:6080/vnc_lite.html`** — that is how the Linux UI gets
+looked at, since there is no display in the container. Keep the app under a restart loop: a crashed front leaves a
+permanently black screen that says nothing about *when* it died. For a still picture without VNC, run a second display
+(`Xvfb :98`) and `import -window root shot.png` — ImageMagick is in the image for exactly this.
+
+Three things that cost real time here:
+
+- **Never pipe the build into `grep`.** `swift build … | grep -E "error:|Build complete"` makes a *failed* build exit
+  0 through a successful grep, `set -e` never fires, and the supervisor cheerfully relaunches the **previous** binary
+  — several rounds of "it still crashes" were one stale crash. Build into a log, check the exit code, then grep the
+  log.
+- `--cpus 2 --memory 4g`, and `-j 2`. The default 1024 MB stalls with no error and no output ([above](#three-fronts-one-dependency-graph)), and this Mac has 8 GB to share with everything else.
+- The scratch paths are conventions, and the `build.db` rule above is about *these two*: `/tmp/g` for the GTK front,
+  `/tmp/gcore` for the root package's tests.
+
+The helper scripts used to live inside the container rather than in the repo, so they died with it — if the recipe
+above needs running often, commit it as `scripts/` instead of rebuilding it from memory.
+
+What the front does and does not have, the GTK traps (a `Task` never runs under `g_main_loop_run`; every signal has
+its own C signature; only value types in `@State`), and the run-time environment variables — `SIX_URL`,
+`SIX_LIVE_PAGES`, `SIX_UI_DEBUG`, `SIX_MOCK_CAPTURE` — are in [docs/linux.md](docs/linux.md).
+
 ## Running and checking a change
 
 The fresh app is in DerivedData, **not** in the repo's `build/`:
