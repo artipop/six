@@ -24,7 +24,7 @@ the single LLM API, ACP for agents, and the browser itself as an MCP server. Swi
 
 ```
 six/Niri          NiriLayout (workspaces, columns, geometry, focus/move), NiriScrollMonitor (⌥+scroll gestures)
-six/Input         KeyRouter (the one key monitor), KeyBindings (the table), KeyContext, KeySelfTest
+six/Input         KeyBindings + KeyContext (the table, in SixCore), KeyEvents (the AppKit half), KeyRouter, KeySelfTest
 six/Browser       BrowserState, BrowserTab (WebPage), Profile/ProfileStore, History, SearchEngine, LivePageCache,
                   SitePermissions, CertificateStore, Downloads, IDN, PersonalSuggestions, PageThumbnails
 six/Views         ContentView (top bar), NiriStripView (rail + overview), StartPage, SettingsPageView, AssistantBar,
@@ -42,8 +42,8 @@ six/Vendor        ClaudeForFoundationModels, FoundationModelsUtilities — compi
 ```
 
 `SixCore` (root `Package.swift`) is the slice that must build on **Linux**: `NiriLayout`, the storage layer, the
-profile/bookmark/permission/translation models, and the wire half of ACP/MCP. A file joins it by being listed in
-`sources:` — see the essay at the top of that manifest before editing it.
+profile/bookmark/permission/translation models, the key bindings, and the wire half of ACP/MCP. A file joins it by
+being listed in `sources:` — see the essay at the top of that manifest before editing it.
 
 New files under `six/` need no project edits (`PBXFileSystemSynchronizedRootGroup`), but a file that must **not** ship
 on iOS needs a line in `membershipExceptions` in `project.pbxproj` — a bare folder name there does not recurse.

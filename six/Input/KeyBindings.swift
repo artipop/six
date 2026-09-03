@@ -1,18 +1,25 @@
-#if os(macOS)
-import AppKit
-
-/// Every key six answers itself, in one table.
+/// Every key six answers itself, in one table — and in no window system.
 ///
-/// Not every key it has: `⌘` belongs to the menu bar, which shows it, greys it out when it cannot
-/// be pressed, and is where a person looks for it. This table is the rest — the bindings a menu
-/// item cannot keep, because a first-responder `WKWebView` answers a key equivalent before the menu
-/// bar is asked and keeps `⌥←` for word movement. They used to be scattered across a `Layout` menu,
-/// a `View` menu and two `if` statements in a scroll monitor; they are one array now, in the order
-/// [hotkeys.md](../../docs/hotkeys.md) lists them, so "which key works where" is a question you
-/// answer by reading a file rather than by pressing things.
+/// Not every key it has: `⌘` belongs to the menu bar, which shows the key, greys it out when it
+/// cannot be pressed, and is where a person looks for it. This table is the rest — the bindings a
+/// menu item cannot keep, because a first-responder `WKWebView` answers a key equivalent before the
+/// menu bar is asked and keeps `⌥←` for word movement. They used to be scattered across a `Layout`
+/// menu, a `View` menu and two `if` statements in a scroll monitor.
+///
+/// It is in `SixCore` on purpose, and that is a claim about what a key binding *is*: a name for a
+/// key, the modifiers a hand can hold, where it may answer, and what it does — none of which is
+/// AppKit's business. What is AppKit's business is turning an `NSEvent` into those four things, and
+/// that is `KeyEvents.swift`, which does not ship here. Two things follow. The GTK front inherits
+/// the table rather than reinventing it: it maps its own key vals onto `KeyCode` the same way the
+/// Mac maps `NSEvent.keyCode`, and the answer to "what does `⌥→` do" stops being written twice. And
+/// the table can be **tested against [hotkeys.md](../../docs/hotkeys.md)** — see
+/// `KeyBindingsTests`, which reads that file and refuses to let either side promise a key the other
+/// has never heard of. That doc has said "nothing here can drift from the code" since it was
+/// written; this is the first version of it where that is enforced rather than hoped for.
 enum KeyBindings {
     /// The ring is listed first because it is on top: while `⌃` holds the cards up, nothing else in
-    /// the window is being looked at.
+    /// the window is being looked at. Order is meaningful — the first row that matches wins — and
+    /// `KeyBindingsTests` checks that no `.any` row is shadowing a narrower one written after it.
     static let all: [KeyBinding] = [
         // MARK: The ⌃Tab ring, while it is held open
         KeyBinding(.code(.tab), .exactly([.control, .shift]), .switcher, .stepSwitcher(-1)),
@@ -72,21 +79,27 @@ struct KeyBinding {
     /// A key, by where it sits and by what it says — both, because neither alone is enough.
     ///
     /// `⌥W` has to keep working on a Russian layout, where the key under the finger reports «ц»:
-    /// that is the key code's job, and reading `charactersIgnoringModifiers` alone is why the three
-    /// letter bindings were dead for anyone not typing in Latin. And it has to keep meaning W on
-    /// Dvorak, where W is somewhere else entirely: that is the character's job. A letter answers to
-    /// either; an arrow has no character worth reading and answers to its code.
-    enum Key {
+    /// that is the key code's job, and reading the character alone is why the three letter bindings
+    /// were dead for anyone not typing in Latin. And it has to keep meaning W on Dvorak, where W is
+    /// somewhere else entirely: that is the character's job. A letter answers to either; an arrow
+    /// has no character worth reading and answers to its code.
+    enum Key: Equatable {
         case code(KeyCode)
         case letter(Character, KeyCode)
 
-        func matches(_ event: NSEvent) -> Bool {
+        var keyCode: KeyCode {
             switch self {
-            case .code(let code):
-                return event.keyCode == code.rawValue
-            case .letter(let character, let code):
-                if event.keyCode == code.rawValue { return true }
-                return event.charactersIgnoringModifiers?.lowercased() == String(character)
+            case .code(let code), .letter(_, let code): return code
+            }
+        }
+
+        func matches(code: UInt16, character: Character?) -> Bool {
+            switch self {
+            case .code(let wanted):
+                return code == wanted.rawValue
+            case .letter(let wanted, let fallback):
+                if code == fallback.rawValue { return true }
+                return character.map { Character($0.lowercased()) == wanted } ?? false
             }
         }
 
@@ -112,46 +125,54 @@ struct KeyBinding {
 
     /// What has to be held. `.any` is for the ring: it is held open by `⌃` and cannot also ask that
     /// nothing else be down.
-    enum Modifiers {
-        case exactly(NSEvent.ModifierFlags)
+    enum Modifiers: Equatable {
+        case exactly(KeyModifiers)
         case any
 
-        /// The four keys a person actually holds. Everything else in `deviceIndependentFlagsMask` is
-        /// AppKit describing the key rather than the hand on it — and comparing the lot for equality
-        /// is the bug this whole file was written to find: **macOS puts `.function` and `.numericPad`
-        /// on every arrow key**, so `flags == .option` was false for `⌥→` and had always been false.
-        /// `⌥W` worked, `⌥→` did not, and that is exactly the shape the complaint had. Caps Lock left
-        /// down took out the rest of the table the same way.
-        static let held: NSEvent.ModifierFlags = [.command, .control, .option, .shift]
-
-        func matches(_ flags: NSEvent.ModifierFlags) -> Bool {
+        func matches(_ held: KeyModifiers) -> Bool {
             switch self {
             case .any: return true
-            case .exactly(let wanted): return flags.intersection(Self.held) == wanted
+            case .exactly(let wanted): return held == wanted
             }
         }
     }
 
     /// Where a binding is allowed to answer.
-    enum Scope {
+    enum Scope: Equatable {
         /// Only while the ⌃Tab ring is open.
         case switcher
-        /// In six's own window: not in a sheet, not in a popover, not in WebKit's full-screen video.
+        /// In six's own window: not in a sheet, not in a popover, not in a video playing full screen.
         case rail
+
+        /// The modifier that holds this scope open, and so the one a person writing the key down is
+        /// already holding. The ring's `←` is written `⌃←`; the rail's is written `←`.
+        var heldOpenBy: KeyModifiers { self == .switcher ? .control : [] }
     }
 
-    func matches(_ event: NSEvent, in context: KeyContext) -> Bool {
-        guard key.matches(event) else { return false }
-        guard modifiers.matches(event.modifierFlags) else { return false }
+    func matches(code: UInt16, character: Character?, held: KeyModifiers, in context: KeyContext) -> Bool {
+        guard key.matches(code: code, character: character) else { return false }
+        guard modifiers.matches(held) else { return false }
         switch scope {
         case .switcher: return context.isSwitching
         case .rail: return context.window == .main
         }
     }
+
+    /// How this binding may be written down. A `.exactly` binding has one spelling; an `.any` one
+    /// has two, because a ring key is written `⌃Tab` in the row that opens the ring and `↩` in the
+    /// row below it, and both of those are true sentences about the same binding.
+    var spellings: [KeyChord] {
+        switch modifiers {
+        case .exactly(let held):
+            return [KeyChord(held, key.keyCode)]
+        case .any:
+            return [KeyChord([], key.keyCode), KeyChord(scope.heldOpenBy, key.keyCode)]
+        }
+    }
 }
 
-/// Everything the table can ask for. `ContentView` is where each one turns into a call, because that
-/// is the view that has the browser, the highlights and the rail all in one place.
+/// Everything the table can ask for. On the Mac `ContentView` is where each one turns into a call,
+/// because that is the view that has the browser, the highlights and the rail all in one place.
 enum KeyAction: Equatable {
     case focusColumn(Int)
     case moveColumn(Int)
@@ -169,8 +190,59 @@ enum KeyAction: Equatable {
     case leaveOverview
 }
 
-/// The physical keys the table names, by the code AppKit reports for them.
-enum KeyCode: UInt16 {
+/// The modifiers a hand can be on, and nothing else.
+///
+/// This is not a convenience over `NSEvent.ModifierFlags`; it is the fix. That type carries
+/// `.function` and `.numericPad` — which macOS sets on **every** arrow key — and `.capsLock`
+/// whenever Caps Lock is down, all of them inside `deviceIndependentFlagsMask`. Comparing the lot
+/// for equality is why `⌥→` had never once matched a binding while `⌥W` always had. Four bits, and
+/// the conversion from a platform's flags happens in one place per platform.
+struct KeyModifiers: OptionSet, Hashable, Sendable {
+    let rawValue: Int
+    init(rawValue: Int) { self.rawValue = rawValue }
+
+    static let control = KeyModifiers(rawValue: 1 << 0)
+    static let option = KeyModifiers(rawValue: 1 << 1)
+    static let shift = KeyModifiers(rawValue: 1 << 2)
+    static let command = KeyModifiers(rawValue: 1 << 3)
+
+    /// In the order a chord is written on a Mac: ⌃⌥⇧⌘.
+    static let inWritingOrder: [(KeyModifiers, Character)] = [
+        (.control, "⌃"), (.option, "⌥"), (.shift, "⇧"), (.command, "⌘")
+    ]
+
+    var label: String { String(Self.inWritingOrder.filter { contains($0.0) }.map(\.1)) }
+}
+
+/// A chord as it is written down. `KeyChord("⌥⇧→")` round-trips through `label`, which is what lets
+/// a test read the documentation and ask the table about every key it finds there.
+struct KeyChord: Equatable, Hashable {
+    var modifiers: KeyModifiers
+    var key: KeyCode
+
+    init(_ modifiers: KeyModifiers, _ key: KeyCode) {
+        self.modifiers = modifiers
+        self.key = key
+    }
+
+    init?(_ text: String) {
+        var modifiers: KeyModifiers = []
+        var rest = Substring(text)
+        while let first = rest.first, let match = KeyModifiers.inWritingOrder.first(where: { $0.1 == first }) {
+            modifiers.insert(match.0)
+            rest = rest.dropFirst()
+        }
+        guard let key = KeyCode(label: String(rest)) else { return nil }
+        self.modifiers = modifiers
+        self.key = key
+    }
+
+    var label: String { modifiers.label + key.label }
+}
+
+/// The physical keys the table names. The numbers are the Mac's virtual key codes, because that is
+/// the front the table was written for; a second front maps its own onto these names.
+enum KeyCode: UInt16, CaseIterable, Sendable {
     case escape = 53
     case tab = 48
     case returnKey = 36
@@ -186,5 +258,30 @@ enum KeyCode: UInt16 {
     case o = 31
     case t = 17
     case w = 13
+
+    /// How the key is written in `docs/hotkeys.md`, in the trace, and in the key matrix.
+    var label: String {
+        switch self {
+        case .escape: return "Esc"
+        case .tab: return "Tab"
+        case .returnKey: return "↩"
+        case .keypadEnter: return "⌤"
+        case .leftArrow: return "←"
+        case .rightArrow: return "→"
+        case .downArrow: return "↓"
+        case .upArrow: return "↑"
+        case .home: return "Home"
+        case .end: return "End"
+        case .c: return "C"
+        case .h: return "H"
+        case .o: return "O"
+        case .t: return "T"
+        case .w: return "W"
+        }
+    }
+
+    init?(label: String) {
+        guard let match = Self.allCases.first(where: { $0.label == label }) else { return nil }
+        self = match
+    }
 }
-#endif

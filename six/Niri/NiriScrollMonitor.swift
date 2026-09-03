@@ -83,8 +83,8 @@ final class NiriScrollMonitor {
     private func handle(_ event: NSEvent) -> NSEvent? {
         // Only the keys a hand can be on: Caps Lock left down is not a gesture modifier, and taking
         // the whole device-independent mask for an equality test is what broke the keyboard's arrows
-        // (`KeyBinding.Modifiers.held`).
-        let flags = event.modifierFlags.intersection(KeyBinding.Modifiers.held)
+        // (`NSEvent.ModifierFlags.heldByHand`).
+        let flags = event.modifierFlags.intersection(.heldByHand)
         if flags != Self.modifier {
             guard flags.isEmpty, isOverStrip(event), modifierOptional() || isOverLayoutChrome(event) else { return event }
         }

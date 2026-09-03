@@ -1,3 +1,7 @@
+// `MCPOAuth` itself is behind `#if canImport(CryptoKit)` — PKCE needs a SHA-256 and the Keychain,
+// both of which are Apple's — so its tests have to be too, or the whole suite stops compiling on
+// Linux and `scripts/six-linux.sh test` has nothing to run.
+#if canImport(CryptoKit)
 import CryptoKit
 import Foundation
 import Testing
@@ -226,3 +230,4 @@ struct MCPOAuthTests {
         }
     }
 }
+#endif

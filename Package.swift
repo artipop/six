@@ -57,6 +57,13 @@ let package = Package(
             sources: [
                 // Geometry: no platform at all, and the piece a second front end reuses whole.
                 "Niri/NiriLayout.swift",
+                // The keyboard, minus the window system. A binding is a key's name, the modifiers a
+                // hand can hold, where it may answer and what it does — and `KeyBindingsTests` reads
+                // docs/hotkeys.md and checks the table against it in both directions, which is the
+                // only thing that has ever stopped that file drifting. Turning an `NSEvent` into
+                // those values is `Input/KeyEvents.swift`, and that one stays in the app.
+                "Input/KeyBindings.swift",
+                "Input/KeyContext.swift",
                 // Where six lives, and the versioned JSON snapshot beside the database.
                 "Data/AppSupport.swift",
                 "Persistence/SnapshotStore.swift",

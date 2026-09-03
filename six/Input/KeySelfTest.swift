@@ -37,12 +37,12 @@ enum KeySelfTest {
             ("⌥O (ru)", .option, .o, "щ"),
             ("⌥⇧T", [.option, .shift], .t, "t"),
             ("⌥⇧H", [.option, .shift], .h, "h"),
-            ("⌃⇥", .control, .tab, "\t"),
-            ("⌃⇧⇥", [.control, .shift], .tab, "\t"),
+            ("⌃Tab", .control, .tab, "\t"),
+            ("⌃⇧Tab", [.control, .shift], .tab, "\t"),
             ("⌃→", .control, .rightArrow, ""),
             ("⌃←", .control, .leftArrow, ""),
-            ("⎋", [], .escape, "\u{1b}"),
-            ("⌃⎋", .control, .escape, "\u{1b}"),
+            ("Esc", [], .escape, "\u{1b}"),
+            ("⌃Esc", .control, .escape, "\u{1b}"),
             ("↩", [], .returnKey, "\r")
         ]
         var out = "[six] keys: what the table answers\n"

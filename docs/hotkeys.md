@@ -6,6 +6,14 @@ row is backed by a key monitor, a menu item or a view — the file is named so n
 `BookmarkCommands` in `six/Views/MacCommands.swift`, the File menu in `six/sixApp.swift`, `FileCommands` in
 `six/Documents/Export.swift`, the rest in `six/Views/`.
 
+**This file is checked against the code.** `KeyBindings` is in `SixCore` — a binding is a key's name, the
+modifiers a hand can hold, where it may answer and what it does, none of which is AppKit's business — and
+`Tests/SixCoreTests/KeyBindingsTests.swift` reads *this* file and asks the table about it in both directions:
+every binding has to be written down here, and every key the rail and ring tables below promise has to resolve
+to one. The line above has been in this file since it was written; it is enforced from `b7dc8da` on. On its
+first run the check found `⌤` bound and undocumented, and a mutation test confirmed it catches the other
+direction — which is the one that would have caught `Esc` in the ring going quiet for a year.
+
 The split is worth stating once: **`⌘` belongs to the menu bar** — which shows the key, greys it out when it cannot
 be pressed, and is where a person looks for it — and **everything else belongs to `KeyBindings`**, one array walked by
 one `NSEvent` monitor (`KeyRouter`). A binding is in the table when a menu item cannot deliver it: a first-responder
@@ -48,7 +56,7 @@ that way ([layout.md](layout.md#the-ends-of-the-rail)).
 | `⌃Tab` | hold `⌃`: the windows on the rail in front of you, as pictures, in the order they were last looked at, the one you would land on in the middle. Each press steps one along the ring; letting `⌃` go flies there |
 | `⌃⇧Tab` | the same, the other way |
 | `⌃←` `⌃→` | the same step, said the way the row of cards is drawn |
-| `↩` | fly now, without waiting for `⌃` to come up |
+| `↩` `⌤` | fly now, without waiting for `⌃` to come up |
 | `Esc` | let go of the ring without going anywhere |
 
 While the ring is up it is on top of everything else in the window: its own keys answer first, and any other key

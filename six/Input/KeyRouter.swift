@@ -34,7 +34,7 @@ final class KeyRouter {
         flagsMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
             guard let self else { return event }
             return MainActor.assumeIsolated {
-                let held = event.modifierFlags.intersection(KeyBinding.Modifiers.held)
+                let held = KeyModifiers(event.modifierFlags)
                 if self.isSwitching(), !held.contains(.control) { _ = self.perform(.landSwitcher) }
                 return event
             }
@@ -76,24 +76,7 @@ final class KeyRouter {
     }
 
     private func trace(_ event: NSEvent, _ context: KeyContext, _ outcome: String) {
-        NiriLayout.trace("key \(Self.chord(event)) [\(context)] → \(outcome)")
-    }
-
-    /// The chord as a person would write it, for the trace.
-    private static func chord(_ event: NSEvent) -> String {
-        let flags = event.modifierFlags.intersection(KeyBinding.Modifiers.held)
-        var name = ""
-        if flags.contains(.control) { name += "⌃" }
-        if flags.contains(.option) { name += "⌥" }
-        if flags.contains(.shift) { name += "⇧" }
-        if flags.contains(.command) { name += "⌘" }
-        let named: [KeyCode: String] = [
-            .escape: "⎋", .tab: "⇥", .returnKey: "↩", .keypadEnter: "⌤",
-            .leftArrow: "←", .rightArrow: "→", .downArrow: "↓", .upArrow: "↑",
-            .home: "Home", .end: "End"
-        ]
-        if let code = KeyCode(rawValue: event.keyCode), let label = named[code] { return name + label }
-        return name + (event.charactersIgnoringModifiers ?? "\(event.keyCode)").uppercased()
+        NiriLayout.trace("key \(event.chordLabel) [\(context)] → \(outcome)")
     }
 }
 #endif

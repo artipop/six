@@ -6,7 +6,8 @@ The entry point is `SixMain`, not the `App`: with `--mcp` the process never touc
 
 ```
 six/Niri        NiriLayout (workspaces, columns, geometry, focus/move ops), NiriScrollMonitor (scroll gestures)
-six/Input       KeyRouter (the one key monitor), KeyBindings (the table), KeyContext (what has the keyboard)
+six/Input       KeyBindings + KeyContext (the table and what has the keyboard — in SixCore, tested against
+                docs/hotkeys.md), KeyEvents (NSEvent → those values), KeyRouter (the one key monitor)
 six/Browser     Profile, BrowserTab (WebPage), LivePageCache (the live-page budget), BrowserState, History, SitePermissions + PageDialogs (camera/microphone per site, the page's own dialogs), SearchEngine, SearchSuggestions, WebSearch
 six/Bookmarks   Bookmark (tables), ReadablePage (page → Markdown), Embedder + MLXEmbedder (multilingual-e5 over MLX), BookmarkStore (files, vec0 index, search)
 six/Views       ContentView (top bar), NiriStripView (the rail + overview), SettingsPageView (six://settings), StartPage, AssistantBar, AgentPanel, HistoryView, BookmarksView
