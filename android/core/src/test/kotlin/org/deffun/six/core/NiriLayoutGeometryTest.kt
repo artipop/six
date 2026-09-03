@@ -97,7 +97,7 @@ class NiriLayoutGeometryTest {
     @Test
     fun contentWidthAgreesWithTheFrames() {
         val layout = layout()
-        val workspace = workspace(listOf(0, 1, 2, 3, 2))
+        val workspace = workspace(5)
         val frames = layout.columnFrames(workspace)
 
         val fromFrames = (frames.lastOrNull()?.maxX ?: 0.0) + layout.outerGap

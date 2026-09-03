@@ -67,7 +67,7 @@ class StripAxisTest {
     @Test
     fun turningTheDeviceDrawsTheSameStripDownTheScreen() {
         val workspace = NiriWorkspace(
-            columns = listOf(0, 2, 3).map { NiriColumn(UUID.randomUUID(), it) },
+            columns = List(3) { NiriColumn(UUID.randomUUID()) },
         )
 
         val landscape = NiriLayout()
