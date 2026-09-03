@@ -24,6 +24,19 @@ Where the rail has run out, the gesture is not lost in silence: the edge you
 pushed into lights up in the profile's colour, the rubber band stiffens, and
 nothing moves — because there is nothing that way.
 
+## Flying between windows
+
+| | |
+|---|---|
+| `⌃Tab` | hold `⌃`: the profile's windows as pictures, in the order you last looked at them, with the one you would land on in the middle. Each press steps one along the ring; letting `⌃` go flies there |
+| `⌃⇧Tab` | the same, the other way |
+| `Esc` | let go of the ring without going anywhere |
+
+`⌥←` `⌥→` walk the rail — where the windows **stand**; `⌃Tab` walks the memory —
+the order they were **looked at** in. Which is why one press of `⌃Tab` is a
+toggle between the last two windows. This profile's windows only, and this run
+only.
+
 ## Browser
 
 | | |

@@ -78,10 +78,20 @@ struct NiriStripView: View {
         monitor.onPan = { browser.panStrip(by: $0) }
         monitor.onPanEnded = { browser.endStripPan() }
         monitor.onEscape = {
+            // The ring first: it is the thing being held open, and ⎋ out of it must not also close
+            // the overview underneath.
+            if browser.switcher.isOpen {
+                browser.cancelWindowSwitch()
+                return true
+            }
             guard layout.isOverview else { return false }
             browser.exitOverview()
             return true
         }
+        // ⌃Tab: the windows in the order they were last looked at (`WindowSwitcher`).
+        monitor.isSwitchingWindows = { browser.switcher.isOpen }
+        monitor.onSwitchWindow = { browser.stepWindowSwitch($0) }
+        monitor.onSwitchEnded = { browser.endWindowSwitch() }
         // niri's ⌥ bindings. They come through the monitor rather than through menu items so that a
         // focused page cannot swallow them — see `NiriScrollMonitor.onLayoutKey`.
         monitor.onLayoutKey = { key in

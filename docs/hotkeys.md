@@ -30,6 +30,18 @@ Where the rail runs out, the gesture is answered rather than ignored: the edge p
 in the profile's colour and the rubber band gives less, and nothing moves, because there is nothing
 that way ([layout.md](layout.md#the-ends-of-the-rail)).
 
+## Flying between windows (`⌃` — `NiriScrollMonitor.onSwitchWindow`)
+
+| | |
+|---|---|
+| `⌃Tab` | hold `⌃`: the profile's windows as pictures, in the order they were last looked at, the one you would land on in the middle. Each press steps one along the ring; letting `⌃` go flies there |
+| `⌃⇧Tab` | the same, the other way |
+| `Esc` | let go of the ring without going anywhere |
+
+The rail's order and this one are different questions: `⌥←` / `⌥→` walk the windows where they stand,
+`⌃Tab` walks them in the order they were used, so a single press is a toggle between the last two.
+One profile's windows only, and this run only.
+
 ## Browser (`⌘`)
 
 | | |

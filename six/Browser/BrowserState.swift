@@ -60,6 +60,8 @@ final class BrowserState {
     let downloads = DownloadStore()
     /// The mark that flies from a click to the downloads button (`FlightStore`).
     let flights = FlightStore()
+    /// The order the windows were last looked at, and the ring ⌃Tab walks (`WindowSwitcher`).
+    let switcher = WindowSwitcher()
     /// Translating a page in place, and the engine that does it. Both are `@Observable` themselves,
     /// so the reference can be ignored here while the views still see them change.
     @ObservationIgnored let translation = PageTranslator()
@@ -960,6 +962,7 @@ final class BrowserState {
         closed.app?.windowClosed()
         closed.close() // drops its page, its place in the budget and its picture
         blocker?.forget(id)
+        switcher.forget(id)
         extensions?.noteClosed(closed)
         devTools?.forget(id)
         pageControllers.forget(id)
@@ -1047,6 +1050,53 @@ final class BrowserState {
     func focusWorkspace(_ delta: Int) { animateLayout { layout.focusWorkspace(delta) } }
     func focusWorkspace(at index: Int) { animateLayout { layout.focusWorkspace(at: index) } }
     func moveColumnToWorkspace(_ delta: Int) { animateLayout { layout.moveColumnToWorkspace(delta) } }
+
+    // MARK: Flying between windows (⌃Tab)
+
+    /// One step along the ⌃Tab ring, opening it on the first press.
+    ///
+    /// The ring is the profile's own windows and no others. A profile is a browsing world with a rail
+    /// of its own — its own history, its own logins, its own colour — and a key that flew you out of
+    /// one into another would change all of that on the way past, which is not what a hand reaching
+    /// for the window it just left is asking for.
+    ///
+    /// Nothing moves while the ring is being walked: the cards are pictures, and the flight happens
+    /// once, on the key coming up (`endWindowSwitch`). Walking it live would load a page per window
+    /// passed, and the rail's whole economy is that you get the page where you land.
+    func stepWindowSwitch(_ delta: Int) {
+        if !switcher.isOpen {
+            var opened = false
+            withAnimation(.smooth(duration: 0.18)) { opened = switcher.open(railOrder, current: selectedTabID) }
+            guard opened else { return }
+            // The pictures the cards are drawn from: the window being read is drawn now, while it
+            // still has a page to draw, and the ones whose picture was dropped for the memory budget
+            // read theirs back off disk — the same two moves the overview makes on its way in.
+            selectedTab?.rememberViewState(force: true)
+            for id in switcher.ring { tabsByID[id]?.loadPictureIfNeeded() }
+        }
+        withAnimation(.smooth(duration: 0.2)) { switcher.step(delta) }
+    }
+
+    /// ⌃ came up: fly to the window the ring landed on.
+    func endWindowSwitch() {
+        var landing: UUID?
+        withAnimation(.smooth(duration: 0.16)) { landing = switcher.commit() }
+        guard let id = landing, id != selectedTabID else { return }
+        exitOverview() // the ring names one window, and the overview is the view that shows every one
+        selectTab(id)
+    }
+
+    /// ⎋, or anything else that means the pass is off. The rail never moved, so there is nothing to
+    /// put back.
+    func cancelWindowSwitch() {
+        withAnimation(.smooth(duration: 0.16)) { switcher.cancel() }
+    }
+
+    /// Every window of the selected profile, in the order they stand on the rail: workspace by
+    /// workspace, left to right. What the ring falls back on for a window that has never been focused.
+    private var railOrder: [UUID] {
+        layout.strip(for: selectedProfileID).workspaces.flatMap { $0.columns.map(\.tabID) }
+    }
 
     // MARK: Carrying a window across the overview
 
@@ -1153,6 +1203,9 @@ final class BrowserState {
     /// The focused column is the selected tab — everything else (assistant, agent panel, ⌘L) keys off it.
     private func syncSelection() {
         selectedTabID = layout.focusedTabID
+        // Every way the focus can move ends here, which is why the ⌃Tab order is taken here and not
+        // in `selectTab`: a rail walked with ⌥→ is a rail whose windows have been looked at.
+        switcher.note(selectedTabID)
     }
 }
 

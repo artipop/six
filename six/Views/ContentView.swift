@@ -35,6 +35,9 @@ struct ContentView: View {
         }
         .ignoresSafeArea(.container, edges: .top)
         .overlay { FlightsOverlay() }
+        // Over the top bar as well as over the rail: while ⌃ is held nothing else in the window is
+        // being looked at.
+        .overlay { WindowSwitcherOverlay() }
         // Mounted once, on the root, because six is a `Window` and not a `WindowGroup`. It draws
         // nothing: it only carries the `.translationTask` that can ask for a language download.
         .translationHost(browser.appleTranslator)

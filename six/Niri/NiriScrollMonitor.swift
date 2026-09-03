@@ -49,6 +49,15 @@ final class NiriScrollMonitor {
     /// (A field *inside a page* cannot be told apart from the page around it, and the rail wins
     /// there — it is what the key is for in this browser.)
     var onLayoutKey: (LayoutKey) -> Void = { _ in }
+    /// ⌃Tab, and ⌃⇧Tab the other way: one step along the ring of windows in the order they were last
+    /// looked at. It comes through here rather than through a menu item for the same reason the ⌥
+    /// keys do — a focused web view answers a key equivalent first — and it needs the monitor for a
+    /// second reason besides: the ring is held open by a modifier, and nothing but a `flagsChanged`
+    /// ever says that a modifier has been let go of.
+    var onSwitchWindow: (Int) -> Void = { _ in }
+    /// ⌃ came up (or the pass ended some other way): land on the window the ring is showing.
+    var onSwitchEnded: () -> Void = {}
+    var isSwitchingWindows: () -> Bool = { false }
 
     /// One ⌥ binding, named. `NiriScrollMonitor` decides which key it was; `NiriStripView` decides
     /// what it does, the way it already does for a scroll gesture.
@@ -65,6 +74,7 @@ final class NiriScrollMonitor {
 
     private var monitor: Any?
     private var keyMonitor: Any?
+    private var flagsMonitor: Any?
     private var clickMonitor: Any?
     private var accumulated: CGFloat = 0
     private var accumulatedX: CGFloat = 0
@@ -86,6 +96,16 @@ final class NiriScrollMonitor {
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self else { return event }
             return MainActor.assumeIsolated { self.handleKey(event) }
+        }
+        // Never swallowed: a modifier going up is everybody's business, and the switcher is only
+        // listening for the one that is holding its ring open.
+        flagsMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+            guard let self else { return event }
+            return MainActor.assumeIsolated {
+                let held = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+                if self.isSwitchingWindows(), !held.contains(.control) { self.onSwitchEnded() }
+                return event
+            }
         }
         startClickTrace()
     }
@@ -110,9 +130,11 @@ final class NiriScrollMonitor {
     func stop() {
         if let monitor { NSEvent.removeMonitor(monitor) }
         if let keyMonitor { NSEvent.removeMonitor(keyMonitor) }
+        if let flagsMonitor { NSEvent.removeMonitor(flagsMonitor) }
         if let clickMonitor { NSEvent.removeMonitor(clickMonitor) }
         monitor = nil
         keyMonitor = nil
+        flagsMonitor = nil
         clickMonitor = nil
     }
 
@@ -123,6 +145,7 @@ final class NiriScrollMonitor {
     private static let upArrow: UInt16 = 126
     private static let home: UInt16 = 115
     private static let end: UInt16 = 119
+    private static let tab: UInt16 = 48
 
     private func handleKey(_ event: NSEvent) -> NSEvent? {
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
@@ -132,6 +155,15 @@ final class NiriScrollMonitor {
             if let window = event.window, String(describing: type(of: window)).contains("FullScreen") { return event }
             return onEscape() ? nil : event
         }
+        if event.keyCode == Self.tab, flags == .control || flags == [.control, .shift] {
+            onSwitchWindow(flags.contains(.shift) ? -1 : 1)
+            return nil
+        }
+        // The ring is open and the key that arrived is not one of its own. Whatever it is, the pass
+        // is over: land, and let the key through to whatever it was meant for. Without this a switch
+        // could be left standing by anything that took ⌃ away without a `flagsChanged` — the app
+        // losing focus mid-press, most of all.
+        if isSwitchingWindows(), event.keyCode != Self.tab { onSwitchEnded() }
         guard let key = Self.layoutKey(for: event, flags: flags) else { return event }
         // ⌥ and an arrow is word and paragraph movement in a text field, and was long before it was
         // niri's. While the caret is in one of six's own fields the rail does not take it; ⌥W ⌥O ⌥C

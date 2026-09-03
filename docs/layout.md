@@ -137,6 +137,33 @@ stay true here is that it did not. The drawing is `StripWalls` in `NiriStripView
 profile's colour along that edge, 5.5 % of the viewport deep, fading out towards both corners so it
 reads as light caught on an edge rather than as a border the window grew.
 
+## ⌃Tab — the order the windows were looked at
+
+The rail is where windows *are*; `WindowSwitcher` is where they have *been*. The window you want next
+is usually the one you just came from, and on a rail of a dozen that one can be six windows away in
+either direction — so `⌥←` / `⌥→` walk the rail and `⌃Tab` walks the memory, the same division as
+`⌥Tab` and the workspace keys in any tiling WM.
+
+- Recency is taken in `BrowserState.syncSelection`, the one place every focus change ends, so a rail
+  walked with `⌥→` is a rail whose windows have been looked at. This run only, like the list `⌘⇧T`
+  reopens from.
+- The ring is fixed when the switch opens and does not reorder while it is held — a list that resorted
+  itself under the key would move the window you were aiming at — and it wraps, because a ring has no
+  ends to hit. Windows never focused this run (restored from the snapshot) follow in rail order.
+- One profile's windows only. A profile is a browsing world with a rail, a history and a colour of its
+  own, and a key that flew you out of one into another would change all of that on the way past.
+- Nothing is loaded while it is walked: the cards are the pictures the overview already takes
+  (`rememberViewState` for the window being read, `loadPictureIfNeeded` for the rest). The flight
+  happens once, on `⌃` coming up, through `selectTab` and the usual switch animation.
+
+The keys come through `NiriScrollMonitor` for the reason the `⌥` bindings do — a first-responder
+`WKWebView` answers a key equivalent before the menu bar sees it — and for a second reason besides:
+the ring is held open by a modifier, and only a `flagsChanged` ever says a modifier was let go of. A
+key that is not `Tab` arriving mid-ring ends the pass and is passed on, so nothing can leave the
+switcher standing (the app losing focus mid-press, most of all). The panel is `WindowSwitcherOverlay`,
+mounted on `ContentView` over the top bar as well as the rail, and it answers no mouse: it exists only
+while a key is held, and a target that vanishes when you let go of a key is not a target.
+
 ## Clicking
 
 A window that isn't focused is a target, not a page: the first click flies to it (and centres it) instead of reaching

@@ -33,6 +33,26 @@ could not do. `⌥` and an arrow stays word movement while the caret is in a tex
 | `⌥O` | overview (`Esc` to leave) |
 | `⌥C` | centre the focused window; off means the rail moves as little as it can |
 
+### Flying between windows — `⌃Tab`
+
+The arrows walk the rail — where the windows **stand**. `⌃Tab` walks the memory —
+the order you **looked at** them in. On a rail of a dozen, the window you have
+just come from can be six steps away in either direction; in the memory it is
+always the next one.
+
+Hold `⌃` and press `Tab`: a row of the profile's windows appears in the middle of
+the screen as pictures, the one you would land on in the centre, its neighbours
+in the ring peeking in at the edges. Under the row is what that page is, which
+site it is from and which workspace it stands on — the ring crosses workspaces
+too. `⌃⇧Tab` goes the other way, `Esc` lets go of the ring without changing
+anything. Let `⌃` go and the rail flies to the window you chose.
+
+Nothing loads while the ring is open: the cards are pictures taken of the
+windows, and the page is built where you land. One press of `⌃Tab` is a toggle
+between the last two windows. The ring holds this profile's windows only (each
+profile has its own rail, history and colour — flying out of one on a keypress
+would be too much) and only for this run.
+
 ## With the mouse alone
 
 Nothing needs the keyboard: every operation has a mouse equivalent.
