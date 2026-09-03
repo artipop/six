@@ -300,17 +300,6 @@ data class NiriLayout(
      * Keeps exactly one trailing empty workspace and drops the empty ones in between — niri's
      * dynamic workspaces. A named workspace stays even when it is empty, also like niri.
      */
-    /**
-     * A row that has just lost its last window gives back a name it did not ask for.
-     *
-     * Deliberately not part of [normalize]: the difference between a row that has *become* empty and
-     * one that is empty because it was made a moment ago is the difference between a label outliving
-     * its room and a workspace being created by name and filled on the next line, which is what
-     * every [workspaceIndexNamed] caller does. The Mac's `unnameIfEmptied`, line for line.
-     */
-    private fun unnameIfEmptied(ws: NiriWorkspace): NiriWorkspace =
-        if (ws.isEmpty && ws.namedByHand != true) ws.copy(name = "") else ws
-
     private fun normalize(s: NiriStrip): NiriStrip {
         val focusedId = s.workspaces.getOrNull(s.focus)?.id
         val kept = s.workspaces.filter { !it.isEmpty || it.name.isNotEmpty() }.toMutableList()
@@ -352,23 +341,9 @@ data class NiriLayout(
      */
     fun restore(saved: Map<UUID, NiriStrip>): NiriLayout {
         var result = copy(strips = emptyMap())
-        for ((profileId, strip) in saved) result = result.mutate(profileId) { dropUnclaimedNames(strip) }
+        for ((profileId, strip) in saved) result = result.mutate(profileId) { strip }
         // the offsets on disk were written for whatever viewport wrote them
         return result.recenterStrips()
-    }
-
-    /**
-     * A named row with nothing in it and nobody behind the name does not come back. At runtime such
-     * a row loses its name the moment it empties ([unnameIfEmptied]); this is for the rows that
-     * emptied before that rule existed, and for the one a research run leaves behind if it dies
-     * between naming its workspace and opening the document in it.
-     */
-    private fun dropUnclaimedNames(strip: NiriStrip): NiriStrip {
-        val focusedId = strip.workspaces.getOrNull(strip.focus)?.id
-        val kept = strip.workspaces.filterNot { it.isEmpty && it.name.isNotEmpty() && it.namedByHand != true }
-        if (kept.size == strip.workspaces.size) return strip
-        val focus = kept.indexOfFirst { it.id == focusedId }.takeIf { it >= 0 } ?: strip.focus
-        return strip.copy(workspaces = kept, focus = focus)
     }
 
     /** Switching profile shows a strip last laid out at another viewport, so it is put back first. */
@@ -427,8 +402,8 @@ data class NiriLayout(
         val ws = s.workspaces[w]
         val index = ws.columns.indexOfFirst { it.tabId == tabId }
         val columns = ws.columns.removing(index)
-        val next = unnameIfEmptied(
-            scrollFocusIntoView(ws.copy(columns = columns, focus = min(index, max(0, columns.size - 1)))),
+        val next = scrollFocusIntoView(
+            ws.copy(columns = columns, focus = min(index, max(0, columns.size - 1))),
         )
         s.copy(workspaces = s.workspaces.replacing(w, next))
     }
@@ -478,9 +453,7 @@ data class NiriLayout(
             val column = s.workspaces[from].columns[at]
             val source = s.workspaces[from].let { ws ->
                 val columns = ws.columns.removing(at)
-                unnameIfEmptied(
-                    scrollFocusIntoView(ws.copy(columns = columns, focus = min(ws.focus, max(0, columns.size - 1)))),
-                )
+                scrollFocusIntoView(ws.copy(columns = columns, focus = min(ws.focus, max(0, columns.size - 1))))
             }
             val workspaces = s.workspaces.replacing(from, source).toMutableList()
             while (destinationIndex >= workspaces.size) workspaces.add(NiriWorkspace())
@@ -533,8 +506,8 @@ data class NiriLayout(
 
         val column = ws.columns[ws.focus]
         val columns = ws.columns.removing(ws.focus)
-        val source = unnameIfEmptied(
-            scrollFocusIntoView(ws.copy(columns = columns, focus = min(ws.focus, max(0, columns.size - 1)))),
+        val source = scrollFocusIntoView(
+            ws.copy(columns = columns, focus = min(ws.focus, max(0, columns.size - 1))),
         )
         val workspaces = s.workspaces.replacing(sourceIndex, source).toMutableList()
         if (target >= workspaces.size) workspaces.add(NiriWorkspace())
@@ -552,15 +525,8 @@ data class NiriLayout(
      */
     fun workspaceName(index: Int): String? = workspaces.getOrNull(index)?.name?.ifEmpty { null }
 
-    /**
-     * The one place a *person* names a workspace. That is what makes the name a reservation;
-     * clearing it hands the row back to the dynamic-workspace rule.
-     */
     fun renameWorkspace(index: Int, name: String): NiriLayout =
-        mutateWorkspace(index) {
-            val trimmed = name.trim()
-            it.copy(name = trimmed, namedByHand = if (trimmed.isEmpty()) null else true)
-        }
+        mutateWorkspace(index) { it.copy(name = name.trim()) }
 
     /**
      * Index of the workspace with this name in a profile's strip, creating it — as the trailing
@@ -584,12 +550,10 @@ data class NiriLayout(
         var created: Int? = null
         val next = mutate(profileId) { s ->
             val last = s.workspaces.lastOrNull()
-            // `namedByHand` false rather than absent: this is a program naming a row it is about to
-            // fill, and saying so is what lets the row give the name back when it empties again.
             val workspaces = if (last != null && last.isEmpty && last.name.isEmpty()) {
-                s.workspaces.replacing(s.workspaces.size - 1, last.copy(name = wanted, namedByHand = false))
+                s.workspaces.replacing(s.workspaces.size - 1, last.copy(name = wanted))
             } else {
-                s.workspaces + NiriWorkspace(name = wanted, namedByHand = false)
+                s.workspaces + NiriWorkspace(name = wanted)
             }
             created = workspaces.size - 1
             s.copy(workspaces = workspaces)

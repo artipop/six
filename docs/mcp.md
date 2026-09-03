@@ -46,10 +46,10 @@ same machine as the person reading it.
 
 Vocabulary is the product's: a *window* (page) in a *workspace* (rail) of a *profile*. Everything defaults to what
 is on screen — the current profile, its focused workspace, its focused window. Workspaces are addressed by name or
-1-based index; a name that doesn't exist is created (the trailing empty workspace gets the name). A workspace named
-this way is labelled, not reserved: it stands for as long as it has windows, and when the last one closes it gives the
-name back and disappears with every other empty row. Only a name a person typed into the plate holds a row open
-([layout.md](layout.md#model--sixnirinirilayoutswift)).
+1-based index; a name that doesn't exist is created (the trailing empty workspace gets the name). A workspace created
+this way is not permanent: when its last window closes, six asks the person at the screen whether to delete it — the
+same question every named workspace gets, whoever named it
+([layout.md](layout.md#a-named-workspace-that-runs-out-of-windows)).
 
 | tool | what it does |
 |---|---|

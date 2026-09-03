@@ -22,26 +22,13 @@ data class NiriColumn(
 data class NiriWorkspace(
     @Serializable(with = UuidSerializer::class)
     val id: UUID = UUID.randomUUID(),
-    /**
-     * Optional, like niri's named workspaces. A named one survives running out of windows — if a
-     * person is behind the name.
-     */
+    /** Optional, like niri's named workspaces. A named one survives running out of windows. */
     val name: String = "",
     val columns: List<NiriColumn> = emptyList(),
     /** Index of the focused column. */
     val focus: Int = 0,
     /** Scroll position of the strip, in points of content space. */
     val viewOffset: Double = 0.0,
-    /**
-     * Whether a person typed that name. A name typed into the plate is a reservation: it holds the
-     * row open before there is anything in it, which is the whole point of naming one. A name a
-     * program made up — the question a research run started with, an agent's `workspace: "notes"` —
-     * is a label on a room that already existed, and it must not outlive the room.
-     *
-     * Absent in files from before the distinction, and read as *not* a reservation.
-     */
-    val namedByHand: Boolean? = null,
-    // Last in the list, so that every positional `NiriWorkspace(...)` keeps its meaning.
 ) {
     val isEmpty: Boolean get() = columns.isEmpty()
     val focusedColumn: NiriColumn? get() = columns.getOrNull(focus)

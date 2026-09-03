@@ -61,6 +61,8 @@ struct ContentView: View {
             if let tab = browser.selectedTab { browser.translateSelection(of: tab) }
         })
         .clearHistoryDialog(isPresented: $confirmClearHistory)
+        // A named workspace has just run out of windows and wants an answer (`NiriLayout`).
+        .workspaceRemovalDialog()
         .onKeyPress(.escape) {
             // The scroll monitor usually gets there first (a page holds the focus); this is the path
             // for when nothing in the window has taken the key.

@@ -28,18 +28,10 @@ nonisolated struct NiriColumn: Identifiable, Hashable, Sendable, Codable {
 /// A niri workspace: an infinite horizontal strip of full-height columns.
 nonisolated struct NiriWorkspace: Identifiable, Sendable, Codable {
     var id = UUID()
-    /// Optional, like niri's named workspaces. A named one survives running out of windows — if a
-    /// person is behind the name.
+    /// Optional, like niri's named workspaces. A named workspace does not vanish the moment it runs
+    /// out of windows: it is asked about first (`NiriWorkspaceRemoval`), because the name is the one
+    /// thing on a rail a person typed and losing it silently is losing work.
     var name: String = ""
-    /// Whether a person typed that name. A name typed into the plate is a reservation: it holds the
-    /// row open before there is anything in it, which is the whole point of naming one. A name a
-    /// program made up — the question a research run started with, an agent's `workspace: "notes"` —
-    /// is a label on a room that already existed, and it must not outlive the room, or a browser
-    /// that answers questions for a living fills up with empty rows nobody named.
-    ///
-    /// Absent in files from before the distinction, and read as *not* a reservation: those rows are
-    /// the pile this was written for.
-    var namedByHand: Bool? = nil
     var columns: [NiriColumn] = []
     /// Index of the focused column.
     var focus: Int = 0
@@ -74,6 +66,23 @@ nonisolated enum NiriFill: String, Sendable, Codable {
 nonisolated enum NiriPlacement: Sendable {
     case left
     case right
+}
+
+/// A named workspace that has just lost its last window, and the question that goes with it.
+///
+/// A row with nothing in it is not worth keeping — that is niri's rule and six's, and it is why an
+/// unnamed one disappears the moment its last window does, silently and without asking, a dozen
+/// times a day. A *name* is the exception, and not because of who typed it: a name is the only thing
+/// on a rail a person put there in words, and taking it away without saying so is taking away work.
+///
+/// So the rule is the same everywhere and the question is the whole of the difference: the row is
+/// gone if the answer is yes, and stands if it is no. `NiriLayout` only asks; how the question looks
+/// belongs to whoever draws it.
+nonisolated struct NiriWorkspaceRemoval: Identifiable, Sendable, Equatable {
+    /// The workspace's own id, so an answer cannot land on a row that has moved.
+    var id: UUID
+    var name: String
+    var profileID: UUID
 }
 
 /// A side of the canvas, as the rail feels it when there is nothing behind it. Named for the
@@ -183,6 +192,13 @@ final class NiriLayout {
     var edgeHover = 0
     /// A window being carried across the overview, or `nil`. See `NiriColumnDrag`.
     var columnDrag: NiriColumnDrag?
+    /// Named workspaces that have run out of windows and are waiting for an answer, oldest first.
+    /// A queue rather than one at a time because closing several windows at once — a profile going
+    /// away, a rail being cleared — can empty more than one row, and a question that overwrote
+    /// another would delete a workspace nobody was asked about.
+    private(set) var pendingRemovals: [NiriWorkspaceRemoval] = []
+    /// The one being asked about now.
+    var workspaceToRemove: NiriWorkspaceRemoval? { pendingRemovals.first }
     /// The side the rail was last pushed into with nothing behind it, and how brightly it is lit
     /// (0…1). See `hitWall`.
     private(set) var wall: NiriEdge?
@@ -238,6 +254,7 @@ final class NiriLayout {
         body(&s)
         normalize(&s)
         strips[profile] = s
+        prunePendingRemovals()
     }
 
     /// Any profile's strip, not just the one on screen — the MCP server lists them all.
@@ -253,37 +270,65 @@ final class NiriLayout {
     func restore(strips saved: [UUID: NiriStrip]) {
         strips = [:]
         for (profileID, strip) in saved {
-            mutate(profile: profileID) { s in
-                s = strip
-                // A named row with nothing in it and nobody behind the name does not come back. At
-                // runtime such a row loses its name the moment it empties (`unnameIfEmptied`) and is
-                // pruned with every other empty one; this is for the rows that emptied before that
-                // rule existed, and for the one a research run leaves behind if it dies between
-                // naming its workspace and opening the document in it.
-                let focusedID = s.workspaces.indices.contains(s.focus) ? s.workspaces[s.focus].id : nil
-                s.workspaces.removeAll { $0.isEmpty && !$0.name.isEmpty && $0.namedByHand != true }
-                if let focusedID, let index = s.workspaces.firstIndex(where: { $0.id == focusedID }) {
-                    s.focus = index
-                }
-            }
+            mutate(profile: profileID) { $0 = strip }
         }
         recenterStrips() // the offsets on disk were written for whatever viewport wrote them
     }
 
-    /// A row that has just lost its last window gives back a name it did not ask for.
+    /// A row has just lost its last window: if it has a name, it becomes a question.
     ///
-    /// Deliberately here and not in `normalize`: the difference between a row that has *become*
-    /// empty and one that is empty because it was made a moment ago is exactly the difference
-    /// between a label outliving its room and a workspace being created by name and filled on the
-    /// next line — which is what every `workspaceIndex(named:createIfMissing:)` caller does.
-    private func unnameIfEmptied(_ workspace: inout NiriWorkspace) {
-        guard workspace.isEmpty, workspace.namedByHand != true else { return }
-        workspace.name = ""
+    /// Every named row asks the same one, whoever the name came from — a person typing into the
+    /// plate, a research run naming a workspace after its question, an agent's `workspace: "notes"`.
+    /// Guessing which of those is a reservation is exactly what this does not do; the person who is
+    /// there answers instead.
+    ///
+    /// Deliberately here and not in `normalize`: normalize cannot tell a row that has *become* empty
+    /// from one that is empty because it was made a moment ago, and every caller of
+    /// `workspaceIndex(named:createIfMissing:)` makes a named empty row and fills it on the next
+    /// line. Only a row that had something and lost it is worth asking about.
+    private func askBeforeRemoving(_ workspace: NiriWorkspace, in profileID: UUID) {
+        guard workspace.isEmpty, !workspace.name.isEmpty else { return }
+        guard !pendingRemovals.contains(where: { $0.id == workspace.id }) else { return }
+        pendingRemovals.append(NiriWorkspaceRemoval(id: workspace.id, name: workspace.name, profileID: profileID))
+        NiriLayout.trace("asking about \(workspace.name)")
+    }
+
+    /// Yes: the row goes. Guarded on still being empty, because the question outlives the moment it
+    /// was asked in — a window can arrive in that row while it is up, and then there is nothing to
+    /// remove and the answer is about a workspace that no longer needs one.
+    func removeWorkspace(_ id: UUID) {
+        // The question is one way in; the plate's own **Delete Workspace** is the other, for a row
+        // that was already standing empty when this rule arrived and so was never asked about.
+        let profileID = pendingRemovals.first { $0.id == id }?.profileID
+            ?? strips.first { $0.value.workspaces.contains { $0.id == id } }?.key
+        guard let profileID else { return }
+        pendingRemovals.removeAll { $0.id == id }
+        mutate(profile: profileID) { s in
+            guard let index = s.workspaces.firstIndex(where: { $0.id == id }), s.workspaces[index].isEmpty else { return }
+            s.workspaces.remove(at: index)
+            s.focus = min(s.focus, max(0, s.workspaces.count - 1))
+        }
+    }
+
+    /// No: nothing happens. The row stands with its name, the way a named row always has, and is not
+    /// asked about again until it is filled and emptied again.
+    func keepWorkspace(_ id: UUID) {
+        pendingRemovals.removeAll { $0.id == id }
+    }
+
+    /// A question is only worth asking while it is still true. A row that was filled again while it
+    /// was up, or that went some other way, takes its question with it.
+    private func prunePendingRemovals() {
+        pendingRemovals.removeAll { pending in
+            guard let workspace = strips[pending.profileID]?.workspaces.first(where: { $0.id == pending.id })
+            else { return true }
+            return !workspace.isEmpty
+        }
     }
 
     /// Keeps exactly one trailing empty workspace and drops the empty ones in between — niri's
-    /// dynamic workspaces. A workspace a person named stays even when it is empty, also like niri;
-    /// one a program named has already given the name back by the time it gets here.
+    /// dynamic workspaces. A named workspace stays even when it is empty, also like niri: what
+    /// removes it is the answer to `NiriWorkspaceRemoval`, not this.
     private func normalize(_ s: inout NiriStrip) {
         let focusedID = s.workspaces.indices.contains(s.focus) ? s.workspaces[s.focus].id : nil
         var kept = s.workspaces.filter { !$0.isEmpty || !$0.name.isEmpty }
@@ -743,13 +788,10 @@ final class NiriLayout {
         guard createIfMissing else { return nil }
         var created: Int?
         mutate(profile: profileID) { s in
-            // `namedByHand` false rather than absent: this is a program naming a row it is about to
-            // fill, and saying so is what lets the row give the name back when it empties again.
             if s.workspaces.last?.isEmpty == true, s.workspaces.last?.name.isEmpty == true {
                 s.workspaces[s.workspaces.count - 1].name = wanted
-                s.workspaces[s.workspaces.count - 1].namedByHand = false
             } else {
-                s.workspaces.append(NiriWorkspace(name: wanted, namedByHand: false))
+                s.workspaces.append(NiriWorkspace(name: wanted))
             }
             created = s.workspaces.count - 1
         }
@@ -766,7 +808,7 @@ final class NiriLayout {
             let column = s.workspaces[from].columns.remove(at: at)
             s.workspaces[from].focus = min(s.workspaces[from].focus, max(0, s.workspaces[from].columns.count - 1))
             scrollFocusIntoView(&s.workspaces[from])
-            unnameIfEmptied(&s.workspaces[from])
+            askBeforeRemoving(s.workspaces[from], in: profileID)
             while target >= s.workspaces.count { s.workspaces.append(NiriWorkspace()) }
             var destination = s.workspaces[target]
             let index = destination.columns.isEmpty ? 0 : destination.focus + 1
@@ -782,7 +824,7 @@ final class NiriLayout {
                 s.workspaces[i].columns.remove(at: index)
                 s.workspaces[i].focus = max(0, min(index, s.workspaces[i].columns.count - 1))
                 scrollFocusIntoView(&s.workspaces[i])
-                unnameIfEmptied(&s.workspaces[i])
+                askBeforeRemoving(s.workspaces[i], in: activeProfileID)
                 return
             }
         }
@@ -947,7 +989,7 @@ final class NiriLayout {
             s.workspaces[drag.fromWorkspace].focus =
                 min(s.workspaces[drag.fromWorkspace].focus, max(0, s.workspaces[drag.fromWorkspace].columns.count - 1))
             scrollFocusIntoView(&s.workspaces[drag.fromWorkspace])
-            unnameIfEmptied(&s.workspaces[drag.fromWorkspace])
+            askBeforeRemoving(s.workspaces[drag.fromWorkspace], in: activeProfileID)
 
             let target = min(max(0, drag.toWorkspace), s.workspaces.count - 1)
             var destination = s.workspaces[target]
@@ -1030,7 +1072,7 @@ final class NiriLayout {
             let column = source.columns.remove(at: source.focus)
             source.focus = min(source.focus, max(0, source.columns.count - 1))
             scrollFocusIntoView(&source)
-            unnameIfEmptied(&source)
+            askBeforeRemoving(source, in: activeProfileID)
             s.workspaces[s.focus] = source
 
             if target >= s.workspaces.count { s.workspaces.append(NiriWorkspace()) }
@@ -1056,18 +1098,18 @@ final class NiriLayout {
         return workspaces[index].name
     }
 
-    /// The one place a *person* names a workspace — the plate in the overview. That is what makes the
-    /// name a reservation; clearing it hands the row back to the dynamic-workspace rule.
     func rename(workspaceAt index: Int, to name: String) {
         mutate { s in
             guard s.workspaces.indices.contains(index) else { return }
-            let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-            s.workspaces[index].name = trimmed
-            s.workspaces[index].namedByHand = trimmed.isEmpty ? nil : true
+            s.workspaces[index].name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         }
     }
 
     func removeProfile(_ id: UUID) {
         strips[id] = nil
+        // Its windows were closed one by one on the way here, so its named rows have been queueing
+        // up questions about a profile that is being deleted whole. Nobody wants to be asked eight
+        // times whether to keep a workspace inside something they just threw away.
+        pendingRemovals.removeAll { $0.profileID == id }
     }
 }

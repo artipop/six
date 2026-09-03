@@ -3,17 +3,19 @@ import Testing
 
 @testable import SixCore
 
-/// Who named a workspace, and what that buys it.
+/// What happens to a workspace when its last window goes, and to the name on it.
 ///
-/// niri's rule is that a named workspace survives running out of windows, and six kept it — but six
-/// has something niri does not: programs that name workspaces. A research run names one after the
-/// question it was asked; an agent asks for `workspace: "notes"` and gets one. Those names are
-/// labels on a room that already exists, and when they outlived the room the rail filled up with
-/// empty rows nobody had named. So the promise is narrower now, and this suite is the promise: a
-/// name a person typed holds the row open, a name a program made does not.
+/// niri's rule is that a named workspace survives running out of windows, and six kept it for as
+/// long as naming one was something only a person did. It isn't: a research run names a workspace
+/// after the question it was asked, an agent asks for `workspace: "notes"` and gets one, and every
+/// one of those names made a row immortal — a browser that answers questions for a living silting
+/// up with empty rows carrying last week's questions.
 ///
-/// A second front end draws from the same rule (Android has the model ported line for line), which
-/// is why these are here and not in the app's tests.
+/// Six could have guessed which names were reservations. It asks instead: the rule is the same for
+/// every named row, and the person who is there answers it. This suite is that rule — that the
+/// question is raised for a row that *became* empty and never for one that was made a moment ago,
+/// that yes removes it and no leaves it standing, and that a question stops being asked when it
+/// stops being true.
 @MainActor
 struct NiriLayoutWorkspaceNameTests {
 
@@ -27,110 +29,146 @@ struct NiriLayoutWorkspaceNameTests {
         layout.workspaces.map(\.name)
     }
 
-    /// The sequence every `workspaceIndex(named:createIfMissing:)` caller performs: name a row, then
-    /// put a window in it. The row must still be there on the next line — this is the case that
-    /// makes the rule a transition rather than an invariant.
-    @Test func aRowIsNotPrunedBetweenBeingNamedAndBeingFilled() {
-        let layout = layout()
+    /// A named workspace with a window in it, and the window's id.
+    private func named(_ layout: NiriLayout, _ name: String) -> (index: Int, window: UUID) {
         let profile = layout.activeProfileID
-        layout.insertColumn(tabID: UUID())
+        let index = layout.workspaceIndex(named: name, in: profile, createIfMissing: true)!
+        let window = UUID()
+        layout.insertColumn(tabID: window, in: profile, workspace: index)
+        return (index, window)
+    }
 
-        guard let index = layout.workspaceIndex(named: "tickets to KZ", in: profile, createIfMissing: true) else {
-            Issue.record("no workspace was created")
-            return
-        }
+    /// The sequence every `workspaceIndex(named:createIfMissing:)` caller performs: name a row, then
+    /// put a window in it. Nothing is asked about it — it has not lost anything — and the row must
+    /// still be there on the next line.
+    @Test func aRowMadeByNameIsNotAskedAbout() {
+        let layout = layout()
+        layout.insertColumn(tabID: UUID())
+        let profile = layout.activeProfileID
+
+        let index = layout.workspaceIndex(named: "tickets to KZ", in: profile, createIfMissing: true)!
         #expect(layout.workspaces[index].name == "tickets to KZ")
+        #expect(layout.workspaceToRemove == nil)
 
         let document = UUID()
         layout.insertColumn(tabID: document, in: profile, workspace: index)
         #expect(layout.location(ofTabID: document, in: profile)?.workspace == index)
+        #expect(layout.workspaceToRemove == nil)
     }
 
-    /// The pile this was written for: the run ends, its windows are closed, and the row goes with
-    /// them instead of standing there with a question on it forever.
-    @Test func aRowAProgramNamedGivesTheNameBackWhenItEmpties() {
+    /// The last window closes: the row is still there, and so is the question about it. Nothing is
+    /// removed until it is answered — that is the whole point of asking.
+    @Test func theLastWindowLeavingRaisesTheQuestionAndNothingElse() {
         let layout = layout()
-        let profile = layout.activeProfileID
-        layout.insertColumn(tabID: UUID()) // a workspace that stays, so the named one is not the only row
+        layout.insertColumn(tabID: UUID())
+        let (_, window) = named(layout, "research")
 
-        let index = layout.workspaceIndex(named: "research", in: profile, createIfMissing: true)!
-        let document = UUID()
-        layout.insertColumn(tabID: document, in: profile, workspace: index)
+        layout.removeColumn(tabID: window)
+        #expect(layout.workspaceToRemove?.name == "research")
         #expect(names(layout).contains("research"))
+    }
 
-        layout.removeColumn(tabID: document)
+    /// Yes.
+    @Test func answeringYesTakesTheRow() {
+        let layout = layout()
+        layout.insertColumn(tabID: UUID())
+        let (_, window) = named(layout, "research")
+        layout.removeColumn(tabID: window)
+
+        layout.removeWorkspace(layout.workspaceToRemove!.id)
         #expect(!names(layout).contains("research"))
-        // And niri's dynamic workspaces still hold: what is left is the row with a window in it and
-        // exactly one empty one at the end.
+        #expect(layout.workspaceToRemove == nil)
+        // And niri's dynamic workspaces still hold: the row with a window, and one empty one at the end.
         #expect(layout.workspaces.count == 2)
         #expect(layout.workspaces.last?.isEmpty == true)
     }
 
-    /// The reservation, which is what naming a workspace is for: it holds the row open with nothing
-    /// in it, before and after.
-    @Test func aRowAPersonNamedStaysWhenItEmpties() {
+    /// No. The row stands with its name and nothing in it, the way a named row always has — and it
+    /// is not asked about again until it is filled and emptied again.
+    @Test func answeringNoLeavesTheRowStanding() {
         let layout = layout()
-        let profile = layout.activeProfileID
         layout.insertColumn(tabID: UUID())
-        let index = layout.workspaceIndex(named: "reading", in: profile, createIfMissing: true)!
-        let window = UUID()
-        layout.insertColumn(tabID: window, in: profile, workspace: index)
+        let (index, window) = named(layout, "reading")
+        layout.removeColumn(tabID: window)
 
-        layout.focusWorkspace(at: index)
-        layout.rename(workspaceAt: index, to: "Reading") // typed into the plate: now it is a promise
+        layout.keepWorkspace(layout.workspaceToRemove!.id)
+        #expect(names(layout).contains("reading"))
+        #expect(layout.workspaceToRemove == nil)
+
+        let again = UUID()
+        layout.insertColumn(tabID: again, in: layout.activeProfileID, workspace: index)
+        layout.removeColumn(tabID: again)
+        #expect(layout.workspaceToRemove?.name == "reading") // filled and emptied again: asked again
+    }
+
+    /// An unnamed row is not asked about, ever. It is what closing the last window on a rail does a
+    /// dozen times a day, and there is nothing to lose by it.
+    @Test func anUnnamedRowGoesWithoutAQuestion() {
+        let layout = layout()
+        layout.insertColumn(tabID: UUID())
+        let window = UUID()
+        layout.moveColumnToWorkspace(1) // a second row, unnamed
+        layout.insertColumn(tabID: window)
 
         layout.removeColumn(tabID: window)
-        #expect(names(layout).contains("Reading"))
-        #expect(layout.workspaces.first { $0.name == "Reading" }?.isEmpty == true)
+        #expect(layout.workspaceToRemove == nil)
     }
 
-    /// Clearing the name hands the row back to the dynamic-workspace rule, the way the plate's
-    /// **Clear Name** says it does.
-    @Test func clearingTheNameGivesTheRowBack() {
+    /// A question outlives the moment it was asked in: the row can be filled again while it is up.
+    /// Then there is nothing to remove, and the question goes rather than the workspace.
+    @Test func aRowThatFillsAgainTakesItsQuestionWithIt() {
         let layout = layout()
-        let profile = layout.activeProfileID
         layout.insertColumn(tabID: UUID())
-        let index = layout.workspaceIndex(named: "reading", in: profile, createIfMissing: true)!
-        layout.focusWorkspace(at: index)
-        layout.rename(workspaceAt: index, to: "Reading")
-        layout.rename(workspaceAt: index, to: "")
+        let (index, window) = named(layout, "research")
+        layout.removeColumn(tabID: window)
+        #expect(layout.workspaceToRemove != nil)
 
-        #expect(layout.workspaces.count == 2) // the row with a window, and one empty one at the end
+        layout.insertColumn(tabID: UUID(), in: layout.activeProfileID, workspace: index)
+        #expect(layout.workspaceToRemove == nil)
+        #expect(names(layout).contains("research"))
     }
 
-    /// A window carried out of the last row of a workspace empties it just as closing one does, so
-    /// the name goes the same way.
-    @Test func carryingTheLastWindowOutEmptiesTheRowToo() {
+    /// Carrying the last window out of a row empties it exactly as closing one does, so it asks the
+    /// same question — the rule is about the row, not about which gesture emptied it.
+    @Test func everyWayOfEmptyingARowAsksTheSameQuestion() {
         let layout = layout()
-        let profile = layout.activeProfileID
         layout.insertColumn(tabID: UUID())
-        let index = layout.workspaceIndex(named: "research", in: profile, createIfMissing: true)!
-        let window = UUID()
-        layout.insertColumn(tabID: window, in: profile, workspace: index)
+        let profile = layout.activeProfileID
+        let (_, window) = named(layout, "research")
 
         layout.moveColumn(tabID: window, in: profile, toWorkspace: 0)
-        #expect(!names(layout).contains("research"))
+        #expect(layout.workspaceToRemove?.name == "research")
     }
 
-    /// What a snapshot written before the distinction comes back as. The rows in it look identical —
-    /// a name and no windows — so the one thing that can be said about them honestly is that nobody
-    /// can now say who named them, and the rail is better off without them.
-    @Test func restoreDropsTheNamedRowsNobodyIsBehind() {
+    /// Several rows can empty at once — a profile being cleared, a rail being taken apart — and each
+    /// gets its own question, in the order they emptied. A question that overwrote another would
+    /// delete a workspace nobody was asked about.
+    @Test func questionsQueueRatherThanOverwriteEachOther() {
+        let layout = layout()
+        layout.insertColumn(tabID: UUID())
+        let first = named(layout, "first")
+        let second = named(layout, "second")
+
+        layout.removeColumn(tabID: first.window)
+        layout.removeColumn(tabID: second.window)
+        #expect(layout.pendingRemovals.map(\.name) == ["first", "second"])
+
+        layout.removeWorkspace(layout.workspaceToRemove!.id)
+        #expect(layout.workspaceToRemove?.name == "second")
+    }
+
+    /// The profile is being deleted whole, and its windows are closed one by one on the way out.
+    /// Being asked eight times whether to keep a workspace inside something you have just thrown
+    /// away is not a question.
+    @Test func aProfileGoingAwayTakesItsQuestionsWithIt() {
         let layout = layout()
         let profile = layout.activeProfileID
-        let strip = NiriStrip(
-            workspaces: [
-                NiriWorkspace(name: "research", columns: []),                        // an old, unattributed name
-                NiriWorkspace(name: "kept", namedByHand: true, columns: []),          // a reservation
-                NiriWorkspace(name: "working", columns: [NiriColumn(tabID: UUID())]), // has a window, so it stays
-                NiriWorkspace()
-            ],
-            focus: 2
-        )
-        layout.restore(strips: [profile: strip])
+        layout.insertColumn(tabID: UUID())
+        let (_, window) = named(layout, "research")
+        layout.removeColumn(tabID: window)
+        #expect(layout.workspaceToRemove != nil)
 
-        #expect(names(layout) == ["kept", "working", ""])
-        // The focus followed the row it was on rather than the index it was at.
-        #expect(layout.focusedWorkspaceIndex == 1)
+        layout.removeProfile(profile)
+        #expect(layout.pendingRemovals.isEmpty)
     }
 }

@@ -1024,6 +1024,14 @@ private struct WorkspacePlates: View {
                         if !workspace.name.isEmpty {
                             Button("Clear Name") { browser.layout.rename(workspaceAt: index, to: "") }
                         }
+                        // A row with nothing in it is normally asked about the moment it empties;
+                        // this is the way out for one that was already empty before it was ever
+                        // asked — an old rail, or an answer of "keep" that has since gone stale.
+                        if workspace.isEmpty, !workspace.name.isEmpty {
+                            Button("Delete Workspace", role: .destructive) {
+                                browser.layout.removeWorkspace(workspace.id)
+                            }
+                        }
                     }
             }
         }

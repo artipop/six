@@ -1647,6 +1647,26 @@
         }
       }
     },
+    "Delete Workspace": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить рабочий стол"
+          }
+        }
+      }
+    },
+    "Delete the workspace “%@”?": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить рабочий стол «%@»?"
+          }
+        }
+      }
+    },
     "Develop": {
       "localizations": {
         "ru": {
@@ -2273,6 +2293,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Его правила declarativeNetRequest работают — они блокируют по-настоящему."
+          }
+        }
+      }
+    },
+    "Its last window has been closed. Kept, it stays on the rail with its name and nothing in it.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "На нём закрылось последнее окно. Если оставить, он останется в ленте — с именем и пустой."
+          }
+        }
+      }
+    },
+    "Keep It": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Оставить"
           }
         }
       }

@@ -35,6 +35,9 @@ struct PhoneContentView: View {
         .sheet(isPresented: $showExtensions) { ExtensionsView() }
         .sheet(isPresented: $showSitePermissions) { PermissionsView() }
         .sheet(isPresented: $showCertificates) { CertificatesView() }
+        // The rail's own question, asked here too: the rule that empties a workspace is the layout's
+        // and does not know which front is drawing it (`WorkspaceRemovalDialog`).
+        .workspaceRemovalDialog()
         .clearHistoryDialog(isPresented: $confirmClearHistory)
         .pageDialogs()
     }

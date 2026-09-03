@@ -51,11 +51,8 @@ class AppStateSnapshotTest {
         assertEquals(2, strip.workspaces.size)
         assertEquals(2, strip.workspaces[0].columns.size)
         assertEquals(-85.55999999999995, strip.workspaces[0].viewOffset)
-        // A workspace a person named, with no columns: the one shape neither `normalize` nor
-        // `restore` may prune. Without `namedByHand` the same row is a label a program left behind
-        // and is dropped on the way in.
+        // A named workspace with no columns: the one shape `normalize` must not prune.
         assertEquals("Reading", strip.workspaces[1].name)
-        assertEquals(true, strip.workspaces[1].namedByHand)
         assertTrue(strip.workspaces[1].isEmpty)
     }
 

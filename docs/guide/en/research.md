@@ -13,10 +13,10 @@ sentences that earned them.
 ```
 
 The workspace *is* the result: it stays open, survives a relaunch, and can be
-come back to. Close the last window on it and the workspace goes too, taking the
-question it was named after with it: that name is a label on a room, not a
-booking ([more](/en/layout#workspaces-make-themselves)). To keep the row, type a
-name for it yourself — double-click its plate in the overview.
+come back to. Close the last window on it and VI asks whether to delete the
+workspace with the question on it ([more](/en/layout#workspaces-make-themselves)):
+for one run the answer is keep, for another it is delete, and only the person who
+started it knows which.
 
 ## Starting a run
 

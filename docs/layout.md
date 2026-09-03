@@ -9,9 +9,8 @@ Modelled on [niri](https://github.com/YaLTeR/niri). There are no tabs and no sid
 - Columns sit left to right on an endlessly scrollable **rail**. One rail is a **workspace**.
 - Workspaces are stacked **vertically**; exactly one is on screen. Each profile has its own stack.
 - A workspace can be **named** (double-click its plate in the overview). Naming is optional; an unnamed one is just
-  "Workspace N". A workspace *you* named survives running out of windows, like niri's; one a program named — a
-  research run, an agent's `workspace: "notes"` — gives the name back when its last window goes, and disappears
-  with every other empty row.
+  "Workspace N". An unnamed workspace disappears the moment its last window does — same as niri. A named one is
+  **asked about** first: *Delete the workspace "X"?*, once, at that moment, and it goes or stands by the answer.
 
 *The interface calls it the rail; the code calls it a strip — `NiriStrip`, `allStrips`, `strip.state`, the
 `StripState` JSON, the Kotlin beside it and the golden geometry those two agree on. That name is a wire format shared
@@ -29,7 +28,7 @@ two. See [linux.md](linux.md).*
 
 ```
 NiriStrip     workspaces: [NiriWorkspace], focus: Int      // one per profile
-NiriWorkspace name: String, namedByHand: Bool?, columns: [NiriColumn], focus: Int, viewOffset: CGFloat
+NiriWorkspace name: String, columns: [NiriColumn], focus: Int, viewOffset: CGFloat
 NiriColumn    tabID: UUID                                 // points at a BrowserTab
 ```
 
@@ -39,19 +38,32 @@ Every mutation goes through `mutate { }`, which runs `normalize` afterwards, so 
   they are named. The trailing workspace keeps its identity across the prune, so focus survives it.
 - Column focus stays in range, and `viewOffset` stays clamped.
 
-**Who named it decides whether the name survives.** `namedByHand` is set by `rename(workspaceAt:to:)` — the plate in
-the overview, the one place a person types a name — and cleared with the name. Every other way a workspace gets one is
-a program: `workspaceIndex(named:createIfMissing:)`, which a research run and the MCP tools call, marks it `false`.
-A row that *becomes* empty then gives a machine name back (`unnameIfEmptied`, called wherever a column leaves a row:
-`removeColumn`, both `moveColumn`s, `commitColumnDrag`) and `normalize` prunes it like any other empty one.
+### A named workspace that runs out of windows
 
-That rule is a transition and deliberately not part of `normalize`, because normalize cannot tell a row that has
-become empty from one that was made a moment ago — and every caller of `workspaceIndex(named:createIfMissing:)`
-creates a named empty row and fills it on the next line. `restore` covers the rest: a named empty row that is not
-`namedByHand` does not come back, which is what clears out both the rows written before the distinction existed and
-the one a research run leaves behind if it dies between naming its workspace and opening the document in it.
-`namedByHand` is absent in files from before this and read as *not* a reservation; Android carries the same field and
-the same four rules (`WorkspaceNameTest` there, `NiriLayoutWorkspaceNameTests` here).
+Naming used to make a row immortal — niri's rule, and fine for as long as naming one was something only a person did.
+It isn't: `workspaceIndex(named:createIfMissing:)` is called by every deep-research run (named after the question) and
+by the MCP tools (`open_window(workspace: "notes")`), so a browser that answers questions for a living silts up with
+empty rows carrying last week's questions.
+
+The rule is now the same for every named row, whoever the name came from, and the difference is a question:
+
+- `askBeforeRemoving` runs wherever a column leaves a row — `removeColumn`, both `moveColumn`s, `commitColumnDrag` —
+  and queues a `NiriWorkspaceRemoval` (workspace id, name, profile) when that row is left empty *and* named. An
+  unnamed row is never queued: it disappears as it always has, silently, a dozen times a day.
+- `workspaceToRemove` is the head of the queue and what the front draws (`WorkspaceRemovalDialog`, on both the Mac's
+  `ContentView` and `PhoneContentView`). `removeWorkspace(_:)` is yes, `keepWorkspace(_:)` is no, and dismissing the
+  dialog any other way is a no — never an unanswered question read as consent.
+- A **queue** and not one at a time: closing a profile or clearing a rail can empty several rows, and a question that
+  overwrote another would delete a workspace nobody was asked about. `removeProfile` drops the questions belonging to
+  a profile being deleted whole, and `prunePendingRemovals` (after every `mutate`) drops any whose row has been filled
+  again or has gone — a question is only worth asking while it is still true.
+
+Asking is deliberately a *transition* and not part of `normalize`: normalize cannot tell a row that has become empty
+from one that was made a moment ago, and every caller of `workspaceIndex(named:createIfMissing:)` creates a named
+empty row and fills it on the next line. Nothing about the stored shape changed, so `state.json` is unaffected and
+Android — which has the model ported line for line but no dialog yet — keeps a named empty row standing, as every
+front did before this. The plate's **Delete Workspace** (overview, right-click a name) is the way out for a row that
+was already standing empty before the question existed.
 
 ## Geometry
 

@@ -162,17 +162,26 @@ last picture of its page.
 
 There is always exactly one empty workspace at the bottom. Move a window into it
 and a fresh empty one appears below. A workspace that runs out of windows
-disappears — unless **you** gave it a name. **A workspace you named survives
-being empty**, and that is the only way to book a place for a job in advance.
+disappears — silently and at once, as it should: an empty unnamed workspace is
+nothing.
 
-::: tip A name a program gave is not a booking
-Research names a workspace after the question; an agent asks for
-`workspace: "notes"` and gets one. That is a label on a room, not a booking: when
-the last window leaves such a workspace the name goes with it and the row
-disappears like any other empty one — otherwise a browser that answers questions
-for a living silts up with empty workspaces carrying week-old questions. To keep
-one, type the name yourself (double-click its plate in the overview) and it
-becomes a booking.
+**If it has a name, VI asks first:** *Delete the workspace "Tickets"?* —
+**Delete** or **Keep It**. One rule for every name, on purpose: you are not the
+only one who names workspaces here. Research names one after its question, an
+agent asks for `workspace: "notes"` and gets one. Which of those names is a
+booking and which is a label on a room is not something VI can tell, and it does
+not guess — it asks whoever is there.
+
+- **Delete** — the workspace goes, and the name with it.
+- **Keep It** — it stays, empty, with its name. That is how you book a place for
+  a job in advance. You are asked again only if it fills up and empties again.
+- Dismissing the dialog some other way (`Esc`, a click outside) means keep.
+  Silence is not consent to delete.
+
+::: tip A workspace that is already standing empty
+Workspaces that emptied before this question existed were never asked about.
+Right-click the workspace's plate in the overview ▸ **Delete Workspace**, and it
+is gone.
 :::
 
 ## How many pages are actually live
