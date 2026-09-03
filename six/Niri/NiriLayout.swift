@@ -249,6 +249,23 @@ final class NiriLayout {
         mutate(profile: activeProfileID, body)
     }
 
+    /// Changes made in here are not animated, whatever the caller is animating.
+    ///
+    /// One thing needs it, and needs it badly: a column moving from one workspace to another. The
+    /// row it leaves keeps it alive for the length of its removal transition while the row it joins
+    /// builds it again — and a window is a `WebView` over a `WebPage`, of which WebKit allows
+    /// exactly one. The second one traps (`EXC_BREAKPOINT` in `_WebKit_SwiftUI`'s
+    /// `makeViewProvider`), and ⌥⇧↓ took the whole browser down with it, on the first press, from a
+    /// clean launch. No transition, no second view, and the animation that matters — the workspace
+    /// sliding up or down — is a separate change and keeps its own.
+    private func unanimated(_ body: () -> Void) {
+        #if canImport(SwiftUI)
+        withTransaction(Transaction(animation: nil), body)
+        #else
+        body()
+        #endif
+    }
+
     private func mutate(profile: UUID, _ body: (inout NiriStrip) -> Void) {
         var s = strips[profile] ?? NiriStrip()
         body(&s)
@@ -799,21 +816,26 @@ final class NiriLayout {
     }
 
     /// Moves a column (wherever it is in the profile's strip) to a workspace by index, without changing focus.
+    ///
+    /// Un-animated for the reason `unanimated` gives: this is the same window changing rows, and an
+    /// agent's `move_window` must not be able to trap WebKit either.
     func moveColumn(tabID: UUID, in profileID: UUID, toWorkspace target: Int) {
-        mutate(profile: profileID) { s in
-            guard let from = s.workspaces.firstIndex(where: { $0.columns.contains { $0.tabID == tabID } }),
-                  let at = s.workspaces[from].columns.firstIndex(where: { $0.tabID == tabID }) else { return }
-            let target = max(0, target)
-            guard target != from else { return }
-            let column = s.workspaces[from].columns.remove(at: at)
-            s.workspaces[from].focus = min(s.workspaces[from].focus, max(0, s.workspaces[from].columns.count - 1))
-            scrollFocusIntoView(&s.workspaces[from])
-            askBeforeRemoving(s.workspaces[from], in: profileID)
-            while target >= s.workspaces.count { s.workspaces.append(NiriWorkspace()) }
-            var destination = s.workspaces[target]
-            let index = destination.columns.isEmpty ? 0 : destination.focus + 1
-            destination.columns.insert(column, at: min(index, destination.columns.count))
-            s.workspaces[target] = destination
+        unanimated {
+            mutate(profile: profileID) { s in
+                guard let from = s.workspaces.firstIndex(where: { $0.columns.contains { $0.tabID == tabID } }),
+                      let at = s.workspaces[from].columns.firstIndex(where: { $0.tabID == tabID }) else { return }
+                let target = max(0, target)
+                guard target != from else { return }
+                let column = s.workspaces[from].columns.remove(at: at)
+                s.workspaces[from].focus = min(s.workspaces[from].focus, max(0, s.workspaces[from].columns.count - 1))
+                scrollFocusIntoView(&s.workspaces[from])
+                askBeforeRemoving(s.workspaces[from], in: profileID)
+                while target >= s.workspaces.count { s.workspaces.append(NiriWorkspace()) }
+                var destination = s.workspaces[target]
+                let index = destination.columns.isEmpty ? 0 : destination.focus + 1
+                destination.columns.insert(column, at: min(index, destination.columns.count))
+                s.workspaces[target] = destination
+            }
         }
     }
 
@@ -1062,27 +1084,42 @@ final class NiriLayout {
     }
 
     /// Moves the focused column to the workspace above/below and follows it.
+    ///
+    /// Two changes and not one, on purpose: the window changes rows without an animation of its own
+    /// (`unanimated`, which is where the reason is written down), and the focus follows in a second
+    /// one that keeps the switch animation — so the workspace still slides up or down under you,
+    /// which is the movement this gesture is actually about.
     func moveColumnToWorkspace(_ delta: Int) {
-        mutate { s in
-            guard s.workspaces.indices.contains(s.focus) else { return }
-            var source = s.workspaces[s.focus]
-            guard source.columns.indices.contains(source.focus) else { return }
-            let target = s.focus + delta
-            guard target >= 0 else { return }
-            let column = source.columns.remove(at: source.focus)
-            source.focus = min(source.focus, max(0, source.columns.count - 1))
-            scrollFocusIntoView(&source)
-            askBeforeRemoving(source, in: activeProfileID)
-            s.workspaces[s.focus] = source
+        var landed: UUID?
+        unanimated {
+            mutate { s in
+                guard s.workspaces.indices.contains(s.focus) else { return }
+                var source = s.workspaces[s.focus]
+                guard source.columns.indices.contains(source.focus) else { return }
+                let target = s.focus + delta
+                guard target >= 0 else { return }
+                let column = source.columns.remove(at: source.focus)
+                source.focus = min(source.focus, max(0, source.columns.count - 1))
+                scrollFocusIntoView(&source)
+                askBeforeRemoving(source, in: activeProfileID)
+                s.workspaces[s.focus] = source
 
-            if target >= s.workspaces.count { s.workspaces.append(NiriWorkspace()) }
-            var destination = s.workspaces[target]
-            let index = destination.columns.isEmpty ? 0 : destination.focus + 1
-            destination.columns.insert(column, at: min(index, destination.columns.count))
-            destination.focus = min(index, destination.columns.count - 1)
-            scrollFocusIntoView(&destination)
-            s.workspaces[target] = destination
-            s.focus = target
+                if target >= s.workspaces.count { s.workspaces.append(NiriWorkspace()) }
+                var destination = s.workspaces[target]
+                let index = destination.columns.isEmpty ? 0 : destination.focus + 1
+                destination.columns.insert(column, at: min(index, destination.columns.count))
+                destination.focus = min(index, destination.columns.count - 1)
+                scrollFocusIntoView(&destination)
+                s.workspaces[target] = destination
+                landed = destination.id
+            }
+        }
+        // By id and not by index: `normalize` runs between the two, and the row the window left can
+        // be pruned out from under an index that was true a moment ago.
+        guard let landed else { return }
+        mutate { s in
+            guard let index = s.workspaces.firstIndex(where: { $0.id == landed }) else { return }
+            s.focus = index
         }
     }
 

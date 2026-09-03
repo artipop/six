@@ -151,14 +151,21 @@ enum KeySelfTest {
             try? await Task.sleep(for: .milliseconds(300))
         }
 
+        // A window crossing workspaces and coming back. The pair is here because it crashed six for
+        // as long as it existed — two `WebView`s over one `WebPage`, the leaving row's removal
+        // transition against the arriving row's build — and a key that takes the browser down is
+        // what a key test is for. It leaves the rail as it found it.
+        post(flags: [.option, .shift], code: .downArrow, in: window)
+        try? await Task.sleep(for: .milliseconds(500))
+        note("⌥⇧↓ → \(rail(browser))")
+        post(flags: [.option, .shift], code: .upArrow, in: window)
+        try? await Task.sleep(for: .milliseconds(500))
+        note("⌥⇧↑ → \(rail(browser))")
+
         // ⌃⇥ holds a ring of the windows on *this* rail, and showing that it is this rail and not
         // the whole strip needs a window standing somewhere else. It is opened and closed here
-        // rather than carried there with ⌥⇧↓, and not only because setup is not what this is
-        // testing: **posting ⌥⇧↓ crashes the app**, on a freshly launched one, as the first key
-        // pressed — `EXC_BREAKPOINT` inside `_WebKit_SwiftUI`'s `makeViewProvider`, which is a
-        // second `WebView` being built for a `WebPage` that already has one. The window leaving a
-        // row is kept alive by that row's removal transition while the row it is moving to builds
-        // it again. Put the step back the day that is fixed; it is two lines and it belongs here.
+        // rather than carried there with ⌥⇧↓ because setup is not what this is testing — that key
+        // has a line of its own above.
         //
         // The ring is opened by the key alone — nothing posts a `flagsChanged`, so ⌃ never comes up
         // and the ring stays open long enough to be read.
