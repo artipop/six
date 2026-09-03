@@ -32,10 +32,10 @@ final class StatePersistence<Store: SnapshotStore> {
     private func observe() {
         withObservationTracking {
             _ = snapshot()
-        } onChange: {
+        } onChange: { [weak self] in
+            guard let self else { return }
             // Fires before the mutation lands; by the time the task runs the new value is in place.
-            Task { @MainActor [weak self] in
-                guard let self else { return }
+            Task { @MainActor in
                 self.scheduleSave()
                 self.observe()
             }

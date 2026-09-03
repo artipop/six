@@ -101,7 +101,7 @@ extension ProfileRecord {
     }
 }
 
-extension Color {
+nonisolated extension Color {
     init(hex: String) {
         var value: UInt64 = 0
         Scanner(string: hex.trimmingCharacters(in: CharacterSet(charactersIn: "#"))).scanHexInt64(&value)

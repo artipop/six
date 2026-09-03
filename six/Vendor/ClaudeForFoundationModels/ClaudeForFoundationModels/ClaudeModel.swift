@@ -22,7 +22,7 @@ import Foundation
 /// no ID-only shorthand: it would have to guess the capabilities, and a wrong
 /// guess is either a hard 400 (field sent to a model that rejects it) or a
 /// silently degraded request (field withheld from a model that wants it).
-public struct ClaudeModel: Sendable, Hashable {
+nonisolated public struct ClaudeModel: Sendable, Hashable {
   public let id: String
   public let capabilities: Capabilities
 

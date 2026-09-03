@@ -51,7 +51,9 @@ final class NiriScrollMonitor {
         guard monitor == nil else { return }
         monitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
             guard let self else { return event }
-            return MainActor.assumeIsolated { self.handle(event) }
+            // The event itself cannot cross an isolation line; whether it was taken can.
+            let swallowed = MainActor.assumeIsolated { self.handle(event) == nil }
+            return swallowed ? nil : event
         }
         startClickTrace()
     }

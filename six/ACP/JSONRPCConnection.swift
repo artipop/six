@@ -113,11 +113,11 @@ actor JSONRPCConnection {
                     do {
                         guard let handler else { throw JSONRPCError.methodNotFound(method) }
                         let result = try await handler(method, params)
-                        try await self.respond(id: id, result: result)
+                        try self.respond(id: id, result: result)
                     } catch let error as JSONRPCError {
-                        try? await self.respond(id: id, error: error)
+                        try? self.respond(id: id, error: error)
                     } catch {
-                        try? await self.respond(id: id, error: .internalError(error.localizedDescription))
+                        try? self.respond(id: id, error: .internalError(error.localizedDescription))
                     }
                 }
             } else {

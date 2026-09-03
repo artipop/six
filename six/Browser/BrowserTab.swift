@@ -767,7 +767,7 @@ private final class TabNavigationDecider: WebPage.NavigationDeciding {
 
 /// `SIX_LINKS_TRACE=1` narrates what the page asked for. Off, it costs the branch and nothing else.
 enum LinkTrace {
-    nonisolated(unsafe) static let isOn = ProcessInfo.processInfo.environment["SIX_LINKS_TRACE"] == "1"
+    static let isOn = ProcessInfo.processInfo.environment["SIX_LINKS_TRACE"] == "1"
     static func log(_ message: @autoclosure () -> String) {
         guard isOn else { return }
         FileHandle.standardError.write(Data("[six/links] \(message())\n".utf8))

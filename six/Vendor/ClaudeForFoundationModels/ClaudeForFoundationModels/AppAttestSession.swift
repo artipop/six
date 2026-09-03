@@ -579,7 +579,7 @@ actor AppAttestSession {
   }
 }
 
-enum AppAttestError: LocalizedError, Sendable, Equatable {
+nonisolated enum AppAttestError: LocalizedError, Sendable, Equatable {
   enum Endpoint: String, Sendable {
     case challenge
     case register

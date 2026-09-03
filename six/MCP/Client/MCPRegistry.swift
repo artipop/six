@@ -155,7 +155,7 @@ nonisolated enum MCPRegistry {
     }
 }
 
-extension MCPRegistry.Entry {
+nonisolated extension MCPRegistry.Entry {
     /// What six would add to its list of servers, when there is a way in at all.
     ///
     /// Remote first: a URL costs a POST, while a package costs a download and a process. `id` is the

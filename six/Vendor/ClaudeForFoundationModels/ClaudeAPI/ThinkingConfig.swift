@@ -5,7 +5,7 @@ import Foundation
 
 /// Extended-thinking configuration. Adaptive is the only on-mode for current
 /// Opus models; older models accept a fixed budget but that path is deprecated.
-package enum ThinkingConfig: Sendable, Hashable, Codable {
+nonisolated package enum ThinkingConfig: Sendable, Hashable, Codable {
   case adaptive(display: Display?)
   case disabled
 
@@ -49,7 +49,7 @@ package enum ThinkingConfig: Sendable, Hashable, Codable {
 
 /// Prompt-cache opt-in (`cache_control`). Always `ephemeral` on the wire;
 /// `ttl` selects the cache window, with the API's default when nil.
-package struct CacheControl: Sendable, Hashable, Codable {
+nonisolated package struct CacheControl: Sendable, Hashable, Codable {
   package enum TTL: String, Sendable, Codable {
     case fiveMinutes = "5m"
     case oneHour = "1h"

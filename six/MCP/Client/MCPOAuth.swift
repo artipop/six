@@ -334,7 +334,7 @@ nonisolated enum MCPOAuth {
     }
 }
 
-extension Data {
+nonisolated extension Data {
     /// base64url, no padding — what PKCE and the rest of OAuth want everywhere.
     var base64URLEncoded: String {
         base64EncodedString()

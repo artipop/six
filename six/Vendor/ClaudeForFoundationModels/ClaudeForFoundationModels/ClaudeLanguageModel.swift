@@ -22,7 +22,7 @@ import FoundationModels
 /// let session = LanguageModelSession(model: model)
 /// let response = try await session.respond(to: "Plan a 4-day trip to Buenos Aires")
 /// ```
-public struct ClaudeLanguageModel: Sendable {
+nonisolated public struct ClaudeLanguageModel: Sendable {
   public let model: ClaudeModel
   public let baseURL: URL
   public let timeout: TimeInterval
@@ -96,7 +96,7 @@ public struct ClaudeLanguageModel: Sendable {
   public static let defaultBaseURL = URL(string: "https://api.anthropic.com")!
 }
 
-extension ClaudeLanguageModel: LanguageModel {
+nonisolated extension ClaudeLanguageModel: LanguageModel {
   public typealias Executor = ClaudeExecutor
 
   /// Derived from the model's ``ClaudeModel/Capabilities`` so the framework

@@ -27,17 +27,20 @@ final class KeyRouter {
         guard keyMonitor == nil else { return }
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self else { return event }
-            return MainActor.assumeIsolated { self.handle(event) }
+            // What comes back out of `assumeIsolated` has to be something that can cross an
+            // isolation line, and an `NSEvent` is not — so the verdict crosses and the event stays.
+            let swallowed = MainActor.assumeIsolated { self.handle(event) == nil }
+            return swallowed ? nil : event
         }
         // Never swallowed: a modifier going up is everybody's business, and the ring is only
         // listening for the one that is holding it open.
         flagsMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
             guard let self else { return event }
-            return MainActor.assumeIsolated {
-                let held = KeyModifiers(event.modifierFlags)
+            let held = KeyModifiers(event.modifierFlags)
+            MainActor.assumeIsolated {
                 if self.isSwitching(), !held.contains(.control) { _ = self.perform(.landSwitcher) }
-                return event
             }
+            return event
         }
     }
 

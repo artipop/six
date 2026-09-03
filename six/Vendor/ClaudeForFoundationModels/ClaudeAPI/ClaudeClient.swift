@@ -4,7 +4,7 @@
 import Foundation
 
 /// Thin HTTP client for `POST /v1/messages`.
-package struct ClaudeClient: Sendable {
+nonisolated package struct ClaudeClient: Sendable {
   package let configuration: Configuration
   private let transport: any HTTPTransport
 

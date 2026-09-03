@@ -5,6 +5,7 @@ import CryptoKit
 import Crypto
 #endif
 import Foundation
+import UniformTypeIdentifiers
 import WebKit
 
 /// Getting an extension onto disk in the one shape `WKWebExtension` accepts: an unpacked folder with
@@ -32,6 +33,11 @@ enum ExtensionInstaller {
     }
 
     static let acceptedTypes = ["zip", "crx", "xpi"]
+
+    /// The same list as the open panel wants it. `.crx` and `.xpi` are nobody's registered type, and
+    /// `UTType(filenameExtension:)` answers for them with a dynamic type that still matches by
+    /// extension — which is exactly what the old `allowedFileTypes` did.
+    static var acceptedContentTypes: [UTType] { acceptedTypes.compactMap { UTType(filenameExtension: $0) } }
 
     /// Copies (or unpacks) whatever the user picked into six's extensions folder and answers with the
     /// folder that holds the manifest. Nothing is loaded here — that is `ExtensionStore`'s work.

@@ -104,7 +104,7 @@ final class ExtensionWindowAdapter: NSObject, WKWebExtensionWindow {
         #if os(macOS)
         NSScreen.main?.visibleFrame ?? CGRect(x: 0, y: 0, width: 1440, height: 900)
         #elseif os(iOS)
-        UIScreen.main.bounds
+        Platform.screenBounds
         #endif
     }
 

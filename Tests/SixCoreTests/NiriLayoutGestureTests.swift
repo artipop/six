@@ -154,6 +154,7 @@ struct NiriLayoutGestureTests {
 
     // MARK: Carrying a window
 
+    @discardableResult
     private func carrying(_ layout: NiriLayout, _ ids: [UUID], from index: Int) -> UUID {
         layout.isOverview = true
         layout.beginColumnDrag(tabID: ids[index])

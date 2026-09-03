@@ -8,14 +8,14 @@ import Synchronization
 /// ``URLSessionTransport``; tests inject a fake. The streaming body is surfaced
 /// as a byte stream rather than `URLSession.AsyncBytes` so a fake can produce
 /// one — `AsyncBytes` can only be vended by a live `URLSession`.
-package protocol HTTPTransport: Sendable {
+nonisolated package protocol HTTPTransport: Sendable {
   func data(for request: URLRequest) async throws -> (Data, URLResponse)
   func bytes(
     for request: URLRequest
   ) async throws -> (AsyncThrowingStream<UInt8, Error>, URLResponse)
 }
 
-package enum HTTPTransportError: Error, Sendable, Hashable {
+nonisolated package enum HTTPTransportError: Error, Sendable, Hashable {
   /// The server redirected to a different scheme, host, or port and the
   /// transport refused to follow. Every request carries a credential minted
   /// for the configured base URL — `x-api-key`, a bearer token, the
@@ -24,7 +24,7 @@ package enum HTTPTransportError: Error, Sendable, Hashable {
   case crossOriginRedirect(to: URL)
 }
 
-extension HTTPTransportError: LocalizedError {
+nonisolated extension HTTPTransportError: LocalizedError {
   package var errorDescription: String? {
     switch self {
     case .crossOriginRedirect(let target):
@@ -34,7 +34,7 @@ extension HTTPTransportError: LocalizedError {
 }
 
 /// `URLSession`-backed transport used in production.
-package struct URLSessionTransport: HTTPTransport {
+nonisolated package struct URLSessionTransport: HTTPTransport {
   private let session: URLSession
 
   package init(session: URLSession = .shared) {
@@ -82,7 +82,7 @@ package struct URLSessionTransport: HTTPTransport {
 /// A refused redirect makes `URLSession` complete the task with the 3xx
 /// response itself, which callers would otherwise take for a success, so the
 /// refusal is recorded and ``checkRefused()`` turns it into an error.
-final class RedirectPolicy: NSObject, URLSessionTaskDelegate, Sendable {
+nonisolated final class RedirectPolicy: NSObject, URLSessionTaskDelegate, Sendable {
   /// Nil when the request had no usable URL, in which case nothing is
   /// followed.
   private let origin: Authority?

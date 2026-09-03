@@ -3,7 +3,7 @@
 
 import Foundation
 
-package struct Configuration: Sendable {
+nonisolated package struct Configuration: Sendable {
   package enum Auth: Sendable, Hashable {
     case apiKey(String)
     /// No credential. Use when the caller injects auth per-request via

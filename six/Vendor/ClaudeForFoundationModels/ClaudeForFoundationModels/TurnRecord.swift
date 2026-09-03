@@ -15,7 +15,7 @@ import FoundationModels
 /// call its `tool_use` block, the response entry everything else. Every block
 /// is tagged with its position in the turn, so the turn replays in the order
 /// it was sent whatever order the entries ended up in.
-struct TurnRecord: Sendable, Equatable {
+nonisolated struct TurnRecord: Sendable, Equatable {
   /// Reserved metadata key on entries the bridge writes. The value is opaque.
   static let metadataKey = "claude.content"
 
@@ -106,7 +106,7 @@ struct TurnRecord: Sendable, Equatable {
   }
 }
 
-extension TurnRecord {
+nonisolated extension TurnRecord {
   /// The record an entry carries; empty when it carries none or something
   /// unreadable.
   init(metadata: [String: GeneratedContent]) {
@@ -137,7 +137,7 @@ extension TurnRecord {
   }
 }
 
-extension JSONValue {
+nonisolated extension JSONValue {
   /// The framework value as JSON, structurally; a kind this package doesn't
   /// know reads as `null`.
   init(_ content: GeneratedContent) {

@@ -8,7 +8,7 @@ import WebKit
 @MainActor
 @Observable
 final class HighlightStore {
-    static let url: URL = {
+    nonisolated static let url: URL = {
         AppSupport.file("highlights.json")
     }()
 

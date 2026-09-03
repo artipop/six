@@ -5,7 +5,7 @@ import Foundation
 
 /// Error envelope returned by the API (both in HTTP error bodies and as an
 /// SSE `error` event).
-package struct APIError: Error, Sendable, Hashable, Codable {
+nonisolated package struct APIError: Error, Sendable, Hashable, Codable {
   package enum Kind: String, Sendable, Codable {
     case invalidRequest = "invalid_request_error"
     case authentication = "authentication_error"
@@ -51,14 +51,14 @@ package struct APIError: Error, Sendable, Hashable, Codable {
   }
 }
 
-extension APIError: LocalizedError {
+nonisolated extension APIError: LocalizedError {
   package var errorDescription: String? {
     "\(kind.rawValue): \(message)" + (requestID.map { " (request_id: \($0))" } ?? "")
   }
 }
 
 /// Top-level error body: `{ "type": "error", "error": {...}, "request_id": "..." }`
-struct APIErrorEnvelope: Decodable {
+nonisolated struct APIErrorEnvelope: Decodable {
   var error: APIError
   var requestID: String?
   private enum CodingKeys: String, CodingKey {

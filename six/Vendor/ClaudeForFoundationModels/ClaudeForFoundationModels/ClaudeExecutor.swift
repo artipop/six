@@ -9,7 +9,7 @@ import Synchronization
 ///
 /// One executor is created per unique ``Configuration`` and reused. Heavy
 /// resources (the HTTP client) live here, not on ``ClaudeLanguageModel``.
-public struct ClaudeExecutor: LanguageModelExecutor {
+nonisolated public struct ClaudeExecutor: LanguageModelExecutor {
   public typealias Model = ClaudeLanguageModel
 
   public struct Configuration: Hashable, Sendable {

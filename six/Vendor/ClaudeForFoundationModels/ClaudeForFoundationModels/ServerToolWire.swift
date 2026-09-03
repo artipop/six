@@ -4,7 +4,7 @@
 import Foundation
 import FoundationModels
 
-extension ClaudeServerToolActivity {
+nonisolated extension ClaudeServerToolActivity {
   /// One activity per server-side tool call among `blocks`, in order, with
   /// the result block answering it (if it's among `blocks`) folded in. A
   /// result whose call isn't among `blocks` is skipped.
@@ -30,7 +30,7 @@ extension ClaudeServerToolActivity {
   }
 }
 
-extension ClaudeServerToolActivity.Content {
+nonisolated extension ClaudeServerToolActivity.Content {
   /// Typed reading of a call and, once it has arrived, its result. A tool
   /// this package doesn't model, or a payload that doesn't decode as the
   /// tool's documented shape, reads as `.unrecognized`.
@@ -101,7 +101,7 @@ extension ClaudeServerToolActivity.Content {
 
 /// Every server tool reports a failure the same way, as a
 /// `*_tool_result_error` object; anything else is the tool's own result shape.
-private func decodeOutcome<Outcome, Wire: Decodable>(
+nonisolated private func decodeOutcome<Outcome, Wire: Decodable>(
   _ payload: JSONValue,
   failure: (String) -> Outcome,
   success: (Wire) -> Outcome
@@ -112,7 +112,7 @@ private func decodeOutcome<Outcome, Wire: Decodable>(
   return (payload.decoded() as Wire?).map(success)
 }
 
-extension ClaudeServerToolActivity.WebSearch.Outcome {
+nonisolated extension ClaudeServerToolActivity.WebSearch.Outcome {
   fileprivate init?(payload: JSONValue) {
     guard
       let outcome = decodeOutcome(
@@ -136,7 +136,7 @@ extension ClaudeServerToolActivity.WebSearch.Outcome {
   }
 }
 
-extension ClaudeServerToolActivity.WebFetch.Outcome {
+nonisolated extension ClaudeServerToolActivity.WebFetch.Outcome {
   fileprivate init?(payload: JSONValue) {
     guard
       let outcome = decodeOutcome(
@@ -159,7 +159,7 @@ extension ClaudeServerToolActivity.WebFetch.Outcome {
   }
 }
 
-extension ClaudeServerToolActivity.CodeExecution.Outcome {
+nonisolated extension ClaudeServerToolActivity.CodeExecution.Outcome {
   fileprivate init?(payload: JSONValue) {
     guard
       let outcome = decodeOutcome(
@@ -178,16 +178,16 @@ extension ClaudeServerToolActivity.CodeExecution.Outcome {
 
 // MARK: - Wire shapes
 
-private struct WebSearchInput: Decodable {
+nonisolated private struct WebSearchInput: Decodable {
   var query: String
 }
 
-private struct WebFetchInput: Decodable {
+nonisolated private struct WebFetchInput: Decodable {
   var url: URL
 }
 
 /// `code_execution` sends `code`; `bash_code_execution` sends `command`.
-private struct CodeExecutionInput: Decodable {
+nonisolated private struct CodeExecutionInput: Decodable {
   var code: String
 
   enum CodingKeys: String, CodingKey {
@@ -204,7 +204,7 @@ private struct CodeExecutionInput: Decodable {
 
 /// `{"type": "*_tool_result_error", "error_code": ...}` — the failure shape
 /// shared by every server tool's result block.
-private struct WireError: Decodable {
+nonisolated private struct WireError: Decodable {
   var errorCode: String
 
   enum CodingKeys: String, CodingKey {
@@ -212,7 +212,7 @@ private struct WireError: Decodable {
   }
 }
 
-private struct WebSearchHitWire: Decodable {
+nonisolated private struct WebSearchHitWire: Decodable {
   var url: String
   var title: String?
   var pageAge: String?
@@ -223,7 +223,7 @@ private struct WebSearchHitWire: Decodable {
   }
 }
 
-private struct WebFetchResultWire: Decodable {
+nonisolated private struct WebFetchResultWire: Decodable {
   var url: URL?
   var retrievedAt: String?
   var content: Document?
@@ -249,7 +249,7 @@ private struct WebFetchResultWire: Decodable {
   }
 }
 
-private struct CodeExecutionResultWire: Decodable {
+nonisolated private struct CodeExecutionResultWire: Decodable {
   var stdout: String?
   var stderr: String?
   var returnCode: Int?

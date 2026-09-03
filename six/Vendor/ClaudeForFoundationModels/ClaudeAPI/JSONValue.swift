@@ -5,7 +5,7 @@ import Foundation
 
 /// Loosely-typed JSON for tool inputs/outputs and schemas, where the shape
 /// is determined at runtime.
-package enum JSONValue: Sendable, Hashable, Codable {
+nonisolated package enum JSONValue: Sendable, Hashable, Codable {
   case null
   case bool(Bool)
   case number(Double)
@@ -55,7 +55,7 @@ package enum JSONValue: Sendable, Hashable, Codable {
   }
 }
 
-extension JSONValue {
+nonisolated extension JSONValue {
   /// The named field of an object; `nil` for a missing field or a non-object.
   package subscript(field: String) -> JSONValue? {
     if case .object(let fields) = self { fields[field] } else { nil }
@@ -78,7 +78,7 @@ extension JSONValue {
   }
 }
 
-extension JSONValue: ExpressibleByNilLiteral, ExpressibleByBooleanLiteral,
+nonisolated extension JSONValue: ExpressibleByNilLiteral, ExpressibleByBooleanLiteral,
   ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral,
   ExpressibleByStringLiteral, ExpressibleByArrayLiteral,
   ExpressibleByDictionaryLiteral

@@ -3,7 +3,7 @@
 
 import Foundation
 
-package struct Message: Sendable, Hashable, Codable {
+nonisolated package struct Message: Sendable, Hashable, Codable {
   package enum Role: String, Sendable, Codable { case user, assistant }
 
   package var role: Role

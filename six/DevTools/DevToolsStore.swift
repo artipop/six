@@ -176,7 +176,7 @@ private final class PageMessageHandler: NSObject, WKScriptMessageHandler {
         self.store = store
     }
 
-    nonisolated func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
+    func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
         let body = message.body
         let windowID = windowID
         Task { @MainActor [weak store] in

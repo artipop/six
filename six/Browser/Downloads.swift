@@ -150,7 +150,7 @@ final class DownloadStore {
 
     /// The user's Downloads folder on a Mac; on a phone the app's own documents, which is the only
     /// folder there is.
-    static let folder: URL = {
+    nonisolated static let folder: URL = {
         #if os(macOS)
         let search = FileManager.SearchPathDirectory.downloadsDirectory
         #elseif os(iOS)

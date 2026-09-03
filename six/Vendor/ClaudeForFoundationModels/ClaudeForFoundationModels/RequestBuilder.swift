@@ -5,7 +5,7 @@ import Foundation
 import FoundationModels
 
 /// Pure translation: framework request → Messages API request body.
-enum RequestBuilder {
+nonisolated enum RequestBuilder {
   struct Built {
     var request: MessagesRequest
     /// True when `schema` was forwarded as `output_config.format` — the

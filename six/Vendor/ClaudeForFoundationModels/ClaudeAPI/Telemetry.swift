@@ -13,7 +13,7 @@ import Foundation
 /// the per-app attribution for API-key and proxy auth where there's no
 /// `application_slug`. Best-effort and self-reported — analytics, not a trust
 /// boundary.
-package enum Telemetry {
+nonisolated package enum Telemetry {
   package static let sdkVersion = "0.1.4"  // x-release-please-version
 
   package static var userAgent: String {

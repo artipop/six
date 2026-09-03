@@ -104,7 +104,7 @@ final class AgentSessionStore {
     // MARK: Connection
 
     /// `SIX_ACP_TRACE=1` in the environment mirrors the connection steps and every JSON-RPC line to stderr.
-    static let traces = ProcessInfo.processInfo.environment["SIX_ACP_TRACE"] != nil
+    nonisolated static let traces = ProcessInfo.processInfo.environment["SIX_ACP_TRACE"] != nil
 
     nonisolated static func trace(_ message: @autoclosure () -> String) {
         guard traces else { return }

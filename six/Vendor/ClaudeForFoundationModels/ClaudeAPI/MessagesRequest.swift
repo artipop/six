@@ -4,7 +4,7 @@
 import Foundation
 
 /// Request body for `POST /v1/messages`.
-package struct MessagesRequest: Sendable, Codable {
+nonisolated package struct MessagesRequest: Sendable, Codable {
   package var model: String
   package var maxTokens: Int
   package var system: String?
@@ -61,7 +61,7 @@ package struct MessagesRequest: Sendable, Codable {
 }
 
 /// Output shaping: structured output via constrained decoding, effort level.
-package struct OutputConfig: Sendable, Hashable, Codable {
+nonisolated package struct OutputConfig: Sendable, Hashable, Codable {
   package var format: Format?
   package var effort: Effort?
 

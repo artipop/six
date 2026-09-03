@@ -331,7 +331,7 @@ final class ExtensionDelegate: NSObject, WKWebExtensionControllerDelegate {
         guard let store else { return }
         #if os(iOS)
         // TODO: the phone has no popover to hang this on — it wants a sheet over the strip.
-        store.log("popup for \(action.label ?? "an extension") is not presented on this platform")
+        store.log("popup for \(action.labelIfAny ?? "an extension") is not presented on this platform")
         #elseif os(macOS)
         let anchor = { (content: NSView) in
             store.popupAnchor ?? NSRect(x: content.bounds.midX, y: content.bounds.maxY - 40, width: 1, height: 1)
@@ -343,12 +343,12 @@ final class ExtensionDelegate: NSObject, WKWebExtensionControllerDelegate {
         // WebKit usually hands over a popover of its own; when it only hands over the web view, six
         // puts it in a panel rather than dropping the click on the floor.
         guard let webView = action.popupWebView else {
-            store.log("popup for \(action.label ?? "an extension") could not be presented")
+            store.log("popup for \(action.labelIfAny ?? "an extension") could not be presented")
             return
         }
         let frame = NSRect(x: 0, y: 0, width: 380, height: 460)
         let panel = NSPanel(contentRect: frame, styleMask: [.titled, .closable, .utilityWindow], backing: .buffered, defer: false)
-        panel.title = action.label ?? context.webExtension.displayName ?? "Extension"
+        panel.title = action.labelIfAny ?? context.webExtension.displayName ?? "Extension"
         webView.frame = frame
         webView.autoresizingMask = [.width, .height]
         panel.contentView?.addSubview(webView)
@@ -397,4 +397,12 @@ final class ExtensionDelegate: NSObject, WKWebExtensionControllerDelegate {
         return alert.runModal() == .alertFirstButtonReturn
         #endif
     }
+}
+
+// MARK: - What an action calls itself
+
+extension WKWebExtension.Action {
+    /// `label` is no longer optional: an action with nothing of its own to say answers with an empty
+    /// string. Every caller here wants a name to fall back on, so empty stays "no label".
+    var labelIfAny: String? { label.isEmpty ? nil : label }
 }

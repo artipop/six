@@ -2,6 +2,7 @@
 import AppKit
 #endif
 import SwiftUI
+import UniformTypeIdentifiers
 import WebKit
 
 /// The sheet the phone opens: `ExtensionSettings` under a title and a Done button. On the Mac the
@@ -100,7 +101,7 @@ struct ExtensionSettings: View {
         panel.canChooseFiles = true
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
-        panel.allowedFileTypes = ExtensionInstaller.acceptedTypes
+        panel.allowedContentTypes = ExtensionInstaller.acceptedContentTypes
         panel.allowsOtherFileTypes = false
         panel.message = String(localized: "Choose an unpacked extension folder, or a .zip / .crx / .xpi archive.")
         panel.prompt = String(localized: "Choose")
@@ -288,7 +289,7 @@ private struct ExtensionActionButton: View {
         }
         .buttonStyle(.borderless)
         .disabled(!action.isEnabled || tab == nil)
-        .help(action.label ?? record.name)
+        .help(action.labelIfAny ?? record.name)
         .background {
             #if os(macOS)
             // The popup is WebKit's own `NSPopover`; all six has to do is say where it points.

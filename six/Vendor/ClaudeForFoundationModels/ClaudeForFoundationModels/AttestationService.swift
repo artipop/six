@@ -10,7 +10,7 @@ import DeviceCheck
 /// Seam over `DCAppAttestService` so attestation flows are testable and the
 /// `isSupported == false` path (simulators, hardware without Secure Enclave)
 /// is mockable.
-protocol AttestationService: Sendable {
+nonisolated protocol AttestationService: Sendable {
   var isSupported: Bool { get }
   /// Generates a new key pair in the Secure Enclave; returns an opaque key ID.
   func generateKey() async throws -> String
@@ -25,7 +25,7 @@ protocol AttestationService: Sendable {
 }
 
 #if canImport(DeviceCheck)
-struct DeviceAttestationService: AttestationService {
+nonisolated struct DeviceAttestationService: AttestationService {
   init() {}
   var isSupported: Bool { DCAppAttestService.shared.isSupported }
   func generateKey() async throws -> String {

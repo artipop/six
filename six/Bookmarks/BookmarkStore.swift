@@ -19,10 +19,10 @@ import WebKit
 @Observable
 final class BookmarkStore {
     /// Passages are cut around this many characters; a paragraph longer than `maxChunk` is split.
-    static let chunkTarget = 900
-    static let maxChunk = 1400
+    nonisolated static let chunkTarget = 900
+    nonisolated static let maxChunk = 1400
     /// Beyond this many passages a page is indexed only in part — and says so in `indexError`.
-    static let maxChunks = 120
+    nonisolated static let maxChunks = 120
     /// Bump when chunking or pooling changes: every bookmark is then re-embedded on the next launch.
     static let indexVersion = 3
     /// A refresh reloads the page off screen and waits this long at most for it.
@@ -77,7 +77,11 @@ final class BookmarkStore {
             FileHandle.standardError.write(Data("[six] vector table failed: \(error)\n".utf8))
         }
         if let mlx = embedder as? MLXEmbedder {
-            Task { await mlx.setStatusHandler { [weak self] status in Task { @MainActor in self?.embedderStatus = status } } }
+            Task { [weak self] in
+                await mlx.setStatusHandler { status in
+                    Task { @MainActor in self?.embedderStatus = status }
+                }
+            }
         }
     }
 
@@ -135,14 +139,16 @@ final class BookmarkStore {
         )
         if unchanged {
             bookmark.indexError = existing?.indexError
-            try await database.write { db in try Self.upsert(bookmark, in: db) }
+            let saved = bookmark
+            try await database.write { db in try Self.upsert(saved, in: db) }
             revision += 1
             return bookmark
         }
         try Self.write(readable, bookmark: bookmark, profile: profile, to: folder(for: profile).appending(path: fileName))
         let table = vectorTable
+        let saved = bookmark
         try await database.write { db in
-            try Self.upsert(bookmark, in: db)
+            try Self.upsert(saved, in: db)
             try Self.dropIndex(of: id, from: table, in: db)
             let chunks = Self.chunks(title: title, excerpt: readable.excerpt, text: readable.text)
             for (ord, text) in chunks.enumerated() {
@@ -446,7 +452,7 @@ final class BookmarkStore {
                 // Seconds have passed: the bookmark may be gone, or re-saved with new chunks. Only what
                 // is still in the tables gets a vector, in the same transaction that checks.
                 let live = Set(try BookmarkChunk.where { $0.bookmarkID.eq(id) }.select(\.id).fetchAll(db))
-                guard try Bookmark.where { $0.id.eq(id) }.count().fetchOne(db) ?? 0 > 0, !live.isEmpty else { return }
+                guard try Bookmark.where({ $0.id.eq(id) }).count().fetchOne(db) ?? 0 > 0, !live.isEmpty else { return }
                 try Self.dropVectors(of: chunks.map(\.id), from: table, in: db)
                 for (chunk, embedding) in zip(chunks, embeddings) where live.contains(chunk.id) {
                     try db.execute(

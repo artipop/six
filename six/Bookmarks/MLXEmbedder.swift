@@ -45,7 +45,7 @@ actor MLXEmbedder: Embedder {
         let container = try await loadedContainer()
         let prefix = role == .query ? "query: " : "passage: "
         let prefixed = texts.map { prefix + $0 }
-        let vectors = try await container.perform { context -> [[Float]] in
+        let vectors = await container.perform { context -> [[Float]] in
             let tokenizer = context.tokenizer
             let padID = tokenizer.convertTokenToId("<pad>") ?? tokenizer.convertTokenToId("[PAD]") ?? 0
             let tokenizingStarted = ContinuousClock.now
@@ -86,7 +86,7 @@ actor MLXEmbedder: Embedder {
         var lines: [String] = []
         do {
             let container = try await loadedContainer()
-            let report = try await container.perform { context -> String in
+            let report = await container.perform { context -> String in
                 let tokenizer = context.tokenizer
                 var out = "pooling: \(Self.pooling.strategy) (container says \(context.pooling.strategy))\n"
                 out += "max positions: \(String(describing: context.model.maxPositionEmbeddings)) vocab: \(context.model.vocabularySize)\n"

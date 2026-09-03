@@ -6,7 +6,7 @@ import Foundation
 /// Two wire shapes share the `tools` array — discriminated by the presence of
 /// `type`. Custom tools carry `description` + `input_schema`; server-side
 /// tools carry a versioned `type` plus tool-specific config keys.
-package struct ToolDefinition: Sendable, Hashable, Codable {
+nonisolated package struct ToolDefinition: Sendable, Hashable, Codable {
   package var name: String
   package var description: String?
   package var inputSchema: JSONValue?
@@ -80,7 +80,7 @@ package struct ToolDefinition: Sendable, Hashable, Codable {
   }
 }
 
-package enum ToolChoice: Sendable, Hashable, Codable {
+nonisolated package enum ToolChoice: Sendable, Hashable, Codable {
   case auto
   case any
   case none

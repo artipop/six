@@ -586,11 +586,11 @@ final class NiriLayout {
             guard let self else { return }
             // Negative, because the columns are drawn at `frame.minX - (offset - horizontalPreview)`:
             // leaning right means scrolling further along the strip.
-            withAnimation(.smooth(duration: 0.22)) { horizontalPreview = -amount }
+            withAnimation(.smooth(duration: 0.22)) { self.horizontalPreview = -amount }
             NiriLayout.trace("peek out \(horizontalPreview)")
             try? await Task.sleep(for: .milliseconds(260))
             guard !Task.isCancelled else { return } // a newer peek owns the band now, and will let go
-            withAnimation(NiriLayout.switchAnimation) { horizontalPreview = 0 }
+            withAnimation(NiriLayout.switchAnimation) { self.horizontalPreview = 0 }
             NiriLayout.trace("peek back \(horizontalPreview)")
         }
     }

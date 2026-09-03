@@ -64,7 +64,7 @@ nonisolated enum MCPAppBridge {
 nonisolated final class MCPAppMessageHandler: NSObject, WKScriptMessageHandler {
     weak var session: MCPAppSession?
 
-    nonisolated func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
+    @MainActor func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
         // Only the shell talks to six. The app's own frame shares this content controller — every
         // frame of a page does — so the frame is checked rather than trusted.
         guard message.frameInfo.isMainFrame, let text = message.body as? String else { return }

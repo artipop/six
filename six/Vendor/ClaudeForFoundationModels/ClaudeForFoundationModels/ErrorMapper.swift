@@ -10,7 +10,7 @@ import DeviceCheck
 
 /// Maps Messages API failures onto the framework's typed errors so app
 /// developers can pattern-match on well-known cases.
-enum ErrorMapper {
+nonisolated enum ErrorMapper {
   /// `usesAppAttest` disambiguates authentication failures: under App
   /// Attest a credential existed and the server rejected it, so "provide an
   /// API key" would be wrong guidance.

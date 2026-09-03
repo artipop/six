@@ -17,7 +17,7 @@ import Foundation
 /// under `~/Library/WebKit/<bundle identifier>`, so a different identifier is a different browser as
 /// far as every site is concerned. That is the point, and also the cost — a development six starts
 /// logged out of everything. `docs/build.md` has the line that seeds it from the real one.
-enum AppSupport {
+nonisolated enum AppSupport {
     /// A build that is not the installed app. Read from the identifier rather than `#if DEBUG` so
     /// that the app, the `--mcp` bridge it spawns and anything else launched from the same bundle all
     /// answer the same way. Nothing about *paths* asks this — only whether to offer the web to a

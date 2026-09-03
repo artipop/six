@@ -4,7 +4,7 @@
 import Foundation
 
 /// A single block within a message's `content` array.
-package enum ContentBlock: Sendable, Hashable, Codable {
+nonisolated package enum ContentBlock: Sendable, Hashable, Codable {
   case text(String)
   case image(ImageSource)
   case toolUse(id: String, name: String, input: JSONValue)
@@ -102,7 +102,7 @@ package enum ContentBlock: Sendable, Hashable, Codable {
 
 /// Image payload for an `image` content block. `data` is raw bytes in memory;
 /// it crosses the wire base64-encoded.
-package struct ImageSource: Sendable, Hashable, Codable {
+nonisolated package struct ImageSource: Sendable, Hashable, Codable {
   package var mediaType: String
   package var data: Data
 

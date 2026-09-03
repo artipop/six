@@ -4,7 +4,7 @@
 import Foundation
 
 /// Server-sent event payloads from `POST /v1/messages` with `stream: true`.
-package enum StreamEvent: Sendable, Decodable {
+nonisolated package enum StreamEvent: Sendable, Decodable {
   case messageStart(MessagesResponse)
   /// `block` is the block object exactly as the API sent it: assistant
   /// content has to go back verbatim, so nothing about it is interpreted

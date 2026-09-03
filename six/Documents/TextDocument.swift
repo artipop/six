@@ -167,7 +167,7 @@ final class TextDocument: Identifiable {
 /// a long document doesn't ride along in `state.json` on every keystroke.
 @MainActor
 final class DocumentStore {
-    static let folder: URL = {
+    nonisolated static let folder: URL = {
         AppSupport.folder("Documents")
     }()
 
@@ -189,9 +189,10 @@ final class DocumentStore {
     private func observe(_ document: TextDocument) {
         withObservationTracking {
             _ = document.text
-        } onChange: {
-            Task { @MainActor [weak self, weak document] in
-                guard let self, let document, self.watched.contains(document.id) else { return }
+        } onChange: { [weak self, weak document] in
+            guard let self, let document else { return }
+            Task { @MainActor in
+                guard self.watched.contains(document.id) else { return }
                 self.schedule(document)
                 self.observe(document)
             }
