@@ -29,7 +29,7 @@ struct NiriStripView: View {
                 // there they are all on screen at once.
                 ForEach(Array(layout.workspaces.enumerated()), id: \.element.id) { index, workspace in
                     if layout.isOverview || abs(index - layout.focusedWorkspaceIndex) <= 1 {
-                        WorkspaceView(workspace: workspace, index: index, size: proxy.size)
+                        WorkspaceView(workspace: workspace, size: proxy.size)
                             .offset(y: offset(of: index, height: proxy.size.height, layout: layout))
                     }
                 }
@@ -85,20 +85,38 @@ struct NiriStripView: View {
 
 private struct WorkspaceView: View {
     let workspace: NiriWorkspace
-    let index: Int
     let size: CGSize
 
     @Environment(BrowserState.self) private var browser
 
     var body: some View {
         let layout = browser.layout
+        // Which row this is, asked of the strip by identity rather than taken from the number the row
+        // was built with. A row that has just been pruned — the last window of a workspace closed, and
+        // `normalize` dropped that workspace — stays in the view tree for the length of its removal
+        // transition, and by then its `index` names the row that has moved up into its place. Read the
+        // strip by that number and a dying row draws the *other* row's windows: a window is a `WebView`
+        // over a `WebPage`, of which WebKit allows exactly one, so the second view traps in
+        // `makeViewProvider` and takes the whole browser down with it. It is the trap
+        // `NiriLayout.unanimated` was written for, arriving from the other side — there a window
+        // changed rows, here a row went out from under a window. A row the strip no longer has draws
+        // nothing at all.
+        if let row = layout.workspaces.firstIndex(where: { $0.id == workspace.id }) {
+            canvas(layout: layout, row: row)
+        } else {
+            Color.clear.frame(width: layout.visibleWidth, height: size.height)
+        }
+    }
+
+    @ViewBuilder
+    private func canvas(layout: NiriLayout, row: Int) -> some View {
         // What this row draws, which is its own columns unless a window is being carried across the
         // overview: then the carried one is out of the row it came from and holding a place open in the
         // row it would land in (`NiriLayout.arrangement`). The card itself is drawn above the canvas,
         // following the pointer, so here it is only ever the gap.
-        let columns = layout.arrangement(workspaceAt: index)
+        let columns = layout.arrangement(workspaceAt: row)
         let frames = layout.columnFrames(columns)
-        let isCurrent = index == layout.focusedWorkspaceIndex
+        let isCurrent = row == layout.focusedWorkspaceIndex
         let scroll = layout.resolvedOffset(workspace) - (isCurrent ? layout.horizontalPreview + layout.edgeLean : 0)
         // The overview scales the canvas down, so a workspace layer covers proportionally more than the
         // window: it has to be that wide, and centred on the same point, or the strip is cut off at the
@@ -130,7 +148,7 @@ private struct WorkspaceView: View {
                         tab: tab,
                         isFocused: isFocused,
                         isCurrentWorkspace: isCurrent,
-                        isLive: isLive(workspaceDistance: abs(index - layout.focusedWorkspaceIndex),
+                        isLive: isLive(workspaceDistance: abs(row - layout.focusedWorkspaceIndex),
                                        x: frame.minX - scroll, width: frame.width, layout: layout)
                     )
                     .frame(width: frame.width, height: frame.height)

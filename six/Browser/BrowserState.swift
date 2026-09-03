@@ -125,7 +125,10 @@ final class BrowserState {
         if let snapshot { restore(snapshot) }
         research = (snapshot?.research ?? []).filter { run in tabs.contains { $0.id == run.documentTabID } }
         for i in research.indices { research[i].isRunning = false } // nothing survives a relaunch mid-turn
-        if layout.hasColumns { syncSelection() } else { newTab() }
+        // A browser that has been used before comes back as it was left, an empty rail included: the
+        // strip offers "New Window" and waits, the same as it does the moment the last window is
+        // closed. Only a browser with nothing to restore opens the first window itself.
+        if layout.hasColumns || snapshot != nil { syncSelection() } else { newTab() }
         thumbnails.prune(keeping: Set(tabs.map(\.id))) // windows closed in a launch that never cleaned up
         trackVisibleWindows()
         refreshLivePages() // the first strip, before any change has had a chance to fire
@@ -441,22 +444,24 @@ final class BrowserState {
         return store
     }
 
+    /// A profile whose rail is empty stays empty when it comes up, for the same reason `closeTab`
+    /// leaves one empty: otherwise stepping away to another profile and back would put the start page
+    /// right back where ⌘W had just taken it from.
     func selectProfile(_ id: Profile.ID) {
         guard profiles.contains(where: { $0.id == id }) else { return }
         selectedProfileID = id
         layout.activeProfileID = id
-        if layout.hasColumns {
-            syncSelection()
-        } else {
-            newTab(in: id)
-        }
+        syncSelection()
     }
 
+    /// A profile just made is a different matter: it was asked for, and it is asked for in order to
+    /// browse in it, so it opens with a window the way a new browser does.
     func addProfile(name: String, colorHex: String) {
         let profile = Profile(name: name, colorHex: colorHex)
         profiles.append(profile)
         saveProfiles()
         selectProfile(profile.id)
+        newTab(in: profile.id)
     }
 
     /// A new name for a profile. The profile's folder on disk is named after it — the bookmarks'
@@ -977,10 +982,13 @@ final class BrowserState {
         // Nothing left to fill the screen with: a filled mode would be a blank wall with no way back.
         if layout.fill != .tiled, layout.focusedWorkspace?.isEmpty != false { layout.setFill(.tiled) }
         guard wasActive else { return }
+        // And nothing is opened in its place, not even when that was the last window of the profile.
+        // An empty rail is a state the strip already draws — the row offers "New Window" in the
+        // middle of the screen — and the window ⌘W conjured up instead was one nobody had asked for,
+        // standing where the one just closed had stood. It also made the first row behave unlike
+        // every other: emptying a row further down leaves the windows above it, so the profile is not
+        // empty, so that row got the offer while the top one got a start page.
         syncSelection()
-        if selectedTabID == nil, tabs(in: closed.profileID).isEmpty {
-            newTab(in: closed.profileID)
-        }
     }
 
     func closeSelectedTab() {

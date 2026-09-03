@@ -38,6 +38,26 @@ Every mutation goes through `mutate { }`, which runs `normalize` afterwards, so 
   they are named. The trailing workspace keeps its identity across the prune, so focus survives it.
 - Column focus stays in range, and `viewOffset` stays clamped.
 
+**An empty rail is a state, not an accident.** Closing the last window of a profile leaves the strip empty and opens
+nothing in its place: the workspace draws its own offer — **New Window**, and `or ⌘T` under it — and that is the same
+thing a workspace further down has always shown when it was emptied. The window `⌘W` used to conjure up was one
+nobody had asked for, and it made the first workspace behave unlike every other. The same rule holds for a profile
+switched to with an empty rail (`selectProfile`) and for a relaunch that restores one (`BrowserState.init`); only a
+browser with nothing to restore opens the first window itself, and so does a profile just created.
+
+### A row is drawn by identity, never by its number
+
+`WorkspaceView` looks its own place in the strip up by `workspace.id` and draws nothing when the strip no longer has
+it. That is not defensive tidiness: a row is removed with an animation, so it stays in the view tree for the length
+of its transition, and by then the index it was built with names the row that moved up into its place. A dying row
+that read the strip by that number drew the *next* row's windows — and a window is a `WebView` over a `WebPage`, of
+which WebKit allows exactly one, so the second view trapped in `makeViewProvider` (`EXC_BREAKPOINT`) and took the
+browser down. Closing the last window of workspace 1 while workspace 2 still held any was enough, every time.
+
+It is the same trap `NiriLayout.unanimated` was written for, from the other side: there a window changed rows, here a
+row went out from under a window. Anything that draws a page from a *position* in the strip has to resolve that
+position at the moment it draws, against the strip as it is now.
+
 ### A named workspace that runs out of windows
 
 Naming used to make a row immortal — niri's rule, and fine for as long as naming one was something only a person did.

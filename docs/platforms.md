@@ -90,6 +90,12 @@ The handle is also where the address is typed: a phone has no ⌘L and no room f
 so a tap on the window that already has focus turns its title into the field. A tap on any other
 window just brings it to focus, so walking the strip never opens the keyboard.
 
+An empty rail says the same thing here as on the Mac — the icon, **New Window**, and nothing else:
+the `⌘T` the Mac names underneath is not an offer a phone can make, and the `+` in the toolbar is the
+other way to the same window. Since `closeTab` stopped opening a window in place of the last one
+closed, this is the screen a phone lands on after closing everything, and without it that screen
+would be blank.
+
 ## The buttons at the ends
 
 The Mac keeps its two edge slivers out of sight and answers a pointer resting on one by leaning the

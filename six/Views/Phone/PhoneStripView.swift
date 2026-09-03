@@ -106,6 +106,10 @@ private struct WorkspaceView: View {
 
         ZStack(alignment: .topLeading) {
             Color.clear
+            if workspace.columns.isEmpty {
+                PhoneEmptyWorkspaceHint()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
             ForEach(Array(workspace.columns.enumerated()), id: \.element.id) { index, column in
                 if frames.indices.contains(index), let tab = browser.tab(column.tabID) {
                     // `minX` and `width` are the column's place *along* the strip; which way that
@@ -120,6 +124,26 @@ private struct WorkspaceView: View {
             }
         }
         .animation(NiriLayout.switchAnimation, value: workspace.focus)
+    }
+}
+
+/// A row with nothing on it: the offer the Mac makes in the same place, minus the keystroke — there
+/// is no ⌘T to name on a phone, and the `+` in the toolbar is the other way to the same window.
+private struct PhoneEmptyWorkspaceHint: View {
+    @Environment(BrowserState.self) private var browser
+
+    var body: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "rectangle.split.3x1")
+                .font(.system(size: 28, weight: .light))
+                .foregroundStyle(.tertiary)
+            Button { browser.newTab() } label: {
+                Label("New Window", systemImage: "plus")
+                    .padding(.horizontal, 6)
+            }
+            .controlSize(.large)
+            .buttonStyle(.borderedProminent)
+        }
     }
 }
 
