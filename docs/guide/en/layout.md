@@ -50,6 +50,12 @@ Nothing loads while the ring is open: the cards are pictures taken of the
 windows, and the page is built where you land. One press of `⌃Tab` is a toggle
 between the last two windows.
 
+A rail with one window on it still opens the ring — with one card in it. The key
+has to answer: a press that gives nothing back cannot be told from an unbound key
+or from a browser that has stopped listening, and this one is held, so the
+nothing would last as long as your hand does. Only an empty rail refuses, and
+there the screen already says so in the middle.
+
 **The ring holds the windows of the rail you are looking at** — not the other
 workspaces, and certainly not another profile. A workspace is a place you went to
 on purpose and a profile is a world of its own with its own history and logins;

@@ -39,7 +39,8 @@ final class WindowSwitcher {
         recent.removeAll { $0 == id }
         guard let at = ring.firstIndex(of: id) else { return }
         ring.remove(at: at)
-        if ring.count < 2 { ring = [] }
+        // A ring of one is a ring: it is what a rail with one window on it opens, and a window
+        // closing under an open ring leaves the same thing rather than a reason to close it.
         index = ring.isEmpty ? 0 : min(index, ring.count - 1)
     }
 
@@ -47,11 +48,16 @@ final class WindowSwitcher {
     /// order they were last looked at, then the rest — restored from a snapshot, or never focused
     /// this run — in the order they stand on the rail.
     ///
-    /// The window being read is always first, so the first ⌃Tab lands on the one before it. Returns
-    /// false when there is nothing to switch between, and then no ring opens and nothing is drawn.
+    /// The window being read is always first, so the first ⌃Tab lands on the one before it.
+    ///
+    /// A rail with one window on it opens a ring of one, and that is deliberate: the key has to
+    /// answer. Pressing it and getting nothing back is indistinguishable from a key that is not
+    /// bound, or from a browser that has stopped listening — and this one is held down, so the
+    /// nothing lasts as long as the hand does. One card, saying *this is what there is*, is an
+    /// answer. Only an empty rail refuses, and there the screen is already saying so in the middle.
     @discardableResult
     func open(_ ids: [UUID], current: UUID?) -> Bool {
-        guard ids.count > 1 else { return false }
+        guard !ids.isEmpty else { return false }
         let known = Set(ids)
         var order = recent.filter { known.contains($0) }
         order.append(contentsOf: ids.filter { !order.contains($0) })

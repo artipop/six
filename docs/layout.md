@@ -178,6 +178,10 @@ either direction — so `⌥←` / `⌥→` walk the rail and `⌃Tab` walks the
 - The ring is fixed when the switch opens and does not reorder while it is held — a list that resorted
   itself under the key would move the window you were aiming at — and it wraps, because a ring has no
   ends to hit. Windows never focused this run (restored from the snapshot) follow in rail order.
+- A rail with **one** window on it opens a ring of one. The key has to answer: a press that gives
+  nothing back cannot be told from a key that is not bound, or from a browser that has stopped
+  listening, and this one is held down, so the nothing would last as long as the hand does. Only an
+  empty rail refuses, and there the screen is already saying so in the middle.
 - One **rail's** windows only: the focused workspace's columns, not the whole strip and certainly not
   another profile. A workspace is a place you went to on purpose and a profile is a browsing world with
   a history and logins of its own; a key that flew you out of either would be doing something much

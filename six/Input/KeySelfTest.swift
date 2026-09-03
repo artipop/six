@@ -151,13 +151,18 @@ enum KeySelfTest {
             try? await Task.sleep(for: .milliseconds(300))
         }
 
-        // A window crossing workspaces and coming back. The pair is here because it crashed six for
-        // as long as it existed — two `WebView`s over one `WebPage`, the leaving row's removal
-        // transition against the arriving row's build — and a key that takes the browser down is
-        // what a key test is for. It leaves the rail as it found it.
+        // A window crossing workspaces and coming back, with the ring asked about while it stands
+        // over there on its own. The pair is here because it crashed six for as long as it existed
+        // — two `WebView`s over one `WebPage`, the leaving row's removal transition against the
+        // arriving row's build — and a key that takes the browser down is what a key test is for.
+        // It leaves the rail as it found it.
         post(flags: [.option, .shift], code: .downArrow, in: window)
         try? await Task.sleep(for: .milliseconds(500))
         note("⌥⇧↓ → \(rail(browser))")
+        post(flags: .control, code: .tab, in: window)
+        try? await Task.sleep(for: .milliseconds(350))
+        note("⌃⇥ on a rail of one → ring \(browser.switcher.ring.count)")
+        browser.cancelWindowSwitch()
         post(flags: [.option, .shift], code: .upArrow, in: window)
         try? await Task.sleep(for: .milliseconds(500))
         note("⌥⇧↑ → \(rail(browser))")
