@@ -85,6 +85,15 @@ final class BookmarkStore {
         }
     }
 
+    /// Loads the embedding model before anybody searches with it. The first query of a launch
+    /// otherwise waits about three seconds for the weights, and waits for them *after* the debounce,
+    /// so the field simply says nothing for that long. Only when there is something to search: on a
+    /// profile with no bookmarks the model is a 465 MB download that nothing is going to ask.
+    func warmUpEmbedder(in scope: BookmarkScope, profileID: Profile.ID) {
+        guard count(in: scope, profileID: profileID) > 0 else { return }
+        Task { [embedder] in await embedder.warmUp() }
+    }
+
     /// Finishes what an earlier run left unindexed (and re-embeds after a change of embedder). First
     /// sweeps the vector table: a row whose chunk is gone — a crash between the two deletes, an
     /// older run — is dropped, so the index never outlives the bookmarks.

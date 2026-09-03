@@ -170,7 +170,10 @@ each is a place the Kotlin side can drift on its own:
    is where it will actually break.
 4. **No quantisation.** An int8 e5-small is a quarter of the download and a **different model**: its
    vectors do not live in the Mac's space. Quantising here is not an optimisation, it is a change of
-   `modelID`, and it happens on both sides at once with a re-index or not at all.
+   `modelID`, and it happens on both sides at once with a re-index or not at all. **fp16 is not that**:
+   the Mac loads fp32 weights and casts them to fp16 to run them ([bookmarks.md](bookmarks.md)), which
+   moves a vector in the third decimal — far inside the 0.999 the golden vectors ask for. Half
+   precision on either side is free; quantised *weights* are not.
 
 The test that holds this together is golden vectors: a few dozen fixed strings, both roles, Latin and
 Cyrillic, embedded on the Mac and committed; Android asserts cosine ≥ 0.999 against them. Token ids
@@ -181,8 +184,8 @@ Chunking is part of the same contract, not a detail below it: passages of ~900 c
 bookmark. `ReadablePage`'s extraction is JavaScript running in the page, so it ports as text, the way
 `HighlightScript` does.
 
-Weights are ~230 MB, fetched on first use into app storage with the same status narration the Mac
-shows — not shipped in the package.
+Weights are ~465 MB (an fp32 safetensors and a 16 MB tokenizer), fetched on first use into app storage
+with the same status narration the Mac shows — not shipped in the package.
 
 ### The index: what was measured
 

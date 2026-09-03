@@ -95,7 +95,12 @@ struct BookmarksView: View {
             .padding(10)
         }
         .frame(width: sheetSize.width, height: sheetSize.height)
-        .onAppear { searchFocused = true }
+        .onAppear {
+            searchFocused = true
+            // This window is a search field: the model it searches with may as well load while the
+            // first question is being typed.
+            bookmarks.warmUpEmbedder(in: settings.bookmarkScope, profileID: profile.id)
+        }
         .task(id: SearchKey(query: query, scope: settings.bookmarkScope, profile: profile.id, revision: bookmarks.revision)) {
             await search()
         }

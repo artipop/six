@@ -31,7 +31,10 @@ It works **across languages**: a Russian question finds an English page and the
 other way round. The model behind it (~470 MB) is downloaded once on first use
 and never leaves the machine afterwards; while it comes in, the bookmarks
 window's footer says so. Search by title works from the first second, waiting for
-nothing.
+nothing. Once the model is on the machine it is loaded as soon as the window
+opens — while you are still typing the first question — so the first search of a
+session is as quick as the rest. Opening a window never fetches it; only a search
+does.
 
 ::: tip What is honest to say about the quality
 Within one language the ranking is right. Across languages it is right for topics

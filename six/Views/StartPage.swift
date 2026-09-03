@@ -112,7 +112,14 @@ struct StartPage: View {
         }
         .background(.background)
         .onChange(of: isActive, initial: true) { _, active in
-            if active { fieldFocused = true }
+            guard active else { return }
+            fieldFocused = true
+            // The rows below the field are answered by a model that takes seconds to load, and a
+            // start page taking the keyboard is the earliest honest sign that a question is coming.
+            // Not in a private window, which searches nothing of yours anyway (`updatePersonal`).
+            if !browser.isPrivate(tab.profileID) {
+                bookmarks.warmUpEmbedder(in: settings.bookmarkScope, profileID: tab.profileID)
+            }
         }
         .onChange(of: text) { _, value in
             selection = nil

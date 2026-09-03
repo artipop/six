@@ -3,12 +3,14 @@ import HuggingFace
 import MLX
 import MLXEmbedders
 import MLXLMCommon
+import MLXNN
 import Tokenizers
 
 /// Cross-lingual sentence embeddings on the GPU, through MLX: `intfloat/multilingual-e5-small` —
 /// 118 M parameters, 384 dimensions, ~100 languages in one space, so «плов» finds *pilaf*. The
-/// weights (~230 MB) come from the Hugging Face Hub on first use into `modelsDirectory` and are
-/// read from there afterwards; `status` narrates the download for the UI.
+/// weights (~465 MB: an fp32 safetensors plus a 16 MB tokenizer) come from the Hugging Face Hub on
+/// first use into `modelsDirectory` and are read from there afterwards; `status` narrates the
+/// download for the UI. They are cast to fp16 once loaded — see `loadedContainer`.
 ///
 /// E5 wants a role prefix on every text (`query: ` / `passage: `) and is trained with mean pooling
 /// and L2 normalisation.
@@ -81,6 +83,19 @@ actor MLXEmbedder: Embedder {
         }
     }
 
+    /// Loads the model without embedding anything, so that whoever asks first is not the one waiting
+    /// the three seconds it takes. Failures are the next caller's problem; this one has nobody to tell.
+    ///
+    /// Only when the weights are already on the machine. A warm-up is worth a disk read; it is not
+    /// worth a 465 MB download nobody asked for, and the hub client answers that question without
+    /// touching the network (`localFilesOnly`, which resolves out of the cache or throws).
+    func warmUp() async {
+        guard container == nil, loading == nil, let repo = Repo.ID(rawValue: Self.configuration.name) else { return }
+        let cached = try? await hub.downloadSnapshot(of: repo, revision: "main", matching: ["*.safetensors"], localFilesOnly: true)
+        guard cached != nil else { return }
+        _ = try? await loadedContainer()
+    }
+
     /// `SIX_EMBED_SELFTEST=1`: what the tokenizer and the pooler make of a few sentences, on stderr.
     func diagnostics() async -> String {
         var lines: [String] = []
@@ -126,6 +141,17 @@ actor MLXEmbedder: Embedder {
             ) { progress in
                 let percent = Int(progress.fractionCompleted * 100)
                 statusHandler?(percent < 100 ? String(localized: "downloading model \(percent) %") : String(localized: "loading model"))
+            }
+            // The weights arrive as fp32 — that is what the Hub snapshot holds — and are run as fp16.
+            // Measured on this M2, Debug, 64 passages of ~900 characters: 1.0–1.5 s and 470 MB of GPU
+            // memory at fp32, 0.76–0.85 s and 235 MB at fp16. On an 8 GB machine the memory is the
+            // half that matters, since MLX shares it with every WebKit process. The vectors move in
+            // the third decimal, well under what cosine distance sorts on, so an index written before
+            // this line stays valid — `BertModel` casts the attention mask to the embeddings' dtype
+            // for exactly this case, and says so in a comment.
+            await container.perform { context in
+                _ = context.model.apply { $0.dtype.isFloatingPoint ? $0.asType(.float16) : $0 }
+                eval(context.model)
             }
             statusHandler?("") // ready: nothing left to say about the model
             return container

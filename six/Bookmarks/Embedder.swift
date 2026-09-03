@@ -22,6 +22,13 @@ nonisolated protocol Embedder: Sendable {
     var modelID: String { get }
     var dimension: Int { get }
     func embed(_ texts: [String], as role: EmbeddingRole) async throws -> [Embedding]
+    /// Loads whatever the first `embed` would have to load, before anybody is waiting on an answer.
+    func warmUp() async
+}
+
+nonisolated extension Embedder {
+    /// An embedder with nothing to load is already warm; only `MLXEmbedder` has anything to do here.
+    func warmUp() async {}
 }
 
 nonisolated enum EmbedderError: LocalizedError {
