@@ -33,7 +33,7 @@ the rail.
 
 | | |
 |---|---|
-| `⌃Tab` | hold `⌃`: the profile's windows as pictures, in the order you last looked at them, with the one you would land on in the middle. Each press steps one along the ring; letting `⌃` go flies there |
+| `⌃Tab` | hold `⌃`: the current rail's windows as pictures, in the order you last looked at them, with the one you would land on in the middle. Each press steps one along the ring; letting `⌃` go flies there |
 | `⌃⇧Tab` | the same, the other way |
 | `⌃←` `⌃→` | the same step, said the way the cards are laid out |
 | `↩` | fly now, without waiting for `⌃` to come up |
@@ -41,8 +41,8 @@ the rail.
 
 `⌥←` `⌥→` walk the rail — where the windows **stand**; `⌃Tab` walks the memory —
 the order they were **looked at** in. Which is why one press of `⌃Tab` is a
-toggle between the last two windows. This profile's windows only, and this run
-only.
+toggle between the last two windows. The current rail's windows only — not other
+workspaces, not other profiles — and this run only.
 
 ## Browser
 

@@ -1055,10 +1055,11 @@ final class BrowserState {
 
     /// One step along the ⌃Tab ring, opening it on the first press.
     ///
-    /// The ring is the profile's own windows and no others. A profile is a browsing world with a rail
-    /// of its own — its own history, its own logins, its own colour — and a key that flew you out of
-    /// one into another would change all of that on the way past, which is not what a hand reaching
-    /// for the window it just left is asking for.
+    /// The ring is the windows on the rail in front of you and no others — not the other workspaces
+    /// of this profile, and certainly not the other profiles. A profile is a browsing world with a
+    /// rail, a history and a colour of its own, and a workspace is a place you went to on purpose;
+    /// a key that flew you out of either would be doing something much bigger than it looks, and
+    /// `⌥↑` / `⌥↓` already move between workspaces while saying where they are going.
     ///
     /// Nothing moves while the ring is being walked: the cards are pictures, and the flight happens
     /// once, on the key coming up (`endWindowSwitch`). Walking it live would load a page per window
@@ -1092,10 +1093,15 @@ final class BrowserState {
         withAnimation(.smooth(duration: 0.16)) { switcher.cancel() }
     }
 
-    /// Every window of the selected profile, in the order they stand on the rail: workspace by
-    /// workspace, left to right. What the ring falls back on for a window that has never been focused.
+    /// The windows on the rail you are looking at, left to right — the focused workspace's columns
+    /// and nothing else. What the ring falls back on for a window that has never been focused.
+    ///
+    /// One rail, not the whole strip. A workspace is a place you went to on purpose, and ⌃Tab is for
+    /// the window you were just in, which is on the rail in front of you; flying out of a workspace
+    /// on a key is a bigger move than the key looks, and there are two keys for it already (`⌥↑`,
+    /// `⌥↓`) that say where they are going before they go.
     private var railOrder: [UUID] {
-        layout.strip(for: selectedProfileID).workspaces.flatMap { $0.columns.map(\.tabID) }
+        layout.focusedWorkspace?.columns.map(\.tabID) ?? []
     }
 
     // MARK: Carrying a window across the overview

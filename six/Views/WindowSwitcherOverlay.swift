@@ -1,8 +1,8 @@
 #if os(macOS)
 import SwiftUI
 
-/// What ⌃Tab shows while it is held: the profile's windows as pictures, in the order they were last
-/// looked at, with the one you would land on in the middle.
+/// What ⌃Tab shows while it is held: the windows on the rail in front of you, as pictures, in the
+/// order they were last looked at, with the one you would land on in the middle.
 ///
 /// It is a rail of its own, and drawn like one on purpose — cards in a row, the chosen one full size
 /// between two neighbours peeking in at the edges — because that is the vocabulary the whole browser
@@ -73,9 +73,9 @@ struct WindowSwitcherOverlay: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    /// Where the flight would land, in words: the page's title, and under it the site and the
-    /// workspace it is in — a ring that crosses workspaces has to say which one, or landing is a
-    /// surprise.
+    /// Where the flight would land, in words: the page's title and the site under it. Not the
+    /// workspace — the ring holds one rail's windows, so every card in it is in the workspace you
+    /// are already looking at, and a line saying so on every one of them says nothing.
     @ViewBuilder
     private var caption: some View {
         if let id = browser.switcher.selection, let tab = browser.tab(id) {
@@ -83,7 +83,7 @@ struct WindowSwitcherOverlay: View {
                 Text(tab.title)
                     .font(.headline)
                     .lineLimit(1)
-                Text(subtitle(of: tab))
+                Text(tab.currentURL?.host() ?? "")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -92,13 +92,6 @@ struct WindowSwitcherOverlay: View {
             .id(id) // a new line rather than a title morphing into another one
             .transition(.opacity)
         }
-    }
-
-    private func subtitle(of tab: BrowserTab) -> String {
-        let host = tab.currentURL?.host() ?? ""
-        guard let at = browser.layout.location(ofTabID: tab.id, in: tab.profileID) else { return host }
-        let workspace = browser.layout.title(at: at.workspace)
-        return host.isEmpty ? workspace : "\(host) · \(workspace)"
     }
 }
 

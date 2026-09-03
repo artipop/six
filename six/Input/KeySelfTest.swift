@@ -150,6 +150,31 @@ enum KeySelfTest {
             note("\(name) → \(rail(browser))")
             try? await Task.sleep(for: .milliseconds(300))
         }
+
+        // ⌃⇥ holds a ring of the windows on *this* rail, and showing that it is this rail and not
+        // the whole strip needs a window standing somewhere else. It is opened and closed here
+        // rather than carried there with ⌥⇧↓, and not only because setup is not what this is
+        // testing: **posting ⌥⇧↓ crashes the app**, on a freshly launched one, as the first key
+        // pressed — `EXC_BREAKPOINT` inside `_WebKit_SwiftUI`'s `makeViewProvider`, which is a
+        // second `WebView` being built for a `WebPage` that already has one. The window leaving a
+        // row is kept alive by that row's removal transition while the row it is moving to builds
+        // it again. Put the step back the day that is fixed; it is two lines and it belongs here.
+        //
+        // The ring is opened by the key alone — nothing posts a `flagsChanged`, so ⌃ never comes up
+        // and the ring stays open long enough to be read.
+        let elsewhere = browser.newTab(url: nil, in: browser.selectedProfileID,
+                                       workspace: browser.layout.focusedWorkspaceIndex + 1,
+                                       activate: false)
+        try? await Task.sleep(for: .milliseconds(300))
+        post(flags: .control, code: .tab, in: window)
+        try? await Task.sleep(for: .milliseconds(350))
+        let now = browser.layout.strip(for: browser.selectedProfileID)
+        let onThisRail = now.workspaces.indices.contains(browser.layout.focusedWorkspaceIndex)
+            ? now.workspaces[browser.layout.focusedWorkspaceIndex].columns.count : 0
+        let everywhere = now.workspaces.reduce(0) { $0 + $1.columns.count }
+        note("⌃⇥ → ring \(browser.switcher.ring.count), rail \(onThisRail), strip \(everywhere)")
+        browser.cancelWindowSwitch()
+        browser.closeTab(elsewhere.id) // the rail is left exactly as it was found
     }
 
     /// Which window on the rail is focused, and how the rail is showing it.

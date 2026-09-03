@@ -178,8 +178,10 @@ either direction — so `⌥←` / `⌥→` walk the rail and `⌃Tab` walks the
 - The ring is fixed when the switch opens and does not reorder while it is held — a list that resorted
   itself under the key would move the window you were aiming at — and it wraps, because a ring has no
   ends to hit. Windows never focused this run (restored from the snapshot) follow in rail order.
-- One profile's windows only. A profile is a browsing world with a rail, a history and a colour of its
-  own, and a key that flew you out of one into another would change all of that on the way past.
+- One **rail's** windows only: the focused workspace's columns, not the whole strip and certainly not
+  another profile. A workspace is a place you went to on purpose and a profile is a browsing world with
+  a history and logins of its own; a key that flew you out of either would be doing something much
+  bigger than it looks, and `⌥↑` / `⌥↓` already move between workspaces while saying where they go.
 - Nothing is loaded while it is walked: the cards are the pictures the overview already takes
   (`rememberViewState` for the window being read, `loadPictureIfNeeded` for the rest). The flight
   happens once, on `⌃` coming up, through `selectTab` and the usual switch animation.
