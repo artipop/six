@@ -24,12 +24,19 @@ Where the rail has run out, the gesture is not lost in silence: the edge you
 pushed into lights up in the profile's colour, the rubber band stiffens, and
 nothing moves — because there is nothing that way.
 
+While the caret is in a field — the address bar, the `⌘K` line, the start page —
+`⌥←` and `⌥→` stay word movement, as they always were. But only while there is a
+word to step over: on the empty field a new window opens with, the same keys walk
+the rail.
+
 ## Flying between windows
 
 | | |
 |---|---|
 | `⌃Tab` | hold `⌃`: the profile's windows as pictures, in the order you last looked at them, with the one you would land on in the middle. Each press steps one along the ring; letting `⌃` go flies there |
 | `⌃⇧Tab` | the same, the other way |
+| `⌃←` `⌃→` | the same step, said the way the cards are laid out |
+| `↩` | fly now, without waiting for `⌃` to come up |
 | `Esc` | let go of the ring without going anywhere |
 
 `⌥←` `⌥→` walk the rail — where the windows **stand**; `⌃Tab` walks the memory —
@@ -75,7 +82,7 @@ only.
 |---|---|
 | typing | search by meaning; the matching passage under each row |
 | `↑` `↓` `↩` | walk the rows, open in a new window |
-| `⌫` | remove the bookmark and its file |
+| `⌘⌫` | remove the bookmark and its file |
 | `Esc` | close |
 
 ## History (`⌘Y`)
@@ -84,7 +91,7 @@ only.
 |---|---|
 | typing | filter by title and address |
 | `↩` | open in a new window |
-| `⌫` | forget the visit |
+| `⌘⌫` | forget the visit |
 | `Esc` | close |
 
 ## The agent panel (`⌘⇧A`)

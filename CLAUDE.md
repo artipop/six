@@ -136,6 +136,13 @@ MCP server instead — that is what it is for:
 `open_window` with a `six://` address, `list_workspaces`, `get_page_content`, `evaluate_javascript`,
 `list_console_messages`, `take_screenshot` (only for windows with a real `WebPage`). See [docs/mcp.md](docs/mcp.md).
 
+**Keys can be pressed, though — `NSApp.postEvent` needs no Accessibility.** It is the app's own queue, and a local
+`NSEvent` monitor is exactly what pulls events out of it, so a synthetic `⌥→` goes through the real router and moves
+the real rail. `SIX_KEY_SELFTEST=1` does both halves: it prints what every binding answers in every context, then
+posts the rail's keys one at a time and says where the rail ended up (`six/Input/KeySelfTest.swift`). Add to it rather
+than reasoning about the keyboard from the source — the bug it was written to find had survived a whole session of
+reasoning. `SIX_UI_DEBUG=1` prints a line per key press with the context it landed in and who took it.
+
 ## Three fronts, one dependency graph
 
 This is where the repository bites most often: a version moves in one place and a *different* front stops building.
@@ -283,6 +290,15 @@ anything added there has to exist on both:
   lands at the bottom of its range; `.warning` paths are the normal case, not the edge case.
 - **Never delete a credential or hard-to-recreate state file** to reproduce a first-run path. Copy it aside, or point
   the program at a throwaway config root.
+- **`event.modifierFlags` carries more than the hand does.** macOS puts `.function` **and** `.numericPad` on every
+  arrow key, and `.capsLock` on everything while Caps Lock is down; `deviceIndependentFlagsMask` keeps all three. So
+  `flags == .option` is false for `⌥→` and always was — the rail's arrow keys had never worked from the keyboard, and
+  the report they finally arrived as was "option + arrow doesn't always work". Compare against
+  `KeyBinding.Modifiers.held` (⌘⌃⌥⇧) and nothing else.
+- **A letter binding read from `charactersIgnoringModifiers` is a binding that only Latin layouts have.** `⌥W` reports
+  «ц» on the Russian layout. Match the key code as well (`KeyBinding.Key.letter`), which is what a tiling WM does.
+- **`pkill -x six` kills the Release browser** — Artem's real one, with his real state. It is named in the rule above
+  and it is still the easy thing to type. Kill by path: `pkill -f "Debug/six.app/Contents/MacOS/six"`.
 
 ## How we work
 

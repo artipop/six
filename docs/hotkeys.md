@@ -2,16 +2,27 @@
 
 Every key binding in six, in one place. `⌥` stands in for niri's `Mod`; `⌘` bindings are the browser's own. Each
 row is backed by a key monitor, a menu item or a view — the file is named so nothing here can drift from the code:
-`NiriScrollMonitor` in `six/Niri/`, `ViewCommands` / `HistoryCommands` / `BookmarkCommands` in `six/Views/MacCommands.swift`,
-the File menu in `six/sixApp.swift`, `FileCommands` in `six/Documents/Export.swift`, the rest in `six/Views/`.
+**`KeyBindings` in `six/Input/`** for everything a menu cannot keep, `ViewCommands` / `HistoryCommands` /
+`BookmarkCommands` in `six/Views/MacCommands.swift`, the File menu in `six/sixApp.swift`, `FileCommands` in
+`six/Documents/Export.swift`, the rest in `six/Views/`.
 
-## The rail (`⌥` — `NiriScrollMonitor.onLayoutKey`)
+The split is worth stating once: **`⌘` belongs to the menu bar** — which shows the key, greys it out when it cannot
+be pressed, and is where a person looks for it — and **everything else belongs to `KeyBindings`**, one array walked by
+one `NSEvent` monitor (`KeyRouter`). A binding is in the table when a menu item cannot deliver it: a first-responder
+`WKWebView` answers a key equivalent before the menu bar is asked, and keeps `⌥←` for word movement.
+
+## The rail (`⌥` — `KeyBindings`, scope `.rail`)
 
 Not a menu. These used to be a **Layout** menu of eleven items, ten of which were an arrow key, and that menu
 could not make them work anyway: a first-responder `WKWebView` answers a key equivalent before the menu bar sees
 it and keeps `⌥←` / `⌥→` for word movement, so after clicking into a page the layout keys went quiet. They come
-through a local `NSEvent` monitor now, which runs before all of it. The one thing given back is a text field:
-while the caret is in one of six's own, `⌥` and an arrow is word and paragraph movement, as it always was.
+through a local `NSEvent` monitor now, which runs before all of it.
+
+What is given back to a text field is worked out **per key and per caret**, not per field
+(`KeyBinding.Key.yields(to:)`). `⌥←` is word movement and always was — but only while there is a word behind the
+caret to move over; on the empty field a fresh window opens with, the same key is the only way to walk off it.
+`⌥↑` is paragraph movement, which a one-line field does not have, so there it stays the rail's. A field *inside a
+page* cannot be told apart from the page around it, and the rail wins there.
 
 | | |
 |---|---|
@@ -30,13 +41,18 @@ Where the rail runs out, the gesture is answered rather than ignored: the edge p
 in the profile's colour and the rubber band gives less, and nothing moves, because there is nothing
 that way ([layout.md](layout.md#the-ends-of-the-rail)).
 
-## Flying between windows (`⌃` — `NiriScrollMonitor.onSwitchWindow`)
+## Flying between windows (`⌃` — `KeyBindings`, scope `.switcher`)
 
 | | |
 |---|---|
 | `⌃Tab` | hold `⌃`: the profile's windows as pictures, in the order they were last looked at, the one you would land on in the middle. Each press steps one along the ring; letting `⌃` go flies there |
 | `⌃⇧Tab` | the same, the other way |
+| `⌃←` `⌃→` | the same step, said the way the row of cards is drawn |
+| `↩` | fly now, without waiting for `⌃` to come up |
 | `Esc` | let go of the ring without going anywhere |
+
+While the ring is up it is on top of everything else in the window: its own keys answer first, and any other key
+lands the flight and goes on to whatever it was meant for.
 
 The rail's order and this one are different questions: `⌥←` / `⌥→` walk the windows where they stand,
 `⌃Tab` walks them in the order they were used, so a single press is a toggle between the last two.
@@ -84,9 +100,10 @@ One profile's windows only, and this run only.
 | | |
 |---|---|
 | typing | search by meaning across the profile's (or every profile's) saved pages; the matching passage under each |
-| `↑` `↓` | walk the rows |
+| `↑` `↓` | walk the rows — from the field, without clicking into the list first (`walksRows`) |
 | `↩` | open the selected row (or the first) in a new window |
-| `⌫` | remove the bookmark and its file |
+| `⌘⌫` | remove the bookmark and its file, and land on the row that takes its place |
+| `⌫` | the same, while the list itself has the focus — in the field it is a character being deleted |
 | `Esc` | close |
 
 ## History (`⌘Y`)
@@ -94,8 +111,10 @@ One profile's windows only, and this run only.
 | | |
 |---|---|
 | typing | filter by title and address |
+| `↑` `↓` | walk the rows — from the field, without clicking into the list first (`walksRows`) |
 | `↩` | open the selected visit (or the first match) in a new window |
-| `⌫` | forget the selected visit |
+| `⌘⌫` | forget the selected visit, and land on the row that takes its place |
+| `⌫` | the same, while the list itself has the focus |
 | `Esc` | close |
 
 ## Assistant line (`⌘K`)
@@ -120,9 +139,18 @@ One profile's windows only, and this run only.
 
 ## Notes
 
-- `⌥W` / `⌥O` / `⌥C` are taken before anything else sees them, so those `⌥`+letter characters can't be typed
-  into a field. The arrows are not: `NiriScrollMonitor.isEditingText` lets them through while the caret is in one
-  of six's own fields. A field *inside a page* can't be told apart from the page around it, and the rail wins there.
-- To move the whole layout set to another modifier, change `NiriScrollMonitor.modifier` — one constant now, since
-  the keys are read there and nowhere else. The two `.keyboardShortcut`s left in `ViewCommands` (`⌥W`, `⌥O`) are
-  for display and for the pointer; the monitor swallows the key before the menu can act on it.
+- **A letter binding answers to the key's position as well as to what is printed on it.** `⌥W` on a Russian layout
+  reports «ц» from `charactersIgnoringModifiers`; matching only that is why `⌥W` / `⌥O` / `⌥C` were dead for anyone
+  not typing in Latin. `KeyBinding.Key.letter` matches either the US key code or the character, so the three work on
+  a Cyrillic layout (by position) and on Dvorak (by letter).
+- `⌥W` / `⌥O` / `⌥C` / `⌥⇧T` / `⌥⇧H` are taken before anything else sees them, so those `⌥`+letter characters can't
+  be typed into a field. The arrows are not — see the rail section for the rule.
+- **Nothing in the table answers outside six's own window.** A sheet, a popover and WebKit's full-screen video are
+  `KeyContext.Window.elsewhere`, and there `⎋` closes the sheet instead of the overview behind it and `⌥O` does
+  nothing at all.
+- To move the whole layout set to another modifier, change the `.exactly(.option)` rows in `KeyBindings.all` — the
+  keys are read there and nowhere else. The `.keyboardShortcut`s left in `ViewCommands` and `FileCommands` (`⌥W`,
+  `⌥O`, `⌥⇧T`, `⌥⇧H`) are for display and for the pointer; the router swallows the key before the menu can act on it.
+- **`SIX_UI_DEBUG=1` prints a line per key** — the chord, the context it landed in, and who took it. **`SIX_KEY_SELFTEST=1`**
+  prints the whole matrix at launch: every binding against every context, which is how a binding that goes quiet
+  somewhere is found without pressing anything (`KeySelfTest`; this Mac cannot press its own keys, see CLAUDE.md).

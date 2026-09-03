@@ -58,7 +58,7 @@ agent is asked to work there.
 ## History
 
 `⌘Y` is the current profile's history: search by title and address, `↑` `↓` walk
-the rows, `↩` opens the selected visit in a new window, `⌫` forgets it. The
+the rows, `↩` opens the selected visit in a new window, `⌘⌫` forgets it. The
 **History** menu lists the last twenty pages separately.
 
 **History ▸ Clear `<profile>` History…** asks what exactly to clear:

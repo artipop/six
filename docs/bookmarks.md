@@ -136,7 +136,8 @@ Pages change, and so do our models. Two things keep the index honest:
   "still saving". It sits with the address rather than out among the rail's buttons, because both are about the one
   page you are reading.
 - **`⌘⌥B`** (`BookmarksView`): the profile's or everyone's bookmarks, a search field that searches by meaning as you
-  type (with the matching passage and a score), double-click to open, *Show File in Finder*, ⌫ to remove.
+  type (with the matching passage and a score), ↑ ↓ from the field to walk the rows, double-click to open,
+  *Show File in Finder*, ⌘⌫ to remove.
 - **The start page's field**, without being asked: what you saved comes back as the top rows under it, matched by
   meaning against the same index — [start-page.md](start-page.md#your-own-pages-first).
 

@@ -8,6 +8,10 @@ struct ContentView: View {
     @Environment(AssistantStore.self) private var assistant
     @Environment(BookmarkStore.self) private var bookmarks
     @Environment(SettingsStore.self) private var settings
+    @Environment(HighlightStore.self) private var highlights
+    /// Every key six answers itself, in one place — see `KeyRouter` for why it is a monitor and not
+    /// a menu, and `KeyBindings` for the table it walks.
+    @State private var keys = KeyRouter()
     /// The address field lives in the top bar now, so the focus that ⌘L moves lives beside it —
     /// above the strip, which no longer has one.
     @FocusState private var addressFocus: UUID?
@@ -63,13 +67,8 @@ struct ContentView: View {
         .clearHistoryDialog(isPresented: $confirmClearHistory)
         // A named workspace has just run out of windows and wants an answer (`NiriLayout`).
         .workspaceRemovalDialog()
-        .onKeyPress(.escape) {
-            // The scroll monitor usually gets there first (a page holds the focus); this is the path
-            // for when nothing in the window has taken the key.
-            guard browser.layout.isOverview else { return .ignored }
-            browser.exitOverview()
-            return .handled
-        }
+        .onAppear(perform: startKeyRouter)
+        .onDisappear { keys.stop() }
         .task {
             // SwiftUI hands a new window's focus to the first field it finds, and that is now the
             // address field: six would open with the caret up there and the page unable to hear a
@@ -85,6 +84,12 @@ struct ContentView: View {
                 showAgentPanel = true
                 try? await Task.sleep(for: .seconds(1))
                 agentSession.send(text)
+            }
+            // `SIX_KEY_SELFTEST=1` prints what every binding answers in every context — the only
+            // way to check the keyboard on a Mac that cannot press its own keys (`KeySelfTest`).
+            if ProcessInfo.processInfo.environment["SIX_KEY_SELFTEST"] != nil {
+                KeySelfTest.run()
+                await KeySelfTest.live(browser)
             }
             // `SIX_MCP_PANEL=1` opens the servers page on launch, so it can be looked at without
             // reaching for the menu (docs/mcp-apps.md).
@@ -115,6 +120,44 @@ struct ContentView: View {
 }
 
 extension ContentView {
+    /// The table's actions, turned into calls. This is the view that has all of them in one place —
+    /// the rail, the ring, the page being read and the highlights — which is why the router is
+    /// installed here and not down in the strip, where the ⌥ keys used to live: half the table was
+    /// out of that view's reach, and that is how `⌥⇧T` and `⌥⇧H` ended up as menu items a focused
+    /// page could swallow.
+    private func startKeyRouter() {
+        keys.isSwitching = { browser.switcher.isOpen }
+        keys.isOverview = { browser.layout.isOverview }
+        keys.perform = { action in
+            switch action {
+            case .focusColumn(let step): browser.focusColumn(step)
+            case .moveColumn(let step): browser.moveColumn(step)
+            case .focusColumnEdge(let last): browser.focusColumnEdge(last: last)
+            case .focusWorkspace(let step): browser.focusWorkspace(step)
+            case .moveColumnToWorkspace(let step): browser.moveColumnToWorkspace(step)
+            case .toggleFullWidth: browser.toggleFullWindow()
+            case .toggleOverview: browser.toggleOverview()
+            case .toggleCenterFocus: browser.toggleCenterFocus()
+            case .stepSwitcher(let step): browser.stepWindowSwitch(step)
+            case .landSwitcher: browser.endWindowSwitch()
+            case .cancelSwitcher: browser.cancelWindowSwitch()
+            case .leaveOverview:
+                // The one action that can decline: outside the overview `⎋` is the page's own, and
+                // the start page's field clears itself with it.
+                guard browser.layout.isOverview else { return false }
+                browser.exitOverview()
+            case .translateSelection:
+                guard let tab = browser.selectedTab else { return false }
+                browser.translateSelection(of: tab)
+            case .highlightSelection:
+                guard let tab = browser.selectedTab, !tab.isDocument, !tab.showsStartPage else { return false }
+                Task { _ = await highlights.highlightSelection(in: tab) }
+            }
+            return true
+        }
+        keys.start()
+    }
+
     /// Runs each `;`-separated query through the personal rows the way the start page does, and says
     /// what the index answered before `PersonalSuggestions` had its say — which is the only way to
     /// tune the cutoff against real bookmarks. The first query pays for loading the embedder (and,

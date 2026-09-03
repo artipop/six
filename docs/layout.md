@@ -184,11 +184,12 @@ either direction — so `⌥←` / `⌥→` walk the rail and `⌃Tab` walks the
   (`rememberViewState` for the window being read, `loadPictureIfNeeded` for the rest). The flight
   happens once, on `⌃` coming up, through `selectTab` and the usual switch animation.
 
-The keys come through `NiriScrollMonitor` for the reason the `⌥` bindings do — a first-responder
-`WKWebView` answers a key equivalent before the menu bar sees it — and for a second reason besides:
-the ring is held open by a modifier, and only a `flagsChanged` ever says a modifier was let go of. A
-key that is not `Tab` arriving mid-ring ends the pass and is passed on, so nothing can leave the
-switcher standing (the app losing focus mid-press, most of all). The panel is `WindowSwitcherOverlay`,
+The keys come through `KeyRouter` for the reason the `⌥` bindings do — a first-responder `WKWebView`
+answers a key equivalent before the menu bar sees it — and for a second reason besides: the ring is
+held open by a modifier, and only a `flagsChanged` ever says a modifier was let go of. While it is
+open the ring's own bindings answer first — `Tab`, `⌃←` / `⌃→`, `↩` to fly now, `⎋` to let go — and
+any other key ends the pass and is passed on, so nothing can leave the switcher standing (the app
+losing focus mid-press, most of all). The panel is `WindowSwitcherOverlay`,
 mounted on `ContentView` over the top bar as well as the rail, and it answers no mouse: it exists only
 while a key is held, and a target that vanishes when you let go of a key is not a target.
 

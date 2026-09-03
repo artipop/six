@@ -33,48 +33,8 @@ final class NiriScrollMonitor {
     var stripFrame: () -> CGRect = { .infinite }
     /// True when the gesture works without holding Mod (the overview has no page to scroll).
     var modifierOptional: () -> Bool = { false }
-    /// ⎋ arrives through the same monitor rather than through SwiftUI: while a page is first responder
-    /// a key press never reaches the view hierarchy, and the way out of the overview must not depend
-    /// on where the focus happens to be. Returning true swallows the event.
-    var onEscape: () -> Bool = { false }
-    /// niri's ⌥ bindings, for the same reason and then some. They used to be a menu — a **Layout**
-    /// menu of eleven items, ten of which were an arrow key. That menu is gone (`ViewCommands` says
-    /// why), and it could not have kept them working anyway: a first-responder `WKWebView` answers a
-    /// key equivalent before the menu bar ever sees it and keeps `⌥←` / `⌥→` for word movement, so
-    /// after clicking into a page the layout keys went quiet until something else was clicked. A
-    /// local monitor runs before all of it.
-    ///
-    /// The one thing that has to be given back is a text field: `⌥←` in the address field is word
-    /// movement and always was, so the arrows step aside while the caret is in one of six's own.
-    /// (A field *inside a page* cannot be told apart from the page around it, and the rail wins
-    /// there — it is what the key is for in this browser.)
-    var onLayoutKey: (LayoutKey) -> Void = { _ in }
-    /// ⌃Tab, and ⌃⇧Tab the other way: one step along the ring of windows in the order they were last
-    /// looked at. It comes through here rather than through a menu item for the same reason the ⌥
-    /// keys do — a focused web view answers a key equivalent first — and it needs the monitor for a
-    /// second reason besides: the ring is held open by a modifier, and nothing but a `flagsChanged`
-    /// ever says that a modifier has been let go of.
-    var onSwitchWindow: (Int) -> Void = { _ in }
-    /// ⌃ came up (or the pass ended some other way): land on the window the ring is showing.
-    var onSwitchEnded: () -> Void = {}
-    var isSwitchingWindows: () -> Bool = { false }
-
-    /// One ⌥ binding, named. `NiriScrollMonitor` decides which key it was; `NiriStripView` decides
-    /// what it does, the way it already does for a scroll gesture.
-    enum LayoutKey: Sendable {
-        case focusColumn(Int)
-        case moveColumn(Int)
-        case focusColumnEdge(last: Bool)
-        case focusWorkspace(Int)
-        case moveColumnToWorkspace(Int)
-        case toggleFullWidth
-        case toggleOverview
-        case toggleCenterFocus
-    }
 
     private var monitor: Any?
-    private var keyMonitor: Any?
-    private var flagsMonitor: Any?
     private var clickMonitor: Any?
     private var accumulated: CGFloat = 0
     private var accumulatedX: CGFloat = 0
@@ -92,20 +52,6 @@ final class NiriScrollMonitor {
         monitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
             guard let self else { return event }
             return MainActor.assumeIsolated { self.handle(event) }
-        }
-        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            guard let self else { return event }
-            return MainActor.assumeIsolated { self.handleKey(event) }
-        }
-        // Never swallowed: a modifier going up is everybody's business, and the switcher is only
-        // listening for the one that is holding its ring open.
-        flagsMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
-            guard let self else { return event }
-            return MainActor.assumeIsolated {
-                let held = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-                if self.isSwitchingWindows(), !held.contains(.control) { self.onSwitchEnded() }
-                return event
-            }
         }
         startClickTrace()
     }
@@ -129,85 +75,16 @@ final class NiriScrollMonitor {
 
     func stop() {
         if let monitor { NSEvent.removeMonitor(monitor) }
-        if let keyMonitor { NSEvent.removeMonitor(keyMonitor) }
-        if let flagsMonitor { NSEvent.removeMonitor(flagsMonitor) }
         if let clickMonitor { NSEvent.removeMonitor(clickMonitor) }
         monitor = nil
-        keyMonitor = nil
-        flagsMonitor = nil
         clickMonitor = nil
     }
 
-    private static let escapeKeyCode: UInt16 = 53
-    private static let leftArrow: UInt16 = 123
-    private static let rightArrow: UInt16 = 124
-    private static let downArrow: UInt16 = 125
-    private static let upArrow: UInt16 = 126
-    private static let home: UInt16 = 115
-    private static let end: UInt16 = 119
-    private static let tab: UInt16 = 48
-
-    private func handleKey(_ event: NSEvent) -> NSEvent? {
-        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-        if flags.isEmpty, event.keyCode == Self.escapeKeyCode {
-            // A video playing full screen is WebKit's own window with its own ⎋; that one is not
-            // ours to take.
-            if let window = event.window, String(describing: type(of: window)).contains("FullScreen") { return event }
-            return onEscape() ? nil : event
-        }
-        if event.keyCode == Self.tab, flags == .control || flags == [.control, .shift] {
-            onSwitchWindow(flags.contains(.shift) ? -1 : 1)
-            return nil
-        }
-        // The ring is open and the key that arrived is not one of its own. Whatever it is, the pass
-        // is over: land, and let the key through to whatever it was meant for. Without this a switch
-        // could be left standing by anything that took ⌃ away without a `flagsChanged` — the app
-        // losing focus mid-press, most of all.
-        if isSwitchingWindows(), event.keyCode != Self.tab { onSwitchEnded() }
-        guard let key = Self.layoutKey(for: event, flags: flags) else { return event }
-        // ⌥ and an arrow is word and paragraph movement in a text field, and was long before it was
-        // niri's. While the caret is in one of six's own fields the rail does not take it; ⌥W ⌥O ⌥C
-        // are not text movement, so those still answer.
-        if Self.movesTheCaret(event.keyCode), isEditingText(event) { return event }
-        onLayoutKey(key)
-        return nil
-    }
-
-    private static func movesTheCaret(_ keyCode: UInt16) -> Bool {
-        [leftArrow, rightArrow, upArrow, downArrow, home, end].contains(keyCode)
-    }
-
-    /// niri's table, in the order [hotkeys.md](../../docs/hotkeys.md) lists it. Letters are read from
-    /// `charactersIgnoringModifiers` because ⌥W is `∑` and ⌥C is `ç` once the layout has had them.
-    private static func layoutKey(for event: NSEvent, flags: NSEvent.ModifierFlags) -> LayoutKey? {
-        let shifted = flags == [modifier, .shift]
-        guard flags == modifier || shifted else { return nil }
-        switch event.keyCode {
-        case leftArrow: return shifted ? .moveColumn(-1) : .focusColumn(-1)
-        case rightArrow: return shifted ? .moveColumn(1) : .focusColumn(1)
-        case upArrow: return shifted ? .moveColumnToWorkspace(-1) : .focusWorkspace(-1)
-        case downArrow: return shifted ? .moveColumnToWorkspace(1) : .focusWorkspace(1)
-        case home where !shifted: return .focusColumnEdge(last: false)
-        case end where !shifted: return .focusColumnEdge(last: true)
-        default: break
-        }
-        guard !shifted else { return nil }
-        switch event.charactersIgnoringModifiers?.lowercased() {
-        case "w": return .toggleFullWidth
-        case "o": return .toggleOverview
-        case "c": return .toggleCenterFocus
-        default: return nil
-        }
-    }
-
-    /// The caret is in one of six's own fields — the address bar, the ⌘K line, a document. AppKit
-    /// edits through a shared field editor, so the first responder for any of them is an `NSText`.
-    private func isEditingText(_ event: NSEvent) -> Bool {
-        event.window?.firstResponder is NSText
-    }
-
     private func handle(_ event: NSEvent) -> NSEvent? {
-        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        // Only the keys a hand can be on: Caps Lock left down is not a gesture modifier, and taking
+        // the whole device-independent mask for an equality test is what broke the keyboard's arrows
+        // (`KeyBinding.Modifiers.held`).
+        let flags = event.modifierFlags.intersection(KeyBinding.Modifiers.held)
         if flags != Self.modifier {
             guard flags.isEmpty, isOverStrip(event), modifierOptional() || isOverLayoutChrome(event) else { return event }
         }

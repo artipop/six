@@ -24,6 +24,8 @@ struct HistoryView: View {
                     .frame(maxWidth: 320)
                     .focused($searchFocused)
                     .onSubmit(openSelectedOrFirst)
+                    // The caret stays in the field; the arrows walk the list under it (`walksRows`).
+                    .walksRows(results.map(\.id), selection: $selection) { browser.history.remove($0) }
                 Button("Done") { dismiss() }.keyboardShortcut(.cancelAction)
             }
             .padding(12)
@@ -32,6 +34,7 @@ struct HistoryView: View {
                 ContentUnavailableView(query.isEmpty ? "No History" : "No Matches", systemImage: "clock.arrow.circlepath")
                     .frame(maxHeight: .infinity)
             } else {
+                ScrollViewReader { rows in
                 List(selection: $selection) {
                     ForEach(groups, id: \.day) { group in
                         Section(group.label) {
@@ -56,6 +59,13 @@ struct HistoryView: View {
                 .onDeleteCommand { if let selection { browser.history.remove(selection) } }
                 #endif
                 .onKeyPress(.return) { openSelectedOrFirst(); return .handled }
+                // A selection moved by a key has to be brought into view; a `List` only does that
+                // for one moved by a click.
+                .onChange(of: selection) { _, id in
+                    guard let id else { return }
+                    withAnimation(.smooth(duration: 0.15)) { rows.scrollTo(id) }
+                }
+                }
             }
             Divider()
             HStack {

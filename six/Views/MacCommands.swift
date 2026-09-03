@@ -16,10 +16,11 @@ import WebKit
 
 /// The window in front, and how the rail is showing it.
 ///
-/// The ⌥ bindings that walk the rail are deliberately *not* here — they live in
-/// `NiriScrollMonitor.handleLayoutKey`, which sees a key before the focused web view does. A menu
-/// item cannot: WebKit takes `⌥←` and `⌥→` for word movement and the layout key never arrives.
-/// The two that are here are the two a person reaches for with a pointer as often as with a key.
+/// The ⌥ bindings that walk the rail are deliberately *not* here — they live in `KeyBindings`, which
+/// `KeyRouter` walks on a key monitor that sees a key before the focused web view does. A menu item
+/// cannot: WebKit takes `⌥←` and `⌥→` for word movement and the layout key never arrives. The `⌥`
+/// items that *are* here are here for display and for the pointer — the router answers the key first
+/// and swallows it, so the item's own action never runs.
 struct ViewCommands: Commands {
     let browser: BrowserState
     @FocusedValue(\.focusAssistant) private var focusAssistant

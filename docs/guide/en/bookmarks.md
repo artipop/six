@@ -39,9 +39,9 @@ and shaky for details: an English question about a number in a Russian paragraph
 can lose to an unrelated English page.
 :::
 
-`↑` `↓` walk the rows, `↩` opens the selected one in a new window, `⌫` removes
-the bookmark and its file, `Esc` closes. The context menu has **Show File in
-Finder**.
+`↑` `↓` walk the rows straight from the search field, `↩` opens the selected one
+in a new window, `⌘⌫` removes the bookmark and its file, `Esc` closes. The
+context menu has **Show File in Finder**.
 
 ## Without being asked
 

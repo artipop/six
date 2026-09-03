@@ -37,6 +37,8 @@ struct BookmarksView: View {
                     .frame(maxWidth: 320)
                     .focused($searchFocused)
                     .onSubmit(openSelectedOrFirst)
+                    // The caret stays in the field; the arrows walk the list under it (`walksRows`).
+                    .walksRows(hits.map(\.id), selection: $selection) { bookmarks.remove($0) }
                 if searching { ProgressView().controlSize(.small) }
                 Button("Done") { dismiss() }.keyboardShortcut(.cancelAction)
             }
@@ -46,6 +48,7 @@ struct BookmarksView: View {
                 ContentUnavailableView(query.isEmpty ? "No Bookmarks" : "No Matches", systemImage: "bookmark")
                     .frame(maxHeight: .infinity)
             } else {
+                ScrollViewReader { rows in
                 List(selection: $selection) {
                     ForEach(hits) { hit in
                         BookmarkRow(hit: hit, showsProfile: settings.bookmarkScope == .all, busy: bookmarks.indexing.contains(hit.id) || bookmarks.refreshing.contains(hit.id))
@@ -72,6 +75,13 @@ struct BookmarksView: View {
                 .onDeleteCommand { if let selection { bookmarks.remove(selection) } }
                 #endif
                 .onKeyPress(.return) { openSelectedOrFirst(); return .handled }
+                // A selection moved by a key has to be brought into view; a `List` only does that
+                // for one moved by a click.
+                .onChange(of: selection) { _, id in
+                    guard let id else { return }
+                    withAnimation(.smooth(duration: 0.15)) { rows.scrollTo(id) }
+                }
+                }
             }
             Divider()
             HStack {
