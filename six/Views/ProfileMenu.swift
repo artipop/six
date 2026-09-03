@@ -207,8 +207,16 @@ private struct ProfileRow: View {
         }
     }
 
+    /// Eight colours and the well that opens the system's own.
+    ///
+    /// The row is laid out by division rather than by counting points: the well is asked how wide it
+    /// is and given exactly that, and what is left is split evenly between the swatches. It used to be
+    /// eight 16 pt circles, a 6 pt gap between each and a 22 pt frame around the well — a sum that
+    /// fitted the popover only as long as every number in it stayed true, and one of them was never
+    /// true: `ColorPicker` is an `NSColorWell` and its own width is nearly twice the frame that was
+    /// put around it. A frame does not clip, so the well simply stood past the edge of the popover.
     private var swatches: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 0) {
             ForEach(ProfilePopover.palette, id: \.self) { hex in
                 let chosen = hex.caseInsensitiveCompare(profile.colorHex) == .orderedSame
                 Circle()
@@ -219,16 +227,18 @@ private struct ProfileRow: View {
                     }
                     .contentShape(Circle())
                     .onTapGesture { browser.setProfileColor(profile.id, hex: hex) }
+                    .frame(maxWidth: .infinity)
             }
-            Spacer(minLength: 0)
             ColorPicker("", selection: Binding(
                 get: { profile.color },
                 set: { browser.setProfileColor(profile.id, hex: $0.hexString) }
             ), supportsOpacity: false)
             .labelsHidden()
-            .frame(width: 22)
+            .fixedSize()
+            .layoutPriority(1) // it gets the width it needs; the swatches share what is left
             .help("Any other colour")
         }
+        .frame(maxWidth: .infinity)
     }
 
     private func deleteButton(title: LocalizedStringKey, enabled: Bool, action: @escaping () -> Void) -> some View {
