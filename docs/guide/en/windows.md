@@ -86,9 +86,14 @@ it catches one: otherwise a click that put a file in a folder at the other end o
 the screen looks like a click that did nothing.
 
 A download belongs to the browser, not to the window that started it: closing the
-window does not stop the transfer. The list is in memory only and is not written
-to the session snapshot, in any profile — and quitting six loses the chance to
-resume along with the list.
+window does not stop the transfer.
+
+Unfinished downloads survive a relaunch: the row is still there after six is
+quit, saying **Interrupted** with the file's name and size, and the button offers
+to fetch it again. It cannot pick up from the middle across a restart — the bytes
+already downloaded were in a temporary folder the system is entitled to empty, so
+promising them would be dishonest. Finished downloads are not kept: the file is in
+the folder, and there is nothing to lose.
 
 A window opened only to carry a link that turned out to be a file closes itself
 once the download starts: nothing was in it, and there is nothing to go back to.

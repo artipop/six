@@ -88,6 +88,7 @@ private struct DownloadRow: View {
         HStack(spacing: 10) {
             Image(systemName: icon)
                 .foregroundStyle(item.state == .failed ? AnyShapeStyle(.red) : AnyShapeStyle(.secondary))
+                .symbolRenderingMode(.hierarchical)
                 .frame(width: 18)
             VStack(alignment: .leading, spacing: 3) {
                 Text(item.filename)
@@ -112,7 +113,7 @@ private struct DownloadRow: View {
             } else if item.canResume {
                 // Two different acts behind one button, and the tooltip says which: a transfer with
                 // resume data asks for the rest of the bytes, one without asks for the file again.
-                Button { browser.downloads.resume(item.id) } label: {
+                Button { browser.resumeDownload(item.id) } label: {
                     Image(systemName: item.resumesInPlace ? "arrow.clockwise.circle" : "arrow.trianglehead.clockwise")
                 }
                 .buttonStyle(.borderless)
@@ -142,7 +143,7 @@ private struct DownloadRow: View {
                 Divider()
             }
             if item.canResume {
-                Button(item.resumesInPlace ? "Resume" : "Try Again") { browser.downloads.resume(item.id) }
+                Button(item.resumesInPlace ? "Resume" : "Try Again") { browser.resumeDownload(item.id) }
                 Divider()
             }
             Button("Copy Address") {
@@ -159,6 +160,7 @@ private struct DownloadRow: View {
         case .finished: "checkmark.circle"
         case .failed: "exclamationmark.triangle"
         case .cancelled: "slash.circle"
+        case .interrupted: "exclamationmark.arrow.circlepath"
         }
     }
 
@@ -175,6 +177,14 @@ private struct DownloadRow: View {
         case .cancelled:
             guard item.received > 0, item.resumesInPlace else { return String(localized: "Stopped") }
             return String(localized: "Stopped at \(item.received.formatted(.byteCount(style: .file)))")
+        case .interrupted:
+            // How big it was, never how far it got: the bytes went with the session, and a number
+            // for those would be a promise the button cannot keep.
+            let where_ = item.url.host() ?? ""
+            guard item.expected > 0 else {
+                return where_.isEmpty ? String(localized: "Interrupted") : String(localized: "Interrupted · \(where_)")
+            }
+            return String(localized: "Interrupted · \(item.expected.formatted(.byteCount(style: .file))) · \(where_)")
         }
     }
 

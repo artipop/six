@@ -33,19 +33,28 @@ final class DownloadStore {
         var expected: Int64 = -1
         var state: State = .running
         var error: String?
-        let startedAt = Date()
+        var startedAt = Date()
         /// What `URLSession` gave back when this stopped: enough to ask the server for the rest.
         /// Nil when the transfer is running, when it finished, and when the server would not have
         /// honoured a range request anyway — resuming is a courtesy, not a guarantee.
         var resumeData: Data?
         /// The request as it was actually sent, cookies and referrer included, so a transfer that
-        /// cannot be resumed can at least be asked for again without going back to the page.
+        /// cannot be resumed can at least be asked for again without going back to the page. Held in
+        /// memory only: the session snapshot keeps the address and the profile instead, because a
+        /// request carries cookies and cookies do not belong in a file next to the session.
         var request: URLRequest?
+        /// Whose cookies this was fetched with, so a row restored from the last session can be
+        /// asked for again with that profile's — the current ones, not the ones it began with.
+        var profileID: UUID?
+        var referrer: URL?
 
         /// Can this row be picked up again, and does it start from where it stopped?
         var canResume: Bool {
-            guard state == .cancelled || state == .failed else { return false }
-            return resumeData != nil || request != nil
+            switch state {
+            case .cancelled, .failed: return resumeData != nil || request != nil || url.isHTTP
+            case .interrupted: return url.isHTTP
+            case .running, .finished: return false
+            }
         }
         var resumesInPlace: Bool { resumeData != nil }
 
@@ -57,12 +66,21 @@ final class DownloadStore {
 
     enum State: Equatable {
         case running, finished, failed, cancelled
+        /// Restored from the last session: six was quit or killed while this was unfinished. There
+        /// is nothing left to resume against — the partial file was in a temporary directory — so
+        /// the row exists to offer the one thing that is still possible, which is asking again.
+        case interrupted
     }
 
     /// Newest first — the order the popover reads in.
     private(set) var items: [Item] = []
     /// Set when something finishes while the popover is closed, so the button can say so.
     private(set) var hasUnseen = false
+    /// What a relaunch should put back. Kept as a value of its own rather than derived from `items`
+    /// on demand, because the session snapshot is written under observation tracking and `items`
+    /// changes several times a second while anything is coming in — reading it there would mean a
+    /// snapshot written to disk once a second for the length of every download.
+    private(set) var unfinished: [DownloadSnapshot] = []
 
     var running: [Item] { items.filter { $0.state == .running } }
     var isRunning: Bool { !running.isEmpty }
@@ -86,39 +104,57 @@ final class DownloadStore {
     /// Starts a download for what the page asked to save. `dataStore` is the profile's, and the only
     /// place the session cookies live: without them a private file comes back as a login page.
     func start(_ request: URLRequest, suggestedName: String? = nil, referrer: URL? = nil,
-               cookies dataStore: WKWebsiteDataStore?) {
+               profileID: UUID? = nil, cookies dataStore: WKWebsiteDataStore?) {
         guard let url = request.url else { return }
-        let item = Item(url: url, filename: suggestedName ?? Self.name(from: url))
+        var item = Item(url: url, filename: suggestedName ?? Self.name(from: url))
+        item.profileID = profileID
+        item.referrer = referrer
         items.insert(item, at: 0)
+        refreshUnfinished()
         Task {
-            var outgoing = request
-            outgoing.setValue(UserAgent.full, forHTTPHeaderField: "User-Agent")
-            if let referrer { outgoing.setValue(referrer.absoluteString, forHTTPHeaderField: "Referer") }
-            if let dataStore {
-                let jar = await dataStore.httpCookieStore.allCookies()
-                let matching = jar.filter { $0.matches(url) }
-                if !matching.isEmpty {
-                    for (field, value) in HTTPCookie.requestHeaderFields(with: matching) {
-                        outgoing.setValue(value, forHTTPHeaderField: field)
-                    }
-                }
-            }
+            let outgoing = await Self.outgoing(request, referrer: referrer, cookies: dataStore)
             update(item.id) { $0.request = outgoing }
-            let task = transfers.session.downloadTask(with: outgoing)
-            transfers.note(item.id, for: task.taskIdentifier)
-            tasks[item.id] = task
-            task.resume()
+            begin(transfers.session.downloadTask(with: outgoing), for: item.id)
             LinkTrace.log("downloading \(url.absoluteString) as \(item.filename)")
         }
+    }
+
+    /// The request as six actually sends it: Safari's user agent, the page's address as `Referer`,
+    /// and the profile's cookies for this URL — the last of which is the whole reason a download
+    /// cannot simply be handed to `URLSession` as it arrived.
+    private static func outgoing(_ request: URLRequest, referrer: URL?,
+                                 cookies dataStore: WKWebsiteDataStore?) async -> URLRequest {
+        var outgoing = request
+        outgoing.setValue(UserAgent.full, forHTTPHeaderField: "User-Agent")
+        if let referrer { outgoing.setValue(referrer.absoluteString, forHTTPHeaderField: "Referer") }
+        guard let dataStore, let url = request.url else { return outgoing }
+        let jar = await dataStore.httpCookieStore.allCookies()
+        let matching = jar.filter { $0.matches(url) }
+        if !matching.isEmpty {
+            for (field, value) in HTTPCookie.requestHeaderFields(with: matching) {
+                outgoing.setValue(value, forHTTPHeaderField: field)
+            }
+        }
+        return outgoing
+    }
+
+    private static func outgoing(for url: URL, referrer: URL?,
+                                 cookies dataStore: WKWebsiteDataStore?) async -> URLRequest {
+        await outgoing(URLRequest(url: url), referrer: referrer, cookies: dataStore)
     }
 
     /// Stops a transfer and asks for the receipt. `cancel(byProducingResumeData:)` answers on a
     /// background queue and answers nil when the server gave nothing to resume against, so the row
     /// goes to `.cancelled` immediately and grows its resume data a moment later if there is any.
     func cancel(_ id: Item.ID) {
-        guard let task = tasks[id] else { return }
+        let task = tasks[id]
         tasks[id] = nil
         update(id) { $0.state = .cancelled }
+        refreshUnfinished()
+        // No task yet: the request is still being built (the profile's cookies are read
+        // asynchronously). The row is cancelled all the same, and `begin` checks before it starts —
+        // otherwise Stop pressed in that window would leave a download nobody could see running.
+        guard let task else { return }
         task.cancel(byProducingResumeData: { [weak self] data in
             guard let data, let self else { return }
             Task { @MainActor in self.update(id) { $0.resumeData = data } }
@@ -128,16 +164,8 @@ final class DownloadStore {
     /// Picks a stopped download up again. With resume data the server is asked for the rest of the
     /// bytes; without it there is nothing to do but ask for the file again, which is still better
     /// than finding the page and the link a second time.
-    func resume(_ id: Item.ID) {
+    func resume(_ id: Item.ID, cookies dataStore: WKWebsiteDataStore? = nil) {
         guard let item = items.first(where: { $0.id == id }), item.canResume else { return }
-        let task: URLSessionDownloadTask
-        if let resumeData = item.resumeData {
-            task = transfers.session.downloadTask(withResumeData: resumeData)
-        } else if let request = item.request {
-            task = transfers.session.downloadTask(with: request)
-        } else {
-            return
-        }
         LinkTrace.log("resuming \(item.url.absoluteString)\(item.resumesInPlace ? " where it stopped" : " from the start")")
         update(id) {
             $0.state = .running
@@ -145,11 +173,70 @@ final class DownloadStore {
             // Spent: a second stop produces a fresh blob, and an old one points at a file that the
             // task now owns.
             $0.resumeData = nil
+            // `expected` is left alone: the row keeps the size it knew until the new response
+            // corrects it, rather than losing its bar for the length of a round trip.
             if !item.resumesInPlace { $0.received = 0 }
         }
+        refreshUnfinished()
+        if let resumeData = item.resumeData {
+            begin(transfers.session.downloadTask(withResumeData: resumeData), for: id)
+        } else if let request = item.request {
+            begin(transfers.session.downloadTask(with: request), for: id)
+        } else {
+            // A row restored from the last session: there is no request left, so one is built the
+            // way `start` builds it, with the cookies the profile has now.
+            Task {
+                let outgoing = await Self.outgoing(for: item.url, referrer: item.referrer, cookies: dataStore)
+                update(id) { $0.request = outgoing }
+                begin(transfers.session.downloadTask(with: outgoing), for: id)
+            }
+        }
+    }
+
+    /// Hands a row its task. The state is checked here rather than at every call site: a row can be
+    /// cancelled while its request is still being built, and the transfer must not start after that.
+    private func begin(_ task: URLSessionDownloadTask, for id: Item.ID) {
+        guard items.first(where: { $0.id == id })?.state == .running else { return }
         transfers.note(id, for: task.taskIdentifier)
         tasks[id] = task
         task.resume()
+    }
+
+    // MARK: Across a relaunch
+
+    /// Puts back the rows the last session did not finish. They come back as `.interrupted`: the
+    /// partial bytes are gone with the temporary directory that held them, so the only honest offer
+    /// is to fetch the file again — which is still the difference between one click and finding the
+    /// page and the link a second time.
+    func restore(_ saved: [DownloadSnapshot]) {
+        guard items.isEmpty else { return }
+        for entry in saved {
+            var item = Item(url: entry.url, filename: entry.filename)
+            item.profileID = entry.profileID
+            item.referrer = entry.referrer
+            item.expected = entry.expected
+            item.startedAt = entry.startedAt
+            item.state = .interrupted
+            items.append(item)
+        }
+        refreshUnfinished()
+        if !saved.isEmpty { LinkTrace.log("restored \(saved.count) unfinished download(s)") }
+    }
+
+    /// Recomputed on every change to what a row *is*, and never on a progress tick. Assigned only
+    /// when it actually differs, or the assignment itself is the change that schedules a save.
+    private func refreshUnfinished() {
+        let next = items.compactMap { item -> DownloadSnapshot? in
+            switch item.state {
+            case .finished: return nil
+            case .running, .failed, .cancelled, .interrupted:
+                guard item.url.isHTTP else { return nil }
+                return DownloadSnapshot(url: item.url, filename: item.filename, profileID: item.profileID,
+                                        referrer: item.referrer, expected: item.expected, startedAt: item.startedAt)
+            }
+        }
+        guard next != unfinished else { return }
+        unfinished = next
     }
 
     /// Takes the row off the list. The file, if there is one, stays where it was put.
@@ -157,10 +244,12 @@ final class DownloadStore {
         tasks[id]?.cancel()
         tasks[id] = nil
         items.removeAll { $0.id == id }
+        refreshUnfinished()
     }
 
     func clearFinished() {
         items.removeAll { $0.state != .running }
+        refreshUnfinished()
     }
 
     func markSeen() { hasUnseen = false }
@@ -169,10 +258,16 @@ final class DownloadStore {
     // MARK: What the transfer says
 
     fileprivate func note(_ id: Item.ID, received: Int64, expected: Int64) {
+        var learnedSize = false
         update(id) {
             $0.received = received
+            // Once per download, when the response arrives: the size is the one thing about a
+            // transfer worth writing down, and the only moment it changes. Every other tick must
+            // leave `unfinished` alone or the session file is rewritten once a second.
+            learnedSize = $0.expected <= 0 && expected > 0
             $0.expected = expected
         }
+        if learnedSize { refreshUnfinished() }
     }
 
     fileprivate func finish(_ id: Item.ID, at destination: URL) {
@@ -183,6 +278,7 @@ final class DownloadStore {
             $0.received = max($0.received, $0.expected)
             $0.state = .finished
         }
+        refreshUnfinished()
         hasUnseen = true
     }
 
@@ -195,6 +291,7 @@ final class DownloadStore {
             $0.state = .failed
             $0.error = message
         }
+        refreshUnfinished()
         guard !message.isEmpty else { return }
         hasUnseen = true
     }
@@ -224,6 +321,15 @@ final class DownloadStore {
         let last = url.lastPathComponent
         if !last.isEmpty, last != "/" { return last }
         return url.host() ?? "download"
+    }
+}
+
+private extension URL {
+    /// Worth writing down and worth offering again: `http`/`https` and nothing else. A `blob:` or a
+    /// `data:` address belonged to a page that is gone.
+    var isHTTP: Bool {
+        guard let scheme = scheme?.lowercased() else { return false }
+        return scheme == "http" || scheme == "https"
     }
 }
 

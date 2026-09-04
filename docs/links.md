@@ -112,9 +112,25 @@ cancelled. `didResumeAtOffset` sets the bar where the transfer left off, so a re
 a bar rather than an empty one that fills instantly; `totalBytesWritten` counts from zero including the resumed
 bytes, so the rest of the row needs no arithmetic.
 
-The list is in memory, so this is within one run of six: quitting loses the rows and with them the resume data.
-Persisting it would mean persisting the list, and the partial file it points at lives in a temporary directory the
-system is entitled to empty — a *Resume* that failed after a relaunch would be worse than no button.
+### After a relaunch
+
+Resume data does not survive one, and cannot: it points at a partial file in a temporary directory the system is
+entitled to empty, so a *Resume* restored from a file would be a button that fails. What survives is the row.
+
+The unfinished downloads — running, stopped or failed, whichever they were when six was quit — are written into the
+session snapshot and come back as **Interrupted**, saying what the file was called and how big it was, with a
+**Try Again** that fetches it from the beginning. Finished ones are not kept: the file is in the Downloads folder
+and nothing about it was lost.
+
+What is *not* written down is the request. It carries the profile's session cookies, and cookies do not belong in a
+JSON file next to the session; the address, the referrer and the profile id are enough to build the request again —
+with the cookies that profile has *now*, which is the better request anyway. That is also why resuming goes through
+`BrowserState.resumeDownload(_:)`: only the browser knows which `WKWebsiteDataStore` a row belongs to.
+
+Progress ticks must not reach the snapshot. It is written under observation tracking, so reading `items` there would
+mean the whole session file rewritten once a second for the length of every download; `DownloadStore.unfinished` is
+a value of its own, recomputed when a row is added, removed or changes state — and once more when the response
+arrives and the size is finally known.
 
 A download belongs to the browser, not to the window that started it: closing the window does not stop the transfer.
 The list is in memory only — it is not written to the snapshot, in any profile.

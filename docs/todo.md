@@ -127,6 +127,31 @@ proposition from doing it for geolocation alone. six is not sandboxed and not on
 review risk here — only the ordinary one, that it goes away in a macOS update; `respondsToSelector:` and a feature that
 quietly disappears rather than a crash is the shape that takes.
 
+## Blocking: cosmetic rules inside a frame
+
+[Advanced blocking](blocking.md#the-advanced-rules-what-runs-inside-the-page) is main frame only, and the reason is
+structural rather than lazy. A `WKUserScript`'s source is fixed when it is installed on the content controller,
+which happens before the load starts; the rules that apply to a subframe are the ones for the *subframe's own*
+address, and that is not known until the frame loads. Giving a third-party frame the top document's cosmetic rules
+would hide things inside it for no reason, so it is given none. What blocks inside a frame today is the network
+half, which is per-request and needs nobody's help — so what is missing is scriptlets and extended CSS in frames,
+which is where a certain kind of ad iframe lives.
+
+Three ways it could be closed, none of them free:
+
+- **Ask, then apply.** Inject one small script into every frame (`forMainFrameOnly: false`) that posts its own URL
+  to a `WKScriptMessageHandler`, and have Swift answer with that frame's rules. Cheap and correct for CSS — a frame's
+  cosmetics can arrive a moment late and still work. Useless for **scriptlets**, which have to patch a global before
+  the frame's own scripts run, and a round trip through the main actor is not before.
+- **Ship the lookup to the page.** Inject the engine's answers for every domain the page might frame — which is the
+  whole index — or the engine itself as JavaScript. AdGuard's own extension does the second, in a background script;
+  six would be paying 350 KB and a build of the index per frame.
+- **A `WKURLSchemeHandler`-shaped proxy**, or the Web Inspector protocol, so the rules could be applied to a frame's
+  document before it is parsed. Both are the [own-WebKit-build](#someday-sixs-own-webkit-build) conversation.
+
+The first is the only cheap one and it buys the smaller half. Worth doing when a real page is found where the frames
+are the problem; not worth guessing at before that.
+
 ## Picture-in-picture — the window half
 
 Two different features deserve the name, and the first of them is now built.
@@ -250,6 +275,22 @@ Built and measured; see [linux.md](linux.md) for the whole picture. What is left
 ## Smaller things
 
 - A readable maximum width for the default column on ultra-wide displays: 88 % of a 5K panel is a very long line.
+- **WebKit's real back-forward list across a relaunch.** Six restores the trail as *addresses*
+  ([architecture.md](architecture.md#persistence)), so ⌘[ after a restart loads the previous page rather than
+  restoring the rendered one — no scroll position, no form state, no cached response. `WKWebView` has had
+  `interactionState` since macOS 12 for exactly this, and `WebPage` exposes nothing equivalent: its
+  `backForwardList` is read-only and its only way in is `load(_ item:)` on an item WebKit already has. This is the
+  same hole as [geolocation](#geolocation-screen-sharing-and-web-push-one-trade-not-three) — a `WKWebView` property
+  that did not make the crossing — and wants the same answer, a Feedback citing `WebPage.isInspectable` as the
+  precedent.
+- A window whose address *is* a download re-downloads it on every launch. Nothing was committed in it, so the
+  window comes back pointed at the attachment and asks for it again; `closeIfOnlyCarriedALink` only closes the
+  window a link opened, not the one somebody typed the address into. Harmless until this session, easy to see now
+  that an unfinished row survives a relaunch.
+- Restoring where a window was scrolled to. The offset is only read when a window leaves the screen
+  (`rememberViewState`), so a window that stayed put all session would come back at the top anyway; doing it properly
+  means reading `window.scrollY` for the visible windows as the snapshot is taken, which is a JavaScript call on the
+  autosave path.
 - Deep research without an agent: a native loop over the ⌘K model for machines with no Claude Code / Codex, and
   exporting a run as one HTML file with its sources inlined ([deep-research.md](deep-research.md)).
 - A way back to the start page after navigating (a "home" affordance, or `⌘⇧H`).
@@ -257,6 +298,3 @@ Built and measured; see [linux.md](linux.md) for the whole picture. What is left
   `remove(ofTypes:for:)`). Clearing a whole profile is the only option today, and it takes every login with it.
 - Per-site user-agent overrides through `WebPage.customUserAgent`, for sites that sniff wrongly even at Safari's
   string.
-- Cosmetic rules in subframes. Advanced blocking is main-frame only, because a user script's source is fixed before
-  the frame's own address is known ([blocking.md](blocking.md#what-it-does-not-reach)). Doing it properly means the
-  frame asking for its own rules over a message handler, which is a round trip a scriptlet cannot wait for.

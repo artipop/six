@@ -224,8 +224,9 @@ so `resolve(_:)` opens what it points at rather than the file.
 
 ## Persistence
 
-Everything that makes up a session — the selected profile, every tab (URL + title) and every profile's strip
-(workspaces with their names, their columns, focus) plus the agent chats — is one `AppStateSnapshot`,
+Everything that makes up a session — the selected profile, every tab (URL, title and the trail it walked to get
+there) and every profile's strip (workspaces with their names, their columns, focus), the downloads that did not
+finish, plus the agent chats — is one `AppStateSnapshot`,
 written to `~/Library/Application Support/org.deffun.six/state.json` — the folder is the bundle identifier, so a Debug
 build writes to `org.deffun.six.dev/` and the two never meet (`AppSupport`, and
 [build.md](build.md#two-apps-the-one-you-use-and-the-one-you-build)). The snapshot types, `SnapshotStore` and `StatePersistence`
@@ -261,7 +262,17 @@ page's URL, a column moving, a chat line — schedules a debounced (1 s) write o
 it first comes on screen (or a tool looks at it) — relaunching with a hundred windows fires no requests.
 The window itself — frame and fullscreen — is in the snapshot too (`WindowState`, fed by `NSWindow`
 notifications and applied once when the content view lands in its window; a saved frame off every screen is
-ignored). Restore drops anything that doesn't line up (a column whose tab is gone, a tab no column points at). Only the API key
+ignored). Restore drops anything that doesn't line up (a column whose tab is gone, a tab no column points at).
+
+**Back and forward survive a relaunch, as addresses.** `WebPage` hands out no `interactionState` — the opaque blob
+`WKWebView` has had since macOS 12 for exactly this — so WebKit's own back-forward list cannot be restored into a
+fresh page at all. What six restores instead is `BrowserTab.Trail`, the list of addresses it already keeps for a
+window whose page was discarded and for one handed to another profile: `savedBack` / `savedForward`, walked by
+`goBack()` when the live page's own list runs out. The snapshot carries 50 steps each way per window. A restored
+window is therefore one WebKit knows nothing about, and one whose ⌘[ loads the previous address rather than
+restoring a rendered page — which is what a rebuilt discarded window has always done. The scroll offset is *not*
+restored: it is only read when a window leaves the screen, so for one that never did it would be the offset the
+session started at. Only the API key
 stays in `UserDefaults`; the other settings are in the database (below).
 
 History and settings live in SQLite — `~/Library/Application Support/org.deffun.six/six.sqlite`, opened by `AppDatabase`

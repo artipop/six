@@ -27,6 +27,31 @@ nonisolated struct BrowserSnapshot: Codable, Sendable {
     var strips: [StripSnapshot]
     /// Deep-research runs, absent in files from before them.
     var research: [ResearchRun]? = nil
+    /// Downloads that had not finished. Absent in files from before they were kept.
+    var downloads: [DownloadSnapshot]? = nil
+}
+
+/// A download that did not finish, so the next launch can offer to fetch it again.
+///
+/// Only the unfinished ones, and only their identity: a finished download is a file in the
+/// Downloads folder and nothing about it is lost. What is *not* here is the request as it was sent
+/// — it carries the profile's session cookies, and cookies do not belong in a JSON file next to the
+/// session. The address and the profile are enough to build it again with whatever cookies the
+/// profile has when somebody asks, which is the better request anyway.
+///
+/// Neither is the resume data: it points at a partial file in a temporary directory the system is
+/// entitled to empty, so a relaunched *Resume* would be a button that fails. A restored row starts
+/// over, and says so.
+nonisolated struct DownloadSnapshot: Codable, Sendable, Equatable {
+    var url: URL
+    var filename: String
+    /// Whose cookies to use when it is asked for again. Nil for a download that had no window.
+    var profileID: UUID?
+    var referrer: URL?
+    /// What the server said the whole file was, so the row can still say how big it is. -1 when it
+    /// never said.
+    var expected: Int64 = -1
+    var startedAt: Date
 }
 
 nonisolated struct TabSnapshot: Codable, Sendable {
@@ -35,6 +60,12 @@ nonisolated struct TabSnapshot: Codable, Sendable {
     /// Nil is the start page.
     var url: URL?
     var title: String
+    /// Where the window has been, oldest first, and where it can go forward to — the same trail a
+    /// discarded window keeps in memory (`BrowserTab.Trail`), written down so that ⌘[ still works
+    /// after a relaunch. Addresses rather than WebKit's own back-forward list, because `WebPage`
+    /// hands out no `interactionState` to restore one from. Absent in files from before it was kept.
+    var back: [URL]? = nil
+    var forward: [URL]? = nil
     /// A document window: the id of its Markdown file under `Documents/`; the text lives there.
     var document: DocumentSnapshot? = nil
     /// An MCP app window: where its server is and what drew it. Absent for every other kind.

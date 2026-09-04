@@ -337,16 +337,27 @@ final class BrowserState {
                 .filter { !privateIDs.contains($0.key) }
                 .map { StripSnapshot(profileID: $0.key, strip: $0.value) }
                 .sorted { $0.profileID.uuidString < $1.profileID.uuidString },
-            research: research.filter { !privateIDs.contains($0.profileID) }
+            research: research.filter { !privateIDs.contains($0.profileID) },
+            downloads: downloads.unfinished.filter { !privateIDs.contains($0.profileID ?? selectedProfileID) }
         )
     }
 
-    /// What is kept of one window: its address and title, and — for the two kinds that are not a page
-    /// — the document beside it or the question an app window was opened with. Written by the session
+    /// How far back a window's trail is written down. WebKit's own list is bounded too, and the
+    /// snapshot is read and written on every change: a browser open for a week should not be
+    /// carrying every address it has ever shown in a file it rewrites once a second.
+    static let rememberedSteps = 50
+
+    /// What is kept of one window: its address and title, where it has been, and — for the two kinds
+    /// that are not a page — the document beside it or the question an app window was opened with. Written by the session
     /// snapshot and by `remember`, because a window that can be brought back after a relaunch and one
     /// that can be brought back with ⌘⇧T are the same window described twice.
     private static func entry(for tab: BrowserTab) -> TabSnapshot {
         var entry = TabSnapshot(id: tab.id, profileID: tab.profileID, url: tab.showsStartPage ? nil : tab.currentURL, title: tab.title)
+        // Where it has been, so ⌘[ still works after a relaunch. Bounded: a window read all day
+        // accumulates hundreds of addresses, and nobody walks back through hundreds.
+        let trail = tab.trail
+        if !trail.back.isEmpty { entry.back = trail.back.suffix(Self.rememberedSteps) }
+        if !trail.forward.isEmpty { entry.forward = Array(trail.forward.prefix(Self.rememberedSteps)) }
         if let document = tab.document {
             entry.document = DocumentSnapshot(id: document.id, title: document.title, modifiedAt: document.modifiedAt,
                                               fileURL: document.fileURL, showsPreview: document.showsPreview)
@@ -394,6 +405,7 @@ final class BrowserState {
             add(makeTab(from: tab, profile: profile))
         }
         layout.restore(strips: strips)
+        downloads.restore(snapshot.downloads ?? [])
     }
 
     /// One window rebuilt from the record kept of it — the session file's, or the one `closeTab` keeps
@@ -414,7 +426,14 @@ final class BrowserState {
         if let url = saved.url, let page = BuiltInPage.page(for: url) {
             return makeBuiltInTab(id: saved.id, profile: profile, page: page)
         }
-        return makeTab(id: saved.id, profile: profile, restoring: saved.url, title: saved.title)
+        let tab = makeTab(id: saved.id, profile: profile, restoring: saved.url, title: saved.title)
+        // The same trail a window handed to another profile is given, from the file instead of from
+        // the window it replaces. Not the scroll offset: it is only read when a window leaves the
+        // screen, so for one that never did it would be an offset from the start of the session.
+        if saved.back?.isEmpty == false || saved.forward?.isEmpty == false {
+            tab.adopt(BrowserTab.Trail(back: saved.back ?? [], forward: saved.forward ?? []))
+        }
+        return tab
     }
 
     /// The profile list as rows, in the order it is shown. A private profile is recorded nowhere —
@@ -699,9 +718,18 @@ final class BrowserState {
     func download(_ request: URLRequest, suggestedName: String?, from tab: BrowserTab) {
         let profile = profiles.first { $0.id == tab.profileID } ?? selectedProfile
         downloads.start(request, suggestedName: suggestedName, referrer: tab.currentURL,
-                        cookies: dataStore(for: profile))
+                        profileID: profile.id, cookies: dataStore(for: profile))
         flights.launch(from: Self.clickInWindow)
         closeIfOnlyCarriedALink(tab)
+    }
+
+    /// Picks a stopped download up again. Here rather than on the store because only the browser
+    /// knows whose cookies to use: a row restored from the last session has no request left, and the
+    /// one built for it is built with the profile's cookies as they are now.
+    func resumeDownload(_ id: DownloadStore.Item.ID) {
+        guard let item = downloads.items.first(where: { $0.id == id }) else { return }
+        let profile = item.profileID.flatMap { id in profiles.first { $0.id == id } } ?? selectedProfile
+        downloads.resume(id, cookies: dataStore(for: profile))
     }
 
     /// A column opened for a link the server then answered with a file has nothing in it: no page
