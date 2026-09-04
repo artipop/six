@@ -102,15 +102,46 @@ an English page. That is what it was replaced for. Both are `Embedder` conformer
 and every bookmark the *index signature* (`<modelID>@<indexVersion>`), so switching embedders re-embeds everything.
 
 Small has a price: within a language the ranking is right, across languages it is right for topics and shaky for
-details (an English question about a Russian paragraph's sugar can lose to an unrelated English page). The next
-model up is one line — `MLXEmbedder.configuration` to `multilingual-e5-base` or `bge-m3` — at 2–4× the download.
+details (an English question about a Russian paragraph's sugar can lose to an unrelated English page). The next model
+up is no longer a code edit but a **setting**. `EmbeddingModelChoice` has two rungs — `small` as above and `base`
+(`intfloat/multilingual-e5-base`, 278 M parameters, **768** dimensions, ~1.1 GB) — and Settings ▸ General ▸ Bookmarks ▸
+**Model for Search by Meaning** picks between them.
+
+**Which one a Mac is offered** is `EmbeddingModelChoice.recommended`, and it reads memory and nothing else: 16 GB or
+more gets `base`, everything below gets `small`. The weights are held for as long as six runs, in memory the GPU and
+every WebKit process share; at 8 GB, where macOS already sits in its `.warning` band, the bigger model is paid for by
+the pages, which is the wrong thing to pay with. Cores are deliberately not in it — the ranking is what `base` buys,
+and a slower machine wants it no less. The picker says which one is recommended and lets the other be chosen anyway;
+that is the whole design, a recommendation rather than a rule.
+
+What `base` is worth on a real library is **not measured here**: the picker's "ranks a little better between
+languages" is the model card's claim and MTEB's, not this repository's. The way to check it is the way the two
+thresholds in `PersonalSuggestions` were set — `SIX_PERSONAL_SELFTEST="one; two"` against a library with something in
+it, on one model and then the other. Until somebody does that, the recommendation rests on what the sizes cost, which
+*is* measured, and not on what they buy.
+
+**The decision is made once.** `SettingsStore.embeddingModel` is nil until six has decided, and the first launch that
+asks writes down `settings.embeddingModel ?? BookmarkStore.modelOfExistingIndex(in:) ?? .recommended`. The middle
+term is the one that matters: a library already embedded with `small` keeps `small`, whatever this Mac would be
+offered today. An update is not allowed to start a 1.1 GB download and a full re-embed on its own — the
+recommendation is for a library with nothing to lose.
+
+**Switching** is `BookmarkStore.use(_:)`: a new embedder, the `vec0` table for its dimension created if new, the
+queue emptied and every bookmark queued again. It is not a conversion — two models' vectors are never comparable, so
+the old ones are left in their own table under their own model id, and switching back costs the time to embed again
+and nothing on the disk. The download the new model needs is narrated in the bookmarks window's footer, like the
+first one.
 
 `SIX_EMBED_SELFTEST=1` on launch prints the tokenizer's view of a few sentences, the pooling strategy and pairwise
-cosines to stderr — the way the CLS-pooling bug was found.
+cosines to stderr — the way the CLS-pooling bug was found. `SIX_EMBED_SWITCH=base` works the picker from a terminal
+three seconds after launch, which is the only way to exercise the live switch here: the settings page cannot be
+clicked by a script on this machine, and the setting itself is left alone, so a restart returns to whatever the user
+chose.
 
 ## The index
 
-Vectors live in **sqlite-vec** `vec0` tables inside `six.sqlite`, one per vector dimension — `bookmark_vec_384` —
+Vectors live in **sqlite-vec** `vec0` tables inside `six.sqlite`, one per vector dimension — `bookmark_vec_384` for
+`small`, `bookmark_vec_768` for `base` —
 with `chunk_id TEXT PRIMARY KEY`, `profile_id` as a **partition key** (a per-profile search is a filtered KNN, not a
 post-filter), `model` as metadata and `distance_metric=cosine`. `BookmarkStore` creates the table on first use for
 whatever dimension the embedder has. The search is hybrid: the query vector's KNN (`WHERE embedding MATCH ? AND k = ?

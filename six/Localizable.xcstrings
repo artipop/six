@@ -247,6 +247,16 @@
         }
       }
     },
+    "%@ — recommended for this Mac": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ — рекомендуется для этого Mac"
+          }
+        }
+      }
+    },
     "%@, %@": {
       "localizations": {
         "en": {
@@ -1451,6 +1461,16 @@
         }
       }
     },
+    "Compact — 465 MB": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Компактная — 465 МБ"
+          }
+        }
+      }
+    },
     "Compiling…": {
       "localizations": {
         "ru": {
@@ -2337,6 +2357,16 @@
         }
       }
     },
+    "Larger — 1.1 GB": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Крупнее — 1,1 ГБ"
+          }
+        }
+      }
+    },
     "Last refresh failed: %@": {
       "localizations": {
         "ru": {
@@ -2473,6 +2503,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Модель"
+          }
+        }
+      }
+    },
+    "Model for Search by Meaning": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Модель поиска по смыслу"
           }
         }
       }
@@ -3269,6 +3309,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Готов"
+          }
+        }
+      }
+    },
+    "Recommended by this Mac's memory. The other one is yours to choose, at your own risk: the larger model ranks a little better between languages, downloads about twice as much and holds twice as much memory while six runs — on a Mac with less than 16 GB that is paid for by the pages. Either way, changing this embeds every saved page again.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Рекомендовано по памяти этого Mac. Другую можно выбрать на свой страх и риск: крупная модель чуть лучше ранжирует между языками, скачивает примерно вдвое больше и вдвое больше держит в памяти, пока six работает, — на Mac, где памяти меньше 16 ГБ, за это платят открытые страницы. В любом случае смена модели заново индексирует все сохранённые страницы."
           }
         }
       }

@@ -27,6 +27,7 @@ final class SettingsStore {
         case agentModel = "agent.model"
         case bookmarkScope = "bookmarks.scope"
         case bookmarkRefreshDays = "bookmarks.refreshDays"
+        case embeddingModel = "bookmarks.embeddingModel"
         case researchTemplate = "research.template"
         case researchSources = "research.sources"
         case blockingEnabled = "blocking.enabled"

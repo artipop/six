@@ -31,7 +31,10 @@ final class BookmarkStore {
     static let refreshTick: TimeInterval = 3600
 
     @ObservationIgnored private let database: any DatabaseWriter
-    @ObservationIgnored let embedder: any Embedder
+    @ObservationIgnored private(set) var embedder: any Embedder
+    /// Makes an embedder for a model the user picked, wired at launch — the store knows what to do
+    /// with one, not where the weights are kept.
+    @ObservationIgnored var makeEmbedder: ((EmbeddingModelChoice) -> any Embedder)?
     /// Which profile a bookmark belongs to, for its folder. Wired at launch.
     @ObservationIgnored var profile: (Profile.ID) -> Profile? = { _ in nil }
     /// The profile's cookie jar, so a refresh sees the page the way the user does. Wired at launch.
@@ -56,14 +59,43 @@ final class BookmarkStore {
     private(set) var embedderStatus = ""
     /// The `vec0` table for this embedder's dimension: `bookmark_vec_384`. One table per dimension,
     /// created on first use; the model column keeps different embedders apart inside it.
-    @ObservationIgnored let vectorTable: String
+    @ObservationIgnored private(set) var vectorTable: String
 
     init(database: any DatabaseWriter, embedder: any Embedder = ContextualEmbedder()) {
         self.database = database
         self.embedder = embedder
         vectorTable = "bookmark_vec_\(embedder.dimension)"
+        prepareVectorTable()
+        narrateEmbedder()
+    }
+
+    /// Switches the model the library is indexed with, and re-indexes it.
+    ///
+    /// Not a conversion: two models' vectors are never comparable, so the old ones are left exactly
+    /// where they are — in the table for their own dimension, under their own model id — and every
+    /// bookmark is queued to be embedded again by the new one. Switching back is therefore only as
+    /// expensive as embedding again; the weights and the vectors from before are both still on the
+    /// disk. The download the new model may need is the bookmarks window's footer to narrate.
+    func use(_ choice: EmbeddingModelChoice) {
+        guard choice.modelID != embedder.modelID, let made = makeEmbedder?(choice) else { return }
+        worker?.cancel()
+        worker = nil
+        queue.removeAll()
+        indexing.removeAll()
+        embedder = made
+        vectorTable = "bookmark_vec_\(made.dimension)"
+        embedderStatus = ""
+        prepareVectorTable()
+        narrateEmbedder()
+        revision += 1
+        resumeIndexing()
+    }
+
+    /// The `vec0` table for the current embedder's dimension, created if this is the first time six
+    /// has seen that dimension.
+    private func prepareVectorTable() {
         do {
-            try database.write { db in
+            try database.write { [vectorTable, embedder] db in
                 try db.execute(sql: """
                     CREATE VIRTUAL TABLE IF NOT EXISTS "\(vectorTable)" USING vec0(
                       chunk_id TEXT PRIMARY KEY,
@@ -76,13 +108,28 @@ final class BookmarkStore {
         } catch {
             FileHandle.standardError.write(Data("[six] vector table failed: \(error)\n".utf8))
         }
-        if let mlx = embedder as? MLXEmbedder {
-            Task { [weak self] in
-                await mlx.setStatusHandler { status in
-                    Task { @MainActor in self?.embedderStatus = status }
-                }
+    }
+
+    /// Lets the current embedder say what it is doing — downloading, loading, failed — where the
+    /// bookmarks window can show it.
+    private func narrateEmbedder() {
+        guard let mlx = embedder as? MLXEmbedder else { return }
+        Task { [weak self] in
+            await mlx.setStatusHandler { status in
+                Task { @MainActor in self?.embedderStatus = status }
             }
         }
+    }
+
+    /// The model an index already on this machine was made with, if there is one.
+    ///
+    /// What it is for: an install that has been embedding with one model since before the setting
+    /// existed keeps it. The recommendation is for a library that has nothing to lose; a download and
+    /// a full re-embed is not something an update gets to start on its own.
+    nonisolated static func modelOfExistingIndex(in database: any DatabaseReader) -> EmbeddingModelChoice? {
+        let signatures = (try? database.read { db in try Bookmark.select(\.embeddingModel).fetchAll(db) }) ?? []
+        guard let signature = signatures.first(where: { !$0.isEmpty }) else { return nil }
+        return EmbeddingModelChoice.allCases.first { signature.hasPrefix($0.modelID) }
     }
 
     /// Loads the embedding model before anybody searches with it. The first query of a launch
@@ -454,6 +501,10 @@ final class BookmarkStore {
         let started = ContinuousClock.now
         do {
             let embeddings = try await embedder.embed(chunks.map(\.text), as: .passage)
+            // The model can have been switched under this run (`use`), and these vectors are then
+            // from the old space: the new embedder has already queued this bookmark for itself, so
+            // the honest thing is to drop them rather than stamp the row with a model it is not on.
+            guard modelID == indexSignature else { return }
             let elapsed = ContinuousClock.now - started
             FileHandle.standardError.write(Data("[six] embedded \(chunks.count) passages of \(bookmark.displayTitle) in \(elapsed)\n".utf8))
             let table = vectorTable

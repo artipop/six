@@ -143,6 +143,24 @@ private struct GeneralSettings: View {
                     Text("Weekly").tag(7)
                     Text("Monthly").tag(30)
                 }
+                Picker("Model for Search by Meaning", selection: Binding(
+                    get: { settings.embeddingModel ?? .recommended },
+                    // The setting and the running store move together: the store creates the new
+                    // model's table and re-indexes, and the footer of the bookmarks window says how
+                    // far it has got.
+                    set: { choice in
+                        settings.embeddingModel = choice
+                        bookmarks.use(choice)
+                    }
+                )) {
+                    ForEach(EmbeddingModelChoice.allCases) { choice in
+                        Text(choice == .recommended ? String(localized: "\(choice.title) — recommended for this Mac") : choice.title)
+                            .tag(choice)
+                    }
+                }
+                Text("Recommended by this Mac's memory. The other one is yours to choose, at your own risk: the larger model ranks a little better between languages, downloads about twice as much and holds twice as much memory while six runs — on a Mac with less than 16 GB that is paid for by the pages. Either way, changing this embeds every saved page again.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 LabeledContent("In This Profile") {
                     HStack(spacing: 8) {
                         Text("\(bookmarks.count(in: browser.selectedProfile.id)) saved")

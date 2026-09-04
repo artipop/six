@@ -87,13 +87,32 @@ struct sixApp: App {
         permissions.isPrivate = { [weak browser] id in browser?.isPrivate(id) ?? false }
         blocker.startRefreshSchedule()
         devTools.browser = browser
-        let bookmarks = BookmarkStore(database: database, embedder: MLXEmbedder(modelsDirectory: AppDatabase.url.deletingLastPathComponent().appending(path: "Models", directoryHint: .isDirectory)))
+        // Decided once and written down: what this Mac is offered, unless an index is already here
+        // (then it is what that index was made with), unless the user has said otherwise (then it is
+        // that). Never re-decided at a later launch — see `SettingsStore.embeddingModel`.
+        let models = AppDatabase.url.deletingLastPathComponent().appending(path: "Models", directoryHint: .isDirectory)
+        let embedding = settings.embeddingModel ?? BookmarkStore.modelOfExistingIndex(in: database) ?? .recommended
+        settings.embeddingModel = embedding
+        let bookmarks = BookmarkStore(database: database, embedder: MLXEmbedder(choice: embedding, modelsDirectory: models))
+        bookmarks.makeEmbedder = { MLXEmbedder(choice: $0, modelsDirectory: models) }
         bookmarks.profile = { [weak browser] id in browser?.profiles.first { $0.id == id } }
         bookmarks.dataStore = { [weak browser] profile in browser?.dataStore(for: profile) }
         bookmarks.refreshDays = { [weak settings] in settings?.bookmarkRefreshDays ?? 7 }
         bookmarks.startRefreshSchedule()
         browser.bookmarks = bookmarks
         bookmarks.resumeIndexing()
+        // `SIX_EMBED_SWITCH=base` works the model picker from a terminal, three seconds in. It is the
+        // one control in Settings that nothing here can click — screenshots and synthetic clicks both
+        // need permissions this machine does not give (CLAUDE.md) — and the half it drives is the live
+        // one: a new table, a re-index, the old vectors left where they are. The setting is not
+        // written, so a restart is back to whatever the user chose.
+        if let switchTo = ProcessInfo.processInfo.environment["SIX_EMBED_SWITCH"].flatMap(EmbeddingModelChoice.init(rawValue:)) {
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(3))
+                FileHandle.standardError.write(Data("[six] embed: switching to \(switchTo.rawValue)\n".utf8))
+                bookmarks.use(switchTo)
+            }
+        }
         if ProcessInfo.processInfo.environment["SIX_EMBED_SELFTEST"] != nil, let mlx = bookmarks.embedder as? MLXEmbedder {
             Task { FileHandle.standardError.write(Data("[six] embed selftest:\n\(await mlx.diagnostics())\n".utf8)) }
         }

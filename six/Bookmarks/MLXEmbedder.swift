@@ -6,16 +6,17 @@ import MLXLMCommon
 import MLXNN
 import Tokenizers
 
-/// Cross-lingual sentence embeddings on the GPU, through MLX: `intfloat/multilingual-e5-small` —
-/// 118 M parameters, 384 dimensions, ~100 languages in one space, so «плов» finds *pilaf*. The
-/// weights (~465 MB: an fp32 safetensors plus a 16 MB tokenizer) come from the Hugging Face Hub on
-/// first use into `modelsDirectory` and are read from there afterwards; `status` narrates the
-/// download for the UI. They are cast to fp16 once loaded — see `loadedContainer`.
+/// Cross-lingual sentence embeddings on the GPU, through MLX: E5 multilingual, `small` or `base` as
+/// `EmbeddingModelChoice` says — ~100 languages in one space, so «плов» finds *pilaf*. The weights
+/// (an fp32 safetensors plus a 16 MB tokenizer: ~465 MB for `small`, ~1.1 GB for `base`) come from
+/// the Hugging Face Hub on first use into `modelsDirectory` and are read from there afterwards;
+/// `status` narrates the download for the UI. They are cast to fp16 once loaded — see
+/// `loadedContainer`.
 ///
 /// E5 wants a role prefix on every text (`query: ` / `passage: `) and is trained with mean pooling
-/// and L2 normalisation.
+/// and L2 normalisation. Both sizes are the same architecture over the same tokenizer, which is why
+/// one embedder covers them and only the numbers differ.
 actor MLXEmbedder: Embedder {
-    static let configuration = ModelConfiguration(id: "intfloat/multilingual-e5-small")
     /// Tokens per text before truncation (the model's window is 512).
     static let maxTokens = 510
     static let batchSize = 32
@@ -24,8 +25,10 @@ actor MLXEmbedder: Embedder {
     /// model puts every sentence within a few percent of every other.
     static let pooling = Pooling(strategy: .mean)
 
-    nonisolated let modelID = "multilingual-e5-small"
-    nonisolated let dimension = 384
+    nonisolated let choice: EmbeddingModelChoice
+    nonisolated let modelID: String
+    nonisolated let dimension: Int
+    nonisolated let configuration: ModelConfiguration
 
     private let hub: HubClient
     private var container: EmbedderModelContainer?
@@ -33,8 +36,16 @@ actor MLXEmbedder: Embedder {
     /// What is happening with the model — "downloading 42 %", an error — for whoever asked. Empty means ready.
     private var statusHandler: (@Sendable (String) -> Void)?
 
-    /// - Parameter modelsDirectory: where downloaded weights live (`~/Library/Application Support/org.deffun.six/Models`).
-    init(modelsDirectory: URL) {
+    /// - Parameters:
+    ///   - choice: which E5 to run; every model has its own vectors, its own table and its own download.
+    ///   - modelsDirectory: where downloaded weights live (`~/Library/Application Support/org.deffun.six/Models`).
+    ///     One cache for all of them: the hub lays repositories out side by side, so switching back to a
+    ///     model that was used before finds its weights still there.
+    init(choice: EmbeddingModelChoice, modelsDirectory: URL) {
+        self.choice = choice
+        modelID = choice.modelID
+        dimension = choice.dimension
+        configuration = ModelConfiguration(id: choice.repository)
         hub = HubClient(cache: HubCache(cacheDirectory: modelsDirectory))
     }
 
@@ -90,7 +101,7 @@ actor MLXEmbedder: Embedder {
     /// worth a 465 MB download nobody asked for, and the hub client answers that question without
     /// touching the network (`localFilesOnly`, which resolves out of the cache or throws).
     func warmUp() async {
-        guard container == nil, loading == nil, let repo = Repo.ID(rawValue: Self.configuration.name) else { return }
+        guard container == nil, loading == nil, let repo = Repo.ID(rawValue: configuration.name) else { return }
         let cached = try? await hub.downloadSnapshot(of: repo, revision: "main", matching: ["*.safetensors"], localFilesOnly: true)
         guard cached != nil else { return }
         _ = try? await loadedContainer()
@@ -132,12 +143,12 @@ actor MLXEmbedder: Embedder {
     private func loadedContainer() async throws -> EmbedderModelContainer {
         if let container { return container }
         if let loading { return try await loading.value }
-        let task = Task { [hub, statusHandler] () throws -> EmbedderModelContainer in
+        let task = Task { [hub, statusHandler, configuration] () throws -> EmbedderModelContainer in
             statusHandler?(String(localized: "loading model"))
             let container = try await EmbedderModelFactory.shared.loadContainer(
                 from: HubDownloader(hub),
                 using: TransformersTokenizerLoader(),
-                configuration: Self.configuration
+                configuration: configuration
             ) { progress in
                 let percent = Int(progress.fractionCompleted * 100)
                 statusHandler?(percent < 100 ? String(localized: "downloading model \(percent) %") : String(localized: "loading model"))

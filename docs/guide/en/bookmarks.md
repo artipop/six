@@ -46,6 +46,19 @@ can lose to an unrelated English page.
 in a new window, `⌘⌫` removes the bookmark and its file, `Esc` closes. The
 context menu has **Show File in Finder**.
 
+### Which model
+
+VI picks one for your Mac and says which: **Settings ▸ General ▸ Bookmarks ▸ Model for
+Search by Meaning**. Below 16 GB of memory the recommendation is **Compact — 465 MB**,
+above it **Larger — 1.1 GB**; the recommended one is marked in the list. The other is
+yours to take, at your own risk — larger ranks a little better between languages, but
+downloads twice as much and keeps twice as much memory busy for as long as VI runs, and
+on a small Mac it is the open pages that pay for that.
+
+Changing the model re-indexes: every saved page is embedded again by the new one. Search
+by meaning goes quiet while that happens — the pages themselves are not going anywhere —
+and the footer of the bookmarks window says how far it has got.
+
 ## Without being asked
 
 The same search runs where you are not searching for anything — under the
