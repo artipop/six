@@ -12,7 +12,12 @@
 	<string>public.app-category.productivity</string>
 
 	<!-- The one that matters: claiming http/https as a Viewer is what puts six in
-	     System Settings › Desktop & Dock › Default web browser. -->
+	     System Settings › Desktop & Dock › Default web browser. The schemes are build
+	     settings because only the release build should be in that list: a development
+	     build claims six-dev-http/six-dev-https instead, which nothing asks for, so it
+	     never appears as a second "six" beside the real one. Xcode registers every build
+	     it makes with LaunchServices, and a claim on http from DerivedData outlives the
+	     copy that made it. -->
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -22,8 +27,8 @@
 			<string>Viewer</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>http</string>
-				<string>https</string>
+				<string>$(SIX_WEB_SCHEME_HTTP)</string>
+				<string>$(SIX_WEB_SCHEME_HTTPS)</string>
 			</array>
 		</dict>
 		<dict>

@@ -333,6 +333,8 @@
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_SWIFT_FLAGS = "-plugin-path $(DEVELOPER_DIR)/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins";
 				SDKROOT = /Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk;
+				SIX_WEB_SCHEME_HTTP = "six-dev-http";
+				SIX_WEB_SCHEME_HTTPS = "six-dev-https";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -390,6 +392,8 @@
 				MTL_FAST_MATH = YES;
 				OTHER_SWIFT_FLAGS = "-plugin-path $(DEVELOPER_DIR)/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins";
 				SDKROOT = /Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk;
+				SIX_WEB_SCHEME_HTTP = http;
+				SIX_WEB_SCHEME_HTTPS = https;
 				SWIFT_COMPILATION_MODE = wholemodule;
 			};
 			name = Release;
