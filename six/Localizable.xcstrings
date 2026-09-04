@@ -615,16 +615,6 @@
         }
       }
     },
-    "A development build never offers: it would catch every link on the machine.": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Отладочная сборка не предлагает этого никогда: она перехватывала бы каждую ссылку на этом компьютере."
-          }
-        }
-      }
-    },
     "A site is checked against the system's certificate authorities first. These are only consulted for a site the system has already turned down.": {
       "localizations": {
         "ru": {
@@ -1893,16 +1883,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Расширения"
-          }
-        }
-      }
-    },
-    "Extensions run per profile and never in a private window. What works in six and what does not is measured — a content script runs, but an extension cannot message it or inject anything more.": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Расширения работают в рамках профиля и никогда — в приватном окне. Что здесь работает, а что нет, проверено на деле: content-скрипт выполняется, но расширение не может ни написать ему, ни внедрить что-то ещё."
           }
         }
       }
@@ -4999,16 +4979,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "исследую…"
-          }
-        }
-      }
-    },
-    "scroll up/down for workspaces · sideways to run along a rail · click a window to open it · drag one to move it · double-click a name to rename · ⌥O to close": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "прокрутка вверх/вниз — рабочие столы · вбок — вдоль ленты · щелчок по окну открывает его · перетаскивание переносит · двойной щелчок по имени переименовывает · ⌥O закрывает"
           }
         }
       }

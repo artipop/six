@@ -66,18 +66,17 @@ struct ExtensionSettings: View {
                     }
                 }
                 .listStyle(.inset)
-            }
 
-            Divider()
-            HStack(alignment: .firstTextBaseline) {
-                Text("Extensions run per profile and never in a private window. What works in six and what does not is measured — a content script runs, but an extension cannot message it or inject anything more.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer(minLength: 8)
-                Button("Install…", action: pickExtension)
-                    .controlSize(.small)
+                // The way in, once the empty view that carried it is gone; nothing else along the
+                // bottom, because the list is the answer to what is installed.
+                Divider()
+                HStack {
+                    Spacer()
+                    Button("Install…", action: pickExtension)
+                        .controlSize(.small)
+                }
+                .padding(10)
             }
-            .padding(10)
         }
         .sheet(item: $pending) { install in
             InstallSheet(install: install) { adopted in

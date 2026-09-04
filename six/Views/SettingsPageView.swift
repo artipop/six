@@ -172,25 +172,21 @@ private struct GeneralSettings: View {
                 }
             }
 
-            SwiftUI.Section("Default Browser") {
-                LabeledContent("Links From Other Apps") {
-                    if DefaultBrowser.isDefault {
-                        Label("six opens them", systemImage: "checkmark.circle")
-                            .foregroundStyle(.secondary)
-                    } else {
-                        Button("Set six as Default Browser…") {
-                            Task { await DefaultBrowser.makeDefault() }
+            // A development build is a second app wearing the same face, and giving it the web
+            // would send every link on the machine into a browser that is about to be killed and
+            // built again — so it is not offered the choice at all, rather than shown a dead one.
+            if !AppSupport.isDevelopment {
+                SwiftUI.Section("Default Browser") {
+                    LabeledContent("Links From Other Apps") {
+                        if DefaultBrowser.isDefault {
+                            Label("six opens them", systemImage: "checkmark.circle")
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Button("Set six as Default Browser…") {
+                                Task { await DefaultBrowser.makeDefault() }
+                            }
                         }
-                        .disabled(AppSupport.isDevelopment)
                     }
-                }
-                if AppSupport.isDevelopment {
-                    // A development build is a second app wearing the same face, and giving it the
-                    // web would send every link on the machine into a browser that is about to be
-                    // killed and built again.
-                    Text("A development build never offers: it would catch every link on the machine.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                 }
             }
         }

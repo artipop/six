@@ -52,7 +52,6 @@ struct NiriStripView: View {
         .clipped()
         .overlay { StripEdgeButtons() }
         .overlay { StripWalls() }
-        .overlay(alignment: .bottom) { OverviewHint() }
         .contextMenu { StripMenu() }
         .onAppear(perform: startMonitor)
         .onDisappear { monitor.stop() }
@@ -1071,21 +1070,6 @@ private struct WorkspacePlates: View {
     private func commit(_ index: Int) {
         browser.layout.rename(workspaceAt: index, to: draft)
         editing = nil
-    }
-}
-
-/// The one-line reminder along the bottom of the overview.
-private struct OverviewHint: View {
-    @Environment(BrowserState.self) private var browser
-
-    var body: some View {
-        if browser.layout.isOverview {
-            Text("scroll up/down for workspaces · sideways to run along a rail · click a window to open it · drag one to move it · double-click a name to rename · ⌥O to close")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .padding(.bottom, 12)
-                .transition(.opacity)
-        }
     }
 }
 #endif
