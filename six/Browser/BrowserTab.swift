@@ -254,6 +254,29 @@ final class BrowserTab: Identifiable {
         }
     }
 
+    // MARK: Picture-in-picture
+
+    /// Is this window's video in the floating player right now?
+    ///
+    /// Asked of the page every time rather than remembered here, because six is not the only one who
+    /// can put it there: the button in WebKit's own media controls, a site's own button and `⌥⇧P` all
+    /// end in the same place, and a flag six kept would be right only for the third. Nothing observes
+    /// it, so nothing has to be told — the live-page budget asks at the moment it is about to evict,
+    /// which is the moment the answer is used (`PagePictureInPicture`).
+    var isInPictureInPicture: Bool {
+        get async {
+            guard let livePage else { return false }
+            return await livePage.isInPictureInPicture
+        }
+    }
+
+    /// In, or back out. A window with no page never builds one for this: picture-in-picture is
+    /// something a page one is *watching* does, and there is nothing to watch in a card.
+    func togglePictureInPicture() {
+        guard let livePage else { return }
+        Task { await livePage.togglePictureInPicture() }
+    }
+
     /// Set by `HighlightStore` when a stored passage could not be found on the page again.
     var highlightNote: String?
     /// Committed navigations go here (the profile's history); set by `BrowserState`.
@@ -400,6 +423,9 @@ final class BrowserTab: Identifiable {
                            dialogPresenter: PageDialogs())
         }
         livePage = page
+        // Every page WebKit builds has picture-in-picture off and no field in the configuration to
+        // ask with, so it is asked for here, once, for every kind of window (`PagePictureInPicture`).
+        page.allowPictureInPicture()
         generation += 1
         watchNavigations(of: page)
         cache?.noteLive(self)

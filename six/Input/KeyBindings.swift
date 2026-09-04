@@ -53,9 +53,13 @@ enum KeyBindings {
         KeyBinding(.code(.tab), .exactly(.control), .rail, .stepSwitcher(1)),
         KeyBinding(.code(.tab), .exactly([.control, .shift]), .rail, .stepSwitcher(-1)),
 
-        // MARK: The two `⌥⇧` verbs the View and File menus show but cannot deliver
+        // MARK: The `⌥⇧` verbs the View and File menus show but cannot deliver
         KeyBinding(.letter("t", .t), .exactly([.option, .shift]), .rail, .translateSelection),
         KeyBinding(.letter("h", .h), .exactly([.option, .shift]), .rail, .highlightSelection),
+        // Picture-in-picture is the one of these that is pressed while a video has the focus, which
+        // is the case a menu item is worst at: the page is first responder, it is playing, and it
+        // would rather have the key.
+        KeyBinding(.letter("p", .p), .exactly([.option, .shift]), .rail, .pictureInPicture),
 
         // MARK: ⎋
         KeyBinding(.code(.escape), .exactly([]), .rail, .leaveOverview)
@@ -184,6 +188,7 @@ enum KeyAction: Equatable {
     case toggleCenterFocus
     case translateSelection
     case highlightSelection
+    case pictureInPicture
     case stepSwitcher(Int)
     case landSwitcher
     case cancelSwitcher
@@ -256,6 +261,7 @@ enum KeyCode: UInt16, CaseIterable, Sendable {
     case c = 8
     case h = 4
     case o = 31
+    case p = 35
     case t = 17
     case w = 13
 
@@ -275,6 +281,7 @@ enum KeyCode: UInt16, CaseIterable, Sendable {
         case .c: return "C"
         case .h: return "H"
         case .o: return "O"
+        case .p: return "P"
         case .t: return "T"
         case .w: return "W"
         }

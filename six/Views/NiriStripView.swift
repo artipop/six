@@ -865,6 +865,9 @@ struct ColumnMenu: View {
             get: { browser.layout.fill == .window && browser.selectedTabID == tab.id },
             set: { _ in browser.selectTab(tab.id); browser.toggleFullWindow() }
         ))
+        // This window's video, whichever window that is: the menu hangs off a page, so it acts on
+        // that page rather than on whatever happens to be focused.
+        Button("Picture in Picture") { tab.togglePictureInPicture() }
         Divider()
         Button("Move Left") { browser.selectTab(tab.id); browser.moveColumn(-1) }
         Button("Move Right") { browser.selectTab(tab.id); browser.moveColumn(1) }

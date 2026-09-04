@@ -137,16 +137,19 @@ proposition from doing it for geolocation alone. six is not sandboxed and not on
 review risk here — only the ordinary one, that it goes away in a macOS update; `respondsToSelector:` and a feature that
 quietly disappears rather than a crash is the shape that takes.
 
-## Picture-in-picture
+## Picture-in-picture — the window half
 
-Two different features that both deserve the name:
+Two different features deserve the name, and the first of them is now built.
 
-- **Video PiP** — WebKit's own, for `<video>`: allow it in `WebPage.Configuration` and make sure the floating player
-  survives its window being scrolled off screen or turned into a placeholder card (a column far from the viewport
-  loses its live `WebView` today — the PiP player must not die with it).
-- **Window PiP** — any window as a small always-on-top panel: an `NSPanel` at `.floating` level hosting the page,
-  which leaves the strip while it floats and returns to its column when closed. This is niri's floating layer, and the
-  same mechanism would later serve a proper floating-window mode.
+**Video PiP** — WebKit's own, for `<video>` — is done: `⌥⇧P`, a View menu item, and the button in WebKit's own media
+controls. `WebPage.Configuration` turned out to have no field to allow it in, so it is SPI on the terms above, and the
+floating player survives its window being scrolled off the rail, turned into a placeholder card and left behind for
+another profile. What it took, and what was measured, is in [layout.md](layout.md#picture-in-picture).
+
+**Window PiP** is not. Any six window as a small always-on-top panel: an `NSPanel` at `.floating` level hosting the
+page, which leaves the strip while it floats and returns to its column when closed. This is niri's floating layer, and
+the same mechanism would later serve a proper floating-window mode. Nothing about the video half helps here — that one
+is a window WebKit owns and six only asks for.
 
 ## Passkeys and passwords
 

@@ -152,6 +152,11 @@ extension ContentView {
             case .highlightSelection:
                 guard let tab = browser.selectedTab, !tab.isDocument, !tab.showsStartPage else { return false }
                 Task { _ = await highlights.highlightSelection(in: tab) }
+            case .pictureInPicture:
+                // Declined on a window with no live page, so the key falls through to whatever else
+                // wanted it rather than being swallowed by a card.
+                guard let tab = browser.selectedTab, tab.hasLivePage else { return false }
+                tab.togglePictureInPicture()
             }
             return true
         }

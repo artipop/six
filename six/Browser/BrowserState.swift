@@ -1184,6 +1184,16 @@ final class BrowserState {
         }
     }
 
+    /// The focused window's video into the floating player, or back out of it.
+    ///
+    /// Not disabled when there is no video to float: whether a page has one is a question only the
+    /// page can answer, the answer changes with every play and pause without telling anyone, and a
+    /// menu item that greys itself out on a stale answer is worse than one that does nothing when
+    /// pressed on a page of text. The same reason "Translate Selection…" is always live.
+    func togglePictureInPicture() {
+        selectedTab?.togglePictureInPicture()
+    }
+
     /// The page fills the window under the top bar; the layout's own controls stay where they are.
     func toggleFullWindow() {
         setFill(layout.fill == .window ? .tiled : .window)

@@ -148,6 +148,23 @@ people actually want from the word, and a video player's own fullscreen button
 now works too — it had been quietly refused before.
 :::
 
+## Picture in Picture
+
+`⌥⇧P`, or **View ▸ Picture in Picture**, or the button that appears in the
+player's own controls: the video leaves the page for a small window that floats
+above everything — above six, above your editor, above whatever you switch to
+next. The same key puts it back.
+
+The page it came from stays on the rail exactly where it was. Scroll away from
+it, step to the workspace below, switch to another profile: the little window
+stays where you put it and goes on playing. The page behind it is never unloaded
+to save memory while the video is up, so coming back to it finds it as you left
+it.
+
+The menu item is never greyed out, because only the page knows whether it has a
+video to float, and that changes with every play and pause. On a page of text,
+pressing it does nothing at all.
+
 ## The overview
 
 `⌥O` zooms the whole canvas out: workspaces open up and read as separate screens.
@@ -212,7 +229,8 @@ builds its page again when you come back to it.
 - A page is built **once the focus has settled**, not on the way: hold `⌥→`
   across ten windows and you load one, the one you stopped at.
 - Nothing that is loading, playing audio or video, holding a draft in a text
-  field or a filled-in password is discarded.
+  field or a filled-in password is discarded — nor is a page whose video is in
+  the floating picture-in-picture window, even when it is paused.
 - The budget is sized from the machine's memory and cannot be changed: how many
   processes this Mac will carry is not a thing a person can know. **Settings ▸
   Windows** shows how many windows are holding a page right now, and offers

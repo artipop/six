@@ -327,6 +327,48 @@ something over here*. It is deliberately *not* `horizontalPreview`: that band be
 held by the mouse has to survive one arriving. And `focusedColumnFrame` deliberately does not include it, so the button
 does not slide out from under the pointer holding it.
 
+## Picture-in-picture
+
+`⌥⇧P`, View ▸ Picture in Picture, the same item in a window's own menu, and the button in WebKit's media controls:
+the video leaves the page for a small window floating above every other application, and the page it left goes on
+being an ordinary window on the rail. Scroll away from it, step to the workspace below, switch profiles — the player
+stays where it was put and keeps playing. That is the whole point of it, and it is why it needs six's help twice.
+
+**Turning it on.** WebKit has the feature and hands the new API no switch for it. The preference is real —
+`WKPreferencesSetAllowsPictureInPictureMediaPlayback` is exported by the framework on macOS — but the only public way
+to set it is `WKWebViewConfiguration.allowsPictureInPictureMediaPlayback`, which is declared for iOS alone, and
+`WebPage.Configuration` has no field for it at all. Off is the default, and off is silent in exactly the way element
+fullscreen was ([above](#filling-the-window)): no button in the media controls,
+`video.webkitSupportsPresentationMode('picture-in-picture')` false, and `video.requestPictureInPicture()` rejecting
+with `NotSupportedError — The video element does not support the Picture-in-Picture mode`. Measured on a plain
+`<video>` through six's own MCP server, the day after the fullscreen fix landed: `{"pip": false, "fs": true}`.
+
+So it is SPI: `WKPreferences._setAllowsPictureInPictureMediaPlayback:` to turn it on, `WKWebView._togglePictureInPicture`
+for the menu item and the key, `_isPictureInPictureActive` for the question below. All of it lives in
+`six/Browser/PagePictureInPicture.swift`, all of it behind `responds(to:)`, on the terms [todo.md](todo.md) already
+set for SPI here: six is not sandboxed and not on the App Store, so the only risk is a selector going away in a macOS
+update, and the shape that takes is a feature that is quietly not there rather than a crash. The fragile part is not
+the selectors but the way to the `WKWebView` behind a `WebPage`, which the new API does not hand out — it is a `lazy`
+stored property of the model object and `Mirror` is the way in. Reading any property of the page is what builds it.
+
+**Keeping it alive.** A column far from the viewport loses its live `WebView` (`isLive`, above), and further out its
+page (`LivePageCache`). Losing the view turns out not to matter: the floating player is a window of WebKit's, not a
+subview, and it goes on playing while the column that owns it is unmounted — measured by scrolling to a window in
+another profile entirely and asking the page what its presentation mode was. Losing the *page* would take the video
+off the screen the user is looking at, so `keepAliveReason` asks `isInPictureInPicture` before anything else. The
+"playing media" guard that was already there does not cover it: a floating player paused for a moment is still a
+window somebody put on their screen on purpose.
+
+Whether a window is in picture-in-picture is read off WebKit every time rather than remembered, because six is not
+the only one who can put it there — the media controls' button, a site's own button and `⌥⇧P` all end in the same
+place, and a flag six kept would be right only for the third. Nothing observes it, so nothing has to be told: the
+menu asks when it is opened, the budget asks when it is about to evict, and both are moments where the answer is used
+at once. For the same reason the menu item is never greyed out — whether the page in front of you has a video to
+float is a question only the page can answer, and it changes with every play and pause without telling anyone.
+
+The other feature of the same name — any six window as a floating always-on-top panel, which is niri's floating layer
+— is not built; it is still in [todo.md](todo.md).
+
 ## Overview
 
 `⌥O` zooms the whole canvas out and opens the vertical spacing so neighbouring workspaces read as separate screens.

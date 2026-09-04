@@ -54,6 +54,16 @@ struct ViewCommands: Commands {
             Button("Translate Selection…") { translateSelection?.perform() }
                 .keyboardShortcut("t", modifiers: [.option, .shift])
                 .disabled(translateSelection == nil)
+            // ⌥⇧P joins ⌥⇧T and ⌥⇧H: a verb about the page in front of you, and like them a key the
+            // router takes before the focused page can (`KeyBindings`) — which here is the whole
+            // point, because the page that has the focus is the one playing the video.
+            //
+            // Never greyed out. Whether there is a video to float is a question only the page can
+            // answer, and the answer changes with every play and pause without telling anyone; a
+            // menu that greys itself out on a stale answer is worse than one that does nothing when
+            // pressed on a page of text.
+            Button("Picture in Picture") { browser.togglePictureInPicture() }
+                .keyboardShortcut("p", modifiers: [.option, .shift])
 
             Divider()
 

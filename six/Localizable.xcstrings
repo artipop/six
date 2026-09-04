@@ -3037,6 +3037,16 @@
         }
       }
     },
+    "Picture in Picture": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Картинка в картинке"
+          }
+        }
+      }
+    },
     "Preparing filter lists…": {
       "localizations": {
         "ru": {

@@ -79,6 +79,7 @@ One rail's windows only — the workspace on screen — and this run only. `⌥�
 | `⌘S` | save — a document that has a file goes back to it; otherwise Save As |
 | `⌘⇧S` | save as… — a document as `.md` / `.html` / `.pdf`, a page as `.html` / `.pdf` / `.txt`; the folder is remembered |
 | `⌥⇧H` | highlight the selection on the page; it comes back when the page is opened again (File → Remove Highlights on This Page to clear) |
+| `⌥⇧P` | the focused window's video into the floating picture-in-picture player, and out of it again. WebKit's own player, above every other application, and it keeps playing when the window is scrolled off the rail — the page behind it is never given back for the live-page budget while it is up ([layout.md](layout.md#picture-in-picture)) |
 | `⌘L` | focus the address field |
 | `⌘K` | focus the assistant line |
 | `⌘⇧A` | agent panel on / off |
@@ -151,14 +152,14 @@ One rail's windows only — the workspace on screen — and this run only. `⌥�
   reports «ц» from `charactersIgnoringModifiers`; matching only that is why `⌥W` / `⌥O` / `⌥C` were dead for anyone
   not typing in Latin. `KeyBinding.Key.letter` matches either the US key code or the character, so the three work on
   a Cyrillic layout (by position) and on Dvorak (by letter).
-- `⌥W` / `⌥O` / `⌥C` / `⌥⇧T` / `⌥⇧H` are taken before anything else sees them, so those `⌥`+letter characters can't
-  be typed into a field. The arrows are not — see the rail section for the rule.
+- `⌥W` / `⌥O` / `⌥C` / `⌥⇧T` / `⌥⇧H` / `⌥⇧P` are taken before anything else sees them, so those `⌥`+letter characters
+  can't be typed into a field. The arrows are not — see the rail section for the rule.
 - **Nothing in the table answers outside six's own window.** A sheet, a popover and WebKit's full-screen video are
   `KeyContext.Window.elsewhere`, and there `⎋` closes the sheet instead of the overview behind it and `⌥O` does
   nothing at all.
 - To move the whole layout set to another modifier, change the `.exactly(.option)` rows in `KeyBindings.all` — the
   keys are read there and nowhere else. The `.keyboardShortcut`s left in `ViewCommands` and `FileCommands` (`⌥W`,
-  `⌥O`, `⌥⇧T`, `⌥⇧H`) are for display and for the pointer; the router swallows the key before the menu can act on it.
+  `⌥O`, `⌥⇧T`, `⌥⇧H`, `⌥⇧P`) are for display and for the pointer; the router swallows the key before the menu can act on it.
 - **`SIX_UI_DEBUG=1` prints a line per key** — the chord, the context it landed in, and who took it. **`SIX_KEY_SELFTEST=1`**
   prints the whole matrix at launch: every binding against every context, which is how a binding that goes quiet
   somewhere is found without pressing anything (`KeySelfTest`; this Mac cannot press its own keys, see CLAUDE.md).

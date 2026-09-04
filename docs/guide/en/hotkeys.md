@@ -64,6 +64,7 @@ workspaces, not other profiles — and this run only.
 | `⌘⇧L` | translate the page |
 | `⌥⇧T` | translate the selection |
 | `⌥⇧H` | highlight the selection on the page |
+| `⌥⇧P` | the video into the floating picture-in-picture window, and back |
 | `⌘` + click a link | open it in a new window to the right, behind |
 | `Esc` | close the overview; otherwise the page's own |
 

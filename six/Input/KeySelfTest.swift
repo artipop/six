@@ -37,6 +37,8 @@ enum KeySelfTest {
             ("⌥O (ru)", .option, .o, "щ"),
             ("⌥⇧T", [.option, .shift], .t, "t"),
             ("⌥⇧H", [.option, .shift], .h, "h"),
+            ("⌥⇧P", [.option, .shift], .p, "p"),
+            ("⌥⇧P (ru)", [.option, .shift], .p, "з"),
             ("⌃Tab", .control, .tab, "\t"),
             ("⌃⇧Tab", [.control, .shift], .tab, "\t"),
             ("⌃→", .control, .rightArrow, ""),
@@ -77,6 +79,7 @@ enum KeySelfTest {
         case .toggleCenterFocus: return "centre"
         case .translateSelection: return "translate"
         case .highlightSelection: return "highlight"
+        case .pictureInPicture: return "picture"
         case .stepSwitcher(let step): return step < 0 ? "ring ←" : "ring →"
         case .landSwitcher: return "land"
         case .cancelSwitcher: return "cancel"
@@ -233,6 +236,7 @@ enum KeySelfTest {
         case .c: return "c"
         case .h: return "h"
         case .o: return "o"
+        case .p: return "p"
         case .t: return "t"
         case .w: return "w"
         }

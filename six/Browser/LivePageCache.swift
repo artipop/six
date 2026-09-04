@@ -24,7 +24,8 @@ import WebKit
 ///   tail is spent.
 /// * **Guards before eviction**, the ones Chrome uses: a page that is still loading, playing audio
 ///   or video, or holding something the user typed into a form is skipped and the next candidate
-///   taken.
+///   taken. One of six's own is on that list: a page whose video is in the floating
+///   picture-in-picture window, which is being watched while its window is nowhere near the screen.
 /// * **Memory pressure shrinks the budget** — `.warning` halves it, `.critical` keeps only what is
 ///   on screen — and it grows back when the pressure lifts.
 ///
@@ -254,6 +255,13 @@ final class LivePageCache {
     private func keepAliveReason(_ tab: BrowserTab) async -> String? {
         if tab.isLoadingRecently { return "still loading" }
         if await tab.isPlayingMedia { return "playing media" }
+        // The floating player is the one thing on this list that is *on screen* while its window is
+        // not: the whole point of picture-in-picture is to scroll away from the page and keep
+        // watching, and discarding that page takes the video off the screen the person is looking
+        // at. The line above covers it while it plays; this one is for the moment it is paused, which
+        // is not a corner case — it is what pausing the floating player does, and without this line
+        // the very next trim discarded the page out from under it, measured.
+        if await tab.isInPictureInPicture { return "picture-in-picture" }
         if await tab.hasUserInput { return "unsent form input" }
         return nil
     }

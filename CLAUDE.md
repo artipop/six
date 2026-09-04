@@ -350,10 +350,10 @@ anything added there has to exist on both:
 Built: the rail and workspaces with the full gesture set, profiles with isolated data stores, persistence (a SQLite
 system of record plus a versioned JSON snapshot), history and bookmarks with on-device multilingual embeddings and
 personal search on the start page, ad/tracker blocking, extra certificate authorities, `WKWebExtension` hosting, site
-permissions, downloads, page translation, the ⌘K assistant, the ACP agent panel, `six --mcp`, MCP apps (SEP-1865) with
-OAuth, deep research with document windows and highlights, DevTools capture, localization, and the Linux and Android
-fronts at the parity levels their docs state.
+permissions, downloads, page translation, picture-in-picture, the ⌘K assistant, the ACP agent panel, `six --mcp`,
+MCP apps (SEP-1865) with OAuth, deep research with document windows and highlights, DevTools capture, localization,
+and the Linux and Android fronts at the parity levels their docs state.
 
 Not built, with reasons: [docs/todo.md](docs/todo.md) — web archives, bookmark images, the content-script boundary
-`WebPage` cannot cross, geolocation and screen sharing, picture-in-picture, passkeys, CloudKit sync, and what the
+`WebPage` cannot cross, geolocation and screen sharing, floating windows, passkeys, CloudKit sync, and what the
 Linux front still owes the Mac.

@@ -85,6 +85,9 @@ private struct PhoneToolbar: View {
                 Divider()
                 if let tab, !tab.showsStartPage {
                     Button("Add Bookmark", systemImage: "star") { Task { try? await bookmarks.add(tab) } }
+                    // The phone has no menu bar and no ⌥⇧P, so this is the only way to ask for it
+                    // other than the button in the player's own controls.
+                    Button("Picture in Picture", systemImage: "pip") { tab.togglePictureInPicture() }
                 }
                 Button("Clear History…", systemImage: "trash", role: .destructive) { confirmClearHistory = true }
             } label: {
