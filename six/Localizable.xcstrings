@@ -585,6 +585,16 @@
         }
       }
     },
+    ", %@ in the page": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": ", %@ на странице"
+          }
+        }
+      }
+    },
     ", %@ over WebKit's limit": {
       "localizations": {
         "ru": {

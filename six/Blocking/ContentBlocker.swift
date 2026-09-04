@@ -18,6 +18,12 @@ import WebKit
 /// **Off means off.** With `isEnabled` false nothing is attached, nothing is downloaded and nothing
 /// is compiled — the point of the switch is that someone who brings their own blocker is not paying
 /// for ours.
+///
+/// **The rules WebKit cannot express go to `AdvancedRules`**, which runs them inside the page:
+/// scriptlets, extended CSS and CSS injection, about 12 000 rules of AdGuard Base alone. They obey
+/// the same switch and the same allowlist as everything else here — a window that gets no rule
+/// lists gets no user scripts either — and they are installed from the same navigation hook, which
+/// is what makes them arrive before the page's own scripts rather than after them.
 @MainActor
 @Observable
 final class ContentBlocker {
@@ -33,6 +39,8 @@ final class ContentBlocker {
         var updatedAt: Date?
         var rules = 0
         var dropped = 0
+        /// Rules that run in the page rather than in the network layer.
+        var advanced = 0
         /// Compiled and attached — the list is actually blocking.
         var isReady = false
     }
@@ -40,6 +48,7 @@ final class ContentBlocker {
     private let settings: SettingsStore
     @ObservationIgnored private let store = FilterListStore()
     @ObservationIgnored private let ruleStore = WKContentRuleListStore.default()
+    @ObservationIgnored private let advanced = AdvancedRules()
 
     private(set) var lists: [FilterList]
     private(set) var status: [String: Status] = [:]
@@ -62,8 +71,14 @@ final class ContentBlocker {
     @ObservationIgnored private var compiled: [String: WKContentRuleList] = [:]
     /// The windows' controllers, and what each window is showing — the pair decides what is attached.
     @ObservationIgnored private let controllers: PageControllers
-    @ObservationIgnored private var hosts: [UUID: String] = [:]
+    /// The whole address, not just the host: a cosmetic rule can be written for one path, and the
+    /// engine is asked about the page that is actually loading.
+    @ObservationIgnored private var addresses: [UUID: URL] = [:]
     @ObservationIgnored private var refreshTask: Task<Void, Never>?
+    /// Of the advanced rules the engine was last built from — rebuilding is the better part of a
+    /// second, and six-hourly refreshes mostly change nothing.
+    @ObservationIgnored private var advancedHash = ""
+    private static let scriptName = "blocking"
 
     /// Filter lists go stale the way bookmarks do, and are refreshed on the same terms: once at
     /// launch, then every six hours for as long as the app is up.
@@ -84,21 +99,21 @@ final class ContentBlocker {
         self.lists = FilterList.merge(stored: settings.blockingLists)
         self.allowlist = Set(settings.blockingAllowlist)
         controllers.onController { [weak self] windowID, _ in self?.apply(to: windowID) }
+        AdvancedRules.checkPayloadVersions()
     }
 
     // MARK: What a window gets
 
     /// The window closed for good.
     func forget(_ windowID: UUID) {
-        hosts[windowID] = nil
+        addresses[windowID] = nil
     }
 
     /// The window is about to show — or has just committed to — an address. Called before the load
     /// starts, so a site on the allowlist never has the rules applied to it in the first place.
     func note(_ windowID: UUID, showing url: URL?) {
-        let host = url?.host()?.lowercased()
-        guard hosts[windowID] != host else { return }
-        hosts[windowID] = host
+        guard addresses[windowID] != url else { return }
+        addresses[windowID] = url
         apply(to: windowID)
     }
 
@@ -149,6 +164,7 @@ final class ContentBlocker {
             compiled[id] = nil
             status[id]?.isReady = false
             applyToAllWindows()
+            Task { await rebuildAdvanced() }
         }
     }
 
@@ -175,7 +191,10 @@ final class ContentBlocker {
         status[id] = nil
         settings.blockingLists = lists
         applyToAllWindows()
-        Task { await store.remove(id) }
+        Task {
+            await store.remove(id)
+            await rebuildAdvanced()
+        }
     }
 
     // MARK: Fetching, converting, compiling
@@ -203,7 +222,27 @@ final class ContentBlocker {
             await compile(list, force: changed)
         }
 
+        await rebuildAdvanced()
         await pruneStaleRuleLists()
+        applyToAllWindows()
+    }
+
+    /// One engine over the advanced rules of every enabled list, concatenated.
+    ///
+    /// Concatenated on purpose, and this is the one place six's blocking is *better* than WebKit's
+    /// own: rule lists are evaluated separately, so an exception in one cannot undo a rule from
+    /// another. There is only one engine, so `@@||example.com^$elemhide` in a regional list does
+    /// cancel a cosmetic rule from the base list — which is what its author meant.
+    private func rebuildAdvanced() async {
+        var texts: [String] = []
+        for list in lists where list.isEnabled {
+            if let text = await store.advancedRules(for: list) { texts.append(text) }
+        }
+        let combined = texts.joined(separator: "\n")
+        let hash = FilterListStore.hash(of: combined)
+        guard hash != advancedHash else { return }
+        advancedHash = hash
+        await advanced.rebuild(from: combined)
         applyToAllWindows()
     }
 
@@ -219,7 +258,8 @@ final class ContentBlocker {
            let existing = try? await ruleStore.contentRuleList(forIdentifier: Self.identifier(list.id, hash)) {
             compiled[list.id] = existing
             status[list.id] = Status(phase: .idle, updatedAt: entry?.updatedAt, rules: entry?.safariRules ?? 0,
-                                     dropped: entry?.droppedRules ?? 0, isReady: true)
+                                     dropped: entry?.droppedRules ?? 0, advanced: entry?.advancedRules ?? 0,
+                                     isReady: true)
             return
         }
 
@@ -236,7 +276,8 @@ final class ContentBlocker {
             let entry = await store.entry(for: list.id)
             compiled[list.id] = ruleList
             status[list.id] = Status(phase: .idle, updatedAt: entry?.updatedAt, rules: entry?.safariRules ?? 0,
-                                     dropped: entry?.droppedRules ?? 0, isReady: ruleList != nil)
+                                     dropped: entry?.droppedRules ?? 0, advanced: entry?.advancedRules ?? 0,
+                                     isReady: ruleList != nil)
             Self.log("compiled \(list.id) (\(entry?.safariRules ?? 0) rules) in \(started.duration(to: .now))")
         } catch {
             Self.log("\(list.id) compile failed: \(error.localizedDescription)")
@@ -270,11 +311,27 @@ final class ContentBlocker {
     }
 
     private func apply(to windowID: UUID) {
+        let url = addresses[windowID]
+        let allowed = !isEnabled || (url?.host()?.lowercased()).map(isAllowed) == true
+        // Before the controller check: a window that has not built one yet still records what it
+        // should run, and `PageControllers` hands it over when it does.
+        controllers.setUserScripts(allowed ? [] : advancedScripts(for: url),
+                                   named: Self.scriptName, for: windowID)
         guard let controller = controllers.existing(windowID) else { return }
         controller.removeAllContentRuleLists()
-        guard isEnabled else { return }
-        if let host = hosts[windowID], isAllowed(host) { return }
+        guard !allowed else { return }
         for list in activeLists { controller.add(list) }
+    }
+
+    /// A page's cosmetic rules and scriptlets, as the user scripts that carry them.
+    private func advancedScripts(for url: URL?) -> [WKUserScript] {
+        guard let url, let scheme = url.scheme, scheme == "http" || scheme == "https" else { return [] }
+        let rules = advanced.rules(for: url)
+        if ProcessInfo.processInfo.environment["SIX_UI_DEBUG"] != nil {
+            Self.log("\(url.host() ?? "?"): \(rules.css.count) css, \(rules.extendedCSS.count) extended, \(rules.scripts.count) scripts")
+        }
+        guard !rules.isEmpty else { return [] }
+        return advanced.userScripts(for: rules)
     }
 
     private func applyToAllWindows() {

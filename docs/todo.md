@@ -96,16 +96,6 @@ agent still cannot do is *act* on a page except through `evaluate_javascript`, a
 - **Request bodies and headers**, and request interception. The page-world hooks see status and timing only; going
   further means either the inspector protocol or a `WKURLSchemeHandler`-shaped proxy, and neither is cheap.
 
-## Blocking: the advanced rules
-
-[Content blocking](blocking.md) converts what WebKit's JSON can express and drops the rest — ~12 000 rules of
-AdGuard Base alone. Scriptlets (`##+js(...)`) and extended CSS (`:has-text()`, `:xpath()`) need a JavaScript engine
-inside every page: SafariConverterLib already returns them as `advancedRulesText`, and AdGuard's own
-`@adguard/extended-css` + `@adguard/scriptlets` are the engines meant to run them. six has the isolated world to run
-them in ([architecture.md](architecture.md#page-side-scripts)), so the work is a bundled JS payload, a per-site rule
-lookup at document start, and a way to keep both cheap on a page that is already loading. Anti-adblock
-circumvention comes with it, and only with it.
-
 ## Geolocation, screen sharing and Web Push: one trade, not three
 
 Site permissions are built ([permissions.md](permissions.md)): the camera, the microphone and the motion sensors are
@@ -267,3 +257,6 @@ Built and measured; see [linux.md](linux.md) for the whole picture. What is left
   `remove(ofTypes:for:)`). Clearing a whole profile is the only option today, and it takes every login with it.
 - Per-site user-agent overrides through `WebPage.customUserAgent`, for sites that sniff wrongly even at Safari's
   string.
+- Cosmetic rules in subframes. Advanced blocking is main-frame only, because a user script's source is fixed before
+  the frame's own address is known ([blocking.md](blocking.md#what-it-does-not-reach)). Doing it properly means the
+  frame asking for its own rules over a message handler, which is a round trip a scriptlet cannot wait for.

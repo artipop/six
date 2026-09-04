@@ -70,19 +70,25 @@ final class DevToolsStore {
 
     // MARK: The hooks
 
+    private static let scriptName = "devtools"
+
     private func install(in controller: WKUserContentController, for windowID: UUID) {
-        controller.removeAllUserScripts()
         controller.removeScriptMessageHandler(forName: PageInstrumentation.handlerName, contentWorld: .page)
         handlers[windowID] = nil
-        guard isCapturing else { return }
+        guard isCapturing else {
+            controllers.setUserScripts([], named: Self.scriptName, for: windowID)
+            return
+        }
         let handler = PageMessageHandler(windowID: windowID, store: self)
         handlers[windowID] = handler
         controller.add(handler, contentWorld: .page, name: PageInstrumentation.handlerName)
-        controller.addUserScript(WKUserScript(
+        // Through the registry rather than the controller: the blocker's cosmetic rules are user
+        // scripts too, and `removeAllUserScripts()` cannot tell whose is whose.
+        controllers.setUserScripts([WKUserScript(
             source: PageInstrumentation.source,
             injectionTime: .atDocumentStart,
             forMainFrameOnly: false,
-            in: .page))
+            in: .page)], named: Self.scriptName, for: windowID)
     }
 
     /// The window closed, or is showing something else: what was captured belonged to the page that

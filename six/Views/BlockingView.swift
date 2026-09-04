@@ -161,6 +161,7 @@ private struct FilterListRow: View {
         }
         guard let status, status.isReady else { return String(localized: "Waiting") }
         var line = String(localized: "\(status.rules) rules")
+        if status.advanced > 0 { line += String(localized: ", \(status.advanced.formatted()) in the page") }
         if status.dropped > 0 { line += String(localized: ", \(status.dropped.formatted()) over WebKit's limit") }
         if let updatedAt = status.updatedAt {
             line += String(localized: " · updated \(updatedAt.formatted(.relative(presentation: .named)))")
