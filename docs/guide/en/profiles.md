@@ -29,6 +29,41 @@ old name is orphaned.
 Blocking, certificates and filter lists are shared: they are what the **browser**
 trusts and blocks, not what the person sitting in it does.
 
+## Moving a window to another profile
+
+Right-click the page ▸ **This Window ▸ Move to Profile** ▸ the profile's name. On
+the phone the same item is in the `⋯` menu.
+
+The window goes to the other profile's rail and the rail follows it there: this
+is the one move that would otherwise leave nothing to look at — the column would
+simply be gone from the rail. It is the same window and not a copy: the same
+address, the same title, the same back and forward history, the same picture in
+the overview. `⌘⇧T` will not offer it back, because nothing was closed.
+
+The page does load again, though, and with **somebody else's cookies**. That is
+the whole point: the same link, shown by a different person behind this browser.
+
+| | |
+|---|---|
+| cookies and sign-ins | the profile it went to — usually another account, or a signed-out page |
+| extensions | the new profile's |
+| history | the visit is recorded in the new profile from the moment it lands; what the old one already wrote stays |
+| highlights | every profile has its own: the old ones go, the new profile's appear |
+| filled-in forms, unsent input | lost — the page loads from scratch |
+
+A window moves out of a private profile the same way — and from that moment the
+page is in the history of the profile it arrived in. That is exactly what asking
+for it in a profile that keeps history means.
+
+The workspace the window left asks nothing, even when that was its last window
+and it has a name: nothing was closed. The named empty row stays standing — its
+own context menu deletes it.
+
+A document cannot be moved into a private profile, and the item is disabled: the
+document's text is a file on disk, rewritten a second after every keystroke, and
+a private profile is the one written down nowhere. The browser will not delete a
+person's file to keep that promise.
+
 ## A private window
 
 `⌘⇧P`, or **File ▸ New Private Window**.

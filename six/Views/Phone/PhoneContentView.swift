@@ -89,6 +89,9 @@ private struct PhoneToolbar: View {
                     // other than the button in the player's own controls.
                     Button("Picture in Picture", systemImage: "pip") { tab.togglePictureInPicture() }
                 }
+                if let tab, browser.profiles.count > 1 {
+                    Menu("Move to Profile", systemImage: "arrow.left.arrow.right") { MoveToProfileItems(tab: tab) }
+                }
                 Button("Clear History…", systemImage: "trash", role: .destructive) { confirmClearHistory = true }
             } label: {
                 Image(systemName: "ellipsis.circle")

@@ -98,7 +98,8 @@ A page saves as `.html`, `.pdf` or `.txt`; a document as `.md`, `.html` or
 ## The "This Window" menu
 
 A right-click on the page opens it too: close, full width, move left/right,
-move to the workspace above or below. It used to hang off the
+move to the workspace above or below, **move to another profile**
+([what changes](/en/profiles#moving-a-window-to-another-profile)). It used to hang off the
 window's title bar; there are no title bars any more — the page runs edge to edge
 — so it hangs off the page.
 

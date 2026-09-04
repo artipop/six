@@ -489,6 +489,40 @@ final class BrowserTab: Identifiable {
         thumbnails?.remove(id)
     }
 
+    // MARK: What survives a move to another profile
+
+    /// A window apart from the store its page was built against: where it has been, where it can go
+    /// forward to, how far down it was, and how it last looked.
+    ///
+    /// A `WebPage`'s data store is fixed when the page is built and WebKit's back-forward list
+    /// belongs to that page, so a window cannot be handed another profile's cookies. Moving one
+    /// between profiles is therefore a rebuild (`BrowserState.moveTab(_:toProfile:)`), and this is
+    /// everything the window built in its place is given: the three things a discard already keeps,
+    /// plus the picture, which is still a picture of the same page.
+    struct Trail {
+        var back: [URL] = []
+        var forward: [URL] = []
+        var scroll: Double = 0
+        var picture: PlatformImage?
+    }
+
+    /// The trail as it stands, the live page's own lists included — in the same order `discard()`
+    /// joins them, the addresses kept across a discard first and the page's own after.
+    var trail: Trail {
+        Trail(back: savedBack + (livePage?.backForwardList.backList.map(\.url) ?? []),
+              forward: (livePage?.backForwardList.forwardList.map(\.url) ?? []) + savedForward,
+              scroll: savedScroll, picture: thumbnail)
+    }
+
+    /// Takes over from the window this one was built to replace. Called before it is first shown: the
+    /// offset goes back into the page when the waiting address loads, as a discarded window's does.
+    func adopt(_ trail: Trail) {
+        savedBack = trail.back
+        savedForward = trail.forward
+        savedScroll = trail.scroll
+        thumbnail = trail.picture
+    }
+
     private func watchNavigations(of page: WebPage) {
         navigationTask = Task { [weak self] in
             do {

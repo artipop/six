@@ -873,6 +873,9 @@ struct ColumnMenu: View {
         Button("Move Right") { browser.selectTab(tab.id); browser.moveColumn(1) }
         Button("Move to Workspace Above") { browser.selectTab(tab.id); browser.moveColumnToWorkspace(-1) }
         Button("Move to Workspace Below") { browser.selectTab(tab.id); browser.moveColumnToWorkspace(1) }
+        if browser.profiles.count > 1 {
+            Menu("Move to Profile") { MoveToProfileItems(tab: tab) }
+        }
     }
 }
 

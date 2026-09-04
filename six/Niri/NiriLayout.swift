@@ -854,6 +854,28 @@ final class NiriLayout {
         }
     }
 
+    /// Takes a column out of a strip that is not necessarily the one on screen, and — unlike closing
+    /// a window — without asking about the row it empties.
+    ///
+    /// Both differences come from the one caller: a window moved to another profile
+    /// (`BrowserState.moveTab(_:toProfile:)`). The column has to leave a strip nobody is looking at,
+    /// or the rail it left goes on drawing a window that now stands somewhere else. And the question
+    /// a named row asks when it loses its last window would arrive over the profile the window went
+    /// *to*, about a row on the one it left, saying the window had been closed — which it was not.
+    /// The row keeps its name and stands empty, which is what answering "Keep It" would have done,
+    /// and its own menu still offers to delete it.
+    func removeColumn(tabID: UUID, from profileID: UUID) {
+        mutate(profile: profileID) { s in
+            for i in s.workspaces.indices {
+                guard let index = s.workspaces[i].columns.firstIndex(where: { $0.tabID == tabID }) else { continue }
+                s.workspaces[i].columns.remove(at: index)
+                s.workspaces[i].focus = max(0, min(index, s.workspaces[i].columns.count - 1))
+                scrollFocusIntoView(&s.workspaces[i])
+                return
+            }
+        }
+    }
+
     func focus(tabID: UUID) {
         mutate { s in
             for i in s.workspaces.indices {

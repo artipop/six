@@ -254,6 +254,27 @@ final class BrowserToolCatalog {
             }
         ),
         BrowserTool(
+            name: "move_window_to_profile",
+            title: String(localized: "Move Window to Profile"),
+            description: "Moves a window to another profile: the same page, reopened with that profile's cookies and "
+                + "extensions — so it comes back signed in as that profile, or not at all. The window keeps its id; "
+                + "the browser switches to the profile it went to.",
+            parameters: [
+                .init(name: "window_id", description: "Window id from list_workspaces (a prefix is enough).", required: true),
+                .init(name: "profile", description: "Profile name, from list_workspaces.", required: true),
+            ],
+            run: { [unowned self] args in
+                let tab = try self.tab(args)
+                let profile = try self.profile(args["profile"])
+                guard let moved = self.browser.moveTab(tab.id, toProfile: profile.id) else {
+                    throw BrowserTool.Failure(message: tab.profileID == profile.id
+                        ? "\(Self.describe(tab)) is already in \(profile.name)"
+                        : "\(Self.describe(tab)) can't go to \(profile.name): a document window can't enter a private profile")
+                }
+                return "Moved \(Self.describe(moved)) to \(profile.name)"
+            }
+        ),
+        BrowserTool(
             name: "close_window",
             title: String(localized: "Close Window"),
             description: "Closes a window.",

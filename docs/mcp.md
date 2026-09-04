@@ -62,6 +62,7 @@ same question every named workspace gets, whoever named it
 | `summarize_page` | summary from the assistant's own model (⌘K's choice: on-device / PCC / Claude); `focus` narrows it |
 | `focus_window` | switch to the window's profile and workspace and scroll to it |
 | `move_window` | move a window to another workspace of its profile |
+| `move_window_to_profile` | move a window to another profile — the same page, reopened with that profile's cookies and extensions ([architecture.md](architecture.md#moving-a-window-to-another-profile)) |
 | `close_window` | close a window |
 | `list_console_messages` | what a window's page logged since it last navigated (`level`, `limit`); needs `six://settings` ▸ Develop ▸ Capture Console and Network — see [devtools.md](devtools.md) |
 | `list_network_requests` | the requests a page made — method, status, duration, size, kind (`failed_only`, `limit`); same switch |

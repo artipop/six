@@ -567,6 +567,18 @@ final class BrowserState {
 
     /// Every tab goes through here, so nothing is in `tabs` without an index entry and a page budget.
     private func add(_ tab: BrowserTab) {
+        connect(tab)
+        extensions?.noteOpened(tab)
+        tabs.append(tab)
+        tabsByID[tab.id] = tab
+    }
+
+    /// The app-wide things a window draws on, handed to it in one place. Every window gets them,
+    /// including the ones built to take another's place — an app that has started running
+    /// (`replaceWithApp`), a window moved to another profile (`moveTab(_:toProfile:)`) — which is why
+    /// this is not simply the top of `add`: those two keep the window's id and its place in `tabs`,
+    /// so they wire the window up without adding it.
+    private func connect(_ tab: BrowserTab) {
         tab.cache = pages
         tab.thumbnails = thumbnails
         tab.blocker = blocker
@@ -574,9 +586,6 @@ final class BrowserState {
         tab.pageControllers = pageControllers
         tab.devTools = devTools
         tab.permissions = permissions
-        extensions?.noteOpened(tab)
-        tabs.append(tab)
-        tabsByID[tab.id] = tab
     }
 
     func tabs(in profileID: Profile.ID) -> [BrowserTab] {
@@ -805,22 +814,11 @@ final class BrowserState {
     func replaceWithApp(_ tabID: BrowserTab.ID, session: MCPAppSession) {
         guard let index = tabs.firstIndex(where: { $0.id == tabID }) else { return }
         let old = tabs[index]
-        let tab = BrowserTab(id: tabID, profileID: old.profileID, app: session)
-        tab.onDocumentLink = { [weak self] tab, url in self?.open(url, from: tab) }
-        session.onOpenLink = { [weak self, weak tab] url in
-            guard let self, let tab else { return }
-            self.open(url, from: tab)
-        }
+        let tab = makeAppTab(id: tabID, profileID: old.profileID, session: session)
         old.close()
         tabs[index] = tab
         tabsByID[tabID] = tab
-        tab.cache = pages
-        tab.thumbnails = thumbnails
-        tab.blocker = blocker
-        tab.extensions = extensions
-        tab.pageControllers = pageControllers
-        tab.devTools = devTools
-        tab.permissions = permissions
+        connect(tab)
         if selectedTabID == tabID { syncSelection() }
     }
 
@@ -839,13 +837,7 @@ final class BrowserState {
     func newApp(_ session: MCPAppSession, in profileID: Profile.ID? = nil, workspace: Int? = nil,
                 activate: Bool = true) -> BrowserTab {
         let profile = profiles.first { $0.id == profileID } ?? selectedProfile
-        let tab = BrowserTab(id: UUID(), profileID: profile.id, app: session)
-        tab.onDocumentLink = { [weak self] tab, url in self?.open(url, from: tab) }
-        // `ui/open-link`: the app asked for a page, and a page in six is a window beside it.
-        session.onOpenLink = { [weak self, weak tab] url in
-            guard let self, let tab else { return }
-            self.open(url, from: tab)
-        }
+        let tab = makeAppTab(profileID: profile.id, session: session)
         add(tab)
         if activate, selectedProfileID != profile.id {
             selectedProfileID = profile.id
@@ -855,6 +847,19 @@ final class BrowserState {
             layout.insertColumn(tabID: tab.id, in: profile.id, workspace: workspace, focus: activate)
         }
         if activate { syncSelection() }
+        return tab
+    }
+
+    /// An app window. The profile is an id and not a `Profile` because that is all an app window
+    /// needs: it is served from six's own scheme and borrows nobody's store.
+    private func makeAppTab(id: UUID = UUID(), profileID: Profile.ID, session: MCPAppSession) -> BrowserTab {
+        let tab = BrowserTab(id: id, profileID: profileID, app: session)
+        tab.onDocumentLink = { [weak self] tab, url in self?.open(url, from: tab) }
+        // `ui/open-link`: the app asked for a page, and a page in six is a window beside it.
+        session.onOpenLink = { [weak self, weak tab] url in
+            guard let self, let tab else { return }
+            self.open(url, from: tab)
+        }
         return tab
     }
 
@@ -920,6 +925,95 @@ final class BrowserState {
             layout.moveColumn(tabID: id, in: tab.profileID, toWorkspace: index)
         }
         syncSelection()
+    }
+
+    /// Moves a window to another profile: the same page, opened as somebody else.
+    ///
+    /// A rebuild rather than a hand-over, because it cannot be anything else — a page's data store is
+    /// fixed when the page is built, so the window is taken apart and one built against the other
+    /// profile's store takes its place, keeping its id (`replaceWithApp` does the same for an app
+    /// window that starts running). Everything keyed by that id goes on pointing at the same window,
+    /// because it is the same window: the ⌃Tab ring, a research run holding it as a source, the
+    /// picture of it on disk, the document beside it. It is not remembered for ⌘⇧T either — nothing
+    /// was closed.
+    ///
+    /// What it does not keep is what the profile it left had given it: the cookies and the logins,
+    /// the extensions, the blocker's rules its content controller was built with, the answers that
+    /// profile's sites had been given, and its highlights. That is the whole point of the move — the
+    /// page comes back as the other profile sees it, which usually means signed in as somebody else
+    /// or not at all. From then on the visit is that profile's history and nothing of it is written
+    /// under the old one; a page moved *out* of a private profile is recorded from the moment it
+    /// lands, which is what asking for it in a profile that keeps history means.
+    ///
+    /// The focus follows the window. Every other move leaves something to look at; this one would
+    /// take the column off the rail and leave the person in front of the profile it left, with
+    /// nothing on screen to say where it went.
+    ///
+    /// The one window that will not go is a document about to enter a private profile: its text is a
+    /// file under `Documents/`, watched and written a second after every keystroke, and a private
+    /// profile is the one that is written down nowhere. Nothing here may quietly delete a person's
+    /// document to keep that promise, so the move is refused instead.
+    @discardableResult
+    func moveTab(_ id: BrowserTab.ID, toProfile profileID: Profile.ID) -> BrowserTab? {
+        guard let index = tabs.firstIndex(where: { $0.id == id }),
+              let profile = profiles.first(where: { $0.id == profileID }),
+              tabs[index].profileID != profileID,
+              canMove(tabs[index], to: profile) else { return nil }
+        let old = tabs[index]
+        let source = old.profileID
+        let trail = old.trail
+        // Taken apart before its replacement is built, because both answer to the same id: the new
+        // page must be configured with a controller of its own — the old one carries the rules and
+        // the hooks the old profile's window was given — and nothing keyed by the id may be left
+        // holding the window that went. `close()` is deliberately not called: it would take the
+        // picture off disk, and the picture is still a picture of this window.
+        extensions?.noteClosed(old)
+        old.discard()
+        pages.forget(id)
+        blocker?.forget(id)
+        devTools?.forget(id)
+        pageControllers.forget(id)
+        let tab = rebuilt(old, in: profile)
+        tab.adopt(trail)
+        connect(tab)
+        // The picture came along with the trail, so the budget that lets go of the oldest ones has to
+        // be told about it — otherwise this is the one window whose picture nothing ever reclaims.
+        if tab.thumbnail != nil { pages.notePicture(tab) }
+        extensions?.noteOpened(tab)
+        // In place, so the window keeps its position in everything that walks `tabs` in order.
+        tabs[index] = tab
+        tabsByID[id] = tab
+        if let document = tab.document, !profile.isPrivate { documents.save(document) }
+        selectedProfileID = profile.id
+        layout.activeProfileID = profile.id
+        // Unanimated, for the reason `NiriLayout.unanimated` gives: the column leaves one strip and
+        // joins another in the same update, and a removal transition would leave two `WebView`s over
+        // the one `WebPage` this window is about to build — which traps inside WebKit's SwiftUI half.
+        withTransaction(Transaction(animation: nil)) {
+            layout.removeColumn(tabID: id, from: source)
+            layout.insertColumn(tabID: id, in: profile.id, focus: true)
+        }
+        syncSelection()
+        return tab
+    }
+
+    /// Can this window go to that profile? Only the document-into-private refusal above; everything
+    /// else moves. Read by the menus, so an item that would do nothing is not offered.
+    func canMove(_ tab: BrowserTab, to profile: Profile) -> Bool {
+        tab.profileID != profile.id && !(tab.isDocument && profile.isPrivate)
+    }
+
+    /// The same window, built against another profile — the kinds `makeTab(from:profile:)` knows and
+    /// the one it does not, a *running* app, which moves as itself: nothing here is read back from
+    /// disk or asked for again, so a move costs neither a reload of the document's text nor a restart
+    /// of the app's session.
+    private func rebuilt(_ tab: BrowserTab, in profile: Profile) -> BrowserTab {
+        if let document = tab.document { return makeDocumentTab(id: tab.id, profile: profile, document: document) }
+        if let session = tab.app { return makeAppTab(id: tab.id, profileID: profile.id, session: session) }
+        if let pending = tab.pendingApp { return makePendingAppTab(id: tab.id, profile: profile, saved: pending) }
+        if let page = tab.builtIn { return makeBuiltInTab(id: tab.id, profile: profile, page: page) }
+        return makeTab(id: tab.id, profile: profile, restoring: tab.showsStartPage ? nil : tab.currentURL,
+                       title: tab.title)
     }
 
     func selectTab(_ id: BrowserTab.ID) {

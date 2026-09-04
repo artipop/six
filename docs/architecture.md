@@ -64,6 +64,31 @@ A `Profile` is a name, a colour, a `WKWebsiteDataStore(forIdentifier:)` and an o
 (otherwise its scratchpad, `Profiles/<name>/Scratchpad` under Application Support). Switching profiles switches `layout.activeProfileID`, which swaps
 the whole workspace stack.
 
+### Moving a window to another profile
+
+**This Window ▸ Move to Profile** (the phone's `⋯` menu, `move_window_to_profile` over MCP) is a **rebuild**, not a
+re-filing. A page's data store is fixed when the page is built, so `BrowserState.moveTab(_:toProfile:)` takes the
+window apart, builds one against the other profile's store and puts it in the old one's place, keeping its id — the
+same thing `replaceWithApp` does for a restored app that starts running. Everything keyed by that id goes on
+pointing at the same window: the column, the `⌃Tab` ring, a research run holding it as a source, its picture on
+disk. Nothing is remembered for `⌘⇧T`, because nothing was closed.
+
+What is handed over is `BrowserTab.Trail` — the two lists of addresses the window can walk, the scroll offset and
+the picture, which is everything a discard already keeps (`discard()` builds the same lists the same way). What is
+deliberately *not* handed over is everything the old profile had given it: its cookies, its extension controller,
+its content controller with the blocker's rules on it (`pageControllers.forget(id)`, so the new page is configured
+with a fresh one), its captured console, and its highlights. That is the point of the move — the page comes back as
+the other profile sees it.
+
+Two things the move does that a close does not. The column leaves a strip that may not be the one on screen, so it
+goes through `NiriLayout.removeColumn(tabID:from:)` rather than the active-strip one; and that call asks nothing
+when it empties a named row, because the question a closed window puts up would arrive over the profile the window
+went *to*. The focus follows the window: it is the one move where the rail would otherwise just lose a column.
+
+The one window that will not go is a document heading for a private profile. Its text is a file under `Documents/`,
+watched and written a second after every keystroke, and a private profile is the one written down nowhere — so
+`canMove(_:to:)` refuses rather than delete a person's file to keep that promise, and the menu item is disabled.
+
 ### Private browsing
 
 Private browsing is a profile, not a mode: `⌘⇧P` (**File → New Private Window**, or `open_window` with

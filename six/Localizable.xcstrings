@@ -2517,6 +2517,26 @@
         }
       }
     },
+    "Move Window to Profile": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Перенести окно в профиль"
+          }
+        }
+      }
+    },
+    "Move to Profile": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Перенести в профиль"
+          }
+        }
+      }
+    },
     "Move to Workspace Above": {
       "localizations": {
         "ru": {
