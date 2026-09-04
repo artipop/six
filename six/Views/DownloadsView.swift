@@ -109,6 +109,14 @@ private struct DownloadRow: View {
                 Button { browser.downloads.cancel(item.id) } label: { Image(systemName: "xmark.circle.fill") }
                     .buttonStyle(.borderless)
                     .help("Stop")
+            } else if item.canResume {
+                // Two different acts behind one button, and the tooltip says which: a transfer with
+                // resume data asks for the rest of the bytes, one without asks for the file again.
+                Button { browser.downloads.resume(item.id) } label: {
+                    Image(systemName: item.resumesInPlace ? "arrow.clockwise.circle" : "arrow.trianglehead.clockwise")
+                }
+                .buttonStyle(.borderless)
+                .help(item.resumesInPlace ? "Resume" : "Try Again")
             } else if let destination = item.destination {
                 Button { NSWorkspace.shared.activateFileViewerSelecting([destination]) } label: {
                     Image(systemName: "folder")
@@ -131,6 +139,10 @@ private struct DownloadRow: View {
             if let destination = item.destination {
                 Button("Open") { NSWorkspace.shared.open(destination) }
                 Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([destination]) }
+                Divider()
+            }
+            if item.canResume {
+                Button(item.resumesInPlace ? "Resume" : "Try Again") { browser.downloads.resume(item.id) }
                 Divider()
             }
             Button("Copy Address") {
@@ -161,7 +173,8 @@ private struct DownloadRow: View {
         case .failed:
             return item.error ?? String(localized: "Download failed")
         case .cancelled:
-            return String(localized: "Stopped")
+            guard item.received > 0, item.resumesInPlace else { return String(localized: "Stopped") }
+            return String(localized: "Stopped at \(item.received.formatted(.byteCount(style: .file)))")
         }
     }
 

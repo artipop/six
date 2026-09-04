@@ -12,6 +12,12 @@ import WebKit
 ///
 /// Files land in the user's Downloads folder under the name the server suggested, never overwriting:
 /// a second `report.pdf` is `report 2.pdf`, the way every browser does it.
+///
+/// **A stopped transfer keeps what it needs to carry on.** `URLSession` hands back a small blob when
+/// a download is cancelled or fails — where the partial file is, and the validators the server gave
+/// for it — and a task started from that blob asks for the rest of the bytes with a `Range` header
+/// instead of all of them again. six keeps it on the row, so a nine-tenths-finished file that lost
+/// the network is one click from being finished rather than a download begun again.
 @MainActor
 @Observable
 final class DownloadStore {
@@ -28,6 +34,20 @@ final class DownloadStore {
         var state: State = .running
         var error: String?
         let startedAt = Date()
+        /// What `URLSession` gave back when this stopped: enough to ask the server for the rest.
+        /// Nil when the transfer is running, when it finished, and when the server would not have
+        /// honoured a range request anyway — resuming is a courtesy, not a guarantee.
+        var resumeData: Data?
+        /// The request as it was actually sent, cookies and referrer included, so a transfer that
+        /// cannot be resumed can at least be asked for again without going back to the page.
+        var request: URLRequest?
+
+        /// Can this row be picked up again, and does it start from where it stopped?
+        var canResume: Bool {
+            guard state == .cancelled || state == .failed else { return false }
+            return resumeData != nil || request != nil
+        }
+        var resumesInPlace: Bool { resumeData != nil }
 
         var fraction: Double? {
             guard expected > 0 else { return nil }
@@ -83,6 +103,7 @@ final class DownloadStore {
                     }
                 }
             }
+            update(item.id) { $0.request = outgoing }
             let task = transfers.session.downloadTask(with: outgoing)
             transfers.note(item.id, for: task.taskIdentifier)
             tasks[item.id] = task
@@ -91,10 +112,44 @@ final class DownloadStore {
         }
     }
 
+    /// Stops a transfer and asks for the receipt. `cancel(byProducingResumeData:)` answers on a
+    /// background queue and answers nil when the server gave nothing to resume against, so the row
+    /// goes to `.cancelled` immediately and grows its resume data a moment later if there is any.
     func cancel(_ id: Item.ID) {
-        tasks[id]?.cancel()
+        guard let task = tasks[id] else { return }
         tasks[id] = nil
         update(id) { $0.state = .cancelled }
+        task.cancel(byProducingResumeData: { [weak self] data in
+            guard let data, let self else { return }
+            Task { @MainActor in self.update(id) { $0.resumeData = data } }
+        })
+    }
+
+    /// Picks a stopped download up again. With resume data the server is asked for the rest of the
+    /// bytes; without it there is nothing to do but ask for the file again, which is still better
+    /// than finding the page and the link a second time.
+    func resume(_ id: Item.ID) {
+        guard let item = items.first(where: { $0.id == id }), item.canResume else { return }
+        let task: URLSessionDownloadTask
+        if let resumeData = item.resumeData {
+            task = transfers.session.downloadTask(withResumeData: resumeData)
+        } else if let request = item.request {
+            task = transfers.session.downloadTask(with: request)
+        } else {
+            return
+        }
+        LinkTrace.log("resuming \(item.url.absoluteString)\(item.resumesInPlace ? " where it stopped" : " from the start")")
+        update(id) {
+            $0.state = .running
+            $0.error = nil
+            // Spent: a second stop produces a fresh blob, and an old one points at a file that the
+            // task now owns.
+            $0.resumeData = nil
+            if !item.resumesInPlace { $0.received = 0 }
+        }
+        transfers.note(id, for: task.taskIdentifier)
+        tasks[id] = task
+        task.resume()
     }
 
     /// Takes the row off the list. The file, if there is one, stays where it was put.
@@ -131,13 +186,16 @@ final class DownloadStore {
         hasUnseen = true
     }
 
-    fileprivate func fail(_ id: Item.ID, _ message: String) {
+    fileprivate func fail(_ id: Item.ID, _ message: String, resumeData: Data?) {
         tasks[id] = nil
         update(id) {
+            if let resumeData { $0.resumeData = resumeData }
             guard $0.state == .running else { return } // a cancel is not a failure
+            guard !message.isEmpty else { $0.state = .cancelled; return } // a cancel from elsewhere
             $0.state = .failed
             $0.error = message
         }
+        guard !message.isEmpty else { return }
         hasUnseen = true
     }
 
@@ -240,7 +298,7 @@ private final class Transfers: NSObject, URLSessionDownloadDelegate, @unchecked 
             Task { @MainActor in store.finish(id, at: destination) }
         } catch {
             let message = error.localizedDescription
-            Task { @MainActor in store.fail(id, message) }
+            Task { @MainActor in store.fail(id, message, resumeData: nil) }
         }
     }
 
@@ -256,9 +314,21 @@ private final class Transfers: NSObject, URLSessionDownloadDelegate, @unchecked 
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: (any Error)?) {
         defer { forget(task) }
         guard let error, let id = id(of: task), let store else { return }
-        let message = (error as NSError).code == NSURLErrorCancelled ? "" : error.localizedDescription
-        guard !message.isEmpty else { return }
-        Task { @MainActor in store.fail(id, message) }
+        let failure = error as NSError
+        // A dropped network is where this matters most: the error carries the same blob a cancel
+        // produces, and without reading it here a transfer that stopped by itself could only start
+        // over.
+        let resumeData = failure.userInfo[NSURLSessionDownloadTaskResumeData] as? Data
+        let message = failure.code == NSURLErrorCancelled ? "" : error.localizedDescription
+        Task { @MainActor in store.fail(id, message, resumeData: resumeData) }
+    }
+
+    /// A resumed task says where it is starting from, so the row shows nine tenths of a bar rather
+    /// than an empty one that fills instantly.
+    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
+                    didResumeAtOffset fileOffset: Int64, expectedTotalBytes: Int64) {
+        guard let id = id(of: downloadTask), let store else { return }
+        Task { @MainActor in store.note(id, received: fileOffset, expected: expectedTotalBytes) }
     }
 
     /// Moves the finished file next to the others, under a name nothing else has. Called on the

@@ -3433,6 +3433,16 @@
         }
       }
     },
+    "Resume": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Продолжить"
+          }
+        }
+      }
+    },
     "Resumed session with %@ · %@": {
       "localizations": {
         "en": {
@@ -3915,6 +3925,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Остановлено"
+          }
+        }
+      }
+    },
+    "Stopped at %@": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Остановлено на %@"
           }
         }
       }

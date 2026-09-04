@@ -69,9 +69,17 @@ Files land in your **Downloads** folder under the name the server suggested, and
 never overwrite: a second `report.pdf` becomes `report 2.pdf`.
 
 The download ring appears in the top bar once something has been downloaded, and
-not before. Inside: what is coming in and how far, **Stop**, **Show in Finder**
-when it is done, and a context menu per row — open, copy the address, remove from
-the list. Removing a row never touches the file.
+not before. Inside: what is coming in and how far, **Stop**, **Resume** for one
+that has stopped, **Show in Finder** when it is done, and a context menu per row —
+open, copy the address, remove from the list. Removing a row never touches the
+file.
+
+**Resume** picks a transfer up where it left off: six asks the server for the
+missing bytes rather than for the file again, so the ninety per cent that went
+down with the network stays where it is. A download that died on its own behaves
+the same as one you stopped. When the server will not do that, the button is
+honestly called **Try Again**: it starts over, but it still saves you finding the
+page and the link a second time.
 
 A download **flies** from the click to that button, and the button bounces when
 it catches one: otherwise a click that put a file in a folder at the other end of
@@ -79,8 +87,8 @@ the screen looks like a click that did nothing.
 
 A download belongs to the browser, not to the window that started it: closing the
 window does not stop the transfer. The list is in memory only and is not written
-to the session snapshot, in any profile. An interrupted download cannot be
-resumed.
+to the session snapshot, in any profile — and quitting six loses the chance to
+resume along with the list.
 
 A window opened only to carry a link that turned out to be a file closes itself
 once the download starts: nothing was in it, and there is nothing to go back to.

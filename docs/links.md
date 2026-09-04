@@ -85,8 +85,36 @@ temporary file is.
 
 The button appears in the top bar as soon as there is a download and not before — a ring around it while a transfer
 is running, the profile's colour when one has finished and the list hasn't been opened. The list has the size, the
-host, Stop while it runs, Show in Finder when it is done, and a context menu with Open, Copy Address and Remove from
-List. Removing a row never touches the file.
+host, Stop while it runs, Resume when it has stopped, Show in Finder when it is done, and a context menu with Open,
+Copy Address and Remove from List. Removing a row never touches the file.
+
+### Picking one up again
+
+`URLSession` hands back a small blob — 8 KB for a 40 MB file, and it holds the temporary file's path and the
+validators the server gave, not the bytes — whenever a download stops with a chance of carrying on. six keeps it on
+the row and starts the next task from it, which asks for the rest with a `Range` header rather than for the whole
+file again.
+
+It arrives by two routes and both are taken. A **Stop** goes through `cancel(byProducingResumeData:)`, which answers
+on a background queue, so the row goes to *Stopped* at once and grows its resume data a moment later. A transfer that
+**died on its own** — the case that actually matters — carries the same blob in the error's
+`NSURLSessionDownloadTaskResumeData`, which is read in `didCompleteWithError`.
+
+A server that will not honour a range request gives nothing back, and then there is no resuming: six keeps the
+request as it was actually sent instead — cookies, referrer and all — and the button says **Try Again** rather than
+**Resume**, because starting over is what it will do. Both are one click, and neither sends the user back to find
+the page and the link a second time.
+
+Measured against a local server that supports ranges: a 40 MB file stopped at 12 845 056 bytes produced 8 038 bytes
+of resume data, the resumed task asked for `bytes=12845056-` and nothing before it, and the finished file matched
+the original's SHA-256. The same held when the server was killed mid-transfer instead of the download being
+cancelled. `didResumeAtOffset` sets the bar where the transfer left off, so a resumed download shows nine tenths of
+a bar rather than an empty one that fills instantly; `totalBytesWritten` counts from zero including the resumed
+bytes, so the rest of the row needs no arithmetic.
+
+The list is in memory, so this is within one run of six: quitting loses the rows and with them the resume data.
+Persisting it would mean persisting the list, and the partial file it points at lives in a temporary directory the
+system is entitled to empty — a *Resume* that failed after a relaunch would be worse than no button.
 
 A download belongs to the browser, not to the window that started it: closing the window does not stop the transfer.
 The list is in memory only — it is not written to the snapshot, in any profile.
@@ -120,7 +148,6 @@ queueing, so a burst of them settles once, at the end.
 
 ## Not built
 
-- Resuming an interrupted download (`URLSessionDownloadTask` has the data, six throws it away).
 - A form with `target=_blank` opens the new column with a GET: `newTab(url:)` takes an address, not a body.
 - Save Image / Copy Image, and the rest of what WebKit's menu knew about an element that is not a link.
 - ⇧-click and ⌘⇧-click: WebKit never asks anyone about them, so there is nothing to answer.
