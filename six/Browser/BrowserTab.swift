@@ -609,12 +609,31 @@ final class BrowserTab: Identifiable {
         load(url)
     }
 
+    /// Is there anything here to fetch again? A document is rendered from text six is holding, six's
+    /// own pages are drawn rather than loaded, and a start page has never been anywhere.
+    var canReload: Bool { isWebPage && currentURL != nil }
+
+    /// The guard is here rather than on the menu item, because a menu item cannot be greyed out on
+    /// an answer that changes with every navigation and does not rebuild the menu (`ViewCommands`).
+    /// `⌘R` on a document is a key with nothing to do, and does nothing — asking `page` for one
+    /// would build a web view for a window that is text six is holding.
+    func reload() {
+        guard canReload else { return }
+        _ = page.reload()
+    }
+
+    /// The reload that does not believe the cache — everything is asked of the network again.
+    func reloadFromOrigin() {
+        guard canReload else { return }
+        _ = page.reload(fromOrigin: true)
+    }
+
+    func stop() { livePage?.stopLoading() }
+
+    /// The address bar's one button, which has room for one verb at a time. The menu has room for
+    /// both and lists them separately.
     func reloadOrStop() {
-        if isLoading {
-            livePage?.stopLoading()
-        } else {
-            _ = page.reload()
-        }
+        if isLoading { stop() } else { reload() }
     }
 
     // MARK: Loading

@@ -3303,6 +3303,16 @@
         }
       }
     },
+    "Reload From Origin": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Перезагрузить с сервера"
+          }
+        }
+      }
+    },
     "Remote models unavailable: SDK/OS Foundation Models mismatch": {
       "localizations": {
         "ru": {

@@ -148,9 +148,14 @@ MCP server instead — that is what it is for:
 **Keys can be pressed, though — `NSApp.postEvent` needs no Accessibility.** It is the app's own queue, and a local
 `NSEvent` monitor is exactly what pulls events out of it, so a synthetic `⌥→` goes through the real router and moves
 the real rail. `SIX_KEY_SELFTEST=1` does both halves: it prints what every binding answers in every context, then
-posts the rail's keys one at a time and says where the rail ended up (`six/Input/KeySelfTest.swift`). Add to it rather
-than reasoning about the keyboard from the source — the bug it was written to find had survived a whole session of
-reasoning. `SIX_UI_DEBUG=1` prints a line per key press with the context it landed in and who took it.
+posts the rail's keys one at a time and says where the rail ended up (`six/Input/KeySelfTest.swift`). It does the
+`⌘` keys too, which are menu items and not table rows: `menuKeys` makes the focused `WKWebView` first responder by
+hand and then posts `⌘[` `⌘]` `⌘R`, because the interesting case is the one where WebKit is in front of the menu bar.
+Add to it rather than reasoning about the keyboard from the source — the bug it was written to find had survived a
+whole session of reasoning. Two things that make its output readable: a **control** key whose effect is not in doubt,
+so "the item did nothing" can be told from "the key never arrived"; and that control going **last**, because `⌘T`
+takes the selection with it and every key after it is then aimed at a fresh window with no history — which reads
+exactly like WebKit swallowing the key, and was believed once. `SIX_UI_DEBUG=1` prints a line per key press with the context it landed in and who took it.
 
 ## Three fronts, one dependency graph
 
@@ -314,10 +319,18 @@ anything added there has to exist on both:
   `flags == .option` is false for `⌥→` and always was — the rail's arrow keys had never worked from the keyboard, and
   the report they finally arrived as was "option + arrow doesn't always work". Compare against
   `KeyBinding.Modifiers.held` (⌘⌃⌥⇧) and nothing else.
+- **A `.disabled` on a SwiftUI `Commands` item is decided once, and a disabled item eats its key
+  equivalent.** The body is not rebuilt when the model state it read changes, so `Back` greyed out on
+  `canGoBack` stayed greyed out after a navigation and `⌘[` did nothing at all — measured with a run
+  each way. Read the window *inside* the action and let the key be a no-op where it has nothing to
+  do; `.disabled` on a `@FocusedValue` is the one form that does get rebuilt.
 - **A letter binding read from `charactersIgnoringModifiers` is a binding that only Latin layouts have.** `⌥W` reports
   «ц» on the Russian layout. Match the key code as well (`KeyBinding.Key.letter`), which is what a tiling WM does.
 - **`pkill -x six` kills the Release browser** — Artem's real one, with his real state. It is named in the rule above
-  and it is still the easy thing to type. Kill by path: `pkill -f "Debug/six.app/Contents/MacOS/six"`.
+  and it is still the easy thing to type. Kill by path: `pkill -f "Debug/six.app/Contents/MacOS/six"`. That kill is
+  by path and not by process, so it also takes down the **other session's** dev six, however they launched it —
+  a run of `SIX_KEY_SELFTEST` every few minutes looks from over there like an unexplained SIGKILL at 75–135 s with no
+  crash report. Say so before a series of them, and ask before taking the app down if someone needs a long window.
 
 ## How we work
 

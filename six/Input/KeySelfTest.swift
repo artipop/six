@@ -1,5 +1,6 @@
 #if os(macOS)
 import AppKit
+import WebKit
 
 /// `SIX_KEY_SELFTEST=1`: what the table answers, for every chord in it, in every context there is.
 ///
@@ -190,6 +191,80 @@ enum KeySelfTest {
         note("⌃⇥ → ring \(browser.switcher.ring.count), rail \(onThisRail), strip \(everywhere)")
         browser.cancelWindowSwitch()
         browser.closeTab(elsewhere.id) // the rail is left exactly as it was found
+
+        await menuKeys(browser, in: window)
+    }
+
+    /// The `⌘` keys, which are menu items rather than table rows — here for the same doubt the
+    /// table was written to settle, pointing the other way.
+    ///
+    /// A key equivalent is offered to the key window first and to the main menu second, so a focused
+    /// `WKWebView` stands in front of every menu item six has; WebKit keeps `⌥←` exactly that way.
+    /// Whether it also keeps `⌘[` and `⌘R` is not a question reading its source answers, so the page
+    /// is made first responder **by hand** for the second round — without that this measures only
+    /// the easy case, where the address field has the focus and nothing is competing for the key.
+    ///
+    /// `about:blank` and a fragment on it: two history entries, no network, and a back list that
+    /// says plainly whether the item ran. Reload leaves no trace in a back list, so the page is
+    /// marked from the inside instead and the mark is looked for again afterwards — a reload is the
+    /// mark being gone.
+    ///
+    /// The two controls go **last**, and that ordering is the whole reason this reads clearly.
+    /// `⌘T` opens a window and takes the selection with it, so a control pressed early leaves every
+    /// key after it aimed at a fresh window with no history — which looked exactly like WebKit
+    /// swallowing the key, and cost a round of believing it had.
+    private static func menuKeys(_ browser: BrowserState, in window: NSWindow) async {
+        guard let blank = URL(string: "about:blank") else { return }
+        let tab = browser.newTab(url: blank)
+        try? await Task.sleep(for: .milliseconds(700))
+        tab.load(URL(string: "about:blank#two") ?? blank)
+        try? await Task.sleep(for: .milliseconds(700))
+
+        for round in ["field focused", "page focused"] {
+            if round == "page focused", let page = webView(in: window) {
+                _ = window.makeFirstResponder(page)
+            }
+            note("\(round) — first responder \(responder(window)), \(describe(tab))")
+            for (name, code, characters) in [("⌘[", UInt16(33), "["), ("⌘]", UInt16(30), "]")] {
+                post(flags: .command, rawCode: code, characters: characters, in: window)
+                try? await Task.sleep(for: .milliseconds(500))
+                note("\(name) → \(describe(tab))")
+            }
+            _ = try? await tab.page.callJavaScript("window.__six = 1")
+            post(flags: .command, rawCode: 15, characters: "r", in: window)
+            try? await Task.sleep(for: .milliseconds(700))
+            let mark = try? await tab.page.callJavaScript("return window.__six")
+            note("⌘R → the page's mark is \((mark as? Int).map(String.init) ?? "gone"), \(describe(tab))")
+        }
+
+        // The control, and it goes last because it takes the selection with it: a menu key whose
+        // effect is not in doubt, so that a silent round above can be told apart from a posting that
+        // never arrived. Without it, "the item did nothing" and "the key never reached a menu" look
+        // identical, and they were confused here once already.
+        let before = browser.tabs.count
+        post(flags: .command, rawCode: 17, characters: "t", in: window)
+        try? await Task.sleep(for: .milliseconds(600))
+        note("⌘T (the control) → windows \(before) → \(browser.tabs.count)")
+        if let opened = browser.selectedTab, opened.id != tab.id { browser.closeTab(opened.id) }
+        browser.closeTab(tab.id) // as with the rail, nothing is left behind
+    }
+
+    private static func describe(_ tab: BrowserTab) -> String {
+        "\(tab.currentURL?.absoluteString ?? "—"), back \(tab.canGoBack), forward \(tab.canGoForward)"
+    }
+
+    private static func responder(_ window: NSWindow) -> String {
+        window.firstResponder.map { String(describing: type(of: $0)) } ?? "none"
+    }
+
+    /// The topmost `WKWebView` in the window, which is what SwiftUI's `WebView` is underneath.
+    private static func webView(in window: NSWindow) -> NSView? {
+        var stack = window.contentView.map { [$0] } ?? []
+        while let view = stack.popLast() {
+            if view is WKWebView { return view }
+            stack.append(contentsOf: view.subviews)
+        }
+        return nil
     }
 
     /// Which window on the rail is focused, and how the rail is showing it.
@@ -210,12 +285,17 @@ enum KeySelfTest {
     }
 
     private static func post(flags: NSEvent.ModifierFlags, code: KeyCode, in window: NSWindow) {
-        let characters = Self.characters(for: code)
+        post(flags: flags, rawCode: code.rawValue, characters: characters(for: code), in: window)
+    }
+
+    /// The menu's keys are not the table's keys, and `KeyCode` is the table's — a `case r` there
+    /// would be a name nothing in `KeyBindings` ever says. They are posted by number instead.
+    private static func post(flags: NSEvent.ModifierFlags, rawCode: UInt16, characters: String, in window: NSWindow) {
         guard let event = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: flags,
                                            timestamp: ProcessInfo.processInfo.systemUptime,
                                            windowNumber: window.windowNumber, context: nil,
                                            characters: characters, charactersIgnoringModifiers: characters,
-                                           isARepeat: false, keyCode: code.rawValue) else { return }
+                                           isARepeat: false, keyCode: rawCode) else { return }
         NSApp.postEvent(event, atStart: false)
     }
 

@@ -70,6 +70,10 @@ One rail's windows only — the workspace on screen — and this run only. `⌥�
 
 | | |
 |---|---|
+| `⌘R` | load the page again (also the ⟳ button beside the address) |
+| `⌘⇧R` | load it again without believing the cache — everything asked of the network afresh |
+| `⌘.` | stop loading |
+| `⌘[` `⌘]` | back / forward through this window's own history (also the ‹ › buttons) |
 | `⌘,` | settings — `six://settings`, in a column of the rail like any other address |
 | `⌘T` | new window on the rail, right of the focused one |
 | `⌘⇧N` | new document — a Markdown column next to the pages (edit / preview in the top bar, where its address would be) |
@@ -160,6 +164,17 @@ One rail's windows only — the workspace on screen — and this run only. `⌥�
 - To move the whole layout set to another modifier, change the `.exactly(.option)` rows in `KeyBindings.all` — the
   keys are read there and nowhere else. The `.keyboardShortcut`s left in `ViewCommands` and `FileCommands` (`⌥W`,
   `⌥O`, `⌥⇧T`, `⌥⇧H`, `⌥⇧P`) are for display and for the pointer; the router swallows the key before the menu can act on it.
+- **Nothing in the `⌘` table greys out, and the reason is a bug worth knowing.** SwiftUI decides
+  `.disabled` when a `Commands` body is built, and a body reading model state is *not* rebuilt when
+  that state changes — so an item disabled on `canGoBack` stays disabled after you navigate, and a
+  disabled item does not answer its key equivalent either. `⌘[` was dead on arrival for exactly that,
+  with a run each way to prove it was the modifier and not the action. The window is read inside the
+  action instead, and a key pressed where it has nothing to do does nothing. `.disabled` on a
+  `@FocusedValue` is fine — that is the one thing a `Commands` body does get rebuilt for.
+- **The `⌘` keys were measured with a page focused, not reasoned about.** `KeySelfTest.menuKeys`
+  makes the `WKWebView` first responder by hand and then posts `⌘[` `⌘]` `⌘R`, watching the back list
+  and a mark left inside the page. WebKit takes `⌥←` in front of the menu bar; it does not take
+  these.
 - **`SIX_UI_DEBUG=1` prints a line per key** — the chord, the context it landed in, and who took it. **`SIX_KEY_SELFTEST=1`**
   prints the whole matrix at launch: every binding against every context, which is how a binding that goes quiet
   somewhere is found without pressing anything (`KeySelfTest`; this Mac cannot press its own keys, see CLAUDE.md).

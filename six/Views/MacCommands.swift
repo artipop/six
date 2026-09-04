@@ -30,6 +30,31 @@ struct ViewCommands: Commands {
 
     var body: some Commands {
         CommandMenu("View") {
+            // The verbs the deleted Navigate menu took with it. Reload is the key a browser is
+            // pressed most often by, and six had none — the button in the address bar was the whole
+            // of it. They are `⌘`, so they are menu items and not `KeyBindings` rows, and measuring
+            // says that is enough: posted into a window whose focused `WKWebView` is first
+            // responder, `⌘R` reloads and `⌘[` walks back (`KeySelfTest.menuKeys`). WebKit takes
+            // `⌥←` and does not take these.
+            //
+            // **Nothing here greys out, and that is not laziness.** `.disabled` is decided when this
+            // body is built, and what it would be decided on — `canGoBack`, `isLoading` — changes
+            // with every navigation without rebuilding it. An item left disabled by a stale answer
+            // does not answer its key equivalent either, and the first version of this menu was dead
+            // for exactly that reason: `⌘[` did nothing until the modifier came off, with a
+            // single-variable run each way to prove it was the modifier and not the action. So the
+            // window is read *inside* the action, where it is always the one in front, and a key
+            // pressed where it has nothing to do does nothing — the same bargain Picture in Picture
+            // states below, arrived at the same way.
+            Button("Reload") { browser.selectedTab?.reload() }
+                .keyboardShortcut("r")
+            Button("Reload From Origin") { browser.selectedTab?.reloadFromOrigin() }
+                .keyboardShortcut("r", modifiers: [.command, .shift])
+            Button("Stop") { browser.selectedTab?.stop() }
+                .keyboardShortcut(".")
+
+            Divider()
+
             Toggle("Full Width", isOn: Binding(
                 get: { browser.layout.fill == .window },
                 set: { _ in browser.toggleFullWindow() }
@@ -85,6 +110,16 @@ struct HistoryCommands: Commands {
 
     var body: some Commands {
         CommandMenu("History") {
+            // Where Safari keeps them, and for the same reason: walking back and forward is walking
+            // this window's own history, not the profile's. Never greyed out, and read inside the
+            // action — see the note in `ViewCommands`, which is where that was measured.
+            Button("Back") { browser.selectedTab?.goBack() }
+                .keyboardShortcut("[")
+            Button("Forward") { browser.selectedTab?.goForward() }
+                .keyboardShortcut("]")
+
+            Divider()
+
             Button("Show History…") { showHistory?.perform() }
                 .keyboardShortcut("y")
                 .disabled(showHistory == nil)
