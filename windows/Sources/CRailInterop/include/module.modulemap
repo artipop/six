@@ -1,0 +1,4 @@
+module CRailInterop {
+    header "CRailInterop.h"
+    export *
+}

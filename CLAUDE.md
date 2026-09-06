@@ -15,6 +15,7 @@ vertically. Four front ends over one core:
 | **iOS/iPadOS** | `six.xcodeproj`, scheme `six-iOS` | same `six/` folder, exclusions in the pbxproj |
 | **Linux** | `linux/`, SwiftPM + GTK4/WebKitGTK 6.0 | over the same `six.sqlite`, in a container |
 | **Android** | `android/`, Kotlin + Compose | system WebView, its own storage layer, [docs/android.md](docs/android.md) |
+| **Windows** | `windows/`, SwiftPM + Win32 (`WinSDK`) | the rail only so far, no engine yet — [docs/windows.md](docs/windows.md) |
 
 Built on the macOS 26/27 APIs on purpose: SwiftUI `WebView`/`WebPage` (no `NSViewRepresentable`), Foundation Models as
 the single LLM API, ACP for agents, and the browser itself as an MCP server. Swift 5 language mode, `@Observable`,
@@ -166,7 +167,10 @@ exactly like WebKit swallowing the key, and was believed once. `SIX_UI_DEBUG=1` 
 This is where the repository bites most often: a version moves in one place and a *different* front stops building.
 Read this before touching any manifest, `Package.resolved`, or the `sources:` list.
 
-**There are three resolved graphs, and they are not independent.**
+**There are three resolved graphs, and they are not independent** — a fourth, `windows/Package.resolved`,
+joined the family with the Windows front; unlike Linux's it adds no dependency of its own (`windows/`
+depends on the root package alone), so it should only ever mirror whatever the root file already
+resolves to. Untested, because nothing has resolved it yet — see [docs/windows.md](docs/windows.md).
 
 | file | resolves for | the constraint on it |
 |---|---|---|
