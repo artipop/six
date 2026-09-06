@@ -102,6 +102,10 @@ public final class RailWindow {
             handleClick(x: Int(SixRailPointX(lParam)), y: Int(SixRailPointY(lParam)))
             return 0
 
+        case WM_KEYDOWN:
+            handleKeyDown(virtualKey: Int32(wParam), lParam: lParam)
+            return 0
+
         case WM_MOUSEWHEEL:
             handleWheel(delta: Int32(SixRailWheelDelta(wParam)), horizontal: false)
             return 0

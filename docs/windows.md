@@ -71,17 +71,25 @@ windows/Sources/six-windows        main.swift: create the window, pump messages,
 - **Full width and centred focus** (niri's `toggleFullWidth`/`centerFocus`) are wired on `RailModel`
   and need no rendering work of their own: they only change the geometry `NiriLayout` reports, which
   the rail already redraws from on every paint.
+- **The real hotkey table.** `KeyBindings`/`KeyContext` — the same platform-agnostic table the Mac
+  reads — unchanged, through `RailKeyLookup` in `SixBrowser` (the `@testable` seam onto `SixCore`,
+  same as `RailModel`'s). `⌥←/→`, `⌥⇧←/→`, `⌥↑/↓`, `⌥⇧↑/↓`, `⌥Home/End`, `⌥W`, `⌥C` all answer;
+  `RailKeyInput.swift` in `SixUI` is the Win32 half — `KeyEvents.swift`'s counterpart — turning
+  `WM_KEYDOWN` into the table's vocabulary. Letters are matched by **scan code**, not virtual-key
+  code: a virtual key is remapped wholesale by a non-Latin layout the same way `charactersIgnoringModifiers`
+  is on the Mac, and CLAUDE.md already has the postmortem for what that breaks (`⌥W` reporting «ц»).
+  The arrows and the named keys have no such ambiguity and go by virtual-key code.
+  What the table can ask for that this front cannot yet do — the ⌃Tab ring, the overview,
+  translation, highlighting, picture-in-picture — answers `nil` and does nothing, honestly, rather
+  than half-answering.
 
 ## What is not
 
 - **The overview** (`⌥O`). `NiriLayout.isOverview` would flip happily, but this front does not draw
   the zoomed-out view yet, and a toggle nothing on screen answers to is worse than no toggle — so
-  `RailModel` does not expose it. Whoever adds it next has `linux/Sources/SixUI/BrowserContent.swift`
-  and the Mac's `NiriStripView` as the two existing readings of the same `NiriLayout` state.
-- **Real hotkeys.** Mouse and wheel are this commit; `KeyBindings`/`KeyContext` — the same
-  platform-agnostic table the Mac and (eventually) every front read — is the next one, translating
-  `WM_KEYDOWN` and `GetKeyState` into the table's `KeyCode`/`KeyModifiers` the way `KeyEvents.swift`
-  does for `NSEvent`.
+  neither `RailModel` nor `RailKeyLookup` expose it, and `⌥O` does nothing. Whoever adds it next has
+  `linux/Sources/SixUI/BrowserContent.swift` and the Mac's `NiriStripView` as the two existing
+  readings of the same `NiriLayout` state.
 - **A real page.** A column is a title and a color, not a `WebView2` or anything else — see "Why
   Win32" above for the WinRT path this could grow into, and `../sixty/windows/WebKitAdapter` for the
   parallel WebKit-on-Windows experiment.

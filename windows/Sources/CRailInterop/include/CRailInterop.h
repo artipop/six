@@ -16,6 +16,10 @@ static inline int SixRailLoWord(LPARAM lParam) { return LOWORD(lParam); }
 static inline int SixRailHiWord(LPARAM lParam) { return HIWORD(lParam); }
 static inline int SixRailWheelDelta(WPARAM wParam) { return GET_WHEEL_DELTA_WPARAM(wParam); }
 static inline BOOL SixRailKeyDown(int virtualKey) { return GetKeyState(virtualKey) < 0; }
+// The scan code (Set 1) in WM_KEYDOWN's lParam, bits 16-23 — the physical key, the same one
+// regardless of the active keyboard layout. `KeyBindings`' letter bindings want this, not the
+// virtual-key code: see CLAUDE.md's note on `⌥W` reporting «ц» on a Russian layout.
+static inline int SixRailScanCode(LPARAM lParam) { return (int)((lParam >> 16) & 0xFF); }
 
 // The instance a `WNDPROC` belongs to travels through `GWLP_USERDATA`: set from `CREATESTRUCTW`
 // on `WM_NCCREATE`, read back on every message after it.
