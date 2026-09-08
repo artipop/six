@@ -281,6 +281,14 @@ struct sixApp: App {
                     .keyboardShortcut("l")
                     .disabled(focusAddressBar == nil)
             }
+            // The Edit menu's own group, next to Copy, because this is the same verb aimed at the
+            // window instead of at the selection. The key is answered by `KeyBindings` before the
+            // menu bar is ever asked — a focused `WKWebView` would otherwise get there first — so
+            // the item is here to be found and to be clicked.
+            CommandGroup(after: .pasteboard) {
+                Button("Copy Address") { browser.copyAddress() }
+                    .keyboardShortcut("c", modifiers: [.command, .shift])
+            }
             FileCommands(browser: browser, highlights: highlights)
             ViewCommands(browser: browser)
             HistoryCommands(browser: browser)

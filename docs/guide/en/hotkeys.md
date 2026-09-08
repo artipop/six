@@ -58,6 +58,7 @@ workspaces, not other profiles — and this run only.
 | `⌘⇧T` | put the last closed window back where it stood |
 | `⌘⇧N` | a new document |
 | `⌘⇧P` | a new private window |
+| `⌘⇧C` | copy the focused window's address, whole; a tick appears in the field (also Edit ▸ Copy Address). Nothing to copy on a start page, a document or an app window, and there the key does nothing |
 | `⌘L` | focus the address field |
 | `⌘K` | the assistant line |
 | `⌘⇧A` | the agent panel |

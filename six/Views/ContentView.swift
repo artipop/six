@@ -157,6 +157,10 @@ extension ContentView {
                 // wanted it rather than being swallowed by a card.
                 guard let tab = browser.selectedTab, tab.hasLivePage else { return false }
                 tab.togglePictureInPicture()
+            case .copyAddress:
+                // Declined on a window with no address of its own — a start page, a document, an
+                // app window — for the same reason.
+                return browser.copyAddress()
             }
             return true
         }

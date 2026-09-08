@@ -1123,6 +1123,33 @@ final class BrowserState {
         if let id = selectedTabID { closeTab(id) }
     }
 
+    // MARK: The address, copied
+
+    /// The window whose address was copied a moment ago, and nothing else: the field draws a tick
+    /// while this is its window. A keystroke that copies has no other sign — the pasteboard is not on
+    /// screen — and "did that work?" is the whole question a person has after pressing it.
+    private(set) var copiedAddress: BrowserTab.ID?
+    @ObservationIgnored private var copiedAddressReset: Task<Void, Never>?
+
+    /// ⌃⇧C. The address of the window being read, as it would be pasted — the whole of it, encoded
+    /// the way it travels, which is what an address is once it leaves the field that prettifies it.
+    ///
+    /// False when there is nothing to copy: a start page, a document, an app window. The key then
+    /// falls through to whatever else wanted it rather than being swallowed on an empty window.
+    @discardableResult
+    func copyAddress() -> Bool {
+        guard let tab = selectedTab, let url = tab.currentURL else { return false }
+        Platform.copy(url.absoluteString)
+        copiedAddress = tab.id
+        copiedAddressReset?.cancel()
+        copiedAddressReset = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(1100))
+            guard !Task.isCancelled else { return }
+            self?.copiedAddress = nil
+        }
+        return true
+    }
+
     // MARK: Putting a closed window back
 
     /// How many closed windows are held for ⌘⇧T. Deep enough to undo a run of ⌘W, and bounded at all

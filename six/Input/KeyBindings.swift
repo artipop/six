@@ -61,9 +61,29 @@ enum KeyBindings {
         // would rather have the key.
         KeyBinding(.letter("p", .p), .exactly([.option, .shift]), .rail, .pictureInPicture),
 
+        // MARK: The address, into the pasteboard
+        // ⌘⇧C, which is what Arc calls Copy URL and what the Chromium forks bind on Windows — as
+        // `⌃⇧C` there, which is why the chord is asked for rather than written (`copyAddressChord`).
+        // It is in the table and not only in the menu because the key is pressed while the page has
+        // the focus, and a focused `WKWebView` answers a key equivalent before the menu bar is
+        // asked. ⌘C is the page's own — the selection — and stays the page's.
+        KeyBinding(.letter("c", .c), .exactly(copyAddressChord), .rail, .copyAddress),
+
         // MARK: ⎋
         KeyBinding(.code(.escape), .exactly([]), .rail, .leaveOverview)
     ]
+
+    /// ⌘⇧C where there is a ⌘, and ⌃⇧C where there is not — the same chord under the two names the
+    /// two keyboards give it, which is how every browser writes this one. The rest of the table is
+    /// spelled the same everywhere because ⌥ is: it stands in for niri's `Mod` and not for a
+    /// platform's habit.
+    static let copyAddressChord: KeyModifiers = {
+        #if os(macOS) || os(iOS)
+        [.command, .shift]
+        #else
+        [.control, .shift]
+        #endif
+    }()
 }
 
 /// One binding: the key, what has to be held, where it is allowed to answer, and what it does.
@@ -189,6 +209,7 @@ enum KeyAction: Equatable {
     case translateSelection
     case highlightSelection
     case pictureInPicture
+    case copyAddress
     case stepSwitcher(Int)
     case landSwitcher
     case cancelSwitcher

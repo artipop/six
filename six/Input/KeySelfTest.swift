@@ -40,6 +40,8 @@ enum KeySelfTest {
             ("⌥⇧H", [.option, .shift], .h, "h"),
             ("⌥⇧P", [.option, .shift], .p, "p"),
             ("⌥⇧P (ru)", [.option, .shift], .p, "з"),
+            ("⌘⇧C", [.command, .shift], .c, "c"),
+            ("⌘⇧C (ru)", [.command, .shift], .c, "с"),
             ("⌃Tab", .control, .tab, "\t"),
             ("⌃⇧Tab", [.control, .shift], .tab, "\t"),
             ("⌃→", .control, .rightArrow, ""),
@@ -81,6 +83,7 @@ enum KeySelfTest {
         case .translateSelection: return "translate"
         case .highlightSelection: return "highlight"
         case .pictureInPicture: return "picture"
+        case .copyAddress: return "copy address"
         case .stepSwitcher(let step): return step < 0 ? "ring ←" : "ring →"
         case .landSwitcher: return "land"
         case .cancelSwitcher: return "cancel"
@@ -236,6 +239,15 @@ enum KeySelfTest {
             let mark = try? await tab.page.callJavaScript("return window.__six")
             note("⌘R → the page's mark is \((mark as? Int).map(String.init) ?? "gone"), \(describe(tab))")
         }
+
+        // ⌘⇧C, measured the only way it can be: press it and look in the pasteboard. It is a table
+        // row rather than a menu item, so this is asking whether the router beats the focused page
+        // to a ⌘ chord — the same question `⌘[` above asks from the other side.
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString("nothing was copied", forType: .string)
+        post(flags: [.command, .shift], code: .c, in: window)
+        try? await Task.sleep(for: .milliseconds(400))
+        note("⌘⇧C → pasteboard \(NSPasteboard.general.string(forType: .string) ?? "—")")
 
         // The control, and it goes last because it takes the selection with it: a menu key whose
         // effect is not in doubt, so that a silent round above can be told apart from a posting that

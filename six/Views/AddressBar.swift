@@ -74,7 +74,17 @@ struct AddressBar: View {
                     addressFocus.wrappedValue = nil
                 }
             translate
+            // ⌘⇧C leaves nothing on screen; this is the whole of what it says. Two rectangles
+            // rather than a tick, because the answer is "the address is on the pasteboard" and not
+            // "something worked" — it is the sign every copy button carries. See
+            // `BrowserState.copyAddress`.
+            if browser.copiedAddress == tab.id {
+                Image(systemName: "square.on.square")
+                    .foregroundStyle(.tint)
+                    .transition(.opacity)
+            }
         }
+        .animation(.smooth(duration: 0.15), value: browser.copiedAddress)
         .padding(.horizontal, 8)
         .padding(.vertical, 3)
         .frame(height: 24)
