@@ -101,6 +101,37 @@ missed:
    assistant surface at all yet, and a selection bar is a different gesture on a touch screen —
    iOS puts its own menu over a selection.
 
+## Windows: a WebKit built by CI rather than the one Playwright pins
+
+The Windows front runs the WebKit that `playwright install webkit` puts on the machine, and takes whatever
+revision the installed Playwright pins — currently `webkit-2359`. That is a release channel, not a source of
+current builds, and it is now the thing standing between this front and deleting code it would rather not have:
+
+- `RailWebView.installScaleShim` exists only because WebKit's Windows port presents its surface into the window
+  with no downscale ([windows.md](windows.md)). If a build exists where that is fixed, the shim, the divided rect
+  handed to `WKViewCreate`, and the compositing preference all go away together.
+- Playwright's own newest build was checked and is not it. `webkit-2360` — one revision past the pinned `2359`,
+  pulled straight off `https://cdn.playwright.dev/dbazure/download/playwright/builds/webkit/2360/webkit-win64.zip`
+  — behaves identically; `2361` and up return 400, so that CDN is exhausted until Playwright rolls again.
+
+**The recipe already exists and is Artem's own**, from about six months before this was written: the second option
+in [dev.to: Running the latest Safari WebKit on Windows](https://dev.to/dustinbrett/running-the-latest-safari-webkit-on-windows-33pb),
+which pulls binaries off WebKit's CI. His note is that the CI links have shifted since, so expect to re-find them
+rather than follow the article literally.
+
+Nothing in this repo pins the engine, so trying one is cheap: `six-windows.ps1 -PlaywrightWebKitDir <folder>`
+points a build at any WebKit2.dll set. The one real chore is `windows/vendor/WebKit2/WebKit2.lib`, generated from
+the DLL's own export table — if the exports have moved it has to be regenerated from the `.def` before the front
+will link.
+
+Other reference material collected along the way, none of it followed yet:
+
+- [Every way to run WebKit on Windows](https://fujii.github.io/2019/07/05/webkit-on-windows/) — the survey.
+- [Running WebKit on Windows](https://schepp.dev/posts/running-webkit-on-windows/) and its
+  [HN thread](https://news.ycombinator.com/item?id=30280404) — getting a MiniBrowser up.
+- [qt-ultralight-browser](https://github.com/niutech/qt-ultralight-browser) — the QtWebKit route, as taken by
+  Otter Browser, which does build on Windows.
+
 ## Developer tools: the half Chrome's devtools MCP has and six does not
 
 Web Inspector and capture are built ([devtools.md](devtools.md)): console, network, screenshots, over MCP. What an

@@ -142,7 +142,7 @@ coordinates within two pixels of its centre.
 | `WKViewSetUsesOffscreenRendering(view, true)` | shrinks into a corner, rest blank |
 | page zoom | scales what is drawn and what is hit-tested by the same factor, so it cannot close a gap between them |
 | sizing the live view to 1/1.5 of its card and leaving it there | sharp and correctly sized, and the right and bottom thirds of the page stop receiving mouse input |
-| Playwright's newest WebKit (`webkit-2360`, one revision past the pinned `webkit-2359`, pulled straight off `cdn.playwright.dev`) | identical behaviour; the downscale is still missing |
+| Playwright's newest WebKit — `webkit-2360`, one revision past the pinned `webkit-2359`, from `https://cdn.playwright.dev/dbazure/download/playwright/builds/webkit/<rev>/webkit-win64.zip` (`2361`+ are 400, so that is the newest that exists) | identical behaviour; the downscale is still missing upstream. A build off WebKit's own CI is the next thing to try — [todo.md](todo.md) |
 
 **Accelerated compositing is off** (`WKPreferencesSetAcceleratedCompositingEnabled(preferences,
 false)`). With the shim in place the accelerated path draws correctly too — it was the DPI-unaware
