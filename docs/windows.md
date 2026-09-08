@@ -362,6 +362,20 @@ swallowed (returns `0`) when a binding matched; anything else falls through to `
   Playwright WebKit build (`playwright install webkit` pulls whatever is current; the one this was
   tested against is `webkit-2359`) or a patch to WebKit's own Windows-port compositing code — both
   outside what a consumer of the public C API can reach from here.
+
+  **The practical consequence: clicks land on the wrong thing.** Mouse input to the `WKView`'s child
+  `HWND` arrives in that `HWND`'s own real, correctly-sized coordinate space (confirmed above, and
+  Windows delivers `WM_LBUTTONDOWN`/`WM_MOUSEMOVE` in physical client pixels regardless of what the
+  compositor is showing) — but what a person actually *sees* at any given point on screen is content
+  from a differently-scaled, differently-positioned layout, per the overshoot above. So a click aimed
+  at, say, a page's own search box by eye lands at that same screen position translated into the
+  `HWND`'s coordinate space, which is not where the search box's *real* hit-test rectangle is inside
+  WebKit's own oversized layout — confirmed by hand: clicking into a page's own input field routinely
+  focuses something else on the page, or nothing at all, at this dev machine's 150% scale. This is not
+  a separate bug from the rendering overshoot above — same root cause, same fix (or lack of one) — but
+  worth stating on its own because it is the difference between "the page looks wrong" and "the page
+  cannot actually be used": text can often still be read past the visual cropping, but a form, a link,
+  or anything else that needs a precise click is not reliably reachable at all right now.
 - **DPI scaling of the rail's own chrome is, incidentally, fine.** `main.swift` declares
   `DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2` (originally to chase the bug above), which means
   `WM_SIZE` now reports genuine physical pixels rather than a DPI-virtualized value — and since
