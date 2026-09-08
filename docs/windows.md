@@ -228,8 +228,10 @@ that cost real time to work out, and are worth never re-deriving:
    or the Windows SDK's own `Redist\ucrt\DLLs\x64\`. Copying all three sets is the reliable fix,
    cheaper than diagnosing why a system-wide install did not put them on the loader's path. (A
    `Microsoft Visual C++ Redistributable (x64)` install is still worth having; it is just not
-   sufficient on its own.) The engine comes from `%LOCALAPPDATA%\ms-playwright\webkit-*`, which the
-   script auto-discovers; pass `-PlaywrightWebKitDir` to point at a different build.
+   sufficient on its own.) The engine is whatever `-WebKitDir` points at — any
+   WebKit2.dll build whose exports still match `windows/vendor/WebKit2`'s import library. It
+   defaults to the newest `%LOCALAPPDATA%\ms-playwright\webkit-*` only because that is the build
+   already on this machine.
 
 Two Win32 environment quirks worth knowing if this script is ever revisited:
 

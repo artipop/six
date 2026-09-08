@@ -119,7 +119,7 @@ in [dev.to: Running the latest Safari WebKit on Windows](https://dev.to/dustinbr
 which pulls binaries off WebKit's CI. His note is that the CI links have shifted since, so expect to re-find them
 rather than follow the article literally.
 
-Nothing in this repo pins the engine, so trying one is cheap: `six-windows.ps1 -PlaywrightWebKitDir <folder>`
+Nothing in this repo pins the engine, so trying one is cheap: `six-windows.ps1 -WebKitDir <folder>`
 points a build at any WebKit2.dll set. The one real chore is `windows/vendor/WebKit2/WebKit2.lib`, generated from
 the DLL's own export table — if the exports have moved it has to be regenerated from the `.def` before the front
 will link.

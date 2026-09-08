@@ -37,10 +37,12 @@
     Passed to `swift build --scratch-path`. Worth pointing elsewhere when the default is locked by a
     process Windows will not let anyone kill - it has happened.
 
-.PARAMETER PlaywrightWebKitDir
-    Where the real engine DLLs live. Defaults to the newest %LOCALAPPDATA%\ms-playwright\webkit-*,
-    what `npx playwright install webkit` creates. Pass it explicitly on a machine where that was
-    never run, pointed at any WebKit2.dll build matching windows/vendor/WebKit2's import library.
+.PARAMETER WebKitDir
+    Where the engine DLLs live. Any WebKit2.dll build whose exports still match
+    windows/vendor/WebKit2's import library will do - a CI build, a local one - which is the point of
+    the parameter. It only defaults to Playwright's because that is the one build already on this
+    machine: the newest %LOCALAPPDATA%\ms-playwright\webkit-*, what `npx playwright install webkit`
+    creates.
 
 .EXAMPLE
     ./scripts/six-windows.ps1 build
@@ -53,7 +55,7 @@ param(
     [string]$SwiftVersion = "6.3.3",
     [string]$WindowsSdkVersion = "26100.0",
     [string]$ScratchPath = "",
-    [string]$PlaywrightWebKitDir = ""
+    [string]$WebKitDir = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -93,13 +95,13 @@ $runtimeBin = "$swiftRoot\Runtimes\$SwiftVersion\usr\bin"
 $sdkRoot = "$swiftRoot\Platforms\$SwiftVersion\Windows.platform\Developer\SDKs\Windows.sdk\"
 $ucrtRedist = "C:\Program Files (x86)\Windows Kits\10\Redist\10.0.$WindowsSdkVersion\ucrt\DLLs\x64"
 
-if ($PlaywrightWebKitDir -eq "") {
+if ($WebKitDir -eq "") {
     $found = Get-ChildItem "$env:LOCALAPPDATA\ms-playwright" -Directory -Filter "webkit-*" -ErrorAction SilentlyContinue |
         Sort-Object Name -Descending | Select-Object -First 1
-    if ($found) { $PlaywrightWebKitDir = $found.FullName }
+    if ($found) { $WebKitDir = $found.FullName }
 }
-if ($PlaywrightWebKitDir -eq "" -or -not (Test-Path $PlaywrightWebKitDir)) {
-    throw "No Playwright WebKit build found under $env:LOCALAPPDATA\ms-playwright - run 'npx playwright install webkit' or pass -PlaywrightWebKitDir."
+if ($WebKitDir -eq "" -or -not (Test-Path $WebKitDir)) {
+    throw "No WebKit build found. Pass -WebKitDir, or run 'npx playwright install webkit' to put one under $env:LOCALAPPDATA\ms-playwright for the default to find."
 }
 
 if (-not (Test-Path $toolchainBin)) {
@@ -154,7 +156,7 @@ function Clear-MappedOutput {
 
 # Same reason, the other half: a locked DLL here is by definition already present, and it is the same
 # build artefact the copy would have written, so a failure to overwrite it is not a failure. Skipping
-# same-size files also keeps the Playwright engine copy from rewriting ~400 MB on every build.
+# same-size files also keeps the engine copy from rewriting a few hundred MB on every build.
 function Copy-RuntimeFiles {
     param([string]$Source, [string]$Filter = "*")
     $prefix = (Resolve-Path $Source).Path.TrimEnd("\")
@@ -179,10 +181,10 @@ try {
 
     Copy-RuntimeFiles -Source $ucrtRedist -Filter "*.dll"
     Copy-RuntimeFiles -Source $runtimeBin -Filter "*.dll"
-    Copy-RuntimeFiles -Source $PlaywrightWebKitDir
+    Copy-RuntimeFiles -Source $WebKitDir
 
     Write-Output "Built: $exe"
-    Write-Output "Engine: $PlaywrightWebKitDir"
+    Write-Output "Engine: $WebKitDir"
 
     if ($Command -eq "run") {
         $psi = New-Object System.Diagnostics.ProcessStartInfo
