@@ -426,6 +426,12 @@ final class BrowserTab: Identifiable {
         // Every page WebKit builds has picture-in-picture off and no field in the configuration to
         // ask with, so it is asked for here, once, for every kind of window (`PagePictureInPicture`).
         page.allowPictureInPicture()
+        // WebKit's fullscreen window cannot size a view SwiftUI holds by constraints, so the
+        // hold is swapped for the duration (`PageElementFullscreen`). Measured on macOS and fixed
+        // there only: the same page on iOS has no window to be moved into, and nobody has looked.
+        #if os(macOS)
+        page.watchElementFullscreenHosting()
+        #endif
         generation += 1
         watchNavigations(of: page)
         cache?.noteLive(self)

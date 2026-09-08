@@ -1,4 +1,10 @@
-# Upstream: two Linux regressions that keep SQLiteData from building
+# Upstream: bugs that are not six's
+
+Three of them, kept here with the repro that isolates each. Two are Linux regressions that keep
+SQLiteData from building; the third is a WebKit rendering bug that makes a video's own fullscreen
+button draw a black screen under SwiftUI's `WebView`.
+
+## The two Linux regressions
 
 Found while bringing six's storage layer up on Linux ([docs/storage.md](docs/storage.md)). Neither is
 six's bug and neither is in a package six imports — both arrive through `SQLiteData`, which depends on
@@ -144,3 +150,90 @@ Unrelated but worth knowing for anyone else arriving here:
 [sqlite-data#459](https://github.com/pointfreeco/sqlite-data/pull/459) is an open Linux-support PR for
 SQLiteData itself, covering CloudKit gating in its tests and its GRDB floor. It does not touch either
 of the packages above, so merging it would not by itself make SQLiteData build on Linux.
+
+---
+
+## 3. WebKit — element fullscreen draws nothing under SwiftUI's `WebView`
+
+**Title:** `WebView` with `webViewElementFullscreenBehavior(.enabled)` goes fullscreen and renders a
+black screen; the same page in a `WKWebView` is correct
+
+### Summary
+
+On macOS 27, a page taken fullscreen from a SwiftUI `WebView` shows nothing at all. WebKit does
+everything it says it does — `WebPage.fullscreenState` walks `enteringFullscreen` → `inFullscreen`, a
+`WebCoreFullScreenWindow` opens at the size of the display, the web view is moved into it, audio goes
+on playing and the media controls' timer goes on advancing — and the window draws its backdrop. `⎋`
+gives the page back unharmed, which is what makes it read as a lost tab rather than a lost frame.
+
+The same URL, the same machine, in a `WKWebView` behind an `NSViewRepresentable` with
+`configuration.preferences.isElementFullscreenEnabled = true`, is perfect. The difference between the
+two is how the view is held. SwiftUI's `WebView` hosts it under Auto Layout —
+`translatesAutoresizingMaskIntoConstraints == false`, `autoresizingMask` empty. WebKit's fullscreen
+controller moves the view into a window of its own and sizes it by frame; a view that answers to
+constraints arrives there with none of them, is laid out at nothing, and the window has only its
+backdrop to show. A `WKWebView` held that way has been going black in fullscreen since at least 2022
+— [developer.apple.com/forums/thread/720612](https://developer.apple.com/forums/thread/720612) — where
+the answer is the same two lines as the workaround below. What is new is that SwiftUI's own wrapper
+now puts every `WebView` in that state, with no public way to say otherwise.
+
+### Steps to reproduce
+
+Twenty-five lines, no third-party code:
+
+```swift
+import SwiftUI
+import WebKit
+
+@MainActor enum Holder { static let page = WebPage() }
+
+struct Root: View {
+    var body: some View {
+        WebView(Holder.page)
+            .webViewElementFullscreenBehavior(.enabled)
+            .onAppear {
+                let url = URL(string: "https://www.w3schools.com/html/mov_bbb.mp4")!
+                _ = Holder.page.load(URLRequest(url: url))
+            }
+    }
+}
+
+struct FSTest: App {
+    var body: some Scene { WindowGroup { Root() } }
+}
+
+FSTest.main()
+```
+
+Build against the macOS 27 SDK, run, and press the fullscreen button in the video's controls.
+
+**Expected:** the video, full screen.
+**Actual:** a black screen at the size of the display. The sound plays and the timer advances. `⎋`
+returns to a page that is entirely fine.
+
+For the control, replace the `WebView` with an `NSViewRepresentable` around a `WKWebView` configured
+with `preferences.isElementFullscreenEnabled = true`: fullscreen is correct.
+
+### Environment
+
+```
+macOS 27.0 (Darwin 27.0.0), Apple silicon
+Command Line Tools macOS 27.0 SDK
+Swift 6.4
+```
+
+### Workaround
+
+Reach the `WKWebView` behind the `WebPage` and let it answer to its frame while WebKit has it:
+
+```swift
+view.translatesAutoresizingMaskIntoConstraints = true
+view.autoresizingMask = [.width, .height]
+```
+
+Only for the duration. Left on, SwiftUI goes on laying the surrounding view out with constraints the
+view no longer answers to. six does this from `enteringFullscreen` until the state comes back to
+`notInFullscreen` (`six/Browser/PageElementFullscreen.swift`), and the web view itself is reached
+through `Mirror`, because `WebPage` does not hand it out — which is to say the workaround is only
+available to someone willing to do both of those things.
+

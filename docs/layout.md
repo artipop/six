@@ -251,6 +251,18 @@ window, nothing to see. The rail's `WebView` says `.webViewElementFullscreenBeha
 phone strip's. What WebKit then opens is a window of its own, with its own `⎋`; `KeyEvents` already knows to keep
 its hands off it, by the class name.
 
+Turning it on is only half of it, and the other half is a WebKit bug six has to reach around. With the modifier
+alone the page does go fullscreen — `fullscreenState` reaches `inFullscreen`, the sound plays, the timer runs — and
+draws **nothing**: a black screen the size of the display, given back unharmed on `⎋`. Twenty-five lines reproduce
+it with no six in them, and the same page in a `WKWebView` behind an `NSViewRepresentable` is perfect, so what
+differs is how the view is *held*. SwiftUI's `WebView` hosts it under Auto Layout; WebKit's fullscreen controller
+moves it into a window of its own and sizes it by frame, where it arrives with no constraints, is laid out at
+nothing, and leaves the backdrop showing. `PageElementFullscreen` swaps the hold for the duration —
+`translatesAutoresizingMaskIntoConstraints` and an autoresizing mask from `enteringFullscreen` until the state
+comes back — and hands the view to Auto Layout again after, because leaving it flipped is its own regression: the
+rail goes on laying out with constraints the view no longer answers to. The write-up and the repro are in
+[UPSTREAM.md](../UPSTREAM.md).
+
 Full width is `NiriFill.window` on the layout — a mode, not per-window state. `fillsViewport` is what the geometry
 asks, and it is false while the overview is open, so the overview keeps its gaps and title bars and the mode returns
 when it closes. The rail goes on working underneath: `⌥←` `⌥→` walk from window to window and the next one arrives

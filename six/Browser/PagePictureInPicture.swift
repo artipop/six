@@ -48,7 +48,7 @@ extension WebPage {
     /// It wants a page that exists: the preference travels to the web content process when it
     /// changes, and a page with no web view yet has nothing to travel to.
     func allowPictureInPicture() {
-        guard let preferences = pictureInPictureWebView?.configuration.preferences,
+        guard let preferences = backingWebView?.configuration.preferences,
               preferences.responds(to: Self.allowsPictureInPicture) else { return }
         preferences.setValue(true, forKey: "allowsPictureInPictureMediaPlayback")
     }
@@ -112,13 +112,16 @@ extension WebPage {
     /// WebKit's own answer, for the video it considers this page's main one. Read the note above
     /// before trusting it on its own: it is false for plenty of videos that are floating.
     private var webKitReportsPictureInPicture: Bool {
-        guard let view = pictureInPictureWebView, view.responds(to: Self.isActive) else { return false }
+        guard let view = backingWebView, view.responds(to: Self.isActive) else { return false }
         return view.value(forKey: "isPictureInPictureActive") as? Bool ?? false
     }
 
     /// The web view behind the page. Reading `url` first is not a nicety: the storage is lazy, and a
     /// page that has been built but never asked anything has nothing in it.
-    private var pictureInPictureWebView: WKWebView? {
+    ///
+    /// Not private, because the same door is the only way to reach the hosting bug that element
+    /// fullscreen dies of (`PageElementFullscreen`).
+    var backingWebView: WKWebView? {
         _ = url
         for child in Mirror(reflecting: self).children where child.label == Self.backingWebViewLabel {
             return Mirror(reflecting: child.value).children.first?.value as? WKWebView
