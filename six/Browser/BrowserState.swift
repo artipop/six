@@ -697,11 +697,10 @@ final class BrowserState {
     /// window itself (`window.open`, a `_blank` link clicked plainly) comes forward, because the page
     /// opened it to be looked at.
     func openInNewWindow(_ url: URL, from tab: BrowserTab, background: Bool = false) {
-        guard let scheme = url.scheme?.lowercased() else { return }
-        guard ["http", "https", "file", "about", "six"].contains(scheme) else {
-            #if os(macOS)
-            NSWorkspace.shared.open(url) // mailto:, tel:, a custom scheme — the system's business
-            #endif
+        guard url.scheme != nil else { return }
+        // mailto:, tel:, magnet:, a custom scheme — the system's business, not a column's.
+        guard !ExternalScheme.isExternal(url) else {
+            ExternalScheme.open(url)
             return
         }
         let opened = newTab(url: url, in: tab.profileID, workspace: nil, activate: !background)

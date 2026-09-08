@@ -662,6 +662,12 @@ final class BrowserTab: Identifiable {
             onBuiltInAddress?(self, page)
             return
         }
+        // A magnet link pasted into the address bar, or handed over by anything else that calls
+        // this: the system's, not WebKit's. `load` would silently do nothing with it.
+        if ExternalScheme.isExternal(url) {
+            ExternalScheme.open(url)
+            return
+        }
         guard isWebPage else { return }
         showsStartPage = false
         pendingURL = nil
@@ -674,6 +680,16 @@ final class BrowserTab: Identifiable {
     }
 
     func navigate(to input: String) {
+        // A person who pastes `magnet:?xt=…` into the address bar means the app that claims it. This
+        // lives here and not in `fromUserInput`, which the assistant's and the agents' tools also
+        // call: what six cannot show they get a search for, not the power to launch whatever app has
+        // registered a scheme.
+        let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let url = URL(string: text), text.rangeOfCharacter(from: .whitespaces) == nil,
+           ExternalScheme.isExternal(url), ExternalScheme.hasHandler(for: url) {
+            ExternalScheme.open(url)
+            return
+        }
         guard let url = URL.fromUserInput(input) else { return }
         load(url)
     }
@@ -811,6 +827,15 @@ private final class TabNavigationDecider: WebPage.NavigationDeciding {
             onDownload?(action.request, nil)
             return .cancel
         }
+        // Not the web at all — `magnet:`, `mailto:`, a scheme some app on this machine claimed.
+        // WebKit will not load one and says nothing about it either, so `.allow` here is a link that
+        // does nothing; the app that owns the scheme gets it instead. Before the new-window branch,
+        // because a `target=_blank` magnet link wants the torrent client and not a blank column.
+        if ExternalScheme.isExternal(url) {
+            let opened = ExternalScheme.open(url)
+            LinkTrace.log("external \(url.absoluteString) opened=\(opened)")
+            return .cancel
+        }
         // A ⌘-click asks for the link somewhere else rather than here. WebKit keeps its own record of
         // the keys that were held (`modifierFlags`, declared in its SwiftUI half and carrying
         // SwiftUI's `EventModifiers`), which is the honest signal — nothing here depends on what the
@@ -910,6 +935,9 @@ extension URL {
         let text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, !text.contains(" ") else { return false }
         if let scheme = URL(string: text)?.scheme, ["http", "https", "file", "about"].contains(scheme) { return true }
+        // `magnet:?xt=…` is an address on a machine with a torrent client and a search query on one
+        // without — which is also what keeps «note: buy milk» out of the address row.
+        if let url = URL(string: text), ExternalScheme.isExternal(url), ExternalScheme.hasHandler(for: url) { return true }
         return text.contains(".") || text.hasPrefix("localhost")
     }
 }

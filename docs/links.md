@@ -64,7 +64,15 @@ the two link items working at all.
   context menu, as Open Link in New Window next to Open Link Behind.
 - A page that opened the window itself (`window.open`, a `_blank` link clicked plainly) comes **forward**, because it
   was opened to be looked at.
-- A link that is not the web — `mailto:`, `tel:`, a custom scheme — goes to the system, not into a column.
+- A link that is not the web — `magnet:`, `mailto:`, `tel:`, a custom scheme — goes to the system, not into a
+  column. `ExternalScheme` in [`ExternalOpen.swift`](../six/Browser/ExternalOpen.swift) holds the one rule, and all
+  three routes ask it: the decider (a link clicked **in place** — WebKit does call the decider for `magnet:`, and a
+  `.allow` there is a click that does nothing at all, silently), the column a `target=_blank` would have opened, and
+  the address bar. It is an allowlist of what a window can show — http(s), file, about, data, blob, javascript,
+  `six:`, the extension and MCP-app schemes — because the schemes to hand off are unbounded by definition.
+  The address bar asks LaunchServices first: `magnet:?xt=…` is an address on a machine with a torrent client and a
+  search query on one without, which is also what keeps «note: buy milk» a search. The tools do not ask — an agent
+  that names a scheme six cannot show gets a search, not the power to launch whatever app registered it.
 
 WebKit's own popup blocking still runs first: a `window.open` with no user gesture behind it never reaches the
 decider, so an ad that opens itself does not get a column.

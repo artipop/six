@@ -40,8 +40,11 @@ one. So "open it and take me there" lives in the context menu, next to "open
 behind".
 :::
 
-A link that is not the web — `mailto:`, `tel:`, a custom scheme — goes to the
-system rather than becoming a window. A page that opened a window itself
+A link that is not the web — `magnet:`, `mailto:`, `tel:`, a custom scheme —
+goes to the system rather than becoming a window, and it does so wherever it was
+clicked: in place, in a new window, or pasted into the address bar. The address
+bar hands one over only when an app on this Mac claims the scheme; with nothing
+to open it, what was typed is a search like anything else. A page that opened a window itself
 (`window.open`, a `target=_blank` link) comes forward: it was opened to be looked
 at. WebKit's own popup blocking runs before any of this, so an ad that opens
 itself gets no column.
