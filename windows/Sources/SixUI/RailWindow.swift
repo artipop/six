@@ -3,49 +3,35 @@ import Foundation
 import SixBrowser
 import WinSDK
 
-/// One Win32 window: the rail, drawn with GDI, and the mouse/wheel input that drives it.
+/// One Win32 window: the rail, drawn with GDI, and the input that drives it.
 ///
-/// A `WNDPROC` has to be a plain C function pointer with no captures, so the instance it belongs to
-/// cannot be a closure over `self` — it travels through `GWLP_USERDATA` instead, set on
-/// `WM_NCCREATE` (the first message any window receives) and read back out on every one after it.
-/// That bookkeeping is `CRailInterop`'s; what arrives here is already a `RailWindow`.
+/// A `WNDPROC` is a plain C function pointer with no captures, so the instance it belongs to travels
+/// through `GWLP_USERDATA` — set on `WM_NCCREATE`, read back on every message after. That
+/// bookkeeping is `CRailInterop`'s; what arrives here is already a `RailWindow`.
 @MainActor
 public final class RailWindow {
     public private(set) var hwnd: HWND?
     let model = RailModel.shared
 
-    /// Wheel notches accumulate here between messages: a precision mouse or a trackpad can report a
-    /// fraction of `WHEEL_DELTA` (120) per message, and the rail should not step twice as fast just
-    /// because the hardware reports more often than it turns.
+    /// See `RailInput.handleWheel` for why a notch is accumulated rather than acted on as it lands.
     var wheelRemainderY: Int32 = 0
     var wheelRemainderX: Int32 = 0
 
-    /// One real `WKView` per column that has ever been focused, kept alive (not rebuilt) as focus
-    /// moves off and back on to it. See `RailLiveView.swift`. `Foundation.UUID` explicitly: `WinSDK`
-    /// also brings in the C `UUID` typedef (`rpcdce.h`'s `GUID` alias), so the bare name is ambiguous
-    /// anywhere both are imported.
+    /// `Foundation.UUID` explicitly: `WinSDK` also brings in the C `UUID` typedef (`rpcdce.h`'s
+    /// `GUID` alias), so the bare name is ambiguous anywhere both are imported.
     var webViews: [Foundation.UUID: RailWebView] = [:]
 
-    /// The address bar: a plain Win32 `EDIT` control, one for the whole window (not per column, the
-    /// same "one live view" simplification `RailLiveView` already makes) — see `AddressBar.swift`.
     var addressBarHwnd: HWND?
-    /// `EDIT`'s own `WNDPROC`, saved so the subclass in `AddressBar.swift` can still forward
-    /// everything it does not care about — the same "wrap, don't replace" shape `sixty`'s own
-    /// MiniBrowserSwift prototype uses for its address bar.
+    /// `EDIT`'s own `WNDPROC`, saved so the subclass can forward what it does not care about.
     var originalAddressBarProc: WNDPROC?
-    /// Which column's URL the address bar is currently showing, so a page's own title/URL callbacks
-    /// (firing on every repaint's `updateLiveView`) refresh the text only when focus actually moved
-    /// to a different column — never mid-keystroke, while whoever is at the keyboard is still typing
-    /// into it.
+    /// Which column's URL the bar is showing — see `syncAddressBarIfNeeded` for why it is tracked.
     var addressBarShownTabID: Foundation.UUID?
 
     static let className = "SixRailWindow"
 
     public init() {}
 
-    /// Registers the window class and creates the window. `false` means one of the two Win32 calls
-    /// failed — there is nothing more specific to say without `GetLastError`, which is where whoever
-    /// runs this next should look.
+    /// `false` means `RegisterClassExW` or `CreateWindowExW` failed; both log `GetLastError`.
     public func create(instance: HINSTANCE) -> Bool {
         var wc = WNDCLASSEXW()
         wc.cbSize = UINT(MemoryLayout<WNDCLASSEXW>.size)
@@ -66,9 +52,8 @@ public final class RailWindow {
 
         let created = Self.className.withCString(encodedAs: UTF16.self) { classNamePtr in
             "six".withCString(encodedAs: UTF16.self) { titlePtr in
-                // `CW_USEDEFAULT` for size too, not a fixed 1280×800: a hard-coded size is taller
-                // than this dev machine's own 1280×720 display, which is exactly the "sizes are
-                // fractions of the viewport, not point constants" lesson CLAUDE.md already has.
+                // `CW_USEDEFAULT` for the size too: a hard-coded 1280x800 is taller than this dev
+                // machine's own display, which is CLAUDE.md's "sizes are fractions of the viewport".
                 CreateWindowExW(
                     0, classNamePtr, titlePtr, DWORD(WS_OVERLAPPEDWINDOW),
                     Int32(CW_USEDEFAULT), Int32(CW_USEDEFAULT), Int32(CW_USEDEFAULT), Int32(CW_USEDEFAULT),
@@ -95,21 +80,17 @@ public final class RailWindow {
         // never actually shown, silently. `SW_SHOWNORMAL` shows it unconditionally.
         ShowWindow(hwnd, SW_SHOWNORMAL)
         UpdateWindow(hwnd)
-        // A SwiftPM executable links as a console-subsystem app by default, so launching this one
-        // creates a console window alongside the rail — and the console, not the rail, ends up with
-        // keyboard focus: clicks still land on the rail (routed by cursor position), but every key
-        // goes to the console instead of `WM_KEYDOWN` here. Claiming both explicitly is the fix
-        // until the target links `/SUBSYSTEM:WINDOWS` and there is no console to compete with.
+        // A SwiftPM executable links console-subsystem by default, so a console window opens
+        // alongside the rail and takes the keyboard: clicks still land (they route by cursor
+        // position) but no key reaches `WM_KEYDOWN`. Claiming both explicitly is the fix until the
+        // target can link `/SUBSYSTEM:WINDOWS` — see Package.swift for why it does not yet.
         SetForegroundWindow(hwnd)
         SetFocus(hwnd)
     }
 
-    /// The classic `GetMessage`/`DispatchMessage` pump. Returns once `WM_QUIT` arrives, with the
-    /// exit code it carried.
     public func run() -> Int32 {
-        // `GetMessageW` imports as `Bool` on this SDK overlay, not the classic tri-state `BOOL`
-        // (`0`/`WM_QUIT`, `-1`/error, nonzero/success) — so `WM_QUIT` and an error both read as
-        // `false` here and end the loop the same way.
+        // `GetMessageW` imports as `Bool` here, not the tri-state `BOOL` — so `WM_QUIT` and an error
+        // both read as `false` and end the loop the same way.
         var message = MSG()
         while GetMessageW(&message, nil, 0, 0) {
             TranslateMessage(&message)
@@ -123,8 +104,7 @@ public final class RailWindow {
         InvalidateRect(hwnd, nil, false)
     }
 
-    /// Dispatch for one message, called from the free-function `WNDPROC` once it has recovered
-    /// `self` from `GWLP_USERDATA`. `nil` is everything left to `DefWindowProcW`.
+    /// `nil` is everything left to `DefWindowProcW`.
     func handle(message: UINT, wParam: WPARAM, lParam: LPARAM) -> LRESULT? {
         switch Int32(message) {
         case WM_DESTROY:
@@ -137,10 +117,8 @@ public final class RailWindow {
             return 1 // WM_PAINT repaints the whole client area; nothing needs erasing first
 
         case WM_PAINT:
-            // Deliberately before `paint()`, not inside it: creating/positioning/showing a WKView's
-            // own child HWND (hardware-composited) while GDI is mid-`BeginPaint`/`EndPaint` is a
-            // plausible reason its compositing surface ended up drawing past both its own HWND
-            // bounds and the containing window's — see docs/windows.md's account of chasing that.
+            // Before `paint()`, not inside it: moving a child `HWND` mid-`BeginPaint`/`EndPaint` is
+            // not something to ask of a window that is already painting.
             updateLiveView()
             paint()
             return 0
@@ -148,9 +126,8 @@ public final class RailWindow {
         case WM_SIZE:
             let width = Int(SixRailLoWord(lParam))
             let height = Int(SixRailHiWord(lParam))
-            // `NiriLayout`'s own viewport is the rail's canvas alone — `Self.topChromeHeight` (the
-            // workspace label and the address bar) is real estate `RailRendering.cardRect` adds back
-            // on top of it, not something the layout itself should know about.
+            // `NiriLayout`'s viewport is the rail's canvas alone; the chrome above it is
+            // `RailRendering.cardRect`'s business, not the layout's.
             let railHeight = max(0, height - Int(Self.topChromeHeight))
             if model.updateViewport(CGSize(width: width, height: railHeight)) { invalidate() }
             layoutAddressBar()
@@ -163,10 +140,9 @@ public final class RailWindow {
         case WM_KEYDOWN:
             return handleKeyDown(virtualKey: Int32(wParam), lParam: lParam) ? 0 : nil
 
-        // Every binding this table has is `⌥`-something, and holding Alt is exactly what turns the
-        // other key into a *system* key on Windows — `WM_SYSKEYDOWN`, not `WM_KEYDOWN`. Only
-        // swallowing it when a binding actually matched leaves `⌥F4`/`⌥Space`/plain `F10` to
-        // `DefWindowProcW`, which is what makes them still behave like system keys.
+        // Holding Alt is what turns the other key into a *system* key on Windows, and every binding
+        // this front answers is `⌥`-something — so this case is not optional. `handleKeyDown` says
+        // why it only swallows what actually matched.
         case WM_SYSKEYDOWN:
             return handleKeyDown(virtualKey: Int32(wParam), lParam: lParam) ? 0 : nil
 
@@ -184,9 +160,8 @@ public final class RailWindow {
     }
 }
 
-/// The `WNDPROC` itself — deliberately `nonisolated`: a C function pointer cannot carry actor
-/// isolation, and the message it is handed cannot cross into `@MainActor` code on its own. Only
-/// whether it was taken can, which is what `MainActor.assumeIsolated` hands back.
+/// `nonisolated` because a C function pointer cannot carry actor isolation; `MainActor
+/// .assumeIsolated` is what crosses back in.
 private nonisolated func railWindowProc(
     _ hwnd: HWND?, _ message: UINT, _ wParam: WPARAM, _ lParam: LPARAM
 ) -> LRESULT {

@@ -2,17 +2,13 @@ import CRailInterop
 import SixBrowser
 import WinSDK
 
-/// Mouse and wheel input, translated into `RailModel` calls. Keyboard input — the real hotkey
-/// table, `KeyBindings` — is a separate piece of work; see docs/windows.md.
+/// Mouse and wheel input, translated into `RailModel` calls. Keys are `RailKeyInput`'s.
 extension RailWindow {
-    /// A click: on a column's "×" it closes; on the rest of a column it focuses; on the bare
-    /// background — past the last column, or before the first — it opens a new one. The same three
-    /// answers a click gives on every other front, just without a page underneath to also receive it.
+    /// Close on the "×", focus on the rest of a card, open on bare background.
     func handleClick(x: Int, y: Int) {
-        // A click on a card is also the natural way to leave the address bar — without this, the
-        // hotkeys `RailKeyInput` answers stop responding until the rail window is clicked on
-        // somewhere that is not a column, which reads like the rail hanging rather than like focus
-        // simply being elsewhere.
+        // Clicking a card is also how you leave the address bar. Without this the hotkeys stop
+        // answering until the rail is clicked somewhere that is *not* a column, which reads as the
+        // rail hanging rather than as focus being elsewhere.
         if let hwnd { SetFocus(hwnd) }
         for column in model.columns {
             let card = Self.cardRect(for: column.frame)
@@ -29,14 +25,11 @@ extension RailWindow {
         invalidate()
     }
 
-    /// `Alt` is the rail's modifier here the way `⌥` is the Mac's `NiriScrollMonitor.modifier` — kept
-    /// out of the way of whatever the browser eventually binds to a plain wheel over a page. Vertical
-    /// steps a workspace, horizontal steps a column — the same split `KeyBindings` draws between
-    /// `⌥↑/↓` and `⌥←/→` — and `Shift` turns either into the "move the column, not just the focus"
-    /// variant, matching `⌥⇧` in the same table.
+    /// `Alt` is the rail's modifier the way `⌥` is the Mac's `NiriScrollMonitor.modifier`, leaving a
+    /// plain wheel to the page. The vertical/horizontal and `Shift` splits match `KeyBindings`' own.
     ///
-    /// `WHEEL_DELTA` (120) is one physical notch; a precise wheel or a trackpad can report less than
-    /// that per message, so what arrives is accumulated and only spent a whole notch at a time.
+    /// `WHEEL_DELTA` (120) is one physical notch, and a precise wheel or trackpad reports less than
+    /// that per message — hence the accumulator, so the rail does not step twice as fast.
     func handleWheel(delta: Int32, horizontal: Bool) {
         guard SixRailKeyDown(Int32(VK_MENU)) != 0 else { return }
         let movesColumn = SixRailKeyDown(Int32(VK_SHIFT)) != 0

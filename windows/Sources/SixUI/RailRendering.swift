@@ -2,8 +2,8 @@ import Foundation
 import SixBrowser
 import WinSDK
 
-/// GDI painting for the rail, and the one piece of geometry `RailInput` borrows back: where a
-/// column's close box sits, so a click can be tested against exactly what was drawn.
+/// GDI painting for the rail, and the geometry `RailInput` and `RailLiveView` borrow back — so
+/// painting, hit-testing and the live view can never drift apart on where a card actually is.
 extension RailWindow {
     // MARK: Palette
 
@@ -19,11 +19,9 @@ extension RailWindow {
     static let focusedTextColor = rgb(255, 255, 255)
     static let labelColor = rgb(161, 161, 170)
 
-    /// A card is a title and a color, nothing else yet — so the color has to carry a column's whole
-    /// identity: without it every unfocused card was the same grey rectangle, and there was no way
-    /// to tell two open tabs apart short of clicking each one to see which title lit up. Picked by
-    /// the tab's own id, not its position — a column keeps its color when the rail reorders it, the
-    /// same way a real page would keep whatever the site painted.
+    /// A card is a title and a colour, nothing else yet, so the colour carries a column's whole
+    /// identity — every unfocused card was otherwise the same grey rectangle. Keyed by the tab's id
+    /// rather than its position, so a column keeps its colour when the rail reorders it.
     static let placeholderPalette: [COLORREF] = [
         rgb(64, 92, 155), rgb(155, 92, 64), rgb(88, 145, 88), rgb(140, 82, 150),
         rgb(150, 138, 68), rgb(70, 140, 138), rgb(150, 90, 110), rgb(96, 110, 150)
@@ -35,25 +33,17 @@ extension RailWindow {
         placeholderPalette[Int(id.uuid.0) % placeholderPalette.count]
     }
 
-    /// How much of a card's top is title-and-close-box, GDI's to draw and to keep clickable —
-    /// `RailLiveView` insets a column's `WKView` below this, which is what keeps the close box
-    /// clickable instead of covered by a live page's own child `HWND`.
+    /// The strip a card's title and close box own. `RailLiveView` insets the `WKView` below it,
+    /// which is what keeps the close box clickable instead of covered by the page's child `HWND`.
     static let headerHeight: CGFloat = 48
 
-    /// The workspace label's own strip, at the very top of the window.
     static let workspaceLabelHeight: CGFloat = 30
-    /// The address bar's strip, directly below the workspace label.
     static let addressBarStripHeight: CGFloat = 36
-    /// Everything above the rail itself — `RailModel`'s own `columns` are laid out in a coordinate
-    /// space that starts at `y = 0`, the same as every other front's `NiriLayout` use, so this is
-    /// added once, here, when a column's frame is turned into a real on-screen `RECT` — the one seam
-    /// between "where `NiriLayout` thinks a column is" and "where it actually is drawn" — rather than
-    /// baked into the layout itself, which stays a plain viewport-sized canvas.
     static let topChromeHeight: CGFloat = workspaceLabelHeight + addressBarStripHeight
 
-    /// A column's frame, in real window coordinates — the one place `topChromeHeight` gets added, so
-    /// painting (`draw`), hit-testing (`RailInput.handleClick`) and the live view's own body rect
-    /// (`RailLiveView.bodyRect`) can never drift apart on where a card actually is.
+    /// A column's frame in real window coordinates. `NiriLayout` lays columns out from `y = 0` like
+    /// every other front, so the chrome above the rail is added here, once, rather than baked into
+    /// the layout — this is the only seam between where a column is and where it is drawn.
     static func cardRect(for frame: CGRect) -> RECT {
         RECT(
             left: Int32(frame.minX), top: Int32(frame.minY + topChromeHeight),
@@ -61,8 +51,6 @@ extension RailWindow {
         )
     }
 
-    /// The little "×" in a card's corner, in the same coordinates the card itself is drawn in — so
-    /// painting it and hit-testing a click against it can never drift apart.
     static func closeBoxRect(for card: RECT) -> RECT {
         let size: Int32 = 28
         let margin: Int32 = 8

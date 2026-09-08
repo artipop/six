@@ -2,17 +2,14 @@ import CRailInterop
 import SixBrowser
 import WinSDK
 
-/// `WM_KEYDOWN` into `KeyBindings`, by way of `RailKeyLookup` — the same table `six/Input/KeyBindings.swift`
-/// is, read the way `KeyEvents.swift` reads an `NSEvent` for the Mac: this file's whole job is turning
-/// a Win32 message into the key, the modifiers and the context the table asks for, and it knows
-/// nothing about what any binding *does* — that is `RailModel`'s.
+/// `WM_KEYDOWN` into `KeyBindings`, by way of `RailKeyLookup` — the Win32 half of what
+/// `six/Input/KeyEvents.swift` does with an `NSEvent` on the Mac. Nothing here knows what a binding
+/// *does*; that is `RailModel`'s.
 extension RailWindow {
-    /// `true` means the key was one of ours and the caller should swallow it (return `0`, not fall
-    /// through to `DefWindowProcW`); `false` leaves it to the default handling every other key still
-    /// needs — most importantly the ones that arrive here *because* they are `WM_SYSKEYDOWN`, not
-    /// `WM_KEYDOWN`: every binding in this table is `⌥`-something, held-Alt is exactly what turns a
-    /// key into a system key on Windows, and swallowing `WM_SYSKEYDOWN` unconditionally would have
-    /// taken `⌥F4` (close) and `⌥Space` (system menu) down with it.
+    /// `true` means the key was ours and the caller should swallow it. Reporting `false` matters
+    /// most for `WM_SYSKEYDOWN`: every binding here is `⌥`-something, held Alt is what turns any key
+    /// into a system key on Windows, and swallowing those unconditionally would have taken `⌥F4`
+    /// and `⌥Space` with it.
     @discardableResult
     func handleKeyDown(virtualKey: Int32, lParam: LPARAM) -> Bool {
         guard let key = Self.railKey(virtualKey: virtualKey, scanCode: SixRailScanCode(lParam)) else { return false }
@@ -40,10 +37,8 @@ extension RailWindow {
         }
     }
 
-    /// The arrows and the named keys go by virtual-key code, which has no layout ambiguity worth
-    /// caring about here. The six letters the table binds go by scan code instead — the physical key,
-    /// unlike the virtual-key code which many layouts remap wholesale — for the reason CLAUDE.md
-    /// already learned the hard way on the Mac: "`⌥W` reports «ц» on the Russian layout."
+    /// Letters go by scan code, not virtual-key code — the physical key, which no layout remaps —
+    /// for the reason CLAUDE.md learned on the Mac: "`⌥W` reports «ц» on the Russian layout."
     private static func railKey(virtualKey: Int32, scanCode: Int32) -> RailKey? {
         switch virtualKey {
         case VK_TAB: return .tab

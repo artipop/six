@@ -4,15 +4,10 @@ import WinSDK
 
 /// Starts the real engine once, and hands out one `RailWebView` per live column. The WebKit2 C API
 /// this wraps — `WKContext`, `WKPage`, `WKView` — is the same family WebKitGTK's C API descends
-/// from, and this exact sequence of calls is the one `../sixty`'s MiniBrowserSwift prototype uses.
+/// from, and this sequence of calls is the one `../sixty`'s MiniBrowserSwift prototype uses.
 ///
-/// A page genuinely loads, navigates and reports its title back through this — confirmed live. What
-/// it draws does not reliably stay inside the `HWND` it is given at this dev machine's 150% display
-/// scale: see the "Known issues" entry in docs/windows.md for the full account of chasing that, and
-/// why it is a pre-existing WebKit2 Windows compositing issue rather than something this file did —
-/// the unmodified MiniBrowserSwift prototype, rebuilt and run fresh, shows the identical symptom,
-/// and MiniBrowserSwift's own source comment already documents accepting a related version of it
-/// ("worse bug... wins by default until there's a real fix") rather than having actually solved it.
+/// Whether the page lands where it is drawn is decided outside this file, by the DPI awareness
+/// `main.swift` declares — read that before touching anything here about scale.
 @MainActor
 enum WebEngine {
     private static var context: WKContextRef?
@@ -36,38 +31,19 @@ enum WebEngine {
         let pageConfiguration = WKPageConfigurationCreate()
         WKPageConfigurationSetWebsiteDataStore(pageConfiguration, websiteDataStore)
         WKPageConfigurationSetContext(pageConfiguration, context)
-        WKPageConfigurationSetPreferences(pageConfiguration, WKPreferencesCreate())
+        let preferences = WKPreferencesCreate()
+        // Software compositing, deliberately. The accelerated path draws into the window in real
+        // device pixels, ignoring the DPI virtualization `main.swift` leans on, and puts the page at
+        // two thirds size in a corner of its card; the blit path honours it. Costs GPU compositing,
+        // buys a page that is where it looks like it is.
+        WKPreferencesSetAcceleratedCompositingEnabled(preferences, false)
+        WKPageConfigurationSetPreferences(pageConfiguration, preferences)
 
-        // `frame` is real device pixels (this front is Per-Monitor-V2 DPI aware, and
-        // `RailLiveView.bodyRect` is built straight from `NiriLayout`'s viewport, which comes from
-        // `WM_SIZE`'s physical size) — the plain, direct value, after three attempts at compensating
-        // it for the compositing bug below this function all measured no different from not
-        // compensating at all. See docs/windows.md's "Known issues" for the full account, verified
-        // with marked screenshots (a red rectangle drawn at the `WKView` HWND's own real
-        // `GetWindowRect`, so "does content cross this exact line" stops being a question of
-        // eyeballing a screen) rather than by eye alone this time:
-        //   - `WKPageSetCustomBackingScaleFactor(page, 1.0)` right after creation, rect unchanged:
-        //     `WKPageGetBackingScaleFactor` does read back `1.0` afterward (the call reaches WebKit),
-        //     but the rendered overflow was pixel-for-pixel identical to not calling it at all.
-        //   - Creating the `WKView` with `frame` divided by the display's scale, then immediately
-        //     calling `setFrame` with the real, full-size `frame` — mirroring what a resize message
-        //     arriving right after creation would do — also measured no different.
-        //   - `SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_SYSTEM_AWARE)` scoped around
-        //     `WKViewCreate`: `WKPageGetBackingScaleFactor` still read back the same auto-detected
-        //     `1.5` either way, so whatever queries the monitor's scale does not consult thread-level
-        //     DPI awareness context at all.
-        // All three point the same direction: the oversized layout is decided once, at
-        // `WKViewCreate`, from something none of this API's exposed knobs reach — most likely an
-        // internal, direct monitor-DPI query WebKit's Windows port makes on its own and then applies
-        // a second time on top of whatever rect it was given, independent of the rect's own units,
-        // the `WKPage`-level scale property, and the creating thread's own DPI awareness.
+        // `frame` as given: `RailLiveView.bodyRect` comes straight from `NiriLayout`'s viewport,
+        // which is `WM_SIZE`'s own client size, and WebKit lays the page out in exactly those units.
         var rect = WKRectCompat(left: frame.left, top: frame.top, right: frame.right, bottom: frame.bottom)
         guard let view = WKViewCreate(&rect, pageConfiguration, UnsafeMutableRawPointer(parent)) else { return nil }
         WKViewSetIsInWindow(view, true)
-        // Present, though it made no measurable difference on its own: exists specifically to make
-        // a view recompute its relationship to its real ancestor window, which is a reasonable
-        // thing to ask for regardless of whether it turns out to be the missing piece of a real fix
-        // for the compositing issue this file's own doc comment points at.
         WKViewWindowAncestryDidChange(view)
         guard let page = WKViewGetPage(view) else { return nil }
 

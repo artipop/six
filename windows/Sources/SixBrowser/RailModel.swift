@@ -23,9 +23,9 @@ public final class RailModel {
         public var isFocused: Bool
     }
 
-    /// Every front's own start page — the same address `linux/Sources/SixBrowser/BrowserModel`
-    /// opens a fresh column on.
-    public static let startURL = "https://duckduckgo.com/"
+    /// The same address `linux/Sources/SixBrowser/BrowserModel` opens a fresh column on, and the
+    /// same `SIX_URL` override — the only way to point a run at a test page without a keyboard.
+    public static let startURL = ProcessInfo.processInfo.environment["SIX_URL"] ?? "https://duckduckgo.com/"
 
     public static let shared = RailModel()
 

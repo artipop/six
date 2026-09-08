@@ -1,21 +1,24 @@
 import SixUI
 import WinSDK
 
-// The whole entry point: one Win32 window, registered and created by `RailWindow`, pumped by the
-// classic `GetMessage`/`DispatchMessage` loop until `WM_QUIT`. `six-windows`'s own target sets the
-// module's default actor isolation to `@MainActor` (the same `SWIFT_DEFAULT_ACTOR_ISOLATION` the Mac
-// app target sets), so this top-level code is on the same actor `RailWindow` and `RailModel` are.
-// Declare Per-Monitor-V2 DPI awareness before anything else. Without it Windows renders the whole
-// window through an offscreen virtualization surface, which made a live `WKView` come out shrunk
-// into roughly two-thirds of its card, matching a 150% display — `../sixty`'s MiniBrowserSwift hit
-// this first. Switching to `SYSTEM_AWARE` made no difference to a separate bug this front hit next
-// (a live view's content escaping its own HWND's bounds — see docs/windows.md), which turned out to
-// be about *when* the view was created and positioned, not which DPI mode was active; V2 is the
-// more correct choice of the two regardless, so it is what stayed.
-_ = SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)
+// The target sets `SWIFT_DEFAULT_ACTOR_ISOLATION` to `MainActor`, the same as the Mac app's, so this
+// top-level code is already on the actor `RailWindow` and `RailModel` live on.
 
-// `nil` here means "the calling process's own module" and cannot fail for a process asking about
-// itself, so the force-unwrap is the same trust a C `HMODULE` return would need anyway.
+// Declaring the process DPI-*unaware* on a 150% display looks backwards, and is what makes a page
+// usable at all. WebKit's Windows port takes its device scale from the monitor DPI the process is
+// allowed to see, renders at that scale, and then presents the result one backing pixel to one
+// window pixel — so under a DPI-aware process it draws 1.5x too large, spills out of its own HWND,
+// and every click lands 1.5x away from whatever it appeared to hit. Nothing on the embedding side
+// rescales that: not `WKPageSetCustomBackingScaleFactor`, not the thread's DPI context, not the
+// units of the rect `WKViewCreate` is handed — each measured, see docs/windows.md. Reporting 96 DPI
+// is the one lever that makes WebKit's own scale agree with the window it draws into.
+// `..._GDISCALED` rather than plain `..._UNAWARE` so Windows re-renders the rail's own GDI text at
+// the real display scale instead of stretching the bitmap; the page is stretched either way.
+if !SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_UNAWARE_GDISCALED) {
+    _ = SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_UNAWARE) // before Windows 10 1809
+}
+
+// `nil` is "this process's own module", which cannot fail for a process asking about itself.
 let instance = GetModuleHandleW(nil)!
 let window = RailWindow()
 

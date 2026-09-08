@@ -3,17 +3,14 @@ import Foundation
 import SixBrowser
 import WinSDK
 
-/// A single, plain Win32 `EDIT` control showing and editing the focused column's URL — the one piece
-/// of UI that turns the rail from "loads its start page and nothing else" into something a person can
-/// actually browse with. One bar for the whole window, not one per column, the same "one live thing"
-/// simplification `RailLiveView` already makes for the `WKView` itself: the bar shows whichever column
-/// is focused and is retargeted, not rebuilt, as focus moves.
+/// A plain Win32 `EDIT` control showing and editing the focused column's URL. One bar for the whole
+/// window rather than one per column — the same "one live thing" simplification `RailLiveView`
+/// makes — retargeted, not rebuilt, as focus moves.
 extension RailWindow {
     private static let editClassName = "EDIT"
     private static let margin: Int32 = 8
 
-    /// Created once, right after the main window itself — an `EDIT` control needs a parent `HWND` to
-    /// exist first, so this cannot happen any earlier than `create(instance:)` already has one.
+    /// Created from `create(instance:)`, which is the earliest a parent `HWND` exists to hang it on.
     func ensureAddressBar(instance: HINSTANCE) {
         guard let hwnd, addressBarHwnd == nil else { return }
 
@@ -35,26 +32,21 @@ extension RailWindow {
         // about can arrive.
         SixRailSetUserData(created, Unmanaged.passUnretained(self).toOpaque())
 
-        // Subclassing: swap in a `WNDPROC` that only intercepts Enter and forwards everything else to
-        // the real `EDIT` control's own procedure — the same shape `sixty`'s MiniBrowserSwift
-        // prototype already uses for its own address bar.
+        // Wrap, don't replace: the subclass proc intercepts Enter and forwards the rest to `EDIT`'s
+        // own, the same shape `sixty`'s MiniBrowserSwift address bar uses.
         let oldProc = GetWindowLongPtrW(created, GWLP_WNDPROC)
         originalAddressBarProc = unsafeBitCast(oldProc, to: WNDPROC.self)
-        // `addressBarSubclassProc`, named bare, is a plain (16-byte, "thick") Swift function value —
-        // typing this `let` as `WNDPROC` is what makes the compiler perform the thin-to-C-function-
-        // pointer conversion `wc.lpfnWndProc = railWindowProc` gets for free from a direct assignment
-        // to a `@convention(c)`-typed property; skipping straight to `unsafeBitCast` on the bare name
-        // instead bitcasts the wrong (thick, 16-byte) representation into an 8-byte `LONG_PTR` and
-        // crashes with "Can't unsafeBitCast between types of different sizes".
+        // The `WNDPROC` annotation is load-bearing: it is what converts the thick (16-byte) Swift
+        // function value to a C function pointer. `unsafeBitCast` on the bare name instead casts the
+        // thick representation into an 8-byte `LONG_PTR` and traps on the size mismatch.
         let subclassProc: WNDPROC = addressBarSubclassProc
         _ = SetWindowLongPtrW(created, GWLP_WNDPROC, unsafeBitCast(subclassProc, to: LONG_PTR.self))
 
         layoutAddressBar()
     }
 
-    /// Positions the bar in its own strip, directly below the workspace label — called on
-    /// `WM_SIZE`, since it is the one piece of chrome sized against the window's own width rather
-    /// than `NiriLayout`'s viewport.
+    /// On `WM_SIZE`: the one piece of chrome sized against the window's own width rather than
+    /// `NiriLayout`'s viewport.
     func layoutAddressBar() {
         guard let hwnd, let addressBarHwnd else { return }
         var client = RECT()
@@ -64,19 +56,15 @@ extension RailWindow {
         MoveWindow(addressBarHwnd, Self.margin, top, client.right - 2 * Self.margin, height, true)
     }
 
-    /// Called from `updateLiveView` on every repaint: retargets the bar's text to whichever column is
-    /// now focused, but only when focus actually moved — never while someone is mid-keystroke typing
-    /// a URL into it, which every other repaint (a page's title or URL changing, a column opening
-    /// elsewhere) would otherwise stomp on.
+    /// Runs on every repaint, so it retargets only when focus actually moved — otherwise a page's
+    /// own title or URL callback would stomp on a half-typed address.
     func syncAddressBarIfNeeded(focusedTabID: Foundation.UUID) {
         guard let addressBarHwnd, addressBarShownTabID != focusedTabID else { return }
         addressBarShownTabID = focusedTabID
         _ = model.url(for: focusedTabID).withCString(encodedAs: UTF16.self) { SetWindowTextW(addressBarHwnd, $0) }
     }
 
-    /// Enter in the address bar: read its text, add a scheme if it looks like a bare host, and load
-    /// it into the focused column's `WKView` — the only way, right now, to navigate this front
-    /// anywhere but a column's own start page.
+    /// Enter in the address bar. The only way, right now, to navigate anywhere but a start page.
     func navigateFromAddressBar() {
         guard let addressBarHwnd, let focusedID = model.columns.first(where: \.isFocused)?.id,
               let webView = webViews[focusedID] else { return }

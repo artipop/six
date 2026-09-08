@@ -15,7 +15,7 @@ vertically. Four front ends over one core:
 | **iOS/iPadOS** | `six.xcodeproj`, scheme `six-iOS` | same `six/` folder, exclusions in the pbxproj |
 | **Linux** | `linux/`, SwiftPM + GTK4/WebKitGTK 6.0 | over the same `six.sqlite`, in a container |
 | **Android** | `android/`, Kotlin + Compose | system WebView, its own storage layer, [docs/android.md](docs/android.md) |
-| **Windows** | `windows/`, SwiftPM + Win32 (`WinSDK`) | real WebKit2 engine, rendering has a known compositing bug — [docs/windows.md](docs/windows.md) |
+| **Windows** | `windows/`, SwiftPM + Win32 (`WinSDK`) | real WebKit2 engine, DPI-unaware on purpose — [docs/windows.md](docs/windows.md) |
 
 Built on the macOS 26/27 APIs on purpose: SwiftUI `WebView`/`WebPage` (no `NSViewRepresentable`), Foundation Models as
 the single LLM API, ACP for agents, and the browser itself as an MCP server. Swift 5 language mode, `@Observable`,

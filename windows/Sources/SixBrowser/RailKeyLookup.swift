@@ -1,18 +1,12 @@
 @testable internal import SixCoreShared
 
-/// The Mac's key table, reached the same way `RailModel` reaches `NiriLayout`: unchanged, through
-/// the module's `@testable` seam, rather than a second table kept in step with it by hand. What
-/// crosses into `SixUI` is a small, public vocabulary this front already knows how to act on — not
-/// `KeyBindings`' own internal `KeyCode`/`KeyAction`, which stay `internal` to `SixCoreShared` on
-/// purpose.
+/// The Mac's key table, unchanged, through the same `@testable` seam `RailModel` uses for
+/// `NiriLayout` — rather than a second table kept in step by hand. What crosses into `SixUI` is a
+/// small public vocabulary; `KeyBindings`' own `KeyCode`/`KeyAction` stay internal on purpose.
 ///
-/// `KeyContext.window` is always `.main` here, `.field` always `nil`, `.isSwitching` and
-/// `.isOverview` always `false` — this front has exactly one window, no text field a key could yield
-/// to, no ⌃Tab ring and no overview, so every binding in the table answers as if it were the Mac's
-/// one plain browser window. `RailKeyLookup.action(for:modifiers:)` only returns a case this front
-/// can actually do something with; the rest of `KeyAction` — the switcher, the overview,
-/// translation, highlighting, picture-in-picture — is `nil` here because the subsystem it drives
-/// does not exist on this front yet, not because the table does not say what to do.
+/// The context is always the Mac's one plain browser window: this front has a single window, no text
+/// field a key could yield to, no ⌃Tab ring and no overview. Actions whose subsystem does not exist
+/// here yet come back `nil` — the table still says what to do, there is just nothing to do it to.
 public enum RailKeyAction: Equatable {
     case focusColumn(Int)
     case moveColumn(Int)
@@ -23,9 +17,8 @@ public enum RailKeyAction: Equatable {
     case toggleCenterFocus
 }
 
-/// The modifiers a Windows hand can be on. `⌘` has no Windows equivalent in this table — nothing in
-/// `KeyBindings.all` asks for `.command`, because on the Mac it belongs to the menu bar — so there is
-/// no fourth case to map a key onto.
+/// No `⌘` case: nothing in `KeyBindings.all` asks for `.command`, because on the Mac those are menu
+/// items rather than table rows.
 public struct RailKeyModifiers: OptionSet, Sendable {
     public let rawValue: Int
     public init(rawValue: Int) { self.rawValue = rawValue }
@@ -34,10 +27,9 @@ public struct RailKeyModifiers: OptionSet, Sendable {
     public static let shift = RailKeyModifiers(rawValue: 1 << 2)
 }
 
-/// A key, already resolved to what it *is* rather than what produced it — the arrows and the named
-/// keys by their Win32 virtual-key code, the six letters the table cares about by the physical key a
-/// scan code names. Building one of these is `SixUI`'s job, because reading `WM_KEYDOWN` apart is
-/// Win32's business the same way `KeyEvents.swift` says reading an `NSEvent` apart is AppKit's.
+/// A key already resolved to what it *is* rather than what produced it. Building one is `SixUI`'s
+/// job: taking `WM_KEYDOWN` apart is Win32's business, the way `KeyEvents.swift` says taking an
+/// `NSEvent` apart is AppKit's.
 public enum RailKey: Equatable {
     case tab, returnKey, escape, leftArrow, rightArrow, upArrow, downArrow, home, end
     case letter(Character)
