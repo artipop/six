@@ -118,6 +118,27 @@ What the front does and does not have, the GTK traps (a `Task` never runs under 
 its own C signature; only value types in `@State`), and the run-time environment variables — `SIX_URL`,
 `SIX_LIVE_PAGES`, `SIX_UI_DEBUG`, `SIX_MOCK_CAPTURE` — are in [docs/linux.md](docs/linux.md).
 
+### The Windows front
+
+```powershell
+./scripts/six-windows.ps1 build   # compile, copy the runtime DLLs next to the .exe
+./scripts/six-windows.ps1 run     # stop what is running, build, launch exactly one
+./scripts/six-windows.ps1 stop    # stop what is running, nothing else
+```
+
+Built on the Windows dev machine itself, not in a container, and all three are idempotent — `run` twice leaves one
+window, not two. The script exists because a plain `swift build` in `windows/` needs the MSVC linker and the
+toolchain's own `bin` directories on `PATH`, and the Universal CRT, Swift runtime and WebKit DLLs copied next to the
+`.exe`. `SIX_URL` and `SIX_UI_DEBUG` work here the way they do on Linux, and `SIX_URL` is the only way to point a run
+at a test page when nobody is at the keyboard.
+
+The engine is not a Swift package: it is whatever `playwright install webkit` put under `%LOCALAPPDATA%\ms-playwright`,
+and `windows/vendor/WebKit2` holds only the import library generated from that DLL's export table. Node for that
+installer is a user-scope unzip at `%LOCALAPPDATA%\six-tools\node-*`, deliberately off `PATH`.
+
+Everything else — why Win32 and not WinUI, why the package has no dependencies at all, the DPI shim, and what is
+still missing — is in [docs/windows.md](docs/windows.md).
+
 ## Running and checking a change
 
 The fresh app is in DerivedData, **not** in the repo's `build/`:
@@ -335,6 +356,19 @@ anything added there has to exist on both:
   do; `.disabled` on a `@FocusedValue` is the one form that does get rebuilt.
 - **A letter binding read from `charactersIgnoringModifiers` is a binding that only Latin layouts have.** `⌥W` reports
   «ц» on the Russian layout. Match the key code as well (`KeyBinding.Key.letter`), which is what a tiling WM does.
+- **On Windows, how a page is drawn and where its clicks land are one problem, and the fix is a window procedure.**
+  WebKit's Windows port renders at `viewSize × deviceScaleFactor` and blits that surface into the window one backing
+  pixel to one, with no downscale — and both of those are read off the same `HWND`, so no DPI awareness mode changes
+  their product. `RailWebView.installScaleShim` divides `WM_SIZE` by the display scale, which lands the product on the
+  window's real pixels. It must **not** touch mouse messages: WebKit already divides those by the device scale, and
+  doing it twice put every click 1.5× out. Measure with a page that writes `innerWidth`/`devicePixelRatio` into its
+  own title and a labelled grid clicked by hand — reasoning about this produced three confident wrong answers in a
+  row, including one that shipped. [docs/windows.md](docs/windows.md).
+- **A Windows process that has already stopped can still hold the build directory.** Zero threads, no image path,
+  `taskkill` answering "Access is denied", outliving the session that made it and clearing only on a reboot — and the
+  files it mapped still cannot be overwritten, which fails the linker on `six-windows.exe` and `Copy-Item` on
+  `BlocksRuntime.dll`. `six-windows.ps1` renames the old `.exe` aside (renaming a mapped image works where
+  overwriting does not) and leaves a locked DLL alone, since it is already the file the copy would have written.
 - **`pkill -x six` kills the Release browser** — Artem's real one, with his real state. It is named in the rule above
   and it is still the easy thing to type. Kill by path: `pkill -f "Debug/six.app/Contents/MacOS/six"`. That kill is
   by path and not by process, so it also takes down the **other session's** dev six, however they launched it —
@@ -375,7 +409,8 @@ system of record plus a versioned JSON snapshot), history and bookmarks with on-
 personal search on the start page, ad/tracker blocking down to scriptlets and extended CSS, extra certificate
 authorities, `WKWebExtension` hosting, site permissions, downloads, page translation, picture-in-picture, the ⌘K
 assistant, the ACP agent panel, `six --mcp`, MCP apps (SEP-1865) with OAuth, deep research with document windows and
-highlights, DevTools capture, localization, and the Linux and Android fronts at the parity levels their docs state.
+highlights, DevTools capture, localization, and the Linux, Android and Windows fronts at the parity levels their
+docs state.
 
 Not built, with reasons: [docs/todo.md](docs/todo.md) — web archives, bookmark images, the content-script boundary
 `WebPage` cannot cross, geolocation and screen sharing, floating windows, passkeys, CloudKit sync, and what the
