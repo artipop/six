@@ -312,6 +312,11 @@ guest of the page's own scripts. The DOM is shared, the JavaScript is not:
   over it) and `Range`s in `CSS.highlights`, both DOM objects and both shared. `<mark>` wrappers and a `<style>` element
   exist only as fallbacks for engines without those APIs.
 
+One of these scripts is a *watcher* rather than a reader: `PageFocusScript` follows the selection and the caret and
+pushes what it finds over a message handler in six's world, because a selection is an event and polling for one would
+run while nothing is happening ([assistant.md](assistant.md)). It is also where password fields are dropped — in the
+page, before anything is sent — and the same script is what writes an answer back into a field.
+
 There are two deliberate exceptions. The `evaluate_javascript` tool runs in the page's world because that is what
 it is for. The devtools capture ([devtools.md](devtools.md)) does too, and has to: `console.log` and `fetch` are the
 page's own globals, so wrapping them anywhere else would wrap nothing. It is off by default, and what it returns is
@@ -326,7 +331,8 @@ for the outcome later.
 ## Views
 
 `ContentView` is a top bar plus `NiriStripView`, with the assistant line overlaid at the bottom and the agent panel as
-an `.inspector`. The window uses `.hiddenTitleBar` and the top bar reserves 68 pt for the traffic lights.
+an `.inspector`. The assistant's other surface, the bar over a selection, hangs on the web view itself as a
+`HostedOverlay` — SwiftUI drawn over a `WKWebView` never sees the mouse. The window uses `.hiddenTitleBar` and the top bar reserves 68 pt for the traffic lights.
 
 `NiriStripView` draws every workspace as a full-size layer offset vertically by `index - focusedIndex`, and every
 column inside it at an absolute offset from `columnFrames`. That is why switching workspaces or scrolling the strip is

@@ -79,6 +79,28 @@ Before that, two cheaper things should be tried, in order: **file the bugs** (no
 and watch whether Safari's own MCP server (Safari 27 / STP 247) turns out to be reachable by other apps — it is the
 same capability from the other end.
 
+## The assistant: what the three surfaces still owe
+
+Built: the catalog of verbs, the bar at a selection, the caret in a field, and the one-answer ⌘K
+line ([assistant.md](assistant.md)). What was deliberately left for later, in the order it is
+missed:
+
+1. **Ghost text in the field itself.** A rewrite arrives in the strip at the bottom of the window
+   and goes into the page on Return; the thing to build is the answer shown *in place* — grey text
+   after the caret, Tab to take it — which needs an overlay positioned on a caret rectangle that
+   moves with every keystroke, inside a page whose scrolling six does not own. The strip is the
+   honest version until that is measured.
+2. **Verbs while an agent is chosen.** A verb is a prompt to a language model, so the bar keeps only
+   "Ask…" while the line is set to Claude Code or Codex. Routing a verb to the agent instead would
+   be a different session with a different memory answering the same button, and that wants a
+   decision rather than a default.
+3. **A verb of your own.** The catalog is a Swift array; the row that would make it a setting — a
+   title, a prompt, where it applies — is the smallest useful next feature, and the reason the type
+   is shaped the way it is.
+4. **The phone.** `PageFocus` compiles on iOS and nothing reads it there: the Phone layout has no
+   assistant surface at all yet, and a selection bar is a different gesture on a touch screen —
+   iOS puts its own menu over a selection.
+
 ## Developer tools: the half Chrome's devtools MCP has and six does not
 
 Web Inspector and capture are built ([devtools.md](devtools.md)): console, network, screenshots, over MCP. What an

@@ -470,6 +470,11 @@ private struct ColumnView: View {
                     .pageContextMenu(for: tab, in: browser)
                     .id(tab.generation)
                     .onAppear(perform: tab.resumeIfNeeded)
+                    // The verbs, where the text is. Over the page and inside it: the coordinates the
+                    // page reports are its viewport's, which is exactly this view's box.
+                    .overlay(alignment: .topLeading) {
+                        if isFocused, !capturesClicks { PageFocusBar(tab: tab) }
+                    }
                     .overlay { if capturesClicks { ClickCatcher(action: activate) } }
             } else {
                 ColumnPlaceholder(tab: tab, accent: accent, showsPicture: browser.layout.isOverview)

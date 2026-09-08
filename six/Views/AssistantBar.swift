@@ -1,7 +1,16 @@
 #if os(macOS)
 import SwiftUI
 
-/// Dia-style single input line pinned to the bottom of the page, with the answer floating above it.
+/// The line at the bottom of the strip, and the one place an answer lands.
+///
+/// It is a line and not a chat, and the difference is deliberate: what is asked is asked about what
+/// is in front of the person — the selection, the field their cursor is in, this page — so the
+/// context is on screen already and a transcript would only be six older contexts in the way. One
+/// answer at a time, dismissed with Escape, applied with Return where it can be applied at all.
+///
+/// The verbs from `AssistantAction` are offered here as well as at the selection, because the two
+/// surfaces are the same catalog: the bar over the page is for the mouse, this row is for the
+/// keyboard, and neither is a place a use case has to be built twice.
 struct AssistantBar: View {
     /// The page is what the window is for, so the line steps aside — until ⌘K asks for it, or an
     /// answer arrives. It stays in the hierarchy either way, which is what keeps ⌘K wired up.
@@ -10,24 +19,54 @@ struct AssistantBar: View {
     @Environment(BrowserState.self) private var browser
     @Environment(AssistantStore.self) private var assistant
     @Environment(AgentSessionStore.self) private var agentSession
+    @Environment(PageFocusStore.self) private var focusStore
     @State private var question = ""
     @FocusState private var focused: Bool
 
     private var isAgent: Bool { assistant.settings.model.agentDefinition != nil }
 
+    private var focus: PageFocus {
+        guard let tab = browser.selectedTab else { return PageFocus() }
+        return focusStore[tab.id]
+    }
+
+    /// What the line says it will do, which depends entirely on what is pointed at.
+    private var placeholder: LocalizedStringKey {
+        if isAgent {
+            return "Ask \(assistant.settings.model.title.replacingOccurrences(of: " (ACP)", with: ""))…"
+        }
+        switch focus.kind {
+        case .selection: return focus.isEditable ? "Ask about the selected text, or say how to change it…"
+                                                 : "Ask about the selected text…"
+        case .caret: return "Say what to write here…"
+        case .none: return "Ask about this page…"
+        }
+    }
+
     var body: some View {
         VStack(spacing: 8) {
-            if assistant.isAnswerVisible {
-                AnswerCard()
+            if let answer = assistant.answer {
+                AnswerStrip(answer: answer)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+            if focused, !verbs.isEmpty {
+                VerbRow(verbs: verbs) { run($0) }
+                    .transition(.opacity)
             }
             HStack(spacing: 8) {
                 ModelMenu()
-                TextField(isAgent ? "Ask \(assistant.settings.model.title.replacingOccurrences(of: " (ACP)", with: ""))…" : "Ask about this page…", text: $question)
+                if let badge = contextBadge {
+                    Label(badge.text, systemImage: badge.symbol)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .layoutPriority(-1)
+                }
+                TextField(placeholder, text: $question)
                     .textFieldStyle(.plain)
                     .focused($focused)
                     .onSubmit(submit)
-                if assistant.isResponding {
+                if assistant.answer?.isRunning == true {
                     Button { assistant.cancel() } label: { Image(systemName: "stop.circle.fill") }
                         .buttonStyle(.plain)
                 } else if !question.isEmpty {
@@ -46,51 +85,131 @@ struct AssistantBar: View {
         .frame(maxWidth: 720)
         .opacity(isTuckedAway ? 0 : 1)
         .allowsHitTesting(!isTuckedAway)
-        .animation(.snappy, value: assistant.isAnswerVisible)
+        .animation(.snappy, value: assistant.answer)
+        .animation(.easeOut(duration: 0.16), value: focused)
         .animation(.easeOut(duration: 0.16), value: isTuckedAway)
+        .onExitCommand { assistant.dismiss(); focused = false }
+        // The bar at a selection and the ⌘K line are one thing with two ends: "Ask…" over the page
+        // puts the caret down here, with the selection already the subject.
+        .onChange(of: assistant.focusRequests) { focused = true }
         .focusedSceneValue(\.focusAssistant, FocusAddressBarAction { focused = true })
     }
 
-    private var isTuckedAway: Bool { isHidden && !focused && !assistant.isAnswerVisible }
+    private var verbs: [AssistantAction] {
+        guard !isAgent else { return [] }
+        return AssistantAction.offered(for: focus)
+    }
 
+    private var contextBadge: (text: LocalizedStringResource, symbol: String)? {
+        switch focus.kind {
+        case .selection: ("Selection", "text.quote")
+        case .caret: focus.label.isEmpty ? ("This field", "character.cursor.ibeam") : nil
+        case .none: nil
+        }
+    }
+
+    private var isTuckedAway: Bool { isHidden && !focused && assistant.answer == nil }
+
+    private func run(_ action: AssistantAction) {
+        assistant.run(action, focus: focus, about: browser.selectedTab)
+    }
+
+    /// Return sends the question. With nothing typed it takes the answer that is already there and
+    /// puts it in the page — the one gesture that finishes a rewrite without reaching for the mouse.
     private func submit() {
+        if question.trimmingCharacters(in: .whitespaces).isEmpty {
+            if assistant.answer?.isApplicable == true { assistant.apply(in: browser.selectedTab) }
+            return
+        }
         assistant.ask(question, about: browser.selectedTab)
         question = ""
     }
 }
 
-private struct AnswerCard: View {
+/// The verbs that apply to what is pointed at right now, for the keyboard's end of the same catalog.
+private struct VerbRow: View {
+    let verbs: [AssistantAction]
+    let run: (AssistantAction) -> Void
+
+    var body: some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: 6) {
+                ForEach(verbs) { verb in
+                    Button { run(verb) } label: {
+                        Label { Text(verb.title) } icon: { Image(systemName: verb.symbol) }
+                            .font(.caption)
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 5)
+                            .background(.regularMaterial, in: Capsule())
+                            .overlay(Capsule().strokeBorder(.separator, lineWidth: 0.5))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 2)
+        }
+        .scrollIndicators(.never)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// One answer: what was asked, what came back, and the two things that can be done with it.
+private struct AnswerStrip: View {
+    let answer: AssistantStore.Answer
+
     @Environment(AssistantStore.self) private var assistant
     @Environment(AgentSessionStore.self) private var agentSession
+    @Environment(BrowserState.self) private var browser
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Label(assistant.settings.model.title, systemImage: assistant.settings.model.symbol)
+            HStack(spacing: 6) {
+                if let action = answer.action {
+                    Image(systemName: action.symbol).font(.caption)
+                }
+                Text(answer.title)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                if let activity = assistant.activity {
+                    .lineLimit(1)
+                if let activity = answer.activity {
                     Text("· \(activity)")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                         .lineLimit(1)
                 }
                 Spacer()
-                if assistant.isResponding { ProgressView().controlSize(.mini) }
+                if answer.isRunning { ProgressView().controlSize(.mini) }
                 Button { assistant.dismiss() } label: { Image(systemName: "xmark") }
                     .buttonStyle(.plain)
                     .foregroundStyle(.secondary)
             }
             ScrollView {
-                if let error = assistant.errorMessage {
+                if let error = answer.error {
                     Text(error).foregroundStyle(.red).textSelection(.enabled)
                 } else {
-                    Text(LocalizedStringKey(assistant.answer.isEmpty ? "…" : assistant.answer))
+                    Text(LocalizedStringKey(answer.text.isEmpty ? "…" : answer.text))
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
-            .frame(maxHeight: 260)
+            .frame(maxHeight: 220)
+            if answer.isApplied {
+                Label("Put into the page — ⌘Z takes it back", systemImage: "checkmark")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else if !answer.text.isEmpty, !answer.isRunning {
+                HStack(spacing: 8) {
+                    if answer.isApplicable {
+                        Button { assistant.apply(in: browser.selectedTab) } label: {
+                            Label(applyTitle, systemImage: "arrow.down.doc")
+                        }
+                        .keyboardShortcut(.defaultAction)
+                    }
+                    Button { assistant.copy() } label: { Label("Copy", systemImage: "doc.on.doc") }
+                }
+                .font(.caption)
+                .controlSize(.small)
+            }
             // An agent may ask before touching something; answer it right here, like in the panel.
             if assistant.settings.model.agentDefinition != nil, let prompt = agentSession.permissionPrompt {
                 Divider()
@@ -100,6 +219,14 @@ private struct AnswerCard: View {
         .padding(12)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(.separator))
+    }
+
+    private var applyTitle: LocalizedStringResource {
+        switch answer.landing {
+        case .insert: "Insert"
+        case .replaceField, .replaceSelection: "Replace"
+        case .show: "Insert"
+        }
     }
 }
 

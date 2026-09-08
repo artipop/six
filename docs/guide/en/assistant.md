@@ -1,14 +1,63 @@
-# The ⌘K assistant
+# The assistant
 
-One line at the bottom of the rail: ask about the page you are reading. The
-answer floats above it as a card.
+Six's assistant is not a chat. It is a set of verbs offered where you are already
+pointing at something: **text selected on a page**, **a caret in a field**, and
+the **`⌘K` line** at the bottom of the rail. One list of actions serves all
+three, so a new verb shows up in every one of them at once.
+
+The only conversation with a history left in six is the [agent](/en/agents) panel
+on `⌘⇧A`, where the transcript is the work.
+
+## When you select text
+
+A small bar appears over the selection:
+
+| | |
+|---|---|
+| **Explain** | what this says, in plain language — terms and abbreviations included |
+| **Summarize** | the same, shorter: three sentences, or a list where the text is one |
+| **What is this?** | for a name, a term or a title |
+| **Check this claim** | what it rests on, and what would have to be true for it to be wrong |
+| **Ask…** | the caret moves to the `⌘K` line with the selection already the subject |
+
+If the selection is **inside something you can write in** — a comment box, a
+message, an editor on the page — the verbs that change text join in: **Fix
+Spelling and Grammar**, **Rewrite**, **Make It Shorter**, **Translate to
+English**.
+
+## When the caret is in a field
+
+Nothing is sent anywhere while you type: the assistant wakes up only when it is
+called. Call it from the bar beside the field, or from the `⌘K` line:
+
+| | |
+|---|---|
+| **Continue Writing** | carry on from exactly where you stopped |
+| **Draft a Reply** | the field is a reply to what is on the page; here is one |
+| **Polish What Is Written** | spelling, grammar and punctuation across the whole field, in your words rather than its own |
+
+**Password fields are not read at all** — no content, no caret, no event: the
+page drops them before anything reaches six. The same goes for fields that look
+like a one-time code or a card number.
+
+## How an answer gets into the page
+
+It never gets there by itself. **Insert** or **Replace** appears under the
+answer, and `⏎` on an empty `⌘K` line does the same. The text lands in the field
+as if it had been typed, so `⌘Z` takes it back.
+
+## The ⌘K line
 
 The line is out of sight until it is asked for — a bar resting over the bottom of
 every page covers what the page put there, which is usually a video's controls.
-`⌘K` brings it up, an answer keeps it up, and both go when they are done.
+`⌘K` brings it up, an answer keeps it up, `Esc` sends it away.
 
-The page goes with the question as context: its title, its address and its text.
-What answers is picked in the menu beside the line.
+Ask freely, in your own words. The line says what the question will be about —
+the selection, this field, or the whole page — and while it has focus the same
+verbs stand above it as in the bar over the text: the bar is for the mouse, the
+line is for the keyboard, the list is one.
+
+`⏎` sends the question. `⏎` on an empty line applies the answer already there.
 
 ## Which model answers
 
@@ -21,11 +70,13 @@ What answers is picked in the menu beside the line.
 | **Claude Code (ACP)**, **Codex (ACP)** | the same line answered by an [agent](/en/agents) — the same session and transcript as the `⌘⇧A` panel |
 
 **OpenAI-compatible** is one menu entry rather than a list of models because what
-it points at is a setting: **Model Providers…** holds an endpoint, a model name
-and a key. A local server wants no key at all, and an empty field means no
-authorization header is sent.
+it points at is a setting: `six://settings` ▸ **Assistant** holds an endpoint, a
+model name and a key. A local server wants no key at all, and an empty field
+means no authorization header is sent. The Anthropic key goes in the same place.
 
-The Anthropic key goes in **Anthropic API Key…**.
+While an agent is answering, the verbs are not offered: an agent has a session, a
+working directory and a transcript of its own, and a verb is a prompt to a
+language model.
 
 ::: warning About keys, honestly
 Keys are kept in the application's settings. That is enough to work on your own

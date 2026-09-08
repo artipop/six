@@ -995,6 +995,26 @@
         }
       }
     },
+    "Ask about the selected text, or say how to change it…": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Спросить о выделенном или сказать, как его изменить…"
+          }
+        }
+      }
+    },
+    "Ask about the selected text…": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Спросить о выделенном…"
+          }
+        }
+      }
+    },
     "Ask about this page…": {
       "localizations": {
         "ru": {
@@ -1011,6 +1031,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Спросить снова в следующий раз"
+          }
+        }
+      }
+    },
+    "Ask…": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Спросить…"
           }
         }
       }
@@ -1271,6 +1301,16 @@
         }
       }
     },
+    "Check this claim": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Проверить утверждение"
+          }
+        }
+      }
+    },
     "Checking %@…": {
       "localizations": {
         "ru": {
@@ -1503,6 +1543,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Блокировка контента"
+          }
+        }
+      }
+    },
+    "Continue Writing": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Продолжить текст"
           }
         }
       }
@@ -1777,6 +1827,16 @@
         }
       }
     },
+    "Draft a Reply": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Набросать ответ"
+          }
+        }
+      }
+    },
     "Each site will ask again the next time it needs a device.": {
       "localizations": {
         "ru": {
@@ -1877,6 +1937,16 @@
         }
       }
     },
+    "Explain": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Объяснить"
+          }
+        }
+      }
+    },
     "Extensions": {
       "localizations": {
         "ru": {
@@ -1923,6 +1993,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Списки фильтров…"
+          }
+        }
+      }
+    },
+    "Fix Spelling and Grammar": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Исправить ошибки"
           }
         }
       }
@@ -2197,6 +2277,16 @@
         }
       }
     },
+    "Insert": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вставить"
+          }
+        }
+      }
+    },
     "Install": {
       "localizations": {
         "ru": {
@@ -2463,6 +2553,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "MCP-приложения"
+          }
+        }
+      }
+    },
+    "Make It Shorter": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сделать короче"
           }
         }
       }
@@ -3127,6 +3227,16 @@
         }
       }
     },
+    "Polish What Is Written": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Причесать написанное"
+          }
+        }
+      }
+    },
     "Preparing filter lists…": {
       "localizations": {
         "ru": {
@@ -3219,6 +3329,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Профили"
+          }
+        }
+      }
+    },
+    "Put into the page — ⌘Z takes it back": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вставлено в страницу — ⌘Z вернёт как было"
           }
         }
       }
@@ -3483,6 +3603,16 @@
         }
       }
     },
+    "Replace": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Заменить"
+          }
+        }
+      }
+    },
     "Research…": {
       "localizations": {
         "ru": {
@@ -3535,6 +3665,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Повторить"
+          }
+        }
+      }
+    },
+    "Rewrite": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Переписать"
           }
         }
       }
@@ -3615,6 +3755,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Сохранить…"
+          }
+        }
+      }
+    },
+    "Say what to write here…": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сказать, что здесь написать…"
           }
         }
       }
@@ -3715,6 +3865,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Сначала выделите текст на странице"
+          }
+        }
+      }
+    },
+    "Selection": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выделенное"
           }
         }
       }
@@ -4029,7 +4189,27 @@
         }
       }
     },
+    "Summarize": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пересказать кратко"
+          }
+        }
+      }
+    },
     "Summarize Page": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пересказать страницу"
+          }
+        }
+      }
+    },
+    "Summarize This Page": {
       "localizations": {
         "ru": {
           "stringUnit": {
@@ -4197,6 +4377,16 @@
         }
       }
     },
+    "This field": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Это поле"
+          }
+        }
+      }
+    },
     "This page": {
       "localizations": {
         "ru": {
@@ -4323,6 +4513,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Перевести на %@"
+          }
+        }
+      }
+    },
+    "Translate to English": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Перевести на английский"
           }
         }
       }
@@ -4539,6 +4739,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Что разрешено сайту %@"
+          }
+        }
+      }
+    },
+    "What is this?": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Что это?"
           }
         }
       }

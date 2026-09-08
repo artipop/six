@@ -29,6 +29,7 @@ struct sixApp: App {
     #endif
     @State private var browser: BrowserState
     @State private var assistant: AssistantStore
+    @State private var pageFocus: PageFocusStore
     #if os(macOS)
     @State private var agentSession: AgentSessionStore
     @State private var mcp: MCPHost
@@ -131,6 +132,11 @@ struct sixApp: App {
         highlights.isPrivate = { [weak browser] id in browser?.isPrivate(id) ?? false }
         browser.highlights = highlights
         let assistant = AssistantStore(settings: settings)
+        // What the pages have under the cursor. Built with the controllers, like the blocker and
+        // devtools, because a window restored at launch starts loading before anything asks.
+        let pageFocus = PageFocusStore(controllers: pageControllers)
+        assistant.focus = pageFocus
+        browser.pageFocus = pageFocus
         let tools = BrowserToolCatalog(browser: browser, assistant: assistant.settings, bookmarks: bookmarks, settings: settings, highlights: highlights)
         tools.devTools = devTools
         assistant.tools = tools
@@ -190,6 +196,7 @@ struct sixApp: App {
         _persistence = State(initialValue: persistence)
         _browser = State(initialValue: browser)
         _assistant = State(initialValue: assistant)
+        _pageFocus = State(initialValue: pageFocus)
         #if os(macOS)
         _agentSession = State(initialValue: agentSession)
         _mcp = State(initialValue: mcp)
@@ -224,6 +231,7 @@ struct sixApp: App {
             ContentView()
                 .environment(browser)
                 .environment(assistant)
+                .environment(pageFocus)
                 .environment(agentSession)
                 .environment(mcp)
                 .environment(mcpApps)
@@ -303,6 +311,7 @@ struct sixApp: App {
             PhoneContentView()
                 .environment(browser)
                 .environment(assistant)
+                .environment(pageFocus)
                 .environment(settings)
                 .environment(bookmarks)
                 .environment(highlights)

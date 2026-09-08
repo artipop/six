@@ -38,7 +38,7 @@ from [`six/Localizable.xcstrings`](../six/Localizable.xcstrings) rather than tra
 | [permissions.md](permissions.md) | site permissions: the camera and microphone per site, the page's own dialogs, what a `WebPage` browser still cannot ask for, and the same questions on Linux |
 | [certificates.md](certificates.md) | extra certificate authorities: the Минцифры CA six ships switched off, what a switch actually does, and importing your own |
 | [bookmarks.md](bookmarks.md) | bookmarks: readable Markdown copies per profile, on-device embeddings, search from the assistant and MCP |
-| [assistant.md](assistant.md) | the ⌘K assistant on Foundation Models |
+| [assistant.md](assistant.md) | the assistant: verbs at a selection, at a caret and on the ⌘K line, over Foundation Models |
 | [agents.md](agents.md) | the ACP client and the agent panel |
 | [devtools.md](devtools.md) | Web Inspector on six's pages, and the console/network capture the agent tools read |
 | [mcp.md](mcp.md) | `six --mcp`: the browser as an MCP server, and its tools |

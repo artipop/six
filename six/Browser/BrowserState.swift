@@ -48,6 +48,10 @@ final class BrowserState {
     @ObservationIgnored var devTools: DevToolsStore? {
         didSet { for tab in tabs { tab.devTools = devTools } }
     }
+    /// What each window has selected, or a caret in — the assistant's context; wired at launch.
+    @ObservationIgnored var pageFocus: PageFocusStore? {
+        didSet { for tab in tabs { tab.pageFocus = pageFocus } }
+    }
     /// The camera, the microphone and the motion sensors, per site (`SitePermissions`). Handed to
     /// the initializer for the same reason as the blocker: the windows it restores are built and
     /// answered before anything assigned afterwards could reach them.
@@ -604,6 +608,7 @@ final class BrowserState {
         tab.extensions = extensions
         tab.pageControllers = pageControllers
         tab.devTools = devTools
+        tab.pageFocus = pageFocus
         tab.permissions = permissions
     }
 
@@ -1002,6 +1007,7 @@ final class BrowserState {
         pages.forget(id)
         blocker?.forget(id)
         devTools?.forget(id)
+        pageFocus?.forget(id)
         pageControllers.forget(id)
         let tab = rebuilt(old, in: profile)
         tab.adopt(trail)
@@ -1097,6 +1103,7 @@ final class BrowserState {
         switcher.forget(id)
         extensions?.noteClosed(closed)
         devTools?.forget(id)
+        pageFocus?.forget(id)
         pageControllers.forget(id)
         if let document = closed.document {
             documents.remove(id: document.id)
