@@ -61,7 +61,7 @@ enum WebEngine {
             FileHandle.standardError.write(Data(message.utf8))
         }
 
-        return RailWebView(view: view, page: page, scale: scale)
+        return RailWebView(view: view, page: page)
     }
 }
 
@@ -80,13 +80,9 @@ final class RailWebView {
     /// track that, not just what it was told to load.
     var onURLChange: ((String) -> Void)?
 
-    /// What the real `HWND` is divided by before WebKit is told about it. See `installScaleShim`.
-    let scale: Double
-
-    init(view: WKViewRef, page: WKPageRef, scale: Double) {
+    init(view: WKViewRef, page: WKPageRef) {
         self.view = view
         self.page = page
-        self.scale = scale
         installNavigationClient()
         installScaleShim()
     }
@@ -107,11 +103,14 @@ final class RailWebView {
     /// divides an event's client coordinates by the device scale, which is exactly the factor
     /// between where a CSS pixel is drawn and where it is — dividing them here too moved every click
     /// by 1.5x again, measured, a click on a grid's middle cell landing two cells away.
+    ///
+    /// Installed on every view, not only on scaled displays: at 100% it divides by one and changes
+    /// nothing, which is less to reason about than a front that behaves differently per monitor.
     private func installScaleShim() {
-        guard scale > 1.0, let hwnd else { return }
+        guard let hwnd else { return }
         let previous = GetWindowLongPtrW(hwnd, GWLP_WNDPROC)
         MainActor.assumeIsolated {
-            scaleShims[UInt(bitPattern: Int(bitPattern: hwnd))] = unsafeBitCast(previous, to: WNDPROC.self)
+            scaleShims[shimKey(hwnd)] = unsafeBitCast(previous, to: WNDPROC.self)
         }
         let shimProc: WNDPROC = webViewScaleProc
         _ = SetWindowLongPtrW(hwnd, GWLP_WNDPROC, unsafeBitCast(shimProc, to: LONG_PTR.self))
@@ -179,16 +178,17 @@ final class RailWebView {
 
     func destroy() {
         guard let hwnd else { return }
-        scaleShims[UInt(bitPattern: Int(bitPattern: hwnd))] = nil
+        scaleShims[shimKey(hwnd)] = nil
         DestroyWindow(hwnd)
     }
 }
-
 
 /// One live view's saved window procedure, keyed by `HWND` rather than parked in `GWLP_USERDATA`,
 /// which belongs to WebKit on this window.
 @MainActor
 private var scaleShims: [UInt: WNDPROC] = [:]
+
+private nonisolated func shimKey(_ hwnd: HWND) -> UInt { UInt(bitPattern: Int(bitPattern: hwnd)) }
 
 /// `nonisolated` for the same reason every other `WNDPROC` here is: a C function pointer carries no
 /// actor isolation. See `RailWebView.installScaleShim` for what it is rewriting and why.
@@ -196,7 +196,7 @@ private nonisolated func webViewScaleProc(
     _ hwnd: HWND?, _ message: UINT, _ wParam: WPARAM, _ lParam: LPARAM
 ) -> LRESULT {
     guard let hwnd else { return DefWindowProcW(hwnd, message, wParam, lParam) }
-    let key = UInt(bitPattern: Int(bitPattern: hwnd))
+    let key = shimKey(hwnd)
     let original = MainActor.assumeIsolated { scaleShims[key] }
     guard let original else { return DefWindowProcW(hwnd, message, wParam, lParam) }
     // Read live rather than remembered: this is the one place that would otherwise go wrong when the
@@ -208,7 +208,7 @@ private nonisolated func webViewScaleProc(
     if Int32(message) == WM_SIZE {
         let width = Int32(Double(SixRailLoWord(lParam)) / scale)
         let height = Int32(Double(SixRailHiWord(lParam)) / scale)
-        forwarded = SixRailMakePoint(width, height)
+        forwarded = SixRailPackWords(width, height)
     }
     return CallWindowProcW(original, hwnd, message, wParam, forwarded)
 }
