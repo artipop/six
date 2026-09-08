@@ -99,18 +99,34 @@ all. It is fixed by a window procedure in front of the `WKView`
 (`RailWebView.installScaleShim`) — **load-bearing; do not "clean up" it or the divided rect
 `WebEngine.makeView` hands to `WKViewCreate` without re-reading this.**
 
-**What WebKit's Windows port actually does.** It renders at `viewSize × deviceScaleFactor` and then
-presents that surface into the window one backing pixel to one, **with no downscale**. That missing
-downscale is the whole bug. Both of its inputs come off the view's own `HWND` — `viewSize` from its
-client rect, the device scale from the DPI Windows reports for it — so the two always move together,
-and their product is what has to be made to equal the window's real pixel size. Under a
-per-monitor-aware process at 150%: view size 1390 physical pixels, device scale 1.5, a 2085-pixel
-surface blitted 1:1 into a 1390-pixel window. Measured directly — a page that writes
-`innerWidth`/`devicePixelRatio` into its own title reported `iw=1390 dpr=1.5` against a `WKView`
-`HWND` `GetWindowRect` confirmed was exactly 1390 wide.
+**It is not a WebKit bug. Playwright deletes one line, and this is that line.** Their patch set is
+public — `browser_patches/webkit/patches/bootstrap.diff` in `microsoft/playwright` — and in
+`Source/WebKit/UIProcess/win/WebView.cpp`, `WebView::onSizeEvent`, it does this:
 
-**The fix.** Subclass the `WKView`'s `HWND` and divide `WM_SIZE`'s dimensions by the display scale
-before passing the message on. WebKit then believes its client area is 926 wide, renders
+```diff
+-    m_viewSize = expandedIntSize(FloatSize(LOWORD(lParam), HIWORD(lParam)) / intrinsicDeviceScaleFactor);
++    m_viewSize = expandedIntSize(FloatSize(LOWORD(lParam), HIWORD(lParam)));
+```
+
+Upstream takes `WM_SIZE`'s physical dimensions and divides them by the device scale, so `m_viewSize`
+is logical. Playwright keeps them physical — reasonable for headless automation, where a screenshot
+should come out the size you asked for, and wrong for anything drawing into a real scaled window.
+
+Everything observed follows from that one line. WebKit renders at `viewSize × deviceScaleFactor` and
+presents the result into the window one backing pixel to one; upstream that is
+`(physical / scale) × scale = physical`, exactly the window. With the division gone it is
+`physical × scale`, so at 150% a 1390-pixel-wide window gets a 2085-pixel surface — 1.5x too large,
+spilling out of its own `HWND`. Measured before any of this was known: a page writing
+`innerWidth`/`devicePixelRatio` into its own title reported `iw=1390 dpr=1.5` against a `WKView`
+`HWND` that `GetWindowRect` confirmed was exactly 1390 wide.
+
+It also explains why nothing reachable through the C API moved it. The damage is done at the source
+of `m_viewSize`, before any of `WKPageSetCustomBackingScaleFactor`, the process DPI mode, or the
+units of the creation rect get a say.
+
+**The fix is that same division, done from outside the process.** Subclass the `WKView`'s `HWND` and
+divide `WM_SIZE`'s dimensions by the display scale before passing the message on — which is
+literally the deleted line, reimplemented one stack frame earlier. WebKit then believes its client area is 926 wide, renders
 `926 × 1.5 = 1389` pixels, and blits that into the 1390-pixel window it actually has: correct size,
 and rendered at the display's real resolution rather than upscaled from 96 DPI. The view is created
 at the divided rect too, so that the `setFrame` which immediately follows in
@@ -123,9 +139,10 @@ the benefit straight back by bitmap-scaling the child's output, which is the thi
 has to be in effect when the *parent* is created, not around `WKViewCreate`. With it, the view's
 backing scale really does come back as 1.0.)
 
-**Mouse messages are deliberately not rewritten**, which is the counter-intuitive half. WebKit
-already divides an event's client coordinates by the device scale, and that is exactly the factor
-between where a CSS pixel is drawn and where it is — so the shim's first version, which divided them
+**Mouse messages are deliberately not rewritten**, which is the counter-intuitive half — and which
+the patch also explains, since it leaves the event path alone. WebKit already divides an event's
+client coordinates by the device scale, and that is exactly the factor between where a CSS pixel is
+drawn and where it is — so the shim's first version, which divided them
 too, moved every click by 1.5x again: clicking the middle cell of a labelled grid reported the cell
 two along. With `WM_SIZE` alone, a click at the visual centre of that cell reports that cell, at CSS
 coordinates within two pixels of its centre.
@@ -142,7 +159,7 @@ coordinates within two pixels of its centre.
 | `WKViewSetUsesOffscreenRendering(view, true)` | shrinks into a corner, rest blank |
 | page zoom | scales what is drawn and what is hit-tested by the same factor, so it cannot close a gap between them |
 | sizing the live view to 1/1.5 of its card and leaving it there | sharp and correctly sized, and the right and bottom thirds of the page stop receiving mouse input |
-| Playwright's newest WebKit — `webkit-2360`, one revision past the pinned `webkit-2359`, from `https://cdn.playwright.dev/dbazure/download/playwright/builds/webkit/<rev>/webkit-win64.zip` (`2361`+ are 400, so that is the newest that exists) | identical behaviour; the downscale is still missing upstream. A build off WebKit's own CI is the next thing to try — [todo.md](todo.md) |
+| Playwright's newest WebKit — `webkit-2360`, one revision past the pinned `webkit-2359`, from `https://cdn.playwright.dev/dbazure/download/playwright/builds/webkit/<rev>/webkit-win64.zip` (`2361`+ are 400, so that is the newest that exists) | identical, and now expected: every Playwright build carries the patch above. Only a non-Playwright build drops the shim — [todo.md](todo.md) |
 
 **Accelerated compositing is off** (`WKPreferencesSetAcceleratedCompositingEnabled(preferences,
 false)`). With the shim in place the accelerated path draws correctly too — it was the DPI-unaware

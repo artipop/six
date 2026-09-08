@@ -357,9 +357,9 @@ anything added there has to exist on both:
 - **A letter binding read from `charactersIgnoringModifiers` is a binding that only Latin layouts have.** `⌥W` reports
   «ц» on the Russian layout. Match the key code as well (`KeyBinding.Key.letter`), which is what a tiling WM does.
 - **On Windows, how a page is drawn and where its clicks land are one problem, and the fix is a window procedure.**
-  WebKit's Windows port renders at `viewSize × deviceScaleFactor` and blits that surface into the window one backing
-  pixel to one, with no downscale — and both of those are read off the same `HWND`, so no DPI awareness mode changes
-  their product. `RailWebView.installScaleShim` divides `WM_SIZE` by the display scale, which lands the product on the
+  Playwright's WebKit deletes the `/ intrinsicDeviceScaleFactor` from `WebView::onSizeEvent` (their public
+  bootstrap.diff), so the view size stays physical while rendering still multiplies by the scale — nothing reachable
+  from the C API can undo it, because the damage is done before any of those knobs are read. `RailWebView.installScaleShim` divides `WM_SIZE` by the display scale, which lands the product on the
   window's real pixels. It must **not** touch mouse messages: WebKit already divides those by the device scale, and
   doing it twice put every click 1.5× out. Measure with a page that writes `innerWidth`/`devicePixelRatio` into its
   own title and a labelled grid clicked by hand — reasoning about this produced three confident wrong answers in a

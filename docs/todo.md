@@ -107,13 +107,14 @@ The Windows front runs the WebKit that `playwright install webkit` puts on the m
 revision the installed Playwright pins — `webkit-2359` at the time of writing. Two separate reasons to want a
 different build, and they are worth keeping apart:
 
-- **A newer one**, because `RailWebView.installScaleShim`, the divided rect it needs and the compositing
-  preference all exist for one missing downscale in the port ([windows.md](windows.md)), and they all leave
-  together the day a build appears without it.
-- **An unpatched one**, which is the more interesting reason and came from the `../sixty` session: Playwright's
-  build is patched and configured for headless automation and remote control, and that patching is a plausible
-  contributor to the bug itself. Nobody has tested a stock WebKit here, so "it is broken upstream" is an
-  assumption, not a finding.
+- **A newer one** was the original hope, and is now known to be pointless on its own: the cause is a patch
+  Playwright applies to every build it ships ([windows.md](windows.md)).
+- **An unpatched one, and this is now the whole reason** — the `../sixty` session guessed that Playwright's
+  patching for headless automation might be causing the bug, and reading the patch confirmed it exactly.
+  `browser_patches/webkit/patches/bootstrap.diff` deletes the `/ intrinsicDeviceScaleFactor` from
+  `WebView::onSizeEvent`, which is precisely the division `RailWebView.installScaleShim` puts back from outside.
+  So any non-Playwright build — CI or self-built — makes the shim, the divided creation rect and probably the
+  compositing preference all unnecessary. A *newer Playwright* build never will; they all carry the patch.
 
 **Neither is available right now**, and both routes have been checked rather than guessed at:
 
