@@ -753,7 +753,10 @@ final class BrowserState {
             try? await Task.sleep(for: .milliseconds(50))
             guard let self, let tab, !tab.hasCommitted else { return }
             let wasFocused = selectedTabID == tab.id
-            closeTab(tab.id)
+            // Not remembered: nobody asked for this window and nobody asked for it to go, so there is
+            // nothing here to undo, and it would push a window somebody does want off the end of the
+            // list.
+            closeTab(tab.id, remembering: false)
             // Only when the eye was in the window being closed. A link opened behind (⌘-click) never
             // had the focus, and taking it to the opener would move a reader who never left it.
             guard wasFocused, tabsByID[opener] != nil else { return }
@@ -1076,13 +1079,16 @@ final class BrowserState {
         _ = tab.page.reload()
     }
 
-    func closeTab(_ id: BrowserTab.ID) {
+    /// `remembering` is false only for a window the browser closes on the user's behalf rather than at
+    /// their word — see `closeIfOnlyCarriedALink`. Everything a person closes goes on the list ⌘⇧T
+    /// reads, whether or not it had anything in it.
+    func closeTab(_ id: BrowserTab.ID, remembering: Bool = true) {
         guard let index = tabs.firstIndex(where: { $0.id == id }) else { return }
         let closed = tabs.remove(at: index)
         tabsByID[id] = nil
         // Before anything is taken apart: `remember` reads where the column stands and what a
         // document window is holding, and both are gone by the end of this function.
-        remember(closed)
+        if remembering { remember(closed) }
         // Before the page goes, not after: `ui/resource-teardown` is a question asked of code that
         // has to still be running to answer it. The session holds the page for as long as that
         // takes, up to a second.
@@ -1133,15 +1139,17 @@ final class BrowserState {
     /// Keeps what a closed window was, so ⌘⇧T can build it again. The record is the session
     /// snapshot's (`entry(for:)`), plus where in the strip the window stood.
     ///
-    /// Two kinds are not kept. A private window leaves nothing behind — not on disk, and not in a
-    /// list in memory either; that is the whole of what the profile promises. And a window that never
-    /// showed anything is nothing to put back: a start page closed with ⌘W, or the window a link
-    /// opened that turned out to be a download (`closeIfOnlyCarriedALink`) and would otherwise push
-    /// the window somebody actually wants off the end of the list.
+    /// A private window is the one kind not kept: it leaves nothing behind — not on disk, and not in
+    /// a list in memory either; that is the whole of what the profile promises.
+    ///
+    /// A window showing nothing but the start page is kept too, though there is nothing in it to
+    /// build again. ⌘⇧T is an undo of ⌘W, and a list that quietly skipped the empty ones answered a
+    /// run of ⌘W by handing back a page closed several windows earlier — and putting it where the
+    /// empty window had stood. The one window that never joins the list is the one nobody closed:
+    /// see `closeIfOnlyCarriedALink`, which closes with `remembering: false`.
     private func remember(_ tab: BrowserTab) {
         guard !isPrivate(tab.profileID) else { return }
         let entry = Self.entry(for: tab)
-        guard entry.url != nil || entry.document != nil || entry.app != nil else { return }
         guard let place = layout.location(ofTabID: tab.id, in: tab.profileID) else { return }
         // The document's text, before `closeTab` deletes the file holding it.
         closedWindows.append(ClosedWindow(tab: entry, workspace: place.workspace, index: place.index,
