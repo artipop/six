@@ -180,9 +180,15 @@ windows/Sources/CWebKit2           The WebKit2 C API headers, copied unmodified 
                                     translation unit.
 
 windows/vendor/WebKit2             WebKit2.lib/.def/.exp — the import library generated from the
-                                    real engine DLL's own export table. Not the DLL itself, which is
-                                    large and already lives wherever `playwright install webkit` put
-                                    it — see "Building and running".
+                                    engine DLL's own export table, because the DLL ships without an
+                                    MSVC-compatible one. Not the DLL itself, which is large and
+                                    already on the machine — see "Building and running". Regenerate
+                                    it when a build moves its exports (1677 of them in webkit-2359,
+                                    so do not assume the .def survives a revision):
+
+                                        dumpbin /exports WebKit2.dll > exports_raw.txt
+                                        # write a .def with an EXPORTS section, one symbol per line
+                                        lib /def:WebKit2.def /out:WebKit2.lib /machine:x64
 
 windows/Sources/SixBrowser         RailModel: NiriLayout plus the tab metadata every column needs and
                                     the URL a live one is at — no toolkit and no WebKit2 in it.

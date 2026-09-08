@@ -382,6 +382,11 @@ anything added there has to exist on both:
 - **No regressions on macOS or iOS/iPadOS.** This is a standing constraint from the Linux and Android work: anything
   touching Apple code has to be provably inert or explicitly justified.
 - **Commit when asked ("закомить"), never push unless asked.** Work lands on `main` unless a branch was requested.
+- **Two sessions cannot both drive synthetic input on one desktop.** A click has to be delivered to a foreground
+  window, so two harnesses posting clicks steal the foreground from each other mid-test and land on the wrong
+  windows entirely — the `../sixty` session could not verify its click test at all while this one was running, and
+  once tripped Windows' task-view switcher by accident. Say so before a run, and prefer `PrintWindow` over a screen
+  scrape for anything that only needs to *look*: it captures a window that is not on top, and does not touch focus.
 - **Other Claude sessions edit this repo at the same time.** Check `git status` before committing and stage only your
   own files; an unexpected diff is usually another session's work in progress (or Xcode re-sorting `project.pbxproj`),
   not something to revert. Ask the session rather than guessing — a source file under someone's hand looks exactly
