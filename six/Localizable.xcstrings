@@ -1451,6 +1451,26 @@
         }
       }
     },
+    "Client ID": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Идентификатор клиента"
+          }
+        }
+      }
+    },
+    "Client secret": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Секрет клиента"
+          }
+        }
+      }
+    },
     "Close Private Browsing": {
       "localizations": {
         "ru": {
@@ -1847,6 +1867,16 @@
         }
       }
     },
+    "Edit a Server": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Изменение сервера"
+          }
+        }
+      }
+    },
     "Edit preset": {
       "localizations": {
         "ru": {
@@ -1873,6 +1903,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Изменить профиль"
+          }
+        }
+      }
+    },
+    "Edit…": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Изменить…"
           }
         }
       }
@@ -2393,6 +2433,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Прервано · %@ · %@"
+          }
+        }
+      }
+    },
+    "Issuer": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сервер авторизации"
           }
         }
       }
@@ -2967,6 +3017,16 @@
         }
       }
     },
+    "OAuth client": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Клиент OAuth"
+          }
+        }
+      }
+    },
     "OK": {
       "localizations": {
         "ru": {
@@ -3453,6 +3513,16 @@
         }
       }
     },
+    "Redirect URI": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Адрес возврата"
+          }
+        }
+      }
+    },
     "Refresh Bookmark": {
       "localizations": {
         "ru": {
@@ -3469,6 +3539,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Обновить сейчас"
+          }
+        }
+      }
+    },
+    "Register this exact address with the provider — the sign-in comes back to it": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Зарегистрируйте этот адрес у провайдера — вход вернётся именно на него"
           }
         }
       }
@@ -3709,6 +3789,16 @@
         }
       }
     },
+    "Save": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сохранить"
+          }
+        }
+      }
+    },
     "Save As": {
       "localizations": {
         "ru": {
@@ -3775,6 +3865,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Область"
+          }
+        }
+      }
+    },
+    "Scopes": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Разрешения"
           }
         }
       }
@@ -5053,6 +5153,16 @@
         }
       }
     },
+    "https://accounts.google.com": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "https://accounts.google.com"
+          }
+        }
+      }
+    },
     "https://api.openai.com/v1": {
       "localizations": {
         "ru": {
@@ -5079,6 +5189,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "запрашивает файл."
+          }
+        }
+      }
+    },
+    "kept in the Keychain": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "хранится в связке ключей"
           }
         }
       }
@@ -5159,6 +5279,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "npx -y @modelcontextprotocol/server-map --stdio"
+          }
+        }
+      }
+    },
+    "only for a server that issues none": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "только для сервера, который не выдаёт свой"
           }
         }
       }
@@ -5249,6 +5379,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "sk-… (пусто для локального сервера)"
+          }
+        }
+      }
+    },
+    "space-separated, when the server names none": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "через пробел, если сервер их не называет"
           }
         }
       }

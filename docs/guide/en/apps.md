@@ -55,7 +55,25 @@ never asked: it is a process the browser started itself.
 
 **Add Server…** takes either a local command (run in your shell's environment, so
 nvm and homebrew work) or an HTTP address. A token, if one is needed, is sent as
-a bearer.
+a bearer. To change a server already added, use **Edit…** in the row's context
+menu.
+
+### OAuth client
+
+Signing in usually needs no setup at all: the browser registers itself with the
+server at the moment a sign-in is needed. Some providers hand out no clients that
+way — theirs are created by hand in a console, and there is no registration
+endpoint at all. Google's official Workspace servers are the case in point. For
+those, the server's form has an **OAuth client** section:
+
+- **Client ID** and **Client secret**, from the provider's console. The secret is
+  kept in the Keychain rather than in the settings.
+- **Scopes**, space-separated, for a server that does not say which it needs.
+- **Issuer**, only when the server names none itself
+  (`https://accounts.google.com` for Google).
+- **Redirect URI** — copy it and register it with the provider exactly as shown:
+  the sign-in comes back to it. It is stable, derived from the server's name, and
+  does not change between launches.
 
 ## When an app calls a tool
 

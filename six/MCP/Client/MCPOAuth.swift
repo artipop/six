@@ -88,6 +88,7 @@ nonisolated enum MCPOAuth {
         case noRegistration(String)
         case denied(String)
         case stateMismatch
+        case portTaken(UInt16)
 
         var errorDescription: String? {
             switch self {
@@ -101,6 +102,9 @@ nonisolated enum MCPOAuth {
                 "Authorization was refused: \(reason)"
             case .stateMismatch:
                 "The authorization server answered a request six did not make."
+            case .portTaken(let port):
+                "The sign-in has to come back on port \(port), which this client is registered for, "
+                    + "and something else on this Mac is listening there."
             }
         }
     }
@@ -250,8 +254,26 @@ nonisolated enum MCPOAuth {
             URLQueryItem(name: "resource", value: resource),
         ]
         if let scope, !scope.isEmpty { items.append(URLQueryItem(name: "scope", value: scope)) }
+        items += providerParameters(for: metadata.authorizationEndpoint)
         components.queryItems = items
         return components.url
+    }
+
+    /// What a provider needs asked for and does not say so in its metadata.
+    ///
+    /// Google is the whole of this list and the reason it exists. It issues a refresh token only for
+    /// a request carrying `access_type=offline`, and only the *first* time a person consents unless
+    /// `prompt=consent` says otherwise — so a client that asked for neither would work for an hour
+    /// and then send somebody back to the consent screen every hour after that. Both are ordinary
+    /// query parameters; a server that has never heard of them ignores them, which is why this can
+    /// stay a small table rather than a setting.
+    static func providerParameters(for endpoint: URL) -> [URLQueryItem] {
+        guard let host = endpoint.host()?.lowercased(),
+              host == "accounts.google.com" || host.hasSuffix(".googleapis.com") else { return [] }
+        return [
+            URLQueryItem(name: "access_type", value: "offline"),
+            URLQueryItem(name: "prompt", value: "consent"),
+        ]
     }
 
     // MARK: Tokens

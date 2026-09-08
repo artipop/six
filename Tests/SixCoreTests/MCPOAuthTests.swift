@@ -219,6 +219,30 @@ struct MCPOAuthTests {
         #expect(metadata.scopesSupported == nil)
     }
 
+    // MARK: The client somebody typed in
+
+    /// The port is registered with the provider once and has to be the same forever after. Swift's
+    /// `Hasher` is seeded per process, so a port derived from it would be a different port on every
+    /// launch and every sign-in would fail — this is the test that would have caught that.
+    @Test func aTypedInClientKeepsItsPortAcrossRuns() {
+        let port = MCPOAuthClient.port(for: "sheets")
+        #expect(MCPOAuthClient.port(for: "sheets") == port)
+        #expect(port >= 49152)
+        #expect(MCPOAuthClient.port(for: "docs") != port)
+        #expect(MCPOAuthClient(clientID: "x", redirectPort: port).redirectURI == "http://127.0.0.1:\(port)/callback")
+    }
+
+    /// Google issues no refresh token unless both parameters are there, and nobody else is asked for
+    /// them.
+    @Test func googleIsAskedForAnOfflineToken() {
+        let google = MCPOAuth.providerParameters(for: URL(string: "https://accounts.google.com/o/oauth2/v2/auth")!)
+        #expect(google.first { $0.name == "access_type" }?.value == "offline")
+        #expect(google.first { $0.name == "prompt" }?.value == "consent")
+        #expect(MCPOAuth.providerParameters(for: URL(string: "https://auth.example.com/authorize")!).isEmpty)
+        // A host that merely ends in the same letters is not Google.
+        #expect(MCPOAuth.providerParameters(for: URL(string: "https://notaccounts.google.com.evil.test/a")!).isEmpty)
+    }
+
     @Test func registrationIsRefusedWithoutAnEndpoint() async throws {
         let metadata = try JSONDecoder().decode(MCPOAuth.ServerMetadata.self, from: Data("""
         { "issuer": "https://auth.example.com",

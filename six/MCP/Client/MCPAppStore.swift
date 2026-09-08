@@ -40,6 +40,9 @@ final class MCPAppStore {
     func remove(_ definition: MCPServerDefinition) {
         setShared(definition, false)
         authorization.signOut(definition)
+        // The client somebody typed in goes with the server it was typed in for; leaving a secret
+        // in the Keychain for a server nobody can see is how a credential outlives its purpose.
+        MCPTokenStore.forgetClientSecret(definition.id)
         for session in sessions where session.server.id == definition.id {
             browser?.closeTab(session.id)
         }

@@ -35,6 +35,46 @@ nonisolated enum MCPApps {
     }
 }
 
+/// An OAuth client somebody created in a console and typed in, for a server that hands out none.
+///
+/// The spec assumes dynamic client registration (RFC 7591), and for good reason: six is a desktop
+/// application meeting servers it has never heard of, so it asks for a client id at the moment it
+/// needs one. Providers whose clients are created by hand — Google's Workspace servers are the case
+/// this was written for — have no registration endpoint at all, and there the id and the secret come
+/// from the person instead.
+///
+/// The port is part of the credential rather than an implementation detail. Such a provider stores
+/// the redirect URI exactly and refuses anything else, so the loopback listener has to come back on
+/// the same port every time; `redirectURI` is the string that gets pasted into the console.
+nonisolated struct MCPOAuthClient: Hashable, Codable, Sendable {
+    var clientID: String
+    var redirectPort: UInt16
+    /// The authorization server, for a resource server that names none. RFC 9728 says a server
+    /// should publish `/.well-known/oauth-protected-resource`, and a provider old enough to have no
+    /// registration endpoint is often old enough not to publish that either; then the only way to
+    /// find the endpoints is to be told where they are (`https://accounts.google.com` for Google).
+    var issuer: URL?
+    /// What to ask for when the server's own metadata names no scopes. Google's do not, and its
+    /// authorization endpoint refuses a request that asks for nothing.
+    var scopes: [String] = []
+
+    var redirectURI: String { "http://127.0.0.1:\(redirectPort)/callback" }
+
+    /// A port of this server's own, in the range nothing else claims (RFC 6335's dynamic range),
+    /// derived from the id so that it survives a restart and a reinstall.
+    ///
+    /// FNV-1a and not `Hasher`: Swift seeds that one per process, so the same server would get a
+    /// different port on every launch and every registered redirect URI would stop matching.
+    static func port(for serverID: String) -> UInt16 {
+        var hash: UInt64 = 0xcbf2_9ce4_8422_2325
+        for byte in serverID.utf8 {
+            hash ^= UInt64(byte)
+            hash &*= 0x100_0000_01b3
+        }
+        return UInt16(49152 + hash % 16000)
+    }
+}
+
 /// Where a server is and how to reach it: a command line to launch, or a URL to post to.
 ///
 /// The command form is the same shape as `ACPAgentDefinition` minus the toolchain fields, and runs
@@ -52,6 +92,11 @@ nonisolated struct MCPServerDefinition: Identifiable, Hashable, Codable, Sendabl
     /// Headers sent with every request — where an API key or a bearer token goes, until there is
     /// OAuth. Not shown in listings.
     var headers: [String: String] = [:]
+    /// The OAuth client six was handed, for a server that does not give out clients of its own.
+    /// Absent — the normal case — means six registers itself when the server asks for a sign-in.
+    /// The secret that goes with it is in the Keychain, never here: this struct is written to the
+    /// settings table as JSON.
+    var oauth: MCPOAuthClient?
 
     init(id: String, name: String? = nil, command: String, arguments: [String] = [],
          environment: [String: String] = [:]) {

@@ -19,6 +19,9 @@ struct MCPAppsView: View {
     @Environment(MCPAppStore.self) private var apps
     @Environment(BrowserState.self) private var browser
     @State private var isAdding = false
+    /// The server whose OAuth client is being filled in. A separate sheet from `isAdding` only in
+    /// what it starts from: the same form, opened on something that already exists.
+    @State private var editing: MCPServerDefinition?
     @State private var query = ""
     @State private var results: [MCPRegistry.Entry] = []
     @State private var isSearching = false
@@ -36,6 +39,7 @@ struct MCPAppsView: View {
         }
         .background(.background)
         .sheet(isPresented: $isAdding) { MCPAddServerSheet() }
+        .sheet(item: $editing) { MCPAddServerSheet(editing: $0) }
         // Debounced by the task's own identity: a keystroke cancels the sleep before it fires.
         .task(id: query) { await search() }
     }
@@ -86,7 +90,7 @@ struct MCPAppsView: View {
             if !apps.customServers.isEmpty {
                 Section("Yours") {
                     ForEach(apps.customServers) { server in
-                        MCPServerRow(server: server)
+                        MCPServerRow(server: server) { editing = server }
                     }
                 }
             }
@@ -310,6 +314,7 @@ private struct MCPProbeBadge: View {
 private struct MCPServerRow: View {
     @Environment(MCPAppStore.self) private var apps
     let server: MCPServerDefinition
+    let edit: () -> Void
 
     var body: some View {
         HStack(spacing: 10) {
@@ -361,6 +366,7 @@ private struct MCPServerRow: View {
             if server.isRemote, !isSignedIn {
                 Button("Sign In…") { Task { _ = await apps.authorization.authorize(server, challenge: nil) } }
             }
+            Button("Edit…", action: edit)
         }
     }
 
@@ -379,20 +385,33 @@ private struct MCPServerRow: View {
     }
 }
 
-/// Adding one by hand: a name, and either a command line or a URL. Nothing else is required,
-/// because nothing else is: a server is a process or an address.
+/// Adding one by hand, or filling in what a server needs later: a name, and either a command line
+/// or a URL. Nothing else is required, because nothing else is: a server is a process or an address.
+///
+/// The OAuth section is the exception, and it is empty for almost everyone. six registers itself
+/// with a server that lets it (RFC 7591); a provider whose clients are created in a console —
+/// Google's Workspace servers — hands out none, and then the id, the secret and the scopes have to
+/// be typed in. The redirect URI shown there is what gets pasted back into that console.
 private struct MCPAddServerSheet: View {
     @Environment(MCPAppStore.self) private var apps
     @Environment(\.dismiss) private var dismiss
+    /// The server being changed, or nil when this is a new one.
+    var editing: MCPServerDefinition?
+
     @State private var name = ""
     @State private var isRemote = false
     @State private var commandLine = ""
     @State private var address = ""
     @State private var token = ""
+    @State private var clientID = ""
+    @State private var clientSecret = ""
+    @State private var scopes = ""
+    @State private var issuer = ""
+    @State private var loaded = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Add a Server").font(.headline)
+            Text(editing == nil ? "Add a Server" : "Edit a Server").font(.headline)
             Form {
                 TextField("Name", text: $name, prompt: Text("weather"))
                 Picker("Kind", selection: $isRemote) {
@@ -403,6 +422,7 @@ private struct MCPAddServerSheet: View {
                 if isRemote {
                     TextField("Address", text: $address, prompt: Text("https://example.com/mcp"))
                     TextField("Token", text: $token, prompt: Text("optional — sent as a bearer token"))
+                    oauthSection
                 } else {
                     TextField("Command", text: $commandLine,
                               prompt: Text("npx -y @modelcontextprotocol/server-map --stdio"))
@@ -412,13 +432,41 @@ private struct MCPAddServerSheet: View {
             HStack {
                 Spacer()
                 Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
-                Button("Add", action: add)
+                Button(editing == nil ? "Add" : "Save", action: save)
                     .keyboardShortcut(.defaultAction)
                     .disabled(!isComplete)
             }
         }
         .padding(16)
         .frame(width: (Platform.screenSize.width * 0.28).rounded())
+        .task { load() }
+    }
+
+    /// Shown collapsed: a server that registers its own clients — nearly all of them — needs
+    /// nothing here, and an empty form open by default reads as four more things to fill in.
+    private var oauthSection: some View {
+        DisclosureGroup("OAuth client") {
+            TextField("Client ID", text: $clientID, prompt: Text("only for a server that issues none"))
+            SecureField("Client secret", text: $clientSecret, prompt: Text("kept in the Keychain"))
+            TextField("Scopes", text: $scopes, prompt: Text("space-separated, when the server names none"))
+            TextField("Issuer", text: $issuer, prompt: Text("https://accounts.google.com"))
+            LabeledContent("Redirect URI") {
+                HStack(spacing: 6) {
+                    Text(redirectURI)
+                        .font(.caption.monospaced())
+                        .textSelection(.enabled)
+                    Button("Copy") { Platform.copy(redirectURI) }
+                        .controlSize(.small)
+                }
+            }
+            .help("Register this exact address with the provider — the sign-in comes back to it")
+        }
+    }
+
+    /// The loopback address this server's sign-in will come back to. It follows the identifier, so
+    /// it is settled before anything is saved and can be registered with the provider first.
+    private var redirectURI: String {
+        MCPOAuthClient(clientID: "", redirectPort: MCPOAuthClient.port(for: identifier)).redirectURI
     }
 
     private var isComplete: Bool {
@@ -428,18 +476,36 @@ private struct MCPAddServerSheet: View {
     }
 
     /// The name on the wire: what prefixes this server's tools, so no spaces and nothing exotic.
+    /// A server being edited keeps the one it already has — it is what its tools, its token and its
+    /// registered redirect URI are all named after.
     private var identifier: String {
-        String(name.lowercased().map { $0.isLetter || $0.isNumber || $0 == "-" ? $0 : "-" })
+        if let editing { return editing.id }
+        return String(name.lowercased().map { $0.isLetter || $0.isNumber || $0 == "-" ? $0 : "-" })
             .split(separator: "-").joined(separator: "-")
     }
 
-    private func add() {
-        let definition: MCPServerDefinition
+    private func load() {
+        guard let editing, !loaded else { return }
+        loaded = true
+        name = editing.name
+        isRemote = editing.isRemote
+        address = editing.url?.absoluteString ?? ""
+        token = editing.headers["Authorization"].map { $0.replacingOccurrences(of: "Bearer ", with: "") } ?? ""
+        commandLine = editing.shellCommandLine
+        clientID = editing.oauth?.clientID ?? ""
+        scopes = editing.oauth?.scopes.joined(separator: " ") ?? ""
+        issuer = editing.oauth?.issuer?.absoluteString ?? ""
+        clientSecret = MCPTokenStore.clientSecret(editing.id) ?? ""
+    }
+
+    private func save() {
+        var definition: MCPServerDefinition
         if isRemote, let url = URL(string: address) {
             var headers: [String: String] = [:]
             let token = token.trimmingCharacters(in: .whitespaces)
             if !token.isEmpty { headers["Authorization"] = "Bearer \(token)" }
             definition = MCPServerDefinition(id: identifier, name: name, url: url, headers: headers)
+            definition.oauth = oauthClient
         } else {
             // A command line is split the way a shell would split it, minus the quoting: the first
             // word is the program, the rest are its arguments. Nothing runs through a shell — see
@@ -448,8 +514,22 @@ private struct MCPAddServerSheet: View {
             let command = words.isEmpty ? "" : words.removeFirst()
             definition = MCPServerDefinition(id: identifier, name: name, command: command, arguments: words)
         }
+        // The secret follows the id, not the definition: an emptied field deletes it.
+        MCPTokenStore.setClientSecret(definition.oauth == nil ? "" : clientSecret.trimmingCharacters(in: .whitespaces),
+                                      for: identifier)
         apps.add(definition)
         dismiss()
+    }
+
+    private var oauthClient: MCPOAuthClient? {
+        let id = clientID.trimmingCharacters(in: .whitespaces)
+        guard !id.isEmpty else { return nil }
+        return MCPOAuthClient(
+            clientID: id,
+            redirectPort: MCPOAuthClient.port(for: identifier),
+            issuer: URL(string: issuer.trimmingCharacters(in: .whitespaces)),
+            scopes: scopes.split(whereSeparator: \.isWhitespace).map(String.init)
+        )
     }
 }
 

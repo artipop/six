@@ -37,11 +37,50 @@ nonisolated enum MCPTokenStore {
         SecItemDelete(base(serverID) as CFDictionary)
     }
 
-    private static func base(_ serverID: String) -> [String: Any] {
+    /// The secret half of a client somebody typed in (`MCPOAuthClient`). It is a credential like the
+    /// tokens, and lives beside them rather than in the settings table with the id — an id that
+    /// leaks is a nuisance, a secret that leaks is somebody else's application talking to the
+    /// provider as six.
+    static func clientSecret(_ serverID: String) -> String? {
+        var query = base(serverID, kind: .clientSecret)
+        query[kSecReturnData as String] = true
+        query[kSecMatchLimit as String] = kSecMatchLimitOne
+        var item: CFTypeRef?
+        guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
+              let data = item as? Data else { return nil }
+        return String(decoding: data, as: UTF8.self)
+    }
+
+    /// An empty secret is a deletion: a provider that wants none should leave nothing behind.
+    static func setClientSecret(_ secret: String, for serverID: String) {
+        let query = base(serverID, kind: .clientSecret)
+        guard !secret.isEmpty else {
+            SecItemDelete(query as CFDictionary)
+            return
+        }
+        let data = Data(secret.utf8)
+        if SecItemUpdate(query as CFDictionary, [kSecValueData as String: data] as CFDictionary) == errSecSuccess { return }
+        var insert = query
+        insert[kSecValueData as String] = data
+        insert[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
+        SecItemAdd(insert as CFDictionary, nil)
+    }
+
+    static func forgetClientSecret(_ serverID: String) {
+        SecItemDelete(base(serverID, kind: .clientSecret) as CFDictionary)
+    }
+
+    /// Two items per server at most, told apart by the account name.
+    private enum Kind: String {
+        case token = ""
+        case clientSecret = "#oauth-client"
+    }
+
+    private static func base(_ serverID: String, kind: Kind = .token) -> [String: Any] {
         [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: serverID,
+            kSecAttrAccount as String: serverID + kind.rawValue,
         ]
     }
 }
@@ -115,8 +154,10 @@ final class MCPAuthorization {
 
     private func run(server: MCPServerDefinition, endpoint: URL, challenge: String?) async throws -> String {
         let resource = MCPOAuth.canonicalResource(endpoint)
-        guard let resourceMetadata = await MCPOAuth.resourceMetadata(for: endpoint, challenge: challenge),
-              let issuer = resourceMetadata.authorizationServers?.first else {
+        let resourceMetadata = await MCPOAuth.resourceMetadata(for: endpoint, challenge: challenge)
+        // The server's own answer first; the configured issuer is the fallback for a provider that
+        // publishes no protected-resource metadata at all.
+        guard let issuer = resourceMetadata?.authorizationServers?.first ?? server.oauth?.issuer else {
             throw MCPOAuth.Failure.noAuthorizationServer(endpoint)
         }
         guard let metadata = await MCPOAuth.serverMetadata(for: issuer) else {
@@ -133,22 +174,33 @@ final class MCPAuthorization {
         }
 
         let loopback = MCPLoopback()
-        try loopback.start(preferredPort: grant(for: server.id)?.port ?? 0)
+        // A client typed in by hand has its redirect URI registered with the provider letter for
+        // letter, so its port is not a preference: coming back on another one is a sign-in that
+        // fails at the last step, with an error from the provider rather than from six.
+        try loopback.start(preferredPort: server.oauth?.redirectPort ?? grant(for: server.id)?.port ?? 0)
         defer { loopback.stop() }
+        if let configured = server.oauth?.redirectPort, loopback.port != configured {
+            throw MCPOAuth.Failure.portTaken(configured)
+        }
         let redirectURI = loopback.redirectURI
 
         // A registration is only good for the redirect URI it was made with, so a port six could not
         // get back means registering again rather than a sign-in that fails at the last step.
         let previous = grant(for: server.id)
         let credentials: (id: String, secret: String?)
-        if let previous, previous.issuer == (metadata.issuer ?? issuer.absoluteString), previous.redirectURI == redirectURI {
+        if let client = server.oauth {
+            credentials = (client.clientID, MCPTokenStore.clientSecret(server.id))
+        } else if let previous, previous.issuer == (metadata.issuer ?? issuer.absoluteString), previous.redirectURI == redirectURI {
             credentials = (previous.clientID, previous.clientSecret)
         } else {
             credentials = try await MCPOAuth.register(with: metadata, redirectURI: redirectURI)
         }
 
         let pkce = MCPOAuth.PKCE()
-        let scope = (resourceMetadata.scopesSupported ?? metadata.scopesSupported)?.joined(separator: " ")
+        // What the person asked for wins: a provider that publishes no scopes anywhere is exactly
+        // the kind that also has to be told which ones it is being asked for.
+        let configuredScopes = server.oauth.map(\.scopes).flatMap { $0.isEmpty ? nil : $0.joined(separator: " ") }
+        let scope = configuredScopes ?? (resourceMetadata?.scopesSupported ?? metadata.scopesSupported)?.joined(separator: " ")
         guard let authorizationURL = MCPOAuth.authorizationURL(
             metadata: metadata, clientID: credentials.id, redirectURI: redirectURI,
             resource: resource, scope: scope, pkce: pkce
