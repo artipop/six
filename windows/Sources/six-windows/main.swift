@@ -9,9 +9,11 @@ import WinSDK
 // allowed to see, renders at that scale, and then presents the result one backing pixel to one
 // window pixel — so under a DPI-aware process it draws 1.5x too large, spills out of its own HWND,
 // and every click lands 1.5x away from whatever it appeared to hit. Nothing on the embedding side
-// rescales that: not `WKPageSetCustomBackingScaleFactor`, not the thread's DPI context, not the
-// units of the rect `WKViewCreate` is handed — each measured, see docs/windows.md. Reporting 96 DPI
-// is the one lever that makes WebKit's own scale agree with the window it draws into.
+// rescales that. Both inputs to the surface size — the view's client rect and the scale — are read
+// off the same `HWND`, so shrinking its DPI world shrinks the rect by exactly what it adds to the
+// scale, and no DPI mode changes the product; `WKPageSetCustomBackingScaleFactor` only moves what
+// the page reports. Each measured, see docs/windows.md. Reporting 96 DPI is the one lever that
+// makes WebKit's own scale agree with the window it draws into.
 // `..._GDISCALED` rather than plain `..._UNAWARE` so Windows re-renders the rail's own GDI text at
 // the real display scale instead of stretching the bitmap; the page is stretched either way.
 if !SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_UNAWARE_GDISCALED) {
