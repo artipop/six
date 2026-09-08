@@ -121,14 +121,28 @@ different build, and they are worth keeping apart:
   `https://cdn.playwright.dev/dbazure/download/playwright/builds/webkit/<rev>/webkit-win64.zip` — behaves
   identically, and `2361`+ return 400. Re-probe that URL pattern rather than re-deriving it; revisions just
   increment.
-- **build.webkit.org is not currently a source of DLLs.** Checked against the buildbot API by `../sixty`:
-  `Windows-64-bit-Release-Build` (builder 1192) had gone 100+ days without a successful run, and
-  `Windows-64-bit-Debug-Build` (builder 1189) was failing `compile-webkit` run after run. Worse, the presigned S3
-  archive URLs from a build's `generate-s3-url` step expire about 30 minutes after they are generated, so even a
-  green run needs tight automation to catch — they ran a cron watch for one and gave up. **Re-check whether the
-  builders have recovered before spending time here**, and treat the recipe as the second option in
+- **build.webkit.org builds Windows fine. What it does not do is hand anyone a binary.** Worth stating carefully,
+  because "the CI is dead" is the wrong summary and leads to the wrong next step. Checked directly against the
+  buildbot API on 2026-09-08:
+
+  | builder | id | latest runs |
+  |---|---|---|
+  | `Windows-64-bit-Debug-Build` | 1189 | running **today**, four times this morning — and red every time |
+  | `Windows-64-bit-Release-Build` | 1192 | not failing: four green in a row, but the newest is 2026-05-22, ~109 days back. It stopped being scheduled, it did not break |
+  | `WinCairo-64-bit-*-Build` | 731 / 729 | last ran 2024-09-13 |
+  | `Apple-Win-10-*-Build` | 67 / 56 | last ran 2023-02-07 |
+
+  So a green Windows Release build exists — `313706@main`, from May — and the problem is fetching it. The archive
+  bucket is not public: `archives.webkit.org` returns 403 for both the object and a listing. The only way in is the
+  presigned URL a build's own `generate-s3-url` step logs, and those expire about 30 minutes after they are
+  generated, which rules out anything from May and makes a fresh one a watch-and-grab job. `../sixty` ran a cron
+  watch for a green build and gave up.
+
+  What would change this: the Release builder being scheduled again, or the Debug builder going green — either
+  gives a fresh build whose presigned URL is still live. Re-check both before spending time here. The recipe is the
+  second option in
   [dev.to: Running the latest Safari WebKit on Windows](https://dev.to/dustinbrett/running-the-latest-safari-webkit-on-windows-33pb),
-  which is where Artem got it — with his warning that the CI links have moved since.
+  which is where Artem got it, with his warning that the CI links have moved since.
 - A self-hosted build on a cloud VM is the remaining idea. Nobody has costed it.
 
 Trying a build is otherwise cheap, since nothing here pins the engine: `six-windows.ps1 -WebKitDir <folder>` points
