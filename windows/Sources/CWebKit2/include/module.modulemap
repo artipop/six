@@ -1,0 +1,4 @@
+module CWebKit2 {
+    header "shim.h"
+    export *
+}

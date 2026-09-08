@@ -1,19 +1,24 @@
 # Windows — Win32
 
 six on Windows is a fourth front over the same `NiriLayout`, built with nothing but the Windows
-Swift toolchain's own `WinSDK` module: plain Win32 windows, GDI painting, no WebView yet. Where the
-Mac reaches for the top bar and the assistant panel, this front for now draws the rail and nothing
-past it — the tab rail and its mechanics are what this front's first commits are about, and
-everything else (a real page, persistence, a menu) is deliberately later work.
+Swift toolchain's own `WinSDK` module: plain Win32 windows, GDI painting. The engine is real
+WebKit — the WebKit2 C API, the same family WebKitGTK's C API descends from — linked against the
+actual Playwright-built `WebKit2.dll`, the same one `../sixty`'s MiniBrowserSwift prototype already
+proved out. A page genuinely loads, navigates and reports its title back; what it draws does not
+reliably stay
+inside its own window at this dev machine's 150% display scale, a pre-existing WebKit2 Windows
+compositing issue the unmodified reference prototype shares — see "Known issues". Where the Mac
+reaches for the top bar and the assistant panel, this front for now draws the rail and nothing past
+it — persistence and a menu are deliberately later work.
 
 | | |
 |---|---|
-| toolkit | **Win32** (`WinSDK`), GDI painting — no WinUI, no XAML |
-| engine | none yet — a column is a placeholder card, not a `WebView` |
+| toolkit | **Win32** (`WinSDK`), GDI painting for the chrome — no WinUI, no XAML |
+| engine | **real WebKit** (WebKit2 C API) — loads and navigates; rendering has a known bug, see below |
 | language | Swift, the same source tree |
 | storage | none yet — the rail does not survive a relaunch |
 | built in | on the Windows dev machine directly — `scripts/six-windows.ps1` |
-| verified | **yes** — built, run, and every rail mechanic below exercised by hand; see "Verified" |
+| verified | **yes** — built, run, every rail mechanic and real page loads exercised by hand |
 
 ## Why Win32 and not WinUI 3
 
@@ -29,9 +34,20 @@ through.
 `CreateWindowExW` / a `GetMessage` loop are there with nothing fetched and nothing generated. That is
 the bar "the build should also pass on Windows" sets, and it is a bar plain Win32 clears today while
 the WinUI path does not yet. The two are not in tension — `sixty`'s WinRT projection is a plausible
-future replacement for `SixUI`'s rendering once it needs a native look and a real `WebView2` host,
-and nothing here forecloses it: `RailModel` (below) does not know GDI exists, the way `linux/`'s
-`BrowserModel` does not know GTK exists.
+future replacement for `SixUI`'s own chrome rendering once it needs a native look, and nothing here
+forecloses it: `RailModel` (below) does not know GDI exists, the way `linux/`'s `BrowserModel` does
+not know GTK exists.
+
+## Why WebKit2 and not WebView2
+
+The obvious pragmatic choice for a Windows engine is `WebView2` (Chromium/Edge) — Microsoft's own
+embedding API, well documented, no exotic build needed. It was tried first, briefly: the SDK
+downloads as a plain NuGet package and the headers extract cleanly. It was dropped without writing
+any integration code, on a direct steer — six is a WebKit browser on every other front, and matching
+engines matters more here than matching platform convention. `../sixty/windows/WebKitAdapter`
+already had the harder problem (a real WebKit build that runs on Windows at all) solved, via the
+Playwright-shipped WebKit binary; using it is the smaller task, and keeps six a WebKit browser
+everywhere. See "Where things are" for what got copied from there and why.
 
 ## Why `SixCoreShared` and not `SixCore`
 
@@ -106,17 +122,37 @@ windows/Sources/CRailInterop       <windowsx.h>'s mouse/wheel macros (GET_X_LPAR
                                     call. Let the C compiler check the types instead of hand-translating
                                     macros and WPARAM/LPARAM arithmetic into Swift.
 
-windows/Sources/SixBrowser         RailModel: NiriLayout plus the tab metadata a placeholder column
-                                    needs, no toolkit in it. RailKeyLookup: the same move for
+windows/Sources/CWebKit2           The WebKit2 C API headers, copied unmodified from
+                                    ../sixty/windows/WebKitAdapter/Sources/CWebKit2 — whoever built
+                                    the matching WebKit2.dll adapted them to avoid <windows.h> types
+                                    at the C boundary (a Clang-modules submodule-visibility issue
+                                    under Swift's ClangImporter), using layout-compatible plain
+                                    structs and `void *` instead, cast back to HWND at the Swift call
+                                    site (see WebEngine.swift). Header-only; shim.c exists only
+                                    because SwiftPM wants a translation unit for the target.
+
+windows/vendor/WebKit2             WebKit2.lib/.def/.exp — the import library generated from the
+                                    real engine DLL's own export table, copied from the same place.
+                                    Not the DLL itself, which is large and already lives wherever
+                                    `playwright install webkit` put it — see "Building and running".
+
+windows/Sources/SixBrowser         RailModel: NiriLayout plus the tab metadata every column needs,
+                                    live or not, and (once a column is live) the URL it is at — no
+                                    toolkit and no WebKit2 in it. RailKeyLookup: the same move for
                                     KeyBindings/KeyContext. Both `@testable import SixCoreShared`,
                                     the same seam linux/Sources/SixBrowser uses on SixCore.
 
 windows/Sources/SixUI              RailWindow (the Win32 window, message dispatch), RailRendering
                                     (GDI painting, the placeholder colour palette), RailInput (mouse
                                     and wheel → RailModel), RailKeyInput (WM_KEYDOWN/WM_SYSKEYDOWN →
-                                    RailKeyLookup → RailModel).
+                                    RailKeyLookup → RailModel), WebEngine + RailWebView (the WebKit2
+                                    wrapper: one WKContext, one WKView per column that has ever been
+                                    focused), RailLiveView (positions/shows/hides the focused
+                                    column's WKView over its card's body, below the header GDI still
+                                    draws the title and "×" in).
 
-windows/Sources/six-windows        main.swift: create the window, pump messages, done.
+windows/Sources/six-windows        main.swift: declare DPI awareness, create the window, pump
+                                    messages, done.
 
 scripts/six-windows.ps1            Build (and optionally run) it. See "Building and running".
 ```
@@ -136,16 +172,21 @@ that cost real time to work out, and are worth never re-deriving:
 2. **The Swift toolchain's own `bin` directories on `PATH`.** Not automatic even once installed —
    `%LOCALAPPDATA%\Programs\Swift\Toolchains\<version>+Asserts\usr\bin` and
    `…\Runtimes\<version>\usr\bin`.
-3. **The runtime DLLs copied next to the built `.exe`.** Neither the Universal CRT API-set DLLs
-   (`api-ms-win-crt-utility-l1-1-0.dll` and friends) nor the Swift runtime DLLs
-   (`swiftCore.dll`, `swift_Concurrency.dll`, …) are guaranteed resolvable from a plain
-   `CreateProcess` launch on every machine — a missing one surfaces as `STATUS_DLL_NOT_FOUND`
-   (`0xC0000135`) with no further detail, whether or not the same DLL is technically present
-   somewhere in `C:\Windows\System32\downlevel\` or the Windows SDK's own `Redist\ucrt\DLLs\x64\`.
-   Copying both sets next to the `.exe` (which the script does after every build) is the reliable
-   fix — cheaper than diagnosing why a system-wide install did not put them on the loader's path.
-   (A `Microsoft Visual C++ Redistributable (x64)` install is still worth having regardless; it just
-   is not sufficient on its own for this specific DLL.)
+3. **The runtime DLLs copied next to the built `.exe`.** None of the Universal CRT API-set DLLs
+   (`api-ms-win-crt-utility-l1-1-0.dll` and friends), the Swift runtime DLLs (`swiftCore.dll`,
+   `swift_Concurrency.dll`, …), or now the WebKit2 engine itself (`WebKit2.dll`, `WebCore.dll`,
+   `JavaScriptCore.dll`, and the `WebKitWebProcess`/`WebKitNetworkProcess`/`WebKitGPUProcess` helper
+   `.exe`s it spawns) are guaranteed resolvable from a plain `CreateProcess` launch on every machine
+   — a missing CRT one surfaces as `STATUS_DLL_NOT_FOUND` (`0xC0000135`) with no further detail,
+   whether or not the same DLL is technically present somewhere in `C:\Windows\System32\downlevel\`
+   or the Windows SDK's own `Redist\ucrt\DLLs\x64\`. Copying all three sets next to the `.exe` (which
+   the script does after every build) is the reliable fix — cheaper than diagnosing why a
+   system-wide install did not put them on the loader's path. (A
+   `Microsoft Visual C++ Redistributable (x64)` install is still worth having regardless; it just is
+   not sufficient on its own for the CRT API-set DLL.) The WebKit2 engine itself comes from wherever
+   `playwright install webkit` (or `npx playwright install webkit`, run once with Node available) put
+   it — `%LOCALAPPDATA%\ms-playwright\webkit-*` — which the script auto-discovers; pass
+   `-PlaywrightWebKitDir` to point at a different build.
 
 Two Win32 environment quirks worth knowing if this script or its approach is ever revisited:
 
@@ -173,6 +214,11 @@ exercised by hand and confirmed working):
   into the "move it, don't just focus it" variant.
 - `⌥←/→` (focus a column), `⌥⇧←/→` (reorder it), `⌥⇧↑/↓` (move it to the workspace above/below,
   confirmed by watching the workspace label change) all answer through the real `KeyBindings` table.
+- The focused column's `WKView` genuinely loads its start page, navigates when the address changes,
+  and reports its title back through `WKPageNavigationClientV3`'s `didFinishNavigation` into
+  `RailModel.setTitle` — confirmed by watching a card's placeholder title ("New Tab 1") get replaced
+  by the real page's title once it loads. What is *not* verified working is the rendering staying
+  inside its own bounds — see "Known issues".
 
 One real bug surfaced and got fixed in the process, worth knowing about for any future Win32 work on
 this front: **holding `Alt` turns the *other* key into a system key.** Windows sends
@@ -198,10 +244,42 @@ swallowed (returns `0`) when a binding matched; anything else falls through to `
   showed the window then failing to appear at all — not even in Alt-Tab — for a reason not yet
   diagnosed. Whoever revisits this should reproduce that failure with `SIX_UI_DEBUG=1` set (gates
   the `[six] window created, hwnd=…` trace in `RailWindow.create`) before trying the flags again.
-- **No DPI scaling.** The rail's geometry is drawn in raw client pixels; a high-DPI monitor gets a
-  rail sized for 96 DPI. `NiriLayout`'s own sizes are fractions of the viewport already — see
-  CLAUDE.md's "Sizes are fractions of the viewport, not point constants" — so this is a matter of
-  telling it the DPI-scaled viewport, not of changing how it lays out.
+- **A live column's rendered content does not reliably stay inside its own window, at this dev
+  machine's 150% display scale.** This is the main open problem, and it is a pre-existing WebKit2
+  Windows compositing bug, not something specific to this front's code — the chain of evidence:
+  - `RailLiveView.setFrame` positions the `WKView`'s `HWND` correctly: confirmed with a
+    `SIX_UI_DEBUG=1` trace comparing the intended rect against `GetWindowRect` (converted to the
+    parent's client coordinates), which matched exactly. What draws inside that correctly-positioned
+    `HWND` does not respect its bounds regardless.
+  - Four different fixes were tried and did not resolve it: `WKViewSetUsesOffscreenRendering(view,
+    true)` (reproduced, exactly, the "shrinks into a corner, rest blank" failure MiniBrowserSwift's
+    own source comment already documents rejecting for the logically adjacent reason — dividing the
+    rect by backing scale); `WKViewWindowAncestryDidChange` after `WKViewSetIsInWindow` (kept, since
+    it is a reasonable call regardless, but made no measurable difference alone);
+    `DPI_AWARENESS_CONTEXT_SYSTEM_AWARE` in place of `..._PER_MONITOR_AWARE_V2` (no difference);
+    moving live-view creation/positioning out of `WM_PAINT`'s `BeginPaint`/`EndPaint` bracket, on the
+    theory that resizing a hardware-composited child window mid-paint could confuse the compositor
+    (no difference).
+  - Sizing the live view to the *entire* window's client area — matching MiniBrowserSwift's own
+    layout exactly, not a rail card's smaller sub-rect — still showed the bug. So this is not
+    specific to confining a `WKView` to something smaller than the window either.
+  - Rebuilding and running `../sixty/windows/WebKitAdapter`'s MiniBrowserSwift itself, unmodified,
+    fresh, today: **the identical symptom.** MiniBrowserSwift's own source comment already documents
+    a related, accepted-not-fixed case of this same class of bug ("YouTube's content column landing
+    past the right edge on some pages... wins by default until there's a real fix for the narrower
+    issue") — this front's smaller, more constrained card rect just makes the same underlying
+    compositing bug far more visible than MiniBrowserSwift's nearly-full-window layout does.
+
+  Nothing here points at a fix available from the embedding side — Swift, `WKView`'s own C API, or
+  this front's window handling. A real fix most likely needs either a newer Playwright WebKit build
+  (`playwright install webkit` pulls whatever is current; the one this was tested against is
+  `webkit-2359`) or a patch to WebKit's own Windows-port compositing code.
+- **DPI scaling of the rail's own chrome is, incidentally, fine.** `main.swift` declares
+  `DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2` (originally to chase the bug above), which means
+  `WM_SIZE` now reports genuine physical pixels rather than a DPI-virtualized value — and since
+  `NiriLayout`'s own sizes are already fractions of the viewport (CLAUDE.md's "Sizes are fractions of
+  the viewport, not point constants"), the GDI-drawn cards, gaps and text scale correctly with the
+  real screen without this front doing anything further about it.
 
 ## What is not
 
@@ -210,9 +288,12 @@ swallowed (returns `0`) when a binding matched; anything else falls through to `
   neither `RailModel` nor `RailKeyLookup` expose it, and `⌥O` does nothing. Whoever adds it next has
   `linux/Sources/SixUI/BrowserContent.swift` and the Mac's `NiriStripView` as the two existing
   readings of the same `NiriLayout` state.
-- **A real page.** A column is a title and a colour, not a `WebView2` or anything else — see "Why
-  Win32" above for the WinRT path this could grow into, and `../sixty/windows/WebKitAdapter` for the
-  parallel WebKit-on-Windows experiment.
+- **A real, *usably rendered* page.** The engine is real WebKit and a live column genuinely loads
+  and navigates — see "Verified" — but the "Known issues" rendering bug means what is on screen is
+  not yet something to actually browse with. A live-page budget (only the focused column gets a
+  `WKView`; every other front's own version of "more than one column can be live at once" is future
+  work here too) is also not built, and neither is a way to actually *navigate* — there is no address
+  bar or any other UI for typing a URL; a column only ever loads `RailModel.startURL`.
 - **Persistence, history, bookmarks, profiles.** `RailModel` keeps one profile's strip in memory and
   loses it on exit — and, per "Why `SixCoreShared`" above, cannot reach `AppDatabase`/`SettingsStore`
   without pulling in the dependency chain that crashes the compiler. Wiring real persistence back in

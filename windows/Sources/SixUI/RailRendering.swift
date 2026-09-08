@@ -35,6 +35,11 @@ extension RailWindow {
         placeholderPalette[Int(id.uuid.0) % placeholderPalette.count]
     }
 
+    /// How much of a card's top is title-and-close-box, GDI's to draw and to keep clickable —
+    /// `RailLiveView` insets a column's `WKView` below this, which is what keeps the close box
+    /// clickable instead of covered by a live page's own child `HWND`.
+    static let headerHeight: CGFloat = 48
+
     /// The little "×" in a card's corner, in the same coordinates the card itself is drawn in — so
     /// painting it and hit-testing a click against it can never drift apart.
     static func closeBoxRect(for card: RECT) -> RECT {

@@ -12,17 +12,24 @@
        imports its environment into the current PowerShell process rather than requiring a
        "Developer PowerShell" to already be running.
     2. The Swift toolchain's own bin directories are not on PATH by default even once installed.
-    3. The built .exe depends on Universal CRT API-set DLLs and the Swift runtime DLLs, and neither
-       is guaranteed to be resolvable from a plain `CreateProcess` launch (a missing
+    3. The built .exe depends on Universal CRT API-set DLLs, the Swift runtime DLLs, and now the
+       real WebKit2 engine (WebKit2.dll and everything it loads - WebCore.dll, JavaScriptCore.dll,
+       the WebKitWebProcess/WebKitNetworkProcess/WebKitGPUProcess helper .exes), none of which is
+       guaranteed resolvable from a plain `CreateProcess` launch (a missing
        `api-ms-win-crt-utility-l1-1-0.dll` reads as `STATUS_DLL_NOT_FOUND`, 0xC0000135, with no
-       further detail) - copying both sets next to the .exe is the reliable fix, cheaper than
+       further detail) - copying all three sets next to the .exe is the reliable fix, cheaper than
        chasing down why a system-wide install did not put them on the loader's path.
 
     windows/Package.swift takes `NiriLayout`/`KeyBindings`/`KeyContext` straight out of six/ with no
-    other dependency in its graph - see that file and docs/windows.md for why - so there is nothing
-    here about vcpkg, SQLite headers, or a resolved-package fetch. `-scratch-path` defaults to
-    `windows/.build`, the same as a plain `swift build`; pass `-ScratchPath` to point elsewhere if
-    that path is ever locked by a process Windows will not let anyone kill (it has happened).
+    package dependency in its graph - see that file and docs/windows.md for why - so there is
+    nothing here about vcpkg, SQLite headers, or a resolved-package fetch. The WebKit engine is a
+    real dependency, just not a Swift-package one: `windows/vendor/WebKit2` holds only the import
+    library generated from the actual engine DLL's export table, and the DLL itself comes from
+    wherever `playwright install webkit` put it - see `-PlaywrightWebKitDir` below.
+
+    `-scratch-path` defaults to `windows/.build`, the same as a plain `swift build`; pass
+    `-ScratchPath` to point elsewhere if that path is ever locked by a process Windows will not let
+    anyone kill (it has happened).
 
     Non-ASCII punctuation is deliberately kept out of this file: PowerShell 5.1 parses a `.ps1`
     written without a BOM using the system codepage, not UTF-8, and an em dash in a string literal
@@ -46,6 +53,13 @@
 .PARAMETER ScratchPath
     Passed to `swift build --scratch-path`. Default: windows/.build (swift build's own default).
 
+.PARAMETER PlaywrightWebKitDir
+    Where the real engine DLLs live. Default: auto-discovered as the newest
+    `%LOCALAPPDATA%\ms-playwright\webkit-*` folder - what `playwright install webkit` (or `npx
+    playwright install webkit`, run once from anywhere with Node available) creates. Pass this
+    explicitly on a machine where that installer was never run, pointed at any WebKit2.dll build
+    with a matching import library in windows/vendor/WebKit2.
+
 .EXAMPLE
     ./scripts/six-windows.ps1 build
 .EXAMPLE
@@ -56,7 +70,8 @@ param(
     [string]$Command = "build",
     [string]$SwiftVersion = "6.3.3",
     [string]$WindowsSdkVersion = "26100.0",
-    [string]$ScratchPath = ""
+    [string]$ScratchPath = "",
+    [string]$PlaywrightWebKitDir = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -68,6 +83,15 @@ $toolchainBin = "$swiftRoot\Toolchains\$SwiftVersion+Asserts\usr\bin"
 $runtimeBin = "$swiftRoot\Runtimes\$SwiftVersion\usr\bin"
 $sdkRoot = "$swiftRoot\Platforms\$SwiftVersion\Windows.platform\Developer\SDKs\Windows.sdk\"
 $ucrtRedist = "C:\Program Files (x86)\Windows Kits\10\Redist\10.0.$WindowsSdkVersion\ucrt\DLLs\x64"
+
+if ($PlaywrightWebKitDir -eq "") {
+    $found = Get-ChildItem "$env:LOCALAPPDATA\ms-playwright" -Directory -Filter "webkit-*" -ErrorAction SilentlyContinue |
+        Sort-Object Name -Descending | Select-Object -First 1
+    if ($found) { $PlaywrightWebKitDir = $found.FullName }
+}
+if ($PlaywrightWebKitDir -eq "" -or -not (Test-Path $PlaywrightWebKitDir)) {
+    throw "No Playwright WebKit build found under $env:LOCALAPPDATA\ms-playwright - run 'npx playwright install webkit' or pass -PlaywrightWebKitDir."
+}
 
 if (-not (Test-Path $toolchainBin)) {
     throw "No Swift $SwiftVersion toolchain at $toolchainBin - install it from https://www.swift.org/install/windows/ or pass -SwiftVersion."
@@ -111,8 +135,10 @@ try {
 
     Copy-Item "$ucrtRedist\*.dll" $outDir -Force
     Copy-Item "$runtimeBin\*.dll" $outDir -Force
+    Copy-Item "$PlaywrightWebKitDir\*" $outDir -Recurse -Force
 
     Write-Output "Built: $exe"
+    Write-Output "Engine: $PlaywrightWebKitDir"
 
     if ($Command -eq "run") {
         $psi = New-Object System.Diagnostics.ProcessStartInfo

@@ -20,6 +20,12 @@ public final class RailWindow {
     var wheelRemainderY: Int32 = 0
     var wheelRemainderX: Int32 = 0
 
+    /// One real `WKView` per column that has ever been focused, kept alive (not rebuilt) as focus
+    /// moves off and back on to it. See `RailLiveView.swift`. `Foundation.UUID` explicitly: `WinSDK`
+    /// also brings in the C `UUID` typedef (`rpcdce.h`'s `GUID` alias), so the bare name is ambiguous
+    /// anywhere both are imported.
+    var webViews: [Foundation.UUID: RailWebView] = [:]
+
     static let className = "SixRailWindow"
 
     public init() {}
@@ -108,6 +114,8 @@ public final class RailWindow {
     func handle(message: UINT, wParam: WPARAM, lParam: LPARAM) -> LRESULT? {
         switch Int32(message) {
         case WM_DESTROY:
+            for view in webViews.values { view.destroy() }
+            webViews.removeAll()
             PostQuitMessage(0)
             return 0
 
@@ -115,6 +123,11 @@ public final class RailWindow {
             return 1 // WM_PAINT repaints the whole client area; nothing needs erasing first
 
         case WM_PAINT:
+            // Deliberately before `paint()`, not inside it: creating/positioning/showing a WKView's
+            // own child HWND (hardware-composited) while GDI is mid-`BeginPaint`/`EndPaint` is a
+            // plausible reason its compositing surface ended up drawing past both its own HWND
+            // bounds and the containing window's — see docs/windows.md's account of chasing that.
+            updateLiveView()
             paint()
             return 0
 
