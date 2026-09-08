@@ -138,9 +138,16 @@ different build, and they are worth keeping apart:
   generated, which rules out anything from May and makes a fresh one a watch-and-grab job. `../sixty` ran a cron
   watch for a green build and gave up.
 
-  What would change this: the Release builder being scheduled again, or the Debug builder going green — either
-  gives a fresh build whose presigned URL is still live. Re-check both before spending time here. The recipe is the
-  second option in
+  **The Debug builder is not a way around that**, which is the first thing anyone asks. Its pipeline stops dead:
+  `compile-webkit` fails and the build ends there, so `archive-built-product`, `generate-s3-url` and
+  `upload-file-to-s3` never run and no zip is ever produced — nothing to fetch, expired URL or not. Only the
+  Release builder has ever reached those steps (its last green run uploaded `WebKitBuild/release.zip`). And it has
+  been red a long time: 1600 consecutive failures, as far back as the API was paged, to 2026-08-03. Even green it
+  would be the wrong artifact — a Debug WebKit links the debug CRT, which is not redistributable and wants Visual
+  Studio present, on top of being assert-heavy and far larger and slower.
+
+  So there is one thing to watch, not two: **the Release builder being scheduled again**. That is what produces a
+  fresh build whose presigned URL is still live. The recipe is the second option in
   [dev.to: Running the latest Safari WebKit on Windows](https://dev.to/dustinbrett/running-the-latest-safari-webkit-on-windows-33pb),
   which is where Artem got it, with his warning that the CI links have moved since.
 - A self-hosted build on a cloud VM is the remaining idea. Nobody has costed it.
