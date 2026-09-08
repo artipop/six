@@ -132,6 +132,17 @@ toolchain's own `bin` directories on `PATH`, and the Universal CRT, Swift runtim
 `.exe`. `SIX_URL` and `SIX_UI_DEBUG` work here the way they do on Linux, and `SIX_URL` is the only way to point a run
 at a test page when nobody is at the keyboard.
 
+**It builds with `6.3.3+NoAsserts`, and that is load-bearing.** `swift-structured-queries`, which arrives through
+SQLiteData, trips a constraint-solver *assertion*, so the `+Asserts` toolchain — the one swift.org's installer puts on
+`PATH`, and for a long time the only one anybody here knew about — cannot build this front at all. The same installer
+carries the release compiler and just does not install it: re-run it as
+`swift-6.3.3-RELEASE-windows10.exe OptionsInstallNoAssertsToolchain=1` and it lands beside `+Asserts`, replacing
+nothing. The script defaults to it and says this if it is missing. Two more things it arranges by itself, both once
+and both cached: the SQLite amalgamation (Windows has no system `sqlite3.h`, so GRDB will not build without it) and a
+sibling clone of `combine-schedulers` with `windows/patches/`'s SRWLOCK patch applied, substituted through SwiftPM's
+mirror mechanism. `windows/.swiftpm/configuration/mirrors.json` is generated and gitignored — SwiftPM takes only an
+absolute path for a mirror.
+
 The engine is not a Swift package: it is whatever `playwright install webkit` put under `%LOCALAPPDATA%\ms-playwright`,
 and `windows/vendor/WebKit2` holds only the import library generated from that DLL's export table. Node for that
 installer is a user-scope unzip at `%LOCALAPPDATA%\six-tools\node-*`, deliberately off `PATH`.
@@ -188,17 +199,21 @@ exactly like WebKit swallowing the key, and was believed once. `SIX_UI_DEBUG=1` 
 This is where the repository bites most often: a version moves in one place and a *different* front stops building.
 Read this before touching any manifest, `Package.resolved`, or the `sources:` list.
 
-**There are three resolved graphs, and they are not independent.** The Windows front is deliberately
-not a fourth: `windows/Package.swift` has no package dependencies at all, so there is no
-`windows/Package.resolved` to keep in step with the other three. See docs/windows.md for why — the
-short version is a still-open Windows-specific Swift compiler bug in exactly the dependency that
-would have needed one.
+**There are four resolved graphs, and they are not independent.** The Windows one is new, and used
+not to exist: `windows/Package.swift` had no package dependencies at all, because depending on the
+root package dragged in `swift-structured-queries`, which crashed `swift-frontend` there. That was
+read as a Windows compiler bug for a long time. It is not — it is an *assertion*, and Windows is the
+one platform where swift.org ships the assertions-enabled compiler; the same source builds on macOS
+and Linux because those toolchains are release builds. The `+NoAsserts` toolchain the same installer
+carries compiles the whole graph, so the Windows front now depends on `SixCore` like every other
+front, and has a resolved file to keep in step. docs/windows.md has the account.
 
 | file | resolves for | the constraint on it |
 |---|---|---|
 | `six.xcodeproj/…/swiftpm/Package.resolved` | the Mac and iOS app | the leader — the app's graph moves first |
 | `Package.resolved` (root) | `SixCore` + its tests, on **both** platforms | a **superset** of the app's, and the surplus is the point |
 | `linux/Package.resolved` | the GTK front, which depends on the root by path | must agree with the root on the shared subset |
+| `windows/Package.resolved` | the Win32 front, which depends on the root by path | the same, plus `combine-schedulers` held at the version the local mirror carries |
 
 The asymmetry is the whole rule: the app's graph leads on **versions**, but the root file holds pins the app has never
 heard of — `opencombine` appears once there and zero times in the app's, because only Linux pulls it in. A resolve run
@@ -206,7 +221,17 @@ on a Mac cannot know that, which is why it deletes it.
 
 They must agree on **GRDB, sqlite-data, swift-structured-queries** above all, because a database written by one build
 is opened by the other — a schema written by GRDB 7.11 and read by another version is the one failure that costs data
-rather than time. They currently sit at GRDB 7.11.1 / sqlite-data 1.11.0 / structured-queries 0.37.0 everywhere.
+rather than time. They currently sit at GRDB 7.11.1 / sqlite-data 1.11.0 / structured-queries 0.37.0 everywhere. A
+fresh resolve does **not** land on them by itself — the Windows file's first one came out at sqlite-data 1.13.0 and
+structured-queries 0.39.2 — so a new resolved file gets walked back with `swift package resolve <package> --version`
+before it is committed, one package at a time, and read back to check.
+
+Windows is the one deliberate exception, and only outside those three: it holds `swift-sharing` at **2.10.1** where
+the others hold 2.9.1, because sqlite-data 1.11.0 asks Sharing for an `IdentifiedCollections` trait that 2.9.1 does
+not declare, and the resolver refuses the pair outright. Sharing writes nothing to the database, so this costs
+nothing that the rule above is protecting. That the other three graphs *do* resolve at 2.9.1 is a good illustration of
+the warning further down: `--disable-automatic-resolution` means their pins have not been re-checked against their
+manifests in a while.
 
 **Why the pins are frozen, in three sentences.** sqlite-data 1.11.0 does not compile against structured-queries 0.38,
 so a free resolve picks a set that builds nowhere. swift-sharing 2.10.0 imports `Foundation.NSData` — a Clang

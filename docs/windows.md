@@ -12,8 +12,9 @@ panel, this front draws the rail, an address bar and nothing past it.
 |---|---|
 | toolkit | **Win32** (`WinSDK`), GDI painting for the chrome — no WinUI, no XAML |
 | engine | **real WebKit** (WebKit2 C API), software compositing — see "DPI and scale" |
-| language | Swift, the same source tree |
-| storage | none yet — the rail does not survive a relaunch |
+| language | Swift, the same source tree — and now the same `SixCore`, not a subset of it |
+| storage | the graph is up (GRDB, SQLiteData, a real SQLite round-trip); the rail itself does not persist yet |
+| built with | `6.3.3+NoAsserts`, and that is not a preference — see below |
 | built in | on the Windows dev machine directly — `scripts/six-windows.ps1` |
 | verified | **yes** — built, run, every rail mechanic and real page loads exercised by hand |
 
@@ -45,23 +46,16 @@ engines matters more here than matching platform convention. `../sixty/windows/W
 already had the harder problem (a real WebKit build that runs on Windows at all) solved, via the
 Playwright-shipped WebKit binary; using it is the smaller task.
 
-## Why `SixCoreShared` and not `SixCore`
+## Why the `+NoAsserts` toolchain
 
-`windows/Package.swift` has **no package dependencies at all** — not on the root package, not on
-`sqlite-data`, nothing. `SixCoreShared` takes `NiriLayout.swift`, `KeyBindings.swift` and
-`KeyContext.swift` straight out of `six/` via three symlinks in `windows/Sources/SixCoreShared/`
-(the same cross-target source-sharing move `swift-structured-queries` itself makes with its own
-"Symbolic Links" folders — one file, one source of truth, still). This was not the first thing
-tried, and the reason it won is worth keeping:
-
-Depending on the root `SixCore` product the way `linux/Package.swift` does pulls in
-`SQLiteData` → GRDB → `swift-structured-queries`, because `SixCore`'s `sources:` list compiles
-`AppDatabase.swift` unconditionally regardless of whether a given front's own code ever touches it.
-On **both** official Windows Swift toolchains this front was tried against — the `0.0.0+Asserts`
-nightly and the `6.3.3-RELEASE` stable build — `swift-structured-queries`' keyPath
+`windows/Package.swift` depends on the root package the way `linux/Package.swift` does, and that is
+newer than this front is. Its first version had **no package dependencies at all** and took
+`NiriLayout.swift`, `KeyBindings.swift` and `KeyContext.swift` out of `six/` through symlinks in a
+`SixCoreShared` target instead, because depending on `SixCore` pulls in `SQLiteData` → GRDB →
+`swift-structured-queries`, and that package would not compile here. On both official Windows
+toolchains it was tried against — the `0.0.0+Asserts` nightly and `6.3.3-RELEASE` — its keyPath
 dynamic-member-lookup subscripts (`Type.self[keyPath: keyPath]`, the mechanism its whole "type-safe
-query building" API is built on, used ~85 times across the package) crash `swift-frontend` with an
-internal assertion:
+query building" API is built on, used ~85 times across the package) crashed `swift-frontend`:
 
 ```
 Assertion failed: (path.size() == 1 && path[0].getKind() == ConstraintLocator::SubscriptMember) ||
@@ -69,27 +63,66 @@ Assertion failed: (path.size() == 1 && path[0].getKind() == ConstraintLocator::S
   file …\swift\lib\Sema\CSSimplify.cpp, line 16426
 ```
 
-This is a confirmed, **still open** upstream bug —
-[swiftlang/swift#69386](https://github.com/swiftlang/swift/issues/69386), filed October 2023,
-Windows-specific, no workaround documented. Two crash sites (`swift-structured-queries`'
-`PrimaryKeyed.swift` and `Statements/Where.swift`) were patched locally via `swift package edit`
-and confirmed to fix the crash *at that specific call site* — proving the diagnosis, not the fix:
-the pattern recurs in dozens of the package's other files (`Select+DynamicMemberLookup.swift`
-alone has it a dozen times, several inside `repeat each C`/variadic-generic functions), and patching
-a popular third-party dependency's core mechanism call-by-call, in code whose *behaviour* (not just
-whether it compiles) cannot be verified without a working SQLite round-trip, is not a small
-undertaking. Routing around the dependency entirely was the smaller, safer move — and it costs
-nothing this front needed anyway, since `RailModel` has no persistence yet regardless.
+That was read as a Windows compiler bug — [swiftlang/swift#69386](https://github.com/swiftlang/swift/issues/69386),
+open since October 2023 — and the whole `SixCoreShared` arrangement was built to route around it.
 
-`combine-schedulers` needed a real, different fix on the way here (`swift package edit`, now folded
-back since the dependency is gone — see git history if this resurfaces): every version of it lacks
-Windows support outright, not as a version regression but as a gap that was never filled — its
-non-Darwin lock implementation assumes `import Foundation` brings `pthread_mutex_t` along, true on
-Linux (via Glibc) and false on Windows (swift-corelibs-foundation there wraps ucrt/WinSDK, no
-pthreads anywhere). If a future front on this platform needs `swift-dependencies` or anything else
-that pulls this package in, that fix is the one to redo: `os_unfair_lock_s`'s `#else` branch needs a
-Windows case using `SRWLOCK`
-(`InitializeSRWLock`/`AcquireSRWLockExclusive`/`ReleaseSRWLockExclusive`).
+**It is not a Windows bug. It is an assertions bug, and Windows is the only platform where
+swift.org ships an assertions-enabled toolchain.** The tell was there all along in the message: an
+`Assertion failed` exists only in a compiler built without `NDEBUG`. The same assertion fires on
+**macOS** with an open-source toolchain — [swiftlang/swift#82529](https://github.com/swiftlang/swift/issues/82529),
+same file, same predicate, same package — and six's own Mac and Linux builds compile this code every
+day because Xcode's compiler and swift.org's Linux toolchains are release builds. Every official
+Windows toolchain installs as `<version>+Asserts`, so the platform that looked cursed was only the
+platform that ships the debug compiler.
+
+The fix is a toolchain, not a patch. swift.org's Windows installer **already carries** the release
+compiler — its bundle manifest declares `OptionsIncludeNoAsserts = 1` and holds `bld.noasserts.msi`
+and `cli.noasserts.msi` beside the asserts ones — it just does not install it by default:
+
+```powershell
+swift-6.3.3-RELEASE-windows10.exe OptionsInstallNoAssertsToolchain=1
+```
+
+It lands at `%LOCALAPPDATA%\Programs\Swift\Toolchains\6.3.3+NoAsserts`, beside `+Asserts` rather
+than over it, and shares the already-installed SDK and runtime. `scripts/six-windows.ps1` defaults
+to it and says this if it is missing. Nothing else about the graph changes: same pins as every other
+front, GRDB 7.11.1 / sqlite-data 1.11.0 / structured-queries 0.37.0.
+
+Measured on this machine, all four with the same source and the same SDK:
+
+| | `6.3.3+Asserts` | `6.3.3+NoAsserts` |
+|---|---|---|
+| `swift-structured-queries` 0.37.0 alone | crash, four sites | builds, 79 s |
+| `sqlite-data` 1.11.0, `@Table` + `#sql` + `.where {}.select()` | never reached | builds and round-trips real SQLite |
+| `SixCore` | never reached | builds, 0 errors |
+| the front | never reached | builds |
+
+`-c release` does not help, and neither does a newer `swift-structured-queries`: the pattern is
+unchanged on its `main`.
+
+### The two things that still need doing by hand
+
+**SQLite.** Windows has no system SQLite — no `sqlite3.h`, no import library — so GRDB's
+`GRDBSQLite` system-library target has nothing to resolve against and the build dies on
+`'sqlite3.h' file not found` before any Swift is reached. This is the same gap the Linux container
+fills with `libsqlite3-dev`. `six-windows.ps1` fetches the amalgamation into
+`%LOCALAPPDATA%\six-tools`, compiles it once with `cl`, and puts the directory on `INCLUDE` and
+`LIB` — which is how a dependency's own modulemap, one this build never sees, finds the header. The
+defines are not free choices: GRDB declares `SQLITE_ENABLE_SNAPSHOT` and `SQLITE_ENABLE_FTS5` as
+Swift flags everywhere but Linux, so its source calls those APIs and the library has to have them.
+
+**`combine-schedulers`.** It arrives through `SQLiteData` → `Sharing` → `swift-dependencies`, and no
+released version of it compiles here: its non-Darwin lock assumes `import Foundation` brings
+`pthread_mutex_t` along, true on Linux and false on Windows. Not a regression — a gap that was never
+filled; [UPSTREAM.md](../UPSTREAM.md) section 4 is the report. The fix is twenty lines of `SRWLOCK`,
+kept as `windows/patches/combine-schedulers-1.2.0-srwlock.patch`. `six-windows.ps1` clones the
+package as a **sibling of the repository**, applies the patch, moves the `1.2.0` tag onto the result
+and points SwiftPM's mirror mechanism at it — a sibling and not a copy inside the repo, so it stays
+a real checkout that a remote can be added to and the patch sent upstream. `mirrors.json` is
+generated rather than committed because SwiftPM will only take an absolute path for a mirror.
+
+Disabling the `CombineSchedulers` trait in `swift-dependencies` does not avoid this: `swift-sharing`
+depends on the package directly as well, and traits union across a graph.
 
 ## DPI and scale
 
@@ -169,18 +202,19 @@ field. Worth revisiting; not worth shipping.
 ## Where things are
 
 ```
-windows/Package.swift              No dependencies. SixCoreShared takes NiriLayout/KeyBindings/
-                                    KeyContext straight out of six/ — see above for why not SixCore.
+windows/Package.swift              Depends on the root package by path (named `six` explicitly:
+                                    a path dependency takes its identity from the directory, and
+                                    this checkout is `six-main`), on sqlite-data, and on
+                                    combine-schedulers only to hold it at the version the mirror
+                                    carries. The `SixCoreShared` symlink target it used to carry is
+                                    gone — see above.
 
-windows/Sources/SixCoreShared      Symlinks to the three real files in six/Niri and six/Input, not
-                                    copies — git records them as real symlinks (mode 120000) even
-                                    with `core.symlinks=false` locally, but a *checkout* on a machine
-                                    with that setting and no Developer Mode still writes them out as
-                                    plain text files containing the link target, which breaks the
-                                    build. Recreate with `cmd /c mklink <link> <target>` if that
-                                    happens — MSYS/git-bash's own `ln -s` silently makes a *copy*
-                                    when it lacks the privilege, which is worse: the build still
-                                    works and the file silently stops tracking the original.
+windows/patches                    combine-schedulers-1.2.0-srwlock.patch: the twenty lines that
+                                    make that package compile on Windows, applied to a sibling
+                                    clone by the build script and ready to send upstream.
+
+windows/.swiftpm/configuration     Generated, and gitignored: SwiftPM will only take an absolute
+                                    path for a mirror, so this file names one machine's checkout.
 
 windows/Sources/CRailInterop       <windowsx.h>'s mouse/wheel macros, the WM_NCCREATE / GWLP_USERDATA
                                     dance a WNDPROC needs, and the cursor/key-state helpers that
@@ -242,7 +276,11 @@ that cost real time to work out, and are worth never re-deriving:
 
 1. **The MSVC linker on `PATH`.** `vcvars64.bat`'s environment has to be imported into the current
    process; the script does this itself rather than requiring a "Developer PowerShell" session.
-2. **The Swift toolchain's own `bin` directories on `PATH`.** Not automatic even once installed.
+2. **The Swift toolchain's own `bin` directories on `PATH`.** Not automatic even once installed, and
+   it must be the `+NoAsserts` one — see "Why the `+NoAsserts` toolchain". The script defaults to it
+   and, if it is not installed, says the single command that installs it.
+4. **A SQLite, and a patched `combine-schedulers`.** Neither exists on a fresh Windows machine; the
+   script fetches and builds both, once, and says where it put them. Same section.
 3. **The runtime DLLs copied next to the built `.exe`.** None of the Universal CRT API-set DLLs, the
    Swift runtime DLLs, or the WebKit2 engine and its `WebKitWebProcess`/`WebKitNetworkProcess`/
    `WebKitGPUProcess` helper `.exe`s are guaranteed resolvable from a plain `CreateProcess` launch —
@@ -280,6 +318,13 @@ already present and is the same artefact the copy would have written — that is
 
 Built and run for real on the Windows dev machine — every mechanic below exercised by hand and
 confirmed working:
+
+- The storage graph, before any of it was wired into the front: `swift-structured-queries` 0.37.0,
+  `sqlite-data` 1.11.0 and GRDB 7.11.1 all compile under `+NoAsserts`, and a `@Table` type went
+  through a `#sql` migration, two inserts, `.order(by:)`, `.where {}.select()` and back out of a
+  real file on disk, twice, the second run reading what the first wrote. GRDB's own query interface
+  was proved separately, without `swift-structured-queries` in the graph at all, in case the
+  toolchain answer had not worked out.
 
 - Open a column by clicking empty background; focus one by clicking it; close one by clicking its
   "×".
@@ -341,33 +386,29 @@ matched, so `⌥F4`, `⌥Space` and plain `F10` still behave like system keys.
 - **A live-page budget.** Only the focused column ever gets a `WKView`; every other front's version
   of "more than one column can be live at once" is future work here too.
 - **Persistence, history, bookmarks, profiles.** `RailModel` keeps one profile's strip in memory and
-  loses it on exit — and, per "Why `SixCoreShared`", cannot reach `AppDatabase`/`SettingsStore`
-  without pulling in the dependency chain that crashes the compiler. See below for where to start.
+  loses it on exit. What has changed is that nothing is in the way any more: `SixBrowser` imports
+  `SixCore`, so `AppDatabase`, `ProfileStore`, `SettingsStore`, `History` and `Bookmark` are all
+  reachable, and a real SQLite round-trip has been run on this platform. It is work, not a blocker.
 
 ## Persistence: where to pick this up next
 
-Not started — `RailModel` has no database at all, in memory or otherwise. Before reaching for either
-of the two hard options "Why `SixCoreShared`" names — get
-[swiftlang/swift#69386](https://github.com/swiftlang/swift/issues/69386) fixed upstream, or patch
-every one of `swift-structured-queries`' ~85 keyPath dynamic-member-lookup call sites and verify
-each one's *behaviour* — there is a cheaper experiment nobody has run yet, worth trying first
-precisely because it is cheap to rule out:
+The question this section used to ask — *does the dependency graph a storage layer needs even
+compile here?* — is answered, measured, and no longer the obstacle. `SixCore` builds, `SQLiteData`
+builds, and a `@Table` type went through a migration, two inserts, a `.where {}.select()` and back
+out of a real file on disk. `AppSupport.root` knows where six lives on Windows
+(`%LOCALAPPDATA%\six`, spelled out rather than left to Foundation, which would have chosen the
+roaming profile). What is left is the front's own work, and it is ordinary:
 
-**Does plain GRDB, without `swift-structured-queries` in the graph at all, build on Windows?** The
-crash is specifically in `swift-structured-queries`' `@dynamicMemberLookup` query-builder mechanism —
-the `Type.self[keyPath: keyPath]` pattern `@Table`-generated `Draft` types and `Where`/`Select`
-chaining both go through. `six/Data/AppDatabase.swift` itself is mostly plain `#sql("""...""")`
-against GRDB directly; `@Table` is used in the four *record* files (`six/Data/SettingsStore.swift`,
-`six/Browser/ProfileStore.swift`, `six/Browser/History.swift`, `six/Bookmarks/Bookmark.swift`), not
-in the database layer's schema code. GRDB predates `swift-structured-queries` and does not use its
-machinery for its own query interface, so there is a real chance it simply builds and runs here as
-long as nothing pulls that package in behind it.
+1. **A snapshot of the rail.** `SixCore` already carries `FileSnapshotStore` and `StatePersistence`
+   — a versioned JSON file plus a debounced autosave — and they are generic over the snapshot type.
+   The Mac's `AppStateSnapshot` is not in `SixCore`, so this front needs its own small `Codable`
+   describing what `RailModel` holds: the workspaces, each column's tab id, URL and title, and which
+   one had focus.
+2. **The database under it.** `AppDatabase` is the system of record on every other front, and its
+   migrations are plain `#sql` DDL that now compiles here. A profile row has to exist before
+   anything keyed by profile can be written, which is what `ProfileStore` is for; `RailModel`'s
+   `profileID` is a fresh `UUID()` per launch today and should become a real profile.
+3. **A place to flush.** The Mac flushes on termination. Here that is `WM_CLOSE`/`WM_DESTROY` in
+   `RailWindow`, before the message loop ends.
 
-If that holds, a Windows storage layer becomes: depend on `GRDB` alone (not `SQLiteData`, so
-`combine-schedulers` never enters the graph either — it only arrives through
-`SQLiteData` → `Sharing` → `swift-dependencies`), and write plain `#sql` or GRDB's own
-record/`FetchableRecord` APIs against `RailModel`'s existing shape — no `@Table`, no crash surface.
-It would not share `AppDatabase`'s own schema code without either duplicating a Windows-safe subset
-or reworking those four record files, which is a real design decision. But the first step — does
-`swift build` on a throwaway package with a single `import GRDB` get past the frontend on Windows —
-costs an afternoon, not a rewrite, and nobody has run it.
+Nothing above needs a decision that has not already been made — it needs writing.

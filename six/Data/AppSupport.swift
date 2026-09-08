@@ -24,7 +24,8 @@ nonisolated enum AppSupport {
     /// browser that is about to be killed and built again.
     static let isDevelopment = Bundle.main.bundleIdentifier?.hasSuffix(".dev") ?? false
 
-    /// `~/Library/Application Support/<bundle identifier>` on Apple, `$XDG_DATA_HOME/six` on Linux.
+    /// `~/Library/Application Support/<bundle identifier>` on Apple, `$XDG_DATA_HOME/six` on Linux,
+    /// `%LOCALAPPDATA%\six` on Windows.
     ///
     /// The one function a port has to answer differently: everything else in the app reaches its
     /// files through `file(_:)` and `folder(_:)` below, so this is the whole of "where six lives".
@@ -32,8 +33,23 @@ nonisolated enum AppSupport {
     /// resolve there, but to `~/.local/share` without the `XDG_DATA_HOME` override a Linux user
     /// expects to be honoured, and `Bundle.main.bundleIdentifier` is nil off Apple, so the folder
     /// would be named by the fallback anyway.
+    ///
+    /// Windows is spelled out for the second of those reasons and one of its own: Foundation's
+    /// `.applicationSupportDirectory` lands in `%APPDATA%`, the *roaming* profile, which a domain
+    /// account synchronises between machines at sign-in. A browser's SQLite file and its WebKit
+    /// storage are exactly what must not be copied around behind an open handle, and Windows'
+    /// answer for a program's own working files is the local profile.
     static let root: URL = {
-        #if os(Linux)
+        #if os(Windows)
+        let base: URL
+        if let local = ProcessInfo.processInfo.environment["LOCALAPPDATA"], !local.isEmpty {
+            base = URL(fileURLWithPath: local, isDirectory: true)
+        } else {
+            base = URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true)
+                .appending(path: "AppData/Local", directoryHint: .isDirectory)
+        }
+        return base.appending(path: "six", directoryHint: .isDirectory)
+        #elseif os(Linux)
         let base: URL
         if let xdg = ProcessInfo.processInfo.environment["XDG_DATA_HOME"], !xdg.isEmpty {
             base = URL(fileURLWithPath: xdg, isDirectory: true)

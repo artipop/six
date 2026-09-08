@@ -56,7 +56,7 @@ nonisolated enum BookmarkScope: String, CaseIterable, Identifiable, Sendable {
     var id: String { rawValue }
 
     var title: String {
-        #if os(Linux)
+        #if os(Linux) || os(Windows)
         // `String(localized:)` and the strings catalog behind it are Apple Foundation's; a GTK front
         // localises through gettext, so these are the keys and it translates them itself.
         switch self {
@@ -126,7 +126,7 @@ nonisolated enum EmbeddingModelChoice: String, CaseIterable, Identifiable, Senda
 
     /// The name in the picker. The size is in it because the size is the decision.
     var title: String {
-        #if os(Linux)
+        #if os(Linux) || os(Windows)
         switch self {
         case .small: "Compact — 465 MB"
         case .base: "Larger — 1.1 GB"

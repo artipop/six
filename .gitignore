@@ -6,3 +6,8 @@ dist/
 docs/guide/node_modules/
 docs/guide/.vitepress/cache/
 docs/guide/.vitepress/dist/
+
+# Written by scripts/six-windows.ps1, not by hand: SwiftPM will only take an absolute path for a
+# mirror, so this file names one machine's checkout of the patched combine-schedulers and cannot be
+# shared. The patch it is built from is `windows/patches/`, which is the part that travels.
+windows/.swiftpm/configuration/mirrors.json

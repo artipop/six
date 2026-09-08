@@ -5,11 +5,14 @@ import PackageDescription
 // A package of its own for the same reason `linux/Package.swift` is one: SwiftPM cannot leave a
 // target out per platform, and none of this resolves anywhere but on a Windows toolchain.
 //
-// No package dependencies at all, deliberately, and not the first thing tried. Depending on the
-// root package's `SixCore` drags in `SQLiteData` → `swift-structured-queries`, whose keyPath
-// dynamic-member-lookup subscripts crash `swift-frontend` on both official Windows toolchains this
-// was tried against — swiftlang/swift#69386, open since 2023. `SixCoreShared` below takes the three
-// files this front actually needs straight out of `six/` instead; docs/windows.md has the account.
+// It depends on the root package the way the Linux front does, and that is newer than the file's
+// first version, which had no package dependencies at all. What changed is the toolchain, not the
+// code: `swift-structured-queries`' keyPath dynamic-member-lookup subscripts trip an *assertion*
+// in `swift-frontend`, and swift.org ships only assertions-enabled toolchains for Windows, so what
+// reads as a platform bug is a compiler-variant one — the same source builds on macOS and Linux
+// because those toolchains are built with `NDEBUG`. Built by the `+NoAsserts` toolchain that ships
+// inside the same swift.org installer, the whole graph compiles and runs. `scripts/six-windows.ps1`
+// finds that toolchain, and `docs/windows.md` has the measurements.
 let webKit2LibDirectory = URL(fileURLWithPath: #filePath)
     .deletingLastPathComponent()
     .appendingPathComponent("vendor/WebKit2")
@@ -17,6 +20,20 @@ let webKit2LibDirectory = URL(fileURLWithPath: #filePath)
 
 let package = Package(
     name: "six-windows",
+    dependencies: [
+        // Named, unlike `linux/Package.swift`'s bare `.package(path: "..")`: a path dependency takes
+        // its identity from the *directory*, and this checkout is `six-main` rather than `six`, so
+        // `package: "six"` below would not resolve without saying so here.
+        .package(name: "six", path: ".."),
+        .package(url: "https://github.com/pointfreeco/sqlite-data", from: "1.11.0"),
+        // Transitive — it arrives through SQLiteData → Sharing → swift-dependencies — and named
+        // here only to hold it at the one version the mirror in `.swiftpm/configuration` carries.
+        // Every released version of this package assumes `import Foundation` brings pthreads along,
+        // true on Linux and false on Windows, so it cannot compile here unpatched; UPSTREAM.md §4
+        // is the report, and the mirror points at a local clone of 1.2.0 with the SRWLOCK branch
+        // applied. Without the `exact:`, a free resolve would take 1.2.2 from upstream and fail.
+        .package(url: "https://github.com/pointfreeco/combine-schedulers", exact: "1.2.0")
+    ],
     targets: [
         .target(name: "CRailInterop"),
         // The WebKit2 C API's headers, adapted (by whoever built the matching WebKit2.dll) to keep
@@ -24,17 +41,12 @@ let package = Package(
         // issue under ClangImporter — in favour of layout-compatible structs and `void *`.
         // Header-only; `vendor/WebKit2/WebKit2.lib`, linked below, resolves the symbols.
         .target(name: "CWebKit2"),
-        // SwiftPM will not let a target's `path:` reach outside the package root, so
-        // `Sources/SixCoreShared` holds symlinks to the real files in `six/`, not copies — the same
-        // cross-target source sharing `swift-structured-queries` does with its own "Symbolic Links"
-        // folders. `.v5` so these files are asked the same question the root package asks them.
-        .target(
-            name: "SixCoreShared",
-            swiftSettings: [.swiftLanguageMode(.v5)]
-        ),
         .target(
             name: "SixBrowser",
-            dependencies: ["SixCoreShared"],
+            dependencies: [
+                .product(name: "SixCore", package: "six"),
+                .product(name: "SQLiteData", package: "sqlite-data")
+            ],
             swiftSettings: [.defaultIsolation(MainActor.self)]
         ),
         .target(

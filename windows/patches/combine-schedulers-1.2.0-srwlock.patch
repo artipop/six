@@ -1,0 +1,62 @@
+From abe613dad0f5bc606507963bdd49143a9b7c64f4 Mon Sep 17 00:00:00 2001
+From: Artem <andrewmenefu@onet.pl>
+Date: Tue, 8 Sep 2026 19:42:26 +0300
+Subject: [PATCH] The lock has a Windows branch, and no longer asks Foundation
+ for pthreads
+
+`Lock.swift`'s non-Darwin branch reaches for `pthread_mutex_t` on the strength of `import
+Foundation` alone. That holds on Linux, where Foundation sits on Glibc, and not on Windows, where
+swift-corelibs-foundation wraps ucrt and WinSDK: there are no pthreads anywhere in the graph, so
+every version of this package to date fails to compile there with eleven "cannot find
+'pthread_mutex_t' in scope" errors before anything else is reached.
+
+SRWLOCK is the platform's own equivalent and needs no allocation or destruction: it zero-
+initialises, and releasing it is the whole of its cleanup, which is the contract `cleanupLock()`
+already has on the pthread side. `TryAcquireSRWLockExclusive` returns a BOOLEAN rather than a
+Bool, hence the explicit comparison.
+
+Measured on Swift 6.3.3 for x86_64-unknown-windows-msvc: with this branch, `swift-sharing` 2.9.1
+and `sqlite-data` 1.11.0 both build and run a real SQLite round-trip on Windows. Without it,
+neither resolves past this file.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ Sources/CombineSchedulers/Internal/Lock.swift | 22 +++++++++++++++++++
+ 1 file changed, 22 insertions(+)
+
+diff --git a/Sources/CombineSchedulers/Internal/Lock.swift b/Sources/CombineSchedulers/Internal/Lock.swift
+index 6a39967..cfaeee9 100644
+--- a/Sources/CombineSchedulers/Internal/Lock.swift
++++ b/Sources/CombineSchedulers/Internal/Lock.swift
+@@ -42,6 +42,28 @@
+       os_unfair_lock_unlock(self)
+     }
+   }
++#elseif os(Windows)
++  import WinSDK
++
++  // Foundation on Windows wraps ucrt and WinSDK, so the pthread branch below has nothing to import:
++  // there are no pthreads anywhere in the graph. SRWLOCK is the platform's own equivalent, and it
++  // zero-initialises with no destroy call, so `cleanupLock()` only has to release whatever might
++  // still be held - the same contract the pthread branch keeps.
++  final class os_unfair_lock_s: @unchecked Sendable {
++    private var lock_ = SRWLOCK()
++
++    init() { InitializeSRWLock(&lock_) }
++
++    func lock() { AcquireSRWLockExclusive(&lock_) }
++
++    func tryLock() -> Bool { TryAcquireSRWLockExclusive(&lock_) != 0 }
++
++    func unlock() { ReleaseSRWLockExclusive(&lock_) }
++
++    func cleanupLock() { unlock() }
++  }
++
++  typealias Lock = os_unfair_lock_s
+ #else
+   import Foundation
+ 
+-- 
+2.55.0.windows.3
+

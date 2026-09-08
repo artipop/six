@@ -126,7 +126,7 @@ nonisolated enum PageTranslationError: LocalizedError, Equatable {
     case engine(String, String)
 
     var errorDescription: String? {
-        #if os(Linux)
+        #if os(Linux) || os(Windows)
         // `String(localized:)` and the strings catalog behind it are Apple Foundation's; a GTK front
         // localises through gettext, so these are the keys and it translates them itself.
         switch self {

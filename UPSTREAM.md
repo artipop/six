@@ -146,13 +146,24 @@ past the package.
 
 ---
 
-## 3. swiftlang/swift — constraint solver crash on Windows compiling swift-structured-queries
+## 3. swiftlang/swift — constraint solver assertion compiling swift-structured-queries
 
 **Title:** already filed — [swiftlang/swift#69386](https://github.com/swiftlang/swift/issues/69386),
 "Constraint solver assertion failure with key paths and dynamic member subscript", October 2023,
-still open at the time of writing. Not six's report; recorded here because it is the reason
-`windows/Package.swift` has no dependency on the root package at all — see
-[docs/windows.md](docs/windows.md#why-sixcoreshared-and-not-sixcore) for the full account.
+still open at the time of writing. Not six's report.
+
+**It is not a Windows bug, and this section used to say it was.** It is an assertion, so it exists
+only in a compiler built without `NDEBUG` — and Windows is the one platform where swift.org ships
+an assertions-enabled toolchain, installed as `<version>+Asserts`. The same assertion fires on
+**macOS** against the same package with an open-source toolchain
+([swiftlang/swift#82529](https://github.com/swiftlang/swift/issues/82529): same file, same
+predicate), and six's Mac and Linux builds compile this code daily because those toolchains are
+release builds. Building with the `+NoAsserts` toolchain — which the same swift.org installer
+already carries, behind `OptionsInstallNoAssertsToolchain=1` — compiles the package and runs it:
+`@Table`, `#sql`, `Draft`, and the `.where {}.select()` builder all round-trip real SQLite on
+Windows. So the report below stands as a compiler bug worth fixing, and it is no longer a reason
+for anything downstream to route around the package. See
+[docs/windows.md](docs/windows.md#why-the-noasserts-toolchain) for the measurements.
 
 ### Summary
 
@@ -255,9 +266,15 @@ release whatever might still be held, the same contract the pthread branch's ver
    …
 ```
 
-Confirmed: applying exactly this to a local checkout clears the error and the package builds. Not
-upstreamed as a PR at the time of writing — six does not currently depend on this package (see
-`windows/Package.swift`'s reasoning above), so there was no ongoing need to maintain the patch.
+Confirmed: applying exactly this to a local checkout clears the error, and with it `swift-sharing`
+2.9.1, `sqlite-data` 1.11.0 and `SixCore` itself all build and run on Windows.
+
+six now **does** depend on this package there, so the patch is maintained rather than remembered:
+it lives at `windows/patches/combine-schedulers-1.2.0-srwlock.patch`, and
+`scripts/six-windows.ps1` applies it to a sibling clone and substitutes that through SwiftPM's
+mirror mechanism. That patch file is the PR, ready to send. Note for whoever sends it that
+disabling `swift-dependencies`' `CombineSchedulers` trait is not an alternative route: `Sharing`
+depends on this package directly as well, and traits union across a graph.
 
 ---
 

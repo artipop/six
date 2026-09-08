@@ -1,1 +1,0 @@
-C:/Users/Artem/sources/six-main/six/Input/KeyBindings.swift

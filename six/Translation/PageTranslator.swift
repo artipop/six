@@ -101,7 +101,7 @@ extension String {
     /// `String(localized:)` is Apple Foundation's; a GTK front localises through gettext, so on
     /// Linux these are the keys and it translates them itself.
     nonisolated static func translationRefusal(_ key: String) -> String {
-        #if os(Linux)
+        #if os(Linux) || os(Windows)
         key
         #else
         String(localized: String.LocalizationValue(key))

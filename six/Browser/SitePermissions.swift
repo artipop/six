@@ -20,7 +20,7 @@ enum SitePermission: String, Codable, CaseIterable, Sendable, Identifiable {
 
     /// Lowercase on purpose: it is read inside a sentence ("wants to use your camera").
     var label: String {
-        #if os(Linux)
+        #if os(Linux) || os(Windows)
         // `String(localized:)` and the strings catalog behind it are Apple Foundation's; a GTK front
         // localises through gettext, so these are the keys and it translates them itself.
         switch self {

@@ -1,4 +1,4 @@
-@testable internal import SixCoreShared
+@testable internal import SixCore
 
 /// The Mac's key table, unchanged, through the same `@testable` seam `RailModel` uses for
 /// `NiriLayout` — rather than a second table kept in step by hand. What crosses into `SixUI` is a
