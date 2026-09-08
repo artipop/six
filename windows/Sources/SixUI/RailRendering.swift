@@ -40,6 +40,27 @@ extension RailWindow {
     /// clickable instead of covered by a live page's own child `HWND`.
     static let headerHeight: CGFloat = 48
 
+    /// The workspace label's own strip, at the very top of the window.
+    static let workspaceLabelHeight: CGFloat = 30
+    /// The address bar's strip, directly below the workspace label.
+    static let addressBarStripHeight: CGFloat = 36
+    /// Everything above the rail itself — `RailModel`'s own `columns` are laid out in a coordinate
+    /// space that starts at `y = 0`, the same as every other front's `NiriLayout` use, so this is
+    /// added once, here, when a column's frame is turned into a real on-screen `RECT` — the one seam
+    /// between "where `NiriLayout` thinks a column is" and "where it actually is drawn" — rather than
+    /// baked into the layout itself, which stays a plain viewport-sized canvas.
+    static let topChromeHeight: CGFloat = workspaceLabelHeight + addressBarStripHeight
+
+    /// A column's frame, in real window coordinates — the one place `topChromeHeight` gets added, so
+    /// painting (`draw`), hit-testing (`RailInput.handleClick`) and the live view's own body rect
+    /// (`RailLiveView.bodyRect`) can never drift apart on where a card actually is.
+    static func cardRect(for frame: CGRect) -> RECT {
+        RECT(
+            left: Int32(frame.minX), top: Int32(frame.minY + topChromeHeight),
+            right: Int32(frame.maxX), bottom: Int32(frame.maxY + topChromeHeight)
+        )
+    }
+
     /// The little "×" in a card's corner, in the same coordinates the card itself is drawn in — so
     /// painting it and hit-testing a click against it can never drift apart.
     static func closeBoxRect(for card: RECT) -> RECT {
@@ -85,10 +106,7 @@ extension RailWindow {
     }
 
     private func draw(_ column: RailModel.Column, hdc: HDC) {
-        let card = RECT(
-            left: Int32(column.frame.minX), top: Int32(column.frame.minY),
-            right: Int32(column.frame.maxX), bottom: Int32(column.frame.maxY)
-        )
+        let card = Self.cardRect(for: column.frame)
         let fillColor = Self.placeholderColor(for: column.id)
         let borderColor = column.isFocused ? Self.focusedBorderColor : Self.cardBorderColor
         let brush = CreateSolidBrush(fillColor)

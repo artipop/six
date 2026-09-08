@@ -20,6 +20,7 @@ extension RailWindow {
 
         let columns = model.columns
         guard let focused = columns.first(where: \.isFocused) else { return }
+        syncAddressBarIfNeeded(focusedTabID: focused.id)
         let bodyRect = Self.bodyRect(for: focused.frame)
 
         let webView = webViews[focused.id] ?? makeWebView(for: focused.id, parent: hwnd, frame: bodyRect)
@@ -55,6 +56,10 @@ extension RailWindow {
             self?.model.setTitle(title, for: tabID)
             self?.invalidate()
         }
+        created.onURLChange = { [weak self] url in
+            self?.model.setURL(url, for: tabID)
+            self?.invalidate()
+        }
         created.load(model.url(for: tabID))
         webViews[tabID] = created
         return created
@@ -72,11 +77,11 @@ extension RailWindow {
     }
 
     /// Below the header a card draws its title and "×" in — leaving that strip GDI's, not the live
-    /// page's, is what keeps the close box clickable instead of covered by a child `HWND`.
+    /// page's, is what keeps the close box clickable instead of covered by a child `HWND`. Built on
+    /// `cardRect`, the same conversion `draw` and `handleClick` use, so the live view lines up with
+    /// what is actually drawn on screen.
     static func bodyRect(for frame: CGRect) -> RECT {
-        RECT(
-            left: Int32(frame.minX), top: Int32(frame.minY + Self.headerHeight),
-            right: Int32(frame.maxX), bottom: Int32(frame.maxY)
-        )
+        let card = cardRect(for: frame)
+        return RECT(left: card.left, top: card.top + Int32(headerHeight), right: card.right, bottom: card.bottom)
     }
 }

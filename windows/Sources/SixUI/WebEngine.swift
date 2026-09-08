@@ -38,6 +38,29 @@ enum WebEngine {
         WKPageConfigurationSetContext(pageConfiguration, context)
         WKPageConfigurationSetPreferences(pageConfiguration, WKPreferencesCreate())
 
+        // `frame` is real device pixels (this front is Per-Monitor-V2 DPI aware, and
+        // `RailLiveView.bodyRect` is built straight from `NiriLayout`'s viewport, which comes from
+        // `WM_SIZE`'s physical size) — the plain, direct value, after three attempts at compensating
+        // it for the compositing bug below this function all measured no different from not
+        // compensating at all. See docs/windows.md's "Known issues" for the full account, verified
+        // with marked screenshots (a red rectangle drawn at the `WKView` HWND's own real
+        // `GetWindowRect`, so "does content cross this exact line" stops being a question of
+        // eyeballing a screen) rather than by eye alone this time:
+        //   - `WKPageSetCustomBackingScaleFactor(page, 1.0)` right after creation, rect unchanged:
+        //     `WKPageGetBackingScaleFactor` does read back `1.0` afterward (the call reaches WebKit),
+        //     but the rendered overflow was pixel-for-pixel identical to not calling it at all.
+        //   - Creating the `WKView` with `frame` divided by the display's scale, then immediately
+        //     calling `setFrame` with the real, full-size `frame` — mirroring what a resize message
+        //     arriving right after creation would do — also measured no different.
+        //   - `SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_SYSTEM_AWARE)` scoped around
+        //     `WKViewCreate`: `WKPageGetBackingScaleFactor` still read back the same auto-detected
+        //     `1.5` either way, so whatever queries the monitor's scale does not consult thread-level
+        //     DPI awareness context at all.
+        // All three point the same direction: the oversized layout is decided once, at
+        // `WKViewCreate`, from something none of this API's exposed knobs reach — most likely an
+        // internal, direct monitor-DPI query WebKit's Windows port makes on its own and then applies
+        // a second time on top of whatever rect it was given, independent of the rect's own units,
+        // the `WKPage`-level scale property, and the creating thread's own DPI awareness.
         var rect = WKRectCompat(left: frame.left, top: frame.top, right: frame.right, bottom: frame.bottom)
         guard let view = WKViewCreate(&rect, pageConfiguration, UnsafeMutableRawPointer(parent)) else { return nil }
         WKViewSetIsInWindow(view, true)
@@ -47,6 +70,15 @@ enum WebEngine {
         // for the compositing issue this file's own doc comment points at.
         WKViewWindowAncestryDidChange(view)
         guard let page = WKViewGetPage(view) else { return nil }
+
+        if ProcessInfo.processInfo.environment["SIX_UI_DEBUG"] == "1" {
+            let dpi = GetDpiForWindow(parent)
+            let ourScale = dpi > 0 ? Double(dpi) / 96.0 : 1.0
+            let message = "[six] webkit: dpi=\(dpi) ourScale=\(ourScale) " +
+                "backingScaleFactor=\(WKPageGetBackingScaleFactor(page)) rect=\(frame)\n"
+            FileHandle.standardError.write(Data(message.utf8))
+        }
+
         return RailWebView(view: view, page: page)
     }
 }
@@ -61,6 +93,10 @@ final class RailWebView {
     /// Told the page's title whenever a navigation finishes — `RailWindow` forwards this straight
     /// into `RailModel`, which is the only thing that knows what a title is *for*.
     var onTitleChange: ((String) -> Void)?
+    /// Told the page's own URL whenever a navigation finishes — a redirect or an in-page link click
+    /// moves this away from whatever `load(_:)` was last called with, and the address bar needs to
+    /// track that, not just what it was told to load.
+    var onURLChange: ((String) -> Void)?
 
     init(view: WKViewRef, page: WKPageRef) {
         self.view = view
@@ -89,8 +125,11 @@ final class RailWebView {
 
     private func handleFinishedNavigation() {
         let title = Self.string(from: WKPageCopyTitle(page))
-        guard !title.isEmpty else { return }
-        onTitleChange?(title)
+        if !title.isEmpty { onTitleChange?(title) }
+        if let activeURL = WKPageCopyActiveURL(page) {
+            let urlString = Self.string(from: WKURLCopyString(activeURL))
+            if !urlString.isEmpty { onURLChange?(urlString) }
+        }
     }
 
     private static func string(from ref: WKStringRef?) -> String {

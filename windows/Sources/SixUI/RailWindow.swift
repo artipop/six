@@ -26,6 +26,19 @@ public final class RailWindow {
     /// anywhere both are imported.
     var webViews: [Foundation.UUID: RailWebView] = [:]
 
+    /// The address bar: a plain Win32 `EDIT` control, one for the whole window (not per column, the
+    /// same "one live view" simplification `RailLiveView` already makes) — see `AddressBar.swift`.
+    var addressBarHwnd: HWND?
+    /// `EDIT`'s own `WNDPROC`, saved so the subclass in `AddressBar.swift` can still forward
+    /// everything it does not care about — the same "wrap, don't replace" shape `sixty`'s own
+    /// MiniBrowserSwift prototype uses for its address bar.
+    var originalAddressBarProc: WNDPROC?
+    /// Which column's URL the address bar is currently showing, so a page's own title/URL callbacks
+    /// (firing on every repaint's `updateLiveView`) refresh the text only when focus actually moved
+    /// to a different column — never mid-keystroke, while whoever is at the keyboard is still typing
+    /// into it.
+    var addressBarShownTabID: Foundation.UUID?
+
     static let className = "SixRailWindow"
 
     public init() {}
@@ -68,6 +81,7 @@ public final class RailWindow {
             return false
         }
         hwnd = created
+        ensureAddressBar(instance: instance)
         if ProcessInfo.processInfo.environment["SIX_UI_DEBUG"] == "1" {
             FileHandle.standardError.write(Data("[six] window created, hwnd=\(String(describing: created))\n".utf8))
         }
@@ -134,7 +148,12 @@ public final class RailWindow {
         case WM_SIZE:
             let width = Int(SixRailLoWord(lParam))
             let height = Int(SixRailHiWord(lParam))
-            if model.updateViewport(CGSize(width: width, height: height)) { invalidate() }
+            // `NiriLayout`'s own viewport is the rail's canvas alone — `Self.topChromeHeight` (the
+            // workspace label and the address bar) is real estate `RailRendering.cardRect` adds back
+            // on top of it, not something the layout itself should know about.
+            let railHeight = max(0, height - Int(Self.topChromeHeight))
+            if model.updateViewport(CGSize(width: width, height: railHeight)) { invalidate() }
+            layoutAddressBar()
             return 0
 
         case WM_LBUTTONDOWN:

@@ -143,13 +143,16 @@ windows/Sources/SixBrowser         RailModel: NiriLayout plus the tab metadata e
                                     the same seam linux/Sources/SixBrowser uses on SixCore.
 
 windows/Sources/SixUI              RailWindow (the Win32 window, message dispatch), RailRendering
-                                    (GDI painting, the placeholder colour palette), RailInput (mouse
-                                    and wheel → RailModel), RailKeyInput (WM_KEYDOWN/WM_SYSKEYDOWN →
-                                    RailKeyLookup → RailModel), WebEngine + RailWebView (the WebKit2
-                                    wrapper: one WKContext, one WKView per column that has ever been
-                                    focused), RailLiveView (positions/shows/hides the focused
-                                    column's WKView over its card's body, below the header GDI still
-                                    draws the title and "×" in).
+                                    (GDI painting, the placeholder colour palette, the top chrome's
+                                    own strip heights), RailInput (mouse and wheel → RailModel),
+                                    RailKeyInput (WM_KEYDOWN/WM_SYSKEYDOWN → RailKeyLookup →
+                                    RailModel), WebEngine + RailWebView (the WebKit2 wrapper: one
+                                    WKContext, one WKView per column that has ever been focused),
+                                    RailLiveView (positions/shows/hides the focused column's WKView
+                                    over its card's body, below the header GDI still draws the title
+                                    and "×" in), AddressBar (a plain Win32 EDIT control, one for the
+                                    window, showing and editing the focused column's URL — see
+                                    "Verified" for what navigating through it actually does).
 
 windows/Sources/six-windows        main.swift: declare DPI awareness, create the window, pump
                                     messages, done.
@@ -219,6 +222,27 @@ exercised by hand and confirmed working):
   `RailModel.setTitle` — confirmed by watching a card's placeholder title ("New Tab 1") get replaced
   by the real page's title once it loads. What is *not* verified working is the rendering staying
   inside its own bounds — see "Known issues".
+- The address bar itself (`AddressBar.swift`) shows the focused column's URL and repositions on
+  resize, confirmed by screenshot. Typing a URL and pressing Enter, end to end, is **not** confirmed
+  the same way the mechanics above are: this dev machine is driven remotely, and the one automated
+  test tried — setting the `EDIT` control's text and delivering `WM_KEYDOWN`/`VK_RETURN` to it
+  cross-process via `SendMessageW` — reached `RailWindow.navigateFromAddressBar` (the debug trace
+  fired, `SixRailGetUserData` resolved the same `RailWindow` instance) but read back the *old* text,
+  not the text a second, independent `GetWindowTextW` call against the identical `HWND` confirmed was
+  actually there, moments before and after, from outside the process. Retried with a two-second
+  delay between setting the text and sending Enter (rules out a race) and with the read routed
+  through `SendMessageW(..., WM_GETTEXTLENGTH, ...)` directly instead of the `GetWindowTextLengthW`
+  wrapper (rules out that specific function) — same stale read both times. Nothing in
+  `AddressBar.swift` reads or writes that text anywhere but `navigateFromAddressBar` and
+  `syncAddressBarIfNeeded` (confirmed via a trace that the latter fires exactly once, on the first
+  paint, and never again while there is only one column), so the code has no path that would produce
+  this on its own. The remaining explanation is something about how this remote automation delivers
+  synthetic input across process boundaries here — the same environment that also cannot `taskkill`
+  its own child processes after a while ("Access is denied", see the zombie-PID workaround in
+  `scripts/six-windows.ps1`'s revision history) — not a defect in the shipped mechanism, which is the
+  same "subclass the `EDIT` control's `WNDPROC`, catch `VK_RETURN`" shape `../sixty`'s own
+  MiniBrowserSwift address bar already uses successfully. Whoever is at the real keyboard should
+  confirm this by hand before relying on it.
 
 One real bug surfaced and got fixed in the process, worth knowing about for any future Win32 work on
 this front: **holding `Alt` turns the *other* key into a system key.** Windows sends
@@ -251,15 +275,25 @@ swallowed (returns `0`) when a binding matched; anything else falls through to `
     `SIX_UI_DEBUG=1` trace comparing the intended rect against `GetWindowRect` (converted to the
     parent's client coordinates), which matched exactly. What draws inside that correctly-positioned
     `HWND` does not respect its bounds regardless.
-  - Four different fixes were tried and did not resolve it: `WKViewSetUsesOffscreenRendering(view,
+  - Seven different fixes were tried and did not resolve it: `WKViewSetUsesOffscreenRendering(view,
     true)` (reproduced, exactly, the "shrinks into a corner, rest blank" failure MiniBrowserSwift's
     own source comment already documents rejecting for the logically adjacent reason — dividing the
     rect by backing scale); `WKViewWindowAncestryDidChange` after `WKViewSetIsInWindow` (kept, since
     it is a reasonable call regardless, but made no measurable difference alone);
-    `DPI_AWARENESS_CONTEXT_SYSTEM_AWARE` in place of `..._PER_MONITOR_AWARE_V2` (no difference);
-    moving live-view creation/positioning out of `WM_PAINT`'s `BeginPaint`/`EndPaint` bracket, on the
-    theory that resizing a hardware-composited child window mid-paint could confuse the compositor
-    (no difference).
+    `DPI_AWARENESS_CONTEXT_SYSTEM_AWARE` in place of `..._PER_MONITOR_AWARE_V2` for the whole process
+    (no difference); moving live-view creation/positioning out of `WM_PAINT`'s
+    `BeginPaint`/`EndPaint` bracket, on the theory that resizing a hardware-composited child window
+    mid-paint could confuse the compositor (no difference); `WKPageSetCustomBackingScaleFactor(page,
+    1.0)` right after creation (confirmed reaching WebKit — `WKPageGetBackingScaleFactor` reads back
+    `1.0` afterward instead of the auto-detected `1.5` — but the rendered overflow was
+    pixel-for-pixel identical); creating the `WKView` with its rect divided by the display's scale
+    and then immediately resizing it to the real, full-size rect via `setFrame` (mirroring what a
+    resize message right after creation would do — also no difference); and scoping
+    `SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_SYSTEM_AWARE)` around the `WKViewCreate` call
+    specifically, rather than the whole process (`WKPageGetBackingScaleFactor` still read back the
+    same `1.5` regardless, so whatever queries the monitor's scale does not consult the creating
+    thread's DPI awareness context at all). See `WebEngine.makeView`'s own doc comment for exactly
+    where each of the last three lived in the code.
   - Sizing the live view to the *entire* window's client area — matching MiniBrowserSwift's own
     layout exactly, not a rail card's smaller sub-rect — still showed the bug. So this is not
     specific to confining a `WKView` to something smaller than the window either.
@@ -269,11 +303,28 @@ swallowed (returns `0`) when a binding matched; anything else falls through to `
     past the right edge on some pages... wins by default until there's a real fix for the narrower
     issue") — this front's smaller, more constrained card rect just makes the same underlying
     compositing bug far more visible than MiniBrowserSwift's nearly-full-window layout does.
+  - The last three fixes above were verified with a sharper method than eyeballing a live window:
+    launch built with `SIX_UI_DEBUG=1`, read the `WKView`'s own `GetWindowRect` from outside the
+    process, screenshot a padded region around it from a DPI-*aware* capture process (a DPI-unaware
+    one — plain PowerShell, unless it first calls `SetProcessDpiAwarenessContext` itself — reads back
+    a virtualized 96 DPI regardless of the real display, which silently invalidates both the rect and
+    the screenshot together, not just one of them; a real, physically-correct screenshot needs both
+    sides DPI-aware, or neither), and draw a rectangle on the exact real bounds before comparing
+    against the page's own content — so "does the content cross this line" is a pixel fact, not an
+    impression. Every one of the three still showed content crossing it, in the same direction (past
+    the right and bottom edges) and by roughly the same fraction (~1.5×, matching this display's own
+    scale) every time.
 
   Nothing here points at a fix available from the embedding side — Swift, `WKView`'s own C API, or
-  this front's window handling. A real fix most likely needs either a newer Playwright WebKit build
-  (`playwright install webkit` pulls whatever is current; the one this was tested against is
-  `webkit-2359`) or a patch to WebKit's own Windows-port compositing code.
+  this front's window handling. The consistent ~1.5× overshoot, unmoved by every knob this API
+  exposes for it (the page-level scale property, the creating thread's DPI awareness, the process's
+  own DPI awareness mode, the units of the rect handed to `WKViewCreate` itself), points at WebKit's
+  Windows port querying the monitor's scale a second time from somewhere none of these reach — most
+  likely a direct system DPI call inside the view's own internal layout code, applied on top of a
+  rect this front already gave it in real device pixels. A real fix most likely needs either a newer
+  Playwright WebKit build (`playwright install webkit` pulls whatever is current; the one this was
+  tested against is `webkit-2359`) or a patch to WebKit's own Windows-port compositing code — both
+  outside what a consumer of the public C API can reach from here.
 - **DPI scaling of the rail's own chrome is, incidentally, fine.** `main.swift` declares
   `DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2` (originally to chase the bug above), which means
   `WM_SIZE` now reports genuine physical pixels rather than a DPI-virtualized value — and since
@@ -290,10 +341,11 @@ swallowed (returns `0`) when a binding matched; anything else falls through to `
   readings of the same `NiriLayout` state.
 - **A real, *usably rendered* page.** The engine is real WebKit and a live column genuinely loads
   and navigates — see "Verified" — but the "Known issues" rendering bug means what is on screen is
-  not yet something to actually browse with. A live-page budget (only the focused column gets a
-  `WKView`; every other front's own version of "more than one column can be live at once" is future
-  work here too) is also not built, and neither is a way to actually *navigate* — there is no address
-  bar or any other UI for typing a URL; a column only ever loads `RailModel.startURL`.
+  not yet something to actually browse with, even now that `AddressBar.swift` gives a column
+  somewhere to navigate *to* — see "Verified" for the one part of that path (Enter actually firing a
+  navigation) this session could not confirm by hand. A live-page budget (only the focused column
+  gets a `WKView`; every other front's own version of "more than one column can be live at once" is
+  future work here too) is also not built.
 - **Persistence, history, bookmarks, profiles.** `RailModel` keeps one profile's strip in memory and
   loses it on exit — and, per "Why `SixCoreShared`" above, cannot reach `AppDatabase`/`SettingsStore`
   without pulling in the dependency chain that crashes the compiler. Wiring real persistence back in

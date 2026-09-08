@@ -9,11 +9,13 @@ extension RailWindow {
     /// background — past the last column, or before the first — it opens a new one. The same three
     /// answers a click gives on every other front, just without a page underneath to also receive it.
     func handleClick(x: Int, y: Int) {
+        // A click on a card is also the natural way to leave the address bar — without this, the
+        // hotkeys `RailKeyInput` answers stop responding until the rail window is clicked on
+        // somewhere that is not a column, which reads like the rail hanging rather than like focus
+        // simply being elsewhere.
+        if let hwnd { SetFocus(hwnd) }
         for column in model.columns {
-            let card = RECT(
-                left: Int32(column.frame.minX), top: Int32(column.frame.minY),
-                right: Int32(column.frame.maxX), bottom: Int32(column.frame.maxY)
-            )
+            let card = Self.cardRect(for: column.frame)
             guard card.contains(x: x, y: y) else { continue }
             if Self.closeBoxRect(for: card).contains(x: x, y: y) {
                 model.closeColumn(column.id)
