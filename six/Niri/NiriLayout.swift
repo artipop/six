@@ -1561,7 +1561,7 @@ final class NiriLayout {
     /// The name, or the position when there is none.
     func title(at index: Int) -> String {
         guard workspaces.indices.contains(index), !workspaces[index].name.isEmpty else {
-            #if os(Linux)
+            #if os(Linux) || os(Windows)
             return "Workspace \(index + 1)"
             #else
             return String(localized: "Workspace \(index + 1)")

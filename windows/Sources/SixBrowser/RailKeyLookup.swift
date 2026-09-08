@@ -1,9 +1,10 @@
-@testable internal import SixCore
+@testable internal import SixCoreShared
 
 /// The Mac's key table, reached the same way `RailModel` reaches `NiriLayout`: unchanged, through
 /// the module's `@testable` seam, rather than a second table kept in step with it by hand. What
 /// crosses into `SixUI` is a small, public vocabulary this front already knows how to act on — not
-/// `KeyBindings`' own internal `KeyCode`/`KeyAction`, which stay `internal` to `SixCore` on purpose.
+/// `KeyBindings`' own internal `KeyCode`/`KeyAction`, which stay `internal` to `SixCoreShared` on
+/// purpose.
 ///
 /// `KeyContext.window` is always `.main` here, `.field` always `nil`, `.isSwitching` and
 /// `.isOverview` always `false` — this front has exactly one window, no text field a key could yield

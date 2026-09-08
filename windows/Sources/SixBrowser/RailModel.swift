@@ -1,5 +1,5 @@
 import Foundation
-@testable internal import SixCore
+@testable internal import SixCoreShared
 
 /// The rail's own state: `NiriLayout` plus what a placeholder column needs to draw itself.
 ///
