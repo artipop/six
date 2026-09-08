@@ -97,6 +97,43 @@ there wraps ucrt/WinSDK, no pthreads anywhere). If a future front on this platfo
 (`InitializeSRWLock`/`AcquireSRWLockExclusive`/`ReleaseSRWLockExclusive`), alongside the existing
 Darwin (`os_unfair_lock`) and pthread branches.
 
+## Persistence: where to pick this up next
+
+Not started — `RailModel` has no database at all, in memory or otherwise (see "What is not"). Before
+reaching for either of the two hard options "Why `SixCoreShared`" already names — get
+[swiftlang/swift#69386](https://github.com/swiftlang/swift/issues/69386) fixed upstream, or patch
+every one of `swift-structured-queries`' ~85 keyPath dynamic-member-lookup call sites and verify each
+one's *behaviour*, not just that it compiles — there is a cheaper experiment nobody has run yet, worth
+trying first precisely because it is cheap to rule out:
+
+**Does plain GRDB, without `swift-structured-queries` in the graph at all, build on Windows?** The
+crash write-up in [UPSTREAM.md](../UPSTREAM.md) (section 3) is specifically in
+`swift-structured-queries`' `@dynamicMemberLookup` query-builder mechanism — the
+`Type.self[keyPath: keyPath]` pattern `@Table`-generated `Draft` types and `Where`/`Select` statement
+chaining both go through. `six/Data/AppDatabase.swift` itself is mostly plain `#sql("""...""")`
+macro calls against GRDB directly, for schema and migrations — `@Table` (and the crash-prone
+query-builder syntax it enables) is used elsewhere, in the four *record* files
+(`six/Data/SettingsStore.swift`, `six/Browser/ProfileStore.swift`, `six/Browser/History.swift`,
+`six/Bookmarks/Bookmark.swift`), not in the database layer's own schema code. GRDB is the older,
+mature, portable SQLite wrapper `SQLiteData` sits on top of — it predates and does not use
+`swift-structured-queries`' dynamicMemberLookup machinery for its own query interface, so there is a
+real chance it simply builds and runs on Windows *without ever hitting the bug in #69386 at all*, as
+long as nothing pulls `swift-structured-queries` in behind it.
+
+If that holds, a Windows-specific storage layer becomes: depend on `GRDB` alone (not `SQLiteData`,
+not `swift-structured-queries`, so `combine-schedulers` never enters the graph either — see
+[UPSTREAM.md](../UPSTREAM.md) (section 4), the other blocker "Why `SixCoreShared`" names, which only
+arrives *through* `SQLiteData` → `Sharing` → `swift-dependencies`), and write plain `#sql` macro calls
+or GRDB's own record/`FetchableRecord` APIs against `RailModel`'s existing shape — no `@Table`, no
+dynamicMemberLookup query-builder syntax, no crash surface. It would not share `AppDatabase`'s own
+schema code (still gated behind `@Table` on the record side) without either duplicating a
+Windows-safe subset of it or reworking those four record files to stop generating dynamicMemberLookup
+machinery everywhere — a real design decision, not a one-line fix — but it is a substantially smaller
+undertaking than either option "Why `SixCoreShared`" names, and the first step (does `swift build` on
+a throwaway package with a single `import GRDB` even get past the frontend on Windows) costs an
+afternoon, not a rewrite. Nobody has run that first step yet; it is the natural place for a future
+session to start.
+
 ## Where things are
 
 ```
@@ -349,6 +386,5 @@ swallowed (returns `0`) when a binding matched; anything else falls through to `
 - **Persistence, history, bookmarks, profiles.** `RailModel` keeps one profile's strip in memory and
   loses it on exit — and, per "Why `SixCoreShared`" above, cannot reach `AppDatabase`/`SettingsStore`
   without pulling in the dependency chain that crashes the compiler. Wiring real persistence back in
-  is real future work, not a small follow-up: it needs either the upstream Swift bug fixed, the
-  crash sites in `swift-structured-queries` patched properly (not just the two proven possible
-  here), or a storage layer this front can use that does not route through that package at all.
+  is real future work, not a small follow-up — see "Persistence: where to pick this up next" above
+  for the cheap experiment nobody has run yet and the two harder options behind it.
