@@ -1,15 +1,20 @@
 # Upstream: bugs that are not six's
 
-Three of them, kept here with the repro that isolates each. Two are Linux regressions that keep
-SQLiteData from building; the third is a WebKit rendering bug that makes a video's own fullscreen
-button draw a black screen under SwiftUI's `WebView`.
+Five of them, kept here with the repro that isolates each. Four are dependency bugs that keep
+SQLiteData from building — two Linux regressions and two that only Windows sees — and the fifth is a
+WebKit rendering bug that makes a video's own fullscreen button draw a black screen under SwiftUI's
+`WebView`.
 
-## The two Linux regressions
+## The four that arrive through SQLiteData
 
-Found while bringing six's storage layer up on Linux ([docs/storage.md](docs/storage.md)). Neither is
-six's bug and neither is in a package six imports — both arrive through `SQLiteData`, which depends on
-`Sharing` unconditionally. Both are **regressions**: the immediately preceding release of each builds
-clean on the same toolchain.
+Found while bringing six's storage layer up on Linux ([docs/storage.md](docs/storage.md)) and,
+further down this file, while trying to bring `SixCore` itself up on Windows
+([docs/windows.md](docs/windows.md)). None of these are six's bugs and none are in a package six
+imports directly — the first two arrive through `SQLiteData`, which depends on `Sharing`
+unconditionally; the Windows ones arrive the same way, through `SQLiteData` → GRDB →
+`swift-structured-queries` and `SQLiteData` → `Sharing` → `swift-dependencies` →
+`combine-schedulers`. The first two are **regressions**: the immediately preceding release of each
+builds clean on the same toolchain.
 
 six works around them by seeding its `Package.resolved` from the app's own, which holds the graph at
 the last good versions. That is a workaround, not a fix, and it makes `swift package update` a
@@ -136,6 +141,123 @@ One line, in the `#else` branch that already exists:
 
 Confirmed: applying exactly this to the checkout clears all six errors, and the build then proceeds
 past the package.
+
+---
+
+---
+
+## 3. swiftlang/swift — constraint solver crash on Windows compiling swift-structured-queries
+
+**Title:** already filed — [swiftlang/swift#69386](https://github.com/swiftlang/swift/issues/69386),
+"Constraint solver assertion failure with key paths and dynamic member subscript", October 2023,
+still open at the time of writing. Not six's report; recorded here because it is the reason
+`windows/Package.swift` has no dependency on the root package at all — see
+[docs/windows.md](docs/windows.md#why-sixcoreshared-and-not-sixcore) for the full account.
+
+### Summary
+
+`swift-frontend.exe` (confirmed on both the `0.0.0+Asserts` nightly and the `6.3.3-RELEASE` stable
+Windows toolchain) crashes with an internal assertion type-checking a static subscript whose
+`dynamicMember` parameter is a `KeyPath` rooted at a metatype — `Type.self[keyPath: keyPath]` inside
+a `dynamicMember` subscript body. This is the mechanism `swift-structured-queries`' whole
+"type-safe query building" API is built on (`@dynamicMemberLookup` forwarding from a `Draft` type to
+its `SourceTable`, from a `Where`/`Select` statement to the table it selects from, and so on),
+present roughly 85 times across the package.
+
+### Steps to reproduce
+
+The two sites patched and confirmed to trigger and then clear this exact assertion:
+
+```swift
+// swift-structured-queries, Sources/StructuredQueriesCore/PrimaryKeyed.swift
+extension TableDraft {
+  public static subscript(
+    dynamicMember keyPath: KeyPath<SourceTable.Type, some Statement<SourceTable>>
+  ) -> some Statement<Self> {
+    SQLQueryExpression("\(SourceTable.self[keyPath: keyPath])")  // crashes here
+  }
+}
+```
+
+Compiled as part of `swift build` for a package that depends on `sqlite-data` from `1.11.0`, on
+either Windows toolchain above.
+
+### Actual
+
+```
+Assertion failed: (path.size() == 1 && path[0].getKind() == ConstraintLocator::SubscriptMember) ||
+  (path.size() == 2 && path[1].getKind() == ConstraintLocator::KeyPathDynamicMember),
+  file C:\Users\swift-ci\jenkins\workspace\swift-6.3-windows-toolchain\swift\lib\Sema\CSSimplify.cpp,
+  line 16426
+```
+
+With a full crash backtrace through `TypeCheckFunctionBodyRequest` for the subscript's getter.
+
+### Expected
+
+Type-checks, the way it does on macOS and Linux with the same toolchain version and the same source.
+
+### Workaround, not a fix
+
+Binding the keyPath application to an explicitly-typed local before using it avoids the crash *at
+that specific call site*:
+
+```swift
+let statement: some Statement<SourceTable> = SourceTable.self[keyPath: keyPath]
+return SQLQueryExpression("\(statement)")
+```
+
+This is not a real fix for a consumer: the pattern recurs across the rest of the package (several
+call sites inside variadic-generic `repeat each C` functions in
+`Statements/Select+DynamicMemberLookup.swift` alone), and patching all of them, in code whose
+*behaviour* — not just whether it compiles — cannot be verified without a working SQLite round-trip
+on Windows, is not something to do piecemeal from outside the project.
+
+---
+
+## 4. pointfreeco/combine-schedulers — no Windows support at all
+
+Not a regression like #2 above — every released version, including the one six pins to on Linux/Mac
+(1.2.0), lacks Windows support outright. `Sources/CombineSchedulers/Internal/Lock.swift`'s non-Darwin
+branch assumes `import Foundation` brings `pthread_mutex_t` along, true on Linux (Foundation there
+sits on Glibc, which has pthreads) and false on Windows (swift-corelibs-foundation there wraps
+ucrt/WinSDK; there are no pthreads anywhere in the graph). Confirmed by building `combine-schedulers`
+1.2.0 standalone on the Windows 6.3.3 toolchain:
+
+```
+Sources\CombineSchedulers\Internal\Lock.swift:52:24: error: cannot find type 'pthread_mutex_t' in scope
+```
+
+### Suggested fix
+
+A third branch alongside the existing Darwin (`os_unfair_lock`) and non-Darwin (`pthread_mutex_t`)
+ones, using `SRWLOCK` — zero-initialised, no destroy call needed, so `cleanupLock()` only has to
+release whatever might still be held, the same contract the pthread branch's version already has:
+
+```diff
+ #if canImport(Darwin)
+   …
++#elseif os(Windows)
++  import WinSDK
++
++  final class os_unfair_lock_s: @unchecked Sendable {
++    private var lock_ = SRWLOCK()
++    init() { InitializeSRWLock(&lock_) }
++    func lock() { AcquireSRWLockExclusive(&lock_) }
++    func tryLock() -> Bool { TryAcquireSRWLockExclusive(&lock_) != 0 }
++    func unlock() { ReleaseSRWLockExclusive(&lock_) }
++    func cleanupLock() { unlock() }
++  }
++
++  typealias Lock = os_unfair_lock_s
+ #else
+   import Foundation
+   …
+```
+
+Confirmed: applying exactly this to a local checkout clears the error and the package builds. Not
+upstreamed as a PR at the time of writing — six does not currently depend on this package (see
+`windows/Package.swift`'s reasoning above), so there was no ongoing need to maintain the patch.
 
 ---
 

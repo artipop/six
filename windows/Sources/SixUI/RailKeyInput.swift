@@ -7,17 +7,25 @@ import WinSDK
 /// a Win32 message into the key, the modifiers and the context the table asks for, and it knows
 /// nothing about what any binding *does* — that is `RailModel`'s.
 extension RailWindow {
-    func handleKeyDown(virtualKey: Int32, lParam: LPARAM) {
-        guard let key = Self.railKey(virtualKey: virtualKey, scanCode: SixRailScanCode(lParam)) else { return }
+    /// `true` means the key was one of ours and the caller should swallow it (return `0`, not fall
+    /// through to `DefWindowProcW`); `false` leaves it to the default handling every other key still
+    /// needs — most importantly the ones that arrive here *because* they are `WM_SYSKEYDOWN`, not
+    /// `WM_KEYDOWN`: every binding in this table is `⌥`-something, held-Alt is exactly what turns a
+    /// key into a system key on Windows, and swallowing `WM_SYSKEYDOWN` unconditionally would have
+    /// taken `⌥F4` (close) and `⌥Space` (system menu) down with it.
+    @discardableResult
+    func handleKeyDown(virtualKey: Int32, lParam: LPARAM) -> Bool {
+        guard let key = Self.railKey(virtualKey: virtualKey, scanCode: SixRailScanCode(lParam)) else { return false }
 
         var modifiers: RailKeyModifiers = []
         if SixRailKeyDown(Int32(VK_CONTROL)) != 0 { modifiers.insert(.control) }
         if SixRailKeyDown(Int32(VK_MENU)) != 0 { modifiers.insert(.alt) }
         if SixRailKeyDown(Int32(VK_SHIFT)) != 0 { modifiers.insert(.shift) }
 
-        guard let action = RailKeyLookup.action(for: key, modifiers: modifiers) else { return }
+        guard let action = RailKeyLookup.action(for: key, modifiers: modifiers) else { return false }
         perform(action)
         invalidate()
+        return true
     }
 
     private func perform(_ action: RailKeyAction) {

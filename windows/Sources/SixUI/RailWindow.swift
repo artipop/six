@@ -1,4 +1,5 @@
 import CRailInterop
+import Foundation
 import SixBrowser
 import WinSDK
 
@@ -32,40 +33,65 @@ public final class RailWindow {
         wc.style = UINT(CS_HREDRAW | CS_VREDRAW)
         wc.lpfnWndProc = railWindowProc
         wc.hInstance = instance
-        wc.hCursor = LoadCursorW(nil, IDC_ARROW)
+        wc.hCursor = SixRailArrowCursor()
         wc.hbrBackground = nil
 
         let registered = Self.className.withCString(encodedAs: UTF16.self) { name -> ATOM in
             wc.lpszClassName = name
             return RegisterClassExW(&wc)
         }
-        guard registered != 0 else { return false }
+        guard registered != 0 else {
+            FileHandle.standardError.write(Data("[six] RegisterClassExW failed: \(GetLastError())\n".utf8))
+            return false
+        }
 
         let created = Self.className.withCString(encodedAs: UTF16.self) { classNamePtr in
             "six".withCString(encodedAs: UTF16.self) { titlePtr in
+                // `CW_USEDEFAULT` for size too, not a fixed 1280×800: a hard-coded size is taller
+                // than this dev machine's own 1280×720 display, which is exactly the "sizes are
+                // fractions of the viewport, not point constants" lesson CLAUDE.md already has.
                 CreateWindowExW(
                     0, classNamePtr, titlePtr, DWORD(WS_OVERLAPPEDWINDOW),
-                    Int32(CW_USEDEFAULT), Int32(CW_USEDEFAULT), 1280, 800,
+                    Int32(CW_USEDEFAULT), Int32(CW_USEDEFAULT), Int32(CW_USEDEFAULT), Int32(CW_USEDEFAULT),
                     nil, nil, instance, Unmanaged.passUnretained(self).toOpaque()
                 )
             }
         }
-        guard let created else { return false }
+        guard let created else {
+            FileHandle.standardError.write(Data("[six] CreateWindowExW failed: \(GetLastError())\n".utf8))
+            return false
+        }
         hwnd = created
+        if ProcessInfo.processInfo.environment["SIX_UI_DEBUG"] == "1" {
+            FileHandle.standardError.write(Data("[six] window created, hwnd=\(String(describing: created))\n".utf8))
+        }
         return true
     }
 
     public func show() {
         guard let hwnd else { return }
-        ShowWindow(hwnd, SW_SHOWDEFAULT)
+        // Not `SW_SHOWDEFAULT`: that defers to the launching process's own `STARTUPINFO`, which a
+        // launch through redirected stdout/stderr often leaves unset — the window is created but
+        // never actually shown, silently. `SW_SHOWNORMAL` shows it unconditionally.
+        ShowWindow(hwnd, SW_SHOWNORMAL)
         UpdateWindow(hwnd)
+        // A SwiftPM executable links as a console-subsystem app by default, so launching this one
+        // creates a console window alongside the rail — and the console, not the rail, ends up with
+        // keyboard focus: clicks still land on the rail (routed by cursor position), but every key
+        // goes to the console instead of `WM_KEYDOWN` here. Claiming both explicitly is the fix
+        // until the target links `/SUBSYSTEM:WINDOWS` and there is no console to compete with.
+        SetForegroundWindow(hwnd)
+        SetFocus(hwnd)
     }
 
     /// The classic `GetMessage`/`DispatchMessage` pump. Returns once `WM_QUIT` arrives, with the
     /// exit code it carried.
     public func run() -> Int32 {
+        // `GetMessageW` imports as `Bool` on this SDK overlay, not the classic tri-state `BOOL`
+        // (`0`/`WM_QUIT`, `-1`/error, nonzero/success) — so `WM_QUIT` and an error both read as
+        // `false` here and end the loop the same way.
         var message = MSG()
-        while GetMessageW(&message, nil, 0, 0) > 0 {
+        while GetMessageW(&message, nil, 0, 0) {
             TranslateMessage(&message)
             DispatchMessageW(&message)
         }
@@ -103,8 +129,14 @@ public final class RailWindow {
             return 0
 
         case WM_KEYDOWN:
-            handleKeyDown(virtualKey: Int32(wParam), lParam: lParam)
-            return 0
+            return handleKeyDown(virtualKey: Int32(wParam), lParam: lParam) ? 0 : nil
+
+        // Every binding this table has is `⌥`-something, and holding Alt is exactly what turns the
+        // other key into a *system* key on Windows — `WM_SYSKEYDOWN`, not `WM_KEYDOWN`. Only
+        // swallowing it when a binding actually matched leaves `⌥F4`/`⌥Space`/plain `F10` to
+        // `DefWindowProcW`, which is what makes them still behave like system keys.
+        case WM_SYSKEYDOWN:
+            return handleKeyDown(virtualKey: Int32(wParam), lParam: lParam) ? 0 : nil
 
         case WM_MOUSEWHEEL:
             handleWheel(delta: Int32(SixRailWheelDelta(wParam)), horizontal: false)

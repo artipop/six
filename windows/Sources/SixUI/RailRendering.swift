@@ -1,3 +1,4 @@
+import Foundation
 import SixBrowser
 import WinSDK
 
@@ -12,13 +13,27 @@ extension RailWindow {
     }
 
     static let backgroundColor = rgb(24, 24, 27)
-    static let cardColor = rgb(39, 39, 42)
     static let cardBorderColor = rgb(63, 63, 70)
-    static let focusedColor = rgb(37, 55, 92)
     static let focusedBorderColor = rgb(96, 140, 220)
     static let textColor = rgb(228, 228, 231)
     static let focusedTextColor = rgb(255, 255, 255)
     static let labelColor = rgb(161, 161, 170)
+
+    /// A card is a title and a color, nothing else yet — so the color has to carry a column's whole
+    /// identity: without it every unfocused card was the same grey rectangle, and there was no way
+    /// to tell two open tabs apart short of clicking each one to see which title lit up. Picked by
+    /// the tab's own id, not its position — a column keeps its color when the rail reorders it, the
+    /// same way a real page would keep whatever the site painted.
+    static let placeholderPalette: [COLORREF] = [
+        rgb(64, 92, 155), rgb(155, 92, 64), rgb(88, 145, 88), rgb(140, 82, 150),
+        rgb(150, 138, 68), rgb(70, 140, 138), rgb(150, 90, 110), rgb(96, 110, 150)
+    ]
+
+    // `Foundation.UUID` explicitly: `WinSDK` also brings in the C `UUID` typedef (`rpcdce.h`'s
+    // `GUID` alias), and both are visible here, so the bare name is ambiguous.
+    static func placeholderColor(for id: Foundation.UUID) -> COLORREF {
+        placeholderPalette[Int(id.uuid.0) % placeholderPalette.count]
+    }
 
     /// The little "×" in a card's corner, in the same coordinates the card itself is drawn in — so
     /// painting it and hit-testing a click against it can never drift apart.
@@ -69,7 +84,7 @@ extension RailWindow {
             left: Int32(column.frame.minX), top: Int32(column.frame.minY),
             right: Int32(column.frame.maxX), bottom: Int32(column.frame.maxY)
         )
-        let fillColor = column.isFocused ? Self.focusedColor : Self.cardColor
+        let fillColor = Self.placeholderColor(for: column.id)
         let borderColor = column.isFocused ? Self.focusedBorderColor : Self.cardBorderColor
         let brush = CreateSolidBrush(fillColor)
         let pen = CreatePen(Int32(PS_SOLID), column.isFocused ? 2 : 1, borderColor)
