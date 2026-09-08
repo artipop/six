@@ -26,6 +26,12 @@ static inline int SixRailScanCode(LPARAM lParam) { return (int)((lParam >> 16) &
 // `LPCWSTR`, even though the bit pattern is identical either way.
 static inline HCURSOR SixRailArrowCursor(void) { return LoadCursorW(NULL, MAKEINTRESOURCEW(32512)); }
 
+// The other direction from SixRailPointX/Y: pack two shorts back into an LPARAM, for a window
+// procedure that rewrites a message's coordinates before passing it on.
+static inline LPARAM SixRailMakePoint(int x, int y) {
+    return MAKELPARAM((WORD)x, (WORD)y);
+}
+
 // The instance a `WNDPROC` belongs to, travelling through `GWLP_USERDATA`.
 static inline void *SixRailCreateParams(LPARAM lParam) {
     return ((CREATESTRUCTW *)lParam)->lpCreateParams;

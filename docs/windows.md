@@ -4,8 +4,8 @@ six on Windows is a fourth front over the same `NiriLayout`, built with nothing 
 Swift toolchain's own `WinSDK` module: plain Win32 windows, GDI painting. The engine is real
 WebKit — the WebKit2 C API, the same family WebKitGTK's C API descends from — linked against the
 actual Playwright-built `WebKit2.dll` that `../sixty`'s MiniBrowserSwift prototype already proved
-out. A page loads, navigates, reports its title back, renders inside its own card, and answers a
-click where the click looks like it landed. Where the Mac reaches for the top bar and the assistant
+out. A page loads, navigates, reports its title back, renders inside its own card at the display's
+real resolution, and answers a click where the click looks like it landed. Where the Mac reaches for the top bar and the assistant
 panel, this front draws the rail, an address bar and nothing past it.
 
 | | |
@@ -94,77 +94,60 @@ Windows case using `SRWLOCK`
 ## DPI and scale
 
 At this dev machine's 150% display scale, a live column used to draw its page 1.5x too large,
-spilling past its own `HWND`, and clicks landed 1.5x away from whatever they appeared to hit — a
-page that could sometimes be read and never used. That is fixed, by two calls that look wrong until
-you know why they are there. **Both are load-bearing; do not "clean up" either without re-reading
-this.**
+spilling past its own `HWND`, with the part that landed outside the card receiving no mouse input at
+all. It is fixed by a window procedure in front of the `WKView`
+(`RailWebView.installScaleShim`) — **load-bearing; do not "clean up" it or the divided rect
+`WebEngine.makeView` hands to `WKViewCreate` without re-reading this.**
 
 **What WebKit's Windows port actually does.** It renders at `viewSize × deviceScaleFactor` and then
-presents that surface into the window one backing pixel to one window pixel, **with no downscale**.
-That missing downscale is the whole bug; everything below follows from it. Both of its inputs come
-off the view's own `HWND` — `viewSize` from its client rect, the device scale from the DPI Windows
-reports for it — so the two always move together, and their product is what has to be made to equal
-the window's real pixel size. Under a per-monitor-aware process at 150%: view size 1390 physical
-pixels, device scale 1.5, a 2085-pixel surface blitted 1:1 into a 1390-pixel window. Measured
-directly — a page that writes `innerWidth`/`devicePixelRatio` into its own title reported
-`iw=1390 dpr=1.5` against a `WKView` `HWND` `GetWindowRect` confirmed was exactly 1390 wide.
+presents that surface into the window one backing pixel to one, **with no downscale**. That missing
+downscale is the whole bug. Both of its inputs come off the view's own `HWND` — `viewSize` from its
+client rect, the device scale from the DPI Windows reports for it — so the two always move together,
+and their product is what has to be made to equal the window's real pixel size. Under a
+per-monitor-aware process at 150%: view size 1390 physical pixels, device scale 1.5, a 2085-pixel
+surface blitted 1:1 into a 1390-pixel window. Measured directly — a page that writes
+`innerWidth`/`devicePixelRatio` into its own title reported `iw=1390 dpr=1.5` against a `WKView`
+`HWND` `GetWindowRect` confirmed was exactly 1390 wide.
 
-Hit-testing follows the same arithmetic, which is why the clicks were wrong and why this was not
-cosmetic: the click at window pixel *x* is interpreted as CSS pixel *x*, but what is *drawn* at
-window pixel *x* is CSS pixel *x/1.5*.
+**The fix.** Subclass the `WKView`'s `HWND` and divide `WM_SIZE`'s dimensions by the display scale
+before passing the message on. WebKit then believes its client area is 926 wide, renders
+`926 × 1.5 = 1389` pixels, and blits that into the 1390-pixel window it actually has: correct size,
+and rendered at the display's real resolution rather than upscaled from 96 DPI. The view is created
+at the divided rect too, so that the `setFrame` which immediately follows in
+`RailLiveView.updateLiveView` is the `WM_SIZE` that puts it through the shim. `main.swift` stays
+`DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2`, so the rail's own GDI chrome is unaffected.
 
-**What does not move it**, each measured rather than reasoned about:
+This is exactly what Windows' own `DPI_HOSTING_BEHAVIOR_MIXED` does — and mixed hosting then gives
+the benefit straight back by bitmap-scaling the child's output, which is the thing being avoided.
+(Mixed hosting does work, incidentally, and it took a while to find out: `SetThreadDpiHostingBehavior`
+has to be in effect when the *parent* is created, not around `WKViewCreate`. With it, the view's
+backing scale really does come back as 1.0.)
+
+**Mouse messages are deliberately not rewritten**, which is the counter-intuitive half. WebKit
+already divides an event's client coordinates by the device scale, and that is exactly the factor
+between where a CSS pixel is drawn and where it is — so the shim's first version, which divided them
+too, moved every click by 1.5x again: clicking the middle cell of a labelled grid reported the cell
+two along. With `WM_SIZE` alone, a click at the visual centre of that cell reports that cell, at CSS
+coordinates within two pixels of its centre.
+
+**What was tried and does not work**, each measured rather than reasoned about:
 
 | tried | result |
 |---|---|
-| `WKPageSetCustomBackingScaleFactor(page, 1.0)` | the page then reports `dpr=1`, rendering pixel-identical |
-| `SetThreadDpiAwarenessContext(UNAWARE)` around `WKViewCreate` alone | nothing changes — mixed hosting has to be enabled before the *parent* is created, so the child never became unaware |
-| the same, with `SetThreadDpiHostingBehavior(MIXED)` before the rail window is created | works, and does not help: backing scale reads 1.0, but the view's client rect is now virtualized to 927 too, so the product is unchanged |
+| `WKPageSetCustomBackingScaleFactor(page, 1.0)` | the page then reports `dpr=1` and the raster is unchanged, before and after a forced resize — it moves what the page reports, not what is drawn |
 | `DPI_AWARENESS_CONTEXT_SYSTEM_AWARE` for the process | system DPI *is* 144 on this machine; no change |
-| creating the `WKView` with the rect divided by the scale, then resizing to full size | no difference — the bug is scale-invariant |
+| `DPI_AWARENESS_CONTEXT_UNAWARE_GDISCALED` for the process | correct geometry and clicks, and this shipped for a while — but the whole page is then upscaled from 96 DPI by the compositor, which is visibly soft |
+| `SetThreadDpiAwarenessContext(UNAWARE)` around `WKViewCreate` alone | nothing changes — mixed hosting has to be enabled before the *parent* is created |
+| creating the `WKView` with the rect divided by the scale and then resizing it to full size | no difference; that resize is what the shim is now there to intercept |
 | `WKViewSetUsesOffscreenRendering(view, true)` | shrinks into a corner, rest blank |
-| sizing the live view to the whole client area, as MiniBrowserSwift does | same overshoot; not about the card being small |
+| page zoom | scales what is drawn and what is hit-tested by the same factor, so it cannot close a gap between them |
+| sizing the live view to 1/1.5 of its card and leaving it there | sharp and correctly sized, and the right and bottom thirds of the page stop receiving mouse input |
+| Playwright's newest WebKit (`webkit-2360`, one revision past the pinned `webkit-2359`, pulled straight off `cdn.playwright.dev`) | identical behaviour; the downscale is still missing |
 
-**The fix, first half — `main.swift` declares the process DPI-*unaware*.** Reporting 96 DPI is the
-one lever that makes WebKit's own scale agree with the window it draws into: device scale 1.0,
-surface size equal to view size, blit 1:1, correct. Windows then scales the whole window back up by
-1.5 for the display. `DPI_AWARENESS_CONTEXT_UNAWARE_GDISCALED` rather than plain `..._UNAWARE`
-because it makes Windows re-render GDI content at the real display scale instead of stretching the
-bitmap, so the rail's own text stays crisp; the page is a bitmap upscale either way, and looks it.
-
-**The fix, second half — `WebEngine` turns accelerated compositing off.** Unawareness alone fixed a
-plain test page and left real ones (duckduckgo.com) drawing at two-thirds size anchored to the
-bottom-left corner of their card. The accelerated path presents in real device pixels and ignores
-the DPI virtualization the first half depends on; the software blit path honours it. So
-`WKPreferencesSetAcceleratedCompositingEnabled(preferences, false)`, and every page takes the path
-that works. The cost is GPU compositing — animations and video are the software path's problem now.
-
-**What this leaves, and why it cannot be better from here.** The page is rendered at 96 DPI and
-upscaled by the compositor, so it is soft where a native browser is sharp, and the rail lays out in
-logical rather than physical pixels.
-
-Sharpness would need a surface of 1390 real pixels shown in a 1390-real-pixel window. But the
-surface is `viewSize × deviceScaleFactor`, and both of those are read off the same `HWND`: make the
-window's DPI world smaller and `viewSize` shrinks exactly as much as the scale grows. The product is
-invariant, so no DPI mode reaches it. Decoupling the two is what `WKPageSetCustomBackingScaleFactor`
-looks like it is for, and it only moves what the page *reports* — set to 1.0 under a per-monitor
-aware process, `devicePixelRatio` becomes 1 and the raster is unchanged, before and after a resize.
-Page zoom cannot help either: it scales what is drawn and what is hit-tested by the same factor, so
-the 1.5x gap between them survives it. Sizing the view to 1/1.5 of its card does produce a sharp,
-correctly-sized *picture* — the overshoot then lands exactly on the card's edges — but the `HWND`
-is two thirds the size, so the right and bottom thirds of the page stop receiving mouse input at
-all, and inside it every click is off by the same 1.5x again.
-
-So the fix belongs in the port: WebKit's Windows compositor has to downscale its own surface by the
-scale it rendered at. Retry a newer Playwright WebKit build (the one tested against is
-`webkit-2359`) whenever one is available — if it has been fixed, `main.swift` goes back to
-`DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2`, the compositing preference goes away, and the page is
-sharp with no other change. Note also that none of this bites at 100% display scale, where the
-device scale is 1 and there is nothing to disagree about.
-
-Verified end to end, not by eye: a page laid out as a 4x3 grid of labelled cells, clicked at the
-visual centre of one of them with a synthetic hardware-level click, reports back that cell and CSS
-coordinates within a few pixels of its centre.
+**Accelerated compositing is off** (`WKPreferencesSetAcceleratedCompositingEnabled(preferences,
+false)`). With the shim in place the accelerated path draws correctly too — it was the DPI-unaware
+approach it could not survive — but it put a visible layer seam through the middle of a search
+field. Worth revisiting; not worth shipping.
 
 ## Where things are
 
@@ -321,8 +304,7 @@ matched, so `⌥F4`, `⌥Space` and plain `F10` still behave like system keys.
   long-term fix) were tried and reverted: a live test showed the window then failing to appear at
   all, not even in Alt-Tab, for a reason not yet diagnosed. Reproduce that with `SIX_UI_DEBUG=1` set
   (which gates the `[six] window created, hwnd=…` trace) before trying the flags again.
-- **The page is upscaled, and GPU compositing is off** — both deliberate, both with a way out. See
-  "DPI and scale".
+- **GPU compositing is off**, deliberately, and with a way back. See "DPI and scale".
 
 ## What is not
 

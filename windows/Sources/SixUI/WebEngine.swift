@@ -1,3 +1,4 @@
+import CRailInterop
 import CWebKit2
 import Foundation
 import WinSDK
@@ -6,8 +7,8 @@ import WinSDK
 /// this wraps — `WKContext`, `WKPage`, `WKView` — is the same family WebKitGTK's C API descends
 /// from, and this sequence of calls is the one `../sixty`'s MiniBrowserSwift prototype uses.
 ///
-/// Whether the page lands where it is drawn is decided outside this file, by the DPI awareness
-/// `main.swift` declares — read that before touching anything here about scale.
+/// Everything about display scale on this front is `RailWebView.installScaleShim` — read that
+/// before touching the rect handed to `WKViewCreate` or the window procedure in front of it.
 @MainActor
 enum WebEngine {
     private static var context: WKContextRef?
@@ -32,30 +33,35 @@ enum WebEngine {
         WKPageConfigurationSetWebsiteDataStore(pageConfiguration, websiteDataStore)
         WKPageConfigurationSetContext(pageConfiguration, context)
         let preferences = WKPreferencesCreate()
-        // Software compositing, deliberately. The accelerated path draws into the window in real
-        // device pixels, ignoring the DPI virtualization `main.swift` leans on, and puts the page at
-        // two thirds size in a corner of its card; the blit path honours it. Costs GPU compositing,
-        // buys a page that is where it looks like it is.
+        // Software compositing. The accelerated path draws correctly too now that
+        // `RailWebView.installScaleShim` has the scales agreeing, but it put a visible layer seam
+        // through the middle of a search field; worth revisiting, not worth shipping.
         WKPreferencesSetAcceleratedCompositingEnabled(preferences, false)
         WKPageConfigurationSetPreferences(pageConfiguration, preferences)
 
-        // `frame` as given: `RailLiveView.bodyRect` comes straight from `NiriLayout`'s viewport,
-        // which is `WM_SIZE`'s own client size, and WebKit lays the page out in exactly those units.
-        var rect = WKRectCompat(left: frame.left, top: frame.top, right: frame.right, bottom: frame.bottom)
+        // Created at `frame` divided by the display scale, and grown to the real `frame` by the
+        // `setFrame` that follows in `RailLiveView.updateLiveView` — which is what puts the first
+        // `WM_SIZE` through the shim below. See `installScaleShim` for why the view is told a
+        // smaller size than the window it lives in.
+        let dpi = GetDpiForWindow(parent)
+        let scale = dpi > 0 ? Double(dpi) / 96.0 : 1.0
+        var rect = WKRectCompat(
+            left: frame.left, top: frame.top,
+            right: frame.left + Int32(Double(frame.right - frame.left) / scale),
+            bottom: frame.top + Int32(Double(frame.bottom - frame.top) / scale)
+        )
         guard let view = WKViewCreate(&rect, pageConfiguration, UnsafeMutableRawPointer(parent)) else { return nil }
         WKViewSetIsInWindow(view, true)
         WKViewWindowAncestryDidChange(view)
         guard let page = WKViewGetPage(view) else { return nil }
 
         if ProcessInfo.processInfo.environment["SIX_UI_DEBUG"] == "1" {
-            let dpi = GetDpiForWindow(parent)
-            let ourScale = dpi > 0 ? Double(dpi) / 96.0 : 1.0
-            let message = "[six] webkit: dpi=\(dpi) ourScale=\(ourScale) " +
+            let message = "[six] webkit: dpi=\(dpi) ourScale=\(scale) " +
                 "backingScaleFactor=\(WKPageGetBackingScaleFactor(page)) rect=\(frame)\n"
             FileHandle.standardError.write(Data(message.utf8))
         }
 
-        return RailWebView(view: view, page: page)
+        return RailWebView(view: view, page: page, scale: scale)
     }
 }
 
@@ -74,10 +80,41 @@ final class RailWebView {
     /// track that, not just what it was told to load.
     var onURLChange: ((String) -> Void)?
 
-    init(view: WKViewRef, page: WKPageRef) {
+    /// What the real `HWND` is divided by before WebKit is told about it. See `installScaleShim`.
+    let scale: Double
+
+    init(view: WKViewRef, page: WKPageRef, scale: Double) {
         self.view = view
         self.page = page
+        self.scale = scale
         installNavigationClient()
+        installScaleShim()
+    }
+
+    /// Hand-rolled mixed-DPI hosting: the only way found to get a page that is at once correctly
+    /// sized, correctly clickable and sharp on a scaled display.
+    ///
+    /// WebKit's Windows port renders at `viewSize × deviceScaleFactor` and then presents that
+    /// surface into the window one backing pixel to one, with **no downscale**. Both inputs come off
+    /// this same `HWND` — the client rect, and the DPI Windows reports for it — so they move
+    /// together and no DPI awareness mode changes their product. A window procedure in front of the
+    /// view can change it: tell WebKit its client area is `real / scale`, and the surface it renders
+    /// comes out at exactly the window's real pixel count. Windows' own `DPI_HOSTING_BEHAVIOR_MIXED`
+    /// does the same first half and then gives the benefit straight back by bitmap-scaling the
+    /// result; this does not, which is the whole point.
+    ///
+    /// Only `WM_SIZE` is rewritten. Mouse messages are deliberately left alone: WebKit already
+    /// divides an event's client coordinates by the device scale, which is exactly the factor
+    /// between where a CSS pixel is drawn and where it is — dividing them here too moved every click
+    /// by 1.5x again, measured, a click on a grid's middle cell landing two cells away.
+    private func installScaleShim() {
+        guard scale > 1.0, let hwnd else { return }
+        let previous = GetWindowLongPtrW(hwnd, GWLP_WNDPROC)
+        MainActor.assumeIsolated {
+            scaleShims[UInt(bitPattern: Int(bitPattern: hwnd))] = unsafeBitCast(previous, to: WNDPROC.self)
+        }
+        let shimProc: WNDPROC = webViewScaleProc
+        _ = SetWindowLongPtrW(hwnd, GWLP_WNDPROC, unsafeBitCast(shimProc, to: LONG_PTR.self))
     }
 
     /// The struct only needs to be valid for the one call below — WebKit copies it, the way any
@@ -142,6 +179,36 @@ final class RailWebView {
 
     func destroy() {
         guard let hwnd else { return }
+        scaleShims[UInt(bitPattern: Int(bitPattern: hwnd))] = nil
         DestroyWindow(hwnd)
     }
+}
+
+
+/// One live view's saved window procedure, keyed by `HWND` rather than parked in `GWLP_USERDATA`,
+/// which belongs to WebKit on this window.
+@MainActor
+private var scaleShims: [UInt: WNDPROC] = [:]
+
+/// `nonisolated` for the same reason every other `WNDPROC` here is: a C function pointer carries no
+/// actor isolation. See `RailWebView.installScaleShim` for what it is rewriting and why.
+private nonisolated func webViewScaleProc(
+    _ hwnd: HWND?, _ message: UINT, _ wParam: WPARAM, _ lParam: LPARAM
+) -> LRESULT {
+    guard let hwnd else { return DefWindowProcW(hwnd, message, wParam, lParam) }
+    let key = UInt(bitPattern: Int(bitPattern: hwnd))
+    let original = MainActor.assumeIsolated { scaleShims[key] }
+    guard let original else { return DefWindowProcW(hwnd, message, wParam, lParam) }
+    // Read live rather than remembered: this is the one place that would otherwise go wrong when the
+    // window is dragged to a display at a different scale.
+    let dpi = GetDpiForWindow(hwnd)
+    let scale = dpi > 0 ? Double(dpi) / 96.0 : 1.0
+
+    var forwarded = lParam
+    if Int32(message) == WM_SIZE {
+        let width = Int32(Double(SixRailLoWord(lParam)) / scale)
+        let height = Int32(Double(SixRailHiWord(lParam)) / scale)
+        forwarded = SixRailMakePoint(width, height)
+    }
+    return CallWindowProcW(original, hwnd, message, wParam, forwarded)
 }
