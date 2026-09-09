@@ -50,9 +50,9 @@ nonisolated struct FileSnapshotStore<Snapshot: VersionedSnapshot>: SnapshotStore
         let kept = url.deletingLastPathComponent().appending(path: "\(url.lastPathComponent).unreadable-\(stamp)")
         do {
             try FileManager.default.moveItem(at: url, to: kept)
-            FileHandle.standardError.write(Data("[six] kept the unreadable snapshot at \(kept.path)\n".utf8))
+            Log.info(.storage, "kept the unreadable snapshot at \(kept.path)")
         } catch {
-            FileHandle.standardError.write(Data("[six] could not keep the unreadable snapshot: \(error)\n".utf8))
+            Log.error(.storage, "could not keep the unreadable snapshot: \(error)")
         }
     }
 

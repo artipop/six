@@ -51,16 +51,16 @@ did not resolve, the connection was refused — so the one request that matters 
 failed `document` request, so `list_console_messages` and `list_network_requests` both carry it. It survives the
 window's next navigation being cleared, because a failed navigation never commits one.
 
-The same line goes to standard error whether or not capture is on, since it is the answer to *why is this window
-blank* and the only copy that outlives the window:
+The same failure goes to the log whether or not capture is on, since it is the answer to *why is this window blank*
+and the only copy that outlives the window — under the `load` category, in the file and in Console
+([logging.md](logging.md)):
 
 ```
-[six/load] https://alfabank.ru/ failed: The certificate for this server is invalid. …
-           (NSURLErrorDomain -1202) — six carries ru.trusted-ca, switched off
+2026-09-09 14:30:31.108 [load] error: https://alfabank.ru/ failed: The certificate for this
+server is invalid. … (NSURLErrorDomain -1202) — six carries ru.trusted-ca, switched off
 ```
 
-Run the binary directly (`<six.app>/Contents/MacOS/six`) to see it — an app started by LaunchServices has nowhere to
-write. The clause after the dash is [the certificate offer](certificates.md#when-it-fails-anyway).
+The clause after the dash is [the certificate offer](certificates.md#when-it-fails-anyway).
 
 ## How the capture works, and what it costs
 

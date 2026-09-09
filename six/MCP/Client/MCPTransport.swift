@@ -27,7 +27,7 @@ nonisolated final class MCPStdioTransport: MCPTransport {
         if trace {
             Task { [connection = process.connection] in
                 await connection.setTrace { outgoing, line in
-                    FileHandle.standardError.write(Data("[mcp \(outgoing ? "→" : "←")] \(line)\n".utf8))
+                    Log.debug(.mcp, "\(outgoing ? "→" : "←") \(line)")
                 }
             }
         }

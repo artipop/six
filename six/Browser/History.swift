@@ -152,7 +152,7 @@ final class HistoryStore {
     private func read<T>(_ body: (Database) throws -> T) -> T where T: ExpressibleByArrayLiteral {
         _ = revision // observed: any write re-runs the caller
         do { return try database.read(body) } catch {
-            FileHandle.standardError.write(Data("[six] history read failed: \(error)\n".utf8))
+            Log.error(.history, "read failed: \(error)")
             return []
         }
     }
@@ -167,7 +167,7 @@ final class HistoryStore {
             try database.write(body)
             revision += 1
         } catch {
-            FileHandle.standardError.write(Data("[six] history write failed: \(error)\n".utf8))
+            Log.error(.history, "write failed: \(error)")
         }
     }
 

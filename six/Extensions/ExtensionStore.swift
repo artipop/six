@@ -291,7 +291,7 @@ final class ExtensionStore {
     }
 
     nonisolated func log(_ message: String) {
-        FileHandle.standardError.write(Data("[six] extensions: \(message)\n".utf8))
+        Log.info(.extensions, message)
     }
 }
 
@@ -386,7 +386,7 @@ final class ExtensionDelegate: NSObject, WKWebExtensionControllerDelegate {
         #if os(iOS)
         // TODO: route this through the same question the page permissions use; until then the phone
         // grants nothing an extension did not already have at install time.
-        FileHandle.standardError.write(Data("[six] extensions: denied without asking — \(title)\n".utf8))
+        Log.info(.extensions, "denied without asking — \(title)")
         return false
         #elseif os(macOS)
         let alert = NSAlert()

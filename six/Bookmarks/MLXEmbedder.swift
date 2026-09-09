@@ -70,7 +70,7 @@ actor MLXEmbedder: Embedder {
             }
             let tokenizing = ContinuousClock.now - tokenizingStarted
             let modelStarted = ContinuousClock.now
-            defer { FileHandle.standardError.write(Data("[six] embed: tokenized \(encoded.count) in \(tokenizing), model \(ContinuousClock.now - modelStarted)\n".utf8)) }
+            defer { Log.debug(.embed, "tokenized \(encoded.count) in \(tokenizing), model \(ContinuousClock.now - modelStarted)") }
             // Batches of similar length pad the least: a batch is as long as its longest member.
             let order = encoded.indices.sorted { encoded[$0].count < encoded[$1].count }
             var vectors = [[Float]](repeating: [], count: encoded.count)

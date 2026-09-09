@@ -108,7 +108,7 @@ final class AgentSessionStore {
 
     nonisolated static func trace(_ message: @autoclosure () -> String) {
         guard traces else { return }
-        FileHandle.standardError.write(Data("[acp] \(message())\n".utf8))
+        Log.debug(.acp, message())
     }
 
     func connect() async {

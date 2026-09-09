@@ -308,7 +308,7 @@ final class LivePageCache {
 
     static func log(_ message: @autoclosure () -> String) {
         guard debugging else { return }
-        FileHandle.standardError.write(Data("[six] pages: \(message())\n".utf8))
+        Log.debug(.pages, message())
     }
 }
 

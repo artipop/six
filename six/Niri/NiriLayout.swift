@@ -305,7 +305,7 @@ final class NiriLayout {
 
     static func trace(_ message: @autoclosure () -> String) {
         guard tracesUI else { return }
-        FileHandle.standardError.write(Data("[six] ui: \(message())\n".utf8))
+        Log.debug(.ui, message())
     }
 
     var viewport: CGSize = CGSize(width: 1280, height: 800)

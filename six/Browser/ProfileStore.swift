@@ -92,7 +92,7 @@ nonisolated struct ProfileStore: Sendable {
             if records.contains(where: { byID[$0.id] == nil }) { save(records) }
             return records
         } catch {
-            FileHandle.standardError.write(Data("[six] profiles load failed: \(error)\n".utf8))
+            Log.error(.profiles, "load failed: \(error)")
             return []
         }
     }
@@ -105,7 +105,7 @@ nonisolated struct ProfileStore: Sendable {
     /// that knows where the cookies are. A refusal costs a stale row; obeying costs every login.
     func save(_ records: [ProfileRecord]) {
         guard !records.isEmpty else {
-            FileHandle.standardError.write(Data("[six] refusing to empty the profiles table\n".utf8))
+            Log.error(.profiles, "refusing to empty the profiles table")
             return
         }
         do {
@@ -132,7 +132,7 @@ nonisolated struct ProfileStore: Sendable {
                 }
             }
         } catch {
-            FileHandle.standardError.write(Data("[six] profiles save failed: \(error)\n".utf8))
+            Log.error(.profiles, "save failed: \(error)")
         }
     }
 }

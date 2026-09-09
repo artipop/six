@@ -40,9 +40,9 @@ final class DevToolsStore {
             for tab in browser?.tabs ?? [] { tab.applyInspectable(isInspectable) }
             // six opens nothing itself — WebKit gives an app no way to open the inspector on its own
             // page, only to allow one to attach. Say where it appears, since nothing else will.
-            FileHandle.standardError.write(Data((isInspectable
-                ? "[six] devtools: Web Inspector on — attach from Safari: Develop › \(Self.machineName) › six\n"
-                : "[six] devtools: Web Inspector off\n").utf8))
+            Log.info(.devtools, isInspectable
+                ? "Web Inspector on — attach from Safari: Develop › \(Self.machineName) › six"
+                : "Web Inspector off")
         }
     }
 
@@ -155,7 +155,7 @@ final class DevToolsStore {
         // Not silent when capture is off: this is one line per failed navigation, it is the answer
         // to "why is this window blank", and it is the only copy that survives the window being
         // closed. `six.app/Contents/MacOS/six` run from a terminal is where it appears.
-        FileHandle.standardError.write(Data("[six/load] \(url) failed: \(reason)\n".utf8))
+        Log.error(.load, "\(url) failed: \(reason)")
         guard isCapturing else { return }
         console[windowID, default: []].append(ConsoleMessage(level: "error",
                                                              text: "Navigation failed: \(reason)",

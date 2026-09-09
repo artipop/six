@@ -106,7 +106,7 @@ final class BookmarkStore {
                     """)
             }
         } catch {
-            FileHandle.standardError.write(Data("[six] vector table failed: \(error)\n".utf8))
+            Log.error(.bookmarks, "vector table failed: \(error)")
         }
     }
 
@@ -466,9 +466,9 @@ final class BookmarkStore {
                 for chunkID in orphans { try db.execute(sql: "DELETE FROM \"\(table)\" WHERE chunk_id = ?", arguments: [chunkID]) }
                 return orphans.count
             }
-            if removed > 0 { FileHandle.standardError.write(Data("[six] dropped \(removed) orphan vectors\n".utf8)) }
+            if removed > 0 { Log.info(.bookmarks, "dropped \(removed) orphan vectors") }
         } catch {
-            FileHandle.standardError.write(Data("[six] vector sweep failed: \(error)\n".utf8))
+            Log.error(.bookmarks, "vector sweep failed: \(error)")
         }
     }
 
@@ -506,7 +506,7 @@ final class BookmarkStore {
             // the honest thing is to drop them rather than stamp the row with a model it is not on.
             guard modelID == indexSignature else { return }
             let elapsed = ContinuousClock.now - started
-            FileHandle.standardError.write(Data("[six] embedded \(chunks.count) passages of \(bookmark.displayTitle) in \(elapsed)\n".utf8))
+            Log.debug(.bookmarks, "embedded \(chunks.count) passages of \(bookmark.displayTitle) in \(elapsed)")
             let table = vectorTable
             try await database.write { db in
                 // Seconds have passed: the bookmark may be gone, or re-saved with new chunks. Only what
@@ -533,7 +533,7 @@ final class BookmarkStore {
             try? await database.write { db in
                 try Bookmark.where { $0.id.eq(id) }.update { $0.indexError = #bind(message) }.execute(db)
             }
-            FileHandle.standardError.write(Data("[six] bookmark index failed for \(bookmark.url): \(message)\n".utf8))
+            Log.error(.bookmarks, "index failed for \(bookmark.url): \(message)")
         }
         revision += 1
     }
@@ -650,7 +650,7 @@ final class BookmarkStore {
     private func read<T>(_ body: (Database) throws -> [T]) -> [T] {
         _ = revision
         do { return try database.read(body) } catch {
-            FileHandle.standardError.write(Data("[six] bookmarks read failed: \(error)\n".utf8))
+            Log.error(.bookmarks, "read failed: \(error)")
             return []
         }
     }
@@ -660,7 +660,7 @@ final class BookmarkStore {
             try database.write(body)
             revision += 1
         } catch {
-            FileHandle.standardError.write(Data("[six] bookmarks write failed: \(error)\n".utf8))
+            Log.error(.bookmarks, "write failed: \(error)")
         }
     }
 

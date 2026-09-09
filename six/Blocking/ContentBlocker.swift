@@ -347,6 +347,6 @@ final class ContentBlocker {
     }
 
     nonisolated static func log(_ message: @autoclosure () -> String) {
-        FileHandle.standardError.write(Data("[six] blocking: \(message())\n".utf8))
+        Log.info(.blocking, message())
     }
 }

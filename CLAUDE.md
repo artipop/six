@@ -131,6 +131,10 @@ ls -td ~/Library/Developer/Xcode/DerivedData/six-*/Build/Products/Debug/six.app 
   picks whichever it likes and two sixes on one Application Support directory trap in WebKit.
 - Launch from a non-sandboxed shell (`dangerouslyDisableSandbox`), or the app never initialises. A crash in
   `sixApp.init` leaves no window and no stderr — run the binary directly once, or read `~/Library/Logs/DiagnosticReports/six-*.ips`.
+- **six keeps a log now, and it does not need a terminal**: `~/Library/Logs/org.deffun.six.dev/six.log` for the dev
+  build, plus the unified log (`/usr/bin/log show --last 1h --info --debug --predicate 'subsystem ==
+  "org.deffun.six.dev"'` — `log` alone is a zsh builtin and dies with "too many arguments"). Everything that used to
+  be an unread `[six] …` on stderr is in both. [docs/logging.md](docs/logging.md).
 - Before believing "it's still not there", check `ps -eo pid,lstart,command | grep MacOS/six`. Three rounds of that
   once turned out to be a stale Release build being looked at.
 

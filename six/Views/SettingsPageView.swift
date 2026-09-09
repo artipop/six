@@ -407,6 +407,27 @@ private struct DevelopSettings: View {
                     .controlSize(.small)
                     .disabled(!devTools.isCapturing)
             }
+
+            SwiftUI.Section("Log") {
+                // The capture above belongs to a window and is gone when it navigates; this is the
+                // browser's own account of itself, kept on disk across launches. Naming the path
+                // here is most of the point — a log nobody can find is a log nobody reads.
+                Text("six writes what it did to \(Log.current.path(percentEncoded: false)), and to the system log under \(Bundle.main.bundleIdentifier ?? "org.deffun.six").")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+                HStack {
+                    Button("Reveal in Finder") {
+                        NSWorkspace.shared.activateFileViewerSelecting([Log.current])
+                    }
+                    Button("Open Console") {
+                        if let console = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.Console") {
+                            NSWorkspace.shared.openApplication(at: console, configuration: NSWorkspace.OpenConfiguration())
+                        }
+                    }
+                }
+                .controlSize(.small)
+            }
         }
         .formStyle(.grouped)
     }

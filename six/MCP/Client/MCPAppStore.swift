@@ -486,7 +486,7 @@ final class MCPAppStore {
             do {
                 _ = try await open(definition, tool: tool)
             } catch {
-                FileHandle.standardError.write(Data("[six] mcp app selftest: \(error.localizedDescription)\n".utf8))
+                Log.error(.mcp, "app selftest: \(error.localizedDescription)")
             }
         }
     }

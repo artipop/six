@@ -66,6 +66,11 @@ let package = Package(
                 "Input/KeyContext.swift",
                 // Where six lives, and the versioned JSON snapshot beside the database.
                 "Data/AppSupport.swift",
+                // What six says happened. Here rather than in the app because the files that have
+                // the most to say when something goes wrong — the snapshot, the settings, the
+                // profiles table — are all in this target. `os.Logger` is behind `canImport(os)`;
+                // the file half is Foundation and Dispatch, which both fronts have.
+                "Data/Log.swift",
                 "Persistence/SnapshotStore.swift",
                 "Persistence/StatePersistence.swift",
                 "Data/AppDatabase.swift",

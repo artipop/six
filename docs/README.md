@@ -41,6 +41,7 @@ from [`six/Localizable.xcstrings`](../six/Localizable.xcstrings) rather than tra
 | [assistant.md](assistant.md) | the assistant: verbs at a selection, at a caret and on the ⌘K line, over Foundation Models |
 | [agents.md](agents.md) | the ACP client and the agent panel |
 | [devtools.md](devtools.md) | Web Inspector on six's pages, and the console/network capture the agent tools read |
+| [logging.md](logging.md) | what six says happened: the unified log, the file under `~/Library/Logs`, and the levels |
 | [mcp.md](mcp.md) | `six --mcp`: the browser as an MCP server, and its tools |
 | [localization.md](localization.md) | the String Catalogs, English and Russian, and the line between what a person reads and what a model reads |
 | [android.md](android.md) | the fourth front end: Kotlin and Compose on the system WebView, what it shares with the Mac and what it deliberately does not |

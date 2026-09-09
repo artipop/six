@@ -49,6 +49,35 @@ nonisolated enum AppSupport {
         #endif
     }()
 
+    /// Where the log goes: `~/Library/Logs/<bundle identifier>` on Apple — the folder every Mac app
+    /// writes its own log into, the one Console.app lists under Log Reports, and the one every
+    /// diagnostic-gathering tool already knows to look in — and `$XDG_STATE_HOME/six` on Linux,
+    /// which is where that spec puts the state a program keeps between runs and nobody configures.
+    ///
+    /// Deliberately not under `root`. A log is not application *support*: it is not backed up with
+    /// the browser's data, it is not migrated, and deleting it costs nothing — which is exactly the
+    /// distinction the two folders exist to draw. See `Log`.
+    static let logs: URL = {
+        #if os(Linux)
+        let base: URL
+        if let xdg = ProcessInfo.processInfo.environment["XDG_STATE_HOME"], !xdg.isEmpty {
+            base = URL(fileURLWithPath: xdg, isDirectory: true)
+        } else {
+            base = URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true)
+                .appending(path: ".local/state", directoryHint: .isDirectory)
+        }
+        return base.appending(path: "six", directoryHint: .isDirectory)
+        #else
+        // The app's own container on the phone, `~/Library` on the Mac: `.libraryDirectory` is the
+        // one that answers both correctly, and the bundle identifier separates the development
+        // build from the real browser here as it does everywhere else.
+        let library = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask)[0]
+        let identifier = Bundle.main.bundleIdentifier ?? "org.deffun.six"
+        return library.appending(path: "Logs", directoryHint: .isDirectory)
+            .appending(path: identifier, directoryHint: .isDirectory)
+        #endif
+    }()
+
     static func file(_ path: String) -> URL {
         root.appending(path: path)
     }

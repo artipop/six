@@ -33,7 +33,7 @@ actor ACPClient {
     /// Mirrors every JSON-RPC line to stderr (debugging).
     func enableTrace() async {
         await connection.setTrace { outgoing, line in
-            FileHandle.standardError.write(Data("[acp \(outgoing ? "→" : "←")] \(line.prefix(400))\n".utf8))
+            Log.debug(.acp, "\(outgoing ? "→" : "←") \(line.prefix(400))")
         }
     }
 

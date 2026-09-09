@@ -75,7 +75,7 @@ final class SettingsStore {
             let rows = try database.read { db in try Setting.all.fetchAll(db) }
             values = Dictionary(rows.map { ($0.key, $0.value) }, uniquingKeysWith: { _, last in last })
         } catch {
-            FileHandle.standardError.write(Data("[six] settings load failed: \(error)\n".utf8))
+            Log.error(.storage, "settings load failed: \(error)")
         }
     }
 
@@ -249,7 +249,7 @@ final class SettingsStore {
                     }
                 }
             } catch {
-                FileHandle.standardError.write(Data("[six] settings save failed: \(error)\n".utf8))
+                Log.error(.storage, "settings save failed: \(error)")
             }
         }
     }

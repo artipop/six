@@ -64,7 +64,7 @@ final class StatePersistence<Store: SnapshotStore> {
         do {
             try store.save(snapshot)
         } catch {
-            FileHandle.standardError.write(Data("[six] save failed (\(Store.Snapshot.self)): \(error)\n".utf8))
+            Log.error(.storage, "save failed (\(Store.Snapshot.self)): \(error)")
         }
     }
 }

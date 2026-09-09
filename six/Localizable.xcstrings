@@ -2617,6 +2617,16 @@
         }
       }
     },
+    "Log": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Журнал"
+          }
+        }
+      }
+    },
     "MCP Apps": {
       "localizations": {
         "ru": {
@@ -3133,6 +3143,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Открыть"
+          }
+        }
+      }
+    },
+    "Open Console": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Открыть «Консоль»"
           }
         }
       }
@@ -3795,6 +3815,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Повторить"
+          }
+        }
+      }
+    },
+    "Reveal in Finder": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Показать в Finder"
           }
         }
       }
@@ -5549,6 +5579,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "их открывает six"
+          }
+        }
+      }
+    },
+    "six writes what it did to %1$@, and to the system log under %2$@.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "six пишет то, что делал, в %1$@ и в системный журнал под именем %2$@."
           }
         }
       }

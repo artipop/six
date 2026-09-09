@@ -364,7 +364,7 @@ enum KeySelfTest {
     }
 
     private static func note(_ message: String) {
-        FileHandle.standardError.write(Data("[six] keys: \(message)\n".utf8))
+        Log.info(.keys, message)
     }
 
     private static func event(flags: NSEvent.ModifierFlags, code: KeyCode, characters: String) -> NSEvent {

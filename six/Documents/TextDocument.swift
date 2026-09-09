@@ -217,7 +217,7 @@ final class DocumentStore {
                 try FileManager.default.createDirectory(at: Self.folder, withIntermediateDirectories: true)
                 try text.write(to: url, atomically: true, encoding: .utf8)
             } catch {
-                FileHandle.standardError.write(Data("[six] document save failed: \(error)\n".utf8))
+                Log.error(.documents, "save failed: \(error)")
             }
         }
     }

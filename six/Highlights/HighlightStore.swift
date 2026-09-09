@@ -69,7 +69,7 @@ final class HighlightStore {
                 try FileManager.default.createDirectory(at: Self.url.deletingLastPathComponent(), withIntermediateDirectories: true)
                 try encoder.encode(snapshot).write(to: Self.url, options: .atomic)
             } catch {
-                FileHandle.standardError.write(Data("[six] highlights save failed: \(error)\n".utf8))
+                Log.error(.bookmarks, "highlights save failed: \(error)")
             }
         }
     }

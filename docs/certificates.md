@@ -80,18 +80,18 @@ a closed page and a dead content process are the page itself ending.
 
 ### Where to look
 
-Every failed navigation writes one line to standard error, whether or not capture is on:
+Every failed navigation writes one line under the `load` category, into the file at
+`~/Library/Logs/<bundle id>/six.log` and into Console ([logging.md](logging.md)):
 
 ```
-[six/load] https://alfabank.ru/ failed: The certificate for this server is invalid. …
-           (NSURLErrorDomain -1202) — six carries ru.trusted-ca, switched off
+2026-09-09 14:30:31.108 [load] error: https://alfabank.ru/ failed: The certificate for this
+server is invalid. … (NSURLErrorDomain -1202) — six carries ru.trusted-ca, switched off
 ```
 
 The clause after the dash is the offer, and it is there to tell *six has no answer to this* from *six had one and
-never looked*. Run the binary directly (`<six.app>/Contents/MacOS/six`) to see it; an app started by LaunchServices
-has nowhere to write. With DevTools capture on, the same failure is also filed under the window as a console error
-and a failed `document` request, so `list_console_messages` and `list_network_requests` carry it over MCP —
-the one request page instrumentation can never see, because the page never ran ([devtools.md](devtools.md)).
+never looked*. With DevTools capture on, the same failure is also filed under the window as a console error and a
+failed `document` request, so `list_console_messages` and `list_network_requests` carry it over MCP — the one request
+page instrumentation can never see, because the page never ran ([devtools.md](devtools.md)).
 
 ## Where it is wired in
 

@@ -134,8 +134,7 @@ final class PageFocusStore {
         // over a web view, which no screenshot on this machine can catch (CLAUDE.md).
         if ProcessInfo.processInfo.environment["SIX_UI_DEBUG"] != nil {
             let where_ = focus.rect.integral
-            FileHandle.standardError.write(Data(
-                "[six] focus \(focus.kind.rawValue) editable=\(focus.isEditable) at \(Int(where_.minX)),\(Int(where_.minY)) label=\"\(focus.label)\" text=\"\(focus.subject.prefix(40))\"\n".utf8))
+            Log.debug(.ui, "focus \(focus.kind.rawValue) editable=\(focus.isEditable) at \(Int(where_.minX)),\(Int(where_.minY)) label=\"\(focus.label)\" text=\"\(focus.subject.prefix(40))\"")
         }
     }
 }

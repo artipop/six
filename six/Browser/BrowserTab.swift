@@ -1009,7 +1009,7 @@ enum LinkTrace {
     static let isOn = ProcessInfo.processInfo.environment["SIX_LINKS_TRACE"] == "1"
     static func log(_ message: @autoclosure () -> String) {
         guard isOn else { return }
-        FileHandle.standardError.write(Data("[six/links] \(message())\n".utf8))
+        Log.debug(.links, message())
     }
 }
 

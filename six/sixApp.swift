@@ -110,12 +110,12 @@ struct sixApp: App {
         if let switchTo = ProcessInfo.processInfo.environment["SIX_EMBED_SWITCH"].flatMap(EmbeddingModelChoice.init(rawValue:)) {
             Task { @MainActor in
                 try? await Task.sleep(for: .seconds(3))
-                FileHandle.standardError.write(Data("[six] embed: switching to \(switchTo.rawValue)\n".utf8))
+                Log.info(.embed, "switching to \(switchTo.rawValue)")
                 bookmarks.use(switchTo)
             }
         }
         if ProcessInfo.processInfo.environment["SIX_EMBED_SELFTEST"] != nil, let mlx = bookmarks.embedder as? MLXEmbedder {
-            Task { FileHandle.standardError.write(Data("[six] embed selftest:\n\(await mlx.diagnostics())\n".utf8)) }
+            Task { let report = await mlx.diagnostics(); Log.info(.embed, "selftest:\n\(report)") }
         }
         let extensions = ExtensionStore(settings: settings)
         extensions.browser = browser
@@ -171,9 +171,9 @@ struct sixApp: App {
         agentSession.appContext = { [weak mcpApps] in mcpApps?.pendingModelContext() ?? [] }
         mcpApps.watchAppearance()
         mcpApps.runSelfTestIfRequested()
-        FileHandle.standardError.write(Data("[six] \(mcp.status); state at \(store.url.path)\n".utf8))
+        Log.info(.app, "\(mcp.status); state at \(store.url.path)")
         #elseif os(iOS)
-        FileHandle.standardError.write(Data("[six] state at \(store.url.path)\n".utf8))
+        Log.info(.app, "state at \(store.url.path)")
         #endif
         let window = WindowState(snapshot: snapshot?.window)
         // The agent's half of the file is written back untouched where there is no agent, so a phone
@@ -222,7 +222,7 @@ struct sixApp: App {
         do {
             return try store.load()
         } catch {
-            FileHandle.standardError.write(Data("[six] load failed (\(S.Snapshot.self)), starting fresh: \(error)\n".utf8))
+            Log.error(.storage, "load failed (\(S.Snapshot.self)), starting fresh: \(error)")
             return nil
         }
     }

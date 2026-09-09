@@ -60,6 +60,21 @@ count on finding it. Capture is off by default and is meant to be turned on whil
 you are looking into something, not left on.
 :::
 
+## The log
+
+The capture above belongs to a window and is gone when the window navigates.
+Separately from it, VI keeps a log of **its own** — what it did: settings that
+did not save, a site that did not open, an extension refused without asking.
+
+It goes to `~/Library/Logs/org.deffun.six/six.log` and, in the same words, to
+macOS's system log. **Settings ▸ Develop ▸ Log** names the path, reveals the file
+in Finder and opens Console.
+
+The file is appended to across launches and rotates at four megabytes, keeping
+one previous generation. It contains addresses — the one that did not open is the
+point of the line — and it sits beside the history and the state snapshot, which
+hold far more of them. Delete it like any other file.
+
 What is not here: a DOM snapshot with stable element ids, synthetic clicks and
 typing, performance traces, request interception or throttling. Most of them need
 the inspector protocol, which an application hosting the page cannot reach.

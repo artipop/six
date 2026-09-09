@@ -112,7 +112,7 @@ enum DefaultBrowser {
             do {
                 try await NSWorkspace.shared.setDefaultApplication(at: Bundle.main.bundleURL, toOpenURLsWithScheme: scheme)
             } catch {
-                FileHandle.standardError.write(Data("[six] default browser (\(scheme)): \(error)\n".utf8))
+                Log.error(.browser, "default browser (\(scheme)): \(error)")
             }
         }
     }
