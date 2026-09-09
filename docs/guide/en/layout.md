@@ -172,6 +172,12 @@ The halves are windows in their own right, not panes of one: each has its own
 border, its own ×, its own loading line. Closing one closes one window, and the
 other stays where it stood with the column to itself.
 
+A click on the other half lands the focus on it first, as on any unfocused
+window, and only the next one reaches the page: the address field, `⌘W` and `⌘K`
+all speak for the focused window, and a page that answered a click without
+becoming the focused one would leave every one of them pointing at its
+neighbour.
+
 More than two do not fit, and that is a decision rather than a limit: three pages
 at a third of a screen each are three pages nobody can read, and "I want to see
 more than two things at once" is what the rail itself answers.

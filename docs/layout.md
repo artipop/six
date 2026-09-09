@@ -227,6 +227,13 @@ overlay above it can — so `ClickCatcher` is an `NSViewRepresentable` laid over
 Title bars are SwiftUI and keep their own buttons working, so a background window's close or back button still takes
 one click.
 
+**The other half of a split is an unfocused window like any other**, so the rule holds there too: the first click
+lands the focus on it and the second reaches the page. It is the one place the rule can be argued with — both halves
+are on screen, live and readable, which is not the case the rule was written for — and it stands anyway, because
+what makes the click cheap is what would make it wrong to skip: the address field, ⌘W, ⌘L and the assistant all
+speak for the focused window, and a page that answered a click without becoming the focused one would leave every
+one of them pointing at its neighbour.
+
 ## Filling the window
 
 Two ways of showing a window, and the whole of what there is to choose:
