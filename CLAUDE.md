@@ -422,8 +422,16 @@ anything added there has to exist on both:
 - **Other Claude sessions edit this repo at the same time.** Check `git status` before committing and stage only your
   own files; an unexpected diff is usually another session's work in progress (or Xcode re-sorting `project.pbxproj`),
   not something to revert. Ask the session rather than guessing — a source file under someone's hand looks exactly
-  like debris. `Package.resolved` is the **one exception**: nobody edits it deliberately, so an unclaimed diff there
-  is a stray resolve and gets reverted (above).
+  like debris. Two files are the **exception**, because nobody edits either deliberately and an unclaimed diff in
+  them is always mechanical: `Package.resolved`, where it is a stray resolve (above), and the root `Info.plist`.
+- **A `swift build` of the root package overwrites the root `Info.plist`.** `SixCore` is `path: "six"` and the String
+  Catalogs there are resources, so SwiftPM builds a resource bundle — and stages it into the *package root*, dropping
+  its generated 497-byte `BNDL` plist (`CFBundleIdentifier` `six-main.SixCore.resources`) on top of the real one and
+  leaving copies of `InfoPlist.xcstrings` and `Localizable.xcstrings` beside it. The real file is what makes macOS
+  treat six as a browser at all — the http/https claim, the document types, the camera and microphone prompt strings
+  — so committing that diff ships a browser that cannot be made the default and whose permission prompts are blank.
+  It sat dirty for two days once. `git checkout -- Info.plist` and delete the two stray catalogues; the tell is that
+  they are byte-identical to the ones in `six/` and all three carry the same timestamp.
 - **Commit messages are prose.** A sentence for the title — what changed, in the voice of the thing that changed
   ("The window that was closed comes back where it stood") — and a body that explains the why, the measurement, and
   what was left honest. No conventional-commits prefixes. Quotes in the subject break the shell; commit via
