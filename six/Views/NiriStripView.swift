@@ -478,6 +478,14 @@ private struct ColumnView: View {
                     .overlay(alignment: .topLeading) {
                         if isFocused, !capturesClicks { PageFocusBar(tab: tab) }
                     }
+                    // Over the page rather than instead of it: the window that failed still holds
+                    // whatever it was showing, and a window that succeeds after a failure has to be
+                    // able to draw over this without the view being built again.
+                    .overlay {
+                        if let failure = tab.loadFailure {
+                            PageFailureView(tab: tab, failure: failure)
+                        }
+                    }
                     .overlay { if capturesClicks { ClickCatcher(action: activate) } }
             } else {
                 ColumnPlaceholder(tab: tab, accent: accent, showsPicture: browser.layout.isOverview)

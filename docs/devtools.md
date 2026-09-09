@@ -43,6 +43,25 @@ reloads the open windows.
 Each window keeps its last 500 console messages and 500 requests, and both are cleared when the window navigates:
 what was captured belonged to the page being left.
 
+### The one entry that does not come from the page
+
+A main frame that failed its provisional load has no page to instrument — the certificate did not check out, the host
+did not resolve, the connection was refused — so the one request that matters is the one request capture cannot see.
+`BrowserTab` hands it over instead (`DevToolsStore.noteLoadFailure`), and it arrives as a console **error** and a
+failed `document` request, so `list_console_messages` and `list_network_requests` both carry it. It survives the
+window's next navigation being cleared, because a failed navigation never commits one.
+
+The same line goes to standard error whether or not capture is on, since it is the answer to *why is this window
+blank* and the only copy that outlives the window:
+
+```
+[six/load] https://alfabank.ru/ failed: The certificate for this server is invalid. …
+           (NSURLErrorDomain -1202) — six carries ru.trusted-ca, switched off
+```
+
+Run the binary directly (`<six.app>/Contents/MacOS/six`) to see it — an app started by LaunchServices has nowhere to
+write. The clause after the dash is [the certificate offer](certificates.md#when-it-fails-anyway).
+
 ## How the capture works, and what it costs
 
 WebKit gives an app no API for a page's console or its resource loads, and the Web Inspector protocol is not

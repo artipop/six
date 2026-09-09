@@ -286,6 +286,11 @@ private struct PhoneColumn: View {
                 .webViewElementFullscreenBehavior(.enabled)
                 .id(tab.generation)
                 .onAppear(perform: tab.resumeIfNeeded)
+                .overlay {
+                    if let failure = tab.loadFailure {
+                        PageFailureView(tab: tab, failure: failure)
+                    }
+                }
         } else {
             PhonePlaceholder(tab: tab, accent: accent)
                 .contentShape(Rectangle())

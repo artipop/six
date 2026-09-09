@@ -142,6 +142,35 @@ final class DevToolsStore {
         }
     }
 
+    /// A navigation that never happened — a certificate that did not check out, a host that does
+    /// not resolve, a connection that was refused.
+    ///
+    /// It cannot arrive the way everything else here does. The instrumentation runs *in the page*,
+    /// and a main frame that failed its provisional load has no page to run it: the one request
+    /// that matters is the one request capture cannot see. So `BrowserTab` hands it over from the
+    /// outside, and it lands where anyone looking for it will look — `list_console_messages` and
+    /// `list_network_requests`, which is how a window is read on a machine where screenshots come
+    /// back black.
+    func noteLoadFailure(_ windowID: UUID, url: String, reason: String) {
+        // Not silent when capture is off: this is one line per failed navigation, it is the answer
+        // to "why is this window blank", and it is the only copy that survives the window being
+        // closed. `six.app/Contents/MacOS/six` run from a terminal is where it appears.
+        FileHandle.standardError.write(Data("[six/load] \(url) failed: \(reason)\n".utf8))
+        guard isCapturing else { return }
+        console[windowID, default: []].append(ConsoleMessage(level: "error",
+                                                             text: "Navigation failed: \(reason)",
+                                                             at: .now,
+                                                             url: url))
+        network[windowID, default: []].append(NetworkEntry(url: url,
+                                                           method: "GET",
+                                                           status: nil,
+                                                           kind: "document",
+                                                           milliseconds: 0,
+                                                           bytes: nil,
+                                                           error: reason,
+                                                           at: .now))
+    }
+
     // MARK: Reading it back
 
     func consoleMessages(for windowID: UUID, level: String? = nil, limit: Int = 100) -> [ConsoleMessage] {

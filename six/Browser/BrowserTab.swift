@@ -283,6 +283,35 @@ final class BrowserTab: Identifiable {
         Task { await livePage.togglePictureInPicture() }
     }
 
+    /// Why the last navigation stopped, when it stopped — and nil the rest of the time, which is
+    /// almost always. Set from the navigation feed, cleared by the next load.
+    private(set) var loadFailure: LoadFailure?
+
+    /// A load that did not happen, in the terms a person can act on: where it was going, what the
+    /// system said, and — the case this was written for — whether six is carrying the certificate
+    /// authority the site was signed by and has it switched off.
+    nonisolated struct LoadFailure: Equatable, Sendable {
+        let url: URL?
+        let host: String
+        let code: Int
+        let message: String
+        /// The bundle in `CertificateStore` that would have carried this site, when there is one.
+        let offeredCertificateBundle: String?
+
+        /// The errors that mean "the chain did not check out", as `CFNetwork` spells them. Not the
+        /// same thing as *six has an answer to it* — `offeredCertificateBundle` is that — but it is
+        /// what decides whether the page talks about certificates at all.
+        var isCertificateProblem: Bool {
+            [NSURLErrorServerCertificateUntrusted,
+             NSURLErrorServerCertificateHasBadDate,
+             NSURLErrorServerCertificateHasUnknownRoot,
+             NSURLErrorServerCertificateNotYetValid,
+             NSURLErrorClientCertificateRejected,
+             NSURLErrorClientCertificateRequired,
+             NSURLErrorSecureConnectionFailed].contains(code)
+        }
+    }
+
     /// Set by `HighlightStore` when a stored passage could not be found on the page again.
     var highlightNote: String?
     /// Committed navigations go here (the profile's history); set by `BrowserState`.
@@ -535,38 +564,109 @@ final class BrowserTab: Identifiable {
         thumbnail = trail.picture
     }
 
+    /// The window's one subscription to what its page is doing.
+    ///
+    /// `page.navigations` is a **throwing** sequence, and a load that fails throws through it. Read
+    /// once, as a single `for try await`, the loop therefore ended at the first bad address — and
+    /// the window stopped recording every navigation after it: no visit written to history, no
+    /// title kept for the card, nothing told to the blocker, no scroll put back, and the capture
+    /// from the previous page never cleared. Measured: a window sent to a site with an untrusted
+    /// certificate and then to `example.com` left the second visit out of the database entirely.
+    ///
+    /// So the failure is written down and the feed is subscribed to again. Only a *navigation*
+    /// failure is worth coming back from — a closed page and a dead web content process are the
+    /// page itself ending, and re-subscribing to those would be a spin.
     private func watchNavigations(of page: WebPage) {
         navigationTask = Task { [weak self] in
-            do {
-                for try await event in page.navigations {
-                    guard let self else { return }
-                    switch event {
-                    case .committed:
-                        hasCommitted = true
-                        savedURL = page.url ?? savedURL
-                        // Redirects and history moves never go through the decider.
-                        blocker?.note(id, showing: page.url)
-                        extensions?.noteChanged(self, [.URL, .loading])
-                        // What was captured belonged to the page being left, and so did what was
-                        // selected in it.
-                        devTools?.noteNavigation(id)
-                        pageFocus?.noteNavigation(id)
-                        onNavigation?(self, .committed)
-                    case .finished:
-                        savedURL = page.url ?? savedURL
-                        savedTitle = page.title
-                        extensions?.noteChanged(self, [.title, .loading])
-                        restoreScrollIfNeeded(page)
-                        onNavigation?(self, .finished)
-                        // Only to give a window that has never been drawn something to show. The
-                        // picture that matters is taken when it leaves the screen; taking one after
-                        // every load would be the most frequent trigger and the least useful one,
-                        // since a page that just loaded is a page you are looking at.
-                        if thumbnail == nil { rememberViewState(force: true) }
-                    default: break
-                    }
+            while !Task.isCancelled {
+                let outcome = await Self.observe(page) { [weak self] event in
+                    self?.apply(event, of: page)
                 }
-            } catch {}
+                guard let self, self.livePage === page, !Task.isCancelled else { return }
+                guard case .failed(let error) = outcome else { return }
+                self.noteFailure(error)
+            }
+        }
+    }
+
+    private enum FeedOutcome {
+        /// The page is over: it was closed, or its content process died.
+        case ended
+        /// One navigation failed. The page is still there and will be asked to load again.
+        case failed(any Error)
+    }
+
+    /// One pass over the feed, so the loop above reads as a loop. Nothing here touches the tab —
+    /// the events go back through the closure, on the main actor, where the rest of the class lives.
+    private static func observe(_ page: WebPage,
+                                _ handle: (WebPage.NavigationEvent) -> Void) async -> FeedOutcome {
+        do {
+            for try await event in page.navigations {
+                handle(event)
+            }
+            return .ended
+        } catch {
+            guard let navigation = error as? WebPage.NavigationError,
+                  case .failedProvisionalNavigation(let reason) = navigation else { return .ended }
+            return .failed(reason)
+        }
+    }
+
+    /// What a failed load leaves behind: a sentence, and whether six has an answer to it.
+    private func noteFailure(_ error: any Error) {
+        let failure = error as NSError
+        // Cancelled is not a failure. `stop()` looks like this, and so does the decider sending a
+        // request somewhere else — a `target=_blank` link becoming a window of its own, a response
+        // becoming a download — which is a navigation that succeeded elsewhere.
+        if failure.domain == NSURLErrorDomain, failure.code == NSURLErrorCancelled { return }
+        // WebKit's own word for the same thing, which is what a cancelled policy decision reports.
+        if failure.domain == "WebKitErrorDomain", failure.code == 102 || failure.code == 101 { return }
+        let url = failure.userInfo[NSURLErrorFailingURLErrorKey] as? URL ?? currentURL
+        let host = url?.host() ?? ""
+        let offered = CertificateStore.shared?.offeredBundle(for: host)
+        loadFailure = LoadFailure(url: url,
+                                  host: host,
+                                  code: failure.code,
+                                  message: failure.localizedDescription,
+                                  offeredCertificateBundle: offered?.id)
+        // The offer goes into the line too. It is the one fact that decides what the window is
+        // about to say, and reading it back is the only way to tell "six has no answer to this"
+        // from "six had one and never looked".
+        let offer = offered.map { " — six carries \($0.id), switched off" } ?? ""
+        devTools?.noteLoadFailure(id,
+                                  url: url?.absoluteString ?? "",
+                                  reason: "\(failure.localizedDescription) (\(failure.domain) \(failure.code))\(offer)")
+    }
+
+    private func apply(_ event: WebPage.NavigationEvent, of page: WebPage) {
+        guard livePage === page else { return }
+        switch event {
+        case .startedProvisionalNavigation:
+            // The window is trying again, whatever it was showing before.
+            loadFailure = nil
+        case .committed:
+            loadFailure = nil
+            hasCommitted = true
+            savedURL = page.url ?? savedURL
+            // Redirects and history moves never go through the decider.
+            blocker?.note(id, showing: page.url)
+            extensions?.noteChanged(self, [.URL, .loading])
+            // What was captured belonged to the page being left, and so did what was selected in it.
+            devTools?.noteNavigation(id)
+            pageFocus?.noteNavigation(id)
+            onNavigation?(self, .committed)
+        case .finished:
+            savedURL = page.url ?? savedURL
+            savedTitle = page.title
+            extensions?.noteChanged(self, [.title, .loading])
+            restoreScrollIfNeeded(page)
+            onNavigation?(self, .finished)
+            // Only to give a window that has never been drawn something to show. The picture that
+            // matters is taken when it leaves the screen; taking one after every load would be the
+            // most frequent trigger and the least useful one, since a page that just loaded is a
+            // page you are looking at.
+            if thumbnail == nil { rememberViewState(force: true) }
+        default: break
         }
     }
 
@@ -648,6 +748,27 @@ final class BrowserTab: Identifiable {
     /// both and lists them separately.
     func reloadOrStop() {
         if isLoading { stop() } else { reload() }
+    }
+
+    /// Ask for the address that failed again. Not `reload()`: a provisional navigation that never
+    /// committed left the page on whatever it was showing before — usually nothing at all — and
+    /// reloading *that* asks for the wrong thing, or for nothing.
+    func retryFailedLoad() {
+        guard let url = loadFailure?.url ?? currentURL else { return }
+        loadFailure = nil
+        load(url)
+    }
+
+    /// The one button on the failure page that is not a retry: switch on the authority six was
+    /// carrying all along, and ask for the site again.
+    ///
+    /// It is the same switch as the one in `six://settings` ▸ Privacy ▸ Certificates and it is
+    /// written down in the same place, so a person who says yes here can read it, and say no again,
+    /// where every other trust decision lives.
+    func trustOfferedCertificate() {
+        guard let bundle = loadFailure?.offeredCertificateBundle else { return }
+        CertificateStore.shared?.setEnabled(true, for: bundle)
+        retryFailedLoad()
     }
 
     // MARK: Loading

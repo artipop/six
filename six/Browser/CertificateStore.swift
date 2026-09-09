@@ -122,6 +122,20 @@ final class CertificateStore {
     /// In memory only, and gone when six quits. It exists so the list can answer the question a
     /// person actually has — *is this doing anything?* — without becoming a second history.
     private(set) var usedFor: [String: Set<String>] = [:]
+    /// Hosts whose chain was signed by an authority six *carries* and has switched **off**, by
+    /// bundle id. Written down at the only moment the chain is in hand — the handshake — and read
+    /// afterwards by the window that failed to load, which otherwise has nothing but WebKit's
+    /// "certificate is invalid" to show for it.
+    ///
+    /// It is not a trust decision: nothing here is trusted, and the offer is a sentence and a
+    /// button. In memory only, like `usedFor`, and capped rather than pruned — a browser that has
+    /// met sixty-four such hosts since launch has already answered the question.
+    private(set) var offers: [String: String] = [:]
+
+    /// The certificates of every bundle that is switched **off**, by bundle id. Kept because the
+    /// question above is asked once per handshake and the answer is a byte comparison; rebuilt
+    /// whenever the list or the switches change.
+    @ObservationIgnored private var dormant: [(id: String, certificates: Set<Data>)] = []
 
     @ObservationIgnored private let settings: SettingsStore?
 
@@ -154,6 +168,7 @@ final class CertificateStore {
             enabled.formIntersection(known)
             save()
         }
+        rebuildDormant()
     }
 
     func isEnabled(_ id: String) -> Bool { enabled.contains(id) }
@@ -161,7 +176,24 @@ final class CertificateStore {
     func setEnabled(_ on: Bool, for id: String) {
         guard on != enabled.contains(id) else { return }
         if on { enabled.insert(id) } else { enabled.remove(id); usedFor[id] = nil }
+        // A bundle that was just switched on is no longer something to offer, and one switched off
+        // is: the offers a window is showing follow the switch without anyone reloading anything.
+        rebuildDormant()
+        if on { offers = offers.filter { $0.value != id } }
         save()
+    }
+
+    private func rebuildDormant() {
+        dormant = bundles
+            .filter { !enabled.contains($0.id) && !$0.certificates.isEmpty }
+            .map { ($0.id, Set($0.certificates.map(\.der))) }
+    }
+
+    /// The bundle six would have needed for this host and does not have switched on, if there is
+    /// one. What the failure page turns into a sentence and a button.
+    func offeredBundle(for host: String) -> CertificateBundle? {
+        guard let id = offers[host] else { return nil }
+        return bundles.first { $0.id == id && !enabled.contains($0.id) }
     }
 
     /// The certificates every switched-on bundle carries, as `SecCertificate`. Built on each ask
@@ -220,6 +252,7 @@ final class CertificateStore {
         }
         bundles.append(bundle)
         enabled.insert(bundle.id)
+        rebuildDormant()
         save()
         return bundle
     }
@@ -233,6 +266,8 @@ final class CertificateStore {
         bundles.removeAll { $0.id == id }
         enabled.remove(id)
         usedFor[id] = nil
+        offers = offers.filter { $0.value != id }
+        rebuildDormant()
         save()
     }
 
@@ -263,6 +298,11 @@ final class CertificateStore {
         let space = challenge.protectionSpace
         guard space.authenticationMethod == NSURLAuthenticationMethodServerTrust,
               let trust = space.serverTrust else { return (.performDefaultHandling, nil) }
+        // Above the `anchors` guard, and deliberately: everything switched off is the state six
+        // is in by default, and it is exactly the state where a bank fails with no explanation on
+        // offer. It costs no trust evaluation and no network — a hash of the two or three
+        // certificates above the leaf — so it is affordable on the connection every site makes.
+        noteOffer(for: trust, host: space.host)
         let anchors = activeCertificates
         guard !anchors.isEmpty else { return (.performDefaultHandling, nil) }
         if await ServerTrust.isTrusted(trust) { return (.performDefaultHandling, nil) }
@@ -271,6 +311,26 @@ final class CertificateStore {
         }
         note(space.host)
         return (.useCredential, URLCredential(trust: accepted))
+    }
+
+    /// Was this chain signed by an authority six carries and has switched off?
+    ///
+    /// Asked by comparing bytes, not by evaluating anything: a certificate above the leaf that is
+    /// *the same certificate* six ships is the whole question, and it answers itself for both the
+    /// server that sends its root and the one that sends only the intermediate — six carries both.
+    /// A chain that checks out anyway is never asked about, because nothing reads an offer until a
+    /// window has already failed to load.
+    private func noteOffer(for trust: SecTrust, host: String) {
+        guard !dormant.isEmpty, !host.isEmpty, offers[host] == nil else { return }
+        guard let chain = SecTrustCopyCertificateChain(trust) as? [SecCertificate], chain.count > 1
+        else { return }
+        // The leaf is the site's own certificate; what is asked here is who signed it.
+        let issuers = chain.dropFirst().map { SecCertificateCopyData($0) as Data }
+        guard let bundle = dormant.first(where: { bundle in
+            issuers.contains { bundle.certificates.contains($0) }
+        }) else { return }
+        if offers.count >= 64 { offers.removeAll() }
+        offers[host] = bundle.id
     }
 
     /// Which switched-on bundle carried the site, for the line under its name. The chain is not

@@ -20,7 +20,7 @@ Less than the keychain does, and the difference is the point.
 
 A site's chain is judged **by the system first**, with the system's own anchors and nothing added
 (`ServerTrust.isTrusted`). If it checks out, six answers `.performDefaultHandling` and steps out of the way — WebKit
-then does everything it would have done anyway: certificate transparency, its own pinning, its own error page. six
+then does everything it would have done anyway: certificate transparency, its own pinning, its own failure. six
 has not touched the ordinary web.
 
 Only a chain the system has already **turned down** is read a second time, and then with the switched-on certificates
@@ -30,8 +30,9 @@ checked in the second reading too, so an anchor is an anchor and not a licence t
 somebody else. Revocation is asked about with `kSecRevocationUseAnyAvailableMethod` and *not* required to answer: on
 the networks this feature exists for, an unreachable OCSP responder is the normal case, not the suspicious one.
 
-A chain that fails both readings also gets `.performDefaultHandling`, which is what puts WebKit's own failure in front
-of you instead of a blank window.
+A chain that fails both readings also gets `.performDefaultHandling` — WebKit is left to fail the navigation the way
+it would have anyway. What that *looks* like is the subject of the next section, and for a long time it was nothing at
+all.
 
 The cost of that order is one extra trust evaluation per HTTPS connection, and only while something is switched on —
 asynchronous, off the main actor, and answered from `trustd`'s cache most of the time. It buys keeping every ordinary
@@ -39,6 +40,58 @@ site judged by WebKit alone, which is worth it.
 
 So the promise is smaller than "trusted": switching an authority on cannot make an ordinary site validate differently.
 It can only give a chain that had *already* failed a second reading.
+
+## When it fails anyway
+
+`WebPage` has no error page. The one you know from Safari belongs to Safari, and a failed provisional navigation
+leaves a `WebPage` exactly as it was — which in a fresh window is white, titled with the host, and silent. six showed
+that for every failure it had, including the one it had an answer to: the browser was carrying Минцифры, had it
+switched off, and could not say so. It was reported as *"alfabank.ru doesn't open from a Google search"*, which is
+what it looks like from the other side.
+
+So two things happen now on a chain that failed both readings.
+
+**The store writes down what it saw.** At the moment of the handshake — the only moment the chain is in hand —
+`noteOffer(_:host:)` asks whether any certificate *above the leaf* is byte-for-byte one six carries in a bundle that
+is switched **off**, and files the host under that bundle (`CertificateStore.offers`). It is a `Set<Data>` membership
+test over two or three certificates: no trust evaluation, no network, and no main-actor work worth measuring, which is
+what makes it affordable on the connection every site makes. It happens *before* the `anchors.isEmpty` guard on
+purpose — everything switched off is exactly the state this is for.
+
+Nothing is trusted by it. An offer is a sentence and a button.
+
+**The window shows a page** (`PageFailureView`, drawn over the web view). It names the host, says what the system
+said, and — when there is an offer — says which authority six is carrying and puts *Trust Russian Trusted CA* next to
+*Try Again*. The button is `CertificateStore.setEnabled(_:for:)`, the same call the panel makes, written to the same
+setting: a person who says yes here finds the switch where all the others are and can say no again.
+
+`BrowserTab.LoadFailure` is what the two halves meet in. It is set from the navigation feed and cleared by the next
+provisional navigation, so a window that succeeds after failing simply stops showing it.
+
+### The feed that used to die with it
+
+`WebPage.navigations` is a **throwing** `AsyncSequence`, and a failed load throws through it. Written as one
+`for try await` with a `catch {}` at the end — which is how it was — the loop ended at the first bad address, and the
+window stopped observing *every* navigation after that one: no visit written to history, no title kept for the card,
+nothing told to the blocker, no scroll put back, and the previous page's capture never cleared. Measured before the
+fix: a window sent to a site with an untrusted certificate and then to `example.com` left the second visit out of the
+database entirely. `watchNavigations(of:)` now subscribes again after a navigation failure, and only after that one —
+a closed page and a dead content process are the page itself ending.
+
+### Where to look
+
+Every failed navigation writes one line to standard error, whether or not capture is on:
+
+```
+[six/load] https://alfabank.ru/ failed: The certificate for this server is invalid. …
+           (NSURLErrorDomain -1202) — six carries ru.trusted-ca, switched off
+```
+
+The clause after the dash is the offer, and it is there to tell *six has no answer to this* from *six had one and
+never looked*. Run the binary directly (`<six.app>/Contents/MacOS/six`) to see it; an app started by LaunchServices
+has nowhere to write. With DevTools capture on, the same failure is also filed under the window as a console error
+and a failed `document` request, so `list_console_messages` and `list_network_requests` carry it over MCP —
+the one request page instrumentation can never see, because the page never ran ([devtools.md](devtools.md)).
 
 ## Where it is wired in
 
@@ -48,6 +101,7 @@ It can only give a chain that had *already* failed a second reading.
 | `ServerTrust` | the two evaluations, off the main actor |
 | `BundledCertificates` | the authorities six ships, as base64 DER in the source |
 | `CertificatesView` | the panel: a row per bundle, fingerprints on demand |
+| `PageFailureView` | what a window shows when the load did not happen, and the offer's button |
 | `BrowserTab` → `TabNavigationDecider.decideAuthenticationChallengeDisposition(for:)` | a page's own handshakes |
 | `Downloads` → `Transfers.urlSession(_:task:didReceive:)` | six fetches downloads itself, so they ask separately |
 
@@ -129,6 +183,9 @@ a command-line tool, not by reading the documentation.
   those, and no list of anchors changes it.
 - **The sites six itself fetches** outside a page and outside a download — filter lists, search suggestions, MCP
   registries — which use `URLSession.shared` and are not wired to the store. None of them point anywhere this matters.
+- **An offer for an authority six does not carry.** The question is asked by comparing bytes against the bundles that
+  are switched off, so a site under some third authority fails with the system's sentence and a pointer to the
+  Certificates panel, which is all six honestly knows.
 - **Which bundle carried which site.** The panel's "Used for …" line files a host under *every* switched-on bundle
   rather than re-walking the chain to find the one that mattered. With one bundle on, which is the usual case, that is
   exactly right; with three it is a hint. It is in memory only and goes when six quits — it exists to answer *is this

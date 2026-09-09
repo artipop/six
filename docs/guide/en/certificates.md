@@ -40,6 +40,27 @@ Hence the promise, and it is smaller than "trusted":
 Trust stays inside VI. Nothing else on the machine gets it, and the switch takes
 it back.
 
+## When a site does not open
+
+The window used to simply stay white. `WebPage` has no error page of its own —
+the one you know from Safari belongs to Safari — so the browser said nothing,
+including in the case where it had the answer: the Ministry's certificates were
+inside it, switched off, with nowhere to say so.
+
+Now the window shows a page: which address it was, what the system said, and —
+when the site's certificate was issued by an authority VI **carries and has not
+switched on** — which one, and a **Trust Russian Trusted CA** button next to
+**Try Again**.
+
+That button is the same switch as the one in **Settings ▸ Privacy ▸
+Certificates**, written to the same place. Saying yes here is not saying yes
+somewhere off to the side: the list stays the same list, and it can be switched
+off there.
+
+If the authority is one VI does not carry, the page says only what it honestly
+knows: the chain could not be traced, and your own certificate can be added in
+settings.
+
 ## What is already on the list
 
 Three Ministry certificates: the root and two intermediates (2022 and 2024) —

@@ -4607,6 +4607,16 @@
         }
       }
     },
+    "This page didn’t open": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Страница не открылась"
+          }
+        }
+      }
+    },
     "This page is already in %@": {
       "localizations": {
         "ru": {
@@ -4633,6 +4643,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Этот сервер отказал six без токена"
+          }
+        }
+      }
+    },
+    "This site’s certificate could not be traced back to an authority this Mac trusts. If you have the authority’s certificate, add it under Certificates in settings.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Цепочку сертификатов этого сайта не удалось привести к удостоверяющему центру, которому доверяет этот Mac. Если сертификат центра у вас есть, добавьте его в настройках, в разделе «Сертификаты»."
+          }
+        }
+      }
+    },
+    "This site’s certificate was issued by %@, an authority six carries and does not trust until you say so. Nothing else on the web is affected by turning it on.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сертификат этого сайта выдан удостоверяющим центром «%@» — six возит его с собой, но не доверяет ему, пока вы не разрешите. На остальной веб это не влияет."
           }
         }
       }
@@ -4783,6 +4813,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Перевод"
+          }
+        }
+      }
+    },
+    "Trust %@": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Доверять «%@»"
           }
         }
       }
@@ -5479,6 +5519,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "six"
+          }
+        }
+      }
+    },
+    "six could not reach this address.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "six не смог открыть этот адрес."
           }
         }
       }
