@@ -494,8 +494,30 @@ menu asks when it is opened, the budget asks when it is about to evict, and both
 at once. For the same reason the menu item is never greyed out — whether the page in front of you has a video to
 float is a question only the page can answer, and it changes with every play and pause without telling anyone.
 
-The other feature of the same name — any six window as a floating always-on-top panel, which is niri's floating layer
-— is not built; it is still in [todo.md](todo.md).
+**Where the window sits, and why six cannot move it.** The floating player is not six's window and not WebKit's
+either: `WebPage` → `PIPViewController` → `PIPPanel` all live in six's process, but the thing on the screen is drawn by
+`/System/Library/CoreServices/PIPAgent.app`, in a process of its own, on CoreGraphics layer 19 — above every ordinary
+window, below the Dock. six's `PIPPanel` sits at level 0 and never appears in the on-screen window list at all; it is
+where the events go, and the agent is where the pixels are. Three things follow, each of them measured rather than
+reasoned:
+
+* **It cannot be tied to six's window.** `addChildWindow` on the `PIPPanel` succeeds and the panel dutifully follows
+  its parent around, and nothing on the screen moves — and worse, the player then survives leaving picture-in-picture,
+  still visible six seconds later, because a child window is ordered back in by its parent after WebKit orders it out.
+* **It cannot be placed.** The agent snaps the player to a corner of the **screen**, not of the window that owns the
+  video, and remembers the choice for every application at once (`com.apple.PIPAgent`: `Corner`, and `Size` as a
+  fraction of the screen). Measured with a host window 1100 points wide at (100, 120): the player landed in the corner
+  of a 1440-point screen.
+* **`PIPViewController._pipSetWindowContentRect:completion:` is the wrong direction.** It is how the agent tells six
+  where the player went; calling it moves six's invisible `PIPPanel` and leaves the agent's window where it was.
+
+This is what Safari gets, for the same reason — the whole path is WebKit's. Chrome and Firefox place and level their
+mini-players because they draw them, and drawing one is not something a browser built on `WebPage` can do: there is no
+way to take a `<video>` out of a page and into a window of one's own. So the two asks this produced — that the player
+travel with the browser on ⌘Tab, and that it sit under the top bar rather than over it — are not bugs with a fix here.
+The other feature of the same name is the answer if they matter enough: any six window as a floating always-on-top
+panel, which is niri's floating layer, six's own `NSPanel` and therefore six's to parent and to place. It is not built;
+it is in [todo.md](todo.md).
 
 ## Overview
 

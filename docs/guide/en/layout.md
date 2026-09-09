@@ -223,6 +223,12 @@ The menu item is never greyed out, because only the page knows whether it has a
 video to float, and that changes with every play and pause. On a page of text,
 pressing it does nothing at all.
 
+The little window itself belongs to macOS rather than to six — the same one
+Safari opens, drawn by a system process. So it sits in a corner of the *screen*
+rather than inside the browser window, and it stays above other applications when
+you switch away. Drag it to another corner and the system remembers, for every
+application at once; six cannot place it or make it travel with its own window.
+
 ## The overview
 
 `⌥O` zooms the whole canvas out: workspaces open up and read as separate screens.

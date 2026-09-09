@@ -250,7 +250,11 @@ another profile. What it took, and what was measured, is in [layout.md](layout.m
 **Window PiP** is not. Any six window as a small always-on-top panel: an `NSPanel` at `.floating` level hosting the
 page, which leaves the strip while it floats and returns to its column when closed. This is niri's floating layer, and
 the same mechanism would later serve a proper floating-window mode. Nothing about the video half helps here — that one
-is a window WebKit owns and six only asks for.
+is not even a window WebKit owns: `PIPAgent` draws it in a process of its own, on a system layer, snapped to a corner
+of the screen, and six can neither parent it to the browser window nor place it
+([layout.md](layout.md#picture-in-picture) has the measurements). Which is the argument for this half: a floating
+window six draws is one it can put under the top bar and carry with the browser, and those are the two things asked
+for about the video player that could not be answered.
 
 ## Passkeys and passwords
 

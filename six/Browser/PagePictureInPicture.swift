@@ -42,6 +42,16 @@ import WebKit
 /// false and `_canTogglePictureInPicture` was false, and the page was duly discarded by the live-page
 /// budget with the player still on screen. So the SPI is asked *as well*, because it sees frames a
 /// script in the main frame cannot, but it is never the only answer.
+///
+/// **The floating window is nobody's here.** `PIPViewController` and its `PIPPanel` are six's, but the
+/// player on the screen is drawn by `PIPAgent` — a process of its own, on a system layer above every
+/// ordinary window — and six's panel never appears in the on-screen window list at all. So the two
+/// things a person asks for first, that it travel with the browser window on ⌘Tab and that it sit
+/// under the top bar instead of in the corner of the screen, cannot be done from here. Both were
+/// tried: `addChildWindow` moves six's invisible panel, changes nothing on screen, and leaves the
+/// player visible after WebKit has ordered it out; `_pipSetWindowContentRect:` is how the agent tells
+/// six where the player went, not the other way round.
+/// [layout.md](../../docs/layout.md#picture-in-picture) has the measurements.
 extension WebPage {
     /// Lets this page's videos into picture-in-picture. Called once, as the page is built.
     ///
