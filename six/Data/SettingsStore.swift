@@ -46,6 +46,13 @@ final class SettingsStore {
         /// that has no snapshot yet still needs the id to be the same one tomorrow, or every launch
         /// orphans its own history.
         case defaultProfile = "profile.default"
+        /// The profile that was on screen when six was last closed. Distinct from `defaultProfile`
+        /// above, which is a front *without* a profiles table inventing an id to key its history by;
+        /// this one names a row that exists. On the Mac it lives in the state snapshot, the way
+        /// `stripState` below does, and for the same reason a front without a snapshot keeps it here.
+        /// A private profile is never written: it is not in the table, and coming back into one
+        /// after a relaunch would be a private session that outlived the process.
+        case selectedProfile = "profile.selected"
         /// What pages are translated into, and the sites translated without being asked (a JSON
         /// array of hosts).
         case translationTarget = "translation.target"
@@ -197,6 +204,14 @@ final class SettingsStore {
         let fresh = UUID()
         self[.defaultProfile] = fresh.uuidString
         return fresh
+    }
+
+    /// The profile that was last on screen, or nil on a first launch — and nil, deliberately, for an
+    /// id that no longer names a row, so that a profile deleted elsewhere does not strand the browser
+    /// on nothing. Unlike `defaultProfileID` this mints nothing: not knowing is an answer here.
+    var selectedProfileID: UUID? {
+        get { self[.selectedProfile].flatMap(UUID.init(uuidString:)) }
+        set { self[.selectedProfile] = newValue?.uuidString }
     }
 
     /// Optional model id for the ACP agent (`ANTHROPIC_MODEL`).

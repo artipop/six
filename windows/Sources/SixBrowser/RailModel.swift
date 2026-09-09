@@ -4,7 +4,8 @@ import Foundation
 /// The rail's own state: `NiriLayout` plus what a column needs to draw itself and, once it is
 /// live, to load.
 ///
-/// No database — see `docs/windows.md` for what that leaves out and why. The rail and its
+/// The profiles are the same two tables the Mac reads, in the same file, and which one is on screen
+/// outlives the process; the strip itself does not yet — see `docs/windows.md`. The rail and its
 /// mechanics — open, close, focus, move, the workspaces stacked above and below it — are the same
 /// shape here as on every other front because `NiriLayout` is the same code, unchanged, imported
 /// the way the Linux front already does: `@testable` because its members are `internal` and were
@@ -40,27 +41,38 @@ public final class RailModel {
     private var profileRecords: [ProfileRecord] = []
     private var privateProfile: ProfileInfo?
     private var selectedProfileID = UUID()
-    /// `nil` when the database could not be opened. The profiles are then this run's own and go with
-    /// it, which is worth saying out loud rather than failing a browser over.
-    private let profileStore: ProfileStore?
+    private let profileStore: ProfileStore
+    private let settings: SettingsStore
 
     private init() {
         // The same two tables the Mac reads, in the same file — `AppSupport.root` answers
         // `%LOCALAPPDATA%\six` here. An empty table is a new browser and is read as one
         // (`ProfileStore`), which is where the two defaults below come from.
-        var store: ProfileStore?
+        //
+        // Fatal, the way `sixApp` treats it and unlike the Linux front, because of what a profile
+        // *is*: the id every cookie jar, visit and bookmark is keyed by. A front that carried on
+        // without the table would mint fresh ids on every launch, point WebKit at folders named
+        // after them, and leave the real site data on disk under names nothing looks up any more -
+        // every login gone, and nothing said. Linux can step over its own database because all it
+        // loses is history; here the loss is silent and permanent, so this stops and says where to
+        // look.
         do {
-            store = ProfileStore(database: try AppDatabase.open())
+            let database = try AppDatabase.open()
+            settings = SettingsStore(database: database)
+            SettingsStore.shared = settings
+            profileStore = ProfileStore(database: database)
         } catch {
-            FileHandle.standardError.write(Data("[six] profiles: no database (\(error)); this run only\n".utf8))
+            fatalError("six: cannot open \(AppDatabase.url.path): \(error)")
         }
-        profileStore = store
-        profileRecords = store?.all() ?? []
+        profileRecords = profileStore.all()
         if profileRecords.isEmpty {
             profileRecords = Self.defaultProfiles
-            store?.save(profileRecords)
+            profileStore.save(profileRecords)
         }
-        selectedProfileID = profileRecords[0].id
+        // Where the browser was left. An id that names no row falls back to the first profile
+        // rather than to nothing: a profile can be removed by a front that has a way to remove one.
+        selectedProfileID = profileRecords.first { $0.id == settings.selectedProfileID }?.id
+            ?? profileRecords[0].id
         layout.activeProfileID = selectedProfileID
         openColumn() // a window to land on, the way every front starts
     }
@@ -126,6 +138,10 @@ public final class RailModel {
         guard profiles.contains(where: { $0.id == id }) else { return }
         selectedProfileID = id
         layout.activeProfileID = id
+        // The private profile is deliberately not written down: it is in no table, and a relaunch
+        // that came back into it would be a private session outliving the process it was private to.
+        // The Mac's snapshot keeps the last non-private profile for the same reason.
+        if privateProfile?.id != id { settings.selectedProfileID = id }
     }
 
     /// A profile just made is a different matter: it was asked for in order to browse in it, so it
@@ -135,7 +151,7 @@ public final class RailModel {
                                    colorHex: Self.palette[profileRecords.count % Self.palette.count],
                                    dataStoreID: UUID(), ord: profileRecords.count)
         profileRecords.append(record)
-        profileStore?.save(profileRecords)
+        profileStore.save(profileRecords)
         selectProfile(record.id)
         openColumn()
     }

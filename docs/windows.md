@@ -15,7 +15,7 @@ the assistant, the agent panel and the overview, which this front does not draw.
 | toolkit | **Win32** (`WinSDK`), GDI painting for the chrome — no WinUI, no XAML |
 | engine | **real WebKit** (WebKit2 C API), software compositing — see "DPI and scale" |
 | language | Swift, the same source tree — and now the same `SixCore`, not a subset of it |
-| storage | the graph is up (GRDB, SQLiteData, a real SQLite round-trip); the profiles are real rows in `six.sqlite` and each has its own WebKit data store; the rail itself does not persist yet |
+| storage | the profiles are real rows in `six.sqlite`, each with its own WebKit data store, and the one on screen comes back after a relaunch; the rail itself does not persist yet |
 | built with | `6.3.3+NoAsserts`, and that is not a preference — see below |
 | built in | on the Windows dev machine directly — `scripts/six-windows.ps1` |
 | verified | **yes** — built, run, every rail mechanic and real page loads exercised by hand |
@@ -196,9 +196,23 @@ A profile here is what it is everywhere else in six: a name, a colour, and its o
 The rows come from **the same two tables the Mac reads** — `ProfileIdentity` and `ProfileStorage`,
 through `SixCore`'s own `ProfileStore`, in `%LOCALAPPDATA%\six\six.sqlite`. An empty table is a new
 browser and gets `Personal` and `Work`, the Mac's `Profile.defaults` in the Mac's palette. This is
-the first thing on this platform to open `AppDatabase` in earnest; if that open throws, `RailModel`
-says so on stderr and carries a list that lives for the run, because a browser that will not start
-over a profiles table is worse than one that forgets.
+the first thing on this platform to open `AppDatabase` in earnest.
+
+**A database that will not open is fatal here, and that is deliberate.** It briefly was not: the
+store was optional and a failed open left the profiles in memory for the run, on the reasoning that a
+browser which will not start over a profiles table is worse than one that forgets. That reasoning was
+wrong about what it was forgetting. A profile id is what every cookie jar, visit and bookmark is keyed
+by, so a run with invented ids points WebKit at folders named after them and leaves the real site data
+on disk under names nothing looks up again — every login gone, silently, and the next launch does it
+again. `ProfileStore`'s own comment says the same thing about refusing to empty the table. Linux can
+step over its database because all it loses is history; here the loss is silent and permanent, so this
+front stops with the path in the message, the way `sixApp` does.
+
+**Which profile was on screen is remembered**, in the settings table under `profile.selected` — a key
+of its own rather than `profile.default`, which is a front *without* a profiles table inventing an id
+to key its history by. An id that no longer names a row falls back to the first profile rather than to
+nothing. The private profile is never written: it is in no table, and coming back into it after a
+relaunch would be a private session that outlived the process it was private to.
 
 The isolation is real, and it is `WebEngine`'s half: one `WKWebsiteDataStore` per profile, built from
 a `WKWebsiteDataStoreConfiguration` whose nine directories and one cookie file all point under
@@ -425,6 +439,11 @@ confirmed working:
   real file on disk, twice, the second run reading what the first wrote. GRDB's own query interface
   was proved separately, without `swift-structured-queries` in the graph at all, in case the
   toolchain answer had not worked out.
+- The profile round-trip, both directions and each read out of `six.sqlite` rather than judged from
+  the chip's repaint. Seeding `profile.selected` with Work brought six up in Work, with the menu's
+  checkmark on Work; clicking Personal in that menu wrote Personal's id to the row, and the next
+  launch came up in Personal. `profiles` and `profile_storage` hold the two rows with their data
+  store ids, and `%LOCALAPPDATA%\six\Profiles` holds a folder per profile.
 
 - Open a column by clicking empty background; focus one by clicking it; close one by clicking its
   "×".
@@ -509,7 +528,7 @@ matched, so `⌥F4`, `⌥Space` and plain `F10` still behave like system keys.
   readings of the same `NiriLayout` state.
 - **A live-page budget.** Only the focused column ever gets a `WKView`; every other front's version
   of "more than one column can be live at once" is future work here too.
-- **Persistence, history, bookmarks.** The rail itself still lives in memory and goes on exit —
+- **Persistence of the rail, history, bookmarks.** The rail itself still lives in memory and goes on exit —
   which columns were open, where they stood, what they were showing. Profiles are the exception and
   are done (above): rows in `six.sqlite`, folders on disk. Nothing is in the way of the rest either:
   `SixBrowser` imports `SixCore`, so `AppDatabase`, `SettingsStore`, `History` and `Bookmark` are all
@@ -547,9 +566,10 @@ they are easy to get wrong and cost nothing to know:
   profiles loses whichever one was not on screen. `RailModel.allTabIDs` is the existing walk over all
   of them — and it exists for the same distinction a snapshot needs: a column absent from the active
   strip has been closed, a column absent from `allTabIDs` no longer exists anywhere.
-- **Which profile was on screen is not written down.** The list of profiles is a table; the
-  *selected* one is not, and it comes back as the first row on every launch. That is one more field
-  for the snapshot, next to the focused column.
+- **Which profile was on screen is already written down**, in `settings` under `profile.selected`, so
+  a snapshot does not need a field for it — but it does need to agree with it. Two records of the
+  same fact that can disagree is worse than one, so a snapshot should read that key rather than carry
+  its own copy.
 - **The private profile must not be in it.** It is written down nowhere by definition — no row, no
   folder, no place in a snapshot — which on the Mac is `AppStateSnapshot` filtering
   `profiles.filter { !$0.isPrivate }`.
