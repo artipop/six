@@ -350,9 +350,24 @@ actually has (`scale=1.5`). Call
 that measures this front, before it reads a rect or moves the cursor.
 
 **Accelerated compositing is off** (`WKPreferencesSetAcceleratedCompositingEnabled(preferences,
-false)`). With the shim in place the accelerated path draws correctly too — it was the DPI-unaware
-approach it could not survive — but it put a visible layer seam through the middle of a search
-field. Worth revisiting; not worth shipping.
+false)`), and the reason has been measured rather than eyeballed. With the shim in place the
+accelerated path is geometrically correct — it was the DPI-unaware approach it could not survive —
+but it seams the page at **every tile boundary**, which is every 512 CSS pixels.
+
+`WKPreferencesSetCompositingBordersVisible` settles what the line is: turned on, WebKit's own orange
+tile border lands exactly on the seam that was first noticed running through duckduckgo's search
+field. A probe page with a smooth `linear-gradient` in one half and a flat fill in the other, and a
+1px marker at CSS x 512, then says what it costs: the marker, the tile border and a clear step in
+the gradient all coincide, and the flat half shows nothing at all. So it is not a hairline and not
+specific to one site — it is a visible discontinuity wherever a smooth gradient crosses a tile join,
+which on a real page means headers, hero sections and soft shadows.
+
+Note what this is **not**: the tile edge at CSS 512 is device pixel 768 at this display's 1.5, an
+integer, so the fractional scale is not putting the join on a half-pixel. It reads as two tiles
+rasterising the same gradient with independent rounding — a tiled-rasterisation defect in this
+WebKit build, unrelated to the DPI work. Worth retrying against a non-Playwright build
+([todo.md](todo.md)), since that is the other thing such a build would buy: GPU compositing, and with
+it the animations and video that the software path now carries.
 
 ## Where things are
 
