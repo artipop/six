@@ -79,6 +79,12 @@ struct ContentView: View {
             browser.pageFocus?.isEnabled = enabled
             if enabled { mcp.start() } else { mcp.stop(); showAgentPanel = false }
         }
+        // The rail's focus and AppKit's first responder are two different things, and they used to
+        // be able to disagree: ⌥→ moved the border and the address field while the keys went on
+        // arriving in the page you had walked away from. Invisible on a rail, where that window is
+        // off the edge a moment later — and impossible to miss in a split, where one half is
+        // highlighted and your typing lands in the other. `WebViewResponder` has the account.
+        .onChange(of: browser.selectedTabID) { _, id in WebViewResponder.shared.focus(id) }
         .onAppear(perform: startKeyRouter)
         .onDisappear { keys.stop() }
         .task {

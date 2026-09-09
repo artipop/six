@@ -164,17 +164,35 @@ enum KeySelfTest {
         // "window 2/2, half 1/2" and then "half 2/2" without the window number moving. The last press
         // puts them back on the rail, so this leaves it as it found it — and if it ever does not, the
         // window count on the line after says so.
+        // The page is made first responder by hand once, because a click is the only other way to
+        // do it and this machine cannot click (CLAUDE.md). Everything after it is the question: does
+        // the keyboard follow the rail's focus, or stay on the page it was given to? The `keys …`
+        // half of each line answers, and its **width** says which pane holds them — half a column or
+        // a whole one.
+        if let page = webView(in: window) { _ = window.makeFirstResponder(page) }
+        // From a known state: this runs against the dev profile's real rail, and on a rail that
+        // already has a split under the focus the first ⌥S un-splits instead — which reads as the
+        // key doing the opposite of what it says and cost a round of believing it.
+        if browser.layout.isSplit {
+            note("the focused column was already split; putting it back first")
+            browser.toggleSplit()
+            try? await Task.sleep(for: .milliseconds(350))
+        }
         for (name, flags, code) in [
             ("⌥S (split)", NSEvent.ModifierFlags.option, KeyCode.s),
             ("⌥←", .option, .leftArrow),
-            ("⌥→", .option, .rightArrow),
-            ("⌥→", .option, .rightArrow),
-            ("⌥S (back)", .option, .s)
+            ("⌥→", .option, .rightArrow)
         ] {
             post(flags: flags, code: code, in: window)
             try? await Task.sleep(for: .milliseconds(350))
             note("\(name) → \(rail(browser))")
         }
+
+        post(flags: .option, code: .s, in: window)
+        try? await Task.sleep(for: .milliseconds(350))
+        note("⌥S (back) → \(rail(browser))")
+
+        await splitKeyboard(browser, in: window)
 
         // A window crossing workspaces and coming back, with the ring asked about while it stands
         // over there on its own. The pair is here because it crashed six for as long as it existed
@@ -283,6 +301,29 @@ enum KeySelfTest {
         "\(tab.currentURL?.absoluteString ?? "—"), back \(tab.canGoBack), forward \(tab.canGoForward)"
     }
 
+    /// Who has the keyboard, and — when it is a view — how wide it is. The width is what tells one
+    /// half of a split from the other and from a whole column: the rail's focus and AppKit's first
+    /// responder are two different things (`WebViewResponder`), and this is the line that says so.
+    private static func keyboard(_ window: NSWindow?) -> String {
+        guard let window else { return "no key window" }
+        guard let responder = window.firstResponder else { return "none" }
+        let name = String(describing: type(of: responder))
+        guard let view = responder as? NSView else { return name }
+        // The width alone cannot tell one half of a split from the other — they are the same width —
+        // so the window that owns the view is named, and whether that is the window the rail has the
+        // focus on. "disagrees" is the bug this line was added for.
+        let owner = WebViewResponder.shared.owner(of: responder)
+        let owned = owner.map { String($0.uuidString.prefix(8)) } ?? "unknown"
+        return "\(name) \(Int(view.bounds.width))pt \(owned)"
+    }
+
+    /// Whether the keyboard is where the rail's focus is. Silent when no page holds the keyboard at
+    /// all — a text field having it is not a disagreement, it is `⌘L`.
+    private static func agreement(_ focused: UUID?, _ window: NSWindow?) -> String {
+        guard let owner = WebViewResponder.shared.owner(of: window?.firstResponder) else { return "" }
+        return owner == focused ? " (agrees)" : " (DISAGREES)"
+    }
+
     private static func responder(_ window: NSWindow) -> String {
         window.firstResponder.map { String(describing: type(of: $0)) } ?? "none"
     }
@@ -295,6 +336,50 @@ enum KeySelfTest {
             stack.append(contentsOf: view.subviews)
         }
         return nil
+    }
+
+    /// **Does the keyboard follow the rail's focus?** The question a split made worth asking, and
+    /// the one that needs a setup of its own.
+    ///
+    /// Two windows with **real pages**, because this is a question about `WKWebView`s and the
+    /// windows the rest of this test uses have none: six's start page is SwiftUI, so a split of two
+    /// of them has nothing for a first responder to be, and the first version of this measured
+    /// exactly that and reported the window itself holding the keys. And the field is let go of by
+    /// hand, because a launched window hands the keyboard to the address field and
+    /// `WebViewResponder` deliberately never takes it off a text field.
+    ///
+    /// `(agrees)` is the whole answer, and it has to survive a step: ⌥→ moves the rail's focus to
+    /// the other half, and the keyboard has to arrive there too. `(DISAGREES)` is the bug this was
+    /// written for — one half highlighted while what you type lands in the other. The two windows
+    /// are closed at the end, so the rail is left as it was found.
+    private static func splitKeyboard(_ browser: BrowserState, in window: NSWindow) async {
+        guard let blank = URL(string: "about:blank") else { return }
+        let left = browser.newTab(url: blank)
+        let right = browser.newTab(url: blank)
+        try? await Task.sleep(for: .seconds(1))
+        browser.selectTab(left.id)
+        try? await Task.sleep(for: .milliseconds(300))
+
+        post(flags: .option, code: .s, in: window)
+        try? await Task.sleep(for: .milliseconds(400))
+        note("two pages, ⌥S → \(rail(browser))")
+
+        window.makeFirstResponder(nil)
+        WebViewResponder.shared.focus(browser.selectedTabID)
+        try? await Task.sleep(for: .milliseconds(150))
+        note("keyboard handed to the focused half → \(rail(browser))")
+
+        post(flags: .option, code: .rightArrow, in: window)
+        try? await Task.sleep(for: .milliseconds(400))
+        note("⌥→ (the other half) → \(rail(browser))")
+        post(flags: .option, code: .leftArrow, in: window)
+        try? await Task.sleep(for: .milliseconds(400))
+        note("⌥← (back again) → \(rail(browser))")
+
+        browser.closeTab(right.id, remembering: false)
+        browser.closeTab(left.id, remembering: false)
+        try? await Task.sleep(for: .milliseconds(300))
+        note("the two pages closed → \(rail(browser))")
     }
 
     /// Which window on the rail is focused, and how the rail is showing it.
@@ -319,6 +404,8 @@ enum KeySelfTest {
         return "workspace \(layout.focusedWorkspaceIndex + 1)/\(strip.workspaces.count),"
             + " window \(position.map { $0 + 1 } ?? 0)/\(workspace?.columns.count ?? 0)"
             + (half ?? "")
+            + ", keys \(keyboard(NSApp.keyWindow ?? NSApp.mainWindow))"
+            + agreement(column, NSApp.keyWindow ?? NSApp.mainWindow)
             + ", fill \(layout.fill)\(layout.isOverview ? ", overview" : "")"
             + (wall ?? "")
     }

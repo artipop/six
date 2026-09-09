@@ -266,19 +266,33 @@ private struct CarriedColumn: View {
 /// column that happens to be narrow. This is the same sentence said with a thing: the place, drawn
 /// where it is, in the profile's colour, exactly the size the window is about to be.
 ///
-/// **Above the carried card, and a border with no fill.** The card follows the pointer, and a drop
-/// that joins a window has the pointer over that window's middle — so the card is sitting on top of
-/// its own destination, twice as wide as it. An outline underneath would be an outline you cannot
-/// trust to be there; a border over the card is visible whatever it covers, and shows the card
-/// through it.
+/// **Above the carried card.** The card follows the pointer, and a drop that joins a window has the
+/// pointer over that window's middle — so the card is sitting on top of its own destination and
+/// twice as wide as it. An outline underneath would be one you cannot trust to be there.
+///
+/// **And dashed.** It was a solid line in the profile's colour first, which is exactly what a
+/// *focused window* is drawn with, and what the `+`'s outline is drawn with too — three accent
+/// rectangles on one screen meaning three different things, which is no vocabulary at all. A dashed
+/// edge over a wash of the same colour is the one shape here that is not a window: it reads as a
+/// place waiting to be filled, which is what it is. Which half is then a matter of where it is, and
+/// the outline is exactly the half.
 private struct DropSlot: View {
     @Environment(BrowserState.self) private var browser
 
     var body: some View {
         let layout = browser.layout
+        let accent = browser.selectedProfile.color
         if let frame = layout.dropSlotFrame {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(browser.selectedProfile.color, lineWidth: 3)
+                .fill(accent.opacity(0.14))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .strokeBorder(accent, style: StrokeStyle(lineWidth: 3, lineCap: .round,
+                                                                 dash: [12, 8]))
+                }
+                // Over the card, but not opaque over it: the page in the hand stays readable through
+                // the wash, so what is being put down and where are one picture rather than two.
+                .opacity(0.9)
                 .frame(width: frame.width, height: frame.height)
                 .offset(x: frame.minX, y: frame.minY)
                 .allowsHitTesting(false)
@@ -531,6 +545,10 @@ private struct ColumnView: View {
                         }
                     }
                     .overlay { if capturesClicks { ClickCatcher(action: activate) } }
+                    // Leaves a handle on this pane's own web view, so the keyboard can be given to
+                    // it when the rail's focus arrives here (`WebViewResponder`). In the background,
+                    // where it is a zero-size view that answers nothing.
+                    .background { WebViewResponder.Handle(tabID: tab.id) }
             } else {
                 ColumnPlaceholder(tab: tab, accent: accent, showsPicture: browser.layout.isOverview)
                     .contentShape(Rectangle())

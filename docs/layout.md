@@ -227,6 +227,33 @@ overlay above it can — so `ClickCatcher` is an `NSViewRepresentable` laid over
 Title bars are SwiftUI and keep their own buttons working, so a background window's close or back button still takes
 one click.
 
+### The keyboard follows the focus
+
+The rail's focus and AppKit's **first responder** are two different things, and they could disagree: `⌥→` moved the
+accent border, the address field and everything else keyed off the selection, while the keys went on arriving in the
+`WKWebView` a click had last given them to. So the arrow keys scrolled the window you had walked away from, and text
+went into its text field. On a rail that is nearly invisible — the window you left is off the edge a moment later —
+and in a split it is not: one half is visibly highlighted while what you type lands in the other, which is how it was
+reported.
+
+`WebViewResponder` closes it. SwiftUI has no handle on the `WKWebView` inside a `WebView` and there is no route from
+a `WebPage` to it either, so every pane leaves one: a zero-size AppKit view mounted beside its own web view, which
+finds it **by frame** — the pane's handle is given the pane's size, so its web view is the one whose middle lands
+inside it. Walking the view tree for the nearest ancestor holding exactly one web view is the obvious way and it does
+not work: SwiftUI mounts a `.background` in a layer of its own, and the first ancestor with any web view under it is
+usually the one that has all of them.
+
+Two things it deliberately does not do. It never takes the keyboard **off a text field** — `⌘L` and the `⌘K` line are
+reached by keystroke and left by keystroke, and a rail that walked into the page under them would eat the next thing
+typed (the same test the key router uses). And for a window with no page to give it to — a card, a start page, which
+is SwiftUI and has no web view at all — it takes the keys off whatever had them rather than leaving them with a
+window the rail is no longer looking at.
+
+Measured by `KeySelfTest.splitKeyboard`, which needs a setup of its own and says why: two windows with real pages,
+because a split of two start pages has nothing for a first responder to be, and the first version of the check
+measured exactly that. Each line prints who holds the keys and whether that agrees with the rail —
+`keys WebPageWebView 702pt 8FCCFAD6 (agrees)` — and ⌥→ has to carry it to the other half.
+
 **The other half of a split is an unfocused window like any other**, so the rule holds there too: the first click
 lands the focus on it and the second reaches the page. It is the one place the rule can be argued with — both halves
 are on screen, live and readable, which is not the case the rule was written for — and it stands anyway, because

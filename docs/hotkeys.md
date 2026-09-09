@@ -177,6 +177,10 @@ One rail's windows only — the workspace on screen — and this run only. `⌥�
   makes the `WKWebView` first responder by hand and then posts `⌘[` `⌘]` `⌘R`, watching the back list
   and a mark left inside the page. WebKit takes `⌥←` in front of the menu bar; it does not take
   these.
+- **The keyboard follows the rail's focus, and that had to be made to happen.** `⌥→` moves the focus; AppKit's first
+  responder stayed where a click had put it, so the keys went on reaching the window you had walked away from
+  ([layout.md](layout.md#the-keyboard-follows-the-focus)). It is never taken off a text field — `⌘L` and `⌘K` are
+  left by keystroke — so nothing here eats what you were typing.
 - **`SIX_UI_DEBUG=1` prints a line per key** — the chord, the context it landed in, and who took it. **`SIX_KEY_SELFTEST=1`**
   prints the whole matrix at launch: every binding against every context, which is how a binding that goes quiet
   somewhere is found without pressing anything (`KeySelfTest`; this Mac cannot press its own keys, see CLAUDE.md).
