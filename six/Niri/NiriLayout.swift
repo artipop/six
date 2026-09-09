@@ -214,6 +214,14 @@ nonisolated enum NiriEdge: Sendable, Hashable, CaseIterable {
     case below
 }
 
+/// Where a carried window would land: the answer, without the pointer position that produced it.
+/// See `NiriLayout.dropTarget`.
+nonisolated struct NiriDrop: Equatable, Sendable {
+    var workspace: Int
+    var index: Int
+    var joins: UUID?
+}
+
 /// A window being carried across the overview: where it was picked up, how far the pointer has
 /// travelled, and where it would land if it were let go now.
 ///
@@ -1383,7 +1391,13 @@ final class NiriLayout {
             // there is no room for a second half, and over the column it came from, which would be a
             // change wearing the look of one.
             guard !column.isSplit, !column.holds(drag.tabID) else { continue }
-            if abs(content - other.midX) < other.width * Self.joinFraction {
+            // Wider to leave than to enter, and that is not a detail: the two answers here are a
+            // *relayout of the whole row* apart — a column opening its other half, or closing it —
+            // and a hand resting on the line between them flipped it back and forth with every
+            // tremor, which is what the drag felt like it was thinking about. One threshold is a
+            // switch nobody can hold still; two is a decision.
+            let reach = other.width * (drag.joins == column.id ? Self.joinRelease : Self.joinFraction)
+            if abs(content - other.midX) < reach {
                 joins = column.id
                 side = content < other.midX ? .left : .right
             }
@@ -1399,6 +1413,17 @@ final class NiriLayout {
     /// beside it*: the middle half of it. Wide enough to be easy to hit on purpose, and leaving a
     /// quarter of the card at each end where the answer is still the gap next to it.
     static let joinFraction: CGFloat = 0.25
+    /// And how far it has to be taken back out again. See the hysteresis above.
+    static let joinRelease: CGFloat = 0.34
+
+    /// Where the carried window would land, and nothing about where the pointer is.
+    ///
+    /// What a row animates its shuffle on. The drag's `translation` changes with every pointer move
+    /// and the answer to *where would this land* does not, so a view keyed on the drag itself
+    /// restarts the shuffle sixty times a second and never finishes one.
+    var dropTarget: NiriDrop? {
+        columnDrag.map { NiriDrop(workspace: $0.toWorkspace, index: $0.toIndex, joins: $0.joins) }
+    }
 
     func cancelColumnDrag() {
         columnDrag = nil

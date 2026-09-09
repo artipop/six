@@ -168,7 +168,7 @@ private struct WorkspaceView: View {
         }
         // The row shuffles to open the gap, and only then: the carried card is a layer of its own and
         // has to keep up with the pointer, so animating every change here would make it swim.
-        .animation(.smooth(duration: 0.22), value: layout.columnDrag.map { [$0.toWorkspace, $0.toIndex] })
+        .animation(.smooth(duration: 0.22), value: layout.dropTarget)
         .frame(width: layerWidth, height: size.height, alignment: .topLeading)
         .clipped()
         .offset(x: -(layerWidth - size.width) / 2)
@@ -283,11 +283,16 @@ private struct OverviewPointerLayer: View {
 
     /// Every window on the canvas, in canvas points — a half of a split is a card of its own, so it
     /// can be picked up on its own and dropped somewhere else.
+    ///
+    /// The rail as it *stands*, deliberately, and not as it is being drawn mid-drag: this list is
+    /// what a press is looked up in, and a press happens before there is a drag. Reading the shuffled
+    /// arrangement instead put every card on the canvas back through this on every pointer move, for
+    /// a hit test nobody was going to make until the hand let go.
     private func cards(_ layout: NiriLayout) -> [(id: UUID, rect: CGRect)] {
         var cards: [(id: UUID, rect: CGRect)] = []
         for index in layout.workspaces.indices {
             let top = layout.rowY(index)
-            for place in layout.placements(layout.arrangement(workspaceAt: index)) {
+            for place in layout.placements(layout.workspaces[index].columns) {
                 cards.append((place.tabID, CGRect(x: layout.canvasX(content: place.frame.minX, workspace: index),
                                                   y: top + place.frame.minY,
                                                   width: place.frame.width, height: place.frame.height)))

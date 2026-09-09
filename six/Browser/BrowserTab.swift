@@ -206,7 +206,10 @@ final class BrowserTab: Identifiable {
     /// Reads the window's picture back — from an earlier launch, or from before the memory budget let
     /// go of it. Called when the overview is about to draw the window as a card.
     func loadPictureIfNeeded() {
-        guard thumbnail == nil, let thumbnails else { return }
+        // Not while the one on disk is of the shape the window used to be: `displaySize` threw the
+        // one in memory away for that reason, and reading the same picture back off disk would undo
+        // the throwing away. The redraw it scheduled writes the file too, and then this can read it.
+        guard thumbnail == nil, !pictureIsStale, let thumbnails else { return }
         Task {
             guard let image = await thumbnails.read(id), self.thumbnail == nil else { return }
             LivePageCache.log("read the picture of \(self.title) off disk")
@@ -215,8 +218,49 @@ final class BrowserTab: Identifiable {
         }
     }
 
-    /// The size the strip last drew this window at, for the thumbnail.
-    @ObservationIgnored var displaySize: CGSize = CGSize(width: 900, height: 700)
+    /// The size the strip last drew this window at, which is the size its picture is taken at.
+    ///
+    /// Not only a number to measure with: a window that has changed *shape* has a picture of the
+    /// shape it used to be, and a card fills its frame from that picture — so half a column's
+    /// picture drawn into a whole column is a wildly cropped slice of the page, and a whole one's
+    /// into a half is the same in the other direction. ⌥S does that to two windows at once, which is
+    /// where it was seen.
+    ///
+    /// So a change of shape drops the picture and asks for another — but only once the size has
+    /// stopped moving. A window being resized walks through a hundred sizes and none of them is
+    /// worth a snapshot; a split settles on one.
+    @ObservationIgnored private var drawnSize = CGSize(width: 900, height: 700)
+    /// The picture in hand, and the one on disk, are of a shape this window no longer is.
+    @ObservationIgnored private(set) var pictureIsStale = false
+    @ObservationIgnored private var redrawTask: Task<Void, Never>?
+
+    var displaySize: CGSize {
+        get { drawnSize }
+        set {
+            guard newValue.width > 1, newValue.height > 1 else { return }
+            let was = drawnSize
+            drawnSize = newValue
+            // Shape and not size: the strip redraws every window on every window resize, and a
+            // column that is the same rectangle a little larger has a picture that still fits it.
+            let before = was.width / was.height
+            let after = newValue.width / newValue.height
+            guard was.width > 1, abs(after - before) / max(before, after) > 0.08 else { return }
+            forgetPicture()
+            pictureIsStale = true
+            redrawTask?.cancel()
+            redrawTask = Task { @MainActor [weak self] in
+                // One switch animation, like the live-page budget's own settle: the picture is worth
+                // taking of the window where it came to rest.
+                try? await Task.sleep(for: .milliseconds(400))
+                guard !Task.isCancelled, let self else { return }
+                // The flag is cleared where the new picture lands, and not here: a window with no
+                // live page has nothing to take one *from*, and clearing it would let the picture of
+                // the old shape be read back off disk. Until then the card says the window's name,
+                // which is at least true.
+                self.rememberViewState(force: true)
+            }
+        }
+    }
 
     /// Web Inspector, turned on or off while the window is open.
     func applyInspectable(_ isInspectable: Bool) {
@@ -904,6 +948,7 @@ final class BrowserTab: Identifiable {
                 return
             }
             LivePageCache.log("drew \(self.title) at \(Int(image.size.width))×\(Int(image.size.height)), \(data.count / 1024) KB, in \(started.duration(to: clock.now))")
+            self.pictureIsStale = false // this one is of the shape the window is now
             self.thumbnail = image
             self.cache?.notePicture(self)
             self.thumbnails?.write(data, for: self.id)

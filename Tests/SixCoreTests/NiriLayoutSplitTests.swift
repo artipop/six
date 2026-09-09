@@ -329,6 +329,50 @@ struct NiriLayoutSplitTests {
         #expect(row(layout, workspace: 1) == [[ids[1]]])
     }
 
+    /// The answer is wider to leave than to enter, so a hand resting on the line between "join this
+    /// window" and "stand beside it" does not flip between them. Those two answers are a relayout of
+    /// the whole row apart, and flipping between them is what a drag that thinks about it looks like.
+    @Test func theJoinDoesNotFlickerOnItsOwnBoundary() {
+        let layout = layout()
+        let ids = fill(layout, 3)
+        carrying(layout, ids[0])
+
+        let frames = layout.columnFrames(layout.workspaces[0])
+        let to = { (fraction: CGFloat) in
+            layout.updateColumnDrag(translation: CGSize(
+                width: frames[1].midX - frames[0].midX + frames[1].width * fraction, height: 0))
+        }
+        // Inside the zone, and it takes.
+        to(0.2)
+        #expect(layout.columnDrag?.joins != nil)
+        // Just outside the *entering* threshold, where a single line would have let go: it holds.
+        to(0.28)
+        #expect(layout.columnDrag?.joins != nil)
+        // Past the leaving one, and only then.
+        to(0.4)
+        #expect(layout.columnDrag?.joins == nil)
+        // And coming back needs the narrower threshold again, not the wider one.
+        to(0.28)
+        #expect(layout.columnDrag?.joins == nil)
+        to(0.2)
+        #expect(layout.columnDrag?.joins != nil)
+    }
+
+    /// What the row animates its shuffle on: the answer, without the pointer position that produced
+    /// it. Keyed on the drag itself, every pointer move restarted the shuffle and none of them ever
+    /// finished.
+    @Test func theDropTargetIgnoresWhereThePointerIs() {
+        let layout = layout()
+        let ids = fill(layout, 3)
+        carrying(layout, ids[0])
+
+        layout.updateColumnDrag(translation: CGSize(width: 12, height: 0))
+        let first = layout.dropTarget
+        layout.updateColumnDrag(translation: CGSize(width: 24, height: 0))
+        #expect(layout.dropTarget == first) // the hand moved, the answer did not
+        #expect(first != nil)
+    }
+
     // MARK: What is written down
 
     /// A column on disk was a `tabID` and nothing else until it could hold two, and a session file
