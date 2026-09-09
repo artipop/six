@@ -18,6 +18,10 @@ nonisolated struct Setting: Sendable {
 final class SettingsStore {
     enum Key: String, CaseIterable {
         case searchEngine = "search.engine"
+        /// Whether six's language models and agents run at all. See `isAIEnabled`.
+        case aiEnabled = "ai.enabled"
+        /// Whether the welcome window has been answered, so it is shown exactly once.
+        case welcomeAnswered = "onboarding.welcome"
         case assistantModel = "assistant.model"
         /// The OpenAI-compatible endpoint the assistant talks to, and the model it names there.
         case assistantOpenAIBaseURL = "assistant.openai.baseURL"
@@ -112,6 +116,28 @@ final class SettingsStore {
 
     /// Ad and tracker blocking, on out of the box. Off means off: no lists fetched, nothing
     /// compiled, no rules attached — the switch is there for people who bring their own blocker.
+    /// The one switch over everything in six that talks to a language model or an agent: the ⌘K
+    /// line and its verbs, the bar over a selection **and the script that watches for one**, the
+    /// agent panel and ACP, deep research, and six's own MCP server. Off is not a greyed-out button
+    /// — none of it is built, nothing is injected into a page, and no socket is listening.
+    ///
+    /// What is deliberately *not* under it: the on-device bookmark index and page translation.
+    /// Neither is a model talking to a person — one is how search finds a page you read in another
+    /// language, the other is what every browser has had for a decade — and switching them off with
+    /// the assistant would take away search and the translate button for a reason nobody asked for.
+    ///
+    /// On by default, and the welcome window asks on the first launch (`WelcomePage`).
+    var isAIEnabled: Bool {
+        get { self[.aiEnabled].map { $0 == "1" } ?? true }
+        set { self[.aiEnabled] = newValue ? "1" : "0" }
+    }
+
+    /// Has the welcome window been answered? Until it has, it is what six opens with.
+    var hasAnsweredWelcome: Bool {
+        get { self[.welcomeAnswered] == "1" }
+        set { self[.welcomeAnswered] = newValue ? "1" : "0" }
+    }
+
     var blockingEnabled: Bool {
         get { self[.blockingEnabled].map { $0 == "1" } ?? true }
         set { self[.blockingEnabled] = newValue ? "1" : "0" }

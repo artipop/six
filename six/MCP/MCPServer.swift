@@ -94,6 +94,15 @@ final class MCPHost {
         }
     }
 
+    /// Stops listening and drops whoever is connected — what the assistant switch does to it
+    /// (`SettingsStore.isAIEnabled`). The socket file goes with the listener, so `six --mcp` fails
+    /// to connect rather than hanging on a door nobody answers.
+    func stop() {
+        listener.stop()
+        connections.removeAll()
+        status = String(localized: "not started")
+    }
+
     /// Tells every connected agent that six's tool list is not what it was.
     ///
     /// An agent asks `tools/list` once, when it connects, and keeps the answer — so without this a

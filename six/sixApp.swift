@@ -135,6 +135,7 @@ struct sixApp: App {
         // What the pages have under the cursor. Built with the controllers, like the blocker and
         // devtools, because a window restored at launch starts loading before anything asks.
         let pageFocus = PageFocusStore(controllers: pageControllers)
+        pageFocus.isEnabled = settings.isAIEnabled
         assistant.focus = pageFocus
         browser.pageFocus = pageFocus
         let tools = BrowserToolCatalog(browser: browser, assistant: assistant.settings, bookmarks: bookmarks, settings: settings, highlights: highlights)
@@ -149,7 +150,12 @@ struct sixApp: App {
         assistant.agentSession = agentSession
         assistant.research = research
         let mcp = MCPHost(server: MCPServer(catalog: tools))
-        mcp.start()
+        // Nothing is listening while the assistant switch is off: six's MCP server exists to be
+        // driven by an agent, and the switch says there is no agent (`SettingsStore.isAIEnabled`).
+        // `stop()` on a listener that never started still unlinks the socket file, so a launch
+        // with the switch off clears the one the previous launch left behind — otherwise the path
+        // sits there looking like a door six is answering.
+        if settings.isAIEnabled { mcp.start() } else { mcp.stop() }
         // The other direction: six as a host for servers that carry interfaces (docs/mcp-apps.md).
         let mcpApps = MCPAppStore()
         mcpApps.browser = browser

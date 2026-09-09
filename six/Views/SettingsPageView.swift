@@ -312,42 +312,61 @@ private struct AssistantPane: View {
     @Environment(AssistantStore.self) private var assistant
     @Environment(AgentSessionStore.self) private var agentSession
     @Environment(ResearchCoordinator.self) private var research
+    @Environment(SettingsStore.self) private var store
 
     var body: some View {
         @Bindable var settings = assistant.settings
         @Bindable var agentSession = agentSession
         @Bindable var research = research
+        @Bindable var store = store
         Form {
-            SwiftUI.Section("Model") {
-                Picker("The ⌘K Line Asks", selection: $settings.model) {
-                    ForEach(ModelChoice.languageModels) { choice in
-                        Label(choice.title, systemImage: choice.symbol)
-                            .tag(choice)
-                            .disabled(choice.isThirdParty && !FoundationModelsCompatibility.supportsThirdPartyModels)
-                    }
-                    ForEach(ModelChoice.agents) { choice in
-                        Label(choice.title, systemImage: choice.symbol).tag(choice)
-                    }
-                }
-                if !FoundationModelsCompatibility.supportsThirdPartyModels {
-                    Text("Remote models unavailable: SDK/OS Foundation Models mismatch")
-                        .font(.caption)
-                        .foregroundStyle(.orange)
-                }
-            }
-
-            SwiftUI.Section("Agent Panel") {
-                TextField("Model", text: $agentSession.modelOverride, prompt: Text("the agent's own default"))
-                Text("Passed to the ACP agent as ANTHROPIC_MODEL. Blank leaves the agent on whatever it picks for itself.")
+            // The switch over the whole pane, and over more than the pane: with it off nothing
+            // below is built at all (`SettingsStore.isAIEnabled`), which is why the rest goes grey
+            // rather than disappearing — a settings page that empties itself is a settings page you
+            // cannot find your way back through.
+            SwiftUI.Section {
+                Toggle("Use Language Models and Agents", isOn: $store.isAIEnabled)
+                Text("The ⌘K line, the verbs over selected text and in a field, the agent panel, deep research, and six's own MCP server. Off means none of them run and nothing is added to a page. Bookmark search and page translation are not affected.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
-            SwiftUI.Section("Deep Research") {
-                Stepper("Sources: \(research.sourceCount)", value: $research.sourceCount, in: 1...20)
-            }
+            Group {
+                SwiftUI.Section("Model") {
+                    Picker("The ⌘K Line Asks", selection: $settings.model) {
+                        ForEach(ModelChoice.languageModels) { choice in
+                            Label(choice.title, systemImage: choice.symbol)
+                                .tag(choice)
+                                .disabled(choice.isThirdParty && !FoundationModelsCompatibility.supportsThirdPartyModels)
+                        }
+                        ForEach(ModelChoice.agents) { choice in
+                            Label(choice.title, systemImage: choice.symbol).tag(choice)
+                        }
+                    }
+                    if !FoundationModelsCompatibility.supportsThirdPartyModels {
+                        Text("Remote models unavailable: SDK/OS Foundation Models mismatch")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    }
+                }
 
-            AssistantProviderSettings()
+                SwiftUI.Section("Agent Panel") {
+                    TextField("Model", text: $agentSession.modelOverride, prompt: Text("the agent's own default"))
+                    Text("Passed to the ACP agent as ANTHROPIC_MODEL. Blank leaves the agent on whatever it picks for itself.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                SwiftUI.Section("Deep Research") {
+                    Stepper("Sources: \(research.sourceCount)", value: $research.sourceCount, in: 1...20)
+                }
+
+                AssistantProviderSettings()
+            }
+            // Everything below the switch is about a thing that is not running while it is off.
+            // Greyed out rather than gone: a pane that empties itself gives you nothing to read
+            // when you are deciding whether to switch it back on.
+            .disabled(!store.isAIEnabled)
         }
         .formStyle(.grouped)
     }

@@ -547,6 +547,7 @@ struct BuiltInPageView: View {
         case .apps: MCPAppsView(tab: tab)
         #if os(macOS)
         case .settings: SettingsPageView(tab: tab)
+        case .welcome: WelcomePage(tab: tab)
         #endif
         }
     }

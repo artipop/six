@@ -9,6 +9,8 @@ struct ContentView: View {
     @Environment(BookmarkStore.self) private var bookmarks
     @Environment(SettingsStore.self) private var settings
     @Environment(HighlightStore.self) private var highlights
+    /// Six's own MCP server, here only so the assistant switch can stop and start it.
+    @Environment(MCPHost.self) private var mcp
     /// Every key six answers itself, in one place — see `KeyRouter` for why it is a monitor and not
     /// a menu, and `KeyBindings` for the table it walks.
     @State private var keys = KeyRouter()
@@ -29,7 +31,7 @@ struct ContentView: View {
                 .zIndex(1)
             NiriStripView()
                 .overlay(alignment: .bottom) {
-                    if !browser.layout.isOverview {
+                    if !browser.layout.isOverview, settings.isAIEnabled {
                         // Tucked away always, not just in fullscreen: a bar resting over the bottom of
                         // every page is in the way of the page — a video's controls sit exactly there.
                         // ⌘K brings it back (and an answer keeps it up), which is what it was for.
@@ -45,7 +47,10 @@ struct ContentView: View {
         // Mounted once, on the root, because six is a `Window` and not a `WindowGroup`. It draws
         // nothing: it only carries the `.translationTask` that can ask for a language download.
         .translationHost(browser.appleTranslator)
-        .inspector(isPresented: $showAgentPanel) {
+        // Not merely hidden: with the assistant switched off there is no panel to present, so the
+        // ACP process is never spawned and ⌘⇧A has nothing to toggle (`SettingsStore.isAIEnabled`).
+        .inspector(isPresented: Binding(get: { showAgentPanel && settings.isAIEnabled },
+                                        set: { showAgentPanel = $0 })) {
             AgentPanel()
                 .inspectorColumnWidth(min: 320, ideal: 400, max: 700)
         }
@@ -55,7 +60,8 @@ struct ContentView: View {
             browser.exitOverview()
             addressFocus = browser.selectedTabID
         })
-        .focusedSceneValue(\.toggleAgentPanel, FocusAddressBarAction { showAgentPanel.toggle() })
+        .focusedSceneValue(\.toggleAgentPanel, settings.isAIEnabled
+            ? FocusAddressBarAction { showAgentPanel.toggle() } : nil)
         .modifier(Panels(history: $showHistory, bookmarks: $showBookmarks))
         .focusedSceneValue(\.clearHistory, FocusAddressBarAction { confirmClearHistory = true })
         .focusedSceneValue(\.translatePage, FocusAddressBarAction {
@@ -67,8 +73,19 @@ struct ContentView: View {
         .clearHistoryDialog(isPresented: $confirmClearHistory)
         // A named workspace has just run out of windows and wants an answer (`NiriLayout`).
         .workspaceRemovalDialog()
+        // The switch reaches the parts that are not views: the watcher in every page, and the
+        // socket other agents drive six through. Both are off while it is.
+        .onChange(of: settings.isAIEnabled) { _, enabled in
+            browser.pageFocus?.isEnabled = enabled
+            if enabled { mcp.start() } else { mcp.stop(); showAgentPanel = false }
+        }
         .onAppear(perform: startKeyRouter)
         .onDisappear { keys.stop() }
+        .task {
+            // The first launch has one question, and it is asked as a window on the rail rather
+            // than a sheet over it (`WelcomePage`).
+            if !settings.hasAnsweredWelcome { browser.openBuiltIn(.welcome) }
+        }
         .task {
             // SwiftUI hands a new window's focus to the first field it finds, and that is now the
             // address field: six would open with the caret up there and the page unable to hear a

@@ -42,6 +42,9 @@ nonisolated enum BuiltInPage: String, Codable, Sendable, CaseIterable {
     /// which is what `page(for:)` returning nil already meant.
     #if os(macOS)
     case settings
+    /// The first launch's one question, and the layout in the act of being read (`WelcomePage`).
+    /// The Mac only, like settings: the phone has no assistant surface for the question to be about.
+    case welcome
     #endif
 
     var url: URL { URL(string: "six://\(rawValue)")! }
@@ -51,6 +54,7 @@ nonisolated enum BuiltInPage: String, Codable, Sendable, CaseIterable {
         case .apps: String(localized: "MCP Apps")
         #if os(macOS)
         case .settings: String(localized: "Settings")
+        case .welcome: String(localized: "Welcome")
         #endif
         }
     }

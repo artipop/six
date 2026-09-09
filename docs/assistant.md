@@ -92,6 +92,32 @@ Escape dismisses. The model menu, the bookmark scope and the provider settings a
 is read only when a verb is pressed or ⌘K is asked for, which is the difference between an assistant
 and a keylogger.
 
+## Switching all of it off
+
+`Settings ▸ Assistant ▸ Use Language Models and Agents` (`SettingsStore.isAIEnabled`) is one switch
+over everything in this document, and over the agent panel, deep research and six's own MCP server.
+Off is not a greyed-out button:
+
+- `AssistantBar` is not in the view hierarchy, so `focusAssistant` is nil and ⌘K's menu item is
+  disabled with it — the same for ⌘⇧A and the inspector behind it;
+- `PageFocusStore.isEnabled` goes false, which pulls the watcher **out of the pages**: the message
+  handler is removed at once and the user script is dropped from every window's controller, so a
+  page loaded after that has nothing of six's watching what is selected in it;
+- `MCPHost.stop()` closes the socket and unlinks it, so `six --mcp` fails to connect rather than
+  hanging on a door nobody answers.
+
+What is deliberately outside the switch: the on-device bookmark index and page translation. Neither
+is a model talking to a person — one is how search finds a page you read in another language, the
+other is what every browser has had for a decade — and taking them away with the assistant would
+remove search and the translate button for a reason nobody asked for.
+
+The switch is asked about once, on the first launch, in a window on the rail: `six://welcome`
+(`WelcomePage`, `BuiltInPage.welcome`). A page rather than a sheet, for the reason written on
+`BuiltInPage` — and answering it closes the window, which is the first thing a new person does with
+a column. `SettingsStore.hasAnsweredWelcome` is what keeps it to once; until it is answered the
+assistant is on, because six is a browser built around these models and a switch nobody has seen
+yet is not consent to have taken them away either.
+
 ## Models and agents
 
 Unchanged, and still the reason everything runs through Foundation Models' `LanguageModelSession`:

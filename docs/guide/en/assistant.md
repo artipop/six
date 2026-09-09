@@ -59,6 +59,23 @@ line is for the keyboard, the list is one.
 
 `⏎` sends the question. `⏎` on an empty line applies the answer already there.
 
+## Turning all of it off
+
+**Settings ▸ Assistant ▸ Use Language Models and Agents** is one switch over
+everything: the `⌘K` line, the bar over a selection, the agent panel, deep
+research, and six's MCP server.
+
+Off is not a greyed-out button. The line is not there at all, `⌘K` and `⌘⇧A` are
+disabled in the menu, the watcher that follows the selection is **removed from
+the pages** (a page opened after that gets nothing of six's in it), and the
+socket external agents drive the browser through is closed.
+
+Bookmark search and page translation keep working: neither is a model talking to
+you — one is search, the other is a translator.
+
+You are asked once, on the first launch, in a window on the rail —
+`six://welcome`. The answer is never final: the switch is always there.
+
 ## Which model answers
 
 | | |

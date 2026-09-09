@@ -53,6 +53,19 @@ final class PageFocusStore {
     @ObservationIgnored private var handlers: [UUID: PageFocusMessageHandler] = [:]
     @ObservationIgnored private let controllers: PageControllers
 
+    /// The assistant switch (`SettingsStore.isAIEnabled`), enforced here rather than in the views:
+    /// with it off there is no watcher in the page at all, which is the difference between a
+    /// feature that is hidden and one that is not running. Scripts are read when a page starts
+    /// loading, so switching it back on reaches the pages loaded after it — the ones already open
+    /// stop being watched at once either way, because the handler goes with the switch.
+    var isEnabled: Bool = true {
+        didSet {
+            guard isEnabled != oldValue else { return }
+            focuses.removeAll()
+            controllers.forEach { windowID, controller in install(in: controller, for: windowID) }
+        }
+    }
+
     init(controllers: PageControllers) {
         self.controllers = controllers
         controllers.onController { [weak self] windowID, controller in
@@ -80,6 +93,11 @@ final class PageFocusStore {
 
     private func install(in controller: WKUserContentController, for windowID: UUID) {
         controller.removeScriptMessageHandler(forName: PageFocusScript.handlerName, contentWorld: .six)
+        handlers[windowID] = nil
+        guard isEnabled else {
+            controllers.setUserScripts([], named: Self.scriptName, for: windowID)
+            return
+        }
         let handler = PageFocusMessageHandler(windowID: windowID, store: self)
         handlers[windowID] = handler
         controller.add(handler, contentWorld: .six, name: PageFocusScript.handlerName)
@@ -93,7 +111,7 @@ final class PageFocusStore {
     }
 
     fileprivate func receive(_ body: Any, from windowID: UUID) {
-        guard let message = body as? [String: Any] else { return }
+        guard isEnabled, let message = body as? [String: Any] else { return }
         var focus = PageFocus()
         focus.kind = PageFocus.Kind(rawValue: message["kind"] as? String ?? "") ?? .none
         focus.text = message["text"] as? String ?? ""
