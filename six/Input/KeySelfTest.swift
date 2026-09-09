@@ -376,6 +376,17 @@ enum KeySelfTest {
         try? await Task.sleep(for: .milliseconds(400))
         note("⌥← (back again) → \(rail(browser))")
 
+        // And the ⌃Tab ring stops at the *column*: the two halves are one thing to fly to, because
+        // they are both on screen at once. `ring` has to come out one short of `rail`, which counts
+        // windows here.
+        post(flags: .control, code: .tab, in: window)
+        try? await Task.sleep(for: .milliseconds(350))
+        let windows = browser.layout.focusedWorkspace?.columns.flatMap(\.tabIDs).count ?? 0
+        let columns = browser.layout.focusedWorkspace?.columns.count ?? 0
+        note("⌃⇥ over a split → ring \(browser.switcher.ring.count), columns \(columns), windows \(windows)")
+        browser.cancelWindowSwitch()
+        try? await Task.sleep(for: .milliseconds(200))
+
         browser.closeTab(right.id, remembering: false)
         browser.closeTab(left.id, remembering: false)
         try? await Task.sleep(for: .milliseconds(300))

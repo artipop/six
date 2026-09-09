@@ -403,6 +403,30 @@ struct NiriLayoutSplitTests {
         #expect(first != nil)
     }
 
+    /// What anything drawing a window away from the rail asks: what else is in its column, and
+    /// which column is it. The ⌃Tab ring is built on both — one stop per column, and a card that
+    /// draws the pair.
+    @Test func aWindowKnowsWhatItSharesItsColumnWith() {
+        let layout = layout()
+        let ids = fill(layout, 3)
+        layout.focusColumn(-1)
+        layout.toggleSplit() // [0] [1 | 2]
+
+        #expect(layout.columnMates(of: ids[1]) == [ids[1], ids[2]])
+        #expect(layout.columnMates(of: ids[2]) == [ids[1], ids[2]]) // left to right, from either half
+        #expect(layout.columnMates(of: ids[0]) == [ids[0]])
+        // The two halves are one column and the window beside them is another: that is the whole of
+        // what tells "sharing a column" from "standing next to each other".
+        #expect(layout.columnID(of: ids[1]) == layout.columnID(of: ids[2]))
+        #expect(layout.columnID(of: ids[0]) != layout.columnID(of: ids[1]))
+        // A window this strip has never heard of is a column of one, not an empty answer: the
+        // callers are views, and a card with nothing to draw is worse than a card drawing the one
+        // window it was given.
+        let stranger = UUID()
+        #expect(layout.columnMates(of: stranger) == [stranger])
+        #expect(layout.columnID(of: stranger) == nil)
+    }
+
     // MARK: What is written down
 
     /// A column on disk was a `tabID` and nothing else until it could hold two, and a session file

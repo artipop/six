@@ -95,7 +95,13 @@ struct WindowSwitcherOverlay: View {
     }
 }
 
-/// One window in the ring: its last picture, or the card the rail draws when there is no picture yet.
+/// One stop in the ring: a picture of the **column**, which for a split is both halves side by side,
+/// the way it looks on the rail.
+///
+/// A stop is a column and not a window (`WindowSwitcher.open`), so this draws what you would be
+/// looking at after the flight rather than one of the two things in it. The half the ring actually
+/// landed on is the one drawn at full strength — landing puts the focus back in it, and a card that
+/// showed a pair without saying which would be a card that hid the answer.
 private struct WindowCard: View {
     let tab: BrowserTab
     let size: CGSize
@@ -107,8 +113,15 @@ private struct WindowCard: View {
         browser.profiles.first { $0.id == tab.profileID }?.color ?? .accentColor
     }
 
+    /// The windows this card stands for, and the gap between them: half the one between cards, for
+    /// the same reason the rail's own is half the gap between columns — proximity is what says the
+    /// two belong to each other.
+    private var mates: [BrowserTab] {
+        browser.layout.columnMates(of: tab.id).compactMap { browser.tab($0) }
+    }
+
     var body: some View {
-        picture
+        content
             .frame(width: size.width, height: size.height)
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             .overlay {
@@ -124,7 +137,28 @@ private struct WindowCard: View {
     }
 
     @ViewBuilder
-    private var picture: some View {
+    private var content: some View {
+        let pair = mates
+        if pair.count > 1 {
+            let seam = max(2, size.width * 0.02)
+            let half = (size.width - seam) / 2
+            HStack(spacing: seam) {
+                ForEach(pair, id: \.id) { mate in
+                    Self.picture(of: mate, accent: accent,
+                                 size: CGSize(width: half, height: size.height))
+                        // Which half you would land in. The other one is there because it is what
+                        // you would be looking at, not because you are choosing it.
+                        .opacity(mate.id == tab.id ? 1 : 0.5)
+                }
+            }
+            .background(.background)
+        } else {
+            Self.picture(of: tab, accent: accent, size: size)
+        }
+    }
+
+    @ViewBuilder
+    private static func picture(of tab: BrowserTab, accent: Color, size: CGSize) -> some View {
         ZStack {
             LinearGradient(colors: [accent.opacity(0.18), accent.opacity(0.05)],
                            startPoint: .topLeading, endPoint: .bottomTrailing)
@@ -140,6 +174,7 @@ private struct WindowCard: View {
                     .foregroundStyle(accent)
             }
         }
+        .frame(width: size.width, height: size.height)
         .background(.background)
     }
 }

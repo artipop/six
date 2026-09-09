@@ -1309,13 +1309,19 @@ final class BrowserState {
     func stepWindowSwitch(_ delta: Int) {
         if !switcher.isOpen {
             var opened = false
-            withAnimation(.smooth(duration: 0.18)) { opened = switcher.open(railOrder, current: selectedTabID) }
+            withAnimation(.smooth(duration: 0.18)) {
+                opened = switcher.open(railOrder, current: selectedTabID) { [layout] in layout.columnID(of: $0) ?? $0 }
+            }
             guard opened else { return }
             // The pictures the cards are drawn from: the window being read is drawn now, while it
             // still has a page to draw, and the ones whose picture was dropped for the memory budget
             // read theirs back off disk — the same two moves the overview makes on its way in.
             selectedTab?.rememberViewState(force: true)
-            for id in switcher.ring { tabsByID[id]?.loadPictureIfNeeded() }
+            // Both halves of a split, not only the one the ring stopped at: the card draws the pair,
+            // and half a pair with no picture is the half that looks broken.
+            for id in switcher.ring.flatMap({ layout.columnMates(of: $0) }) {
+                tabsByID[id]?.loadPictureIfNeeded()
+            }
         }
         withAnimation(.smooth(duration: 0.2)) { switcher.step(delta) }
     }
@@ -1343,7 +1349,10 @@ final class BrowserState {
     /// on a key is a bigger move than the key looks, and there are two keys for it already (`⌥↑`,
     /// `⌥↓`) that say where they are going before they go.
     private var railOrder: [UUID] {
-        layout.focusedWorkspace?.columns.map(\.tabID) ?? []
+        // Every window, both halves of a split included: the ring collapses them to one stop itself
+        // (`WindowSwitcher.open`), and it can only pick the half you were last in if it has been
+        // handed both.
+        layout.focusedWorkspace?.columns.flatMap(\.tabIDs) ?? []
     }
 
     // MARK: Carrying a window across the overview

@@ -198,6 +198,12 @@ either direction — so `⌥←` / `⌥→` walk the rail and `⌃Tab` walks the
 - The ring is fixed when the switch opens and does not reorder while it is held — a list that resorted
   itself under the key would move the window you were aiming at — and it wraps, because a ring has no
   ends to hit. Windows never focused this run (restored from the snapshot) follow in rail order.
+- **A stop is a column, not a window.** Two windows sharing one are both on screen at once, so a ring
+  that stopped at each of them in turn would be asking you to choose between two halves of the view
+  you are already looking at. `WindowSwitcher.open` takes a `column` function and collapses the halves
+  *after* sorting by memory, so the half that survives is the one looked at more recently and landing
+  puts the focus back in it. The card draws the pair, the way it looks on the rail, with the half you
+  would land in at full strength — measured by `KeySelfTest`: `ring 5, columns 5, windows 6`.
 - A rail with **one** window on it opens a ring of one. The key has to answer: a press that gives
   nothing back cannot be told from a key that is not bound, or from a browser that has stopped
   listening, and this one is held down, so the nothing would last as long as the hand does. Only an

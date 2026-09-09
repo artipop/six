@@ -50,6 +50,11 @@ Nothing loads while the ring is open: the cards are pictures taken of the
 windows, and the page is built where you land. One press of `⌃Tab` is a toggle
 between the last two windows.
 
+A split column is **one** stop in the ring, and its card draws both halves the
+way they stand on the rail — the one you would land in at full strength. Walking
+the halves separately would be pointless: they are both in front of you already,
+and `⌥←` / `⌥→` are what move between them.
+
 A rail with one window on it still opens the ring — with one card in it. The key
 has to answer: a press that gives nothing back cannot be told from an unbound key
 or from a browser that has stopped listening, and this one is held, so the

@@ -1292,6 +1292,28 @@ final class NiriLayout {
 
     var isSplit: Bool { focusedWorkspace?.focusedColumn?.isSplit ?? false }
 
+    /// The windows sharing a column with this one, left to right — just itself for a window that has
+    /// its column to itself.
+    ///
+    /// For anything that draws a window **away from the rail** and has to draw it as the thing it
+    /// actually is: the ⌃Tab ring above all, where a card is a picture of a column and a split is two
+    /// pictures in one card, the way it looks on the rail.
+    func columnMates(of tabID: UUID) -> [UUID] {
+        for workspace in workspaces {
+            if let column = workspace.columns.first(where: { $0.holds(tabID) }) { return column.tabIDs }
+        }
+        return [tabID]
+    }
+
+    /// The column a window is in, by the column's own id — what tells two windows that share one
+    /// apart from two that merely stand next to each other.
+    func columnID(of tabID: UUID) -> UUID? {
+        for workspace in workspaces {
+            if let column = workspace.columns.first(where: { $0.holds(tabID) }) { return column.id }
+        }
+        return nil
+    }
+
     // MARK: Carrying a window across the overview
 
     /// Where a window is in the strip on screen.
