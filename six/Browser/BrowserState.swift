@@ -1233,7 +1233,15 @@ final class BrowserState {
 
     /// ⌥S. The window next along comes in beside the one being read, or the pair goes back to being
     /// two windows on the rail (`NiriLayout.toggleSplit`).
-    func toggleSplit() { animateLayout { layout.toggleSplit() } }
+    ///
+    /// Deliberately not through `animateLayout`. Every other layout verb moves windows about at a
+    /// fixed width; this one *changes* the width of two live pages, and WebKit lays a page out again
+    /// at every width an animation passes through — measured at three interim layouts over a third
+    /// of a second, each of them a page briefly wider than the box it is in, which is a horizontal
+    /// scrollbar you can see. The fill modes gave up their animation for the same reason
+    /// (docs/layout.md). `NiriLayout.toggleSplit` refuses an animation from the inside as well, for
+    /// the menu items that carry one of their own.
+    func toggleSplit() { plainLayoutChange { layout.toggleSplit() } }
 
     /// Two named windows into one column, or the ⌥S toggle when only one is named. What
     /// `split_window` calls; the answer is whether the strip changed.
@@ -1243,14 +1251,14 @@ final class BrowserState {
         guard let other, let second = tab(other) else {
             selectTab(id)
             var changed = false
-            animateLayout { changed = layout.toggleSplit() }
+            plainLayoutChange { changed = layout.toggleSplit() }
             return changed
         }
         // One strip at a time: a column is a place on one profile's rail, and two windows from
         // different profiles have no column they could share.
         guard second.profileID == window.profileID else { return false }
         var changed = false
-        animateLayout { changed = layout.split(tabID: id, with: other, in: window.profileID) }
+        plainLayoutChange { changed = layout.split(tabID: id, with: other, in: window.profileID) }
         return changed
     }
 
@@ -1271,7 +1279,7 @@ final class BrowserState {
         // one opens beside the focused column, so the focus goes there first and comes back.
         selectTab(tab.id)
         let opened = newTab(url: url, in: tab.profileID, on: .right)
-        animateLayout {
+        plainLayoutChange {
             layout.focus(tabID: tab.id)
             layout.toggleSplit()
         }
@@ -1438,6 +1446,15 @@ final class BrowserState {
         layout.horizontalPreview = 0
         if value != .tiled { layout.isOverview = false }
         layout.setFill(value)
+        syncSelection()
+    }
+
+    /// A layout change that must land in one step, because it changes how wide a live page is.
+    /// `toggleSplit` has the account; `setFill` is the other one, and predates this by a long way.
+    private func plainLayoutChange(_ body: () -> Void) {
+        layout.verticalPreview = 0
+        layout.horizontalPreview = 0
+        body()
         syncSelection()
     }
 

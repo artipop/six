@@ -414,6 +414,12 @@ final class NiriLayout {
         #endif
     }
 
+    /// The same, for a change that only sometimes needs it — a window closing out of a split, which
+    /// is a width change, against one closing out of a column of its own, which is not.
+    private func unanimated(if condition: Bool, _ body: () -> Void) {
+        if condition { unanimated(body) } else { body() }
+    }
+
     private func mutate(profile: UUID, _ body: (inout NiriStrip) -> Void) {
         var s = strips[profile] ?? NiriStrip()
         body(&s)
@@ -1030,20 +1036,26 @@ final class NiriLayout {
     }
 
     func removeColumn(tabID: UUID) {
-        mutate { s in
-            for i in s.workspaces.indices {
-                guard let index = s.workspaces[i].columns.firstIndex(where: { $0.holds(tabID) }) else { continue }
-                // Half a split closing leaves the other half where it stood, with the whole column to
-                // itself — closing one of two windows is not closing the pair.
-                if s.workspaces[i].columns[index].remove(tabID) {
-                    s.workspaces[i].focus = index
-                } else {
-                    s.workspaces[i].columns.remove(at: index)
-                    s.workspaces[i].focus = max(0, min(index, s.workspaces[i].columns.count - 1))
+        // Half of a split closing leaves the other half to fill the column, which is a live page
+        // changing width — `toggleSplit` has the account of why that must not be animated. A window
+        // closing out of a column of its own changes nobody's width, and keeps its animation.
+        let widensAWindow = strip.workspaces.contains { $0.columns.contains { $0.holds(tabID) && $0.isSplit } }
+        unanimated(if: widensAWindow) {
+            mutate { s in
+                for i in s.workspaces.indices {
+                    guard let index = s.workspaces[i].columns.firstIndex(where: { $0.holds(tabID) }) else { continue }
+                    // Half a split closing leaves the other half where it stood, with the whole column to
+                    // itself — closing one of two windows is not closing the pair.
+                    if s.workspaces[i].columns[index].remove(tabID) {
+                        s.workspaces[i].focus = index
+                    } else {
+                        s.workspaces[i].columns.remove(at: index)
+                        s.workspaces[i].focus = max(0, min(index, s.workspaces[i].columns.count - 1))
+                    }
+                    scrollFocusIntoView(&s.workspaces[i])
+                    askBeforeRemoving(s.workspaces[i], in: activeProfileID)
+                    return
                 }
-                scrollFocusIntoView(&s.workspaces[i])
-                askBeforeRemoving(s.workspaces[i], in: activeProfileID)
-                return
             }
         }
     }
@@ -1176,43 +1188,50 @@ final class NiriLayout {
     @discardableResult
     func toggleSplit() -> Bool {
         var changed = false
-        // Animated, unlike every other change that moves a window from one column to another: the
-        // strip draws by window and not by column (`NiriWindowPlace`), so nothing here is built or
-        // torn down — the two halves slide into the width they now have, which is the whole of what
-        // happened.
-        mutate { s in
-            guard s.workspaces.indices.contains(s.focus) else { return }
-            var ws = s.workspaces[s.focus]
-            guard ws.columns.indices.contains(ws.focus) else { return }
-            if ws.columns[ws.focus].isSplit {
-                var column = ws.columns[ws.focus]
-                guard let right = column.second else { return }
-                let followed = column.focusedTabID
-                column.remove(right)
-                ws.columns[ws.focus] = column
-                ws.columns.insert(NiriColumn(tabID: right), at: ws.focus + 1)
-                if followed == right { ws.focus += 1 }
-            } else {
-                let side: NiriPlacement = ws.columns.indices.contains(ws.focus + 1) ? .right : .left
-                let at = side == .right ? ws.focus + 1 : ws.focus - 1
-                guard ws.columns.indices.contains(at) else { return }
-                let home = ws.columns[ws.focus].id
-                let taken = ws.columns[at].focusedTabID
-                var neighbour = ws.columns[at]
-                if neighbour.remove(taken) {
-                    ws.columns[at] = neighbour
+        // **Not animated, and the reason is the page and not the view.** Nothing here is built or
+        // torn down any more — the strip draws by window (`NiriWindowPlace`), so a split is one view
+        // keeping its identity and changing its frame, which is exactly what an animation is for.
+        // But that frame is a live `WebView`: WebKit lays the page out again at every width the
+        // animation passes through, and a page still laid out at a whole column's width inside half
+        // of one has a horizontal scrollbar until it catches up. Measured with a page that reports
+        // its own viewport: animated, it went 1412 → 1355 → 702 and was briefly wide inside a narrow
+        // box; un-animated it goes straight to 702 in one resize. The fill modes do not animate for
+        // this reason either, and it is written up in docs/layout.md.
+        unanimated {
+            mutate { s in
+                guard s.workspaces.indices.contains(s.focus) else { return }
+                var ws = s.workspaces[s.focus]
+                guard ws.columns.indices.contains(ws.focus) else { return }
+                if ws.columns[ws.focus].isSplit {
+                    var column = ws.columns[ws.focus]
+                    guard let right = column.second else { return }
+                    let followed = column.focusedTabID
+                    column.remove(right)
+                    ws.columns[ws.focus] = column
+                    ws.columns.insert(NiriColumn(tabID: right), at: ws.focus + 1)
+                    if followed == right { ws.focus += 1 }
                 } else {
-                    ws.columns.remove(at: at)
+                    let side: NiriPlacement = ws.columns.indices.contains(ws.focus + 1) ? .right : .left
+                    let at = side == .right ? ws.focus + 1 : ws.focus - 1
+                    guard ws.columns.indices.contains(at) else { return }
+                    let home = ws.columns[ws.focus].id
+                    let taken = ws.columns[at].focusedTabID
+                    var neighbour = ws.columns[at]
+                    if neighbour.remove(taken) {
+                        ws.columns[at] = neighbour
+                    } else {
+                        ws.columns.remove(at: at)
+                    }
+                    // By id: taking the window from the left moves every index after it, this one
+                    // included.
+                    guard let index = ws.columns.firstIndex(where: { $0.id == home }) else { return }
+                    ws.columns[index].insert(taken, on: side)
+                    ws.focus = index
                 }
-                // By id: taking the window from the left moves every index after it, this one
-                // included.
-                guard let index = ws.columns.firstIndex(where: { $0.id == home }) else { return }
-                ws.columns[index].insert(taken, on: side)
-                ws.focus = index
+                scrollFocusIntoView(&ws)
+                s.workspaces[s.focus] = ws
+                changed = true
             }
-            scrollFocusIntoView(&ws)
-            s.workspaces[s.focus] = ws
-            changed = true
         }
         if !changed { hitWall(.trailing) }
         return changed
@@ -1229,28 +1248,31 @@ final class NiriLayout {
     func split(tabID: UUID, with other: UUID, in profileID: UUID) -> Bool {
         guard tabID != other else { return false }
         var done = false
-        mutate(profile: profileID) { s in
-            guard let home = Self.place(of: tabID, in: s) else { return }
-            if s.workspaces[home.workspace].columns[home.index].holds(other) { done = true; return }
-            guard !s.workspaces[home.workspace].columns[home.index].isSplit else { return }
-            guard let from = Self.place(of: other, in: s) else { return }
-            let homeID = s.workspaces[home.workspace].columns[home.index].id
-            var source = s.workspaces[from.workspace].columns[from.index]
-            if source.remove(other) {
-                s.workspaces[from.workspace].columns[from.index] = source
-            } else {
-                s.workspaces[from.workspace].columns.remove(at: from.index)
-                s.workspaces[from.workspace].focus =
-                    min(s.workspaces[from.workspace].focus, max(0, s.workspaces[from.workspace].columns.count - 1))
-                askBeforeRemoving(s.workspaces[from.workspace], in: profileID)
+        // Un-animated for the reason `toggleSplit` gives: the width of a live page is changing.
+        unanimated {
+            mutate(profile: profileID) { s in
+                guard let home = Self.place(of: tabID, in: s) else { return }
+                if s.workspaces[home.workspace].columns[home.index].holds(other) { done = true; return }
+                guard !s.workspaces[home.workspace].columns[home.index].isSplit else { return }
+                guard let from = Self.place(of: other, in: s) else { return }
+                let homeID = s.workspaces[home.workspace].columns[home.index].id
+                var source = s.workspaces[from.workspace].columns[from.index]
+                if source.remove(other) {
+                    s.workspaces[from.workspace].columns[from.index] = source
+                } else {
+                    s.workspaces[from.workspace].columns.remove(at: from.index)
+                    s.workspaces[from.workspace].focus =
+                        min(s.workspaces[from.workspace].focus, max(0, s.workspaces[from.workspace].columns.count - 1))
+                    askBeforeRemoving(s.workspaces[from.workspace], in: profileID)
+                }
+                // By id, because taking the window out has moved every index after it.
+                guard let index = s.workspaces[home.workspace].columns.firstIndex(where: { $0.id == homeID }) else { return }
+                s.workspaces[home.workspace].columns[index].insert(other, on: .right)
+                s.workspaces[home.workspace].focus = index
+                s.focus = home.workspace
+                scrollFocusIntoView(&s.workspaces[home.workspace])
+                done = true
             }
-            // By id, because taking the window out has moved every index after it.
-            guard let index = s.workspaces[home.workspace].columns.firstIndex(where: { $0.id == homeID }) else { return }
-            s.workspaces[home.workspace].columns[index].insert(other, on: .right)
-            s.workspaces[home.workspace].focus = index
-            s.focus = home.workspace
-            scrollFocusIntoView(&s.workspaces[home.workspace])
-            done = true
         }
         return done
     }
@@ -1415,6 +1437,21 @@ final class NiriLayout {
     static let joinFraction: CGFloat = 0.25
     /// And how far it has to be taken back out again. See the hysteresis above.
     static let joinRelease: CGFloat = 0.34
+
+    /// Where the carried window would land, as a rectangle on the canvas: the half of a column it
+    /// would join, or the whole column it would stand in. What the drop outline is drawn from — the
+    /// answer to *which half* has to be a place on the screen and not an inference from a gap.
+    ///
+    /// Taken from the arrangement rather than worked out again, so the outline cannot disagree with
+    /// the row underneath it: the carried window has a place in that list, and this is it.
+    var dropSlotFrame: CGRect? {
+        guard isOverview, let drag = columnDrag else { return nil }
+        let places = placements(arrangement(workspaceAt: drag.toWorkspace))
+        guard let place = places.first(where: { $0.tabID == drag.tabID }) else { return nil }
+        return CGRect(x: canvasX(content: place.frame.minX, workspace: drag.toWorkspace),
+                      y: rowY(drag.toWorkspace) + place.frame.minY,
+                      width: place.frame.width, height: place.frame.height)
+    }
 
     /// Where the carried window would land, and nothing about where the pointer is.
     ///

@@ -358,6 +358,36 @@ struct NiriLayoutSplitTests {
         #expect(layout.columnDrag?.joins != nil)
     }
 
+    /// The outline the drop draws is the *place*, at the size the window is about to be: half a
+    /// column when it would join one, a whole column when it would stand beside it. Taken from the
+    /// arrangement, so it cannot disagree with the row drawn under it.
+    @Test func theDropOutlineIsTheHalfItWouldLandIn() {
+        let layout = layout()
+        let ids = fill(layout, 3)
+        carrying(layout, ids[0])
+        let whole = layout.columnFrames(layout.workspaces[0])[1]
+
+        // Beside the middle window: a whole column's worth of outline.
+        layout.updateColumnDrag(translation: CGSize(width: whole.midX - layout.columnFrames(layout.workspaces[0])[0].midX
+                                                        + whole.width * 0.4, height: 0))
+        #expect(layout.columnDrag?.joins == nil)
+        #expect(abs((layout.dropSlotFrame?.width ?? 0) - layout.columnWidth) < 1)
+
+        // On its middle: half of one, and the half it is being held over.
+        layout.updateColumnDrag(translation: CGSize(width: whole.midX - layout.columnFrames(layout.workspaces[0])[0].midX
+                                                        + whole.width * 0.1, height: 0))
+        #expect(layout.columnDrag?.joins != nil)
+        let slot = layout.dropSlotFrame
+        #expect(abs((slot?.width ?? 0) - (layout.columnWidth - layout.paneGap) / 2) < 1.5)
+        #expect(slot?.height == layout.columnHeight)
+        // Held right of that window's middle, so it is the right half — said against the row as it
+        // is being drawn, which is the only place both halves have a position at all.
+        let places = layout.placements(layout.arrangement(workspaceAt: 0))
+        let carried = places.first { $0.tabID == ids[0] }
+        #expect(carried?.side == .right)
+        #expect(abs(layout.canvasX(content: carried?.frame.minX ?? 0, workspace: 0) - (slot?.minX ?? 0)) < 0.5)
+    }
+
     /// What the row animates its shuffle on: the answer, without the pointer position that produced
     /// it. Keyed on the drag itself, every pointer move restarted the shuffle and none of them ever
     /// finished.

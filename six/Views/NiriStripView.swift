@@ -38,6 +38,8 @@ struct NiriStripView: View {
                 // be carried out of the row that was drawing it.
                 if layout.isOverview {
                     CarriedColumn()
+                    // Above the card in the hand, deliberately: see `DropSlot`.
+                    DropSlot()
                     OverviewPointerLayer(size: proxy.size)
                 }
             }
@@ -155,6 +157,11 @@ private struct WorkspaceView: View {
                                        x: frame.minX - scroll, width: frame.width, layout: layout)
                     )
                     .frame(width: frame.width, height: frame.height)
+                    // A window changing width is a live page being laid out again, and it lands in
+                    // one step whatever animation is in the air — a menu item's, a caller's. Only
+                    // the width: the *offset* is the rail scrolling, which is the movement the
+                    // animation is for.
+                    .animation(nil, value: frame.size)
                     .offset(x: frame.minX - scroll, y: frame.minY)
                     .zIndex(isFocused ? 1 : 0)
                     // A new window slides in from beside its neighbour and settles; a closed one fades
@@ -247,6 +254,38 @@ private struct CarriedColumn: View {
                 .offset(x: frame.minX, y: frame.minY)
                 .allowsHitTesting(false)
                 .transition(.identity)
+        }
+    }
+}
+
+/// Where the window in the hand would land: the half of a column it would join, or the whole column
+/// it would stand in.
+///
+/// The row already says as much by opening a gap of that size, and that was not enough — a gap is
+/// the *absence* of something, and half a column's absence beside a window reads as easily as a
+/// column that happens to be narrow. This is the same sentence said with a thing: the place, drawn
+/// where it is, in the profile's colour, exactly the size the window is about to be.
+///
+/// **Above the carried card, and a border with no fill.** The card follows the pointer, and a drop
+/// that joins a window has the pointer over that window's middle — so the card is sitting on top of
+/// its own destination, twice as wide as it. An outline underneath would be an outline you cannot
+/// trust to be there; a border over the card is visible whatever it covers, and shows the card
+/// through it.
+private struct DropSlot: View {
+    @Environment(BrowserState.self) private var browser
+
+    var body: some View {
+        let layout = browser.layout
+        if let frame = layout.dropSlotFrame {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(browser.selectedProfile.color, lineWidth: 3)
+                .frame(width: frame.width, height: frame.height)
+                .offset(x: frame.minX, y: frame.minY)
+                .allowsHitTesting(false)
+                // On the same beat as the row's own shuffle, so the outline and the gap it marks
+                // arrive together rather than one chasing the other.
+                .animation(.smooth(duration: 0.22), value: frame)
+                .transition(.opacity)
         }
     }
 }
@@ -514,6 +553,15 @@ private struct ColumnView: View {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .strokeBorder(isFocused ? accent : Color.primary.opacity(0.12),
                                   lineWidth: isFocused ? 2.5 : 1)
+                    // Here and not on the card, which is where it used to be. A value-scoped
+                    // animation animates *every* change in the subtree it is on when its value
+                    // changes — including the window's width, which nothing else in the rail ever
+                    // changed at the same moment as the focus. ⌥S changes both at once, and this
+                    // 0.18 s was what stepped two live pages through seven interim widths on the way
+                    // from a whole column to half of one, each of them a page laid out wider than
+                    // the box it was in. Measured with a page that reports its own viewport; the
+                    // border is what the animation was for and it still has it.
+                    .animation(.easeOut(duration: 0.18), value: isFocused)
             }
         }
         .overlay(alignment: .topTrailing) {
@@ -528,7 +576,6 @@ private struct ColumnView: View {
         }
         .shadow(color: .black.opacity(filled ? 0 : (isFocused ? 0.28 : 0.16)),
                 radius: filled ? 0 : (isFocused ? 18 : 10), y: filled ? 0 : 5)
-        .animation(.easeOut(duration: 0.18), value: isFocused)
     }
 }
 
