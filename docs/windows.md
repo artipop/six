@@ -303,6 +303,19 @@ coordinates within two pixels of its centre.
 | sizing the live view to 1/1.5 of its card and leaving it there | sharp and correctly sized, and the right and bottom thirds of the page stop receiving mouse input |
 | Playwright's newest WebKit — `webkit-2360`, one revision past the pinned `webkit-2359`, from `https://cdn.playwright.dev/dbazure/download/playwright/builds/webkit/<rev>/webkit-win64.zip` (`2361`+ are 400, so that is the newest that exists) | identical, and now expected: every Playwright build carries the patch above. Only a non-Playwright build drops the shim — [todo.md](todo.md) |
 
+**A DPI-unaware harness makes this front look broken when it is not, and the top bar has already
+been reported as a scale bug on that evidence.** Windows answers a process that has not declared
+awareness at 96 DPI for *every* query, diagnostics included, so a client rect, a cursor position or
+a `ScreenToClient` result comes back divided by the display scale — while a `PrintWindow` capture
+still hands over real pixels. Measuring the profile chip that way put it at client y 15..25 against
+a picture that clearly drew it half again as tall, which reads exactly like "drawn at one size,
+hit-tested at another". It was neither: 15..25 unaware is 22..37 physical, inside the chip's real
+10..48 band, so the clicks landed and the numbers lied. The chrome draws and hit-tests through one
+`chromeLayout()` and cannot disagree with itself, and `SIX_UI_DEBUG=1` prints the scale the window
+actually has (`scale=1.5`). Call
+`SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)` first thing in anything
+that measures this front, before it reads a rect or moves the cursor.
+
 **Accelerated compositing is off** (`WKPreferencesSetAcceleratedCompositingEnabled(preferences,
 false)`). With the shim in place the accelerated path draws correctly too — it was the DPI-unaware
 approach it could not survive — but it put a visible layer seam through the middle of a search
