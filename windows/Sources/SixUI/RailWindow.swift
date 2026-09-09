@@ -38,6 +38,10 @@ public final class RailWindow {
     /// Where the `EDIT` was last put, so that the repaint-driven `layoutAddressBar` moves it only
     /// when it has actually moved. `nil` means it is hidden — there is no focused window.
     var addressBarFrame: RECT?
+    /// The window control under the pointer, and the one a press landed on — the frame is ours now
+    /// (`RailFrame`), so their hover and their press are ours to remember.
+    var hoveredCaptionButton: CaptionButton?
+    var pressedCaptionButton: CaptionButton?
     /// The live view's frame as `traceActualFrame` last reported it, so that trace says something
     /// only when it has something to say.
     var lastTracedFrame: [Int32] = []
@@ -93,6 +97,11 @@ public final class RailWindow {
         }
         hwnd = created
         updateScale()
+        // Nothing has asked for a frame calculation yet, and `WM_NCCALCSIZE` is where this window
+        // takes its title bar over (`RailFrame`). Without `SWP_FRAMECHANGED` the caption stays until
+        // the first resize, and the bar spends that time drawn underneath it.
+        SetWindowPos(created, nil, 0, 0, 0, 0,
+                     UINT(SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE))
         ensureAddressBar(instance: instance)
         SetTimer(created, Self.pageStateTimer, 400, nil)
         if ProcessInfo.processInfo.environment["SIX_UI_DEBUG"] == "1" {
@@ -221,6 +230,28 @@ public final class RailWindow {
             refreshLivePageState()
             return 0
 
+        // MARK: The frame (RailFrame)
+
+        case WM_NCCALCSIZE:
+            return handleNCCalcSize(wParam: wParam, lParam: lParam)
+
+        case WM_NCHITTEST:
+            return handleNCHitTest(screenX: Int32(SixRailPointX(lParam)), screenY: Int32(SixRailPointY(lParam)))
+
+        case WM_NCMOUSEMOVE:
+            handleNCMouseMove(hitTest: wParam)
+            return nil // and on to `DefWindowProcW`, which still owns the resize edges
+
+        case WM_NCMOUSELEAVE, WM_MOUSEMOVE:
+            clearCaptionHover()
+            return nil
+
+        case WM_NCLBUTTONDOWN:
+            return handleNCButtonDown(hitTest: wParam) ? 0 : nil
+
+        case WM_NCLBUTTONUP:
+            return handleNCButtonUp(hitTest: wParam) ? 0 : nil
+
         case WM_ERASEBKGND:
             return 1 // WM_PAINT repaints the whole client area; nothing needs erasing first
 
@@ -237,8 +268,12 @@ public final class RailWindow {
             // `NiriLayout`'s viewport is the rail's canvas alone; the bar above it is
             // `RailChrome`'s business, not the layout's.
             let railHeight = max(0, height - Int(topChromeHeight))
-            if model.updateViewport(CGSize(width: width, height: railHeight)) { invalidate() }
+            _ = model.updateViewport(CGSize(width: width, height: railHeight))
             layoutAddressBar()
+            // Unconditionally: a maximize changes no viewport the layout cares about on the way back
+            // from full screen, and leaves the wrong glyph on the middle window control if nothing
+            // repaints.
+            invalidate()
             return 0
 
         // Dragged to a display at another scale. Windows hands over the rectangle the window should

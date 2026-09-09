@@ -84,6 +84,10 @@ extension RailWindow {
     static let textColor = rgb(228, 228, 231)
     static let focusedTextColor = rgb(255, 255, 255)
     static let labelColor = rgb(161, 161, 170)
+    /// Windows' own caption-button hover: a light wash on minimize and maximize, and the red that
+    /// every Windows user aims at without reading the glyph.
+    static let captionHoverColor = rgb(62, 62, 70)
+    static let closeHoverColor = rgb(232, 17, 35)
     static let dimLabelColor = rgb(112, 112, 122)
 
     /// `#RRGGBB`, the way a `Profile` carries its colour, in `COLORREF`'s own byte order. Anything
@@ -111,6 +115,8 @@ extension RailWindow {
         var strong: HFONT?
         var small: HFONT?
         var glyph: HFONT?
+        /// The window controls, which Windows draws smaller than anything else in a title bar.
+        var caption: HFONT?
 
         static let uiFace = "Segoe UI"
         static let glyphFace = "Segoe MDL2 Assets"
@@ -124,20 +130,27 @@ extension RailWindow {
             static let fullWidth = "\u{E740}"
             static let restoreWidth = "\u{E73F}"
             static let close = "\u{E711}"
+            // The window controls. These four are a set of their own in the icon font, drawn at
+            // stroke widths meant for a title bar rather than for a toolbar.
+            static let chromeMinimize = "\u{E921}"
+            static let chromeMaximize = "\u{E922}"
+            static let chromeRestore = "\u{E923}"
+            static let chromeClose = "\u{E8BB}"
         }
     }
 
     /// Called once the window has an `HWND` to ask a DPI of, and again on `WM_DPICHANGED`; deletes
     /// what it replaces.
     func refreshFonts() {
-        for font in [fonts.ui, fonts.strong, fonts.small, fonts.glyph] where font != nil {
+        for font in [fonts.ui, fonts.strong, fonts.small, fonts.glyph, fonts.caption] where font != nil {
             DeleteObject(font)
         }
         fonts = ChromeFonts(
             ui: Self.makeFont(face: ChromeFonts.uiFace, size: 14, weight: FW_NORMAL, scale: scale),
             strong: Self.makeFont(face: ChromeFonts.uiFace, size: 13, weight: FW_SEMIBOLD, scale: scale),
             small: Self.makeFont(face: ChromeFonts.uiFace, size: 12, weight: FW_NORMAL, scale: scale),
-            glyph: Self.makeFont(face: ChromeFonts.glyphFace, size: 12, weight: FW_NORMAL, scale: scale)
+            glyph: Self.makeFont(face: ChromeFonts.glyphFace, size: 12, weight: FW_NORMAL, scale: scale),
+            caption: Self.makeFont(face: ChromeFonts.glyphFace, size: 10, weight: FW_NORMAL, scale: scale)
         )
         if let addressBarHwnd, let ui = fonts.ui {
             // The `EDIT` goes on drawing in whatever it was last told, so this is the half of a DPI
@@ -231,7 +244,9 @@ extension RailWindow {
 
         // The right-hand cluster is laid out from the right edge inwards, so it keeps its place
         // whatever the middle of the bar does.
-        let rightEdge = client.right - pad
+        // Inside the window controls, which own the right end of the bar now that the bar *is* the
+        // title bar (`RailFrame`). Everything else in the cluster is measured from here.
+        let rightEdge = client.right - captionButtonsWidth - pad
         layout.fullWidth = RECT(left: rightEdge - buttonWidth, top: button.top,
                                 right: rightEdge, bottom: button.bottom)
         // ⌃ pips ⌄, the order the Mac's `WorkspaceStepper` puts them in.
@@ -299,6 +314,8 @@ extension RailWindow {
         drawGlyph(hdc, ChromeFonts.Glyph.chevronDown, in: layout.workspaceDown, enabled: model.canFocusWorkspace(1))
         drawGlyph(hdc, model.isFullWidth ? ChromeFonts.Glyph.restoreWidth : ChromeFonts.Glyph.fullWidth,
                   in: layout.fullWidth, enabled: true)
+
+        drawCaptionButtons(hdc)
     }
 
     /// Where you are in the stack of workspaces: niri's own indicator, laid out horizontally, and

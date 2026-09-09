@@ -6,9 +6,10 @@ WebKit — the WebKit2 C API, the same family WebKitGTK's C API descends from �
 actual Playwright-built `WebKit2.dll` that `../sixty`'s MiniBrowserSwift prototype already proved
 out. A page loads, navigates, reports its title back, renders inside its own card at the display's
 real resolution, and answers a click where the click looks like it landed. Above the rail is the
-same band the Mac's `TopBar` occupies — which profile you are in, the three navigation buttons, the
-focused page's address, where you are in the stack of workspaces — and past that the Mac still has
-the assistant, the agent panel and the overview, which this front does not draw.
+same band the Mac's `TopBar` occupies, and in the same place: the bar *is* the title bar, so which
+profile you are in, the navigation buttons, the focused page's address and the window controls are
+all on one line, the way they are on the Mac. Past that the Mac still has the assistant, the agent
+panel and the overview, which this front does not draw.
 
 | | |
 |---|---|
@@ -166,6 +167,38 @@ The rest of the bar is the Mac's, item for item: the profile chip is `ProfileMen
 circles is fine for two profiles and unreadable for five"), the pips are `WorkspacePips`, and the
 back/forward/reload buttons are drawn greyed rather than disabled, because a disabled control that
 eats its click is worse than one that says no.
+
+### The bar is the title bar
+
+There is no switch for this on Windows. The caption is non-client area that the system owns, draws
+and hit-tests, and the only way to put anything on that line is to tell the system the client area
+covers it — and then answer for everything the caption used to do. `RailFrame.swift` is that answer,
+and it is the shape every browser on this platform ends up with.
+
+- **`WM_NCCALCSIZE` reclaims the top edge and nothing else.** `DefWindowProcW` runs first, because it
+  is what knows how thick this monitor's frame is at this DPI; then `rgrc.0.top` is put back to the
+  value that came in. The left, right and bottom borders stay the system's, so resizing there is
+  still `DefWindowProcW`'s business and none of it had to be reimplemented.
+- **A maximized window hangs off every edge of the monitor** by `SM_CYSIZEFRAME + SM_CXPADDEDBORDER`
+  — 11 physical pixels here — and relies on the frame to swallow it. With no top frame left, that
+  much has to be added back to `top` when maximized, or the first row of the bar is off the screen.
+  Measured after the fix: window rect `-11,-11`, client rect starting at `0,0`.
+- **`WM_NCHITTEST` is where the window becomes draggable again.** The top few pixels answer
+  `HTTOP`/`HTTOPLEFT`/`HTTOPRIGHT` (a top edge that only resizes in the middle is a window whose
+  corners have quietly stopped working); the three controls answer `HTMINBUTTON`/`HTMAXBUTTON`/
+  `HTCLOSE`; a point on any control of ours answers `HTCLIENT`; everything else in the bar is
+  `HTCAPTION`, which is what makes dragging and double-click-to-maximize work without another line
+  of code. It asks `chromeAction(x:y:)` — the same function the click handler asks — so a control
+  cannot be draggable and clickable at once.
+- **The window controls are drawn here**, because they disappear with the caption: 46 logical pixels
+  wide each (Windows' own width, and this is the one control on a window people aim at without
+  looking), in the icon font's caption set, with Windows' hover colours — a light wash on the two on
+  the left, and the red on close. `DefWindowProcW` does nothing useful with `HTMINBUTTON` on a
+  window whose caption it no longer owns, so the press and the release are both handled here, and
+  acting on the release means a mis-aimed click can still be taken back by sliding off.
+
+What this is not is a *frameless* window: the three other borders, the shadow, snapping, Aero Snap
+and the system menu all still work, because they were never taken away.
 
 ### The keys go through the queue, not through the window
 
@@ -372,6 +405,9 @@ windows/Sources/SixBrowser         RailModel: NiriLayout plus the tab metadata e
 
 windows/Sources/SixUI              RailWindow (the Win32 window, message dispatch, and `route` —
                                     the key/scroll router in front of the whole queue),
+                                    RailFrame (the title bar taken over: WM_NCCALCSIZE, the
+                                    hit-testing that gives dragging and resizing back, and the three
+                                    window controls),
                                     RailChrome (the top bar: metrics, fonts, palette, layout and
                                     painting), RailRendering (the cards, and the geometry everything
                                     else borrows back), RailInput (mouse and wheel), RailKeyInput
@@ -485,6 +521,14 @@ confirmed working:
 - `Ctrl+L`, `Ctrl+T`, `Ctrl+W`, `Ctrl+R`, `F5`, `Ctrl+[`, `Ctrl+]` — the keys that are menu items
   rather than table rows on the Mac — all answer, **including while the page holds the keyboard**,
   which is what `RailWindow.route` is for.
+- **The frame, every part of it.** `WM_NCHITTEST` answers were read back out of the window with
+  `SendMessageW` (a question, not a click — it steals no focus): `HTCAPTION` on the bar's empty
+  stretches, `HTCLIENT` on the chip, the address and the buttons, `HTTOP`/`HTTOPLEFT`/`HTTOPRIGHT`
+  along the top edge, `HTLEFT`/`HTBOTTOM`/`HTBOTTOMRIGHT` still on the system's own borders. Then by
+  hand: a drag on an empty stretch moved the window by exactly the cursor delta (40,32), the close
+  button closed it, minimize minimized it (`IsIconic` true), maximize and restore round-tripped, a
+  double-click on the bar maximized it (`showCmd` 3), the maximized bar is not clipped, and hovering
+  close paints it red.
 
 Two traps for whoever drives this from a script next, since between them they cost an hour here:
 
@@ -529,6 +573,11 @@ matched, so `⌥F4`, `⌥Space` and plain `F10` still behave like system keys.
   placeholder card titles do not go through a string catalog, because this front has none —
   everything a person reads on the Mac and iOS goes through `Localizable.xcstrings`
   (docs/localization.md), and matching that here is its own piece of work.
+- **No Snap Layouts flyout.** On Windows 11, hovering the maximize button of a window that answers
+  `HTMAXBUTTON` gets the system's snap-layout menu for free — but only if the window also handles
+  `WM_NCHITTEST` fast enough and the OS is 11. This dev machine is Windows 10 19045, where there is
+  nothing to show, so nothing was built for it. If six ever runs on 11, that is the one thing a
+  custom frame owes a user, and the hit-test already answers correctly.
 - **The private profile is marked by its initial, not by a symbol.** The Mac puts eyeglasses in the
   dot; MDL2 has no obvious equivalent and a wrong guess draws a tofu box, so it says "P" on grey.
 
