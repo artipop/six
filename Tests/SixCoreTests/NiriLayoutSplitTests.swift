@@ -287,6 +287,33 @@ struct NiriLayoutSplitTests {
         #expect(layout.columnDrag?.joins == nil)
     }
 
+    /// Any two windows, and not only two that were already neighbours: the overview is where a rail
+    /// is rearranged, so a window carried onto one standing on *another workspace* joins it there.
+    /// This is the only way in that does not go through "the window next along" — ⌥S has no reach.
+    @Test func aWindowCanJoinOneOnAnotherWorkspace() {
+        let layout = layout()
+        let ids = fill(layout, 2)
+        // A window a row below, to be joined from up here.
+        let below = UUID()
+        layout.insertColumn(tabID: below, in: layout.activeProfileID, workspace: 1, focus: false)
+        carrying(layout, ids[0])
+
+        // In canvas points, and not in either row's content space: the two rows are scrolled
+        // differently, so the distance between two windows is only the same number once both have
+        // been put on the canvas the pointer moves across.
+        let from = layout.canvasX(content: layout.columnFrames(layout.workspaces[0])[0].midX, workspace: 0)
+        let onto = layout.canvasX(content: layout.columnFrames(layout.workspaces[1])[0].midX, workspace: 1)
+        layout.updateColumnDrag(translation: CGSize(width: onto - from,
+                                                    height: layout.viewport.height + layout.workspaceSpacing))
+        #expect(layout.columnDrag?.toWorkspace == 1)
+        #expect(layout.columnDrag?.joins != nil)
+
+        layout.commitColumnDrag()
+        #expect(row(layout, workspace: 0) == [[ids[1]]])
+        #expect(row(layout, workspace: 1) == [[below, ids[0]]])
+        #expect(layout.focusedTabID == ids[0]) // and you are looking at the row it went to
+    }
+
     /// Half a split carried out of its column leaves the other half filling it, and lands as a
     /// window of its own.
     @Test func halfASplitCanBeCarriedOutOfIt() {
