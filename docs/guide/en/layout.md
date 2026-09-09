@@ -148,6 +148,42 @@ people actually want from the word, and a video player's own fullscreen button
 now works too — it had been quietly refused before.
 :::
 
+## Two windows in one column
+
+`⌥S` takes the window next along into the one you are reading: they share a
+column, side by side, and the rail is one column shorter. `⌥S` again and they are
+two separate windows on the rail. So do **View ▸ Split**, the rail's own
+right-click menu, the **This Window** menu, and — in the overview — one window
+dropped onto another.
+
+| | |
+|---|---|
+| `⌥S` | take the neighbouring window into this column; again to put it back on the rail |
+| `⌥←` `⌥→` | walk the halves exactly as they walk windows: into the near half first, then on to the next column |
+| `⌥⇧←` `⌥⇧→` | inside a pair, swap the two halves |
+| `⌥⇧↑` `⌥⇧↓` | take **the half you are reading**; the other one stays where it stood |
+
+The column is still exactly one screen's worth of rail: the two halves fill what
+one window filled, so the rail does not get longer and nothing shifts. The gap
+between the halves is deliberately half the one between columns — at the same
+width the pair would read as two neighbouring windows rather than as one.
+
+The halves are windows in their own right, not panes of one: each has its own
+border, its own ×, its own loading line. Closing one closes one window, and the
+other stays where it stood with the column to itself.
+
+More than two do not fit, and that is a decision rather than a limit: three pages
+at a third of a screen each are three pages nobody can read, and "I want to see
+more than two things at once" is what the rail itself answers.
+
+::: tip With the mouse
+In the **overview**, a window let go over the *middle* of another joins its
+column; let go at the edge of one, or between two, it stands beside them as
+before. While you hold it over the middle, that column opens its other half in
+advance — you can see what will happen before you let go. A link can be opened
+beside straight away: **Open Link Beside** in the page's context menu.
+:::
+
 ## Picture in Picture
 
 `⌥⇧P`, or **View ▸ Picture in Picture**, or the button that appears in the

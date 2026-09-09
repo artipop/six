@@ -59,6 +59,7 @@ anybody else's:
 | Open Link | Back / Forward / Reload |
 | Open Link in New Window | Cut / Copy / Paste / Select All |
 | Open Link Behind | This Window ▸ … |
+| Open Link Beside | |
 | Download Linked File | |
 | Copy Link | |
 

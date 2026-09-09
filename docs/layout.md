@@ -339,6 +339,54 @@ something over here*. It is deliberately *not* `horizontalPreview`: that band be
 held by the mouse has to survive one arriving. And `focusedColumnFrame` deliberately does not include it, so the button
 does not slide out from under the pointer holding it.
 
+## Two windows in one column
+
+`⌥S` takes the window next along into the one you are reading: they share the column, side by side, and the rail is
+one column shorter. `⌥S` again puts them back. Also **View ▸ Split**, the strip's context menu, the window's own
+menu, and — in the overview — one window dropped onto another.
+
+The rule everything else follows from is that **a column is still one screen's worth of rail**. A split changes what
+is inside a column and nothing about where columns are: the two halves fill exactly the width one window would have
+had, so the strip is as long as it was, the offsets still land, and every promise `columnFrames()` makes is
+untouched. The gap between the halves (`paneGap`) is deliberately *half* the one between columns — at the same width
+a split would read as two windows standing next to each other, and proximity is the whole of what says otherwise.
+
+niri splits a column the other way: its windows stack vertically. That is right for terminals and wrong for pages —
+a web page is tall, and two half-height ones are two pages nobody can read. Two is the ceiling for the same kind of
+reason: three pages at a third of a screen each are three unreadable pages, and wanting more than two things at once
+is the question the rail already answers.
+
+**The two halves are windows, not panes of one window.** Each has its own border, its own `×`, its own progress
+line; `⌥←` / `⌥→` walk into the near half before stepping to the next column, so every window on the rail is one
+step from its neighbour whether or not it is sharing a column; `⌘W` closes one and leaves the other filling the
+column; `⌥⇧↓` takes the focused half to the next workspace and leaves its neighbour where it stood. `⌥⇧→` inside a
+split swaps the two halves, because one place along, inside a column, is the other side of it.
+
+Both halves are *built*, and that is the one thing the live-page budget had to be told
+([`LivePageCache.setVisible`](../six/Browser/LivePageCache.swift) takes a column and not a window): a split showing
+a card in one half is a split that did not happen.
+
+### Making one with the pointer
+
+In the overview, a window let go over the **middle half** of another joins it; over the quarter at either end, or in
+the space between, it stands beside it as it always did (`NiriLayout.joinFraction`). By the time the cards are
+centred on each other they are all but on top of one another, which is what a person means by putting one window on
+another — and the row says so before it happens: the window being joined opens its other half, and that half stays
+empty, because the window that would fill it is in the air. It lands on the side it was held over. A column that is
+already two is not a target.
+
+### The identity a column keeps
+
+`NiriColumn` has an `id` of its own, and that is not decoration. A split that loses a half is the same column with
+one window left in it; a half taken out into a column of its own is a column that has just arrived. The view tree
+has to be able to tell those apart, because a window is a `WebView` over a `WebPage`, of which WebKit allows exactly
+one — identified by the window it held, as it was when it could only hold one, every split and unsplit looked like a
+column leaving and another arriving, which is the trap `unanimated` exists for. It is why splitting is done inside
+it, and why a window carried across the overview keeps its column's id all the way to the drop.
+
+A column written before splits existed is a `tabID` and nothing else, so it decodes with the other halves at their
+defaults; a relaunch after an update finds the rail it left.
+
 ## Picture-in-picture
 
 `⌥⇧P`, View ▸ Picture in Picture, the same item in a window's own menu, and the button in WebKit's media controls:

@@ -53,7 +53,7 @@ same question every named workspace gets, whoever named it
 
 | tool | what it does |
 |---|---|
-| `list_workspaces` | every profile (`private: true` for the private one) → workspaces → windows (`id`, `title`, `url`, `focused`, `loading`), with what is on screen |
+| `list_workspaces` | every profile (`private: true` for the private one) → workspaces → windows (`id`, `title`, `url`, `focused`, `loading`, `column`, and `side` when two windows share one), with what is on screen |
 | `web_search` | ranked results — title, URL, snippet — without opening anything (`query`, `count`) |
 | `open_window` | `url` or `query` (search); optional `workspace`, `profile`, `activate` (false = add in the background, nothing on screen moves), `private` (true = a private-browsing window; see [architecture.md](architecture.md#private-browsing)) |
 | `navigate` | load a URL / search in an existing window, wait for the load |
@@ -62,6 +62,7 @@ same question every named workspace gets, whoever named it
 | `summarize_page` | summary from the assistant's own model (⌘K's choice: on-device / PCC / Claude); `focus` narrows it |
 | `focus_window` | switch to the window's profile and workspace and scroll to it |
 | `move_window` | move a window to another workspace of its profile |
+| `split_window` | put two windows side by side in one column — `with` names the second, which moves in beside `window_id`; without it, the window next along comes in, or a column that is already two goes back to being two windows. A column holds at most two ([layout.md](layout.md#two-windows-in-one-column)) |
 | `move_window_to_profile` | move a window to another profile — the same page, reopened with that profile's cookies and extensions ([architecture.md](architecture.md#moving-a-window-to-another-profile)) |
 | `close_window` | close a window |
 | `list_console_messages` | what a window's page logged since it last navigated (`level`, `limit`); needs `six://settings` ▸ Develop ▸ Capture Console and Network — see [devtools.md](devtools.md) |

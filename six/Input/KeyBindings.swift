@@ -46,6 +46,10 @@ enum KeyBindings {
         KeyBinding(.code(.upArrow), .exactly([.option, .shift]), .rail, .moveColumnToWorkspace(-1)),
         KeyBinding(.code(.downArrow), .exactly([.option, .shift]), .rail, .moveColumnToWorkspace(1)),
         KeyBinding(.letter("w", .w), .exactly(.option), .rail, .toggleFullWidth),
+        // ⌥S beside ⌥W: the two keys that change what a window is given, one after the other in the
+        // hand. Not a ⌘ key, and not only because ⌘S is Save — it is pressed while reading a page,
+        // and a focused `WKWebView` answers a key equivalent before the menu bar is asked.
+        KeyBinding(.letter("s", .s), .exactly(.option), .rail, .toggleSplit),
         KeyBinding(.letter("o", .o), .exactly(.option), .rail, .toggleOverview),
         KeyBinding(.letter("c", .c), .exactly(.option), .rail, .toggleCenterFocus),
 
@@ -204,6 +208,7 @@ enum KeyAction: Equatable {
     case focusWorkspace(Int)
     case moveColumnToWorkspace(Int)
     case toggleFullWidth
+    case toggleSplit
     case toggleOverview
     case toggleCenterFocus
     case translateSelection
@@ -283,6 +288,7 @@ enum KeyCode: UInt16, CaseIterable, Sendable {
     case h = 4
     case o = 31
     case p = 35
+    case s = 1
     case t = 17
     case w = 13
 
@@ -303,6 +309,7 @@ enum KeyCode: UInt16, CaseIterable, Sendable {
         case .h: return "H"
         case .o: return "O"
         case .p: return "P"
+        case .s: return "S"
         case .t: return "T"
         case .w: return "W"
         }

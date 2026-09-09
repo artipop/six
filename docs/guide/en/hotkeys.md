@@ -15,6 +15,7 @@ equivalent](/en/layout#with-the-mouse-alone).
 | `⌥↑` `⌥↓` | workspace above / below |
 | `⌥⇧↑` `⌥⇧↓` | move the window to the workspace above / below and follow it |
 | `⌥W` | full width |
+| `⌥S` | split: the neighbouring window comes in beside this one, sharing its column; again to put it back |
 | `⌥O` | overview (`Esc` to leave) |
 | `⌥C` | centre the focused window (on by default) |
 | `⌥` + vertical scroll | one workspace per gesture |
@@ -114,7 +115,7 @@ workspaces, not other profiles — and this run only.
 | `↩` | commit a workspace's name while renaming it |
 
 ::: tip Two things worth knowing
-`⌥W`, `⌥O` and `⌥C` are taken before anything else sees them, so those characters
+`⌥W`, `⌥S`, `⌥O` and `⌥C` are taken before anything else sees them, so those characters
 cannot be typed into a field.
 
 The arrows are not: while the caret is in the address field or the ⌘K line, `⌥←`

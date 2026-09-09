@@ -113,8 +113,7 @@ private struct WorkspaceView: View {
         // overview: then the carried one is out of the row it came from and holding a place open in the
         // row it would land in (`NiriLayout.arrangement`). The card itself is drawn above the canvas,
         // following the pointer, so here it is only ever the gap.
-        let columns = layout.arrangement(workspaceAt: row)
-        let frames = layout.columnFrames(columns)
+        let places = layout.placements(layout.arrangement(workspaceAt: row))
         let isCurrent = row == layout.focusedWorkspaceIndex
         let scroll = layout.resolvedOffset(workspace) - (isCurrent ? layout.horizontalPreview + layout.edgeLean : 0)
         // The overview scales the canvas down, so a workspace layer covers proportionally more than the
@@ -122,11 +121,11 @@ private struct WorkspaceView: View {
         // window edges instead of running the full width of the screen.
         let layerWidth = layout.visibleWidth
         let carried = layout.columnDrag?.tabID
-        let focusedTabID = workspace.focusedColumn?.tabID
+        let focusedTabID = workspace.focusedColumn?.focusedTabID
 
         ZStack(alignment: .topLeading) {
             Color.clear
-            if columns.isEmpty {
+            if places.isEmpty {
                 EmptyWorkspaceHint()
                     .frame(width: layerWidth, height: size.height)
             }
@@ -139,14 +138,19 @@ private struct WorkspaceView: View {
                     .allowsHitTesting(false)
                     .transition(.opacity)
             }
-            ForEach(Array(columns.enumerated()), id: \.element.id) { position, column in
-                if let tab = browser.tab(column.tabID), frames.indices.contains(position), column.tabID != carried {
-                    let frame = frames[position]
-                    let isFocused = isCurrent && column.tabID == focusedTabID
+            // By window, and never by column. A column with two windows in it drawn as a container
+            // with two windows inside would make ⌥S build a `WebView` for a page that already has
+            // one — the trap `NiriWindowPlace` is written up in, and the one this crashed on. Here a
+            // window joining or leaving a split is the same view with a new frame.
+            ForEach(places) { place in
+                if let tab = browser.tab(place.tabID), place.tabID != carried {
+                    let frame = place.frame
+                    let isFocused = isCurrent && place.tabID == focusedTabID
                     ColumnView(
                         tab: tab,
                         isFocused: isFocused,
                         isCurrentWorkspace: isCurrent,
+                        side: place.side,
                         isLive: isLive(workspaceDistance: abs(row - layout.focusedWorkspaceIndex),
                                        x: frame.minX - scroll, width: frame.width, layout: layout)
                     )
@@ -236,7 +240,7 @@ private struct CarriedColumn: View {
     var body: some View {
         let layout = browser.layout
         if let drag = layout.columnDrag, let frame = layout.carriedCardFrame, let tab = browser.tab(drag.tabID) {
-            ColumnView(tab: tab, isFocused: true, isCurrentWorkspace: true, isLive: false)
+            ColumnView(tab: tab, isFocused: true, isCurrentWorkspace: true, side: .whole, isLive: false)
                 .frame(width: frame.width, height: frame.height)
                 .scaleEffect(1.03)
                 .shadow(color: .black.opacity(0.35), radius: 30, y: 14)
@@ -277,18 +281,16 @@ private struct OverviewPointerLayer: View {
             .gesture(gesture(cards: cards))
     }
 
-    /// Every window on the canvas, in canvas points.
+    /// Every window on the canvas, in canvas points — a half of a split is a card of its own, so it
+    /// can be picked up on its own and dropped somewhere else.
     private func cards(_ layout: NiriLayout) -> [(id: UUID, rect: CGRect)] {
         var cards: [(id: UUID, rect: CGRect)] = []
         for index in layout.workspaces.indices {
-            let columns = layout.arrangement(workspaceAt: index)
-            let frames = layout.columnFrames(columns)
             let top = layout.rowY(index)
-            for (position, column) in columns.enumerated() where frames.indices.contains(position) {
-                let frame = frames[position]
-                cards.append((column.tabID, CGRect(x: layout.canvasX(content: frame.minX, workspace: index),
-                                                   y: top + frame.minY,
-                                                   width: frame.width, height: frame.height)))
+            for place in layout.placements(layout.arrangement(workspaceAt: index)) {
+                cards.append((place.tabID, CGRect(x: layout.canvasX(content: place.frame.minX, workspace: index),
+                                                  y: top + place.frame.minY,
+                                                  width: place.frame.width, height: place.frame.height)))
             }
         }
         return cards
@@ -373,6 +375,7 @@ private struct ColumnView: View {
     /// Columns of another workspace are off screen entirely (except in the overview): their AppKit
     /// views are still there — SwiftUI's clipping doesn't reach them — but they must not be targets.
     let isCurrentWorkspace: Bool
+    let side: NiriColumnSide
     let isLive: Bool
 
     @Environment(BrowserState.self) private var browser
@@ -503,8 +506,11 @@ private struct ColumnView: View {
         .overlay(alignment: .topTrailing) {
             if !filled, isCurrentWorkspace, !browser.layout.isOverview {
                 // Sitting on the corner rather than inside it: most of the button is over the gap
-                // between the windows, so the page underneath keeps the clicks it should have.
-                ColumnCloseBadge(tab: tab).offset(x: 11, y: -11)
+                // between the windows, so the page underneath keeps the clicks it should have. The
+                // left half of a split has no such gap on that side — the other half is there, half
+                // a rail-gap away — so its × comes back inside its own corner rather than sitting on
+                // its neighbour's page.
+                ColumnCloseBadge(tab: tab).offset(x: side == .left ? -13 : 11, y: -11)
             }
         }
         .shadow(color: .black.opacity(filled ? 0 : (isFocused ? 0.28 : 0.16)),
@@ -847,6 +853,8 @@ private struct StripMenu: View {
             .disabled(!browser.layout.canFocusWorkspace(1))
         Toggle("Overview", isOn: Binding(get: { browser.layout.isOverview }, set: { _ in browser.toggleOverview() }))
         Toggle("Full Width", isOn: Binding(get: { browser.layout.fill == .window }, set: { _ in browser.toggleFullWindow() }))
+        Toggle("Split", isOn: Binding(get: { browser.layout.isSplit }, set: { _ in browser.toggleSplit() }))
+            .disabled(!browser.layout.canSplit)
         Divider()
         Button("Settings…") { browser.openBuiltIn(.settings) }
     }
@@ -868,6 +876,14 @@ struct ColumnMenu: View {
         Toggle("Full Width", isOn: Binding(
             get: { browser.layout.fill == .window && browser.selectedTabID == tab.id },
             set: { _ in browser.selectTab(tab.id); browser.toggleFullWindow() }
+        ))
+        // About this window and not about the focused one, like everything else in this menu: it
+        // hangs off a page, so it selects that page first and then acts on it.
+        Toggle("Split", isOn: Binding(
+            get: { browser.layout.location(ofTabID: tab.id, in: tab.profileID).map { place in
+                browser.layout.strip(for: tab.profileID).workspaces[place.workspace].columns[place.index].isSplit
+            } ?? false },
+            set: { _ in browser.selectTab(tab.id); browser.toggleSplit() }
         ))
         // This window's video, whichever window that is: the menu hangs off a page, so it acts on
         // that page rather than on whatever happens to be focused.

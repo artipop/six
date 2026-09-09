@@ -101,7 +101,6 @@ private struct WorkspaceView: View {
 
     var body: some View {
         let layout = browser.layout
-        let frames = layout.columnFrames(workspace)
         let scroll = layout.resolvedOffset(workspace) - (isFocused ? layout.horizontalPreview : 0)
 
         ZStack(alignment: .topLeading) {
@@ -110,13 +109,19 @@ private struct WorkspaceView: View {
                 PhoneEmptyWorkspaceHint()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            ForEach(Array(workspace.columns.enumerated()), id: \.element.id) { index, column in
-                if frames.indices.contains(index), let tab = browser.tab(column.tabID) {
-                    // `minX` and `width` are the column's place *along* the strip; which way that
+            // By window, like the Mac's strip and for the same reason (`NiriWindowPlace`). A column
+            // split on the Mac arrives here as two windows sharing one screen's worth of strip, and
+            // is drawn that way rather than half-hidden: the strip runs down the phone, so the halves
+            // are the top and the bottom of the screen. Nothing here makes one — there is no ⌥S on a
+            // phone — but a rail restored from a session that has one must not hold a window nobody
+            // can reach.
+            ForEach(layout.placements(workspace.columns)) { place in
+                if let tab = browser.tab(place.tabID) {
+                    // `minX` and `width` are the window's place *along* the strip; which way that
                     // runs on screen is this view's business, not the layout's.
-                    let frame = frames[index]
+                    let frame = place.frame
                     PhoneColumn(tab: tab, axis: axis,
-                                isFocused: isFocused && index == workspace.focus)
+                                isFocused: isFocused && place.tabID == workspace.focusedColumn?.focusedTabID)
                         .frame(width: axis == .vertical ? frame.height : frame.width,
                                height: axis == .vertical ? frame.width : frame.height)
                         .offset(axis.place(along: frame.minX - scroll, across: layout.outerGap))

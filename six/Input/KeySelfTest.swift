@@ -78,6 +78,7 @@ enum KeySelfTest {
         case .focusWorkspace(let step): return step < 0 ? "ws ↑" : "ws ↓"
         case .moveColumnToWorkspace(let step): return step < 0 ? "→ws ↑" : "→ws ↓"
         case .toggleFullWidth: return "full width"
+        case .toggleSplit: return "split"
         case .toggleOverview: return "overview"
         case .toggleCenterFocus: return "centre"
         case .translateSelection: return "translate"
@@ -156,6 +157,23 @@ enum KeySelfTest {
             try? await Task.sleep(for: .milliseconds(80))
             note("\(name) → \(rail(browser))")
             try? await Task.sleep(for: .milliseconds(300))
+        }
+
+        // ⌥S, and then the rail walked *through* the pair it makes. A split is the one thing that can
+        // make ⌥→ land twice in the same column, so the interesting lines are the two in the middle:
+        // "window 2/2, half 1/2" and then "half 2/2" without the window number moving. The last press
+        // puts them back on the rail, so this leaves it as it found it — and if it ever does not, the
+        // window count on the line after says so.
+        for (name, flags, code) in [
+            ("⌥S (split)", NSEvent.ModifierFlags.option, KeyCode.s),
+            ("⌥←", .option, .leftArrow),
+            ("⌥→", .option, .rightArrow),
+            ("⌥→", .option, .rightArrow),
+            ("⌥S (back)", .option, .s)
+        ] {
+            post(flags: flags, code: code, in: window)
+            try? await Task.sleep(for: .milliseconds(350))
+            note("\(name) → \(rail(browser))")
         }
 
         // A window crossing workspaces and coming back, with the ring asked about while it stands
@@ -285,13 +303,22 @@ enum KeySelfTest {
         let strip = layout.strip(for: browser.selectedProfileID)
         let workspace = strip.workspaces.indices.contains(layout.focusedWorkspaceIndex)
             ? strip.workspaces[layout.focusedWorkspaceIndex] : nil
-        let column = workspace.flatMap { $0.focusedColumn?.tabID }
-        let position = workspace.flatMap { space in column.flatMap { id in space.columns.firstIndex { $0.tabID == id } } }
+        let column = workspace.flatMap { $0.focusedColumn?.focusedTabID }
+        let position = workspace.flatMap { space in column.flatMap { id in space.columns.firstIndex { $0.holds(id) } } }
+        // Which half of a split is focused, when the window is sharing its column. A rail walked with
+        // ⌥→ reads identically with and without a split until this says otherwise: both are "window
+        // 2 of 3", and only one of them is standing in half a column.
+        let half = workspace.flatMap { space -> String? in
+            guard let index = position, space.columns.indices.contains(index), space.columns[index].isSplit
+            else { return nil }
+            return ", half \(space.columns[index].pane + 1)/2"
+        }
         // The wall belongs here for the same reason the focus does: it is what the rail answered
         // with, and on an end of the rail it is the *only* thing it answered with.
         let wall = layout.wallGlow > 0.005 ? layout.wall.map { ", wall \($0) \(String(format: "%.2f", layout.wallGlow))" } : nil
         return "workspace \(layout.focusedWorkspaceIndex + 1)/\(strip.workspaces.count),"
             + " window \(position.map { $0 + 1 } ?? 0)/\(workspace?.columns.count ?? 0)"
+            + (half ?? "")
             + ", fill \(layout.fill)\(layout.isOverview ? ", overview" : "")"
             + (wall ?? "")
     }
@@ -328,6 +355,7 @@ enum KeySelfTest {
         case .c: return "c"
         case .h: return "h"
         case .o: return "o"
+        case .s: return "s"
         case .p: return "p"
         case .t: return "t"
         case .w: return "w"

@@ -169,9 +169,11 @@ struct NiriLayoutGestureTests {
         let carried = carrying(layout, ids, from: 0)
 
         let frames = layout.columnFrames(layout.workspaces[0])
-        // Just past the middle of the window to its right: that is the line, and crossing it is what
-        // makes one window have gone past another.
-        layout.updateColumnDrag(translation: CGSize(width: frames[1].midX - frames[0].midX + 1, height: 0))
+        // Past the middle of the window to its right, and clear of it: crossing a middle is what makes
+        // one window have gone past another, and the middle itself now means something else — a card
+        // let go there joins that window instead of passing it (`NiriLayout.joinFraction`).
+        layout.updateColumnDrag(translation: CGSize(width: frames[1].midX - frames[0].midX + frames[1].width * 0.3,
+                                                    height: 0))
 
         #expect(layout.columnDrag?.toIndex == 1)
         #expect(layout.columnDrag?.toWorkspace == 0)

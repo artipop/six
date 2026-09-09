@@ -219,10 +219,9 @@ public final class BrowserModel {
             return []
         }
         trace("columns: \(workspace.columns.count)")
-        let frames = layout.columnFrames(workspace)
         let scroll = layout.resolvedOffset(workspace) - layout.horizontalPreview
         // What the strip is showing is pinned; the rest lives or dies by the budget.
-        let all = workspace.columns.map(\.tabID)
+        let all = workspace.columns.flatMap(\.tabIDs)
         let pinned = layout.visibleTabIDs
         let dropped = pages.settle(pinned: pinned, all: all)
         trace("budget \(pages.budget): \(pages.live.count) live of \(all.count), \(pinned.count) pinned, \(dropped.count) discarded")
@@ -231,18 +230,20 @@ public final class BrowserModel {
             PageRegistry.forget(id)
         }
 
-        return workspace.columns.enumerated().compactMap { index, column in
-            guard frames.indices.contains(index) else { return nil }
-            let frame = frames[index].offsetBy(dx: -scroll, dy: 0)
-            return Column(
-                id: column.tabID,
-                frame: frame,
-                url: urls[column.tabID],
-                title: titles[column.tabID] ?? "",
-                isFocused: column.tabID == layout.focusedTabID,
-                isLive: pages.live.contains(column.tabID),
-                thumbnail: Thumbnails.exists(for: column.tabID) ? Thumbnails.url(for: column.tabID) : nil,
-                permission: question(for: column.tabID)
+        // One entry per *window*, which is what `placements` is for: a column holds one window or
+        // two side by side (`NiriColumn`). Nothing on this front makes a split — there is no ⌥S here
+        // yet — but a rail written by the Mac over the same `six.sqlite` can arrive with one, and a
+        // half that is not drawn is a window nobody can reach.
+        return layout.placements(workspace.columns).map { place in
+            Column(
+                id: place.tabID,
+                frame: place.frame.offsetBy(dx: -scroll, dy: 0),
+                url: urls[place.tabID],
+                title: titles[place.tabID] ?? "",
+                isFocused: place.tabID == layout.focusedTabID,
+                isLive: pages.live.contains(place.tabID),
+                thumbnail: Thumbnails.exists(for: place.tabID) ? Thumbnails.url(for: place.tabID) : nil,
+                permission: question(for: place.tabID)
             )
         }
     }
@@ -279,12 +280,12 @@ public final class BrowserModel {
     public func closePrivateProfile() {
         let id = layout.activeProfileID
         guard privateProfiles.contains(id) else { return }
-        for column in layout.workspaces.flatMap(\.columns) {
-            PageRegistry.forget(column.tabID)
-            pages.forget(column.tabID)
-            permissions?.forget(column.tabID)
-            urls[column.tabID] = nil
-            titles[column.tabID] = nil
+        for id in layout.workspaces.flatMap({ $0.columns.flatMap(\.tabIDs) }) {
+            PageRegistry.forget(id)
+            pages.forget(id)
+            permissions?.forget(id)
+            urls[id] = nil
+            titles[id] = nil
         }
         privateProfiles.remove(id)
         permissions?.forgetProfile(id)
@@ -420,7 +421,7 @@ public final class BrowserModel {
         // The page is suspended inside `decide`; a promise that never lands is a page that never
         // finds out. Denying is the answer a closed column gives.
         permissions?.forget(focused)
-        Thumbnails.prune(keeping: Set(layout.workspaces.flatMap { $0.columns.map(\.tabID) }))
+        Thumbnails.prune(keeping: Set(layout.workspaces.flatMap { $0.columns.flatMap(\.tabIDs) }))
         save()
         urls[focused] = nil
         titles[focused] = nil

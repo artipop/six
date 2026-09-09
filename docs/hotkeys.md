@@ -40,6 +40,7 @@ page* cannot be told apart from the page around it, and the rail wins there.
 | `⌥↑` `⌥↓` | focus the workspace above / below |
 | `⌥⇧↑` `⌥⇧↓` | move the window to the workspace above / below (and follow it) |
 | `⌥W` | full width — the page fills the window under the top bar; again to leave (also View ▸ Full Width, and the button beside the profile) |
+| `⌥S` | split — the window next along comes in beside this one, sharing its column; again to put them back on the rail (also View ▸ Split, and the strip's own menu). Both halves are windows in their own right: `⌥←` `⌥→` walk into one and then out to the next column, and closing one leaves the other filling the column ([layout.md](layout.md#two-windows-in-one-column)) |
 | `⌥O` | overview on / off; `Esc` also leaves it (also View ▸ Overview) |
 | `⌥C` | centre the focused window (on by default) — off means the rail moves as little as possible. The switch is on `six://settings` ▸ Windows |
 | `⌥` + vertical scroll | one workspace per gesture |
@@ -157,8 +158,8 @@ One rail's windows only — the workspace on screen — and this run only. `⌥�
   reports «ц» from `charactersIgnoringModifiers`; matching only that is why `⌥W` / `⌥O` / `⌥C` were dead for anyone
   not typing in Latin. `KeyBinding.Key.letter` matches either the US key code or the character, so the three work on
   a Cyrillic layout (by position) and on Dvorak (by letter).
-- `⌥W` / `⌥O` / `⌥C` / `⌥⇧T` / `⌥⇧H` / `⌥⇧P` are taken before anything else sees them, so those `⌥`+letter characters
-  can't be typed into a field. The arrows are not — see the rail section for the rule.
+- `⌥W` / `⌥S` / `⌥O` / `⌥C` / `⌥⇧T` / `⌥⇧H` / `⌥⇧P` are taken before anything else sees them, so those `⌥`+letter
+  characters can't be typed into a field. The arrows are not — see the rail section for the rule.
 - **Nothing in the table answers outside six's own window.** A sheet, a popover and WebKit's full-screen video are
   `KeyContext.Window.elsewhere`, and there `⎋` closes the sheet instead of the overview behind it and `⌥O` does
   nothing at all.

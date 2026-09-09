@@ -29,6 +29,10 @@ extension View {
                 // "Behind" rather than "in the Background": in a strip the window is not behind
                 // anything, it is the next column along, and the focus simply does not go there.
                 Button("Open Link Behind") { browser.openInNewWindow(url, from: tab, background: true) }
+                // The one a source is read with: the page stays where it is and the link opens in
+                // the other half of the same window, side by side with what sent you there. On a
+                // window already sharing its column there is no room, and the link opens behind.
+                Button("Open Link Beside") { browser.openBeside(url, from: tab) }
                 Button("Download Linked File") {
                     browser.download(URLRequest(url: url), suggestedName: nil, from: tab)
                 }

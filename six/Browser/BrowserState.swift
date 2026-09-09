@@ -312,18 +312,23 @@ final class BrowserState {
         }
         showingOverview = layout.isOverview
         shownTabIDs = visible
-        // Each window's own width, so the picture taken of it is the shape of the column it fills.
+        // Each window's own width, so the picture taken of it is the shape of the column it fills —
+        // or of the half of it, which is where a split's pictures come out narrow and right rather
+        // than wide and stretched.
         if let workspace = layout.focusedWorkspace {
             let frames = layout.columnFrames(workspace)
             for (index, column) in workspace.columns.enumerated() where frames.indices.contains(index) {
-                guard visible.contains(column.tabID) else { continue }
-                tabsByID[column.tabID]?.displaySize = frames[index].size
+                let panes = layout.paneFrames(column, in: frames[index])
+                for (pane, id) in column.tabIDs.enumerated() where visible.contains(id) && panes.indices.contains(pane) {
+                    tabsByID[id]?.displaySize = panes[pane].size
+                }
             }
         }
         // Only the focused window is loaded. Everything else on screen is pinned — a neighbour that
         // still has its page goes on showing it — but nothing is built for walking past it, and the
-        // overview builds nothing at all.
-        let building = layout.isOverview ? nil : layout.focusedTabID
+        // overview builds nothing at all. The focused *column*, because both halves of a split are
+        // the window you are looking at.
+        let building = layout.isOverview ? [] : (layout.focusedWorkspace?.focusedColumn?.tabIDs ?? [])
         pages.setVisible(visible, building: building) { [weak self] id in self?.tabsByID[id] }
     }
 
@@ -396,10 +401,21 @@ final class BrowserState {
         for entry in snapshot.strips where profileIDs.contains(entry.profileID) {
             var strip = entry.strip
             for i in strip.workspaces.indices {
-                strip.workspaces[i].columns.removeAll { column in
-                    guard let tab = saved[column.tabID], tab.profileID == entry.profileID, !placed.contains(tab.id) else { return true }
-                    placed.insert(tab.id)
-                    return false
+                strip.workspaces[i].columns = strip.workspaces[i].columns.compactMap { column in
+                    // A split can have lost either half — a window whose profile is gone, a record
+                    // that never reached the file, one already placed by a row above. The half that
+                    // is still there keeps the column and fills it; both gone takes it with them.
+                    let kept = column.tabIDs.filter { id in
+                        guard let tab = saved[id], tab.profileID == entry.profileID, !placed.contains(id) else { return false }
+                        placed.insert(tab.id)
+                        return true
+                    }
+                    guard let first = kept.first else { return nil }
+                    var rebuilt = column
+                    rebuilt.tabID = first
+                    rebuilt.second = kept.count > 1 ? kept[1] : nil
+                    rebuilt.pane = rebuilt.paneIndex(of: column.focusedTabID) ?? 0
+                    return rebuilt
                 }
             }
             strips[entry.profileID] = strip
@@ -1214,6 +1230,53 @@ final class BrowserState {
     }
 
     // MARK: niri operations
+
+    /// ⌥S. The window next along comes in beside the one being read, or the pair goes back to being
+    /// two windows on the rail (`NiriLayout.toggleSplit`).
+    func toggleSplit() { animateLayout { layout.toggleSplit() } }
+
+    /// Two named windows into one column, or the ⌥S toggle when only one is named. What
+    /// `split_window` calls; the answer is whether the strip changed.
+    @discardableResult
+    func split(_ id: BrowserTab.ID, with other: BrowserTab.ID?) -> Bool {
+        guard let window = tab(id) else { return false }
+        guard let other, let second = tab(other) else {
+            selectTab(id)
+            var changed = false
+            animateLayout { changed = layout.toggleSplit() }
+            return changed
+        }
+        // One strip at a time: a column is a place on one profile's rail, and two windows from
+        // different profiles have no column they could share.
+        guard second.profileID == window.profileID else { return false }
+        var changed = false
+        animateLayout { changed = layout.split(tabID: id, with: other, in: window.profileID) }
+        return changed
+    }
+
+    /// A link opened as the other half of the window it was clicked in, rather than as a column of
+    /// its own behind it. The window is made first and split into place, so it arrives the same way
+    /// every other window does and the strip does not have to be told twice.
+    @discardableResult
+    func openBeside(_ url: URL, from tab: BrowserTab) -> BrowserTab? {
+        guard let place = layout.location(ofTabID: tab.id, in: tab.profileID) else { return nil }
+        // A column that is already two has nowhere to put a third, so the link opens the way a
+        // ⌘-click opens it: a window of its own, behind, with the rail leaning over to show it.
+        let column = layout.strip(for: tab.profileID).workspaces[place.workspace].columns[place.index]
+        guard !column.isSplit else {
+            openInNewWindow(url, from: tab, background: true)
+            return nil
+        }
+        // Around the window it was clicked in, whether or not that was the window in front: the new
+        // one opens beside the focused column, so the focus goes there first and comes back.
+        selectTab(tab.id)
+        let opened = newTab(url: url, in: tab.profileID, on: .right)
+        animateLayout {
+            layout.focus(tabID: tab.id)
+            layout.toggleSplit()
+        }
+        return opened
+    }
 
     func focusColumn(_ delta: Int) { animateLayout { layout.focusColumn(delta) } }
     func focusColumnEdge(last: Bool) { animateLayout { layout.focusColumnEdge(last: last) } }

@@ -136,6 +136,7 @@ extension ContentView {
             case .focusWorkspace(let step): browser.focusWorkspace(step)
             case .moveColumnToWorkspace(let step): browser.moveColumnToWorkspace(step)
             case .toggleFullWidth: browser.toggleFullWindow()
+            case .toggleSplit: browser.toggleSplit()
             case .toggleOverview: browser.toggleOverview()
             case .toggleCenterFocus: browser.toggleCenterFocus()
             case .stepSwitcher(let step): browser.stepWindowSwitch(step)

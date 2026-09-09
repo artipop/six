@@ -275,6 +275,29 @@ final class BrowserToolCatalog {
             }
         ),
         BrowserTool(
+            name: "split_window",
+            title: String(localized: "Split Window"),
+            description: "Puts two windows side by side in one column of the rail, which is how the user reads one "
+                + "page against another. With `with`, that window moves in beside `window_id`, which does not move. "
+                + "Without it, the window next along comes in — and if the window is already sharing a column, the "
+                + "two go back to being separate windows on the rail. A column holds at most two.",
+            parameters: [
+                .init(name: "window_id", description: "Window id from list_workspaces (a prefix is enough).", required: true),
+                .init(name: "with", description: "The window to bring in beside it. Same profile. Default: the window next along on the rail."),
+            ],
+            run: { [unowned self] args in
+                let tab = try self.tab(args)
+                let other = try args["with"].map { _ in try self.tab(["window_id": args["with"]!]) }
+                guard self.browser.split(tab.id, with: other?.id) else {
+                    throw BrowserTool.Failure(message: other.map {
+                        "\(Self.describe(tab)) and \($0.title) can't share a column: one of them already shares one, or they are in different profiles"
+                    } ?? "\(Self.describe(tab)) has no window next to it on the rail to share a column with")
+                }
+                return other.map { "\(Self.describe(tab)) and \(Self.describe($0)) now share a column" }
+                    ?? "Split \(Self.describe(tab))"
+            }
+        ),
+        BrowserTool(
             name: "close_window",
             title: String(localized: "Close Window"),
             description: "Closes a window.",
@@ -555,7 +578,7 @@ final class BrowserToolCatalog {
             return (tab, document)
         }
         if let run = browser.focusedRun, let tab = browser.tab(run.documentTabID), let document = tab.document { return (tab, document) }
-        let visible = browser.layout.focusedWorkspace?.columns.compactMap { browser.tab($0.tabID) }.filter(\.isDocument) ?? []
+        let visible = browser.layout.focusedWorkspace?.columns.flatMap(\.tabIDs).compactMap { browser.tab($0) }.filter(\.isDocument) ?? []
         if visible.count == 1, let document = visible[0].document { return (visible[0], document) }
         if let selected = browser.selectedTab, let document = selected.document { return (selected, document) }
         throw BrowserTool.Failure(message: visible.isEmpty ? "No document window; call create_document first" : "Several documents are open; pass document_id")
@@ -655,13 +678,19 @@ final class BrowserToolCatalog {
             let strip = layout.strip(for: profile.id)
             var workspaces: [ACPJSON] = []
             for (index, workspace) in strip.workspaces.enumerated() where !workspace.isEmpty || !workspace.name.isEmpty {
-                let windows: [ACPJSON] = workspace.columns.enumerated().compactMap { position, column in
-                    guard let tab = browser.tab(column.tabID) else { return nil }
+                // One entry per window, and a column number with it: two windows sharing a column
+                // are what the user is reading side by side, and an agent that cannot see that would
+                // move one of them away to make room for a page it was asked to compare with.
+                let windows: [ACPJSON] = workspace.columns.enumerated().flatMap { position, column in
+                    column.tabIDs.enumerated().compactMap { pane, tabID -> ACPJSON? in
+                    guard let tab = browser.tab(tabID) else { return nil }
                     var window: [String: ACPJSON] = [
                         "id": .string(tab.id.uuidString),
                         "title": .string(tab.title),
                         "url": .string(tab.showsStartPage ? "about:start" : tab.currentURL?.absoluteString ?? ""),
+                        "column": .number(Double(position + 1)),
                     ]
+                    if column.isSplit { window["side"] = .string(pane == 0 ? "left" : "right") }
                     if let document = tab.document {
                         window["kind"] = "document"
                         window["url"] = .string("six://document/\(document.id.uuidString)")
@@ -678,8 +707,9 @@ final class BrowserToolCatalog {
                         window["server"] = .string(app.server.name)
                         window["tool"] = .string(app.tool.name)
                     } else if tab.isLoading { window["loading"] = true }
-                    if position == workspace.focus { window["focused"] = true }
+                    if position == workspace.focus, pane == column.pane { window["focused"] = true }
                     return .object(window)
+                    }
                 }
                 var entry: [String: ACPJSON] = ["index": .number(Double(index + 1)), "windows": .array(windows)]
                 if !workspace.name.isEmpty { entry["name"] = .string(workspace.name) }

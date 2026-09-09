@@ -615,6 +615,16 @@
         }
       }
     },
+    "A browser with a rail instead of tabs: a page is a full-height window, the windows stand side by side, and the rail scrolls. ⌥← and ⌥→ move along it; ⌥↑ and ⌥↓ move between workspaces.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Браузер с рельсом вместо вкладок: страница — это окно во всю высоту, окна стоят рядом, рельс прокручивается вбок. ⌥← и ⌥→ ходят по нему, ⌥↑ и ⌥↓ — между рабочими столами."
+          }
+        }
+      }
+    },
     "A site is checked against the system's certificate authorities first. These are only consulted for a site the system has already turned down.": {
       "localizations": {
         "ru": {
@@ -1917,6 +1927,16 @@
         }
       }
     },
+    "Either way it is one switch in Settings ▸ Assistant, and it can be changed at any time.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "В любом случае это один переключатель в Настройках ▸ Ассистент, и его можно передвинуть в любой момент."
+          }
+        }
+      }
+    },
     "Empty prompt": {
       "localizations": {
         "ru": {
@@ -2987,6 +3007,16 @@
         }
       }
     },
+    "No, none of it": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нет, ничего этого"
+          }
+        }
+      }
+    },
     "Node.js / npm not found": {
       "localizations": {
         "ru": {
@@ -3003,6 +3033,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "В реестре ничего не нашлось."
+          }
+        }
+      }
+    },
+    "Nothing is built and nothing is injected into a page: no ⌘K line, no bar over a selection, no agent, no socket. Bookmark search and page translation are not affected.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ничего не строится и в страницу ничего не внедряется: ни строки ⌘K, ни полоски над выделением, ни агента, ни сокета. Поиска по закладкам и перевода страниц это не касается."
           }
         }
       }
@@ -3113,6 +3153,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Открыть ссылку в фоне"
+          }
+        }
+      }
+    },
+    "Open Link Beside": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Открыть ссылку рядом"
           }
         }
       }
@@ -4029,6 +4079,16 @@
         }
       }
     },
+    "Should six use language models?": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пользоваться языковыми моделями?"
+          }
+        }
+      }
+    },
     "Show Bookmarks…": {
       "localizations": {
         "ru": {
@@ -4229,6 +4289,26 @@
         }
       }
     },
+    "Split": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Разделить"
+          }
+        }
+      }
+    },
+    "Split Window": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Разделить окно"
+          }
+        }
+      }
+    },
     "Start": {
       "localizations": {
         "ru": {
@@ -4399,6 +4479,16 @@
         }
       }
     },
+    "The models are chosen in Settings ▸ Assistant. The on-device one keeps everything on this Mac; the others are a key and an endpoint you enter yourself.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Модель выбирается в Настройках ▸ Ассистент. На устройстве — всё остаётся на этом Mac; остальные — это ключ и адрес, которые вы вводите сами."
+          }
+        }
+      }
+    },
     "The translation was interrupted": {
       "localizations": {
         "ru": {
@@ -4415,6 +4505,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Строка ⌘K спрашивает"
+          }
+        }
+      }
+    },
+    "The ⌘K line, the verbs over selected text and in a field, the agent panel, deep research, and six's own MCP server. Off means none of them run and nothing is added to a page. Bookmark search and page translation are not affected.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Строка ⌘K, глаголы над выделенным текстом и в поле ввода, панель агента, глубокое исследование и собственный MCP-сервер six. Выключено — значит ничего из этого не работает и в страницу ничего не добавляется. Поиска по закладкам и перевода страниц это не касается."
+          }
+        }
+      }
+    },
+    "The ⌘K line, the verbs that appear over selected text and in a field you are typing in, the agent panel, deep research, and six's own MCP server — everything that talks to a model or an agent.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Строка ⌘K, глаголы над выделенным текстом и в поле, куда вы печатаете, панель агента, глубокое исследование и собственный MCP-сервер six — всё, что общается с моделью или агентом."
           }
         }
       }
@@ -4747,6 +4857,16 @@
         }
       }
     },
+    "Use Language Models and Agents": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Использовать языковые модели и агентов"
+          }
+        }
+      }
+    },
     "Used for %@": {
       "localizations": {
         "ru": {
@@ -4829,6 +4949,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Еженедельно"
+          }
+        }
+      }
+    },
+    "Welcome": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Знакомство"
           }
         }
       }
@@ -5009,6 +5139,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Записать в документ"
+          }
+        }
+      }
+    },
+    "Yes, use them": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Да, пользоваться"
           }
         }
       }

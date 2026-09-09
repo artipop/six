@@ -41,8 +41,9 @@ final class LivePageCache {
     @ObservationIgnored private var registry: [UUID: WeakTab] = [:]
     /// Windows the layout is showing right now: pinned, and never eviction candidates.
     @ObservationIgnored private var visible: Set<UUID> = []
-    /// The window that gets a page built for it — the focused one, and nothing in the overview.
-    @ObservationIgnored private var built: UUID?
+    /// The windows that get a page built for them — the focused column's, which is one window
+    /// unless it is split, and nothing at all in the overview.
+    @ObservationIgnored private var built: Set<UUID> = []
 
     /// How many live pages the app aims to keep. Sized from the machine: about one page per gigabyte
     /// of RAM, never fewer than eight (a workspace and its neighbours, with room to step out and back)
@@ -122,24 +123,28 @@ final class LivePageCache {
         pictured.removeAll { $0 == id }
         registry[id] = nil
         visible.remove(id)
-        if built == id { built = nil }
+        built.remove(id)
         liveCount = liveTabs().count
     }
 
-    /// The windows the layout is showing, and the one window that may be *built*.
+    /// The windows the layout is showing, and the ones that may be *built*.
     ///
     /// Pinning and building are deliberately two different things. Everything on screen is pinned —
     /// nothing it still has is taken away, so the neighbours peeking in at the edges keep showing
     /// their pages. Only the focused window is built: walking down a restored strip, or flying around
     /// the overview, must not load a page per window on the way past. You get the page when you land
     /// on it, and if you were there recently it is still warm and there is nothing to load.
-    func setVisible(_ ids: Set<UUID>, building: UUID?, resolve: (UUID) -> BrowserTab?) {
-        guard ids != visible || building != built else { return }
+    ///
+    /// `building` is a column and not a window, which is the one place a split changes this: both
+    /// halves of the window you are looking at are the window you are looking at, and a split with a
+    /// card in one half is a split that did not happen.
+    func setVisible(_ ids: Set<UUID>, building: [UUID], resolve: (UUID) -> BrowserTab?) {
+        guard ids != visible || Set(building) != built else { return }
         let left = visible.subtracting(ids)
         visible = ids
-        built = building
+        built = Set(building)
         for id in ids { touch(id) }
-        build(building.flatMap { resolve($0) })
+        build(building.compactMap { resolve($0) })
         // A window on its way off screen is still mounted this turn: the last chance to ask it where
         // it is scrolled to and what it looks like.
         for id in left { resolve(id)?.rememberViewState() }
@@ -155,16 +160,21 @@ final class LivePageCache {
     /// past. So the focus is allowed to settle first: hold ⌥→ across ten windows and exactly one page
     /// is built, the one you stopped at. A window that already has its page is shown at once — there
     /// is nothing to wait for.
-    private func build(_ tab: BrowserTab?) {
+    private func build(_ tabs: [BrowserTab]) {
         buildTask?.cancel()
         buildTask = nil
-        // Nothing to build: the window is on the start page, or its page is already there and loaded.
-        guard let tab, tab.needsBuilding else { return }
-        let id = tab.id
-        buildTask = Task { [weak self, weak tab] in
+        // Nothing to build: the windows are on their start pages, or their pages are already there
+        // and loaded.
+        let wanted = tabs.filter(\.needsBuilding)
+        guard !wanted.isEmpty else { return }
+        buildTask = Task { [weak self] in
             try? await Task.sleep(for: Self.settleDelay)
-            guard !Task.isCancelled, let self, let tab, visible.contains(id) else { return }
-            tab.prepareForDisplay()
+            guard !Task.isCancelled, let self else { return }
+            // One at a time, and each one asked for again on the way in: building is 6–250 ms of main
+            // actor apiece, and the second half of a split is worth exactly one more of those.
+            for tab in wanted where visible.contains(tab.id) && tab.needsBuilding {
+                tab.prepareForDisplay()
+            }
             scheduleTrim()
         }
     }

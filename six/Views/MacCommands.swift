@@ -60,6 +60,16 @@ struct ViewCommands: Commands {
                 set: { _ in browser.toggleFullWindow() }
             ))
             .keyboardShortcut("w", modifiers: .option)
+            // A toggle and not two items, because it is one key: what ⌥S does depends on what the
+            // window in front of you already is, and the tick says which of the two it is about to
+            // do. Like every other row here it is never greyed out — a `Commands` body is not
+            // rebuilt when the layout changes under it — so on a rail with one window it does
+            // nothing, and the rail's own end-of-the-line light says so.
+            Toggle("Split", isOn: Binding(
+                get: { browser.layout.isSplit },
+                set: { _ in browser.toggleSplit() }
+            ))
+            .keyboardShortcut("s", modifiers: .option)
             Toggle("Overview", isOn: Binding(
                 get: { browser.layout.isOverview },
                 set: { _ in browser.toggleOverview() }
