@@ -292,7 +292,7 @@ of the packages above, so merging it would not by itself make SQLiteData build o
 
 ---
 
-## 3. WebKit — element fullscreen draws nothing under SwiftUI's `WebView`
+## 5. WebKit — element fullscreen draws nothing under SwiftUI's `WebView`
 
 **Title:** `WebView` with `webViewElementFullscreenBehavior(.enabled)` goes fullscreen and renders a
 black screen; the same page in a `WKWebView` is correct
