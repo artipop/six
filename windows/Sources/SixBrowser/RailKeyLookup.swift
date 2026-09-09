@@ -82,7 +82,12 @@ public enum RailKeyLookup {
         case .moveColumnToWorkspace(let delta): return .moveColumnToWorkspace(delta)
         case .toggleFullWidth: return .toggleFullWidth
         case .toggleCenterFocus: return .toggleCenterFocus
-        case .toggleOverview, .translateSelection, .highlightSelection, .pictureInPicture,
+        // ⌥S splits a column into two panes and ⌃⇧C puts the address on the clipboard; the rail
+        // here draws one window per column and owns no clipboard code, so both are table rows with
+        // nothing yet to act on. `copyAddressChord` already spells itself ⌃⇧C off Apple, so the
+        // binding is waiting on this front rather than the other way round.
+        case .toggleSplit, .copyAddress,
+             .toggleOverview, .translateSelection, .highlightSelection, .pictureInPicture,
              .stepSwitcher, .landSwitcher, .cancelSwitcher, .leaveOverview:
             return nil
         }
