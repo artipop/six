@@ -1,6 +1,7 @@
 import CRailInterop
 import CWebKit2
 import Foundation
+import SixBrowser
 import WinSDK
 
 /// Starts the real engine once, and hands out one `RailWebView` per live column. The WebKit2 C API
@@ -12,22 +13,66 @@ import WinSDK
 @MainActor
 enum WebEngine {
     private static var context: WKContextRef?
-    private static var websiteDataStore: WKWebsiteDataStoreRef?
+    /// One website data store per profile — cookies, local storage and caches, each in the profile's
+    /// own folder. This is what a profile *is* on every other front (`Profile.dataStoreID` and a
+    /// persistent `WKWebsiteDataStore` on the Mac), and the reason profiles here are more than a
+    /// coloured label: sign in to something in one and the other has never heard of it.
+    private static var dataStores: [Foundation.UUID: WKWebsiteDataStoreRef] = [:]
 
     private static func ensureStarted() {
         guard context == nil else { return }
-        // Non-persistent: nothing here is wired to survive a relaunch yet (see docs/windows.md),
-        // and a non-persistent store sidesteps an on-disk cache a crashed WebProcess could leave
-        // corrupt, poisoning every launch after it the same way.
-        websiteDataStore = WKWebsiteDataStoreCreateNonPersistentDataStore()
         context = WKContextCreateWithConfiguration(WKContextConfigurationCreate())
     }
 
-    /// A new `WKView`, hosted as a child of `parent` at `frame` (client coordinates). `nil` only if
-    /// WebKit itself refuses — there is nothing more specific to say without deeper diagnostics.
-    static func makeView(parent: HWND, frame: RECT) -> RailWebView? {
+    /// The store a profile browses in, made on first use and kept for the run.
+    ///
+    /// A private profile gets the non-persistent store, which is the whole of what "private" means
+    /// here: it exists in memory, it goes when the process does, and nothing of it is written down.
+    private static func dataStore(for profile: RailModel.ProfileInfo) -> WKWebsiteDataStoreRef? {
+        if let existing = dataStores[profile.id] { return existing }
+        let store: WKWebsiteDataStoreRef?
+        if profile.isPrivate {
+            store = WKWebsiteDataStoreCreateNonPersistentDataStore()
+        } else {
+            // Every directory is asked for separately: this configuration has no "put it all under
+            // here" knob, and one left unset lands in the port's own default, which on Windows is
+            // beside the executable — shared by every profile, which is the opposite of the point.
+            let configuration = WKWebsiteDataStoreConfigurationCreate()
+            let root = profile.storageFolder
+            try? FileManager.default.createDirectory(atPath: root, withIntermediateDirectories: true)
+            func directory(_ name: String) -> WKStringRef? {
+                let path = root + "\\" + name
+                try? FileManager.default.createDirectory(atPath: path, withIntermediateDirectories: true)
+                return path.withCString { WKStringCreateWithUTF8CString($0) }
+            }
+            WKWebsiteDataStoreConfigurationSetNetworkCacheDirectory(configuration, directory("NetworkCache"))
+            WKWebsiteDataStoreConfigurationSetIndexedDBDatabaseDirectory(configuration, directory("IndexedDB"))
+            WKWebsiteDataStoreConfigurationSetLocalStorageDirectory(configuration, directory("LocalStorage"))
+            WKWebsiteDataStoreConfigurationSetWebSQLDatabaseDirectory(configuration, directory("WebSQL"))
+            WKWebsiteDataStoreConfigurationSetCacheStorageDirectory(configuration, directory("CacheStorage"))
+            WKWebsiteDataStoreConfigurationSetGeneralStorageDirectory(configuration, directory("Storage"))
+            WKWebsiteDataStoreConfigurationSetMediaKeysStorageDirectory(configuration, directory("MediaKeys"))
+            WKWebsiteDataStoreConfigurationSetServiceWorkerRegistrationDirectory(
+                configuration, directory("ServiceWorkers"))
+            WKWebsiteDataStoreConfigurationSetResourceLoadStatisticsDirectory(
+                configuration, directory("ResourceLoadStatistics"))
+            // The one that is a file rather than a folder, and the one that carries the sessions:
+            // two profiles sharing a cookie jar would be two names on one browser.
+            let cookies = root + "\\cookies.db"
+            WKWebsiteDataStoreConfigurationSetCookieStorageFile(
+                configuration, cookies.withCString { WKStringCreateWithUTF8CString($0) })
+            store = WKWebsiteDataStoreCreateWithConfiguration(configuration)
+        }
+        dataStores[profile.id] = store
+        return store
+    }
+
+    /// A new `WKView`, hosted as a child of `parent` at `frame` (client coordinates), browsing in
+    /// `profile`'s own data store. `nil` only if WebKit itself refuses — there is nothing more
+    /// specific to say without deeper diagnostics.
+    static func makeView(parent: HWND, frame: RECT, profile: RailModel.ProfileInfo) -> RailWebView? {
         ensureStarted()
-        guard let context, let websiteDataStore else { return nil }
+        guard let context, let websiteDataStore = dataStore(for: profile) else { return nil }
 
         let pageConfiguration = WKPageConfigurationCreate()
         WKPageConfigurationSetWebsiteDataStore(pageConfiguration, websiteDataStore)
@@ -136,12 +181,22 @@ final class RailWebView {
     }
 
     private func handleFinishedNavigation() {
-        let title = Self.string(from: WKPageCopyTitle(page))
         if !title.isEmpty { onTitleChange?(title) }
-        if let activeURL = WKPageCopyActiveURL(page) {
-            let urlString = Self.string(from: WKURLCopyString(activeURL))
-            if !urlString.isEmpty { onURLChange?(urlString) }
-        }
+        if !url.isEmpty { onURLChange?(url) }
+    }
+
+    /// What the page says it is, asked rather than remembered.
+    ///
+    /// `didFinishNavigation` is not the moment a title exists: a page that sets `<title>` from a
+    /// script, or simply late, finishes its navigation with the *previous* title still in place —
+    /// which showed up here as a card still labelled DuckDuckGo with example.com in it. `RailWindow`
+    /// polls these on a timer for that reason, the same "poll from Swift for anything that must
+    /// wait" CLAUDE.md settles on for page state.
+    var title: String { Self.string(from: WKPageCopyTitle(page)) }
+
+    var url: String {
+        guard let activeURL = WKPageCopyActiveURL(page) else { return "" }
+        return Self.string(from: WKURLCopyString(activeURL))
     }
 
     private static func string(from ref: WKStringRef?) -> String {
@@ -165,6 +220,15 @@ final class RailWebView {
         let wkURL = urlString.withCString { WKURLCreateWithUTF8CString($0) }
         WKPageLoadURL(page, wkURL)
     }
+
+    /// What the top bar's three navigation buttons act on, and what tells them whether they can —
+    /// the state is read live rather than tracked, because WebKit's back-forward list is the truth
+    /// and nothing here would be told when a page pushes onto it.
+    var canGoBack: Bool { WKPageCanGoBack(page) }
+    var canGoForward: Bool { WKPageCanGoForward(page) }
+    func goBack() { WKPageGoBack(page) }
+    func goForward() { WKPageGoForward(page) }
+    func reload() { WKPageReload(page) }
 
     func setFrame(_ rect: RECT) {
         guard let hwnd else { return }

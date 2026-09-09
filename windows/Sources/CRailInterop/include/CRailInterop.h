@@ -25,6 +25,8 @@ static inline int SixRailScanCode(LPARAM lParam) { return (int)((lParam >> 16) &
 // the bare macro resolves to the ANSI form without `UNICODE` defined and `LoadCursorW` wants
 // `LPCWSTR`, even though the bit pattern is identical either way.
 static inline HCURSOR SixRailArrowCursor(void) { return LoadCursorW(NULL, MAKEINTRESOURCEW(32512)); }
+// `IDC_HAND` (32649), for the same reason: the pointing hand over the top bar's buttons.
+static inline HCURSOR SixRailHandCursor(void) { return LoadCursorW(NULL, MAKEINTRESOURCEW(32649)); }
 
 // The other direction from SixRailLoWord/HiWord: pack two words back into an LPARAM, for a window
 // procedure that rewrites a message before passing it on.
@@ -41,6 +43,13 @@ static inline void SixRailSetUserData(HWND hwnd, void *data) {
 }
 static inline void *SixRailGetUserData(HWND hwnd) {
     return (void *)GetWindowLongPtrW(hwnd, GWLP_USERDATA);
+}
+
+// `TrackPopupMenu` is declared `BOOL`, and with `TPM_RETURNCMD` it returns the chosen command id
+// through that same return value — which this SDK overlay imports as Swift `Bool`, throwing the id
+// away. Same rough edge as `SixRailKeyDown` above, same answer: keep it an `int`.
+static inline int SixRailTrackPopupMenu(HMENU menu, unsigned flags, int x, int y, HWND owner) {
+    return (int)TrackPopupMenu(menu, flags, x, y, 0, owner, NULL);
 }
 
 #endif

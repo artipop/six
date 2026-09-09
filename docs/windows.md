@@ -5,15 +5,17 @@ Swift toolchain's own `WinSDK` module: plain Win32 windows, GDI painting. The en
 WebKit — the WebKit2 C API, the same family WebKitGTK's C API descends from — linked against the
 actual Playwright-built `WebKit2.dll` that `../sixty`'s MiniBrowserSwift prototype already proved
 out. A page loads, navigates, reports its title back, renders inside its own card at the display's
-real resolution, and answers a click where the click looks like it landed. Where the Mac reaches for the top bar and the assistant
-panel, this front draws the rail, an address bar and nothing past it.
+real resolution, and answers a click where the click looks like it landed. Above the rail is the
+same band the Mac's `TopBar` occupies — which profile you are in, the three navigation buttons, the
+focused page's address, where you are in the stack of workspaces — and past that the Mac still has
+the assistant, the agent panel and the overview, which this front does not draw.
 
 | | |
 |---|---|
 | toolkit | **Win32** (`WinSDK`), GDI painting for the chrome — no WinUI, no XAML |
 | engine | **real WebKit** (WebKit2 C API), software compositing — see "DPI and scale" |
 | language | Swift, the same source tree — and now the same `SixCore`, not a subset of it |
-| storage | the graph is up (GRDB, SQLiteData, a real SQLite round-trip); the rail itself does not persist yet |
+| storage | the graph is up (GRDB, SQLiteData, a real SQLite round-trip); the profiles are real rows in `six.sqlite` and each has its own WebKit data store; the rail itself does not persist yet |
 | built with | `6.3.3+NoAsserts`, and that is not a preference — see below |
 | built in | on the Windows dev machine directly — `scripts/six-windows.ps1` |
 | verified | **yes** — built, run, every rail mechanic and real page loads exercised by hand |
@@ -123,6 +125,99 @@ generated rather than committed because SwiftPM will only take an absolute path 
 
 Disabling the `CombineSchedulers` trait in `swift-dependencies` does not avoid this: `swift-sharing`
 depends on the package directly as well, and traits union across a graph.
+
+## The top bar
+
+The Mac's chrome is one 40-point band above the rail — profile, address, workspace stepper — and
+this is that band in GDI. It replaced two stacked strips (a workspace caption over a bare `EDIT`),
+for the reason the Mac collapsed the same thing into one bar: a browser has one row of chrome, and
+the address belongs in it. `RailChrome.swift` is all of it.
+
+Four things in it are worth knowing before changing any of them.
+
+**Everything is measured in logical pixels and multiplied by `scale` at the point of use.** The
+window is Per-Monitor-V2 aware, so an unscaled constant is *physical* pixels: at this machine's 150%
+the bar came out two thirds of the height it should be, and every string in it two thirds the size.
+`RailWindow.scale` is `GetDpiForWindow / 96`, refreshed on `WM_DPICHANGED` along with the fonts, and
+`px(_:)` is the only way a number reaches GDI. The rail below is *not* converted: its columns are
+fractions of the viewport, which scales itself.
+
+**The fonts are Segoe UI, made once per DPI.** GDI's default object is `SYSTEM_FONT` — a Windows 3.1
+bitmap face that neither scales nor antialiases — and that is what every string on this front used
+to be drawn in, which is the whole of why it looked like a debug overlay. `refreshFonts` makes four
+(`CLEARTYPE_QUALITY`, negative height so the size means character height) and deletes what it
+replaces: an `HFONT` made inside `WM_PAINT` is an `HFONT` leaked at the repaint rate. The glyphs are
+`Segoe MDL2 Assets`, the icon face every Windows 10 ships — as safe here as an SF Symbol on the Mac.
+
+**One layout function serves painting and hit-testing.** `chromeLayout()` returns every rectangle
+the bar owns; `drawTopBar` paints them and `chromeAction(x:y:)` reads the same values back, so a
+button cannot be drawn anywhere but where it is clickable — the discipline `cardRect` already keeps
+for the cards. An empty rectangle means "not this frame", which is how the address field disappears
+on a workspace with no focused window, the way the Mac's does.
+
+**The address field is a real `EDIT` sunk into a drawn pill.** The one thing a Win32 `EDIT` will not
+let go of is its frame, so it is created without `WS_EX_CLIENTEDGE`, painted in the bar's own colours
+through `WM_CTLCOLOREDIT`, and inset into a rounded rectangle drawn behind it — what shows around the
+square control is the pill's edge. `Ctrl+L` selects what is in it, `Enter` navigates, `Esc` hands the
+keyboard back to the rail.
+
+The rest of the bar is the Mac's, item for item: the profile chip is `ProfileMenu.swift`'s dropdown
+(a coloured dot with the profile's initial, its name, and a native popup menu — "a row of coloured
+circles is fine for two profiles and unreadable for five"), the pips are `WorkspacePips`, and the
+back/forward/reload buttons are drawn greyed rather than disabled, because a disabled control that
+eats its click is worse than one that says no.
+
+### The keys go through the queue, not through the window
+
+`RailWindow.route` takes `WM_KEYDOWN`, `WM_SYSKEYDOWN` and `Alt`-held wheel messages out of
+`GetMessageW`'s hand before they are dispatched, and this is not a refinement — it is the difference
+between shortcuts that work and shortcuts that stop working the moment you click on a page. A
+`WKView` is a child `HWND` that takes the keyboard focus, and a key sent to it never reaches this
+window's procedure at all: every rail binding used to answer only while the chrome had focus. The
+Mac has exactly this, for exactly this reason, and calls it `KeyRouter` (CLAUDE.md: "a local
+`NSEvent` monitor is exactly what pulls events out of it"). Only what matched is swallowed, so
+`⌥F4`, `⌥Space`, the page's own keys and everything typed into the address field stay somebody
+else's.
+
+### What the page says it is, on a timer
+
+Three things the chrome draws belong to the page — the card's title, the address, and whether back
+and forward can do anything — and WebKit announces none of them at a moment late enough to be true.
+`didFinishNavigation` fires with the *previous* title still in place (a card labelled DuckDuckGo with
+example.com in it, measured), and pushing onto the back-forward list is not announced at all. A
+400 ms `WM_TIMER` asks (`RailLiveView.refreshLivePageState`) and repaints only on a change — the
+"poll from Swift for anything that must wait" CLAUDE.md settles on for page state, and what the Mac
+gets from `WebPage`'s observation for free.
+
+## Profiles
+
+A profile here is what it is everywhere else in six: a name, a colour, and its own cookies.
+
+The rows come from **the same two tables the Mac reads** — `ProfileIdentity` and `ProfileStorage`,
+through `SixCore`'s own `ProfileStore`, in `%LOCALAPPDATA%\six\six.sqlite`. An empty table is a new
+browser and gets `Personal` and `Work`, the Mac's `Profile.defaults` in the Mac's palette. This is
+the first thing on this platform to open `AppDatabase` in earnest; if that open throws, `RailModel`
+says so on stderr and carries a list that lives for the run, because a browser that will not start
+over a profiles table is worse than one that forgets.
+
+The isolation is real, and it is `WebEngine`'s half: one `WKWebsiteDataStore` per profile, built from
+a `WKWebsiteDataStoreConfiguration` whose nine directories and one cookie file all point under
+`Profiles/<name>/WebKit`. That configuration has no "put it all under here" knob — each is named
+separately, and one left unset lands in the port's default beside the executable, shared by every
+profile, which is the opposite of the point. Sign in to something in one profile and the other has
+never heard of it; the folders and `cookies.db` appear on disk the moment a profile first loads a
+page.
+
+Switching is `NiriLayout`'s doing and costs nothing: it already keeps a strip per profile, so
+`activeProfileID = id` *is* the switch. The pages of the profile you left are hidden, not destroyed
+(`RailLiveView` prunes against every profile's strip, not the one on screen), and a profile whose
+rail is empty comes up empty — the Mac's rule, so that stepping away and back does not put a start
+page where closing the last column had just taken it from.
+
+**Private** is one more menu item: a profile written down nowhere, with the non-persistent data store
+behind it, living until six quits. What it does not have is the Mac's editor — renaming, recolouring
+and deleting are a text field and eight swatches, and this front has no control that can hold either;
+a new profile names itself `Profile N` and takes the next colour in the palette.
 
 ## DPI and scale
 
@@ -241,18 +336,23 @@ windows/vendor/WebKit2             WebKit2.lib/.def/.exp — the import library 
                                         # write a .def with an EXPORTS section, one symbol per line
                                         lib /def:WebKit2.def /out:WebKit2.lib /machine:x64
 
-windows/Sources/SixBrowser         RailModel: NiriLayout plus the tab metadata every column needs and
-                                    the URL a live one is at — no toolkit and no WebKit2 in it.
-                                    RailKeyLookup: the same move for KeyBindings/KeyContext. Both
-                                    `@testable import SixCoreShared`, the seam
-                                    linux/Sources/SixBrowser already uses on SixCore.
+windows/Sources/SixBrowser         RailModel: NiriLayout plus the tab metadata every column needs,
+                                    the URL a live one is at, and the profiles (read from and written
+                                    to the same ProfileStore tables the Mac uses) — no toolkit and no
+                                    WebKit2 in it. RailKeyLookup: the same move for
+                                    KeyBindings/KeyContext. Both `@testable import SixCore`, the seam
+                                    linux/Sources/SixBrowser already uses.
 
-windows/Sources/SixUI              RailWindow (the Win32 window, message dispatch), RailRendering
-                                    (GDI painting and the geometry everything else borrows back),
-                                    RailInput (mouse and wheel), RailKeyInput (WM_KEYDOWN /
-                                    WM_SYSKEYDOWN), WebEngine + RailWebView (the WebKit2 wrapper),
-                                    RailLiveView (positions the focused column's WKView over its
-                                    card's body), AddressBar (a plain Win32 EDIT control).
+windows/Sources/SixUI              RailWindow (the Win32 window, message dispatch, and `route` —
+                                    the key/scroll router in front of the whole queue),
+                                    RailChrome (the top bar: metrics, fonts, palette, layout and
+                                    painting), RailRendering (the cards, and the geometry everything
+                                    else borrows back), RailInput (mouse and wheel), RailKeyInput
+                                    (WM_KEYDOWN / WM_SYSKEYDOWN), ProfileChip (the profile dropdown),
+                                    WebEngine + RailWebView (the WebKit2 wrapper, one website data
+                                    store per profile), RailLiveView (positions the focused column's
+                                    WKView over its card's body, and polls what the page says it is),
+                                    AddressBar (a plain Win32 EDIT control, sunk into a drawn pill).
 
 windows/Sources/six-windows        main.swift: declare DPI awareness, create the window, pump
                                     messages, done.
@@ -339,19 +439,37 @@ confirmed working:
   own card, and hit-tests a click where the click looks like it landed — see "DPI and scale".
 - `SIX_URL` overrides the start page, which is how a run gets pointed at a test page without a
   keyboard.
-- The address bar shows the focused column's URL and repositions on resize. Typing a URL and pressing
-  Enter is **not** confirmed the same way: driving this machine remotely, setting the `EDIT`
-  control's text and delivering `WM_KEYDOWN`/`VK_RETURN` to it cross-process via `SendMessageW`
-  reached `RailWindow.navigateFromAddressBar` but read back the *old* text — while a second,
-  independent `GetWindowTextW` against the same `HWND` from outside the process confirmed the new
-  text was there, moments before and after. Retried with a two-second delay (rules out a race) and
-  with `SendMessageW(..., WM_GETTEXTLENGTH, ...)` in place of the `GetWindowTextLengthW` wrapper
-  (rules out that function) — same stale read. Nothing in `AddressBar.swift` touches that text
-  anywhere but `navigateFromAddressBar` and `syncAddressBarIfNeeded`, so the code has no path that
-  would produce this. The remaining explanation is how this automation delivers synthetic input
-  across process boundaries, not the shipped mechanism, which is the same "subclass the `EDIT`
-  control's `WNDPROC`, catch `VK_RETURN`" shape MiniBrowserSwift already uses successfully. Worth
-  confirming by hand.
+- **Typing an address and pressing Enter navigates** — the one thing the earlier pass could not
+  confirm. Driving the `EDIT` cross-process with `SendMessageW` reached `navigateFromAddressBar` and
+  read back the *old* text, repeatably, while the same `HWND` read from outside showed the new one.
+  The shipped mechanism was never at fault, and the way to see that is to stop reaching across a
+  process boundary: `Ctrl+L`, real `keybd_event` keystrokes, `Enter`, and the page loads.
+  `[six] navigate: … typed=example.com url=https://example.com` in the `SIX_UI_DEBUG` trace, and
+  Example Domain on screen with the card, the window title and the address field all agreeing.
+- **The profile menu, end to end**: the chip opens the dropdown, `Work` switches to an empty rail
+  (with the Mac's own "New window / click anywhere, or Ctrl+T" hint, and no address field, because
+  there is no window to describe), a click opens a column there, `Profiles/Work/WebKit/cookies.db`
+  appears on disk beside `Profiles/Personal`'s, and `Private` switches to the non-persistent one.
+- `Ctrl+L`, `Ctrl+T`, `Ctrl+W`, `Ctrl+R`, `F5`, `Ctrl+[`, `Ctrl+]` — the keys that are menu items
+  rather than table rows on the Mac — all answer, **including while the page holds the keyboard**,
+  which is what `RailWindow.route` is for.
+
+Two traps for whoever drives this from a script next, since between them they cost an hour here:
+
+- **`SendKeys` cannot test a shortcut.** It sends letters as `VK_PACKET` (vk=231, scan 0) — a
+  Unicode character rather than a key — so nothing that matches on the key itself ever sees it. The
+  `SIX_UI_DEBUG` key trace says so in as many words, which is what it is for. `keybd_event` with a
+  virtual-key code is what a keyboard sends. Related, and now handled in `RailKeyInput.scanCode`:
+  synthetic input often carries a zero scan code, and this front matches letters on the scan code
+  (the physical key, the same on every layout — CLAUDE.md's Russian-layout lesson), so a key with
+  none is asked of the layout instead.
+- **A background process cannot raise a window**, so a synthetic click aimed "at the rail" can land
+  on whatever is actually in front — here, another session's terminal. A harness should check
+  `GetForegroundWindow` and refuse rather than click blind. `PrintWindow` with
+  `PW_RENDERFULLCONTENT` needs none of that: it captures the rail *and* the WebKit child without
+  touching focus, which is how every screenshot in this pass was taken — from a Per-Monitor-V2 aware
+  process, or `GetWindowRect` answers in logical pixels and the capture comes out cropped rather
+  than scaled.
 
 One real bug surfaced and got fixed in the process: **holding `Alt` turns the other key into a
 system key.** Windows sends `WM_SYSKEYDOWN`, not `WM_KEYDOWN`, for any key pressed while Alt is
@@ -375,6 +493,12 @@ matched, so `⌥F4`, `⌥Space` and plain `F10` still behave like system keys.
   all, not even in Alt-Tab, for a reason not yet diagnosed. Reproduce that with `SIX_UI_DEBUG=1` set
   (which gates the `[six] window created, hwnd=…` trace) before trying the flags again.
 - **GPU compositing is off**, deliberately, and with a way back. See "DPI and scale".
+- **The chrome's few strings are English only.** "New profile", "Private", "New window" and the
+  placeholder card titles do not go through a string catalog, because this front has none —
+  everything a person reads on the Mac and iOS goes through `Localizable.xcstrings`
+  (docs/localization.md), and matching that here is its own piece of work.
+- **The private profile is marked by its initial, not by a symbol.** The Mac puts eyeglasses in the
+  dot; MDL2 has no obvious equivalent and a wrong guess draws a tofu box, so it says "P" on grey.
 
 ## What is not
 
@@ -385,10 +509,14 @@ matched, so `⌥F4`, `⌥Space` and plain `F10` still behave like system keys.
   readings of the same `NiriLayout` state.
 - **A live-page budget.** Only the focused column ever gets a `WKView`; every other front's version
   of "more than one column can be live at once" is future work here too.
-- **Persistence, history, bookmarks, profiles.** `RailModel` keeps one profile's strip in memory and
-  loses it on exit. What has changed is that nothing is in the way any more: `SixBrowser` imports
-  `SixCore`, so `AppDatabase`, `ProfileStore`, `SettingsStore`, `History` and `Bookmark` are all
-  reachable, and a real SQLite round-trip has been run on this platform. It is work, not a blocker.
+- **Persistence, history, bookmarks.** The rail itself still lives in memory and goes on exit —
+  which columns were open, where they stood, what they were showing. Profiles are the exception and
+  are done (above): rows in `six.sqlite`, folders on disk. Nothing is in the way of the rest either:
+  `SixBrowser` imports `SixCore`, so `AppDatabase`, `SettingsStore`, `History` and `Bookmark` are all
+  reachable, and the profiles are the proof that reading and writing them here works.
+- **The bar's right-hand half.** The Mac's carries downloads, the extension actions, the bookmark
+  star against the field, the agent panel and the overview; this one has the workspace stepper and
+  the full-width toggle, because those two are the only ones whose subsystem exists on this front.
 
 ## Persistence: where to pick this up next
 
@@ -404,11 +532,26 @@ roaming profile). What is left is the front's own work, and it is ordinary:
    The Mac's `AppStateSnapshot` is not in `SixCore`, so this front needs its own small `Codable`
    describing what `RailModel` holds: the workspaces, each column's tab id, URL and title, and which
    one had focus.
-2. **The database under it.** `AppDatabase` is the system of record on every other front, and its
-   migrations are plain `#sql` DDL that now compiles here. A profile row has to exist before
-   anything keyed by profile can be written, which is what `ProfileStore` is for; `RailModel`'s
-   `profileID` is a fresh `UUID()` per launch today and should become a real profile.
+2. **The database under it.** Done, for the one table everything else is keyed by: `RailModel`
+   reads and writes real `ProfileStore` rows, so a profile id in a snapshot now names something that
+   outlives the launch. `AppDatabase`'s other migrations are plain `#sql` DDL that compiles here, so
+   history and bookmarks are the same shape of work.
 3. **A place to flush.** The Mac flushes on termination. Here that is `WM_CLOSE`/`WM_DESTROY` in
    `RailWindow`, before the message loop ends.
+
+Three things the profiles work settled that a snapshot has to account for, written down here because
+they are easy to get wrong and cost nothing to know:
+
+- **A strip per profile, not one strip.** `NiriLayout` keeps `strips[profileID]`, and this front now
+  uses more than one of them. Anything that saves "the rail" saves every profile's, or switching
+  profiles loses whichever one was not on screen. `RailModel.allTabIDs` is the existing walk over all
+  of them — and it exists for the same distinction a snapshot needs: a column absent from the active
+  strip has been closed, a column absent from `allTabIDs` no longer exists anywhere.
+- **Which profile was on screen is not written down.** The list of profiles is a table; the
+  *selected* one is not, and it comes back as the first row on every launch. That is one more field
+  for the snapshot, next to the focused column.
+- **The private profile must not be in it.** It is written down nowhere by definition — no row, no
+  folder, no place in a snapshot — which on the Mac is `AppStateSnapshot` filtering
+  `profiles.filter { !$0.isPrivate }`.
 
 Nothing above needs a decision that has not already been made — it needs writing.

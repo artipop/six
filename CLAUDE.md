@@ -147,7 +147,7 @@ The engine is not a Swift package: it is whatever `playwright install webkit` pu
 and `windows/vendor/WebKit2` holds only the import library generated from that DLL's export table. Node for that
 installer is a user-scope unzip at `%LOCALAPPDATA%\six-tools\node-*`, deliberately off `PATH`.
 
-Everything else — why Win32 and not WinUI, why the package has no dependencies at all, the DPI shim, and what is
+Everything else — why Win32 and not WinUI, the DPI shim, the top bar and the profiles behind it, and what is
 still missing — is in [docs/windows.md](docs/windows.md).
 
 ## Running and checking a change
