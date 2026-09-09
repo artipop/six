@@ -717,6 +717,14 @@ private struct StripEdgeButton: View {
             Button {
                 guard !(step.opens && disarmed) else { return }
                 step.action()
+                // Opening one is the same event as running out: the pointer is still on a `+` it
+                // already used, and a second click there is a second window nobody asked for. Disarm
+                // right away rather than waiting for `step.opens` to flip — it won't, since the new
+                // window is itself the last column and the button reads `+` before and after.
+                if step.opens {
+                    disarmed = true
+                    if browser.peeksAtEdges { peek(layout, false) }
+                }
             } label: {
                 ZStack {
                     Color.clear
