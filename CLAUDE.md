@@ -412,6 +412,13 @@ anything added there has to exist on both:
   windows entirely — the `../sixty` session could not verify its click test at all while this one was running, and
   once tripped Windows' task-view switcher by accident. Say so before a run, and prefer `PrintWindow` over a screen
   scrape for anything that only needs to *look*: it captures a window that is not on top, and does not touch focus.
+- **A DPI-unaware measuring process makes a correct window look wrong, and it has now cost two sessions.** Windows
+  lies to such a process at 96 DPI for *every* query it makes, diagnostics included, so a rect or a cursor position
+  read there comes back divided by the display scale — and against a Per-Monitor-V2 app it reads exactly like
+  "drawn at one size, hit-tested at another". The Windows front's top bar was reported as that bug and is not: it
+  draws and hit-tests through one `chromeLayout()`, and the app's own `SIX_UI_DEBUG` line says `scale=1.5`. Call
+  `SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)` first thing in the harness, and when
+  a measurement disagrees with the app, suspect the harness before the app.
 - **Other Claude sessions edit this repo at the same time.** Check `git status` before committing and stage only your
   own files; an unexpected diff is usually another session's work in progress (or Xcode re-sorting `project.pbxproj`),
   not something to revert. Ask the session rather than guessing — a source file under someone's hand looks exactly
