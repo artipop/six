@@ -373,14 +373,42 @@ Both halves are *built*, and that is the one thing the live-page budget had to b
 ([`LivePageCache.setVisible`](../six/Browser/LivePageCache.swift) takes a column and not a window): a split showing
 a card in one half is a split that did not happen.
 
+### The width changes in one step, and that is deliberate
+
+A split changes how wide two **live** pages are, and WebKit lays a page out again at every width an animation passes
+through. Animated, ⌥S walked two pages through eight widths in a tenth of a second — 1412, 1386, 938, 867, 773, 733,
+709, 702 on a 5K panel — and at each step the page was laid out wider than the box it was in, which is a horizontal
+scrollbar you can watch appear and go. Un-animated it is one resize, and the site takes its narrow layout at once.
+The fill modes gave up their animation for the same reason ([above](#filling-the-window)); `BrowserState`'s
+`plainLayoutChange` is where the split says so.
+
+The animation was not in the layout, and finding that took three wrong fixes. `NiriLayout.unanimated` did nothing,
+and neither did taking the split out of `animateLayout`: it was **`.animation(.easeOut, value: isFocused)` on the
+card**. A value-scoped animation animates *every* change in the subtree it is attached to when its value changes, and
+⌥S is the only thing in the rail that moves the focus and changes a window's width in the same breath. It lives on
+the border it was written for now. The frame is pinned against an ambient animation at the call site as well
+(`.animation(nil, value: frame.size)`), for the menu items that carry one; the **offset** keeps its animation,
+because that is the rail scrolling and it is about motion.
+
 ### Making one with the pointer
 
 In the overview, a window let go over the **middle half** of another joins it; over the quarter at either end, or in
 the space between, it stands beside it as it always did (`NiriLayout.joinFraction`). By the time the cards are
 centred on each other they are all but on top of one another, which is what a person means by putting one window on
-another — and the row says so before it happens: the window being joined opens its other half, and that half stays
-empty, because the window that would fill it is in the air. It lands on the side it was held over. A column that is
-already two is not a target.
+another. It lands on the side it was held over, and a column that is already two is not a target.
+
+The threshold is **wider to leave than to enter** (`joinRelease`). The two answers are a relayout of the whole row
+apart, so a hand resting on the line between them flipped it back and forth with every tremor: one threshold is a
+switch nobody can hold still.
+
+Two things say what will happen before it does. The row opens the gap — the window being joined shows its other half,
+empty, because the window that would fill it is in the air — and `DropSlot` draws the place itself: the profile's
+colour, exactly the rectangle the window is about to occupy, taken from `arrangement` so it cannot disagree with the
+row under it. The gap alone was not enough, which is worth knowing: a gap is the *absence* of a thing, and half a
+column's absence beside a window reads as easily as a window that happens to be narrow. The outline is drawn **above
+the carried card** and as a border with no fill, because a drop that joins has the pointer over the target's middle —
+the card is sitting on top of its own destination and twice as wide as it, so an outline underneath is one you cannot
+trust to be there.
 
 ### The identity a column keeps
 

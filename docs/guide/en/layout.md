@@ -185,10 +185,16 @@ more than two things at once" is what the rail itself answers.
 ::: tip With the mouse
 In the **overview**, a window let go over the *middle* of another joins its
 column; let go at the edge of one, or between two, it stands beside them as
-before. While you hold it over the middle, that column opens its other half in
-advance — you can see what will happen before you let go. A link can be opened
-beside straight away: **Open Link Beside** in the page's context menu.
+before. While you hold it over the middle you see two things at once: that column
+opens its other half in advance, and an outline in the profile's colour marks
+**exactly the place** the window will land in. A link can be opened beside
+straight away: **Open Link Beside** in the page's context menu.
 :::
+
+Going from half to whole and back is deliberately **not animated**, like full
+width and for the same reason: it changes how wide live pages are, and a page
+changing size costs a visible hitch. While the width eased, the site would lay
+itself out again on every frame — and find time to show a horizontal scrollbar.
 
 ## Picture in Picture
 
