@@ -32,11 +32,14 @@ six/Views         ContentView (top bar), NiriStripView (rail + overview), StartP
                   AgentPanel, MCPApps*, Phone/ (the iOS layout)
 six/Data          AppSupport (the one place that knows the bundle id → folder), AppDatabase, SettingsStore
 six/Persistence   AppStateSnapshot, SnapshotStore (versioned JSON), StatePersistence (debounced autosave)
-six/Bookmarks     Bookmark(Store), ReadablePage (Markdown copy), Embedder/MLXEmbedder (on-device, multilingual-e5)
+six/Bookmarks     Bookmark(Store), ReadablePage (Markdown copy), Embedder/MLXEmbedder (on-device, multilingual-e5),
+                  TextChunker + VectorIndex + BookmarkIndexer (the half every front shares), Embedding/ — the same
+                  E5 as transformers.js in a PageSandbox, for the fronts with no Metal
 six/Blocking      ContentBlocker (WKContentRuleList per profile), FilterList(Store), RuleConversion,
                   AdvancedRules (scriptlets + extended CSS, in the page), Payload/ (built JS)
 six/Extensions    ExtensionStore (a controller per profile), ExtensionInstaller + the compatibility verdict
-six/Translation   the portable half (segments, batching, the page script) + AppleTranslator behind it
+six/Translation   the portable half (segments, batching, the page script, LanguageGuess) + AppleTranslator
+                  on Apple and Bergamot/ — Marian as wasm in an off-screen page — on Linux and Windows
 six/ACP           JSONRPCConnection, ACPClient (actor), ACPAgent (process), AgentSessionStore (view model)
 six/MCP           MCPServer + MCPSocket + MCPStdioBridge (`six --mcp`), Client/ (MCP apps, SEP-1865, OAuth, catalog)
 six/Tools         BrowserTools — one catalog, served to the assistant, to ACP agents and over MCP
@@ -66,6 +69,11 @@ swift build --disable-automatic-resolution
 swift test  --disable-automatic-resolution
 
 ./scripts/dmg.sh          # Release → dist/six-<version>.dmg
+
+# Vendored JavaScript. Both write committed output, so a normal build needs neither network nor
+# Node; run one only when the upstream version it pins moves.
+./scripts/blocking-payload.sh     # AdGuard's scriptlets and extended CSS → six/Blocking/Payload
+./scripts/bergamot-payload.sh     # Emscripten's glue for bergamot-translator → six/Translation/Payload
 ```
 
 Details, and the SDK override, in [docs/build.md](docs/build.md).
@@ -226,6 +234,19 @@ fresh resolve does **not** land on them by itself — the Windows file's first o
 structured-queries 0.39.2 — so a new resolved file gets walked back with `swift package resolve <package> --version`
 before it is committed, one package at a time, and read back to check.
 
+**sqlite-vec lives in the two front manifests, not the root one**, and it brings a pin that looks like a mistake.
+`sqlite-vec-data` is named in `windows/Package.swift` and `linux/Package.swift` because the root manifest is compiled
+on Linux, where `CSQLiteVec` reads the system SQLite headers and Adwaita's `meta-sqlite` vendors its own — two
+definitions of `sqlite3_api_routines` in one compilation unit, which Clang refuses (7806432). Beside it, in both
+files, sits **`swift-tagged` as a dependency no target uses**. That is not debris: sqlite-data declares swift-tagged
+unconditionally, SwiftPM prunes it while the `Tagged` trait is off, and sqlite-vec-data enabling that trait does not
+un-prune it — the resolve fails outright with `exhausted attempts … 'swift-tagged' unresolved`. Naming it does, at
+the cost of a "dependency is not used by any target" warning. Measured: adding both to the Windows graph moved
+nothing else — GRDB 7.11.1, sqlite-data 1.11.0, structured-queries 0.37.0 and sharing 2.10.1 all stayed put, and
+`windows/Package.resolved` gained exactly two entries. `linux/Package.resolved` was given the same two **by hand**,
+because a resolve run on a Mac or on Windows evaluates adwaita-swift's `#if os(Linux)` as false and would drop
+`CSQLite` — the same shape of damage as the `opencombine` one below, from the other direction.
+
 Windows is the one deliberate exception, and only outside those three: it holds `swift-sharing` at **2.10.1** where
 the others hold 2.9.1, because sqlite-data 1.11.0 asks Sharing for an `IdentifiedCollections` trait that 2.9.1 does
 not declare, and the resolver refuses the pair outright. Sharing writes nothing to the database, so this costs
@@ -359,10 +380,40 @@ anything added there has to exist on both:
   non-Sendable value cannot cross an isolation line at all: `MainActor.assumeIsolated` handing back an `NSEvent` is a
   warning, handing back the verdict about it is not. Eighty-seven of these had accumulated by `09dd84c`; a build that
   prints nothing is the state worth keeping, because a build that prints eighty-seven is one nobody reads.
+- **A `Task` does not run on the Linux or Windows front unless something drains the main queue.**
+  The main actor's executor on both is libdispatch's main queue, and a thread parked in
+  `GetMessageW` or inside `g_main_loop_run` never drains it: the task is enqueued and then simply
+  never executed, with nothing said. Measured with a standalone probe on Windows before anything was
+  built on it. The fix is the seam CoreFoundation uses — `_dispatch_get_main_queue_handle_4CF` for a
+  waitable handle, `_dispatch_main_queue_callback_4CF` to drain on the calling thread — wired into
+  the platform's own wait: `RailLoop` on Windows, `MainQueueBridge` + `g_unix_fd_add` on Linux.
+  `swift_task_enqueueMainExecutor_hook` looks like the answer and is never called any more;
+  SE-0463's `ExecutorFactory` is the answer and is not in 6.3.3.
+- **`FileManager.replaceItemAt` is a `fatalError` on Windows, not a thrown error.** The obvious call
+  for "verified file, atomic swap"; `try?` in front of it catches nothing, and it took the browser
+  down the first time a translation model finished downloading. Remove-if-present plus `moveItem`.
+  `.libraryDirectory` on Windows answers with an *empty array*, which is the same shape of trap one
+  subscript along — `AppSupport.logs` spells Windows out for that reason.
 - **`WebPage.callJavaScript` is not `callAsyncJavaScript`** — an `await` in the body fails at parse time with a bare
   "A JavaScript exception occurred". Page scripts stay synchronous; poll from Swift for anything that must wait.
 - **sqlite-vec on Apple's SQLite** works only per connection (`sqlite3_vec_init` from GRDB's `prepareDatabase`);
   `sqlite3_auto_extension` returns MISUSE. The e5 embedder needs `Pooling(strategy: .mean)` set explicitly.
+- **And on Linux and Windows it is the exact opposite, for the same reason.** Those SQLites are built *with*
+  extension loading, so `sqlite3ext.h`'s redefinitions are live and `sqlite-vec.c` compiles as a loadable
+  extension: `sqlite3_vec_init(db, nil, nil)` hands it a null `sqlite3_api_routines` and it dies on the first call
+  through it. `sqlite3_auto_extension`, before the first connection — `Vectors.register()` in each front's
+  `SixBrowser`. `SixCore` does not link sqlite-vec at all (Adwaita's own SQLite is why), so `AppDatabase` guards on
+  **`canImport(Darwin) && canImport(SQLiteVecData)`**: once a front puts the package in its graph `canImport` alone
+  answers yes while `SixCore` has nothing to import through, and the build stops on "missing required module
+  'CSQLiteVec'" three files from anything about vectors.
+- **A dynamic `import()` from a `file:` page is refused by WebKit; a static one is not.** ONNX Runtime loads its own
+  glue that way, so an embedder page that reads its weights happily still answers "no available backend found. ERR:
+  [wasm] TypeError: Importing a module script failed". Fetch the module as text and hand it back as a `blob:` URL
+  (`EmbedderDriver`), and name the `.wasm` beside it, because the glue would otherwise resolve it against its own
+  `import.meta.url`.
+- **A `print` from a front whose stdout is a file is never seen.** Nothing flushes it, so a self-test's whole report
+  sits in the buffer until the process exits — and a run that ends by being killed never gets there. Say it through
+  `Log`, which writes, flushes, and still puts it on stderr when a person is watching.
 - **Sizes are fractions of the viewport, not point constants.** Artem is on a 5K display; a constant tuned on a laptop
   becomes a hairline there. Absolute numbers are fine only as floors/ceilings and for control metrics.
 - **The dev Mac has 8 GB** and usually sits in macOS's `.warning` memory-pressure band already. Anything sized per GB
@@ -426,12 +477,14 @@ anything added there has to exist on both:
   them is always mechanical: `Package.resolved`, where it is a stray resolve (above), and the root `Info.plist`.
 - **A `swift build` of the root package overwrites the root `Info.plist`.** `SixCore` is `path: "six"` and the String
   Catalogs there are resources, so SwiftPM builds a resource bundle — and stages it into the *package root*, dropping
-  its generated 497-byte `BNDL` plist (`CFBundleIdentifier` `six-main.SixCore.resources`) on top of the real one and
-  leaving copies of `InfoPlist.xcstrings` and `Localizable.xcstrings` beside it. The real file is what makes macOS
-  treat six as a browser at all — the http/https claim, the document types, the camera and microphone prompt strings
-  — so committing that diff ships a browser that cannot be made the default and whose permission prompts are blank.
-  It sat dirty for two days once. `git checkout -- Info.plist` and delete the two stray catalogues; the tell is that
-  they are byte-identical to the ones in `six/` and all three carry the same timestamp.
+  its generated 497-byte `BNDL` plist on top of the real one and leaving copies of `InfoPlist.xcstrings` and
+  `Localizable.xcstrings` beside it. Its `CFBundleIdentifier` is `<checkout folder>.SixCore.resources`: SwiftPM takes
+  a root package's identity from the directory rather than from the `name:` in the manifest, so the prefix follows
+  whatever the clone happens to be called — it read `six-main` where this was first found. The real file is what
+  makes macOS treat six as a browser at all — the http/https claim, the document types, the camera and microphone
+  prompt strings — so committing that diff ships a browser that cannot be made the default and whose permission
+  prompts are blank. It sat dirty for two days once. `git checkout -- Info.plist` and delete the two stray
+  catalogues; the tell is that they are byte-identical to the ones in `six/` and all three carry the same timestamp.
 - **Commit messages are prose.** A sentence for the title — what changed, in the voice of the thing that changed
   ("The window that was closed comes back where it stood") — and a body that explains the why, the measurement, and
   what was left honest. No conventional-commits prefixes. Quotes in the subject break the shell; commit via

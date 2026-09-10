@@ -15,6 +15,19 @@ let package = Package(
     dependencies: [
         .package(path: ".."),
         .package(url: "https://github.com/pointfreeco/sqlite-data", from: "1.11.0"),
+        // The vector index: `vec0` tables and the KNN the bookmarks are searched by, the same
+        // dependency the Mac app links. Here rather than in the root manifest, and that is the
+        // seam this package already enforces for `SixCore` itself — `CSQLiteVec` reads the system
+        // SQLite headers while Adwaita's `meta-sqlite` vendors 3.51, and Clang refuses two
+        // definitions of `sqlite3_api_routines` in one compilation unit. `SixBrowser` has no
+        // Adwaita in it and imports this the way it imports `SixCore`: `internal`, so the module
+        // never reaches `SixUI`. Naming it in the root manifest instead is what put it in front of
+        // Adwaita and is why it was taken out again (7806432).
+        .package(url: "https://github.com/mhayes853/sqlite-vec-data", from: "0.5.0"),
+        // Transitive. sqlite-data declares swift-tagged unconditionally, SwiftPM prunes it while the
+        // `Tagged` trait is off, and sqlite-vec-data turning that trait on does not un-prune it — the
+        // resolve then fails with "exhausted attempts … 'swift-tagged' unresolved". Naming it does.
+        .package(url: "https://github.com/pointfreeco/swift-tagged", from: "0.10.0"),
         .package(
             url: "https://codeberg.org/aparoksha/adwaita-swift",
             revision: "476f9e36d34239aed78ce141b8af435d8825c859"
@@ -40,8 +53,14 @@ let package = Package(
             name: "SixBrowser",
             dependencies: [
                 "SixWebKitCore",
+                // By name as well as through `SixWebKitCore`, whose public API already hands out
+                // `WebKitWebView *`: the script bridge and the off-screen page translation runs in
+                // are written here, because this is the module that has `SixCore` — and Adwaita is
+                // still nowhere near it, which is the seam the comment above is about.
+                "CWebKitGTK",
                 .product(name: "SixCore", package: "six"),
-                .product(name: "SQLiteData", package: "sqlite-data")
+                .product(name: "SQLiteData", package: "sqlite-data"),
+                .product(name: "SQLiteVecData", package: "sqlite-vec-data")
             ],
             swiftSettings: [.defaultIsolation(MainActor.self)]
         ),

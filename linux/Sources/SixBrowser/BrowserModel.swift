@@ -61,7 +61,11 @@ public final class BrowserModel {
     private var urls: [UUID: URL] = [:]
     private var pages = LivePages()
     private var settings: SettingsStore?
-    private var bookmarks: Bookmarks?
+    private var bookmarks: BookmarkIndexer?
+    /// The page the embedder runs in, made on first use. A reader who never saves anything should
+    /// not have a hundred and thirty megabytes of E5 in memory, and the toolkit has to be up before
+    /// a `WebKitWebView` may exist at all — which `init` is too early for.
+    private var embedderSandbox: GtkSandbox?
     /// What sites were allowed, and what they are asking right now. The same object the Mac has,
     /// out of `SixCore`: the memory, the queue and the suspended page are shared code, and only the
     /// shape a request arrives in is not.
@@ -79,14 +83,23 @@ public final class BrowserModel {
         // The same file, in the same format, the Mac build writes; only the folder differs, and only
         // inside `AppSupport.root`. A browser without history is still a browser, so a database that
         // will not open is reported and stepped over rather than fatal.
+        // Before the first connection exists, because that is what a SQLite auto extension means:
+        // it reaches the connections opened after it and no others. `Vectors` has the whole of why.
+        Vectors.register()
         do {
             let database = try AppDatabase.open()
+            Vectors.selfTestIfAsked(database)
             history = HistoryStore(database: database)
-            bookmarks = Bookmarks(database: database)
+            // Written down the first time rather than recomputed, so that an update which moves the
+            // recommendation does not re-embed somebody's library behind their back — the Mac's
+            // `sixApp` makes the same decision in the same order.
+            let chosen = SettingsStore(database: database).embeddingModel ?? EmbeddingModelChoice.recommended
+            bookmarks = BookmarkIndexer(database: database, choice: chosen)
             // The profile id comes out of the settings table rather than being made fresh each
             // launch. Regenerating it orphans every visit the last run recorded — history that is
             // in the database and unreachable is worse than history that is missing.
             let settings = SettingsStore(database: database)
+            if settings.embeddingModel == nil { settings.embeddingModel = chosen }
             SettingsStore.shared = settings
             self.settings = settings
             profileID = settings.defaultProfileID
@@ -254,6 +267,10 @@ public final class BrowserModel {
 
     var focusedID: UUID? { layout.focusedTabID }
 
+    /// The column on screen, for the chrome that has to ask something about the page in it — the
+    /// translate button is the first, and it asks `TranslationController` rather than the model.
+    public var focusedTabID: UUID? { layout.focusedTabID }
+
     /// The session a column should be built against: its profile's.
     public var session: NetworkSession {
         sessions[layout.activeProfileID] ?? defaultSession
@@ -418,6 +435,7 @@ public final class BrowserModel {
         layout.removeColumn(tabID: focused)
         PageRegistry.forget(focused)
         pages.forget(focused)
+        TranslationController.shared.forget(focused)
         // The page is suspended inside `decide`; a promise that never lands is a page that never
         // finds out. Denying is the answer a closed column gives.
         permissions?.forget(focused)
@@ -463,6 +481,10 @@ public final class BrowserModel {
 
     public func didFinishLoad(_ url: URL, title: String, for tabID: UUID) {
         urls[tabID] = url
+        // Before the private-window guard, and deliberately: translating is about reading a page,
+        // not about recording that it was read. A private window gets the offer like any other.
+        TranslationController.shared.pageChanged(tabID)
+        TranslationController.shared.consider(tabID)
         guard !isPrivate else { return }
         history?.record(url, title: title, in: profileID)
         // Photographed when it finishes rather than when it is discarded. Waiting for the eviction
@@ -512,8 +534,9 @@ public final class BrowserModel {
     }
 
     public func bookmarks(matching query: String) -> [BookmarkRow] {
-        guard let bookmarks, let rows = try? bookmarks.all(in: profileID, matching: query) else { return [] }
-        return rows.map { BookmarkRow(id: $0.id, url: $0.url, title: $0.displayTitle, site: $0.displayDetail) }
+        guard let bookmarks else { return [] }
+        return bookmarks.all(in: profileID, matching: query)
+            .map { BookmarkRow(id: $0.id, url: $0.url, title: $0.displayTitle, site: $0.displayDetail) }
     }
 
     /// Save the focused page, or unsave it if it is already there. Private profiles keep nothing —
@@ -521,16 +544,21 @@ public final class BrowserModel {
     public func toggleBookmark() {
         guard !isPrivate, let bookmarks, let focused = focusedID, let url = urls[focused] else { return }
         do {
-            if try bookmarks.contains(url, in: profileID) {
-                let existing = try bookmarks.all(in: profileID).filter { $0.url == url }
-                for row in existing { try bookmarks.remove(row.id) }
+            if let existing = bookmarks.bookmark(for: url, in: profileID) {
+                try bookmarks.remove(existing.id)
                 trace("bookmark removed \(url)")
             } else {
-                try bookmarks.add(url: url, title: titles[focused] ?? "", profileID: profileID)
+                ensureEmbedder()
+                // What is embedded is the title and the address: this front has no readable-text
+                // extractor wired yet, and `TextChunker` puts those in a passage of their own, which
+                // is what makes even this much findable by meaning rather than only by substring.
+                // `PageScript` is here now, so `ReadablePage` is the next thing to reach for.
+                try bookmarks.save(url: url, title: titles[focused] ?? "", profileID: profileID)
                 trace("bookmark added \(url)")
             }
         } catch {
-            FileHandle.standardError.write(Data("[six] bookmark failed: \(error)\n".utf8))
+            FileHandle.standardError.write(Data("[six] bookmark failed: \(error)
+".utf8))
         }
     }
 
@@ -541,7 +569,42 @@ public final class BrowserModel {
     /// Whether the focused page is saved, so the star can say so.
     public var isBookmarked: Bool {
         guard let bookmarks, let focused = focusedID, let url = urls[focused] else { return false }
-        return (try? bookmarks.contains(url, in: profileID)) ?? false
+        return bookmarks.bookmark(for: url, in: profileID) != nil
+    }
+
+    /// Bookmarks near a question by meaning, best first — the vector half of what the Mac's
+    /// bookmarks window does, for whichever view asks for it first.
+    public func searchBookmarks(_ query: String, limit: Int = 10) async -> [BookmarkRow] {
+        guard let bookmarks else { return [] }
+        ensureEmbedder()
+        let hits = (try? await bookmarks.search(query, profileID: profileID, limit: limit)) ?? []
+        return hits.map { BookmarkRow(id: $0.bookmark.id, url: $0.bookmark.url,
+                                      title: $0.bookmark.displayTitle, site: $0.snippet) }
+    }
+
+    /// Gives the index something to make vectors with, the first time anything wants one.
+    ///
+    /// Not from `init`: a `WebKitWebView` may not exist before the toolkit is running, which is the
+    /// rule the `NetworkSession` above already obeys. Not eagerly either — the model is a hundred
+    /// and thirty megabyte download, and a reader who never saves a page should never pay for it.
+    private func ensureEmbedder() {
+        guard let bookmarks, embedderSandbox == nil else { return }
+        let sandbox = GtkSandbox()
+        embedderSandbox = sandbox
+        let embedder = WebEmbedder(choice: bookmarks.choice, store: EmbeddingStore(), sandbox: sandbox)
+        embedder.setStatusHandler { status in
+            guard !status.isEmpty else { return }
+            Log.info(.bookmarks, "embedder: \(status)")
+        }
+        bookmarks.use(embedder)
+        if BookmarkSelfTest.isAsked {
+            Task { @MainActor in
+                // Built first because `Log.info` takes an autoclosure, and an `await` inside
+                // one is not a thing the compiler will hold still for.
+                let report = await BookmarkSelfTest.run(bookmarks)
+                Log.info(.bookmarks, "bookmark embedding self-test\n" + report)
+            }
+        }
     }
 
     // MARK: Addresses

@@ -11,9 +11,11 @@ extension RailWindow {
         case profileMenu
         case back, forward, reload
         case address
+        case bookmark
         case workspaceUp, workspaceDown
         case workspace(Int)
         case fullWidth
+        case translate
     }
 
     func chromeAction(x: Int, y: Int) -> ChromeAction? {
@@ -24,6 +26,10 @@ extension RailWindow {
         if layout.forward.contains(x: x, y: y) { return .forward }
         if layout.reload.contains(x: x, y: y) { return .reload }
         if layout.addressPill.contains(x: x, y: y) { return .address }
+        // Only when it could do something. A bookmark button that answers the cursor and then does
+        // nothing is worse than one that does not answer at all — `WM_SETCURSOR` reads this same function, so
+        // saying `nil` here is what stops the hand cursor promising a click that is a no-op.
+        if layout.bookmark.contains(x: x, y: y), model.canBookmarkFocusedPage { return .bookmark }
         if layout.workspaceUp.contains(x: x, y: y) { return .workspaceUp }
         if layout.workspaceDown.contains(x: x, y: y) { return .workspaceDown }
         if layout.workspacePips.contains(x: x, y: y) {
@@ -36,6 +42,7 @@ extension RailWindow {
             return .workspace(max(0, model.workspaceCount - 1))
         }
         if layout.fullWidth.contains(x: x, y: y) { return .fullWidth }
+        if layout.translate.contains(x: x, y: y) { return .translate }
         return nil
     }
 
@@ -80,6 +87,8 @@ extension RailWindow {
             focusedWebView?.reload()
         case .address:
             focusAddressBar()
+        case .bookmark:
+            model.toggleFocusedPageBookmark()
         case .workspaceUp:
             model.focusWorkspace(-1)
         case .workspaceDown:
@@ -88,6 +97,8 @@ extension RailWindow {
             model.focusWorkspace(at: index)
         case .fullWidth:
             model.toggleFullWidth()
+        case .translate:
+            translateFocusedPage()
         }
         invalidate()
     }

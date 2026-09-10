@@ -159,6 +159,80 @@ vendors `sqlite-vec.c`) does in `Database.loadSQLiteVecExtension()`; `AppDatabas
 dimension, so the KNN is plain SQL through GRDB — but the loader and the vendored C are its. The earlier float32-BLOB
 table scanned with `vDSP` is gone (migration v4 drops it; the index is rebuilt from the chunks).
 
+**And how it got into the other two fronts, which is the opposite way round.** The SQLite the Linux and Windows
+builds link — the system one there, the amalgamation `scripts/six-windows.ps1` compiles here — is built *with*
+extension loading, so `sqlite-vec.c` compiles as a loadable extension and every SQLite call inside it goes through
+the `sqlite3_api_routines` table it is handed at init. `sqlite3_vec_init(db, nil, nil)` therefore hands it a null
+table and crashes; `sqlite3_auto_extension` is the entry point that passes a real one, and it has to run *before* the
+first connection is opened. That is the whole of `Vectors.register()` in each front's `SixBrowser`, called from the
+line above `AppDatabase.open()`.
+
+`SixCore` itself does not link sqlite-vec, and the dependency is named in `windows/Package.swift` and
+`linux/Package.swift` instead — on Linux because `CSQLiteVec` reads the system SQLite headers while adwaita-swift's
+`meta-sqlite` vendors its own, and Clang will not hold two definitions of `sqlite3_api_routines` in one compilation
+unit (`7806432`). `SixBrowser` imports it `internal`, so the module never reaches `SixUI`, which is the same seam
+that already keeps `SixCore` away from Adwaita. Two consequences worth knowing:
+
+- **`AppDatabase` guards on `canImport(Darwin) && canImport(SQLiteVecData)`, not on the second half alone.** Once a
+  front puts the package in its graph, `canImport` answers yes while `SixCore` still has no dependency to import
+  through, and the build stops on `missing required module 'CSQLiteVec'` three files from anything about vectors.
+- **`swift-tagged` is named in both front manifests as a dependency no target uses.** sqlite-data declares it
+  unconditionally but SwiftPM prunes it while the `Tagged` trait is off, and sqlite-vec-data enabling that trait is
+  not enough to bring it back — the resolve fails outright with `exhausted attempts … 'swift-tagged' unresolved`.
+  Naming it does, at the cost of a "not used by any target" warning. Neither manifest's other pins move:
+  GRDB 7.11.1, sqlite-data 1.11.0 and structured-queries 0.37.0 are where they were.
+
+`SIX_VEC_SELFTEST=1` answers "does this build actually have a vector index" against the real connection —
+`VectorIndex.selfTest` builds a four-wide table, puts three vectors in it and checks that the identical one comes
+back first. It is shared, so all four fronts answer it in the same words.
+
+## Off the Mac: the same model, a different road
+
+Windows and Linux have no Metal, so no MLX — and there is no ONNX Runtime a Swift package could link on both. What
+they do have is a JavaScript engine with a wasm runtime in it, in a process of its own, which is exactly what
+`PageSandbox` (`six/Browser/PageSandbox.swift`) was built for when Bergamot needed one. So the embedder is a program
+in an off-screen page rather than a library in the process: `WebEmbedder` drives **transformers.js 3.8.1** over
+[`Xenova/multilingual-e5-small`](https://huggingface.co/Xenova/multilingual-e5-small), the ONNX conversion of the very
+weights MLX reads.
+
+**Why a vector from either is stamped `multilingual-e5-small`.** Same architecture, same tokenizer, same
+`query: `/`passage: ` prefixes, same mean pooling, same L2 normalisation. What differs is arithmetic — fp16 on a GPU
+there, int8 on a CPU here — and it moves a cosine in its third decimal, under what the ranking sorts on. The claim is
+that the two spaces are comparable, not that the numbers are equal.
+
+What is installed, under `<Application Support>/Embedding` (`EmbeddingStore`, `EmbeddingCatalog`):
+
+| | |
+|---|---|
+| `runtime@3.8.1/` | transformers.min.js, the ONNX Runtime glue and its wasm — 22 MB, from jsDelivr, digests **written down in the source** because a pinned npm version cannot legitimately change |
+| `models/multilingual-e5-small/` | `config.json`, `tokenizer_config.json`, `tokenizer.json`, `onnx/model_quantized.onnx` — 135 MB, from Hugging Face, digests **fetched from its API**, because a file in Git LFS carries its SHA-256 as its object id |
+| `six-embed.html`, `six-embed.js` | written on every launch; four kilobytes of generated output is not worth a version file |
+
+Everything is named by a path *relative to the page*, the way `BergamotRuntime` names its own: a Windows path is not a
+URL path, and that difference is where half of six's `file:` bugs have lived.
+
+**The one line that had to be measured.** ONNX Runtime's wasm backend does not load its glue with a `<script>` — it
+*dynamically imports* `ort-wasm-simd-threaded.jsep.mjs`. A module import from a `file:` document is refused by WebKit
+however much file access the view has been given (the static import at the top of the page works; a dynamic one does
+not), and what comes back is `no available backend found. ERR: [wasm] TypeError: Importing a module script failed` —
+three layers away from anything that mentions a module. Read as text and handed back as a `blob:` URL, the same bytes
+import fine, and the wasm is named explicitly beside it because the glue would otherwise resolve it against its own
+`import.meta.url`. That is what `env.backends.onnx.wasm.wasmPaths = { mjs, wasm }` is doing in `EmbedderDriver`.
+
+**The shared half.** `BookmarkIndexer` holds the row, the passages, the queue and the search for these fronts;
+`TextChunker` holds the cutting rules and `indexVersion` (moved out of `BookmarkStore`, so all four fronts cut a page
+the same way); `VectorIndex` holds the `vec0` table, the blob format and the KNN. `BookmarkStore` keeps only the two
+halves that are Apple's — the off-screen `WKWebView` that re-reads a page, and the Markdown copy. A bookmark saved on
+Windows is a row the Mac reads, re-embeds and ranks.
+
+**`SIX_EMBED_SELFTEST=1`** saves three pages — плов in Russian, pilaf in English, a page about reserved domain names —
+into a profile id of its own, embeds them, asks the index four questions and deletes what it wrote. Measured on this
+Windows machine (Debug, int8, one wasm thread): the model loads in 3.3 s and a two-passage page embeds in 0.2–0.35 s.
+The space is right — `cos(плов_ru, pilaf_en) = 0.841` against `0.771` to the page about domain names, and
+`cos(domains_en, domains_ru) = 0.898` — and a Russian question ranks the *English* page above the decoy. The honest
+caveat is the other direction: an English question ranks the Russian page and the English decoy within 0.005 of each
+other, which is E5's own same-language bias on a three-document corpus rather than anything six does.
+
 ## Keeping them fresh
 
 Pages change, and so do our models. Two things keep the index honest:

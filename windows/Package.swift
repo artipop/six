@@ -22,10 +22,26 @@ let package = Package(
     name: "six-windows",
     dependencies: [
         // Named, unlike `linux/Package.swift`'s bare `.package(path: "..")`: a path dependency takes
-        // its identity from the *directory*, and this checkout is `six-main` rather than `six`, so
-        // `package: "six"` below would not resolve without saying so here.
+        // its identity from the *directory*, so `package: "six"` below is only right for as long as
+        // the checkout happens to be called that. Saying the name here makes it right in any folder,
+        // which it had to be — this front was written in a copy of the repository named `six-main`,
+        // where the bare form did not resolve at all.
         .package(name: "six", path: ".."),
         .package(url: "https://github.com/pointfreeco/sqlite-data", from: "1.11.0"),
+        // The vector index, the same one the Mac app links: `vec0` virtual tables and the KNN the
+        // bookmarks are searched by. Named here rather than in the root manifest on purpose — the
+        // root one is compiled on Linux too, where `CSQLiteVec` reads the system SQLite headers
+        // while adwaita-swift's `meta-sqlite` vendors its own, and Clang will not hold two
+        // definitions of `sqlite3_api_routines` in one compilation unit. Windows has no Adwaita and
+        // no such collision, so the dependency lives at the front that can afford it and `SixCore`
+        // stays free of it. `linux/Package.swift` does the same thing behind the same seam.
+        .package(url: "https://github.com/mhayes853/sqlite-vec-data", from: "0.5.0"),
+        // Transitive, and named for the same reason combine-schedulers is: without it the resolve
+        // fails outright with "exhausted attempts … 'swift-tagged' unresolved". sqlite-data declares
+        // swift-tagged unconditionally but SwiftPM prunes it while the `Tagged` trait is off, and
+        // sqlite-vec-data turning that trait on is not enough to bring it back. Naming it here is.
+        // It costs a "dependency is not used by any target" warning, which is true and is the price.
+        .package(url: "https://github.com/pointfreeco/swift-tagged", from: "0.10.0"),
         // Transitive — it arrives through SQLiteData → Sharing → swift-dependencies — and named
         // here only to hold it at the one version the mirror in `.swiftpm/configuration` carries.
         // Every released version of this package assumes `import Foundation` brings pthreads along,
@@ -45,13 +61,21 @@ let package = Package(
             name: "SixBrowser",
             dependencies: [
                 .product(name: "SixCore", package: "six"),
-                .product(name: "SQLiteData", package: "sqlite-data")
+                .product(name: "SQLiteData", package: "sqlite-data"),
+                .product(name: "SQLiteVecData", package: "sqlite-vec-data")
             ],
             swiftSettings: [.defaultIsolation(MainActor.self)]
         ),
         .target(
             name: "SixUI",
-            dependencies: ["SixBrowser", "CRailInterop", "CWebKit2"],
+            // `SixCore` directly as well as through `SixBrowser`, because this is where the shared
+            // page-facing code is used rather than wrapped: the translation state machine, the page
+            // script, `PageSandbox`. `SixBrowser` keeps its own import `internal` so that the model
+            // does not re-export it, which is why naming it again here is not redundant.
+            dependencies: [
+                "SixBrowser", "CRailInterop", "CWebKit2",
+                .product(name: "SixCore", package: "six")
+            ],
             swiftSettings: [.defaultIsolation(MainActor.self)]
         ),
         .executableTarget(

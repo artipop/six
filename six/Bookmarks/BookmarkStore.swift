@@ -18,13 +18,10 @@ import WebKit
 @MainActor
 @Observable
 final class BookmarkStore {
-    /// Passages are cut around this many characters; a paragraph longer than `maxChunk` is split.
-    nonisolated static let chunkTarget = 900
-    nonisolated static let maxChunk = 1400
-    /// Beyond this many passages a page is indexed only in part — and says so in `indexError`.
-    nonisolated static let maxChunks = 120
-    /// Bump when chunking or pooling changes: every bookmark is then re-embedded on the next launch.
-    static let indexVersion = 3
+    /// The chunking rules live in `TextChunker`, where every front can reach them; these are the
+    /// names this file already reads them by.
+    nonisolated static let maxChunks = TextChunker.maxChunks
+    static let indexVersion = TextChunker.indexVersion
     /// A refresh reloads the page off screen and waits this long at most for it.
     static let refreshTimeout: TimeInterval = 30
     /// How often the due bookmarks are looked for while the app runs.
@@ -206,7 +203,7 @@ final class BookmarkStore {
         try await database.write { db in
             try Self.upsert(saved, in: db)
             try Self.dropIndex(of: id, from: table, in: db)
-            let chunks = Self.chunks(title: title, excerpt: readable.excerpt, text: readable.text)
+            let chunks = TextChunker.chunks(title: title, excerpt: readable.excerpt, text: readable.text)
             for (ord, text) in chunks.enumerated() {
                 try BookmarkChunk.insert { BookmarkChunk(id: UUID(), bookmarkID: id, ord: ord, text: text) }.execute(db)
             }
@@ -557,51 +554,11 @@ final class BookmarkStore {
         }
     }
 
-    /// Title and excerpt first, then the text in paragraph-sized passages.
-    nonisolated static func chunks(title: String, excerpt: String, text: String) -> [String] {
-        var result: [String] = []
-        let head = [title, excerpt].filter { !$0.isEmpty }.joined(separator: "\n")
-        if !head.isEmpty { result.append(head) }
-        var current = ""
-        func flush() {
-            let trimmed = current.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty { result.append(trimmed) }
-            current = ""
-        }
-        for paragraph in text.components(separatedBy: "\n\n") {
-            let paragraph = paragraph.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !paragraph.isEmpty else { continue }
-            if current.count + paragraph.count > chunkTarget, !current.isEmpty { flush() }
-            if paragraph.count > maxChunk {
-                flush()
-                for piece in split(paragraph, every: maxChunk) { result.append(piece) }
-            } else {
-                current += (current.isEmpty ? "" : "\n\n") + paragraph
-            }
-            if result.count >= maxChunks { break }
-        }
-        flush()
-        return Array(result.prefix(maxChunks))
-    }
-
-    /// Cuts at sentence ends where it can, hard where it must.
-    nonisolated private static func split(_ text: String, every limit: Int) -> [String] {
-        var pieces: [String] = []
-        var rest = Substring(text)
-        while rest.count > limit {
-            let window = rest.prefix(limit)
-            let cut = window.lastIndex(where: { ".!?\n".contains($0) }).map { window.index(after: $0) } ?? window.endIndex
-            let piece = rest[..<cut].trimmingCharacters(in: .whitespacesAndNewlines)
-            if !piece.isEmpty { pieces.append(piece) }
-            rest = rest[cut...]
-        }
-        let tail = rest.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !tail.isEmpty { pieces.append(tail) }
-        return pieces
-    }
-
+    /// A vector as sqlite-vec wants it. Forwarded rather than repeated: `VectorIndex` claims to be
+    /// the one description of what a row in the index looks like, and a second `withUnsafeBufferPointer`
+    /// here is exactly how that claim would quietly stop being true.
     nonisolated static func blob(_ vector: [Float]) -> Data {
-        vector.withUnsafeBufferPointer { Data(buffer: $0) }
+        VectorIndex.blob(vector)
     }
 
     // MARK: Files

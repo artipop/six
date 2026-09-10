@@ -74,7 +74,15 @@ nonisolated enum AppSupport {
     /// the browser's data, it is not migrated, and deleting it costs nothing — which is exactly the
     /// distinction the two folders exist to draw. See `Log`.
     static let logs: URL = {
-        #if os(Linux)
+        #if os(Windows)
+        // `%LOCALAPPDATA%\six\Logs`, beside the database rather than under it: Windows has no
+        // convention of its own for a program's log — the Event Log is for the system's business,
+        // not a browser's — and the local profile is where a program's own working files go, which
+        // is the same argument `root` makes above. Spelled out here because Foundation's
+        // `.libraryDirectory` is an Apple idea and answers on Windows with something between wrong
+        // and nothing; asking it for `[0]` was one empty array away from a crash on first log line.
+        return root.appending(path: "Logs", directoryHint: .isDirectory)
+        #elseif os(Linux)
         let base: URL
         if let xdg = ProcessInfo.processInfo.environment["XDG_STATE_HOME"], !xdg.isEmpty {
             base = URL(fileURLWithPath: xdg, isDirectory: true)

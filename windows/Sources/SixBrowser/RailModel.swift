@@ -1,4 +1,6 @@
 import Foundation
+import GRDB
+
 @testable internal import SixCore
 
 /// The rail's own state: `NiriLayout` plus what a column needs to draw itself and, once it is
@@ -42,7 +44,12 @@ public final class RailModel {
     private var privateProfile: ProfileInfo?
     private var selectedProfileID = UUID()
     private let profileStore: ProfileStore
-    private let settings: SettingsStore
+    /// Not private: `Bookmarks.swift` is the rest of this type in another file, because what it
+    /// wires up — an embedder in an off-screen page — has nothing to do with a rail.
+    let settings: SettingsStore
+    /// The saved pages and their vectors. Made here, because the database is; given an embedder
+    /// later by `attachSandbox`, because that needs a window.
+    private(set) var bookmarks: BookmarkIndexer?
 
     private init() {
         // The same two tables the Mac reads, in the same file — `AppSupport.root` answers
@@ -56,11 +63,21 @@ public final class RailModel {
         // every login gone, and nothing said. Linux can step over its own database because all it
         // loses is history; here the loss is silent and permanent, so this stops and says where to
         // look.
+        // Before the first connection exists, because that is what a SQLite auto extension means:
+        // it reaches the connections opened after it and no others. `Vectors` has the whole of why.
+        Vectors.register()
         do {
             let database = try AppDatabase.open()
+            Vectors.selfTestIfAsked(database)
             settings = SettingsStore(database: database)
             SettingsStore.shared = settings
             profileStore = ProfileStore(database: database)
+            // Written down the first time rather than recomputed, so that an update which moves the
+            // recommendation does not re-embed somebody's library behind their back — the Mac's
+            // `sixApp` makes the same decision in the same order, and for the same reason.
+            let choice = settings.embeddingModel ?? EmbeddingModelChoice.recommended
+            if settings.embeddingModel == nil { settings.embeddingModel = choice }
+            bookmarks = BookmarkIndexer(database: database, choice: choice)
         } catch {
             fatalError("six: cannot open \(AppDatabase.url.path): \(error)")
         }

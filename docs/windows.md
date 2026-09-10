@@ -369,12 +369,84 @@ WebKit build, unrelated to the DPI work. Worth retrying against a non-Playwright
 ([todo.md](todo.md)), since that is the other thing such a build would buy: GPU compositing, and with
 it the animations and video that the software path now carries.
 
+## Translation
+
+A page in another language gets the Mac's 文A translate mark in the top bar; pressing it translates the page in place,
+pressing it again shows the original, and a third press puts the translation back. While a run is
+going on the bar grows a second line saying how far it has got, and the rail below moves down by
+exactly that much — `topChromeHeight` counts the banner, so the cards, the live view and the
+hit-testing all follow from the one number they already followed.
+
+**The engine is Bergamot** — Marian compiled to wasm, the same one Firefox translates with — and
+almost none of it is in `windows/`. The page walk, the batching, the state machine, Show Original,
+the model catalogue, the downloads and the engine driver are all `SixCore`, shared with the Linux
+front and, above the seam, with the Mac. What this front provides is three things:
+
+- **`RailScript`** — `WKPageCallAsyncJavaScript` wrapped so that the shared page walk can run its
+  own JavaScript here. One argument goes in named `input`, carrying the arguments as JSON text; one
+  string comes back. That is deliberate: the C API hands a result back as an object graph of
+  `WKString`/`WKNumber`/`WKArray`/`WKDictionary`, and walking it into Swift values is a hundred
+  lines that buy nothing when both sides can serialise a string. Everything else this front still
+  owes — the readable-page extractor, highlights, `get_selection` — needs this same call.
+- **`RailSandbox`** — a real `WKView` in a one-pixel `WS_POPUP` at −32000,−32000 that is never
+  shown. WebKit's Windows port draws into an `HWND` and a view without one is not a view, so the
+  window is not optional. Two preferences are set on it that no browsing page gets —
+  `FileAccessFromFileURLs` and `UniversalAccessFromFileURLs` — because the page is a `file:`
+  document that has to `fetch()` five megabytes of wasm and thirty of weights out of the folder it
+  lives in. It browses in a non-persistent data store, so nothing it does can reach a profile.
+- **`RailTranslation`** — which page, which languages, and when to offer.
+
+**Where the weights come from.** Mozilla's Remote Settings, the same two collections Firefox reads
+(`translations-wasm` and `translations-models`), served from `firefox-settings-attachments.cdn
+.mozilla.net` without authentication. 106 directions, every one with English at one end, so Russian
+to German is two models and one pivot inside the engine. Everything is verified against the SHA-256
+in the record before it is moved into the cache at `%LOCALAPPDATA%\six\Translation\Bergamot`; a
+model is roughly 35 MB and is fetched once. The Emscripten glue the wasm needs is the one piece that
+cannot be downloaded — it is version-locked source that exists nowhere but the Firefox tree — so
+`scripts/bergamot-payload.sh` vendors it into `six/Translation/Payload` as Swift, under the MPL,
+and the Apple targets compile it away.
+
+**The source language is guessed here rather than asked of the system.** There is no
+`NLLanguageRecognizer` on Windows, so `LanguageGuess` in `SixCore` reads it out of the text —
+script first, then the letters a script does not share, then the commonest words — and `<html lang>`
+is checked against it rather than trusted. `LanguageGuessTests` pins thirty-one languages of one
+ordinary sentence each. The target is the setting, or the language the interface is in; there is no
+way to pick another one on this front yet, which is the main thing left undone.
+
+### Two things this cost, both worth knowing
+
+**Swift concurrency did not run on this front at all, and nothing said so.** On Windows the main
+actor's executor is libdispatch's main queue, and a thread parked in `GetMessageW` never drains it:
+a `Task { @MainActor in … }` was enqueued and then never executed. Measured with a standalone probe
+before anything was built on it. `RailLoop` is the fix and it is eight lines of loop: libdispatch
+exports `_dispatch_get_main_queue_handle_4CF` — a handle signalled when the main queue has work —
+and `_dispatch_main_queue_callback_4CF`, which drains it on the calling thread, and
+swift-corelibs-foundation's own `CFRunLoop` is built on the pair. So the loop waits on the message
+queue *and* that handle with `MsgWaitForMultipleObjectsEx` and drains whichever woke it. Nothing
+polls, and the window, its messages and the main actor stay on thread one.
+
+Two blind alleys, so they are not walked again: `swift_task_enqueueMainExecutor_hook` is exported
+and is never called on this toolchain, because the main actor's executor is implemented in Swift now
+and enqueues onto the queue directly; and SE-0463's `ExecutorFactory`, which is the properly spelled
+answer, does not exist in 6.3.3.
+
+**`FileManager.replaceItemAt` is a `fatalError` on Windows, not a thrown error.** It is the obvious
+call for "verified file, atomic swap" and it took the browser down the first time a model finished
+downloading — `try?` in front of it catches nothing. Remove-if-present plus `moveItem` instead.
+Anything else in six that reaches for it on this front will do the same thing.
+
+**And `AppSupport.logs` had no Windows answer**: `.libraryDirectory` returns an empty array here, so
+the first line six ever logged would have subscripted it. It is `%LOCALAPPDATA%\six\Logs\six.log`
+now, and it is how a translation run is watched — `Log.info(.translation, …)` says what was offered,
+what is being fetched and what was loaded.
+
 ## Where things are
 
 ```
 windows/Package.swift              Depends on the root package by path (named `six` explicitly:
-                                    a path dependency takes its identity from the directory, and
-                                    this checkout is `six-main`), on sqlite-data, and on
+                                    a path dependency takes its identity from the directory, so
+                                    the name is pinned here rather than left to whatever the
+                                    checkout is called), on sqlite-data, and on
                                     combine-schedulers only to hold it at the version the mirror
                                     carries. The `SixCoreShared` symlink target it used to carry is
                                     gone — see above.
@@ -385,6 +457,12 @@ windows/patches                    combine-schedulers-1.2.0-srwlock.patch: the t
 
 windows/.swiftpm/configuration     Generated, and gitignored: SwiftPM will only take an absolute
                                     path for a mirror, so this file names one machine's checkout.
+
+windows/Sources/SixUI/Rail*        The window, the bar, the input, the live view — and, since
+                                    translation, RailLoop (the message loop and the main-queue
+                                    drain), RailScript (callAsyncJavaScript), RailSandbox (the
+                                    off-screen page the wasm engine runs in), RailTranslation and
+                                    RailTranslationChrome.
 
 windows/Sources/CRailInterop       <windowsx.h>'s mouse/wheel macros, the WM_NCCREATE / GWLP_USERDATA
                                     dance a WNDPROC needs, and the cursor/key-state helpers that
@@ -610,9 +688,51 @@ matched, so `⌥F4`, `⌥Space` and plain `F10` still behave like system keys.
   are done (above): rows in `six.sqlite`, folders on disk. Nothing is in the way of the rest either:
   `SixBrowser` imports `SixCore`, so `AppDatabase`, `SettingsStore`, `History` and `Bookmark` are all
   reachable, and the profiles are the proof that reading and writing them here works.
-- **The bar's right-hand half.** The Mac's carries downloads, the extension actions, the bookmark
-  star against the field, the agent panel and the overview; this one has the workspace stepper and
-  the full-width toggle, because those two are the only ones whose subsystem exists on this front.
+- **The bar's right-hand half.** The Mac's carries downloads, the extension actions, the agent panel
+  and the overview; this one has the bookmark button, the translate button, the workspace stepper and
+  the full-width toggle, because those four are the only ones whose subsystem exists on this front.
+
+## Bookmarks, vectors and the embedder
+
+sqlite-vec is in, and it goes in the opposite way round from the Mac. The SQLite this front links is the amalgamation
+`scripts/six-windows.ps1` compiles, built *with* extension loading, so `sqlite-vec.c` compiles as a **loadable**
+extension: every SQLite call inside it goes through the `sqlite3_api_routines` table it is handed at init, and
+`sqlite3_vec_init(db, nil, nil)` — which is what `Database.loadSQLiteVecExtension()` does, and what works on Apple,
+where loading is compiled out and those redefinitions vanish — hands it a null table. `Vectors.register()` calls
+`sqlite3_auto_extension` instead, from the line above the first `AppDatabase.open()`, because an auto extension
+reaches the connections opened after it and no others.
+
+The embedder is the same model the Mac runs — `multilingual-e5-small` — reached through transformers.js in a second
+`RailSandbox`, the off-screen page Bergamot already uses. `RailEmbedding` is the whole of the wiring on this side;
+everything else is `SixCore`'s and shared with the GTK front. [bookmarks.md](bookmarks.md) has the model, the install
+and the one line that had to be measured (ONNX Runtime dynamically imports its own glue, and a module import from a
+`file:` document is refused however much file access the view has been given).
+
+Measured here, Debug, int8, one wasm thread: 3.5 s to load the model, 0.32–0.36 s to embed a two-passage page, 1.0 s
+for three pages. `SIX_VEC_SELFTEST=1` says whether the vector index exists at all; `SIX_EMBED_SELFTEST=1` saves three
+pages — плов in Russian, pilaf in English, a page about reserved domain names — embeds them, asks five questions and
+deletes what it wrote. Both write to the log rather than to stdout, because a `print` from a process whose stdout is a
+file sits in a buffer until it exits.
+
+**The bookmark button** sits against the right end of the address field, where the Mac's does and for the reason
+`ContentView.BookmarkButton` gives: it comes and goes with the field, because a bookmark button on an empty workspace
+is a control about nothing. `⌃D` is the same action, in the `handleChromeKey` table beside ⌃L/⌃T/⌃W/⌃R, since ⌘D is a menu
+item on the Mac rather than a row in `KeyBindings`. Filled and in the profile's colour when the page is saved, hollow
+when it is not, dim and unclickable when there is nothing to save — a private profile, or a column with no address
+yet; `chromeAction` returns `nil` in that case so the hand cursor does not promise a click that would be a no-op.
+
+It is a book's ribbon, the Mac's `bookmark`/`bookmark.fill`, and it is **drawn** rather than taken from the icon
+font — as is the translate button's 文A tile. Every Segoe MDL2 codepoint from E700 to E8FF and F000 to F0FF was
+rendered to a sheet and looked at, and Windows 10's icon font has neither shape: the nearest translate glyph is E8C1,
+a bare "A字", and the star and the globe that stood in for them at first read as other things. So
+`drawBookmarkRibbon` is a five-point polygon and `drawTranslateTiles` two rounded rectangles with 文 and A in
+Microsoft YaHei UI — the one face that has both and ships in every Windows 10 — all in `px()` units like the pips
+and the profile dot. The GTK front keeps adwaita's star; that one was never measured against anything.
+
+Measured by `PrintWindow` and a `WM_LBUTTONDOWN` sent from another process — the ribbon drawn hollow, filled after
+a click, hollow again after the second, and gone along with the field after stepping to an empty workspace. The click
+landing where the ribbon is drawn is also the check that matters at 150 %: the rectangle comes from `chromeLayout()`,
+which paint and hit-test both read, so there is one place for the two to agree.
 
 ## Persistence: where to pick this up next
 

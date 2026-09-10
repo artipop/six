@@ -285,6 +285,13 @@ their chunks and vectors (`six/Data/`, `six/Bookmarks/`, [architecture.md](archi
   [Wax](https://github.com/christopherkarani/Wax) — one `.wax` file with FTS5 + Metal HNSW, hybrid search in one
   query, own embedder and an MCP server; Apple Silicon first, single writer, v0.2. VecturaKit — embed + index +
   BM25 hybrid in one Swift API over MLX; Apple-only, own files.
+- **The vector index off the Mac.** ~~Out of scope for the Linux phase~~ — built for both: sqlite-vec is registered
+  per process (`Vectors.register()`) before the first connection, `VectorIndex` holds the `vec0` table and the KNN for
+  every front, and `BookmarkIndexer` writes the rows, the passages and the vectors. The embedder is the same E5, run
+  by transformers.js in a `PageSandbox` (`WebEmbedder`). Measured on Windows; **Linux is written and unrun** — the
+  container is on the Mac. Windows has the bookmark button and `⌃D` now, beside the address the way the Mac's is. What is still
+  owed: a readable-text extractor on those fronts, so a saved page is embedded as more than its title and excerpt,
+  and somewhere to *see* the library — neither front has a bookmarks window.
 - **Linux build of the data layer.** ~~Verify early~~ — done, and it builds: GRDB, SQLiteData, sqlite-vec
   and the `@Table` macros all compile on Swift 6.3.3/aarch64, as do `AppDatabase`, `SettingsStore`, `History`
   and `Bookmark`. No fallback needed. What it costs is two pins: `swift-sharing` 2.10.0 and

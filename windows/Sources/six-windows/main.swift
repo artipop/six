@@ -18,4 +18,7 @@ guard window.create(instance: instance) else {
     fatalError("[six] failed to create the rail window")
 }
 window.show()
-_ = window.run()
+// Not a plain `while GetMessageW` loop, and `RailLoop` has the whole argument: a thread parked in
+// `GetMessageW` never drains the queue the main actor runs on, so every `await` on this front
+// would be enqueued and forgotten.
+_ = RailLoop.run(window)

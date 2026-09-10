@@ -1,6 +1,7 @@
 import CRailInterop
 import Foundation
 import SixBrowser
+@testable import SixCore
 import WinSDK
 
 /// One Win32 window: the rail, drawn with GDI, and the input that drives it.
@@ -27,6 +28,17 @@ public final class RailWindow {
     /// `Foundation.UUID` explicitly: `WinSDK` also brings in the C `UUID` typedef (`rpcdce.h`'s
     /// `GUID` alias), so the bare name is ambiguous anywhere both are imported.
     var webViews: [Foundation.UUID: RailWebView] = [:]
+
+    /// Translating the page you are reading. Made on first use — it opens a web process of its own
+    /// for the engine, and a reader who never translates anything should never pay for one.
+    lazy var translation = RailTranslation { [weak self] in self?.invalidate() }
+    /// Embedding a page you saved. Made on first use for the same reason translation is, and touched
+    /// once from `create` — the model wants it before the first bookmark, and an off-screen page
+    /// wants a window to exist.
+    lazy var embedding = RailEmbedding(model: model)
+    /// What `topChromeHeight` was when the rail's viewport was last computed. The bar grows a second
+    /// line while a translation is running, and the rail below it has to be told.
+    var lastChromeHeight: Int32 = 0
 
     var addressBarHwnd: HWND?
     /// `EDIT`'s own `WNDPROC`, saved so the subclass can forward what it does not care about.
@@ -103,6 +115,7 @@ public final class RailWindow {
         SetWindowPos(created, nil, 0, 0, 0, 0,
                      UINT(SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE))
         ensureAddressBar(instance: instance)
+        _ = embedding // the model has an embedder from here on; see `RailEmbedding`
         SetTimer(created, Self.pageStateTimer, 400, nil)
         if ProcessInfo.processInfo.environment["SIX_UI_DEBUG"] == "1" {
             FileHandle.standardError.write(Data("[six] window created, hwnd=\(String(describing: created)) scale=\(scale)\n".utf8))
@@ -125,18 +138,6 @@ public final class RailWindow {
         SetFocus(hwnd)
     }
 
-    public func run() -> Int32 {
-        // `GetMessageW` imports as `Bool` here, not the tri-state `BOOL` — so `WM_QUIT` and an error
-        // both read as `false` and end the loop the same way.
-        var message = MSG()
-        while GetMessageW(&message, nil, 0, 0) {
-            if route(message) { continue }
-            TranslateMessage(&message)
-            DispatchMessageW(&message)
-        }
-        return Int32(message.wParam)
-    }
-
     /// The rail's keys and its ⌥-scroll, taken out of the queue before the window they were aimed at
     /// ever sees them — which is the only place they can be taken, because the window they are aimed
     /// at is usually WebKit's.
@@ -149,7 +150,7 @@ public final class RailWindow {
     ///
     /// `true` swallows the message. Only what actually matched is swallowed: `⌥F4`, `⌥Space`, the
     /// page's own keys and everything typed into the address bar go on being somebody else's.
-    private func route(_ message: MSG) -> Bool {
+    func route(_ message: MSG) -> Bool {
         guard let hwnd, let target = message.hwnd,
               target == hwnd || IsChild(hwnd, target) else { return false }
         // The address field is a text field: while it has the keys, it has all of them. Enter and
