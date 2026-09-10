@@ -109,7 +109,7 @@ With `⌥` held the gestures work anywhere, the page included:
 | | |
 |---|---|
 | `⌥` + vertical scroll | one workspace per gesture. Below the threshold the next one rubber-bands into view; once the switch commits, the rest of the gesture (trackpad momentum included) is swallowed, so a flick never skips two |
-| `⌥` + horizontal scroll | a window per ~55 pt of travel while centring is on — as far as you push; with `⌥C` off, free panning |
+| `⌥` + horizontal scroll | the rail follows your fingers: ~55 pt of travel is exactly one window, and it keeps going as far as you push; with `⌥C` off, free panning |
 
 **Pushing into a wall.** The rail is finite in both directions, the stack of
 workspaces at the top and at the bottom. A gesture towards where there is nothing

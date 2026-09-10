@@ -2,6 +2,21 @@
 
 What is planned but not built. Ordered by how much it is missed, not by effort.
 
+## The ring's arrows are three keys, and only on the Mac
+
+`⌃⇧←` / `⌃⇧→` walk the row of cards while the ring is held open. The `⇧` is a tax, not a design: macOS
+owns plain `⌃←` and `⌃→` for Mission Control's *Move left/right a space* (symbolic hotkeys 79 and 80,
+enabled by default), and the WindowServer takes them before any application's event monitor — so the
+two keys a person would reach for cannot be had at all on a default Mac. The binding matches any
+modifiers, so one extra key is enough to get the event delivered, and `⇧` is the one already under the
+hand from `⌃⇧Tab`.
+
+**It is a Mac problem only.** The table is `SixCore`'s and the other fronts read the same rows;
+nothing on Linux or Windows takes `⌃←`, so the bare arrows work there and the documented chord is
+wrong for them. Three keys to page a carousel is a bad answer wherever it is written down, and
+another one has not been found yet: the ring is held open *by* `⌃`, so every key it can answer is a
+`⌃` chord, and the arrows are the only pair that says "the card over there" without being learned.
+
 ## Save As: web archives
 
 Document windows, Save As and highlights are built ([deep-research.md](deep-research.md)). What Save As still

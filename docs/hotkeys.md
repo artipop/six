@@ -56,7 +56,7 @@ that way ([layout.md](layout.md#the-ends-of-the-rail)).
 |---|---|
 | `⌃Tab` | hold `⌃`: the windows on the rail in front of you, as pictures, in the order they were last looked at, the one you would land on in the middle. Each press steps one along the ring; letting `⌃` go flies there |
 | `⌃⇧Tab` | the same, the other way |
-| `⌃←` `⌃→` | one card along the row, the way it is drawn — which is not `⌃Tab`'s step, and has not been since the row started being drawn along the rail ([layout.md](layout.md#⌃tab--the-order-the-windows-were-looked-at)) |
+| `⌃⇧←` `⌃⇧→` | one card along the row, the way it is drawn — which is not `⌃Tab`'s step, and has not been since the row started being drawn along the rail ([layout.md](layout.md#⌃tab--the-order-the-windows-were-looked-at)). `⌥` instead of `⇧` does the same: the row's arrows are bound for **any** modifiers, and the ⇧ is there to get past macOS |
 | `↩` `⌤` | fly now, without waiting for `⌃` to come up |
 | `Esc` | let go of the ring without going anywhere |
 
@@ -184,6 +184,20 @@ One rail's windows only — the workspace on screen — and this run only. `⌥�
   responder stayed where a click had put it, so the keys went on reaching the window you had walked away from
   ([layout.md](layout.md#the-keyboard-follows-the-focus)). It is never taken off a text field — `⌘L` and `⌘K` are
   left by keystroke — so nothing here eats what you were typing.
+- **`⌃←` and `⌃→` never reach six, and no application can have them.** They are Mission Control's *Move
+  left/right a space* — symbolic hotkeys 79 and 80, on by default — and the WindowServer takes them
+  before any app's event monitor. That is why the ring's arrows are written `⌃⇧←` / `⌃⇧→` above: the
+  binding matches any modifiers, so one extra key is enough to get the event delivered. System
+  Settings ▸ Keyboard ▸ Keyboard Shortcuts ▸ Mission Control turns the pair off for anyone who would
+  rather have the bare arrows. **This is a Mac tax and only a Mac tax** — the table is `SixCore`'s and
+  nothing on Linux or Windows takes `⌃←`, so the bare arrows work on those fronts. Three keys to page
+  a carousel is a bad answer wherever it is written down; [todo.md](todo.md) keeps it open.
+- **A key the system owns tests green.** `KeySelfTest` posts with `NSApp.postEvent`, which puts the
+  event straight into the app's own queue — past everything the WindowServer would have taken. So a
+  binding can be measured working, card index and all, and do nothing whatsoever in the hand. When a
+  key is reported dead and the table says it is bound, check the system's own shortcuts before the
+  router; `SIX_UI_DEBUG=1` printing *nothing* for a press is the tell, because a key that arrives and
+  is declined still prints.
 - **`SIX_UI_DEBUG=1` prints a line per key** — the chord, the context it landed in, and who took it. **`SIX_KEY_SELFTEST=1`**
   prints the whole matrix at launch: every binding against every context, which is how a binding that goes quiet
   somewhere is found without pressing anything (`KeySelfTest`; this Mac cannot press its own keys, see CLAUDE.md).

@@ -150,8 +150,16 @@ Vertical is **one workspace per gesture**: deltas accumulate into a rubber-band 
 the threshold commits the switch, and the rest of the gesture — trackpad momentum included — is swallowed, so a flick
 never skips two. Discrete mouse wheels have no gesture phase and are throttled by time instead.
 
-Horizontal is **a window per push, and as many as the hand asks for**: the same rubber band
-(`horizontalPreview`) below the threshold, but crossing it steps and keeps going, with the overshoot carried into the
+**The band is a fraction of the way to the next window, not a distance the hand moved.** It was the
+hand's own points scaled by 0.35, so the whole of a 55 pt push showed as 19 pt of lean and then the
+rail jumped a column — and it read as heavy: you push, almost nothing happens, then it teleports. A
+window is a screen wide, so a gesture half-way to the next one moves the rail half a screen, and the
+commit is seamless because the band is already a whole window's worth when the focus moves a whole
+window. `previewColumn` and `previewWorkspace` both take that fraction now, and `pushWall` with them —
+1 is a whole window's worth of push and a fully lit edge.
+
+Horizontal is **a window per push, and as many as the hand asks for**: the band below the threshold,
+and crossing it steps and keeps going, with the overshoot carried into the
 next step rather than thrown away — discarding it made each step longer than the one before, which is felt as the rail
 getting heavier the further you push. It was one window per gesture too, and that was the vertical rule applied to
 something it does not fit: a rail is a row of windows a few inches long, and having to lift your fingers between every

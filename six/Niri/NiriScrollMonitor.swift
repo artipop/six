@@ -143,10 +143,10 @@ final class NiriScrollMonitor {
                 // longer than the one before it — which is felt as the rail getting heavier the
                 // further you push.
                 accumulatedX += threshold * (accumulatedX < 0 ? 1 : -1)
-                onPreviewColumn(accumulatedX * 0.35)
+                onPreviewColumn(accumulatedX / threshold)
                 onStepColumn(direction)
             } else {
-                onPreviewColumn(accumulatedX * 0.35)
+                onPreviewColumn(accumulatedX / threshold)
             }
             return nil
         }
@@ -172,7 +172,7 @@ final class NiriScrollMonitor {
             onPreview(0)
             onStepWorkspace(direction)
         } else {
-            onPreview(accumulated * 0.35)
+            onPreview(accumulated / threshold)
         }
         return nil
     }

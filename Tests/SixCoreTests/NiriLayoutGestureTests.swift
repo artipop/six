@@ -162,7 +162,7 @@ struct NiriLayoutGestureTests {
         let layout = layout()
         fill(layout, 1) // one window: both ends of this rail are walls
 
-        layout.previewColumn(-40)
+        layout.previewColumn(-0.7)
         #expect(layout.wallGlow > 0)
         #expect(layout.wall == .trailing)
 
@@ -177,7 +177,7 @@ struct NiriLayoutGestureTests {
         fill(layout, 1)
 
         for _ in 0..<4 {
-            layout.previewColumn(-40)
+            layout.previewColumn(-0.7)
             try await Task.sleep(for: .milliseconds(120))
         }
         #expect(layout.wallGlow > 0)
@@ -329,25 +329,43 @@ struct NiriLayoutGestureTests {
 
     /// The rubber band gives less where there is nothing behind it, and the light rises with the
     /// push — the two halves of the same sentence, so a front end drawing one draws the other.
+    ///
+    /// The push is a **fraction of the way to the next window**, not a distance a hand moved: half
+    /// way there is half a window's worth of rail, and the light is half lit.
     @Test func theBandGivesLessAtTheEndOfTheRail() {
         let layout = layout()
         fill(layout, 2) // focus on the last: the far end is a wall, the near end is a window
+        let window = layout.columnWidth + layout.gap
 
-        layout.previewColumn(-10) // leaning towards the far end, where there is nothing
+        layout.previewColumn(-0.25) // a quarter of the way towards the far end, where there is nothing
         #expect(layout.wall == .trailing)
-        #expect(abs(layout.wallGlow - 10 / NiriLayout.wallPush) < 0.001)
-        #expect(abs(layout.horizontalPreview - -10 * NiriLayout.wallResistance) < 0.001)
+        #expect(abs(layout.wallGlow - 0.25) < 0.001)
+        #expect(abs(layout.horizontalPreview - -0.25 * window * NiriLayout.wallResistance) < 0.001)
 
-        layout.previewColumn(10) // and back towards the window that is there
-        #expect(layout.horizontalPreview == 10)
+        layout.previewColumn(0.25) // and back towards the window that is there
+        #expect(abs(layout.horizontalPreview - 0.25 * window) < 0.001)
         #expect(layout.wallGlow == 0)
 
-        layout.previewColumn(-1000) // however hard it is pushed, the light is lit and no more
+        layout.previewColumn(-10) // however hard it is pushed, the light is lit and no more
         #expect(layout.wallGlow == 1)
 
         layout.previewColumn(0) // the gesture ends: the band and the light both let go
         #expect(layout.horizontalPreview == 0)
         #expect(layout.wallGlow == 0)
+    }
+
+    /// And where there *is* a window behind the edge, the band is the whole of the way there: a
+    /// gesture that has gone the full threshold has moved the rail exactly one window, so the step
+    /// that follows it changes nothing you can see. That is the difference between a rail that
+    /// follows your fingers and one that leans a little and then teleports.
+    @Test func theBandIsAWholeWindowByTheTimeItCommits() {
+        let layout = layout()
+        fill(layout, 3)
+        layout.focusColumn(-1) // a window on each side, so neither edge is a wall
+
+        layout.previewColumn(-1)
+        #expect(abs(layout.horizontalPreview + (layout.columnWidth + layout.gap)) < 0.001)
+        #expect(layout.wallGlow == 0) // nothing was pushed against
     }
 
     /// Only in the overview: in the strip a window is a page being read, and a drag on it belongs to

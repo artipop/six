@@ -812,7 +812,10 @@ final class NiriLayout {
     /// A gesture leaning on an edge with nothing behind it: the light follows the finger and lets go
     /// with it, so pushing gently at the end of the rail says the same thing quietly. `nil` is the
     /// gesture ending — or arriving somewhere there is a window after all.
-    func pushWall(_ edge: NiriEdge?, by amount: CGFloat) {
+    /// `progress` is the same fraction the previews carry: 1 is a whole window's worth of push, and
+    /// the light is full there. A free pan has no such measure and hands over the part of its push
+    /// the rail refused, divided by `wallPush`.
+    func pushWall(_ edge: NiriEdge?, by progress: CGFloat) {
         wallTask?.cancel()
         wallTask = nil
         guard let edge else {
@@ -823,7 +826,7 @@ final class NiriLayout {
         wall = edge
         // Un-animated on purpose: it is the finger's own position, and easing towards it would leave
         // the light still rising after the hand has stopped.
-        wallGlow = min(1, abs(amount) / Self.wallPush)
+        wallGlow = min(1, abs(progress))
         // And it puts itself out. Everything that lights this edge is a gesture, and a gesture is
         // released by a zero arriving here — one that a monitor can fail to send, and did: a pause
         // long enough to reset the accumulator left the edge lit with nobody to put it out, and the
@@ -852,30 +855,40 @@ final class NiriLayout {
     /// of the rail. The view hands over the raw band and gets both: a band that gives less where
     /// there is nothing behind it, and the light that says why.
     ///
+    /// **`progress` is a fraction of the way to the next window, not a distance the hand moved.** It
+    /// used to be the hand's own points, scaled by 0.35 — so the whole of a 55 pt push showed as 19 pt
+    /// of lean and then the rail jumped a column, and the rail read as heavy: you push, almost
+    /// nothing happens, and then it teleports. A window is a screen wide, so a gesture that is
+    /// half-way to the next one should have moved the rail half a screen. The commit is then seamless
+    /// — the band is one column's worth at the moment the focus moves one column, and what is left
+    /// over carries into the next step.
+    ///
     /// Sense as everywhere else here — the columns are drawn at `frame.minX - (offset - band)` — so a
     /// negative band is the rail leaning towards its far end.
-    func previewColumn(_ amount: CGFloat) {
-        guard amount != 0 else {
+    func previewColumn(_ progress: CGFloat) {
+        guard progress != 0 else {
             pushWall(nil, by: 0)
             withAnimation(NiriLayout.switchAnimation) { horizontalPreview = 0 }
             return
         }
-        let edge = wallEdge(column: amount < 0 ? 1 : -1)
-        pushWall(edge, by: amount)
-        horizontalPreview = edge == nil ? amount : amount * Self.wallResistance
+        let edge = wallEdge(column: progress < 0 ? 1 : -1)
+        pushWall(edge, by: progress)
+        let travel = (columnWidth + gap) * progress
+        horizontalPreview = edge == nil ? travel : travel * Self.wallResistance
     }
 
-    /// The same for the vertical stack: one workspace per gesture, and a wall above the first row and
-    /// below the last.
-    func previewWorkspace(_ amount: CGFloat) {
-        guard amount != 0 else {
+    /// The same for the vertical stack: still one workspace per gesture, but the band is the same
+    /// proportion of the way there — and a wall above the first row and below the last.
+    func previewWorkspace(_ progress: CGFloat) {
+        guard progress != 0 else {
             pushWall(nil, by: 0)
             withAnimation(NiriLayout.switchAnimation) { verticalPreview = 0 }
             return
         }
-        let edge = wallEdge(workspace: amount < 0 ? 1 : -1)
-        pushWall(edge, by: amount)
-        verticalPreview = edge == nil ? amount : amount * Self.wallResistance
+        let edge = wallEdge(workspace: progress < 0 ? 1 : -1)
+        pushWall(edge, by: progress)
+        let travel = (viewport.height + workspaceSpacing) * progress
+        verticalPreview = edge == nil ? travel : travel * Self.wallResistance
     }
 
     // MARK: Looking ahead at what is off the edge
@@ -1568,7 +1581,7 @@ final class NiriLayout {
             s.workspaces[s.focus] = ws
         }
         guard refused != 0 else { return pushWall(nil, by: 0) }
-        pushWall(refused > 0 ? .trailing : .leading, by: refused)
+        pushWall(refused > 0 ? .trailing : .leading, by: refused / Self.wallPush)
     }
 
     /// After a pan, focus follows the view: the column nearest the middle of the screen wins.

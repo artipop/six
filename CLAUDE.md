@@ -201,6 +201,12 @@ whole session of reasoning. Two things that make its output readable: a **contro
 so "the item did nothing" can be told from "the key never arrived"; and that control going **last**, because `⌘T`
 takes the selection with it and every key after it is then aimed at a fresh window with no history — which reads
 exactly like WebKit swallowing the key, and was believed once. `SIX_UI_DEBUG=1` prints a line per key press with the context it landed in and who took it.
+**But `postEvent` goes past the system**, straight into the app's own queue — so a key the WindowServer
+owns tests green and does nothing in the hand. `⌃←` / `⌃→` are Mission Control's *Move left/right a
+space* (symbolic hotkeys 79 and 80, on by default) and never reach any application; the ring's row
+arrows are written `⌃⇧←` / `⌃⇧→` for that reason. When a key is reported dead and the table says it is
+bound, read `defaults read com.apple.symbolichotkeys` before reading the router — and note that
+`SIX_UI_DEBUG` printing *nothing* is the tell, since a key that arrives and is declined still prints.
 
 ## Three fronts, one dependency graph
 

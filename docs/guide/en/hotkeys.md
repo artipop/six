@@ -36,7 +36,7 @@ the rail.
 |---|---|
 | `⌃Tab` | hold `⌃`: the current rail's windows as pictures, in the order you last looked at them, with the one you would land on in the middle. Each press steps one along the ring; letting `⌃` go flies there |
 | `⌃⇧Tab` | the same, the other way |
-| `⌃←` `⌃→` | the same step, said the way the cards are laid out |
+| `⌃⇧←` `⌃⇧→` | the card to the left or the right, along the row. The `⇧` is not decoration: macOS takes plain `⌃←` / `⌃→` for Mission Control's spaces, and they never reach the browser |
 | `↩` | fly now, without waiting for `⌃` to come up |
 | `Esc` | let go of the ring without going anywhere |
 
