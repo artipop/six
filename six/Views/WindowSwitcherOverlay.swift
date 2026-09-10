@@ -154,7 +154,7 @@ private struct WindowCard: View {
                     .frame(width: size.width, height: size.height, alignment: .top)
                     .clipped()
             } else {
-                Image(systemName: tab.isDocument ? "doc.text" : "globe")
+                Image(systemName: tab.isDocument ? "doc.text" : tab.builtIn != nil ? "gearshape" : "globe")
                     .font(.system(size: max(18, size.height * 0.22), weight: .light))
                     .foregroundStyle(accent)
             }

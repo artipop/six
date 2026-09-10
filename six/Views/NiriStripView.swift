@@ -715,10 +715,8 @@ private struct StripEdgeButtons: View {
                 // that wall never hits.
                 let left = min(max(inset, (frame?.minX ?? 0) - layout.gap / 2), proxy.size.width - inset)
                 let right = max(min(proxy.size.width - inset, (frame?.maxX ?? proxy.size.width) + layout.gap / 2), inset)
-                StripEdgeButton(direction: -1)
-                    .position(x: left, y: proxy.size.height / 2)
-                StripEdgeButton(direction: 1)
-                    .position(x: right, y: proxy.size.height / 2)
+                StripEdgeButton(direction: -1, anchorX: left, anchorY: proxy.size.height / 2)
+                StripEdgeButton(direction: 1, anchorX: right, anchorY: proxy.size.height / 2)
             }
             .animation(NiriLayout.switchAnimation, value: layout.focusedColumnFrame?.minX)
         }
@@ -740,6 +738,11 @@ private struct StripEdgeButtons: View {
 /// and gaps: a chevron parked in every gap would be chrome charged against every window in it.
 private struct StripEdgeButton: View {
     let direction: Int
+    /// Where the lane sits at rest, pinned to the physical edge — the strip's own `GeometryReader`
+    /// hands this down rather than letting each button read `proxy` itself, since the reveal below has
+    /// to grow *away* from this point, never around it.
+    let anchorX: CGFloat
+    let anchorY: CGFloat
 
     @Environment(BrowserState.self) private var browser
     @State private var hovering = false
@@ -763,21 +766,36 @@ private struct StripEdgeButton: View {
         layout.fillsViewport ? max(52, min(280, layout.viewport.height * 0.3)) : layout.columnHeight
     }
 
+    /// How far past the resting lane the hoverable area has to reach once the strip has leaned aside:
+    /// exactly as far as it leaned (`NiriLayout.edgeLean`), so the curtain the pointer sees is the
+    /// curtain the pointer can stand on. Zero at rest, and zero for the button that is *not* the one
+    /// being peeked at — `edgeLean` is a single signed number for whichever side is leaning, not one
+    /// per side.
+    private func reveal(_ layout: NiriLayout) -> CGFloat {
+        guard layout.edgeHover == direction else { return 0 }
+        return abs(layout.edgeLean)
+    }
+
     var body: some View {
         let layout = browser.layout
+        let width = Self.lane(layout) + reveal(layout)
         // Hosted in AppKit, like every control drawn over a page: a SwiftUI button never sees the
         // mouse (see `ClickCatcher`), and with the window filled there is nothing but page here.
         HostedOverlay {
-            content(layout: layout)
+            content(layout: layout, width: width)
         }
-        .frame(width: Self.lane(layout), height: targetHeight(layout))
+        .frame(width: width, height: targetHeight(layout))
+        // Grows from the edge inward rather than from its own centre: the physical edge is where the
+        // pointer first arrived, and it must stay reachable while the far side of the lane reaches out
+        // to meet the curtain that just opened.
+        .position(x: anchorX - CGFloat(direction) * reveal(layout) / 2, y: anchorY)
     }
 
     /// One button for both jobs, and deliberately one: it is what keeps its identity when the strip
     /// runs out of windows under a resting pointer and the chevron becomes a `+`. Two views would make
     /// that an exit and an entry, and the entry would arm the `+` under a hand that never moved.
     @ViewBuilder
-    private func content(layout: NiriLayout) -> some View {
+    private func content(layout: NiriLayout, width: CGFloat) -> some View {
         if let step = step(layout: layout) {
             Button {
                 guard !(step.opens && disarmed) else { return }
@@ -791,7 +809,11 @@ private struct StripEdgeButton: View {
                     if browser.peeksAtEdges { peek(layout, false) }
                 }
             } label: {
-                ZStack {
+                // Aligned to the edge the lane grew from, not centred on the curtain: the glyph reads
+                // as standing at the same spot whether the pointer just arrived or has followed the
+                // strip all the way out, and the reveal on the far side stays a target without also
+                // becoming a place the symbol drifts to.
+                ZStack(alignment: direction < 0 ? .leading : .trailing) {
                     Color.clear
                     // Nothing is drawn until the pointer comes: the strip at rest is windows and gaps,
                     // and a symbol parked in every gap is chrome charged against every window in it.
@@ -804,11 +826,12 @@ private struct StripEdgeButton: View {
                     // what says it does not exist yet. The glyph only names which of the two this is,
                     // the way a dashed edge used to name it before the outline went solid.
                     glyph(step.symbol, layout: layout)
+                        .frame(width: Self.lane(layout))
                 }
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .frame(width: Self.lane(layout), height: targetHeight(layout))
+            .frame(width: width, height: targetHeight(layout))
             .onHover { inside in
                 hovering = inside
                 disarmed = false // the hand moved to get here, so it meant to be here
@@ -892,8 +915,14 @@ private struct StripEdgeButton: View {
         } else {
             shown = hovering ? 1 : 0.45
         }
+        // The `+` is stretched rather than enlarged: a bigger dot in a narrow lane is still a dot, and
+        // the lane is exactly as tall as the column it is offering — a symbol drawn the same shape as
+        // what it opens reads as belonging to it, where a merely bigger `+` would just read as chrome.
+        // The chevrons stay round; they are naming a step sideways, not a shape being added.
+        let isPlus = symbol == "plus"
         return Image(systemName: symbol)
-            .font(.system(size: min(11, width), weight: .bold))
+            .font(.system(size: min(isPlus ? 15 : 11, width), weight: .bold))
+            .scaleEffect(y: isPlus ? 1.9 : 1)
             .foregroundStyle(browser.selectedProfile.color)
             .opacity(shown)
     }

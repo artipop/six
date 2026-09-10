@@ -107,7 +107,7 @@ a window, navigate, read a page, summarize it, search the web, close or move a
 window, search your bookmarks. So "find flights and open three sites side by
 side" is not a metaphor; it is what happens.
 
-Which bookmarks it looks in is set by **Bookmarks ▸ Assistant Searches**, or by
+Which bookmarks it looks in is set by **Bookmarks ▸ Search In**, or by
 the same picker in the model menu: this profile only, or all of them.
 
 ## The research command

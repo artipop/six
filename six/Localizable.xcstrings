@@ -4439,12 +4439,12 @@
         }
       }
     },
-    "The Assistant Searches": {
+    "Search In": {
       "localizations": {
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ассистент ищет по"
+            "value": "Искать в"
           }
         }
       }

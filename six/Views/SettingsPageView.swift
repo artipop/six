@@ -134,7 +134,7 @@ private struct GeneralSettings: View {
             }
 
             SwiftUI.Section("Bookmarks") {
-                Picker("The Assistant Searches", selection: $settings.bookmarkScope) {
+                Picker("Search In", selection: $settings.bookmarkScope) {
                     ForEach(BookmarkScope.allCases) { Text($0.title).tag($0) }
                 }
                 Picker("Re-read Saved Pages", selection: $settings.bookmarkRefreshDays) {

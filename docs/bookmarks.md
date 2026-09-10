@@ -252,7 +252,7 @@ Pages change, and so do our models. Two things keep the index honest:
 ## Where it shows
 
 - **Bookmarks menu**: *Add Bookmark* `⌘D` (becomes *Remove Bookmark* on a saved page), *Show Bookmarks…* `⌘⌥B`,
-  **Assistant Searches: This Profile / All Profiles**, the refresh commands and interval, the profile's 15 most recent.
+  **Search In: This Profile / All Profiles**, the refresh commands and interval, the profile's 15 most recent.
 - **The star** in the top bar, against the right edge of the address field (and drawn only when that field is —
   an empty workspace has no focused window, so there is nothing to save): filled as soon as the row exists —
   saved is saved, and the embedding that follows says so in the tooltip rather than by spinning, which would read as
