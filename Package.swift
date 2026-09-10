@@ -76,6 +76,26 @@ let package = Package(
                 "Data/AppDatabase.swift",
                 "Data/SettingsStore.swift",
                 "Bookmarks/Bookmark.swift",
+                // Saving a page and making it findable by meaning, for the three fronts that are
+                // not the Mac. Everything that decides whether a search works — how a page is cut
+                // into passages, what a row in the `vec0` table looks like, what a vector is
+                // stamped with — because a bookmark saved on Windows is one a Mac reads, re-embeds
+                // and ranks, and two implementations of that is two chances to disagree about it.
+                // `BookmarkStore` keeps the halves that are Apple's: the off-screen `WKWebView`
+                // that re-reads a page, and the Markdown copy written beside it.
+                "Bookmarks/TextChunker.swift",
+                "Bookmarks/VectorIndex.swift",
+                "Bookmarks/Embedder.swift",
+                "Bookmarks/BookmarkIndexer.swift",
+                "Bookmarks/BookmarkSelfTest.swift",
+                // The embedder those fronts run, which is E5 through transformers.js in a
+                // `PageSandbox` — the same bargain Bergamot makes, for the same reason, over the
+                // same seam. `ContextualEmbedder` and `MLXEmbedder` stay in the app: one is
+                // NaturalLanguage and the other is Metal.
+                "Bookmarks/Embedding/EmbeddingCatalog.swift",
+                "Bookmarks/Embedding/EmbeddingStore.swift",
+                "Bookmarks/Embedding/EmbedderDriver.swift",
+                "Bookmarks/Embedding/WebEmbedder.swift",
                 "Browser/SearchEngine.swift",
                 // A page six owns and nobody sees, for running something that is a program written
                 // for a JavaScript engine rather than a library six could link. Bergamot below is

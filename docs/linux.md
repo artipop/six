@@ -74,7 +74,12 @@ command here — see the comment at the top of `Package.swift` for the three rea
   scripts are half-deaf on macOS.
 - **Blocking.** `WebKitUserContentFilterStore` eats the same content-blocker JSON as
   `WKContentRuleList`, so this is wiring rather than design ([blocking.md](blocking.md)).
-- **Embeddings and vector search.** MLX is Metal; out of scope for this phase by decision.
+- **Embeddings and vector search.** ~~MLX is Metal; out of scope for this phase by decision.~~ Built, and MLX
+  was never the way in: sqlite-vec is registered before the first connection (`Vectors.register()`, and the reason it
+  is `sqlite3_auto_extension` here and `prepareDatabase` on the Mac is in `bookmarks.md`), and the embedder is E5
+  through transformers.js in a `GtkSandbox` — the same `PageSandbox` translation runs in. Saving a page writes its
+  passages and queues them. **Not run yet on Linux:** the container is on the Mac, and everything below the seam is
+  the code the Windows front proved.
 - **The assistant, ACP and MCP.** `six/ACP/` and `six/MCP/` are the most portable code in the
   repository — Foundation, child processes, JSON-RPC over stdio — and would fit Linux better than
   iOS, where they were excluded for the lack of `Process`. Not wired to a front yet.

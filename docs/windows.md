@@ -691,6 +691,32 @@ matched, so `⌥F4`, `⌥Space` and plain `F10` still behave like system keys.
   star against the field, the agent panel and the overview; this one has the workspace stepper and
   the full-width toggle, because those two are the only ones whose subsystem exists on this front.
 
+## Bookmarks, vectors and the embedder
+
+sqlite-vec is in, and it goes in the opposite way round from the Mac. The SQLite this front links is the amalgamation
+`scripts/six-windows.ps1` compiles, built *with* extension loading, so `sqlite-vec.c` compiles as a **loadable**
+extension: every SQLite call inside it goes through the `sqlite3_api_routines` table it is handed at init, and
+`sqlite3_vec_init(db, nil, nil)` — which is what `Database.loadSQLiteVecExtension()` does, and what works on Apple,
+where loading is compiled out and those redefinitions vanish — hands it a null table. `Vectors.register()` calls
+`sqlite3_auto_extension` instead, from the line above the first `AppDatabase.open()`, because an auto extension
+reaches the connections opened after it and no others.
+
+The embedder is the same model the Mac runs — `multilingual-e5-small` — reached through transformers.js in a second
+`RailSandbox`, the off-screen page Bergamot already uses. `RailEmbedding` is the whole of the wiring on this side;
+everything else is `SixCore`'s and shared with the GTK front. [bookmarks.md](bookmarks.md) has the model, the install
+and the one line that had to be measured (ONNX Runtime dynamically imports its own glue, and a module import from a
+`file:` document is refused however much file access the view has been given).
+
+Measured here, Debug, int8, one wasm thread: 3.5 s to load the model, 0.32–0.36 s to embed a two-passage page, 1.0 s
+for three pages. `SIX_VEC_SELFTEST=1` says whether the vector index exists at all; `SIX_EMBED_SELFTEST=1` saves three
+pages — плов in Russian, pilaf in English, a page about reserved domain names — embeds them, asks five questions and
+deletes what it wrote. Both write to the log rather than to stdout, because a `print` from a process whose stdout is a
+file sits in a buffer until it exits.
+
+**What is not here yet: a way to save a page by hand.** There is no star and no ⌃D — the bar's right-hand half is the
+open item listed above, and the index is fed by the self-test alone. The Linux front has the star and uses the same
+`BookmarkIndexer`, so this is a button rather than a feature.
+
 ## Persistence: where to pick this up next
 
 The question this section used to ask — *does the dependency graph a storage layer needs even

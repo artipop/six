@@ -32,6 +32,10 @@ public final class RailWindow {
     /// Translating the page you are reading. Made on first use — it opens a web process of its own
     /// for the engine, and a reader who never translates anything should never pay for one.
     lazy var translation = RailTranslation { [weak self] in self?.invalidate() }
+    /// Embedding a page you saved. Made on first use for the same reason translation is, and touched
+    /// once from `create` — the model wants it before the first bookmark, and an off-screen page
+    /// wants a window to exist.
+    lazy var embedding = RailEmbedding(model: model)
     /// What `topChromeHeight` was when the rail's viewport was last computed. The bar grows a second
     /// line while a translation is running, and the rail below it has to be told.
     var lastChromeHeight: Int32 = 0
@@ -111,6 +115,7 @@ public final class RailWindow {
         SetWindowPos(created, nil, 0, 0, 0, 0,
                      UINT(SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE))
         ensureAddressBar(instance: instance)
+        _ = embedding // the model has an embedder from here on; see `RailEmbedding`
         SetTimer(created, Self.pageStateTimer, 400, nil)
         if ProcessInfo.processInfo.environment["SIX_UI_DEBUG"] == "1" {
             FileHandle.standardError.write(Data("[six] window created, hwnd=\(String(describing: created)) scale=\(scale)\n".utf8))

@@ -1,5 +1,5 @@
 {
-  "originHash" : "95ee4eaa181ddf826c35c00c3cf397117902fdad3bedd41407b2bd3d7b7df563",
+  "originHash" : "6b5567a47e481d20ed48a19a436ac38fd116848169a35db5acb1b906b07f8eac",
   "pins" : [
     {
       "identity" : "combine-schedulers",
@@ -35,6 +35,15 @@
       "state" : {
         "revision" : "a9c517261ba6e13483f80e6903c66ad8ebaa649e",
         "version" : "1.11.0"
+      }
+    },
+    {
+      "identity" : "sqlite-vec-data",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/mhayes853/sqlite-vec-data",
+      "state" : {
+        "revision" : "27935086f77b1e5c485d98db7b467db50fc9555e",
+        "version" : "0.5.0"
       }
     },
     {
@@ -134,6 +143,15 @@
       "state" : {
         "revision" : "79e4b74a295b6eb74a8b585e3a39d29e70c1dbd1",
         "version" : "603.0.2"
+      }
+    },
+    {
+      "identity" : "swift-tagged",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/pointfreeco/swift-tagged",
+      "state" : {
+        "revision" : "3907a9438f5b57d317001dc99f3f11b46882272b",
+        "version" : "0.10.0"
       }
     },
     {

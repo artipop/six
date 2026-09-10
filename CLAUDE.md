@@ -32,7 +32,9 @@ six/Views         ContentView (top bar), NiriStripView (rail + overview), StartP
                   AgentPanel, MCPApps*, Phone/ (the iOS layout)
 six/Data          AppSupport (the one place that knows the bundle id → folder), AppDatabase, SettingsStore
 six/Persistence   AppStateSnapshot, SnapshotStore (versioned JSON), StatePersistence (debounced autosave)
-six/Bookmarks     Bookmark(Store), ReadablePage (Markdown copy), Embedder/MLXEmbedder (on-device, multilingual-e5)
+six/Bookmarks     Bookmark(Store), ReadablePage (Markdown copy), Embedder/MLXEmbedder (on-device, multilingual-e5),
+                  TextChunker + VectorIndex + BookmarkIndexer (the half every front shares), Embedding/ — the same
+                  E5 as transformers.js in a PageSandbox, for the fronts with no Metal
 six/Blocking      ContentBlocker (WKContentRuleList per profile), FilterList(Store), RuleConversion,
                   AdvancedRules (scriptlets + extended CSS, in the page), Payload/ (built JS)
 six/Extensions    ExtensionStore (a controller per profile), ExtensionInstaller + the compatibility verdict
@@ -232,6 +234,19 @@ fresh resolve does **not** land on them by itself — the Windows file's first o
 structured-queries 0.39.2 — so a new resolved file gets walked back with `swift package resolve <package> --version`
 before it is committed, one package at a time, and read back to check.
 
+**sqlite-vec lives in the two front manifests, not the root one**, and it brings a pin that looks like a mistake.
+`sqlite-vec-data` is named in `windows/Package.swift` and `linux/Package.swift` because the root manifest is compiled
+on Linux, where `CSQLiteVec` reads the system SQLite headers and Adwaita's `meta-sqlite` vendors its own — two
+definitions of `sqlite3_api_routines` in one compilation unit, which Clang refuses (7806432). Beside it, in both
+files, sits **`swift-tagged` as a dependency no target uses**. That is not debris: sqlite-data declares swift-tagged
+unconditionally, SwiftPM prunes it while the `Tagged` trait is off, and sqlite-vec-data enabling that trait does not
+un-prune it — the resolve fails outright with `exhausted attempts … 'swift-tagged' unresolved`. Naming it does, at
+the cost of a "dependency is not used by any target" warning. Measured: adding both to the Windows graph moved
+nothing else — GRDB 7.11.1, sqlite-data 1.11.0, structured-queries 0.37.0 and sharing 2.10.1 all stayed put, and
+`windows/Package.resolved` gained exactly two entries. `linux/Package.resolved` was given the same two **by hand**,
+because a resolve run on a Mac or on Windows evaluates adwaita-swift's `#if os(Linux)` as false and would drop
+`CSQLite` — the same shape of damage as the `opencombine` one below, from the other direction.
+
 Windows is the one deliberate exception, and only outside those three: it holds `swift-sharing` at **2.10.1** where
 the others hold 2.9.1, because sqlite-data 1.11.0 asks Sharing for an `IdentifiedCollections` trait that 2.9.1 does
 not declare, and the resolver refuses the pair outright. Sharing writes nothing to the database, so this costs
@@ -383,6 +398,22 @@ anything added there has to exist on both:
   "A JavaScript exception occurred". Page scripts stay synchronous; poll from Swift for anything that must wait.
 - **sqlite-vec on Apple's SQLite** works only per connection (`sqlite3_vec_init` from GRDB's `prepareDatabase`);
   `sqlite3_auto_extension` returns MISUSE. The e5 embedder needs `Pooling(strategy: .mean)` set explicitly.
+- **And on Linux and Windows it is the exact opposite, for the same reason.** Those SQLites are built *with*
+  extension loading, so `sqlite3ext.h`'s redefinitions are live and `sqlite-vec.c` compiles as a loadable
+  extension: `sqlite3_vec_init(db, nil, nil)` hands it a null `sqlite3_api_routines` and it dies on the first call
+  through it. `sqlite3_auto_extension`, before the first connection — `Vectors.register()` in each front's
+  `SixBrowser`. `SixCore` does not link sqlite-vec at all (Adwaita's own SQLite is why), so `AppDatabase` guards on
+  **`canImport(Darwin) && canImport(SQLiteVecData)`**: once a front puts the package in its graph `canImport` alone
+  answers yes while `SixCore` has nothing to import through, and the build stops on "missing required module
+  'CSQLiteVec'" three files from anything about vectors.
+- **A dynamic `import()` from a `file:` page is refused by WebKit; a static one is not.** ONNX Runtime loads its own
+  glue that way, so an embedder page that reads its weights happily still answers "no available backend found. ERR:
+  [wasm] TypeError: Importing a module script failed". Fetch the module as text and hand it back as a `blob:` URL
+  (`EmbedderDriver`), and name the `.wasm` beside it, because the glue would otherwise resolve it against its own
+  `import.meta.url`.
+- **A `print` from a front whose stdout is a file is never seen.** Nothing flushes it, so a self-test's whole report
+  sits in the buffer until the process exits — and a run that ends by being killed never gets there. Say it through
+  `Log`, which writes, flushes, and still puts it on stderr when a person is watching.
 - **Sizes are fractions of the viewport, not point constants.** Artem is on a 5K display; a constant tuned on a laptop
   becomes a hairline there. Absolute numbers are fine only as floors/ceilings and for control metrics.
 - **The dev Mac has 8 GB** and usually sits in macOS's `.warning` memory-pressure band already. Anything sized per GB

@@ -26,6 +26,20 @@ let package = Package(
         // `package: "six"` below would not resolve without saying so here.
         .package(name: "six", path: ".."),
         .package(url: "https://github.com/pointfreeco/sqlite-data", from: "1.11.0"),
+        // The vector index, the same one the Mac app links: `vec0` virtual tables and the KNN the
+        // bookmarks are searched by. Named here rather than in the root manifest on purpose — the
+        // root one is compiled on Linux too, where `CSQLiteVec` reads the system SQLite headers
+        // while adwaita-swift's `meta-sqlite` vendors its own, and Clang will not hold two
+        // definitions of `sqlite3_api_routines` in one compilation unit. Windows has no Adwaita and
+        // no such collision, so the dependency lives at the front that can afford it and `SixCore`
+        // stays free of it. `linux/Package.swift` does the same thing behind the same seam.
+        .package(url: "https://github.com/mhayes853/sqlite-vec-data", from: "0.5.0"),
+        // Transitive, and named for the same reason combine-schedulers is: without it the resolve
+        // fails outright with "exhausted attempts … 'swift-tagged' unresolved". sqlite-data declares
+        // swift-tagged unconditionally but SwiftPM prunes it while the `Tagged` trait is off, and
+        // sqlite-vec-data turning that trait on is not enough to bring it back. Naming it here is.
+        // It costs a "dependency is not used by any target" warning, which is true and is the price.
+        .package(url: "https://github.com/pointfreeco/swift-tagged", from: "0.10.0"),
         // Transitive — it arrives through SQLiteData → Sharing → swift-dependencies — and named
         // here only to hold it at the one version the mirror in `.swiftpm/configuration` carries.
         // Every released version of this package assumes `import Foundation` brings pthreads along,
@@ -45,7 +59,8 @@ let package = Package(
             name: "SixBrowser",
             dependencies: [
                 .product(name: "SixCore", package: "six"),
-                .product(name: "SQLiteData", package: "sqlite-data")
+                .product(name: "SQLiteData", package: "sqlite-data"),
+                .product(name: "SQLiteVecData", package: "sqlite-vec-data")
             ],
             swiftSettings: [.defaultIsolation(MainActor.self)]
         ),
