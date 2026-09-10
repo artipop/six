@@ -687,9 +687,9 @@ matched, so `⌥F4`, `⌥Space` and plain `F10` still behave like system keys.
   are done (above): rows in `six.sqlite`, folders on disk. Nothing is in the way of the rest either:
   `SixBrowser` imports `SixCore`, so `AppDatabase`, `SettingsStore`, `History` and `Bookmark` are all
   reachable, and the profiles are the proof that reading and writing them here works.
-- **The bar's right-hand half.** The Mac's carries downloads, the extension actions, the bookmark
-  star against the field, the agent panel and the overview; this one has the workspace stepper and
-  the full-width toggle, because those two are the only ones whose subsystem exists on this front.
+- **The bar's right-hand half.** The Mac's carries downloads, the extension actions, the agent panel
+  and the overview; this one has the bookmark star, the translate globe, the workspace stepper and
+  the full-width toggle, because those four are the only ones whose subsystem exists on this front.
 
 ## Bookmarks, vectors and the embedder
 
@@ -713,9 +713,21 @@ pages — плов in Russian, pilaf in English, a page about reserved domain na
 deletes what it wrote. Both write to the log rather than to stdout, because a `print` from a process whose stdout is a
 file sits in a buffer until it exits.
 
-**What is not here yet: a way to save a page by hand.** There is no star and no ⌃D — the bar's right-hand half is the
-open item listed above, and the index is fed by the self-test alone. The Linux front has the star and uses the same
-`BookmarkIndexer`, so this is a button rather than a feature.
+**The star** sits against the right end of the address field, where the Mac's does and for the reason
+`ContentView.BookmarkButton` gives: it comes and goes with the field, because a star on an empty workspace is a
+control about nothing. `⌃D` is the same action, in the `handleChromeKey` table beside ⌃L/⌃T/⌃W/⌃R, since ⌘D is a menu
+item on the Mac rather than a row in `KeyBindings`. Filled and in the profile's colour when the page is saved, hollow
+when it is not, dim and unclickable when there is nothing to save — a private profile, or a column with no address
+yet; `chromeAction` returns `nil` in that case so the hand cursor does not promise a click that would be a no-op.
+
+The glyph is Segoe MDL2's `FavoriteStar`/`FavoriteStarFill` rather than the Mac's `bookmark`/`bookmark.fill`. It is
+the pair Windows' own icon font has for "saved", and the GTK front is already on `starred`/`non-starred`; what has to
+match across the three fronts is which page is saved, not the shape.
+
+Measured by `PrintWindow` and a `WM_LBUTTONDOWN` sent from another process — the star drawn hollow, filled after a
+click, hollow again after the second, and gone along with the field after stepping to an empty workspace. The click
+landing where the star is drawn is also the check that matters at 150 %: the rectangle comes from `chromeLayout()`,
+which paint and hit-test both read, so there is one place for the two to agree.
 
 ## Persistence: where to pick this up next
 

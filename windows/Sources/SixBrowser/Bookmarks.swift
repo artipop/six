@@ -78,6 +78,40 @@ extension RailModel {
         bookmarks?.bookmark(for: url, in: activeProfile.id) != nil
     }
 
+    // MARK: The star in the bar
+
+    /// The page the bar is describing, as something a bookmark can be made of.
+    ///
+    /// `nil` when there is no focused column, or when its address is not one — the rail opens a
+    /// column before anything has loaded, and a row keyed by a string that is not a URL is a row
+    /// nothing can ever find again.
+    private var focusedPage: (url: URL, title: String)? {
+        guard let focused = columns.first(where: \.isFocused),
+              let url = URL(string: url(for: focused.id)), url.scheme != nil
+        else { return nil }
+        return (url, focused.title)
+    }
+
+    /// Whether the star has anything to act on. False on a private profile, which is the Mac's rule
+    /// and the Linux front's: a bookmark is a record like any other, and a private profile keeps
+    /// none.
+    public var canBookmarkFocusedPage: Bool {
+        bookmarks != nil && !activeProfile.isPrivate && focusedPage != nil
+    }
+
+    /// Whether the page the bar is describing is saved, so the star knows which way to point.
+    public var isFocusedPageBookmarked: Bool {
+        guard !activeProfile.isPrivate, let page = focusedPage else { return false }
+        return isBookmarked(page.url)
+    }
+
+    /// The star's click. Saved is saved as soon as the row exists — the embedding that follows is
+    /// the index's business, and a star that waited for it would spend a second looking broken.
+    public func toggleFocusedPageBookmark() {
+        guard canBookmarkFocusedPage, let page = focusedPage else { return }
+        toggleBookmark(url: page.url, title: page.title)
+    }
+
     /// What a search of the saved pages answers: enough to draw a row, and nothing else.
     public struct BookmarkHitRow: Identifiable, Sendable {
         public let id: UUID

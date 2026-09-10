@@ -289,8 +289,9 @@ their chunks and vectors (`six/Data/`, `six/Bookmarks/`, [architecture.md](archi
   per process (`Vectors.register()`) before the first connection, `VectorIndex` holds the `vec0` table and the KNN for
   every front, and `BookmarkIndexer` writes the rows, the passages and the vectors. The embedder is the same E5, run
   by transformers.js in a `PageSandbox` (`WebEmbedder`). Measured on Windows; **Linux is written and unrun** — the
-  container is on the Mac. What is still owed: a readable-text extractor on those fronts, so a saved page is embedded
-  as more than its title and excerpt, and a way to save one by hand on Windows.
+  container is on the Mac. Windows has the star and `⌃D` now, beside the address the way the Mac's is. What is still
+  owed: a readable-text extractor on those fronts, so a saved page is embedded as more than its title and excerpt,
+  and somewhere to *see* the library — neither front has a bookmarks window.
 - **Linux build of the data layer.** ~~Verify early~~ — done, and it builds: GRDB, SQLiteData, sqlite-vec
   and the `@Table` macros all compile on Swift 6.3.3/aarch64, as do `AppDatabase`, `SettingsStore`, `History`
   and `Bookmark`. No fallback needed. What it costs is two pins: `swift-sharing` 2.10.0 and

@@ -81,7 +81,7 @@ extension RailWindow {
 }
 
 /// The keys that are menu items on the Mac rather than rows in `KeyBindings` — ⌘L, ⌘T, ⌘W, ⌘R,
-/// ⌘[ and ⌘] — with `Ctrl` in `⌘`'s place, which is where a Windows keyboard keeps them.
+/// ⌘D, ⌘[ and ⌘] — with `Ctrl` in `⌘`'s place, which is where a Windows keyboard keeps them.
 ///
 /// They are matched by **scan code**, like the letter bindings in `railKey` above and for the same
 /// reason CLAUDE.md gives: a letter read from the layout is a shortcut only Latin layouts have.
@@ -100,6 +100,7 @@ extension RailWindow {
         case 0x14: model.openColumn()                                 // T
         case 0x11: model.closeColumn()                                // W
         case 0x13: focusedWebView?.reload()                           // R
+        case 0x20: model.toggleFocusedPageBookmark()                  // D — the Mac's ⌘D
         case 0x1A: focusedWebView?.goBack()                           // [
         case 0x1B: focusedWebView?.goForward()                        // ]
         default: return false

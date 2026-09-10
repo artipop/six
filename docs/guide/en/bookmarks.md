@@ -82,6 +82,25 @@ orange arrow appears on the row with the reason.
 
 **Refresh Bookmark** and **Refresh `<profile>` Bookmarks** do the same on demand.
 
+## On Windows and Linux
+
+The star is there too, and the same index is behind it. **On Windows** it is to
+the right of the address, and `Ctrl+D` does the same; **on Linux** it is the star
+in the toolbar, with `Ctrl+D` beside it. Press to save, press again to forget. A
+filled star takes the profile's colour: a bookmark belongs to a profile rather
+than to the browser.
+
+The model behind search by meaning is the same one — multilingual-e5-small — but
+it arrives by a different road: not through Metal, which those machines do not
+have, but through the page engine six already ships. There is one honest
+difference: the model has to be downloaded, about 155 MB, once. That starts with
+the first page you save rather than at launch.
+
+Two things are missing on both: six saves the title, the description and the
+address but does not read the page's text yet, so a bookmark is found by what it
+is about rather than by a phrase from the middle of it. And there is no bookmarks
+window there — the list and the search are still the Mac's.
+
 ## What the assistant and the agents see
 
 **Bookmarks ▸ Assistant Searches: This Profile / All Profiles** is one setting

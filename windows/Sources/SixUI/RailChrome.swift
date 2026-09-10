@@ -154,6 +154,12 @@ extension RailWindow {
             static let close = "\u{E711}"
             /// Segoe MDL2's globe, which is what Windows itself uses for anything about language.
             static let translate = "\u{E774}"
+            // A star rather than the Mac's `bookmark`/`bookmark.fill`: this is the pair Windows'
+            // own icon font has for "saved", it is what Explorer and Edge draw, and the GTK front
+            // is already on `starred`/`non-starred` for the same reason. The Mac's shape stays the
+            // Mac's; what has to match across the three is which page is saved, not the glyph.
+            static let star = "\u{E734}"
+            static let starFilled = "\u{E735}"
             // The window controls. These four are a set of their own in the icon font, drawn at
             // stroke widths meant for a title bar rather than for a toolbar.
             static let chromeMinimize = "\u{E921}"
@@ -207,6 +213,8 @@ extension RailWindow {
         var forward = RECT()
         var reload = RECT()
         var addressPill = RECT()
+        /// The star, immediately right of the field. Empty whenever the field is.
+        var bookmark = RECT()
         var workspaceUp = RECT()
         var workspacePips = RECT()
         var workspaceDown = RECT()
@@ -309,12 +317,20 @@ extension RailWindow {
         let share = Double(client.right) / scale * Metric.addressShare
         let wanted = px(min(max(share, Metric.addressMinWidth), Metric.addressMaxWidth))
         let leftLimit = layout.reload.right + gap * 2
-        let rightLimit = layout.translate.left - gap * 2
+        // The star's width comes off the field's room rather than out of the gap beside it, and it
+        // is reserved whether or not the star can be used: a field that grew by thirty pixels on a
+        // private profile would be the bar changing shape for a reason nobody could see.
+        let rightLimit = layout.translate.left - gap * 2 - buttonWidth - gap
         let width = max(0, min(wanted, rightLimit - leftLimit))
         var left = (client.right - width) / 2
         left = min(max(left, leftLimit), max(leftLimit, rightLimit - width))
         let address = centred(Metric.addressHeight)
         layout.addressPill = RECT(left: left, top: address.top, right: left + width, bottom: address.bottom)
+        // Against the field, the way the Mac's is, and it comes and goes with it: a star on an empty
+        // workspace is a control about nothing, greyed out in the middle of the bar beside a page
+        // that says "New Window". `ContentView.BookmarkButton` says the same thing at more length.
+        layout.bookmark = RECT(left: layout.addressPill.right + gap, top: button.top,
+                               right: layout.addressPill.right + gap + buttonWidth, bottom: button.bottom)
         return layout
     }
 
@@ -348,6 +364,7 @@ extension RailWindow {
         drawGlyph(hdc, ChromeFonts.Glyph.reload, in: layout.reload, enabled: live != nil)
 
         drawAddressField(hdc, in: layout.addressPill)
+        drawBookmarkStar(hdc, in: layout.bookmark)
 
         drawTranslateButton(hdc, in: layout.translate)
         drawGlyph(hdc, ChromeFonts.Glyph.chevronUp, in: layout.workspaceUp, enabled: model.canFocusWorkspace(-1))
@@ -455,6 +472,24 @@ extension RailWindow {
     /// A button's glyph, greyed when the thing it does is not available. The state is drawn, not
     /// the control disabled — CLAUDE.md's note about a disabled item eating its key equivalent is
     /// the Mac's version of the same preference.
+    /// Filled and in the profile's colour when the page is saved, hollow when it is not, dim either
+    /// way when there is nothing it could do — which on this front means a private profile or a
+    /// column whose address is not yet one.
+    ///
+    /// The colour is the profile's for the same reason the Mac's is: a star is the one control in
+    /// the bar whose state is about *this* profile's library, and two profiles' stars looking
+    /// identical is how a page gets saved into the wrong one.
+    private func drawBookmarkStar(_ hdc: HDC, in rect: RECT) {
+        guard rect.right > rect.left else { return }
+        let saved = model.isFocusedPageBookmarked
+        let usable = model.canBookmarkFocusedPage
+        let color: COLORREF = saved ? Self.color(hex: model.activeProfile.colorHex)
+            : (usable ? Self.textColor : Self.dimLabelColor)
+        drawText(hdc, saved ? ChromeFonts.Glyph.starFilled : ChromeFonts.Glyph.star,
+                 in: rect, font: fonts.glyph, color: color,
+                 format: DT_CENTER | DT_VCENTER | DT_SINGLELINE)
+    }
+
     func drawGlyph(_ hdc: HDC, _ glyph: String, in rect: RECT, enabled: Bool) {
         drawText(hdc, glyph, in: rect, font: fonts.glyph,
                  color: enabled ? Self.textColor : Self.dimLabelColor,
