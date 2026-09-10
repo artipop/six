@@ -29,11 +29,12 @@ Xcode. Its module boundaries are enforced rather than agreed — see [linux.md](
 
 ```
 Package.swift          SixCore: the files above that are Foundation-only — NiriLayout, Data/, Persistence/,
-                       Bookmark, History, SearchEngine, SitePermissions. Listed, not moved.
+                       Bookmark, History, SearchEngine, SitePermissions — plus the two the fronts without a
+                       snapshot share, StripState and LivePages (compiled away on Apple). Listed, not moved.
 linux/  SixWebKitCore  the WebKitGTK interop, no toolkit: NetworkSession, PageRegistry, Thumbnails,
                        PermissionRequests, Signal
         SixWebKit      the page as a widget adwaita can place
-        SixBrowser     BrowserModel, LivePages, StripState, Bookmarks — the Linux six/Browser
+        SixBrowser     BrowserModel, PageScript, Translation, Bookmarks — the Linux six/Browser
         SixUI          the only module that knows what a toolkit is
 ```
 

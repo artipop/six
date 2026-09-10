@@ -39,12 +39,14 @@ extension RailWindow {
         )
     }
 
-    /// Below the header: leaving that strip GDI's rather than the page's is what keeps the close
-    /// box clickable instead of covered by a child `HWND`. Built on `cardRect`, the same conversion
-    /// `draw` and `handleClick` use, so the three cannot disagree.
-    func bodyRect(for frame: CGRect) -> RECT {
-        let card = cardRect(for: frame)
-        return RECT(left: card.left, top: card.top + px(Metric.cardHeader), right: card.right, bottom: card.bottom)
+    /// Below the header — and below the permission bar while there is one: leaving that strip GDI's
+    /// rather than the page's is what keeps the close box and the bar's buttons clickable instead of
+    /// covered by a child `HWND`. Built on `cardRect`, the same conversion `draw` and `handleClick`
+    /// use, so the three cannot disagree.
+    func bodyRect(for column: RailModel.Column) -> RECT {
+        let card = cardRect(for: column.frame)
+        let bar = column.permission == nil ? 0 : px(Self.permissionBarHeight)
+        return RECT(left: card.left, top: card.top + px(Metric.cardHeader) + bar, right: card.right, bottom: card.bottom)
     }
 
     // MARK: Painting
@@ -79,7 +81,9 @@ extension RailWindow {
         fill(hdc, client, with: Self.backgroundColor)
         SetBkMode(hdc, TRANSPARENT)
         let columns = model.columns
-        if columns.isEmpty {
+        if model.isOverview {
+            drawOverview(hdc, client: client)
+        } else if columns.isEmpty {
             drawEmptyRailHint(hdc, client: client)
         } else {
             for column in columns { draw(column, hdc: hdc) }
@@ -132,5 +136,14 @@ extension RailWindow {
                  format: DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS)
 
         drawGlyph(hdc, ChromeFonts.Glyph.close, in: closeBoxRect(for: card), enabled: true)
+
+        // The picture the page left, under where the page goes: a live view covers it, and a column
+        // whose view is still being built — or was given back — shows what it last looked like
+        // rather than a flat colour.
+        if let picture = thumbnail(for: column.id) {
+            let body = bodyRect(for: column)
+            drawThumbnail(hdc, picture, into: RECT(left: body.left + 1, top: body.top, right: body.right - 1, bottom: body.bottom - 1))
+        }
+        if let question = column.permission { drawPermissionBar(hdc, question, in: card) }
     }
 }

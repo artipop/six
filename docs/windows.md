@@ -8,15 +8,17 @@ out. A page loads, navigates, reports its title back, renders inside its own car
 real resolution, and answers a click where the click looks like it landed. Above the rail is the
 same band the Mac's `TopBar` occupies, and in the same place: the bar *is* the title bar, so which
 profile you are in, the navigation buttons, the focused page's address and the window controls are
-all on one line, the way they are on the Mac. Past that the Mac still has the assistant, the agent
-panel and the overview, which this front does not draw.
+all on one line, the way they are on the Mac. Since the parity pass it also has what the Linux front
+had and this one did not — history, the rail across a relaunch, the overview, a live-page budget
+with pictures of the pages it gives back, and site permissions. Past that the Mac still has the
+assistant and the agent panel.
 
 | | |
 |---|---|
 | toolkit | **Win32** (`WinSDK`), GDI painting for the chrome — no WinUI, no XAML |
 | engine | **real WebKit** (WebKit2 C API), software compositing — see "DPI and scale" |
 | language | Swift, the same source tree — and now the same `SixCore`, not a subset of it |
-| storage | the profiles are real rows in `six.sqlite`, each with its own WebKit data store, and the one on screen comes back after a relaunch; the rail itself does not persist yet |
+| storage | the profiles are real rows in `six.sqlite`, each with its own WebKit data store; the one on screen and every profile's rail come back after a relaunch, and history is the Mac's `visits` table |
 | built with | `6.3.3+NoAsserts`, and that is not a preference — see below |
 | built in | on the Windows dev machine directly — `scripts/six-windows.ps1` |
 | verified | **yes** — built, run, every rail mechanic and real page loads exercised by hand |
@@ -462,7 +464,10 @@ windows/Sources/SixUI/Rail*        The window, the bar, the input, the live view
                                     translation, RailLoop (the message loop and the main-queue
                                     drain), RailScript (callAsyncJavaScript), RailSandbox (the
                                     off-screen page the wasm engine runs in), RailTranslation and
-                                    RailTranslationChrome.
+                                    RailTranslationChrome — and, since the parity pass,
+                                    RailThumbnails (pictures of pages), RailOverview,
+                                    RailPermissionBar, RailListPanel (the History and Site
+                                    Permissions windows) and RailPanels (the "⋯" menu).
 
 windows/Sources/CRailInterop       <windowsx.h>'s mouse/wheel macros, the WM_NCCREATE / GWLP_USERDATA
                                     dance a WNDPROC needs, and the cursor/key-state helpers that
@@ -506,8 +511,9 @@ windows/Sources/SixUI              RailWindow (the Win32 window, message dispatc
                                     else borrows back), RailInput (mouse and wheel), RailKeyInput
                                     (WM_KEYDOWN / WM_SYSKEYDOWN), ProfileChip (the profile dropdown),
                                     WebEngine + RailWebView (the WebKit2 wrapper, one website data
-                                    store per profile), RailLiveView (positions the focused column's
-                                    WKView over its card's body, and polls what the page says it is),
+                                    store per profile), RailLiveView (positions every live column's
+                                    WKView over its card's body, keeps them within the budget, and
+                                    polls what the pages say they are),
                                     AddressBar (a plain Win32 EDIT control, sunk into a drawn pill).
 
 windows/Sources/six-windows        main.swift: declare DPI awareness, create the window, pump
@@ -676,21 +682,12 @@ matched, so `⌥F4`, `⌥Space` and plain `F10` still behave like system keys.
 
 ## What is not
 
-- **The overview** (`⌥O`). `NiriLayout.isOverview` would flip happily, but this front does not draw
-  the zoomed-out view yet, and a toggle nothing on screen answers to is worse than no toggle — so
-  neither `RailModel` nor `RailKeyLookup` expose it. Whoever adds it next has
-  `linux/Sources/SixUI/BrowserContent.swift` and the Mac's `NiriStripView` as the two existing
-  readings of the same `NiriLayout` state.
-- **A live-page budget.** Only the focused column ever gets a `WKView`; every other front's version
-  of "more than one column can be live at once" is future work here too.
-- **Persistence of the rail, history, bookmarks.** The rail itself still lives in memory and goes on exit —
-  which columns were open, where they stood, what they were showing. Profiles are the exception and
-  are done (above): rows in `six.sqlite`, folders on disk. Nothing is in the way of the rest either:
-  `SixBrowser` imports `SixCore`, so `AppDatabase`, `SettingsStore`, `History` and `Bookmark` are all
-  reachable, and the profiles are the proof that reading and writing them here works.
+- **The overview's hands.** Dragging a window to another row and renaming a workspace are the Mac's;
+  this overview looks and goes, it does not rearrange.
 - **The bar's right-hand half.** The Mac's carries downloads, the extension actions, the agent panel
-  and the overview; this one has the bookmark button, the translate button, the workspace stepper and
-  the full-width toggle, because those four are the only ones whose subsystem exists on this front.
+  and the overview; this one has the bookmark button, the translate button, the workspace stepper,
+  the full-width toggle and "⋯", because those are the ones whose subsystem exists on this front.
+- **A camera or a microphone for a page.** The engine's gap, not six's — see "Site permissions".
 
 ## Bookmarks, vectors and the embedder
 
@@ -734,41 +731,125 @@ a click, hollow again after the second, and gone along with the field after step
 landing where the ribbon is drawn is also the check that matters at 150 %: the rectangle comes from `chromeLayout()`,
 which paint and hit-test both read, so there is one place for the two to agree.
 
-## Persistence: where to pick this up next
+## The rail across a relaunch
 
-The question this section used to ask — *does the dependency graph a storage layer needs even
-compile here?* — is answered, measured, and no longer the obstacle. `SixCore` builds, `SQLiteData`
-builds, and a `@Table` type went through a migration, two inserts, a `.where {}.select()` and back
-out of a real file on disk. `AppSupport.root` knows where six lives on Windows
-(`%LOCALAPPDATA%\six`, spelled out rather than left to Foundation, which would have chosen the
-roaming profile). What is left is the front's own work, and it is ordinary:
+Every profile's strip is written down after anything that changes its shape — a column opened,
+closed, focused or moved, a page that went somewhere or got a title — rather than on quit, because a
+browser that only saves on quit loses everything to the one crash it was going to have. It goes into
+the `settings` table under `strip.state` as `StripState`: `NiriStrip` itself, the Mac's `Codable`
+unchanged, plus each column's address and title. That type was the Linux front's; it is `SixCore`'s
+now (`six/Persistence/StripState.swift`, compiled away on Apple, where `state.json` does this job), so
+the two fronts write one shape under one key. `FileSnapshotStore` was the other candidate and lost
+on the same argument Linux made: the database is already open, migrated, and where every other
+preference lives.
 
-1. **A snapshot of the rail.** `SixCore` already carries `FileSnapshotStore` and `StatePersistence`
-   — a versioned JSON file plus a debounced autosave — and they are generic over the snapshot type.
-   The Mac's `AppStateSnapshot` is not in `SixCore`, so this front needs its own small `Codable`
-   describing what `RailModel` holds: the workspaces, each column's tab id, URL and title, and which
-   one had focus.
-2. **The database under it.** Done, for the one table everything else is keyed by: `RailModel`
-   reads and writes real `ProfileStore` rows, so a profile id in a snapshot now names something that
-   outlives the launch. `AppDatabase`'s other migrations are plain `#sql` DDL that compiles here, so
-   history and bookmarks are the same shape of work.
-3. **A place to flush.** The Mac flushes on termination. Here that is `WM_CLOSE`/`WM_DESTROY` in
-   `RailWindow`, before the message loop ends.
+Three things the profiles work had settled, and this keeps:
 
-Three things the profiles work settled that a snapshot has to account for, written down here because
-they are easy to get wrong and cost nothing to know:
+- **A strip per profile.** `NiriLayout.allStrips` is what is saved, so switching profiles loses
+  nothing that was not on screen.
+- **Which profile was on screen is `profile.selected`**, not a field of the snapshot. `StripState`
+  still carries `activeProfile` because Linux reads it; this front writes it and never reads it.
+- **The private profile is in none of it** — its strip, its addresses and its titles are filtered
+  out before anything is written.
 
-- **A strip per profile, not one strip.** `NiriLayout` keeps `strips[profileID]`, and this front now
-  uses more than one of them. Anything that saves "the rail" saves every profile's, or switching
-  profiles loses whichever one was not on screen. `RailModel.allTabIDs` is the existing walk over all
-  of them — and it exists for the same distinction a snapshot needs: a column absent from the active
-  strip has been closed, a column absent from `allTabIDs` no longer exists anywhere.
-- **Which profile was on screen is already written down**, in `settings` under `profile.selected`, so
-  a snapshot does not need a field for it — but it does need to agree with it. Two records of the
-  same fact that can disagree is worse than one, so a snapshot should read that key rather than carry
-  its own copy.
-- **The private profile must not be in it.** It is written down nowhere by definition — no row, no
-  folder, no place in a snapshot — which on the Mac is `AppStateSnapshot` filtering
-  `profiles.filter { !$0.isPrivate }`.
+A strip whose profile has no row any more is dropped on the way in. `SIX_URL` still means something
+over a restored rail: it opens one more column at that address, which is how a scripted run lands on
+its test page whatever the previous run left. Measured by relaunching three times with a different
+`SIX_URL` each: `[storage] restored 1 columns`, then `2`, each run adding its page beside the ones it
+found.
 
-Nothing above needs a decision that has not already been made — it needs writing.
+## History
+
+Visits go into the Mac's `visits` table through `SixCore`'s `HistoryStore` — under the column's own
+profile rather than the one on screen, since a page kept live in another profile can still finish
+loading. A private profile records nothing.
+
+`didFinishNavigation` is the visit, and it is not the moment a title exists ("What the page says it
+is, on a timer"), so the visit is written with whatever title there is and the column is marked as
+awaiting one: the next title the poll reads is handed to the visit even when it is the title the card
+already shows. That case is not hypothetical — it is every restored column reloading the page it was
+on, and before this those visits were listed by their address.
+
+**History** (`Ctrl+H`, or **⋯ ▸ History**) is a list window over it: type to search title and address,
+`↑`/`↓` from the field, `Enter` or a double-click opens the row as a new column beside the focused
+one, `Esc` closes. Empty is the recent pages, one row per address; anything typed is
+`HistoryStore.search`.
+
+## Live pages, discarding, and pictures
+
+Every column the strip is showing, and half a screen either side of it, gets a real `WKView` —
+`NiriLayout.visibleTabIDs`, the set the Mac's `LivePageCache` pins. Everything else lives or dies by
+`LivePages` (about a page per gigabyte, 8…32, `SIX_LIVE_PAGES=n` to pin it): the Mac's rule, moved out
+of the Linux front into `SixCore` so both run the same code. What this front hands it as "all" is every
+column of every profile, so a hidden view of the workspace above survives while it is in budget; Linux
+hands it the focused workspace, because that is all its strip widget builds.
+
+A view out of sight is hidden, not destroyed, and stepping back to it does not reload. A view past the
+budget is destroyed; its column keeps its place, title and address, and is built again from the
+address when the strip reaches it. Measured with `SIX_LIVE_PAGES=2` on three columns: `[pages]
+discarded …, 1 of 2 live` on the first step away, and the page back on the step back.
+
+Clicking into a page that is not the focused column focuses its column. WebKit's child `HWND` takes the
+click, so `route` sees the press on its way through the queue, focuses, and lets it go on to the page.
+
+**Pictures.** A column that has no view — every column in the overview, and a discarded one — shows
+the last picture of its page: `PrintWindow(PW_RENDERFULLCONTENT)` on the view's own `HWND`, the call
+that already captured WebKit children for the harness, halved and kept as a 32-bit BMP at
+`Thumbnails\<column>.bmp` (GDI writes and loads one with nothing but itself; the Mac and Linux keep
+PNGs). A hidden view cannot be photographed, so pictures are taken on the way *out*: a moment after a
+page finishes loading, just before a view is hidden or discarded, before the overview opens, and on
+`WM_CLOSE`. A capture that comes back all zeros is a view that had not drawn yet, and is thrown away
+rather than written over a good picture. The folder is pruned to the columns that exist at launch.
+
+## The overview
+
+`Alt+O`, or **⋯ ▸ Overview**; `Esc` leaves. It is the Mac's geometry point for point — each workspace a
+row at `NiriLayout.rowY`, each row centred by `canvasX`, the whole canvas scaled about the window's
+centre by `overviewScale`, which is what `.scaleEffect(_, anchor: .center)` does there — drawn in GDI
+from `RailModel.overviewCards`, each workspace's name where its row begins. Every view is hidden while
+it is open (a child `HWND` has no transform, and a page at a fifth of its size is neither sharp nor
+useful), so the cards are the pictures above — which is also what the Mac draws there. A click on a
+card focuses it and closes the overview, a click anywhere else closes it where it stood, and the wheel
+needs no `Alt` — the Mac's scroll monitor drops its modifier in the overview for the same reason.
+
+`⌥O` and `Esc` come out of `KeyBindings` like every other rail key. `Esc`'s row is scoped to the rail
+rather than to the overview, so `RailKeyLookup` answers it only while the overview is open: a bare
+`Esc` taken outside it would be taken from every page.
+
+## Site permissions
+
+The Mac's `SitePermissions`, out of `SixCore`: the remembered answers (the same `permissions.sites`
+row the Mac writes), the queue per window, the suspended page, the private profile's answers kept in
+memory. What this front adds is where a question comes from and where it is drawn:
+
+- **`RailWebView.onMediaRequest`** — a `WKPageUIClientV6` with only
+  `decidePolicyForUserMediaPermissionRequest` set (version 5 is where it arrived; every other callback
+  is left `nil`, which is WebKit's own default for each). The origin is built from the
+  `WKSecurityOriginRef` the way the Mac's `string(for:)` writes it, the request is retained until it
+  is answered, the first device of each kind is what an allow hands over, and screen capture is
+  denied rather than asked about as if it were the camera.
+- **The bar** — `RailPermissionBar`, under the card's title, pushing the page down (`bodyRect(for:)`)
+  so its **Block** and **Allow** are GDI's and not under a child `HWND`.
+- **Site permissions** (**⋯ ▸ Site permissions**) — every remembered site, whose profile, what was
+  answered; `Delete` forgets a row.
+
+**No page can ask yet on this engine.** Playwright's WebCore has MediaStream compiled out:
+`JSMediaStream`, `JSMediaDevices`, `UserMediaRequest` and `UserMediaController` appear nowhere in
+`WebCore.dll` while `JSHTMLDivElement` does, and a page on `http://localhost` — a secure context — reads
+`navigator.mediaDevices`, `MediaStream` and `RTCPeerConnection` as `undefined`, with
+`WKPreferencesSetMediaDevicesEnabled` on and with the `MediaStreamEnabled` feature key set, both tried.
+So the callback is wiring for the WebKit that is not Playwright's ([todo.md](todo.md)), and
+`SIX_PERMISSION_SELFTEST=1` exercises everything past it: the first page to finish loading in the
+focused column asks for the camera and the microphone through `RailModel.requestMedia` — the call the
+callback makes — and the answer is logged under `[browser]`. `SIX_MOCK_CAPTURE=1` turns WebKit's mock
+devices on, for an engine that has MediaStream to mock.
+
+## The list windows
+
+History and Site Permissions are one type, `RailListPanel`: an owned popup window — a frame of its own,
+movable off the page it is about — with an `EDIT` to search in and an owner-drawn `LISTBOX`, because a
+list box's own rows are one line of system text and a visit is two things. Its keys come out of the
+queue through its own `route`, which `RailWindow.route` asks first, since an `EDIT` and a `LISTBOX`
+each have their own idea of `Enter`, `Esc` and the arrows. Its caption is the system's, and on Windows
+10 that is a light title bar over a dark list; `DWMWA_USE_IMMERSIVE_DARK_MODE` would fix it and was
+not reached for.

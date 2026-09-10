@@ -16,6 +16,7 @@ extension RailWindow {
         case workspace(Int)
         case fullWidth
         case translate
+        case more
     }
 
     func chromeAction(x: Int, y: Int) -> ChromeAction? {
@@ -43,6 +44,7 @@ extension RailWindow {
         }
         if layout.fullWidth.contains(x: x, y: y) { return .fullWidth }
         if layout.translate.contains(x: x, y: y) { return .translate }
+        if layout.more.contains(x: x, y: y) { return .more }
         return nil
     }
 
@@ -57,9 +59,18 @@ extension RailWindow {
         // answering until the rail is clicked somewhere that is *not* a column, which reads as the
         // rail hanging rather than as focus being elsewhere.
         if let hwnd { SetFocus(hwnd) }
+        // The overview: a card is a way back to its window, and anywhere else is a way back to where
+        // the rail already stood.
+        if model.isOverview {
+            if let card = overviewCard(atX: x, y: y) { model.focus(card.id) }
+            if y >= Int(topChromeHeight) { model.leaveOverview() }
+            invalidate()
+            return
+        }
         for column in model.columns {
             let card = cardRect(for: column.frame)
             guard card.contains(x: x, y: y) else { continue }
+            if handlePermissionClick(column, card: card, x: x, y: y) { return }
             if closeBoxRect(for: card).contains(x: x, y: y) {
                 model.closeColumn(column.id)
             } else {
@@ -99,6 +110,8 @@ extension RailWindow {
             model.toggleFullWidth()
         case .translate:
             translateFocusedPage()
+        case .more:
+            showMoreMenu(below: chromeLayout().more)
         }
         invalidate()
     }
@@ -108,8 +121,11 @@ extension RailWindow {
     ///
     /// `WHEEL_DELTA` (120) is one physical notch, and a precise wheel or trackpad reports less than
     /// that per message — hence the accumulator, so the rail does not step twice as fast.
+    ///
+    /// The overview needs no `Alt`: there is no page under the pointer to leave the gesture to, which
+    /// is why the Mac's scroll monitor drops its modifier there too (`modifierOptional`).
     func handleWheel(delta: Int32, horizontal: Bool) {
-        guard SixRailKeyDown(Int32(VK_MENU)) != 0 else { return }
+        guard model.isOverview || SixRailKeyDown(Int32(VK_MENU)) != 0 else { return }
         let movesColumn = SixRailKeyDown(Int32(VK_SHIFT)) != 0
 
         let notchSize = Int32(WHEEL_DELTA)

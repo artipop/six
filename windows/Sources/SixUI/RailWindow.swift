@@ -28,6 +28,16 @@ public final class RailWindow {
     /// `Foundation.UUID` explicitly: `WinSDK` also brings in the C `UUID` typedef (`rpcdce.h`'s
     /// `GUID` alias), so the bare name is ambiguous anywhere both are imported.
     var webViews: [Foundation.UUID: RailWebView] = [:]
+    /// The views that were on screen at the last repaint — the ones worth photographing on their way
+    /// out of sight, since a hidden view cannot be.
+    var visibleViews: Set<Foundation.UUID> = []
+    /// Pictures of pages, loaded or taken (`RailThumbnails`), and the columns known to have none.
+    var thumbnails: [Foundation.UUID: HBITMAP] = [:]
+    var missingThumbnails: Set<Foundation.UUID> = []
+    /// Pages that finished loading and are to be photographed once they have had a moment to draw.
+    var thumbnailDue: [Foundation.UUID: Date] = [:]
+    /// History or Site Permissions, when one is open.
+    var listPanel: RailListPanel?
 
     /// Translating the page you are reading. Made on first use — it opens a web process of its own
     /// for the engine, and a reader who never translates anything should never pay for one.
@@ -116,6 +126,9 @@ public final class RailWindow {
                      UINT(SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE))
         ensureAddressBar(instance: instance)
         _ = embedding // the model has an embedder from here on; see `RailEmbedding`
+        // A question arrives from a WebKit callback and moves nothing else the window would repaint
+        // for; this is the one place the model reaches back into it.
+        model.onPermissionQuestion = { [weak self] in self?.invalidate() }
         SetTimer(created, Self.pageStateTimer, 400, nil)
         if ProcessInfo.processInfo.environment["SIX_UI_DEBUG"] == "1" {
             FileHandle.standardError.write(Data("[six] window created, hwnd=\(String(describing: created)) scale=\(scale)\n".utf8))
@@ -151,6 +164,8 @@ public final class RailWindow {
     /// `true` swallows the message. Only what actually matched is swallowed: `⌥F4`, `⌥Space`, the
     /// page's own keys and everything typed into the address bar go on being somebody else's.
     func route(_ message: MSG) -> Bool {
+        // An open list has its own keys, and is not a child of this window for the check below.
+        if let listPanel, listPanel.route(message) { return true }
         guard let hwnd, let target = message.hwnd,
               target == hwnd || IsChild(hwnd, target) else { return false }
         // The address field is a text field: while it has the keys, it has all of them. Enter and
@@ -158,6 +173,11 @@ public final class RailWindow {
         if target == addressBarHwnd { return false }
 
         switch Int32(message.message) {
+        // A press on a page that is not the focused one focuses its column — and then goes on to
+        // the page, which is where it was aimed.
+        case WM_LBUTTONDOWN, WM_RBUTTONDOWN, WM_MBUTTONDOWN:
+            if target != hwnd { focusColumnOwning(target) }
+            return false
         case WM_KEYDOWN, WM_SYSKEYDOWN:
             let handled = handleChromeKey(virtualKey: Int32(message.wParam), lParam: message.lParam)
                 || handleKeyDown(virtualKey: Int32(message.wParam), lParam: message.lParam)
@@ -219,10 +239,19 @@ public final class RailWindow {
     /// `nil` is everything left to `DefWindowProcW`.
     func handle(message: UINT, wParam: WPARAM, lParam: LPARAM) -> LRESULT? {
         switch Int32(message) {
+        // While the pages are still on screen to be photographed: the next launch's first overview
+        // is made of these.
+        case WM_CLOSE:
+            captureVisibleThumbnails()
+            return nil
+
         case WM_DESTROY:
             if let hwnd { KillTimer(hwnd, Self.pageStateTimer) }
+            listPanel?.close()
             for view in webViews.values { view.destroy() }
             webViews.removeAll()
+            for bitmap in thumbnails.values { DeleteObject(bitmap) }
+            thumbnails.removeAll()
             if let addressFieldBrush { DeleteObject(addressFieldBrush) }
             PostQuitMessage(0)
             return 0

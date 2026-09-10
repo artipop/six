@@ -17,3 +17,9 @@
 // The argument dictionary `WKPageCallAsyncJavaScript` takes, and the type its answer comes back as.
 #include <WebKit/WKDictionary.h>
 #include <WebKit/WKMutableDictionary.h>
+// A page asking for the camera or the microphone: the UI client that hears it, the request, the
+// origin it is filed under, and the array its device ids come back in.
+#include <WebKit/WKPageUIClient.h>
+#include <WebKit/WKUserMediaPermissionRequest.h>
+#include <WebKit/WKSecurityOriginRef.h>
+#include <WebKit/WKArray.h>

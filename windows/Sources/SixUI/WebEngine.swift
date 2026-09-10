@@ -82,6 +82,19 @@ enum WebEngine {
         // `RailWebView.installScaleShim` has the scales agreeing, but it put a visible layer seam
         // through the middle of a search field; worth revisiting, not worth shipping.
         WKPreferencesSetAcceleratedCompositingEnabled(preferences, false)
+        // `navigator.mediaDevices`, for an engine that has it. **Playwright's does not**: MediaStream
+        // is compiled out of its WebCore — `JSMediaStream`, `JSMediaDevices` and `UserMediaRequest`
+        // appear nowhere in `WebCore.dll` while `JSHTMLDivElement` does, and a page reads
+        // `MediaStream`, `RTCPeerConnection` and `navigator.mediaDevices` as `undefined` whatever
+        // this or the `MediaStreamEnabled` feature key say (both measured). So on today's engine no
+        // page ever asks, and `RailWebView.onMediaRequest` is wiring for the WebKit that is not
+        // Playwright's (docs/todo.md) — `SIX_PERMISSION_SELFTEST` exercises everything above it.
+        WKPreferencesSetMediaDevicesEnabled(preferences, true)
+        // A camera and a microphone that are not there, for testing the question and its answer on
+        // a machine that has neither — the Linux front's `SIX_MOCK_CAPTURE`, spelled the same.
+        if ProcessInfo.processInfo.environment["SIX_MOCK_CAPTURE"] == "1" {
+            WKPreferencesSetMockCaptureDevicesEnabled(preferences, true)
+        }
         WKPageConfigurationSetPreferences(pageConfiguration, preferences)
 
         // Created at `frame` divided by the display scale, and grown to the real `frame` by the
@@ -161,11 +174,32 @@ final class RailWebView {
     /// Told when a navigation has finished, whatever it was. `RailSandbox` waits on this — it is
     /// how "the page is loaded and its scripts have run" is spelled through the C API.
     var onFinishNavigation: (() -> Void)?
+    /// Told when the page asks for the camera or the microphone. Answer through the request, now or
+    /// after a bar has been up for a while — but always answer: the page's `getUserMedia()` promise
+    /// is suspended until then. Nobody listening is a no.
+    var onMediaRequest: ((MediaRequest) -> Void)?
+
+    /// A site asking a page for a device, in the vocabulary `SitePermissions` already speaks.
+    struct MediaRequest {
+        /// `https://example.com`, the way the Mac files an answer: scheme, host, and a port only
+        /// when it is not the scheme's own.
+        let origin: String
+        let camera: Bool
+        let microphone: Bool
+        let answer: (Bool) -> Void
+    }
+
+    /// Where `setFrame` and `setVisible` last put the view, so a repaint that asks again for the same
+    /// thing costs nothing. Every visible column is re-placed on every repaint, and a `MoveWindow`
+    /// with `bRepaint` set repaints the whole page each time.
+    private var placedFrame: RECT?
+    private var isShown: Bool?
 
     init(view: WKViewRef, page: WKPageRef) {
         self.view = view
         self.page = page
         installNavigationClient()
+        installUIClient()
         installScaleShim()
     }
 
@@ -223,6 +257,86 @@ final class RailWebView {
         onFinishNavigation?()
     }
 
+    /// The one UI-client callback six answers: a page wanting the camera or the microphone. Version 6
+    /// is the oldest layout that has it (it arrived in 5); every other callback is left `nil`, which
+    /// is WebKit's own default for each — the same as having no UI client at all.
+    private func installUIClient() {
+        var client = WKPageUIClientV6()
+        client.base.version = 6
+        client.base.clientInfo = UnsafeRawPointer(Unmanaged.passUnretained(self).toOpaque())
+        client.decidePolicyForUserMediaPermissionRequest = { _, _, origin, _, request, clientInfo in
+            guard let clientInfo, let request else { return }
+            // Handed to us by the UI process's main thread one line ago, which is the thread the
+            // isolation below assumes; nothing is being smuggled across it.
+            nonisolated(unsafe) let asked = request
+            nonisolated(unsafe) let site = origin
+            let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+            MainActor.assumeIsolated { webView.handleMediaRequest(asked, origin: site) }
+        }
+        WKPageSetPageUIClient(page, &client.base)
+    }
+
+    /// Classify the request and hand it up. Screen sharing is a third thing, and six has no word for
+    /// it on any platform, so it is denied rather than asked about as if it were the camera.
+    private func handleMediaRequest(_ request: WKUserMediaPermissionRequestRef, origin: WKSecurityOriginRef?) {
+        let camera = WKUserMediaPermissionRequestRequiresCameraCapture(request)
+        let microphone = WKUserMediaPermissionRequestRequiresMicrophoneCapture(request)
+        let display = WKUserMediaPermissionRequestRequiresDisplayCapture(request)
+        let denied = UserMediaPermissionRequestDenialReason(kWKPermissionDenied)
+        guard !display, camera || microphone, let onMediaRequest, let site = Self.origin(of: origin) else {
+            WKUserMediaPermissionRequestDeny(request, denied)
+            return
+        }
+        // Which device to hand over is decided now, while the request still says what there is; the
+        // first of each kind is what a browser with no device picker gives.
+        let audio = microphone ? Self.firstDevice(WKUserMediaPermissionRequestAudioDeviceUIDs(request)) : ""
+        let video = camera ? Self.firstDevice(WKUserMediaPermissionRequestVideoDeviceUIDs(request)) : ""
+        // The answer arrives long after this returns — after a bar has been on screen — so the
+        // request has to outlive the callback that delivered it.
+        WKRetain(UnsafeRawPointer(request))
+        var answered = false
+        onMediaRequest(MediaRequest(origin: site, camera: camera, microphone: microphone) { allowed in
+            guard !answered else { return }
+            answered = true
+            if allowed {
+                let audioID = audio.withCString { WKStringCreateWithUTF8CString($0) }
+                let videoID = video.withCString { WKStringCreateWithUTF8CString($0) }
+                WKUserMediaPermissionRequestAllow(request, audioID, videoID)
+                if let audioID { WKRelease(UnsafeRawPointer(audioID)) }
+                if let videoID { WKRelease(UnsafeRawPointer(videoID)) }
+            } else {
+                WKUserMediaPermissionRequestDeny(request, denied)
+            }
+            WKRelease(UnsafeRawPointer(request))
+        })
+    }
+
+    /// The origin as the Mac's `SitePermissions.string(for:)` writes it, so an answer given here and
+    /// one given there are filed under the same string.
+    private static func origin(of origin: WKSecurityOriginRef?) -> String? {
+        guard let origin else { return nil }
+        let scheme = takeString(WKSecurityOriginCopyProtocol(origin))
+        guard !scheme.isEmpty else { return nil }
+        let host = takeString(WKSecurityOriginCopyHost(origin))
+        guard !host.isEmpty else { return "\(scheme)://" }
+        let port = WKSecurityOriginGetPort(origin)
+        return port == 0 ? "\(scheme)://\(host)" : "\(scheme)://\(host):\(port)"
+    }
+
+    private static func firstDevice(_ devices: WKArrayRef?) -> String {
+        guard let devices else { return "" }
+        defer { WKRelease(UnsafeRawPointer(devices)) }
+        guard WKArrayGetSize(devices) > 0, let first = WKArrayGetItemAtIndex(devices, 0) else { return "" }
+        return string(from: OpaquePointer(first))
+    }
+
+    /// `string(from:)` for a string this side owns — a `Copy` call's result — released once read.
+    /// Not folded into `string(from:)` itself: `RailScript` reads strings WebKit still owns.
+    static func takeString(_ ref: WKStringRef?) -> String {
+        defer { if let ref { WKRelease(UnsafeRawPointer(ref)) } }
+        return string(from: ref)
+    }
+
     /// What the page says it is, asked rather than remembered.
     ///
     /// `didFinishNavigation` is not the moment a title exists: a page that sets `<title>` from a
@@ -230,11 +344,14 @@ final class RailWebView {
     /// which showed up here as a card still labelled DuckDuckGo with example.com in it. `RailWindow`
     /// polls these on a timer for that reason, the same "poll from Swift for anything that must
     /// wait" CLAUDE.md settles on for page state.
-    var title: String { Self.string(from: WKPageCopyTitle(page)) }
+    /// Both are `Copy` calls and are released once read: with every live column polled four times a
+    /// second, the strings they hand back were otherwise a leak at the repaint rate.
+    var title: String { Self.takeString(WKPageCopyTitle(page)) }
 
     var url: String {
         guard let activeURL = WKPageCopyActiveURL(page) else { return "" }
-        return Self.string(from: WKURLCopyString(activeURL))
+        defer { WKRelease(UnsafeRawPointer(activeURL)) }
+        return Self.takeString(WKURLCopyString(activeURL))
     }
 
     /// `RailScript` reads a script's answer with this too, which is why it is not private.
@@ -271,11 +388,15 @@ final class RailWebView {
 
     func setFrame(_ rect: RECT) {
         guard let hwnd else { return }
+        if let placedFrame, placedFrame.left == rect.left, placedFrame.top == rect.top,
+           placedFrame.right == rect.right, placedFrame.bottom == rect.bottom { return }
+        placedFrame = rect
         MoveWindow(hwnd, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, true)
     }
 
     func setVisible(_ visible: Bool) {
-        guard let hwnd else { return }
+        guard let hwnd, isShown != visible else { return }
+        isShown = visible
         ShowWindow(hwnd, visible ? SW_SHOW : SW_HIDE)
     }
 

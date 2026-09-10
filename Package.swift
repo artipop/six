@@ -73,6 +73,10 @@ let package = Package(
                 "Data/Log.swift",
                 "Persistence/SnapshotStore.swift",
                 "Persistence/StatePersistence.swift",
+                // The rail as the fronts without a snapshot leave it, in the settings table. It
+                // was Linux's own until Windows needed the same thing, and two copies of a
+                // `Codable` both fronts write under one key is two chances to disagree about it.
+                "Persistence/StripState.swift",
                 "Data/AppDatabase.swift",
                 "Data/SettingsStore.swift",
                 "Bookmarks/Bookmark.swift",
@@ -106,6 +110,10 @@ let package = Package(
                 // decision on all of them.
                 "Browser/IDN.swift",
                 "Browser/History.swift",
+                // How many columns keep a real page. The Mac's `LivePageCache` imports WebKit and
+                // stays in the app; this is its rule — the budget, the pins, the eviction order —
+                // without the engine, for the two fronts whose engines are C APIs.
+                "Browser/LivePages.swift",
                 // Who the profiles are. The row and the table are plain values and plain SQL, and
                 // the reason they exist at all — that the identity every other table is keyed by
                 // must not live in a file that can fail to decode — is the same on every front.

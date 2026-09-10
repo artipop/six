@@ -21,7 +21,8 @@ extension RailWindow {
         if SixRailKeyDown(Int32(VK_MENU)) != 0 { modifiers.insert(.alt) }
         if SixRailKeyDown(Int32(VK_SHIFT)) != 0 { modifiers.insert(.shift) }
 
-        guard let action = RailKeyLookup.action(for: key, modifiers: modifiers) else { return false }
+        guard let action = RailKeyLookup.action(for: key, modifiers: modifiers,
+                                                isOverview: model.isOverview) else { return false }
         perform(action)
         invalidate()
         return true
@@ -36,6 +37,8 @@ extension RailWindow {
         case .moveColumnToWorkspace(let delta): model.moveColumnToWorkspace(delta)
         case .toggleFullWidth: model.toggleFullWidth()
         case .toggleCenterFocus: model.toggleCenterFocus()
+        case .toggleOverview: toggleOverview()
+        case .leaveOverview: model.leaveOverview()
         }
     }
 
@@ -101,6 +104,7 @@ extension RailWindow {
         case 0x11: model.closeColumn()                                // W
         case 0x13: focusedWebView?.reload()                           // R
         case 0x20: model.toggleFocusedPageBookmark()                  // D — the Mac's ⌘D
+        case 0x23: showHistory()                                      // H — the Linux front's too
         case 0x1A: focusedWebView?.goBack()                           // [
         case 0x1B: focusedWebView?.goForward()                        // ]
         default: return false

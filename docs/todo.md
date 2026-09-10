@@ -100,7 +100,7 @@ missed:
 ## Windows: a WebKit that is not Playwright's
 
 The Windows front runs the WebKit that `playwright install webkit` puts on the machine, and takes whatever
-revision the installed Playwright pins — `webkit-2359` at the time of writing. Two separate reasons to want a
+revision the installed Playwright pins — `webkit-2359` at the time of writing. Three separate reasons to want a
 different build, and they are worth keeping apart:
 
 - **A newer one** was the original hope, and is now known to be pointless on its own: the cause is a patch
@@ -111,6 +111,10 @@ different build, and they are worth keeping apart:
   `WebView::onSizeEvent`, which is precisely the division `RailWebView.installScaleShim` puts back from outside.
   So any non-Playwright build — CI or self-built — makes the shim, the divided creation rect and probably the
   compositing preference all unnecessary. A *newer Playwright* build never will; they all carry the patch.
+- **One with MediaStream in it**, found while wiring site permissions: Playwright's WebCore is built without
+  it — `JSMediaStream`, `JSMediaDevices` and `UserMediaRequest` are absent from `WebCore.dll`, and a page reads
+  `navigator.mediaDevices` as `undefined` whatever the preferences say. The UI client, the bar and the list are
+  built and wait on the engine ([windows.md](windows.md#site-permissions)).
 
 **Neither is available right now**, and both routes have been checked rather than guessed at:
 

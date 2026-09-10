@@ -159,6 +159,8 @@ extension RailWindow {
             static let fullWidth = "\u{E740}"
             static let restoreWidth = "\u{E73F}"
             static let close = "\u{E711}"
+            /// The horizontal ellipsis File Explorer's own "See more" draws.
+            static let more = "\u{E712}"
             // No bookmark and no translate glyph, and that was looked at rather than assumed: every
             // codepoint from E700 to E8FF and from F000 to F0FF was rendered to a sheet. Windows
             // 10's icon font has neither a book's ribbon nor the 文A tile the Mac gets from SF
@@ -231,6 +233,9 @@ extension RailWindow {
         var workspaceDown = RECT()
         var fullWidth = RECT()
         var translate = RECT()
+        /// "⋯": History, Site Permissions and the overview — the three things the Linux front puts
+        /// in its toolbar as buttons, in a menu here because a title bar has no room for three more.
+        var more = RECT()
         /// The second line, empty when the translation has nothing to say.
         var banner = RECT()
     }
@@ -297,8 +302,11 @@ extension RailWindow {
         // Inside the window controls, which own the right end of the bar now that the bar *is* the
         // title bar (`RailFrame`). Everything else in the cluster is measured from here.
         let rightEdge = client.right - captionButtonsWidth - pad
-        layout.fullWidth = RECT(left: rightEdge - buttonWidth, top: button.top,
-                                right: rightEdge, bottom: button.bottom)
+        // Outermost, where every Windows browser keeps its "⋯".
+        layout.more = RECT(left: rightEdge - buttonWidth, top: button.top,
+                           right: rightEdge, bottom: button.bottom)
+        layout.fullWidth = RECT(left: layout.more.left - gap - buttonWidth, top: button.top,
+                                right: layout.more.left - gap, bottom: button.bottom)
         // ⌃ pips ⌄, the order the Mac's `WorkspaceStepper` puts them in.
         layout.workspaceDown = RECT(left: layout.fullWidth.left - gap - buttonWidth, top: button.top,
                                     right: layout.fullWidth.left - gap, bottom: button.bottom)
@@ -384,6 +392,7 @@ extension RailWindow {
         drawGlyph(hdc, ChromeFonts.Glyph.chevronDown, in: layout.workspaceDown, enabled: model.canFocusWorkspace(1))
         drawGlyph(hdc, model.isFullWidth ? ChromeFonts.Glyph.restoreWidth : ChromeFonts.Glyph.fullWidth,
                   in: layout.fullWidth, enabled: true)
+        drawGlyph(hdc, ChromeFonts.Glyph.more, in: layout.more, enabled: true)
 
         drawTranslationBanner(hdc, in: layout.banner)
         drawCaptionButtons(hdc)

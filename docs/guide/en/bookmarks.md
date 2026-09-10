@@ -96,6 +96,11 @@ have, but through the page engine six already ships. There is one honest
 difference: the model has to be downloaded, about 155 MB, once. That starts with
 the first page you save rather than at launch.
 
+History is there too — the same table of visits, per profile. On Windows it is
+`Ctrl+H` or **⋯ ▸ History**: search by title and address, and `Enter` opens the
+page as a new window beside the one you are on. On Linux it is `Ctrl+H` or the
+button in the toolbar. A private profile records none.
+
 Two things are missing on both: six saves the title, the description and the
 address but does not read the page's text yet, so a bookmark is found by what it
 is about rather than by a phrase from the middle of it. And there is no bookmarks
