@@ -369,6 +369,77 @@ WebKit build, unrelated to the DPI work. Worth retrying against a non-Playwright
 ([todo.md](todo.md)), since that is the other thing such a build would buy: GPU compositing, and with
 it the animations and video that the software path now carries.
 
+## Translation
+
+A page in another language gets a globe in the top bar; pressing it translates the page in place,
+pressing it again shows the original, and a third press puts the translation back. While a run is
+going on the bar grows a second line saying how far it has got, and the rail below moves down by
+exactly that much — `topChromeHeight` counts the banner, so the cards, the live view and the
+hit-testing all follow from the one number they already followed.
+
+**The engine is Bergamot** — Marian compiled to wasm, the same one Firefox translates with — and
+almost none of it is in `windows/`. The page walk, the batching, the state machine, Show Original,
+the model catalogue, the downloads and the engine driver are all `SixCore`, shared with the Linux
+front and, above the seam, with the Mac. What this front provides is three things:
+
+- **`RailScript`** — `WKPageCallAsyncJavaScript` wrapped so that the shared page walk can run its
+  own JavaScript here. One argument goes in named `input`, carrying the arguments as JSON text; one
+  string comes back. That is deliberate: the C API hands a result back as an object graph of
+  `WKString`/`WKNumber`/`WKArray`/`WKDictionary`, and walking it into Swift values is a hundred
+  lines that buy nothing when both sides can serialise a string. Everything else this front still
+  owes — the readable-page extractor, highlights, `get_selection` — needs this same call.
+- **`RailSandbox`** — a real `WKView` in a one-pixel `WS_POPUP` at −32000,−32000 that is never
+  shown. WebKit's Windows port draws into an `HWND` and a view without one is not a view, so the
+  window is not optional. Two preferences are set on it that no browsing page gets —
+  `FileAccessFromFileURLs` and `UniversalAccessFromFileURLs` — because the page is a `file:`
+  document that has to `fetch()` five megabytes of wasm and thirty of weights out of the folder it
+  lives in. It browses in a non-persistent data store, so nothing it does can reach a profile.
+- **`RailTranslation`** — which page, which languages, and when to offer.
+
+**Where the weights come from.** Mozilla's Remote Settings, the same two collections Firefox reads
+(`translations-wasm` and `translations-models`), served from `firefox-settings-attachments.cdn
+.mozilla.net` without authentication. 106 directions, every one with English at one end, so Russian
+to German is two models and one pivot inside the engine. Everything is verified against the SHA-256
+in the record before it is moved into the cache at `%LOCALAPPDATA%\six\Translation\Bergamot`; a
+model is roughly 35 MB and is fetched once. The Emscripten glue the wasm needs is the one piece that
+cannot be downloaded — it is version-locked source that exists nowhere but the Firefox tree — so
+`scripts/bergamot-payload.sh` vendors it into `six/Translation/Payload` as Swift, under the MPL,
+and the Apple targets compile it away.
+
+**The source language is guessed here rather than asked of the system.** There is no
+`NLLanguageRecognizer` on Windows, so `LanguageGuess` in `SixCore` reads it out of the text —
+script first, then the letters a script does not share, then the commonest words — and `<html lang>`
+is checked against it rather than trusted. `LanguageGuessTests` pins thirty-one languages of one
+ordinary sentence each. The target is the setting, or the language the interface is in; there is no
+way to pick another one on this front yet, which is the main thing left undone.
+
+### Two things this cost, both worth knowing
+
+**Swift concurrency did not run on this front at all, and nothing said so.** On Windows the main
+actor's executor is libdispatch's main queue, and a thread parked in `GetMessageW` never drains it:
+a `Task { @MainActor in … }` was enqueued and then never executed. Measured with a standalone probe
+before anything was built on it. `RailLoop` is the fix and it is eight lines of loop: libdispatch
+exports `_dispatch_get_main_queue_handle_4CF` — a handle signalled when the main queue has work —
+and `_dispatch_main_queue_callback_4CF`, which drains it on the calling thread, and
+swift-corelibs-foundation's own `CFRunLoop` is built on the pair. So the loop waits on the message
+queue *and* that handle with `MsgWaitForMultipleObjectsEx` and drains whichever woke it. Nothing
+polls, and the window, its messages and the main actor stay on thread one.
+
+Two blind alleys, so they are not walked again: `swift_task_enqueueMainExecutor_hook` is exported
+and is never called on this toolchain, because the main actor's executor is implemented in Swift now
+and enqueues onto the queue directly; and SE-0463's `ExecutorFactory`, which is the properly spelled
+answer, does not exist in 6.3.3.
+
+**`FileManager.replaceItemAt` is a `fatalError` on Windows, not a thrown error.** It is the obvious
+call for "verified file, atomic swap" and it took the browser down the first time a model finished
+downloading — `try?` in front of it catches nothing. Remove-if-present plus `moveItem` instead.
+Anything else in six that reaches for it on this front will do the same thing.
+
+**And `AppSupport.logs` had no Windows answer**: `.libraryDirectory` returns an empty array here, so
+the first line six ever logged would have subscripted it. It is `%LOCALAPPDATA%\six\Logs\six.log`
+now, and it is how a translation run is watched — `Log.info(.translation, …)` says what was offered,
+what is being fetched and what was loaded.
+
 ## Where things are
 
 ```
@@ -385,6 +456,12 @@ windows/patches                    combine-schedulers-1.2.0-srwlock.patch: the t
 
 windows/.swiftpm/configuration     Generated, and gitignored: SwiftPM will only take an absolute
                                     path for a mirror, so this file names one machine's checkout.
+
+windows/Sources/SixUI/Rail*        The window, the bar, the input, the live view — and, since
+                                    translation, RailLoop (the message loop and the main-queue
+                                    drain), RailScript (callAsyncJavaScript), RailSandbox (the
+                                    off-screen page the wasm engine runs in), RailTranslation and
+                                    RailTranslationChrome.
 
 windows/Sources/CRailInterop       <windowsx.h>'s mouse/wheel macros, the WM_NCCREATE / GWLP_USERDATA
                                     dance a WNDPROC needs, and the cursor/key-state helpers that

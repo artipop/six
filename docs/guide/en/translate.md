@@ -42,3 +42,28 @@ translation is not thrown away — it is a toggle, not a stop.
 - a page with nothing to translate yet (still loading) says so;
 - sometimes the page's language cannot be told — then pick it yourself through
   **Translate to…**.
+
+## On Windows and Linux
+
+There is no system translator there, so six brings its own — **Bergamot**, the
+engine Firefox translates with. It still runs on the machine: no key, no quota,
+and the page is not sent anywhere.
+
+There is one honest difference: the language model has to be downloaded. About
+35 MB per direction, once, from the same Mozilla store Firefox takes it from.
+While that is happening the bar says so — "Downloading the language for this
+page, about 35 MB, once" — and after it the page translates offline like any
+other.
+
+| | |
+|---|---|
+| **Windows** | the globe in the top bar, to the right of the address. Press to translate, press again for the original, a third time for the translation. While it runs, a line appears under the bar with the count and a progress bar |
+| **Linux** | the **Translate** button in the toolbar, and the same line under it |
+
+The languages are not arbitrary: Mozilla trained every model against English, so
+Russian to German is two hops through English, and a pair like Maltese to French
+does not exist at all — which is what it will tell you.
+
+Two things are missing on both: there is no way to pick the target language yet,
+so six translates into whatever the interface is in; and the wording is English,
+because neither build has a string catalogue of its own.

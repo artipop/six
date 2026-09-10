@@ -3,6 +3,7 @@ import CAdw
 import Foundation
 import SixBrowser
 import SixWebKit
+import SixWebKitCore
 
 /// The browser, declaratively. One window, always — what look like tabs are columns in the strip
 /// inside it, which is the whole niri idea and the same constraint the Mac has.
@@ -26,6 +27,13 @@ public struct BrowserContent: View {
     @State private var showsHistory = false
     @State private var showsBookmarks = false
     @State private var showsPermissions = false
+    /// What the page on screen is doing about being in another language.
+    ///
+    /// Held rather than computed, for the reason the comment on `columns` gives: Meta re-renders a
+    /// view when the state it *read* changes, and a translation reporting its progress from a
+    /// `Task` changes nothing the body has read. Pulled out again by `refresh`, which is the one
+    /// place this front turns "the model moved" into "the screen moves".
+    @State private var translationStatus: TranslationStatus?
 
     private var model: BrowserModel { .shared }
 
@@ -34,6 +42,7 @@ public struct BrowserContent: View {
     public var view: Body {
         VStack {
             toolbar
+            translationBanner
             strip
                 .vexpand()
             shortcuts
@@ -52,6 +61,13 @@ public struct BrowserContent: View {
         // action here does: pull the strip's shape out again.
         .inspectOnAppear { _ in
             model.onPermissionQuestion = { refresh() }
+            // A translation reports its progress from a `Task`, and a `Task` reaches no view state
+            // either — same seam, same answer.
+            TranslationController.shared.onChange = { refresh() }
+            // And the reason a `Task` runs here at all. After GTK is up, which `inspectOnAppear` is:
+            // the descriptor it watches is made on first use and the watch belongs on the context
+            // this app is actually going to run.
+            MainQueueBridge.install()
         }
     }
 
@@ -81,6 +97,14 @@ public struct BrowserContent: View {
             Button(icon: .default(icon: .viewFullscreen)) { model.toggleOverview(); refresh() }
                 .flat()
                 .tooltip("Overview")
+            // A word rather than an icon, and not for want of looking: the freedesktop set has
+            // nothing for "translate" that a reader would recognise, and a wrong icon in a toolbar
+            // is worse than a short word. It says what pressing it will do next, which is three
+            // different things depending on where the page is.
+            Button(translateLabel) { translateFocusedPage() }
+                .flat()
+                .insensitive(model.focusedTabID == nil)
+                .tooltip("Translate this page")
             Button(icon: .default(icon: model.isBookmarked ? .starred : .nonStarred)) {
                 model.toggleBookmark(); refresh()
             }
@@ -104,7 +128,39 @@ public struct BrowserContent: View {
 
     /// Pull the strip's shape out of the model. Safe from an action; never called during a render,
     /// which is what sent the view tree into a 248-render runaway the first time.
-    func refresh() { columns = model.columns }
+    func refresh() {
+        columns = model.columns
+        translationStatus = model.focusedTabID.flatMap { TranslationController.shared.status(for: $0) }
+    }
+
+    // MARK: Translation
+
+    /// Three meanings, in the order a reader meets them.
+    var translateLabel: String {
+        guard let translation = translationStatus else { return "Translate" }
+        switch translation.kind {
+        case .done where translation.showsOriginal: return "Translated"
+        case .done: return "Original"
+        case .working, .downloading: return "Translating"
+        case .failed, .offered: return "Translate"
+        }
+    }
+
+    func translateFocusedPage() {
+        guard let tabID = model.focusedTabID else { return }
+        TranslationController.shared.toggle(tabID)
+        refresh()
+    }
+
+    /// A line under the toolbar, and only while there is something to say. A finished translation
+    /// says so with the button's own label and takes its line back.
+    @ViewBuilder var translationBanner: Body {
+        if let translation = translationStatus, translation.saysSomething {
+            Text(translation.message)
+                .padding(6)
+                .style(translation.kind == .failed ? "warning" : "dim-label")
+        }
+    }
 
     /// Keyboard shortcuts.
     ///

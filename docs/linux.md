@@ -62,6 +62,7 @@ command here — see the comment at the top of `Package.swift` for the three rea
 - Private browsing as a profile with an ephemeral `WebKitNetworkSession`.
 - Site permissions for the camera and the microphone ([permissions.md](permissions.md)).
 - The strip comes back after a relaunch, out of the `settings` table.
+- Page translation with Bergamot, shared with the Windows front — see below.
 
 ## What is not
 
@@ -81,11 +82,29 @@ command here — see the comment at the top of `Package.swift` for the three rea
 
 ## Three things GTK does differently, and one of them is a trap
 
-**A `Task` never runs.** Under `g_main_loop_run` the thread belongs to GLib, and nothing drains
-Swift's main-actor executor — a `Task` created from a signal handler simply does not execute. This
-is why `SitePermissions.decide` is a callback function with the `async` one layered on top rather
-than the other way round. Anything asynchronous on this front has to be driven by GLib, not by Swift
-concurrency.
+**A `Task` never ran, and now it does — but only because something asks it to.** Under
+`g_main_loop_run` the thread belongs to GLib, and nothing drains Swift's main-actor executor, which
+on this platform is libdispatch's main queue: a `Task { @MainActor in … }` created from a signal
+handler was enqueued and then simply never executed. That is why `SitePermissions.decide` is a
+callback function with the `async` one layered on top rather than the other way round.
+
+`MainQueueBridge` in `SixWebKitCore` is the fix, and it is one watch rather than a rewrite of how
+the app runs. libdispatch exports the seam CoreFoundation uses to embed its main queue in a foreign
+run loop — `_dispatch_get_main_queue_handle_4CF` hands back an eventfd that becomes readable when
+the queue has work, and `_dispatch_main_queue_callback_4CF` drains the queue on the calling thread —
+so GLib is asked to watch that descriptor with `g_unix_fd_add`, and everything Swift has queued runs
+on GTK's own thread between one event and the next. `BrowserContent.inspectOnAppear` installs it,
+after GTK is up and not before.
+
+Two things follow. Anything asynchronous on this front can now be written as `async`/`await` rather
+than as a callback — translation is, and the embedder will be. And the callback-shaped code that was
+written under the old constraint is not wrong, only older: it works either way and there is no
+reason to churn it.
+
+The same discovery was made and measured on the Windows front first, where the loop is a
+`MsgWaitForMultipleObjectsEx` on the message queue and that handle together — see
+[windows.md](windows.md) for the two blind alleys (`swift_task_enqueueMainExecutor_hook`, which is
+never called any more, and SE-0463's `ExecutorFactory`, which the toolchain does not have).
 
 **Every signal has its own C signature, and getting it wrong is silent.** adwaita's
 `SignalData.HandlerType` exists precisely because GObject hands a handler a different argument list
@@ -100,6 +119,48 @@ state, and a class in one takes the runtime down inside `swift_getTypeByMangledN
 comes up, draws once and dies. The model is `BrowserModel.shared`. State is also *seeded* rather than
 filled from `onAppear`: an assignment made while a view is appearing has nowhere to land, because the
 body was already evaluated with the old value.
+
+## Translation
+
+The **Translate** button in the toolbar translates the page in place; pressing it again shows the
+original, and a third press puts the translation back. While a run is going on a line appears under
+the toolbar saying how far it has got, and it goes away when there is nothing left to say.
+
+**The engine is Bergamot**, and almost none of it is in `linux/`. The page walk, the batching, the
+state machine, Show Original, the model catalogue, the downloads and the engine driver are `SixCore`
+— the same files the Windows front runs, above the same `PageTranslating` seam the Mac's
+`Translation.framework` sits behind. [windows.md](windows.md) has the account of where the weights
+come from and why the Emscripten glue is vendored rather than downloaded; none of that differs here.
+
+What this front provides is three files in `SixBrowser`, and they are small because the shared half
+is large:
+
+- **`PageScript`** — `webkit_web_view_call_async_javascript_function`, which
+  `TranslationSegment.swift` has been asking for in a comment since translation was written, and
+  which the readable-page extractor and highlights will want next. JSON in, JSON out. The argument
+  does not travel as a `GVariant`: `a{sv}` would mean `g_variant_builder_add`, which is variadic and
+  out of Swift's reach, and a JSON document is also a JavaScript expression — so it is written into
+  the top of the script as a string literal instead.
+- **`GtkSandbox`** — a `WebKitWebView` that belongs to no window and is never drawn. An unparented
+  view still has a web process, still loads and still runs scripts; what it does not have is a
+  surface, which is the point. It sinks its own floating reference, because nothing is going to add
+  it to a container, and it is allowed to read the files beside the page it loads
+  (`allow_file_access_from_file_urls`) because that page has to `fetch()` its own wasm and weights.
+  The Windows front needs a hidden `HWND` for the same job; here it is eleven lines.
+- **`Translation`** — which page, which languages, when to offer, and a `TranslationStatus` value
+  for the toolbar to read. That last part is not ceremony: `SixCore` is an `internal import` here,
+  because nothing may put it and Adwaita in one compilation unit, so `TabTranslation` cannot cross
+  into `SixUI` and a plain-Foundation struct crosses instead.
+
+The source language is guessed rather than asked of the system — there is no `NLLanguageRecognizer`
+here — by `LanguageGuess` in `SixCore`, with `<html lang>` checked against it rather than trusted.
+
+**Not verified on this front.** Every line of it was written on the Windows machine, where the
+container does not exist, and the Windows front is where it was measured end to end. What is
+believed to work because it is the same code: the walk, the batching, the catalogue, the downloads,
+the engine, the state machine. What wants a first run under `six-linux.sh up` is exactly the three
+files above and `MainQueueBridge` — the GObject shapes, the unparented view, and whether GLib's
+watch fires the way it is expected to.
 
 ## Running it
 

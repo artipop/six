@@ -36,7 +36,8 @@ six/Bookmarks     Bookmark(Store), ReadablePage (Markdown copy), Embedder/MLXEmb
 six/Blocking      ContentBlocker (WKContentRuleList per profile), FilterList(Store), RuleConversion,
                   AdvancedRules (scriptlets + extended CSS, in the page), Payload/ (built JS)
 six/Extensions    ExtensionStore (a controller per profile), ExtensionInstaller + the compatibility verdict
-six/Translation   the portable half (segments, batching, the page script) + AppleTranslator behind it
+six/Translation   the portable half (segments, batching, the page script, LanguageGuess) + AppleTranslator
+                  on Apple and Bergamot/ — Marian as wasm in an off-screen page — on Linux and Windows
 six/ACP           JSONRPCConnection, ACPClient (actor), ACPAgent (process), AgentSessionStore (view model)
 six/MCP           MCPServer + MCPSocket + MCPStdioBridge (`six --mcp`), Client/ (MCP apps, SEP-1865, OAuth, catalog)
 six/Tools         BrowserTools — one catalog, served to the assistant, to ACP agents and over MCP
@@ -66,6 +67,11 @@ swift build --disable-automatic-resolution
 swift test  --disable-automatic-resolution
 
 ./scripts/dmg.sh          # Release → dist/six-<version>.dmg
+
+# Vendored JavaScript. Both write committed output, so a normal build needs neither network nor
+# Node; run one only when the upstream version it pins moves.
+./scripts/blocking-payload.sh     # AdGuard's scriptlets and extended CSS → six/Blocking/Payload
+./scripts/bergamot-payload.sh     # Emscripten's glue for bergamot-translator → six/Translation/Payload
 ```
 
 Details, and the SDK override, in [docs/build.md](docs/build.md).
@@ -359,6 +365,20 @@ anything added there has to exist on both:
   non-Sendable value cannot cross an isolation line at all: `MainActor.assumeIsolated` handing back an `NSEvent` is a
   warning, handing back the verdict about it is not. Eighty-seven of these had accumulated by `09dd84c`; a build that
   prints nothing is the state worth keeping, because a build that prints eighty-seven is one nobody reads.
+- **A `Task` does not run on the Linux or Windows front unless something drains the main queue.**
+  The main actor's executor on both is libdispatch's main queue, and a thread parked in
+  `GetMessageW` or inside `g_main_loop_run` never drains it: the task is enqueued and then simply
+  never executed, with nothing said. Measured with a standalone probe on Windows before anything was
+  built on it. The fix is the seam CoreFoundation uses — `_dispatch_get_main_queue_handle_4CF` for a
+  waitable handle, `_dispatch_main_queue_callback_4CF` to drain on the calling thread — wired into
+  the platform's own wait: `RailLoop` on Windows, `MainQueueBridge` + `g_unix_fd_add` on Linux.
+  `swift_task_enqueueMainExecutor_hook` looks like the answer and is never called any more;
+  SE-0463's `ExecutorFactory` is the answer and is not in 6.3.3.
+- **`FileManager.replaceItemAt` is a `fatalError` on Windows, not a thrown error.** The obvious call
+  for "verified file, atomic swap"; `try?` in front of it catches nothing, and it took the browser
+  down the first time a translation model finished downloading. Remove-if-present plus `moveItem`.
+  `.libraryDirectory` on Windows answers with an *empty array*, which is the same shape of trap one
+  subscript along — `AppSupport.logs` spells Windows out for that reason.
 - **`WebPage.callJavaScript` is not `callAsyncJavaScript`** — an `await` in the body fails at parse time with a bare
   "A JavaScript exception occurred". Page scripts stay synchronous; poll from Swift for anything that must wait.
 - **sqlite-vec on Apple's SQLite** works only per connection (`sqlite3_vec_init` from GRDB's `prepareDatabase`);

@@ -254,6 +254,10 @@ public final class BrowserModel {
 
     var focusedID: UUID? { layout.focusedTabID }
 
+    /// The column on screen, for the chrome that has to ask something about the page in it — the
+    /// translate button is the first, and it asks `TranslationController` rather than the model.
+    public var focusedTabID: UUID? { layout.focusedTabID }
+
     /// The session a column should be built against: its profile's.
     public var session: NetworkSession {
         sessions[layout.activeProfileID] ?? defaultSession
@@ -418,6 +422,7 @@ public final class BrowserModel {
         layout.removeColumn(tabID: focused)
         PageRegistry.forget(focused)
         pages.forget(focused)
+        TranslationController.shared.forget(focused)
         // The page is suspended inside `decide`; a promise that never lands is a page that never
         // finds out. Denying is the answer a closed column gives.
         permissions?.forget(focused)
@@ -463,6 +468,10 @@ public final class BrowserModel {
 
     public func didFinishLoad(_ url: URL, title: String, for tabID: UUID) {
         urls[tabID] = url
+        // Before the private-window guard, and deliberately: translating is about reading a page,
+        // not about recording that it was read. A private window gets the offer like any other.
+        TranslationController.shared.pageChanged(tabID)
+        TranslationController.shared.consider(tabID)
         guard !isPrivate else { return }
         history?.record(url, title: title, in: profileID)
         // Photographed when it finishes rather than when it is discarded. Waiting for the eviction
