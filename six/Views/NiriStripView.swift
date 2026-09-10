@@ -907,24 +907,29 @@ private struct StripEdgeButton: View {
     /// The profile's colour by name rather than `.tint`: an `NSHostingView` starts a fresh environment
     /// (see the `ClickCatcher` overlay, which has to hand `browser` back in), so a tint set on the
     /// window's root never reaches this far and the glyph would come up in the system accent.
+    @ViewBuilder
     private func glyph(_ symbol: String, layout: NiriLayout) -> some View {
         let width = max(11, Self.lane(layout) - 2)
-        let shown: Double
-        if browser.peeksAtEdges {
-            shown = hovering && !disarmed ? 1 : 0
-        } else {
-            shown = hovering ? 1 : 0.45
-        }
-        // The `+` is stretched rather than enlarged: a bigger dot in a narrow lane is still a dot, and
-        // the lane is exactly as tall as the column it is offering — a symbol drawn the same shape as
-        // what it opens reads as belonging to it, where a merely bigger `+` would just read as chrome.
-        // The chevrons stay round; they are naming a step sideways, not a shape being added.
-        let isPlus = symbol == "plus"
-        return Image(systemName: symbol)
-            .font(.system(size: min(isPlus ? 15 : 11, width), weight: .bold))
-            .scaleEffect(y: isPlus ? 1.9 : 1)
+        let shown: Double = browser.peeksAtEdges
+            ? (hovering && !disarmed ? 1 : 0)
+            : (hovering ? 1 : 0.45)
+        if symbol == "plus" {
+            // Drawn rather than the SF Symbol: a scaled-up glyph blurs, and the shape wanted here isn't
+            // a bigger dot but a taller mark, closer to the outline of the column it opens. Two capsules
+            // instead of one square-cornered cross — the same softness the rest of the chrome draws
+            // with (`RoundedRectangle`, never a hard corner).
+            ZStack {
+                Capsule().frame(width: 2.5, height: 20)
+                Capsule().frame(width: 12, height: 2.5)
+            }
             .foregroundStyle(browser.selectedProfile.color)
             .opacity(shown)
+        } else {
+            Image(systemName: symbol)
+                .font(.system(size: min(11, width), weight: .bold))
+                .foregroundStyle(browser.selectedProfile.color)
+                .opacity(shown)
+        }
     }
 }
 

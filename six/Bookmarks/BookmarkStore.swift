@@ -385,6 +385,16 @@ final class BookmarkStore {
 
     // MARK: Search
 
+    /// Under this, a *pure* vector hit is the model agreeing with itself rather than with the query —
+    /// the same two numbers `PersonalSuggestions` measured against a real library (its doc comment has
+    /// the table), because they come off the same E5 index and the same `1 − cosine distance` scale.
+    /// A single word needs the higher of the two: a short query has less to be near anything with, so
+    /// noise scores higher on it. Re-measure with `SIX_PERSONAL_SELFTEST` before moving either — they
+    /// are carried here, not shared by reference, on purpose: nothing says this call site's queries
+    /// (typed once, on purpose, rather than a partial string still being typed) sit on the same curve.
+    private static let vectorWordFloor = 0.83
+    private static let vectorPhraseFloor = 0.80
+
     /// Hybrid: the query's vector against the index (only the scope's vectors, only the query's
     /// model), merged with substring matches over title, address and excerpt so an exact word still wins
     /// when the model is unavailable or the page hasn't been embedded yet.
@@ -403,11 +413,16 @@ final class BookmarkStore {
             }
         }
         if let vectorHits = try? await vectorSearch(query, in: scope, profileID: profileID, k: limit * 3) {
+            let floor = query.split(whereSeparator: \.isWhitespace).count > 1 ? Self.vectorPhraseFloor : Self.vectorWordFloor
             for hit in vectorHits {
                 if let existing = hits[hit.bookmark.id] {
                     // Both agree: a small nudge over the vector score, so an exact title still wins a tie.
                     hits[hit.bookmark.id] = BookmarkHit(bookmark: hit.bookmark, score: min(1, max(existing.score, hit.score) + 0.03), snippet: hit.snippet)
-                } else {
+                } else if hit.score >= floor {
+                    // The words being there is its own evidence (above); the vector alone still has to
+                    // clear the floor, or "nearest of what six has" is offered as "found" — a
+                    // vaguely-related bookmark dragged in for every query, which is what asking for
+                    // this floor a page later looks like from the outside.
                     hits[hit.bookmark.id] = hit
                 }
             }
