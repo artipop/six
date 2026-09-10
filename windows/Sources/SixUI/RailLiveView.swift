@@ -1,5 +1,6 @@
 import Foundation
 import SixBrowser
+@testable import SixCore
 import WinSDK
 
 /// The one live column: a real `WKView` for the focused tab, created lazily and kept alive rather
@@ -11,6 +12,17 @@ extension RailWindow {
     func updateLiveView() {
         guard let hwnd else { return }
         pruneClosedWebViews()
+
+        // The translation banner is a second line of chrome that comes and goes, so the rail's
+        // canvas is not a constant. Told here rather than only on `WM_SIZE`, because nothing
+        // resizes when a translation starts.
+        if topChromeHeight != lastChromeHeight {
+            lastChromeHeight = topChromeHeight
+            var client = RECT()
+            GetClientRect(hwnd, &client)
+            _ = model.updateViewport(CGSize(width: Int(client.right),
+                                            height: max(0, Int(client.bottom) - Int(topChromeHeight))))
+        }
 
         // The bar follows the rail on every repaint, because a profile switch onto an empty strip is
         // a repaint and nothing else: no focused window means no address field and no page title.
@@ -107,6 +119,13 @@ extension RailWindow {
             self?.model.setURL(url, for: tabID)
             self?.invalidate()
         }
+        // A navigation finished: whatever was known about the page that was here is not about this
+        // one, and this one has not been looked at yet.
+        created.onFinishNavigation = { [weak self] in
+            guard let self, let view = webViews[tabID] else { return }
+            translation.pageChanged(tabID)
+            translation.consider(view, tabID: tabID)
+        }
         created.load(model.url(for: tabID))
         webViews[tabID] = created
         return created
@@ -120,6 +139,7 @@ extension RailWindow {
         for (id, view) in webViews where !openIDs.contains(id) {
             view.destroy()
             webViews[id] = nil
+            translation.forget(id)
         }
     }
 }

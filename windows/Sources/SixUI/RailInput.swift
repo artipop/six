@@ -14,6 +14,7 @@ extension RailWindow {
         case workspaceUp, workspaceDown
         case workspace(Int)
         case fullWidth
+        case translate
     }
 
     func chromeAction(x: Int, y: Int) -> ChromeAction? {
@@ -36,6 +37,7 @@ extension RailWindow {
             return .workspace(max(0, model.workspaceCount - 1))
         }
         if layout.fullWidth.contains(x: x, y: y) { return .fullWidth }
+        if layout.translate.contains(x: x, y: y) { return .translate }
         return nil
     }
 
@@ -88,6 +90,8 @@ extension RailWindow {
             model.focusWorkspace(at: index)
         case .fullWidth:
             model.toggleFullWidth()
+        case .translate:
+            translateFocusedPage()
         }
         invalidate()
     }

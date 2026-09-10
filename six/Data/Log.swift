@@ -77,6 +77,7 @@ nonisolated enum Log {
         case history
         case documents
         case devtools
+        case translation
         case mcp
         case acp
         case keys

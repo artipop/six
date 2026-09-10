@@ -81,24 +81,7 @@ enum TranslationLanguage {
 
 // MARK: The settings
 
-/// The setting lives in the settings table; the knowledge of what its string means lives here,
-/// beside the type it means it as. `SettingsStore` itself keeps only keys and strings.
-extension SettingsStore {
-    /// What to translate into. Defaults to the language the interface is in.
-    var translationTarget: Locale.Language {
-        get {
-            guard let stored = self[.translationTarget], !stored.isEmpty else {
-                return Locale.current.language
-            }
-            return Locale.Language(identifier: stored)
-        }
-        set { self[.translationTarget] = newValue.languageCode?.identifier ?? "" }
-    }
-
-    /// Sites translated without being asked.
-    var alwaysTranslateHosts: [String] {
-        get { decode(.translationHosts) ?? [] }
-        set { encode(.translationHosts, newValue, keepingEmpty: false) }
-    }
-}
+// The two typed settings accessors used to live here and now live in `TranslationSettings.swift`,
+// because they are `Foundation` and nothing else and the fronts that translate with Bergamot need
+// them too. Nothing about them changed in the move.
 #endif

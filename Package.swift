@@ -77,6 +77,10 @@ let package = Package(
                 "Data/SettingsStore.swift",
                 "Bookmarks/Bookmark.swift",
                 "Browser/SearchEngine.swift",
+                // A page six owns and nobody sees, for running something that is a program written
+                // for a JavaScript engine rather than a library six could link. Bergamot below is
+                // the first user; an on-device embedder is the next one.
+                "Browser/PageSandbox.swift",
                 // Domain names as they are written: the ACE form is what every platform's URL type
                 // hands back, and deciding when it is safe to show the name behind it is the same
                 // decision on all of them.
@@ -98,6 +102,21 @@ let package = Package(
                 "Translation/TranslationBatch.swift",
                 "Translation/TranslationScript.swift",
                 "Translation/PageTranslator.swift",
+                "Translation/TranslationSettings.swift",
+                // …and the engine those two fronts translate with, which is Bergamot: Marian
+                // compiled to wasm, the same one Firefox uses, running in an off-screen page of
+                // six's own. All of it is here rather than in `linux/` or `windows/` because it is
+                // one feature on two fronts — only the four lines that call a function in a page
+                // are per platform. The 100 kB of Emscripten glue in `Payload` is the exception
+                // that proves it: that file is the one thing an Apple build compiles away.
+                "Translation/LanguageGuess.swift",
+                "Translation/Payload/BergamotGlue.swift",
+                "Translation/Bergamot/Checksum.swift",
+                "Translation/Bergamot/BergamotCatalog.swift",
+                "Translation/Bergamot/BergamotStore.swift",
+                "Translation/Bergamot/BergamotDriver.swift",
+                "Translation/Bergamot/BergamotRuntime.swift",
+                "Translation/Bergamot/BergamotTranslator.swift",
                 // The wire, and only the wire. JSON-RPC's own two types, the shape of an MCP
                 // server's answers, and the registry that lists servers: text in, values out, no
                 // window and no process. What six *does* with an app — the scheme handler, the

@@ -108,6 +108,40 @@ enum WebEngine {
 
         return RailWebView(view: view, page: page)
     }
+
+    /// The view `RailSandbox` runs six's own programs in: no profile, no persistence, and allowed
+    /// to read the files sitting beside the page it loads.
+    ///
+    /// The two preferences are the whole difference from a browsing view, and both are about the
+    /// same thing — the page is a `file:` document that has to `fetch()` a wasm module and a model
+    /// out of the folder it lives in, which the same-origin rules forbid a `file:` document by
+    /// default. Nothing but six's own payload is ever loaded here, so the relaxation reaches nothing
+    /// a site could take advantage of.
+    static func makeSandboxView(parent: HWND) -> RailWebView? {
+        ensureStarted()
+        guard let context, let websiteDataStore = WKWebsiteDataStoreCreateNonPersistentDataStore() else {
+            return nil
+        }
+        let pageConfiguration = WKPageConfigurationCreate()
+        WKPageConfigurationSetWebsiteDataStore(pageConfiguration, websiteDataStore)
+        WKPageConfigurationSetContext(pageConfiguration, context)
+        let preferences = WKPreferencesCreate()
+        WKPreferencesSetAcceleratedCompositingEnabled(preferences, false)
+        WKPreferencesSetFileAccessFromFileURLsAllowed(preferences, true)
+        WKPreferencesSetUniversalAccessFromFileURLsAllowed(preferences, true)
+        WKPageConfigurationSetPreferences(pageConfiguration, preferences)
+
+        var rect = WKRectCompat(left: 0, top: 0, right: 1, bottom: 1)
+        guard let view = WKViewCreate(&rect, pageConfiguration, UnsafeMutableRawPointer(parent)) else {
+            return nil
+        }
+        // Told it is in a window although the window is off-screen and never shown: WebKit throttles
+        // a page it believes nobody can see, and this one is working for its living.
+        WKViewSetIsInWindow(view, true)
+        WKViewWindowAncestryDidChange(view)
+        guard let page = WKViewGetPage(view) else { return nil }
+        return RailWebView(view: view, page: page)
+    }
 }
 
 /// One live column: the `WKView` (a real child `HWND` WebKit owns and draws into) and the `WKPage`
@@ -124,6 +158,9 @@ final class RailWebView {
     /// moves this away from whatever `load(_:)` was last called with, and the address bar needs to
     /// track that, not just what it was told to load.
     var onURLChange: ((String) -> Void)?
+    /// Told when a navigation has finished, whatever it was. `RailSandbox` waits on this — it is
+    /// how "the page is loaded and its scripts have run" is spelled through the C API.
+    var onFinishNavigation: (() -> Void)?
 
     init(view: WKViewRef, page: WKPageRef) {
         self.view = view
@@ -183,6 +220,7 @@ final class RailWebView {
     private func handleFinishedNavigation() {
         if !title.isEmpty { onTitleChange?(title) }
         if !url.isEmpty { onURLChange?(url) }
+        onFinishNavigation?()
     }
 
     /// What the page says it is, asked rather than remembered.
@@ -199,7 +237,8 @@ final class RailWebView {
         return Self.string(from: WKURLCopyString(activeURL))
     }
 
-    private static func string(from ref: WKStringRef?) -> String {
+    /// `RailScript` reads a script's answer with this too, which is why it is not private.
+    static func string(from ref: WKStringRef?) -> String {
         guard let ref else { return "" }
         let size = WKStringGetMaximumUTF8CStringSize(ref)
         var buffer = [Int8](repeating: 0, count: size)

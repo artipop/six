@@ -51,7 +51,14 @@ let package = Package(
         ),
         .target(
             name: "SixUI",
-            dependencies: ["SixBrowser", "CRailInterop", "CWebKit2"],
+            // `SixCore` directly as well as through `SixBrowser`, because this is where the shared
+            // page-facing code is used rather than wrapped: the translation state machine, the page
+            // script, `PageSandbox`. `SixBrowser` keeps its own import `internal` so that the model
+            // does not re-export it, which is why naming it again here is not redundant.
+            dependencies: [
+                "SixBrowser", "CRailInterop", "CWebKit2",
+                .product(name: "SixCore", package: "six")
+            ],
             swiftSettings: [.defaultIsolation(MainActor.self)]
         ),
         .executableTarget(

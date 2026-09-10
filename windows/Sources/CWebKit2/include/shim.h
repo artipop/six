@@ -14,3 +14,6 @@
 #include <WebKit/WKWebsiteDataStoreConfigurationRef.h>
 #include <WebKit/WKPageNavigationClient.h>
 #include <WebKit/WKErrorRef.h>
+// The argument dictionary `WKPageCallAsyncJavaScript` takes, and the type its answer comes back as.
+#include <WebKit/WKDictionary.h>
+#include <WebKit/WKMutableDictionary.h>

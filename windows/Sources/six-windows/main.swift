@@ -10,12 +10,13 @@ import WinSDK
 // have to be read together.
 _ = SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)
 
-// `nil` is "this process's own module", which cannot fail for a process asking about itself.
-let instance = GetModuleHandleW(nil)!
-let window = RailWindow()
-
-guard window.create(instance: instance) else {
-    fatalError("[six] failed to create the rail window")
+// The window is made inside `RailLoop.run` rather than here, and that is load-bearing: it has to
+// belong to the thread libdispatch drains the main queue on, because that thread is the main actor
+// and a window belongs to whoever created it. `RailLoop` has the whole argument.
+RailLoop.run {
+    // `nil` is "this process's own module", which cannot fail for a process asking about itself.
+    let window = RailWindow()
+    guard window.create(instance: GetModuleHandleW(nil)!) else { return nil }
+    window.show()
+    return window
 }
-window.show()
-_ = window.run()

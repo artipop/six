@@ -1,6 +1,7 @@
 import CRailInterop
 import Foundation
 import SixBrowser
+@testable import SixCore
 import WinSDK
 
 /// The top bar — the one piece of chrome this front draws, and the same band the Mac's `TopBar`
@@ -33,6 +34,11 @@ extension RailWindow {
         static let buttonWidth: Double = 30
         static let buttonHeight: Double = 26
 
+        /// The second line of the bar, which exists only while a translation has something to say.
+        /// Shorter than the bar itself: it is a sentence and a progress bar, not a row of controls.
+        static let bannerHeight: Double = 24
+        static let bannerProgressHeight: Double = 3
+
         static let addressHeight: Double = 28
         /// A share of the window with a floor and a ceiling, the Mac's `TopBar.addressWidth`: a
         /// fixed field is a slot in the middle of nowhere on a wide display and crowds out the
@@ -61,7 +67,23 @@ extension RailWindow {
 
     /// What the rail below the bar does not get. `NiriLayout`'s viewport is the rail's canvas
     /// alone; the chrome above it is this file's business, not the layout's.
-    var topChromeHeight: Int32 { px(Metric.barHeight) }
+    ///
+    /// It is not a constant, because the translation banner is a second line of chrome that comes
+    /// and goes. `RailLiveView.updateLiveView` notices when it changes and hands the layout its new
+    /// canvas; everything else — the cards, the live view, the hit-testing — is measured from here
+    /// already and follows for free.
+    var topChromeHeight: Int32 { px(Metric.barHeight) + translationBannerHeight }
+
+    /// The translation state of the column on screen, which is the only one the bar ever describes.
+    var focusedTranslation: TabTranslation? {
+        guard let focused = model.columns.first(where: \.isFocused) else { return nil }
+        return translation[focused.id]
+    }
+
+    /// Zero unless there is something to say. "Done" is not one of those: the button says that.
+    var translationBannerHeight: Int32 {
+        (focusedTranslation?.saysSomething ?? false) ? px(Metric.bannerHeight) : 0
+    }
 
     // MARK: Palette
 
@@ -130,6 +152,8 @@ extension RailWindow {
             static let fullWidth = "\u{E740}"
             static let restoreWidth = "\u{E73F}"
             static let close = "\u{E711}"
+            /// Segoe MDL2's globe, which is what Windows itself uses for anything about language.
+            static let translate = "\u{E774}"
             // The window controls. These four are a set of their own in the icon font, drawn at
             // stroke widths meant for a title bar rather than for a toolbar.
             static let chromeMinimize = "\u{E921}"
@@ -187,6 +211,9 @@ extension RailWindow {
         var workspacePips = RECT()
         var workspaceDown = RECT()
         var fullWidth = RECT()
+        var translate = RECT()
+        /// The second line, empty when the translation has nothing to say.
+        var banner = RECT()
     }
 
     /// One pip's rectangle inside `workspacePips`, so that drawing them and clicking one cannot
@@ -217,14 +244,18 @@ extension RailWindow {
         GetClientRect(hwnd, &client)
 
         var layout = ChromeLayout()
-        layout.bar = RECT(left: 0, top: 0, right: client.right, bottom: topChromeHeight)
+        // The bar itself, and not the banner under it. `topChromeHeight` is the two of them
+        // together — it is what the *rail* has to be pushed down by — and using it here put every
+        // control in the bar half a banner too low the first time a translation ran.
+        let barBottom = px(Metric.barHeight)
+        layout.bar = RECT(left: 0, top: 0, right: client.right, bottom: barBottom)
 
         let pad = px(Metric.sidePadding)
         let gap = px(Metric.itemGap)
         /// Vertically centred in the bar, which is where every control in it sits.
         func centred(_ height: Double) -> (top: Int32, bottom: Int32) {
             let h = px(height)
-            let top = (topChromeHeight - h) / 2
+            let top = (barBottom - h) / 2
             return (top, top + h)
         }
 
@@ -257,6 +288,15 @@ extension RailWindow {
                                     right: layout.workspaceDown.left, bottom: button.bottom)
         layout.workspaceUp = RECT(left: layout.workspacePips.left - buttonWidth, top: button.top,
                                   right: layout.workspacePips.left, bottom: button.bottom)
+        // Beside the workspace controls rather than beside back and forward: it is about the page,
+        // not about where you have been.
+        layout.translate = RECT(left: layout.workspaceUp.left - gap - buttonWidth, top: button.top,
+                                right: layout.workspaceUp.left - gap, bottom: button.bottom)
+
+        if translationBannerHeight > 0 {
+            layout.banner = RECT(left: 0, top: px(Metric.barHeight),
+                                 right: client.right, bottom: topChromeHeight)
+        }
 
         // No focused window, no address: the Mac drops the field (and the star with it) on an empty
         // workspace, because a field describing nothing is worse than a gap. An empty rect is how
@@ -269,7 +309,7 @@ extension RailWindow {
         let share = Double(client.right) / scale * Metric.addressShare
         let wanted = px(min(max(share, Metric.addressMinWidth), Metric.addressMaxWidth))
         let leftLimit = layout.reload.right + gap * 2
-        let rightLimit = layout.workspaceUp.left - gap * 2
+        let rightLimit = layout.translate.left - gap * 2
         let width = max(0, min(wanted, rightLimit - leftLimit))
         var left = (client.right - width) / 2
         left = min(max(left, leftLimit), max(leftLimit, rightLimit - width))
@@ -309,12 +349,14 @@ extension RailWindow {
 
         drawAddressField(hdc, in: layout.addressPill)
 
+        drawTranslateButton(hdc, in: layout.translate)
         drawGlyph(hdc, ChromeFonts.Glyph.chevronUp, in: layout.workspaceUp, enabled: model.canFocusWorkspace(-1))
         drawWorkspacePips(hdc, in: layout.workspacePips)
         drawGlyph(hdc, ChromeFonts.Glyph.chevronDown, in: layout.workspaceDown, enabled: model.canFocusWorkspace(1))
         drawGlyph(hdc, model.isFullWidth ? ChromeFonts.Glyph.restoreWidth : ChromeFonts.Glyph.fullWidth,
                   in: layout.fullWidth, enabled: true)
 
+        drawTranslationBanner(hdc, in: layout.banner)
         drawCaptionButtons(hdc)
     }
 
