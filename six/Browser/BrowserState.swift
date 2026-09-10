@@ -1343,6 +1343,24 @@ final class BrowserState {
         return layout.columnID(of: tabID) ?? tabID
     }
 
+    /// The windows one card in the ring stands for — **what the stop is**, and not what the column
+    /// it came from happens to hold.
+    ///
+    /// A stop that is a whole column draws the pair, because that is what you fly to and what you
+    /// would then be looking at. A stop that is *half* of one — which only happens in the column you
+    /// are standing in, where the halves are separate stops — draws that half alone, at half a
+    /// card's width, the way it stands on the rail. Drawing the pair there put the same picture in
+    /// the ring twice with a different half lit, which reads as one window duplicated rather than as
+    /// two places to land.
+    func ringWindows(at stop: UUID) -> [UUID] {
+        stopInTheRing(stop) == stop ? [stop] : layout.columnMates(of: stop)
+    }
+
+    /// Whether that card is a whole column's worth of rail, or half of one.
+    func ringCardIsHalfWide(_ stop: UUID) -> Bool {
+        ringWindows(at: stop).count == 1 && layout.columnMates(of: stop).count > 1
+    }
+
     /// ⌃ came up: fly to the window the ring landed on.
     func endWindowSwitch() {
         var landing: UUID?

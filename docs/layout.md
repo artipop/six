@@ -211,9 +211,14 @@ either direction — so `⌥←` / `⌥→` walk the rail and `⌃Tab` walks the
   back there, with the other half further along where it belongs. Both measured by `KeySelfTest`:
   `⌃⇥ inside a split → ring 5, columns 4, windows 5, lands on the other half`, and
   `⌃⇥ from the window before it → lands on the half it came from, ring 4`.
-- The card draws the pair either way, the way it looks on the rail, with the half you would land in at
-  full strength and its neighbour at half — it is there because it is what you would be looking at,
-  not because you are choosing it.
+- **A card draws what the stop *is*.** A stop that is a whole column draws the pair, the way it looks
+  on the rail, with the half you would land in at full strength and its neighbour at half: it is there
+  because it is what you would be looking at, not because you are choosing it. A stop that is half of
+  one — which only happens in the column you are standing in — draws that half alone, at half a card's
+  width. Drawing the pair for both put the same picture in the ring twice with a different half lit,
+  which reads as one window duplicated rather than as two places to land, and was reported as exactly
+  that. `BrowserState.ringWindows(at:)` is the question; the row is laid out by measuring the cards
+  rather than counting equal steps, which for a ring of equal widths is the same number it always was.
 - A rail with **one** window on it opens a ring of one. The key has to answer: a press that gives
   nothing back cannot be told from a key that is not bound, or from a browser that has stopped
   listening, and this one is held down, so the nothing would last as long as the hand does. Only an

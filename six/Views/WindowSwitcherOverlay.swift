@@ -36,18 +36,29 @@ struct WindowSwitcherOverlay: View {
         let width = size.width * 0.52
         let card = CGSize(width: width * 0.3, height: width * 0.3 * (size.height / max(1, size.width)))
         let gap = card.width * 0.09
-        let step = card.width + gap
+        // A card is as wide as the thing it stands for: a whole column, or half of one. The rail's
+        // own arithmetic, in miniature — and the reason the row can no longer be laid out by
+        // counting equal steps.
+        let widths = switcher.ring.map { id in
+            browser.ringCardIsHalfWide(id) ? (card.width - card.width * 0.02) / 2 : card.width
+        }
+        let total = widths.reduce(0, +) + gap * CGFloat(max(0, widths.count - 1))
+        let lead = widths.prefix(switcher.index).reduce(0) { $0 + $1 + gap }
+        let centre = lead + (widths.indices.contains(switcher.index) ? widths[switcher.index] : 0) / 2
         VStack(spacing: 14) {
             HStack(spacing: gap) {
                 ForEach(Array(switcher.ring.enumerated()), id: \.element) { position, id in
-                    if let tab = browser.tab(id) {
-                        WindowCard(tab: tab, size: card, isChosen: position == switcher.index)
+                    if let tab = browser.tab(id), widths.indices.contains(position) {
+                        WindowCard(tab: tab, size: CGSize(width: widths[position], height: card.height),
+                                   isChosen: position == switcher.index)
                     }
                 }
             }
             // The chosen card in the middle of the panel: the row slides under it, the way the rail
-            // slides under the focused window.
-            .offset(x: -(CGFloat(switcher.index) - CGFloat(switcher.ring.count - 1) / 2) * step)
+            // slides under the focused window. Measured rather than counted, because the cards are
+            // no longer all one width — with equal widths this is exactly the old `-(index - (n-1)/2)
+            // * step`.
+            .offset(x: total / 2 - centre)
             .frame(width: width, alignment: .center)
             // The row runs past both ends of the panel; it fades out there rather than being cut,
             // so what is off the end reads as more windows and not as a clipped picture.
@@ -113,11 +124,10 @@ private struct WindowCard: View {
         browser.profiles.first { $0.id == tab.profileID }?.color ?? .accentColor
     }
 
-    /// The windows this card stands for, and the gap between them: half the one between cards, for
-    /// the same reason the rail's own is half the gap between columns — proximity is what says the
-    /// two belong to each other.
+    /// The windows this card stands for — the pair for a stop that is a whole column, and the one
+    /// window for a stop that is half of one (`BrowserState.ringWindows(at:)`).
     private var mates: [BrowserTab] {
-        browser.layout.columnMates(of: tab.id).compactMap { browser.tab($0) }
+        browser.ringWindows(at: tab.id).compactMap { browser.tab($0) }
     }
 
     var body: some View {
