@@ -66,7 +66,7 @@ enum KeySelfTest {
     /// What `KeyRouter.handle` would decide, said in one word.
     private static func answer(for event: NSEvent, in context: KeyContext) -> String {
         guard let binding = KeyBindings.all.first(where: { $0.matches(event, in: context) }) else { return "—" }
-        if let field = context.field, binding.key.yields(to: field) { return "caret" }
+        if binding.yieldsToCaret(in: context) { return "caret" }
         return label(binding.action)
     }
 
@@ -229,6 +229,19 @@ enum KeySelfTest {
             ? now.workspaces[browser.layout.focusedWorkspaceIndex].columns.count : 0
         let everywhere = now.workspaces.reduce(0) { $0 + $1.columns.count }
         note("⌃⇥ → ring \(browser.switcher.ring.count), rail \(onThisRail), strip \(everywhere)")
+        // The arrows over that same ring, **with the caret still in the address field** — which is
+        // where a launched window puts it, and the state the whole bug lived in: an arrow belongs to
+        // a caret while there is text to walk over, and the ring being open is the one thing that
+        // outranks that. Measured here rather than after the keyboard has been handed to a page,
+        // because with no field in play the old code passed too and said nothing.
+        let ringCard = browser.switcher.index
+        post(flags: .control, code: .rightArrow, in: window)
+        try? await Task.sleep(for: .milliseconds(250))
+        let steppedRight = browser.switcher.index
+        post(flags: .control, code: .leftArrow, in: window)
+        try? await Task.sleep(for: .milliseconds(250))
+        note("⌃→ ⌃← over the ring, caret in \(keyboard(NSApp.keyWindow ?? NSApp.mainWindow))"
+            + " → card \(ringCard) → \(steppedRight) → \(browser.switcher.index)")
         browser.cancelWindowSwitch()
         browser.closeTab(elsewhere.id) // the rail is left exactly as it was found
 
@@ -406,6 +419,17 @@ enum KeySelfTest {
         post(flags: .control, code: .tab, in: window)
         try? await Task.sleep(for: .milliseconds(350))
         note("the cards, from the other half: " + ringCards(browser))
+
+        // The arrows, while the ring is up. They walk the row as it is drawn, so the index has to
+        // move by one card and come back — the one thing ⌃Tab's own step cannot be asked, because it
+        // walks memory and lands wherever that stop happens to be drawn.
+        let before = browser.switcher.index
+        post(flags: .control, code: .rightArrow, in: window)
+        try? await Task.sleep(for: .milliseconds(250))
+        let afterRight = browser.switcher.index
+        post(flags: .control, code: .leftArrow, in: window)
+        try? await Task.sleep(for: .milliseconds(250))
+        note("⌃→ then ⌃← over the ring → card \(before) → \(afterRight) → \(browser.switcher.index)")
         browser.cancelWindowSwitch()
         try? await Task.sleep(for: .milliseconds(250))
 
@@ -434,13 +458,10 @@ enum KeySelfTest {
             // The id and not only the title: two windows on one rail can be the same page, and a
             // line of identical titles cannot say whether an order was kept or swapped — which is
             // the question this was printed for.
-            let inside = browser.ringWindows(at: id).map { window -> String in
-                let name = browser.tab(window)?.title.prefix(10) ?? "?"
-                return "\(window.uuidString.prefix(4)) \(name)"
-            }
+            let name = browser.tab(id)?.title.prefix(10) ?? "?"
             let width = browser.ringCardIsHalfWide(id) ? "half" : "whole"
             let chosen = position == browser.switcher.index ? "*" : ""
-            return "\(chosen)[\(width): \(inside.joined(separator: " | "))]"
+            return "\(chosen)[\(width): \(id.uuidString.prefix(4)) \(name)]"
         }.joined(separator: " ")
     }
 

@@ -72,6 +72,34 @@ struct KeyBindingsTests {
         }
     }
 
+    // MARK: The caret, and the one thing that outranks it
+
+    /// An arrow belongs to the caret while there is text to walk over — and **not** while the ⌃Tab
+    /// ring is open, where nothing else in the window is being looked at. The exception was missing,
+    /// so `⌃→` over a ring opened while the address field had the caret moved the caret and read as
+    /// an arrow that did nothing; the doc has promised the ring answers first since it was written.
+    @Test func theRingOutranksTheCaret() {
+        let typing = KeyContext.Field(kind: .singleLine, hasTextBefore: true, hasTextAfter: true)
+        let onTheRail = KeyContext(window: .main, field: typing)
+        let inTheRing = KeyContext(window: .main, field: typing, isSwitching: true)
+
+        // The rail's own ⌥→ steps aside for the caret, as it always has.
+        let rail = binding(for: KeyChord(.option, .rightArrow), in: onTheRail)
+        #expect(rail?.yieldsToCaret(in: onTheRail) == true)
+
+        // The ring's does not, and neither does the plain arrow the ring binds.
+        let ring = binding(for: KeyChord([], .rightArrow), in: inTheRing)
+        #expect(ring != nil)
+        #expect(ring?.yieldsToCaret(in: inTheRing) == false)
+    }
+
+    /// And with no caret anywhere, nothing yields — the rule is about a field, not about a mood.
+    @Test func withNoFieldNothingYields() {
+        let context = KeyContext(window: .main)
+        let rail = binding(for: KeyChord(.option, .rightArrow), in: context)
+        #expect(rail?.yieldsToCaret(in: context) == false)
+    }
+
     // MARK: The table's own order
 
     @Test func noRowIsShadowedByTheOnesAboveIt() {

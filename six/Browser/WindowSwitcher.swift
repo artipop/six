@@ -67,15 +67,22 @@ final class WindowSwitcher {
     /// nothing lasts as long as the hand does. One card, saying *this is what there is*, is an
     /// answer. Only an empty rail refuses, and there the screen is already saying so in the middle.
     ///
-    /// `stop` says which windows are the same stop, and the caller decides what that means —
-    /// `BrowserState.stopInTheRing` is where the answer lives and why. Two windows drawn as one stop
-    /// are collapsed **after** the ring has been sorted by memory, so the one that survives is the
-    /// one that was looked at more recently and landing on the stop puts you back in it.
-    /// `group` says which stops stand in one place on the rail — the two halves of a column — and
-    /// they are *drawn* in the order they stand there, in the slots memory gave them. Everything else
-    /// keeps its place, so only the pair moves, and only between its own two slots.
+    /// **A stop is a window**, and there is no other kind.
+    ///
+    /// It was a *column* for a while, with the column under the focus excepted so its halves could be
+    /// walked between — and that exception is what made the ring incoherent to look at, because the
+    /// two kinds of stop had to be drawn differently: the same split column was two narrow cards when
+    /// you were standing in it and one wide card with a seam down the middle when you were not.
+    /// Windows all the way down costs nothing that the exception was buying. The half you used last
+    /// comes first because memory says so, and the other one sits wherever it was actually used.
+    ///
+    /// `group` is the one thing the rail still has to say: which windows stand in one place on it.
+    /// They are drawn **together and in rail order**, arriving as a group where the first of them
+    /// falls in memory — a pair whose halves were used at different times would otherwise take the
+    /// two slots memory gave it, and another window would stand between two halves of one column,
+    /// which the rail itself cannot do.
     @discardableResult
-    func open(_ ids: [UUID], current: UUID?, stop: (UUID) -> UUID, group: (UUID) -> UUID) -> Bool {
+    func open(_ ids: [UUID], current: UUID?, group: (UUID) -> UUID) -> Bool {
         guard !ids.isEmpty else { return false }
         let known = Set(ids)
         var order = recent.filter { known.contains($0) }
@@ -84,14 +91,8 @@ final class WindowSwitcher {
             order.remove(at: at)
             order.insert(current, at: 0)
         }
-        var seen = Set<UUID>()
-        walk = order.filter { seen.insert(stop($0)).inserted }
+        walk = order
 
-        // Stops that stand in one place on the rail are drawn in one place here: the whole group
-        // arrives together, in rail order, where the **first** of them falls in memory. Keeping only
-        // their order was not enough — a pair whose halves were used at different times kept its
-        // left-then-right but took the slots memory gave it, so another window could stand between
-        // two halves of one column, which on the rail is a thing that cannot happen.
         let rank = Dictionary(ids.enumerated().map { ($1, $0) }, uniquingKeysWith: { first, _ in first })
         var drawn = Set<UUID>()
         ring = walk.flatMap { id -> [UUID] in

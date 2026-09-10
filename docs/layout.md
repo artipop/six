@@ -216,42 +216,39 @@ either direction — so `⌥←` / `⌥→` walk the rail and `⌃Tab` walks the
 - The ring is fixed when the switch opens and does not reorder while it is held — a list that resorted
   itself under the key would move the window you were aiming at — and it wraps, because a ring has no
   ends to hit. Windows never focused this run (restored from the snapshot) follow in rail order.
-- **A stop is a column — except the column you are standing in.** Two windows sharing one are both on
-  screen at once, so a ring that stopped at each of them in turn would be asking you to choose between
-  two halves of a view you are already looking at. That reasoning runs out where you already are:
-  there is no flying left to do, and the only question is which half has the keyboard — which is what
-  `⌥←` / `⌥→` answer, and having just answered it that way you expect `⌃Tab` to answer it too rather
-  than throwing you at the column next door. `BrowserState.stopInTheRing` is the rule;
-  `WindowSwitcher.open` takes it as a function and collapses *after* sorting by memory, so the half
-  that survives is the one looked at more recently and landing puts the focus back in it.
-- Nothing else is needed to make that behave: the ring is memory, so the other half is the first stop
-  only when it is where you actually were. Come to the split from somewhere else and `⌃Tab` takes you
-  back there, with the other half further along where it belongs. Both measured by `KeySelfTest`:
-  `⌃⇥ inside a split → ring 5, columns 4, windows 5, lands on the other half`, and
-  `⌃⇥ from the window before it → lands on the half it came from, ring 4`.
+- **A stop is a window, and there is no other kind.** Every window on the rail is a card, drawn at the
+  width that window has where it stands: a whole card, or half of one where it is sharing a column.
+  Landing on a card focuses that window.
+
+  It was a *column* for a while, with the column under the focus excepted so its halves could still be
+  walked between, and each step of that was reported as a thing that looked wrong — the halves drawn
+  as the same picture twice, then a stranger standing between them, then the same split drawn two
+  entirely different ways depending on where the focus was, because two kinds of stop have to be drawn
+  two ways. The exception was buying one behaviour, and memory gives it for nothing: the half you used
+  last comes first because that is what recency means, so ⌃Tab still takes you back to the other half
+  when the other half is where you were.
+- **Windows of one column are drawn together and in rail order.** The one thing the ring asks the rail
+  (`group`, `NiriLayout.columnID(of:)`): a column's cards arrive as a group, at the place the first of
+  them falls in memory. Keeping their order without keeping them together let a window used between
+  them be *drawn* between them, which the rail itself cannot do. Measured by `KeySelfTest`, which dumps
+  the ring from each half in turn — `[half: C63D] *[half: 26EB]` and `*[half: C63D] [half: 26EB]`, the
+  same order both times with only the `*` moving.
+- **The row is walked by memory and drawn along the rail**, so `WindowSwitcher` keeps two orders:
+  `walk` is what ⌃Tab moves through, `ring` is what is drawn. The highlight therefore sometimes moves
+  *left* on a forward press, which is right: the key names a window, and the card for it is where the
+  window is.
 - **The arrows walk the row; `⌃Tab` walks the memory.** They were one action until the row started
   being drawn along the rail, and then an arrow answering by recency would have moved the highlight
   the other way from the one it points. `walkRow` against `step`, and `KeyBindings` sends the two keys
-  to different actions.
-- **The row is walked by memory and drawn along the rail.** ⌃Tab means *the window I was in before*,
-  so stepping follows recency — but the two halves of a column are always left then right in front of
-  you, and a row that put them in memory order swapped them from one press to the next and asked you
-  to read the pair again every time. `WindowSwitcher` keeps both orders: `walk` is what the key moves
-  through, `ring` is what is drawn, and they differ only in that same-column stops are placed in rail
-  order into the slots memory gave them — the **whole group at once**, at the place its nearest member
-  falls, because keeping the pair's order without keeping it together let another window stand between
-  two halves of one column, which is a thing the rail itself cannot do. The highlight therefore sometimes moves *left* on a forward
-  press, which is right: the key names a window, and the card for it is where the window is. Measured
-  by `KeySelfTest`, which dumps the ring from each half in turn — `[half: C63D] *[half: 26EB]` and
-  `*[half: C63D] [half: 26EB]`, the same order both times with only the `*` moving.
-- **A card draws what the stop *is*.** A stop that is a whole column draws the pair, the way it looks
-  on the rail, with the half you would land in at full strength and its neighbour at half: it is there
-  because it is what you would be looking at, not because you are choosing it. A stop that is half of
-  one — which only happens in the column you are standing in — draws that half alone, at half a card's
-  width. Drawing the pair for both put the same picture in the ring twice with a different half lit,
-  which reads as one window duplicated rather than as two places to land, and was reported as exactly
-  that. `BrowserState.ringWindows(at:)` is the question; the row is laid out by measuring the cards
-  rather than counting equal steps, which for a ring of equal widths is the same number it always was.
+  to different actions. The row is laid out by measuring the cards rather than counting equal steps,
+  since they are no longer all one width; for a ring of equal widths that is the number it always was.
+- **The open ring outranks the caret.** An arrow belongs to a focused field while there is text to walk
+  over (`KeyBinding.yieldsToCaret(in:)`) — except while the ring is up, where nothing else in the
+  window is being looked at. Without the exception `⌃→` over a ring opened while the address field had
+  the caret walked the *caret*, and read as an arrow that did nothing at all: measured with the caret
+  where a launched window puts it, `card 1 → 2 → 1`. The decision lives in `SixCore` rather than in
+  `KeyRouter`, because it had been two lines there and a copy of them in `KeySelfTest`, and the
+  exception was missing from both.
 - A rail with **one** window on it opens a ring of one. The key has to answer: a press that gives
   nothing back cannot be told from a key that is not bound, or from a browser that has stopped
   listening, and this one is held down, so the nothing would last as long as the hand does. Only an

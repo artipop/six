@@ -5,10 +5,12 @@ import Testing
 
 /// The ⌃Tab ring, which is two orders over a list of ids and nothing else.
 ///
-/// Both of them got out wrong by eye — first the halves of a split appearing twice as the same
-/// picture, then a pair drawn in the right order but with another window standing between its two
-/// halves, which on the rail cannot happen. Neither is visible in a count and both are arithmetic,
-/// so they are asked about here instead of being looked at.
+/// **A stop is a window.** That was arrived at the long way round — stops were columns for a while,
+/// with the focused column excepted so its halves could be walked between — and every step of the
+/// way out got something wrong by eye: the halves appearing twice as the same picture, then a pair
+/// drawn in the right order with another window standing between its halves, then the same split
+/// drawn two entirely different ways depending on where the focus was. None of that is visible in a
+/// count and all of it is arithmetic, so it is asked about here instead of being looked at.
 @MainActor
 struct WindowSwitcherTests {
 
@@ -17,13 +19,12 @@ struct WindowSwitcherTests {
         (0..<count).map { _ in UUID() }
     }
 
-    /// The ring as a switcher with no memory would open it: every window its own column.
+    /// Opens the ring over a rail. `sharing` names two ids that stand in one column, the way a split
+    /// does — the only thing the ring asks the rail about.
     private func opened(_ switcher: WindowSwitcher, _ ids: [UUID], current: UUID?,
                         sharing pair: [UUID] = []) {
-        // Two ids named as `sharing` stand in one column, the way a split does: they are one place
-        // on the rail, and each is its own stop only because the focus is in that column.
         let column = UUID()
-        switcher.open(ids, current: current, stop: { $0 }, group: { pair.contains($0) ? column : $0 })
+        switcher.open(ids, current: current, group: { pair.contains($0) ? column : $0 })
     }
 
     // MARK: Memory
@@ -48,6 +49,20 @@ struct WindowSwitcherTests {
 
         switcher.step(1)
         #expect(switcher.selection == ids[1])
+    }
+
+    /// **Every window on the rail is a stop, and there is no other kind.** The exception that used to
+    /// live here — a column as one stop, unless it was the column under the focus — is what made the
+    /// panel incoherent to look at: two kinds of stop have to be drawn two ways, so the same split
+    /// was two narrow cards from inside it and one wide card with a seam from anywhere else.
+    @Test func everyWindowIsAStop() {
+        let switcher = WindowSwitcher()
+        let ids = windows(4)
+        opened(switcher, ids, current: ids[0], sharing: [ids[1], ids[2]])
+
+        #expect(switcher.ring.count == ids.count)
+        #expect(Set(switcher.ring) == Set(ids))
+        #expect(switcher.walk.count == ids.count)
     }
 
     // MARK: The two halves of a column

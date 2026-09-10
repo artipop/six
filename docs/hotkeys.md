@@ -61,7 +61,10 @@ that way ([layout.md](layout.md#the-ends-of-the-rail)).
 | `Esc` | let go of the ring without going anywhere |
 
 While the ring is up it is on top of everything else in the window: its own keys answer first, and any other key
-lands the flight and goes on to whatever it was meant for.
+lands the flight and goes on to whatever it was meant for. **Including over a caret** — an arrow belongs to a focused
+field while there is text to walk over, and the open ring is the one thing that outranks that
+(`KeyBinding.yieldsToCaret(in:)`). Without the exception `⌃→` over a ring opened while the address field had the
+caret moved the caret, and read as an arrow that did nothing at all.
 
 The rail's order and this one are different questions: `⌥←` / `⌥→` walk the windows where they stand,
 `⌃Tab` walks them in the order they were used, so a single press is a toggle between the last two.

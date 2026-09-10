@@ -102,6 +102,21 @@ struct KeyBinding {
     let scope: Scope
     let action: KeyAction
 
+    /// Whether a caret keeps this key instead of this binding taking it.
+    ///
+    /// The whole of the decision, in the one place it can be asked a question: `KeyRouter` had it as
+    /// two lines of its own and `KeySelfTest` as a copy of them, so a rule that was true in one was
+    /// only probably true in the other — and the exception below was missing from both.
+    ///
+    /// **The ring is the exception.** While ⌃Tab holds it open nothing else in the window is being
+    /// looked at, and its keys answer first — which docs/hotkeys.md has promised since it was
+    /// written. Without this, `⌃→` over a ring opened while the address field had the caret walked
+    /// the *caret*, and read as an arrow that did nothing at all.
+    func yieldsToCaret(in context: KeyContext) -> Bool {
+        guard let field = context.field, scope != .switcher else { return false }
+        return key.yields(to: field)
+    }
+
     init(_ key: Key, _ modifiers: Modifiers, _ scope: Scope, _ action: KeyAction) {
         self.key = key
         self.modifiers = modifiers

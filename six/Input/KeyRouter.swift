@@ -56,7 +56,7 @@ final class KeyRouter {
         guard let binding = KeyBindings.all.first(where: { $0.matches(event, in: context) }) else {
             return passThrough(event, context, why: "no binding")
         }
-        if let field = context.field, binding.key.yields(to: field) {
+        if binding.yieldsToCaret(in: context) {
             return passThrough(event, context, why: "the caret has it")
         }
         // A rail key while the ring is up means the pass is over: land first, then do what was asked.

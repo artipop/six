@@ -106,13 +106,15 @@ struct WindowSwitcherOverlay: View {
     }
 }
 
-/// One stop in the ring: a picture of the **column**, which for a split is both halves side by side,
-/// the way it looks on the rail.
+/// One stop in the ring: **one window**, at the width that window has on the rail — a whole card, or
+/// half of one where it is sharing its column.
 ///
-/// A stop is a column and not a window (`WindowSwitcher.open`), so this draws what you would be
-/// looking at after the flight rather than one of the two things in it. The half the ring actually
-/// landed on is the one drawn at full strength — landing puts the focus back in it, and a card that
-/// showed a pair without saying which would be a card that hid the answer.
+/// It drew the whole column for a while, both halves side by side, and that had to go: a stop that
+/// was half a column drew one page while a stop that was a whole one drew two with a seam between
+/// them, so the same split looked like two narrow windows from inside it and like one wide window
+/// with a stripe down the middle from anywhere else. One rule instead — a card is a window — and the
+/// pair is still recognisable as a pair, because the two cards are drawn next to each other in the
+/// order they stand in (`WindowSwitcher.open`), which is what it looks like on the rail anyway.
 private struct WindowCard: View {
     let tab: BrowserTab
     let size: CGSize
@@ -124,14 +126,8 @@ private struct WindowCard: View {
         browser.profiles.first { $0.id == tab.profileID }?.color ?? .accentColor
     }
 
-    /// The windows this card stands for — the pair for a stop that is a whole column, and the one
-    /// window for a stop that is half of one (`BrowserState.ringWindows(at:)`).
-    private var mates: [BrowserTab] {
-        browser.ringWindows(at: tab.id).compactMap { browser.tab($0) }
-    }
-
     var body: some View {
-        content
+        Self.picture(of: tab, accent: accent, size: size)
             .frame(width: size.width, height: size.height)
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             .overlay {
@@ -144,27 +140,6 @@ private struct WindowCard: View {
             // past — not to be read.
             .opacity(isChosen ? 1 : 0.55)
             .scaleEffect(isChosen ? 1 : 0.92)
-    }
-
-    @ViewBuilder
-    private var content: some View {
-        let pair = mates
-        if pair.count > 1 {
-            let seam = max(2, size.width * 0.02)
-            let half = (size.width - seam) / 2
-            HStack(spacing: seam) {
-                ForEach(pair, id: \.id) { mate in
-                    Self.picture(of: mate, accent: accent,
-                                 size: CGSize(width: half, height: size.height))
-                        // Which half you would land in. The other one is there because it is what
-                        // you would be looking at, not because you are choosing it.
-                        .opacity(mate.id == tab.id ? 1 : 0.5)
-                }
-            }
-            .background(.background)
-        } else {
-            Self.picture(of: tab, accent: accent, size: size)
-        }
     }
 
     @ViewBuilder

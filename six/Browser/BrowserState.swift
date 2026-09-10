@@ -1310,7 +1310,7 @@ final class BrowserState {
         if !switcher.isOpen {
             var opened = false
             withAnimation(.smooth(duration: 0.18)) {
-                opened = switcher.open(railOrder, current: selectedTabID, stop: stopInTheRing,
+                opened = switcher.open(railOrder, current: selectedTabID,
                                        group: { [layout] in layout.columnID(of: $0) ?? $0 })
             }
             guard opened else { return }
@@ -1318,48 +1318,17 @@ final class BrowserState {
             // still has a page to draw, and the ones whose picture was dropped for the memory budget
             // read theirs back off disk — the same two moves the overview makes on its way in.
             selectedTab?.rememberViewState(force: true)
-            // Both halves of a split, not only the one the ring stopped at: the card draws the pair,
-            // and half a pair with no picture is the half that looks broken.
-            for id in switcher.ring.flatMap({ layout.columnMates(of: $0) }) {
-                tabsByID[id]?.loadPictureIfNeeded()
-            }
+            for id in switcher.ring { tabsByID[id]?.loadPictureIfNeeded() }
         }
         withAnimation(.smooth(duration: 0.2)) { switcher.step(delta) }
     }
 
-    /// What counts as one stop in the ring — a column, **except the column you are standing in**.
+    /// Whether that window is half of a column, and so drawn at half a card's width.
     ///
-    /// Two windows sharing a column are one thing to fly *to*: they are both on screen, and stopping
-    /// at each of them in turn would be asking you to choose between two halves of a view you are
-    /// already looking at. That reasoning runs out at the column you are in, where there is no flying
-    /// left to do and the only question is which half has the keyboard — which is exactly the
-    /// question ⌥← and ⌥→ answer, and having just answered it that way you expect ⌃Tab to answer it
-    /// too rather than throwing you at the column next door.
-    ///
-    /// Nothing else is needed to make that work: the ring is sorted by memory, so the other half is
-    /// the first stop only when it is where you actually were. Come to the split from somewhere else
-    /// and ⌃Tab takes you back there, with the other half further along where it belongs.
-    private func stopInTheRing(_ tabID: UUID) -> UUID {
-        if layout.focusedWorkspace?.focusedColumn?.holds(tabID) == true { return tabID }
-        return layout.columnID(of: tabID) ?? tabID
-    }
-
-    /// The windows one card in the ring stands for — **what the stop is**, and not what the column
-    /// it came from happens to hold.
-    ///
-    /// A stop that is a whole column draws the pair, because that is what you fly to and what you
-    /// would then be looking at. A stop that is *half* of one — which only happens in the column you
-    /// are standing in, where the halves are separate stops — draws that half alone, at half a
-    /// card's width, the way it stands on the rail. Drawing the pair there put the same picture in
-    /// the ring twice with a different half lit, which reads as one window duplicated rather than as
-    /// two places to land.
-    func ringWindows(at stop: UUID) -> [UUID] {
-        stopInTheRing(stop) == stop ? [stop] : layout.columnMates(of: stop)
-    }
-
-    /// Whether that card is a whole column's worth of rail, or half of one.
-    func ringCardIsHalfWide(_ stop: UUID) -> Bool {
-        ringWindows(at: stop).count == 1 && layout.columnMates(of: stop).count > 1
+    /// The whole of what the ring has to ask about the rail, now that a stop is a window and nothing
+    /// else: a card is one window, at the width that window has where it stands.
+    func ringCardIsHalfWide(_ tabID: UUID) -> Bool {
+        layout.columnMates(of: tabID).count > 1
     }
 
     /// The arrows, while the ring is up: one card along the row as it is drawn. ⌃Tab's own step is
