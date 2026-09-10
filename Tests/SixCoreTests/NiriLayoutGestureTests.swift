@@ -152,6 +152,37 @@ struct NiriLayoutGestureTests {
         #expect(layout.edgeHover == 0)
     }
 
+    /// The light at the end of the rail puts itself out.
+    ///
+    /// Everything that lights it is a gesture, and a gesture releases it by sending a zero — which a
+    /// monitor can fail to send, and did: a pause long enough to reset the accumulator left the edge
+    /// lit with nobody to put it out, on a rail that had not even reached its end. A push is a thing
+    /// a hand is doing, so it does not outlive the hand.
+    @Test func theEdgeLightDoesNotOutliveTheHand() async throws {
+        let layout = layout()
+        fill(layout, 1) // one window: both ends of this rail are walls
+
+        layout.previewColumn(-40)
+        #expect(layout.wallGlow > 0)
+        #expect(layout.wall == .trailing)
+
+        try await Task.sleep(for: .milliseconds(700))
+        #expect(layout.wallGlow == 0)
+    }
+
+    /// And a hand that is still pushing keeps it lit: each push cancels the one before it, so only
+    /// silence ends the light.
+    @Test func aPushThatKeepsComingKeepsItLit() async throws {
+        let layout = layout()
+        fill(layout, 1)
+
+        for _ in 0..<4 {
+            layout.previewColumn(-40)
+            try await Task.sleep(for: .milliseconds(120))
+        }
+        #expect(layout.wallGlow > 0)
+    }
+
     // MARK: Carrying a window
 
     @discardableResult

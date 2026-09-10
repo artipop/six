@@ -19,8 +19,18 @@ final class WindowSwitcher {
     /// ⌘⇧T reopens from, it is a memory of what you did, not a fact about the strip, and nothing on
     /// disk should pretend to remember it after a relaunch.
     private(set) var recent: [UUID] = []
-    /// What this pass walks, in the order it walks it. Empty when nothing is being switched.
+    /// The stops of this pass **as they are drawn**, left to right. Empty when nothing is being
+    /// switched.
     private(set) var ring: [UUID] = []
+    /// The same stops **as the key walks them**, which is the order they were last looked at.
+    ///
+    /// Two orders, because the two questions are different. ⌃Tab means *the window I was in before*,
+    /// so stepping has to follow memory. But two halves of one column are drawn as two cards, and on
+    /// the rail those two are always left then right — a row that put them in memory order swapped
+    /// them from one press to the next, and asked you to read the pair again every time. So the pair
+    /// is drawn where it stands and walked when it was used, and the highlight moves to whichever
+    /// card that is.
+    private(set) var walk: [UUID] = []
     private(set) var index = 0
 
     var isOpen: Bool { !ring.isEmpty }
@@ -37,6 +47,7 @@ final class WindowSwitcher {
     /// A window closed, or its profile was deleted with it.
     func forget(_ id: UUID) {
         recent.removeAll { $0 == id }
+        walk.removeAll { $0 == id }
         guard let at = ring.firstIndex(of: id) else { return }
         ring.remove(at: at)
         // A ring of one is a ring: it is what a rail with one window on it opens, and a window
@@ -60,8 +71,11 @@ final class WindowSwitcher {
     /// `BrowserState.stopInTheRing` is where the answer lives and why. Two windows drawn as one stop
     /// are collapsed **after** the ring has been sorted by memory, so the one that survives is the
     /// one that was looked at more recently and landing on the stop puts you back in it.
+    /// `group` says which stops stand in one place on the rail — the two halves of a column — and
+    /// they are *drawn* in the order they stand there, in the slots memory gave them. Everything else
+    /// keeps its place, so only the pair moves, and only between its own two slots.
     @discardableResult
-    func open(_ ids: [UUID], current: UUID?, stop: (UUID) -> UUID) -> Bool {
+    func open(_ ids: [UUID], current: UUID?, stop: (UUID) -> UUID, group: (UUID) -> UUID) -> Bool {
         guard !ids.isEmpty else { return false }
         let known = Set(ids)
         var order = recent.filter { known.contains($0) }
@@ -71,22 +85,37 @@ final class WindowSwitcher {
             order.insert(current, at: 0)
         }
         var seen = Set<UUID>()
-        ring = order.filter { seen.insert(stop($0)).inserted }
-        index = 0
+        walk = order.filter { seen.insert(stop($0)).inserted }
+
+        let rank = Dictionary(ids.enumerated().map { ($1, $0) }, uniquingKeysWith: { first, _ in first })
+        var slots: [UUID: [Int]] = [:]
+        for (position, id) in walk.enumerated() { slots[group(id), default: []].append(position) }
+        ring = walk
+        for (_, places) in slots where places.count > 1 {
+            let alongTheRail = places.map { walk[$0] }.sorted { (rank[$0] ?? 0) < (rank[$1] ?? 0) }
+            for (place, id) in zip(places, alongTheRail) { ring[place] = id }
+        }
+        index = current.flatMap { ring.firstIndex(of: $0) } ?? 0
         return true
     }
 
-    /// One step along the ring, and round the end of it: a ring is a list of what you have, not a
-    /// rail with ends, so there is no wall here to hit.
+    /// One step along the **memory**, and round the end of it: a ring is a list of what you have, not
+    /// a rail with ends, so there is no wall here to hit.
+    ///
+    /// The highlight then moves to wherever that stop is drawn, which for the halves of a split can
+    /// be the card on the left — the key means "the one before this", and the pair is drawn where it
+    /// stands rather than in the order it was used.
     func step(_ delta: Int) {
-        guard !ring.isEmpty else { return }
-        index = ((index + delta) % ring.count + ring.count) % ring.count
+        guard !walk.isEmpty, let selection, let at = walk.firstIndex(of: selection) else { return }
+        let next = walk[((at + delta) % walk.count + walk.count) % walk.count]
+        index = ring.firstIndex(of: next) ?? index
     }
 
     /// The key came up. Gives back the window that was landed on, and closes the ring.
     func commit() -> UUID? {
         defer {
             ring = []
+            walk = []
             index = 0
         }
         return selection
@@ -94,6 +123,7 @@ final class WindowSwitcher {
 
     func cancel() {
         ring = []
+        walk = []
         index = 0
     }
 }

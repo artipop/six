@@ -395,6 +395,17 @@ enum KeySelfTest {
         // the focused column arrived, each card drawing the whole pair — and a count cannot say so.
         note("the cards: " + ringCards(browser))
         browser.cancelWindowSwitch()
+        try? await Task.sleep(for: .milliseconds(200))
+
+        // The same ring, from the other half. The pair has to be drawn in the same order both times:
+        // on the rail those two are always left then right, and a row that swapped them from one
+        // press to the next asked you to read the pair again every time. Only the `*` should move.
+        post(flags: .option, code: .rightArrow, in: window)
+        try? await Task.sleep(for: .milliseconds(350))
+        post(flags: .control, code: .tab, in: window)
+        try? await Task.sleep(for: .milliseconds(350))
+        note("the cards, from the other half: " + ringCards(browser))
+        browser.cancelWindowSwitch()
         try? await Task.sleep(for: .milliseconds(250))
 
         // And from a window that is *not* in the pair, the same key has to go back to where it came
@@ -419,7 +430,13 @@ enum KeySelfTest {
     /// The one thing a card count cannot tell you is whether two of them look the same.
     private static func ringCards(_ browser: BrowserState) -> String {
         browser.switcher.ring.enumerated().map { position, id in
-            let inside = browser.ringWindows(at: id).compactMap { browser.tab($0)?.title.prefix(12) }
+            // The id and not only the title: two windows on one rail can be the same page, and a
+            // line of identical titles cannot say whether an order was kept or swapped — which is
+            // the question this was printed for.
+            let inside = browser.ringWindows(at: id).map { window -> String in
+                let name = browser.tab(window)?.title.prefix(10) ?? "?"
+                return "\(window.uuidString.prefix(4)) \(name)"
+            }
             let width = browser.ringCardIsHalfWide(id) ? "half" : "whole"
             let chosen = position == browser.switcher.index ? "*" : ""
             return "\(chosen)[\(width): \(inside.joined(separator: " | "))]"

@@ -824,6 +824,16 @@ final class NiriLayout {
         // Un-animated on purpose: it is the finger's own position, and easing towards it would leave
         // the light still rising after the hand has stopped.
         wallGlow = min(1, abs(amount) / Self.wallPush)
+        // And it puts itself out. Everything that lights this edge is a gesture, and a gesture is
+        // released by a zero arriving here — one that a monitor can fail to send, and did: a pause
+        // long enough to reset the accumulator left the edge lit with nobody to put it out, and the
+        // light stayed on a rail that had not reached its end. A push is a thing a hand is doing, so
+        // it does not outlive the hand: another push cancels this, and silence ends it.
+        wallTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(400))
+            guard !Task.isCancelled, let self, wallGlow != 0 else { return }
+            withAnimation(NiriLayout.switchAnimation) { self.wallGlow = 0 }
+        }
     }
 
     /// Is there a window that way, or is that side a wall? The rubber band and the light both need

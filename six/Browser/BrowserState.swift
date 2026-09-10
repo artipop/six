@@ -1310,7 +1310,8 @@ final class BrowserState {
         if !switcher.isOpen {
             var opened = false
             withAnimation(.smooth(duration: 0.18)) {
-                opened = switcher.open(railOrder, current: selectedTabID, stop: stopInTheRing)
+                opened = switcher.open(railOrder, current: selectedTabID, stop: stopInTheRing,
+                                       group: { [layout] in layout.columnID(of: $0) ?? $0 })
             }
             guard opened else { return }
             // The pictures the cards are drawn from: the window being read is drawn now, while it

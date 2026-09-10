@@ -175,6 +175,15 @@ being said. Two ways in:
   because it *is* the finger's position; it reaches full at `wallPush` (19 pt — `threshold` through
   the rubber band's 0.35, which is the whole travel a gesture has before it commits).
 
+**A push does not outlive the hand.** The light is released by a zero arriving from the gesture, and a
+monitor can fail to send one: `NiriScrollMonitor.resetGesture` — the pause long enough to count as a
+new gesture, a finger resting mid-scroll — zeroed its accumulator without telling the layout, and
+`endGesture` could not clean up after it because the accumulator it tests was already zero. So the
+edge stayed lit on a rail that had not reached its end, which is what it was reported as. Two answers,
+both kept: `resetGesture` now releases the band the way `endGesture` does, and `pushWall` arms a
+watchdog — another push cancels it, silence for 400 ms puts the light out. The first is the bug; the
+second is the class of bug, and costs one task.
+
 The rubber band gives less at a wall, too: `wallResistance` (0.4) of what it would give where there is
 a window behind the edge. That is the other half of the sentence, and the half a hand feels rather
 than sees. Both live in the model rather than in the view, so a second front end draws the same
@@ -211,6 +220,15 @@ either direction — so `⌥←` / `⌥→` walk the rail and `⌃Tab` walks the
   back there, with the other half further along where it belongs. Both measured by `KeySelfTest`:
   `⌃⇥ inside a split → ring 5, columns 4, windows 5, lands on the other half`, and
   `⌃⇥ from the window before it → lands on the half it came from, ring 4`.
+- **The row is walked by memory and drawn along the rail.** ⌃Tab means *the window I was in before*,
+  so stepping follows recency — but the two halves of a column are always left then right in front of
+  you, and a row that put them in memory order swapped them from one press to the next and asked you
+  to read the pair again every time. `WindowSwitcher` keeps both orders: `walk` is what the key moves
+  through, `ring` is what is drawn, and they differ only in that same-column stops are placed in rail
+  order into the slots memory gave them. The highlight therefore sometimes moves *left* on a forward
+  press, which is right: the key names a window, and the card for it is where the window is. Measured
+  by `KeySelfTest`, which dumps the ring from each half in turn — `[half: C63D] *[half: 26EB]` and
+  `*[half: C63D] [half: 26EB]`, the same order both times with only the `*` moving.
 - **A card draws what the stop *is*.** A stop that is a whole column draws the pair, the way it looks
   on the rail, with the half you would land in at full strength and its neighbour at half: it is there
   because it is what you would be looking at, not because you are choosing it. A stop that is half of

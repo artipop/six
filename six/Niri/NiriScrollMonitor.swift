@@ -181,16 +181,24 @@ final class NiriScrollMonitor {
         step()
     }
 
+    /// The gesture is over as far as this monitor is concerned — a pause long enough to be a new
+    /// gesture, or a real end.
+    ///
+    /// It lets go of the rubber band, and that is not tidiness: the band and the light at the end of
+    /// the rail are held by the *layout*, and the only thing that releases them is a zero arriving
+    /// here. Resetting the accumulator without sending one left a lit edge with nobody to put it
+    /// out — a finger resting mid-gesture was enough — and `endGesture` could not clean up after it,
+    /// because by then the accumulator it tests was already zero.
     private func resetGesture() {
+        if accumulated != 0 { onPreview(0) }
+        if accumulatedX != 0 { onPreviewColumn(0) }
         accumulated = 0
         accumulatedX = 0
         didCommit = false
     }
 
     private func endGesture() {
-        if accumulated != 0 { onPreview(0) }
-        if accumulatedX != 0 { onPreviewColumn(0) }
-        resetGesture()
+        resetGesture() // which is what lets go of the band and the light
         if isPanning {
             isPanning = false
             onPanEnded()
