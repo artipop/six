@@ -390,6 +390,10 @@ enum KeySelfTest {
         let landing = browser.switcher.selection
         note("⌃⇥ inside a split → ring \(browser.switcher.ring.count), columns \(columns), windows \(windows),"
             + " lands on \(landing == right.id ? "the other half" : landing == left.id ? "itself" : "another column")")
+        // What the panel is actually showing, card by card. A ring that reads correctly by the
+        // numbers can still put the same picture on the screen twice — which is how the halves of
+        // the focused column arrived, each card drawing the whole pair — and a count cannot say so.
+        note("the cards: " + ringCards(browser))
         browser.cancelWindowSwitch()
         try? await Task.sleep(for: .milliseconds(250))
 
@@ -409,6 +413,17 @@ enum KeySelfTest {
         browser.closeTab(left.id, remembering: false)
         try? await Task.sleep(for: .milliseconds(300))
         note("the two pages closed → \(rail(browser))")
+    }
+
+    /// Every card in the ring as it is drawn: what it stands for, how wide it is, and what is in it.
+    /// The one thing a card count cannot tell you is whether two of them look the same.
+    private static func ringCards(_ browser: BrowserState) -> String {
+        browser.switcher.ring.enumerated().map { position, id in
+            let inside = browser.ringWindows(at: id).compactMap { browser.tab($0)?.title.prefix(12) }
+            let width = browser.ringCardIsHalfWide(id) ? "half" : "whole"
+            let chosen = position == browser.switcher.index ? "*" : ""
+            return "\(chosen)[\(width): \(inside.joined(separator: " | "))]"
+        }.joined(separator: " ")
     }
 
     /// Which window on the rail is focused, and how the rail is showing it.
