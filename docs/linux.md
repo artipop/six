@@ -175,6 +175,28 @@ watch fires the way it is expected to.
 | `SIX_LIVE_PAGES` | pin the live-page budget, for measuring |
 | `SIX_UI_DEBUG=1` | what the model was asked to do and what it thought it was doing |
 | `SIX_MOCK_CAPTURE=1` | a camera and a microphone that are not there, for testing permissions |
+| `SIX_VEC_SELFTEST=1` | whether this build has a working `vec0` index at all, against the real database |
+| `SIX_EMBED_SELFTEST=1` | save three pages, embed them, put five questions to the index, delete them again |
+
+### The first run after translation and embeddings, in the order things fail
+
+Both features landed written but unrun — the container is on the Mac and neither was built here. They lean on the same
+three lines (`webkit_web_view_new` unparented, the floating reference, `allow_file_access_from_file_urls`), so **one
+session that does a page translation and a `SIX_EMBED_SELFTEST=1` answers for both**: if the off-screen page works for
+one it works for the other, and if it does not, the failure is in the same place.
+
+Check these two first, because they fail *silently* rather than loudly, and both read from the outside as "the button
+does nothing":
+
+1. **Did `MainQueueBridge.install()` fire.** If GLib's watch never runs, nothing async on this front runs at all. The
+   tell is that no `[translation]` or `[bookmarks]` line ever reaches the log although the button was pressed — not an
+   error, an absence.
+2. **Does the unparented `WebKitWebView` run scripts.** If it does not, `open` never returns: the `load-changed`
+   signal never arrives and the first translation hangs with nothing written anywhere. The answer if it does not is a
+   `GtkWindow` the view is never shown in, which is what the Windows front already does with a one-pixel `WS_POPUP`.
+
+The log is `~/.local/state/six/six.log`; the categories are `[translation]` and `[bookmarks]`. The embedding self-test
+wants a 157 MB download the first time it runs.
 
 ## Why the container, and not Homebrew on the Mac
 
