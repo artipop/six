@@ -376,14 +376,32 @@ enum KeySelfTest {
         try? await Task.sleep(for: .milliseconds(400))
         note("⌥← (back again) → \(rail(browser))")
 
-        // And the ⌃Tab ring stops at the *column*: the two halves are one thing to fly to, because
-        // they are both on screen at once. `ring` has to come out one short of `rail`, which counts
-        // windows here.
-        post(flags: .control, code: .tab, in: window)
-        try? await Task.sleep(for: .milliseconds(350))
+        // **⌃Tab, twice over.** The ring stops at the column everywhere except the column you are
+        // standing in, so two answers have to come out of the same key.
+        //
+        // Here, having just walked between the halves with the arrows, one ⌃⇥ has to land on the
+        // other half — the complaint this was written for was that it threw you at the column next
+        // door instead. `ring` counts the windows of this column separately and the rest by column,
+        // so it comes out one *more* than the number of columns.
         let windows = browser.layout.focusedWorkspace?.columns.flatMap(\.tabIDs).count ?? 0
         let columns = browser.layout.focusedWorkspace?.columns.count ?? 0
-        note("⌃⇥ over a split → ring \(browser.switcher.ring.count), columns \(columns), windows \(windows)")
+        post(flags: .control, code: .tab, in: window)
+        try? await Task.sleep(for: .milliseconds(350))
+        let landing = browser.switcher.selection
+        note("⌃⇥ inside a split → ring \(browser.switcher.ring.count), columns \(columns), windows \(windows),"
+            + " lands on \(landing == right.id ? "the other half" : landing == left.id ? "itself" : "another column")")
+        browser.cancelWindowSwitch()
+        try? await Task.sleep(for: .milliseconds(250))
+
+        // And from a window that is *not* in the pair, the same key has to go back to where it came
+        // from — the column, with the half it was last in — rather than into the split's other half.
+        post(flags: .option, code: .leftArrow, in: window)
+        try? await Task.sleep(for: .milliseconds(350))
+        post(flags: .control, code: .tab, in: window)
+        try? await Task.sleep(for: .milliseconds(350))
+        let back = browser.switcher.selection
+        note("⌃⇥ from the window before it → lands on \(back == left.id ? "the half it came from" : "something else"),"
+            + " ring \(browser.switcher.ring.count)")
         browser.cancelWindowSwitch()
         try? await Task.sleep(for: .milliseconds(200))
 

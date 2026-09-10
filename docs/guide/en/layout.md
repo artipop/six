@@ -51,9 +51,16 @@ windows, and the page is built where you land. One press of `⌃Tab` is a toggle
 between the last two windows.
 
 A split column is **one** stop in the ring, and its card draws both halves the
-way they stand on the rail — the one you would land in at full strength. Walking
-the halves separately would be pointless: they are both in front of you already,
-and `⌥←` / `⌥→` are what move between them.
+way they stand on the rail — the one you would land in at full strength. There is
+no point walking another column's halves separately: you fly to the column, and
+you arrive in the half you were last in.
+
+The column you are **standing in** is the exception: its halves stay separate
+stops. There is no flying to do there, and the only question is which half has
+the keyboard — which is what you were just answering with the arrows. So after
+walking the halves with `⌥←` / `⌥→`, a single `⌃Tab` takes you back to the other
+one instead of throwing you at the column next door. Come to the split from
+somewhere else and `⌃Tab` goes back there: the ring remembers where you were.
 
 A rail with one window on it still opens the ring — with one card in it. The key
 has to answer: a press that gives nothing back cannot be told from an unbound key

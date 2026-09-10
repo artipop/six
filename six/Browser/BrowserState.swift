@@ -1310,7 +1310,7 @@ final class BrowserState {
         if !switcher.isOpen {
             var opened = false
             withAnimation(.smooth(duration: 0.18)) {
-                opened = switcher.open(railOrder, current: selectedTabID) { [layout] in layout.columnID(of: $0) ?? $0 }
+                opened = switcher.open(railOrder, current: selectedTabID, stop: stopInTheRing)
             }
             guard opened else { return }
             // The pictures the cards are drawn from: the window being read is drawn now, while it
@@ -1324,6 +1324,23 @@ final class BrowserState {
             }
         }
         withAnimation(.smooth(duration: 0.2)) { switcher.step(delta) }
+    }
+
+    /// What counts as one stop in the ring — a column, **except the column you are standing in**.
+    ///
+    /// Two windows sharing a column are one thing to fly *to*: they are both on screen, and stopping
+    /// at each of them in turn would be asking you to choose between two halves of a view you are
+    /// already looking at. That reasoning runs out at the column you are in, where there is no flying
+    /// left to do and the only question is which half has the keyboard — which is exactly the
+    /// question ⌥← and ⌥→ answer, and having just answered it that way you expect ⌃Tab to answer it
+    /// too rather than throwing you at the column next door.
+    ///
+    /// Nothing else is needed to make that work: the ring is sorted by memory, so the other half is
+    /// the first stop only when it is where you actually were. Come to the split from somewhere else
+    /// and ⌃Tab takes you back there, with the other half further along where it belongs.
+    private func stopInTheRing(_ tabID: UUID) -> UUID {
+        if layout.focusedWorkspace?.focusedColumn?.holds(tabID) == true { return tabID }
+        return layout.columnID(of: tabID) ?? tabID
     }
 
     /// ⌃ came up: fly to the window the ring landed on.

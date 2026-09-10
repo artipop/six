@@ -56,16 +56,12 @@ final class WindowSwitcher {
     /// nothing lasts as long as the hand does. One card, saying *this is what there is*, is an
     /// answer. Only an empty rail refuses, and there the screen is already saying so in the middle.
     ///
-    /// `column` says which windows are the same stop: two sharing a column are **one** thing to fly
-    /// to. They are both on screen at once, so a ring that stopped at each of them in turn would be
-    /// asking you to choose between two halves of the view you are already looking at — and the card
-    /// for that stop draws the pair, which is what it looks like on the rail.
-    ///
-    /// Which half the stop *is* falls out of the order: the halves are collapsed after the ring has
-    /// been sorted by memory, so the one that survives is the one that was looked at more recently,
-    /// and landing on the stop puts you back in it.
+    /// `stop` says which windows are the same stop, and the caller decides what that means —
+    /// `BrowserState.stopInTheRing` is where the answer lives and why. Two windows drawn as one stop
+    /// are collapsed **after** the ring has been sorted by memory, so the one that survives is the
+    /// one that was looked at more recently and landing on the stop puts you back in it.
     @discardableResult
-    func open(_ ids: [UUID], current: UUID?, column: (UUID) -> UUID) -> Bool {
+    func open(_ ids: [UUID], current: UUID?, stop: (UUID) -> UUID) -> Bool {
         guard !ids.isEmpty else { return false }
         let known = Set(ids)
         var order = recent.filter { known.contains($0) }
@@ -75,7 +71,7 @@ final class WindowSwitcher {
             order.insert(current, at: 0)
         }
         var seen = Set<UUID>()
-        ring = order.filter { seen.insert(column($0)).inserted }
+        ring = order.filter { seen.insert(stop($0)).inserted }
         index = 0
         return true
     }

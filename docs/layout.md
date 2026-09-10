@@ -198,12 +198,22 @@ either direction — so `⌥←` / `⌥→` walk the rail and `⌃Tab` walks the
 - The ring is fixed when the switch opens and does not reorder while it is held — a list that resorted
   itself under the key would move the window you were aiming at — and it wraps, because a ring has no
   ends to hit. Windows never focused this run (restored from the snapshot) follow in rail order.
-- **A stop is a column, not a window.** Two windows sharing one are both on screen at once, so a ring
-  that stopped at each of them in turn would be asking you to choose between two halves of the view
-  you are already looking at. `WindowSwitcher.open` takes a `column` function and collapses the halves
-  *after* sorting by memory, so the half that survives is the one looked at more recently and landing
-  puts the focus back in it. The card draws the pair, the way it looks on the rail, with the half you
-  would land in at full strength — measured by `KeySelfTest`: `ring 5, columns 5, windows 6`.
+- **A stop is a column — except the column you are standing in.** Two windows sharing one are both on
+  screen at once, so a ring that stopped at each of them in turn would be asking you to choose between
+  two halves of a view you are already looking at. That reasoning runs out where you already are:
+  there is no flying left to do, and the only question is which half has the keyboard — which is what
+  `⌥←` / `⌥→` answer, and having just answered it that way you expect `⌃Tab` to answer it too rather
+  than throwing you at the column next door. `BrowserState.stopInTheRing` is the rule;
+  `WindowSwitcher.open` takes it as a function and collapses *after* sorting by memory, so the half
+  that survives is the one looked at more recently and landing puts the focus back in it.
+- Nothing else is needed to make that behave: the ring is memory, so the other half is the first stop
+  only when it is where you actually were. Come to the split from somewhere else and `⌃Tab` takes you
+  back there, with the other half further along where it belongs. Both measured by `KeySelfTest`:
+  `⌃⇥ inside a split → ring 5, columns 4, windows 5, lands on the other half`, and
+  `⌃⇥ from the window before it → lands on the half it came from, ring 4`.
+- The card draws the pair either way, the way it looks on the rail, with the half you would land in at
+  full strength and its neighbour at half — it is there because it is what you would be looking at,
+  not because you are choosing it.
 - A rail with **one** window on it opens a ring of one. The key has to answer: a press that gives
   nothing back cannot be told from a key that is not bound, or from a browser that has stopped
   listening, and this one is held down, so the nothing would last as long as the hand does. Only an
