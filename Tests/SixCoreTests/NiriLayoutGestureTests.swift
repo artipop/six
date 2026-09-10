@@ -183,6 +183,41 @@ struct NiriLayoutGestureTests {
         #expect(layout.wallGlow > 0)
     }
 
+    /// A free pan moves the strip **under the finger**, at whatever the canvas is scaled to.
+    ///
+    /// The hand's distance is a distance on the screen; the strip is moved in the canvas's own
+    /// points; and the overview draws that canvas at a fraction of its size. Handed the number
+    /// straight through, a hundred points of finger moved the strip twenty-two — which is what the
+    /// overview scrolling "barely moving" was.
+    @Test func aPanInTheOverviewKeepsUpWithTheFinger() {
+        let layout = layout()
+        fill(layout, 12) // a rail long enough to have room to pan in
+        layout.isOverview = true
+        let scale = layout.overviewScale
+        #expect(scale < 1) // the overview is zoomed out, or this proves nothing
+
+        let workspace = layout.focusedWorkspace!
+        let before = layout.resolvedOffset(workspace)
+        layout.panStrip(by: -120)
+        let after = layout.resolvedOffset(layout.focusedWorkspace!)
+
+        // In content points the strip moved further than the finger did, by exactly the zoom — which
+        // is what puts the same distance back on the screen.
+        #expect(abs((before - after) - 120 / scale) < 0.5)
+    }
+
+    /// And outside the overview, where the canvas is drawn at its own size, the number is the number.
+    @Test func aPanOutsideTheOverviewIsTheHandsOwnDistance() {
+        let layout = layout()
+        fill(layout, 12)
+        layout.setCentersFocus(false) // free panning is what ⌥C off is for
+        #expect(layout.overviewScale == 1)
+
+        let before = layout.resolvedOffset(layout.focusedWorkspace!)
+        layout.panStrip(by: -120)
+        #expect(abs((before - layout.resolvedOffset(layout.focusedWorkspace!)) - 120) < 0.5)
+    }
+
     // MARK: Carrying a window
 
     @discardableResult

@@ -170,7 +170,17 @@ here you cannot undo by pushing back.
 
 The rail then has no free resting position — `panStrip` refuses to move it at all, so no gesture
 can leave a window sitting half-way. With centring off (`⌥C`) horizontal scrolling pans the rail freely, and on
-release focus snaps to the column nearest the middle and scrolls it fully into view.
+release focus snaps to the column nearest the middle and scrolls it fully into view. The overview
+pans freely too, whatever centring says — there is no focused window being kept anywhere up there.
+
+**A pan moves the strip under the finger, and getting that right took two corrections.** The hand's
+distance is a distance on the *screen*; the strip is moved in the canvas's own points; and the
+overview draws that canvas at `overviewScale`. Handed through unscaled, a hundred points of finger
+moved the strip twenty-two. And it panned from the **stored** offset rather than the one being drawn:
+those two come apart whenever the range of valid offsets changes under a stored one — entering the
+overview is exactly that, since it shows far more of the rail than the window does — so the first
+push spent itself eating the difference and moved nothing at all. `panStrip` divides by the scale and
+starts from `clampOffset`, and both are measured in `NiriLayoutGestureTests`.
 
 Tuning lives at the top of the file: `threshold` (55 pt), `minimumCommitInterval` (0.28 s), `idleReset` (0.25 s).
 

@@ -245,7 +245,8 @@ turning microscopic.
 
 In the overview:
 
-- scrolling sideways runs along the rail, up and down goes through workspaces;
+- scrolling sideways runs along the rail — it keeps up with your finger, moving as far
+  as you moved — and up and down goes through workspaces;
 - a click on a window opens it and closes the overview;
 - **dragging** carries a window along its rail or onto another workspace —
   including the empty one at the bottom, which is how a new workspace is made.

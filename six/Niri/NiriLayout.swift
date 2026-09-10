@@ -1568,11 +1568,23 @@ final class NiriLayout {
     /// in the middle.
     func panStrip(by delta: CGFloat) {
         guard !centersFocus || isOverview else { return }
+        // The hand's distance is a distance **on the screen**; the strip is moved in the canvas's own
+        // points, and the overview draws that canvas at a fraction of its size. Handed the number
+        // straight through, a finger travelling a hundred points moved the strip twenty-two — which
+        // is what the overview scrolling "barely moving" was. Dividing by the scale puts the strip
+        // back under the finger: pan a screen's width and a screen's width of overview goes past.
+        let travel = delta / max(0.01, overviewScale)
         var refused: CGFloat = 0
         mutate { s in
             guard s.workspaces.indices.contains(s.focus) else { return }
             var ws = s.workspaces[s.focus]
-            let wanted = ws.viewOffset + delta
+            // From where the strip **is**, not from what is stored. The two come apart whenever the
+            // range of valid offsets changes under a stored one — entering the overview is exactly
+            // that, since it shows far more of the rail than the window does — and adding to the
+            // stored number then spends the whole gesture eating the difference, with nothing moving
+            // on screen at all. That is the other half of the overview "barely scrolling", and the
+            // larger half: the first push did nothing whatsoever.
+            let wanted = clampOffset(ws.viewOffset, in: ws) + travel
             ws.viewOffset = clampOffset(wanted, in: ws)
             // How much of the push the rail could not take. A free pan has no rubber band to give —
             // the strip is under the fingers and stays where it is clamped — so what a wall has to
