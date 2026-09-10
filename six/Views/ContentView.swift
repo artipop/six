@@ -11,6 +11,8 @@ struct ContentView: View {
     @Environment(HighlightStore.self) private var highlights
     /// Six's own MCP server, here only so the assistant switch can stop and start it.
     @Environment(MCPHost.self) private var mcp
+    /// What the focused page has selected — read by `SIX_VERB_SELFTEST` and nothing else here.
+    @Environment(PageFocusStore.self) private var pageFocus
     /// Every key six answers itself, in one place — see `KeyRouter` for why it is a monitor and not
     /// a menu, and `KeyBindings` for the table it walks.
     @State private var keys = KeyRouter()
@@ -125,6 +127,14 @@ struct ContentView: View {
                 try? await Task.sleep(for: .seconds(1))
                 assistant.ask(String(spec[split.upperBound...]), about: browser.selectedTab)
             }
+            // `SIX_VERB_SELFTEST=explain` presses a verb from the catalog on whatever the focused
+            // page has selected, and narrates the answer. The bar it normally comes from is AppKit
+            // over a web view, and nothing on this machine can click one (CLAUDE.md) — this is the
+            // only way to see a verb run end to end, including which model took it while the ⌘K
+            // line is set to an agent.
+            if let id = ProcessInfo.processInfo.environment["SIX_VERB_SELFTEST"], !id.isEmpty {
+                await verbSelfTest(id)
+            }
             // `SIX_TRANSLATE_SELFTEST="https://ru.wikipedia.org/wiki/Браузер"` opens the address and
             // translates it, narrating each step — the download prompt is the framework's own and
             // still wants a person, but everything up to and after it can be watched from a terminal.
@@ -189,6 +199,32 @@ extension ContentView {
             return true
         }
         keys.start()
+    }
+
+    /// `SIX_VERB_SELFTEST=fix` — run one verb on the focused page's selection and say what came back.
+    fileprivate func verbSelfTest(_ id: String) async {
+        func say(_ line: String) { Log.info(.ui, "verb selftest: \(line)") }
+        guard let action = AssistantAction.action(id) else {
+            return say("no such verb: \(id) — have \(AssistantAction.all.map(\.id).joined(separator: ", "))")
+        }
+        // Waits for something to be pointed at rather than assuming it already is: the selection
+        // is made from outside, over MCP, after six is up.
+        var found: (BrowserTab, PageFocus)?
+        for _ in 0..<60 {
+            if let tab = browser.selectedTab, !pageFocus[tab.id].isEmpty { found = (tab, pageFocus[tab.id]); break }
+            try? await Task.sleep(for: .milliseconds(500))
+        }
+        guard let (tab, focus) = found else { return say("nothing selected in 30 s") }
+        say("\(action.id) on \(focus.kind.rawValue) \"\(focus.subject.prefix(60))\" — answered by \(assistant.settings.model.title)")
+        assistant.run(action, focus: focus, about: tab)
+        for _ in 0..<40 {
+            try? await Task.sleep(for: .milliseconds(500))
+            guard let answer = assistant.answer else { break }
+            if answer.isRunning { continue }
+            if let error = answer.error { return say("failed: \(error)") }
+            return say("answered (\(answer.landing), applicable \(answer.isApplicable)): \(answer.text.prefix(200))")
+        }
+        say("no answer in 20 s")
     }
 
     /// Runs each `;`-separated query through the personal rows the way the start page does, and says

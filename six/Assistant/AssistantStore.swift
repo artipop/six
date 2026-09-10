@@ -110,6 +110,14 @@ final class AssistantStore {
     }
 
     /// A verb from the catalog, on what the page has under the cursor.
+    ///
+    /// It goes wherever the ⌘K line goes, the agent included. That is the second answer to this
+    /// question and the right one: the first was to hide the verbs whenever the line was set to an
+    /// ACP agent, which is how a bar with nothing in it but `…` came to hover over a selected
+    /// paragraph. The second was to fall back to the on-device model — and on a Mac whose Apple
+    /// Intelligence assets are still coming down that is a floor that is not there
+    /// (`modelNotReady`), so every verb failed instead. What is left is the rule with no surprise in
+    /// it: one model answers everything the assistant is asked, and it is the one that was chosen.
     func run(_ action: AssistantAction, focus: PageFocus, about tab: BrowserTab?) {
         var answer = Answer(title: String(localized: action.title),
                             action: action,
@@ -120,6 +128,13 @@ final class AssistantStore {
         if action.landing.writesToPage && !focus.isEditable { answer.landing = .show }
         start(answer) { [self] report in
             let prompt = await Self.prompt(instruction: action.prompt, focus: focus, tab: tab)
+            #if os(macOS)
+            // The whole prompt, not a resource link: a verb is about the text in front of the
+            // person, and the agent must not have to go and read the page to find it.
+            if let agent = settings.model.agentDefinition {
+                return await askAgent(agent, question: prompt, about: tab, report: report)
+            }
+            #endif
             await stream(prompt, report: report)
         }
     }

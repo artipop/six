@@ -75,9 +75,17 @@ dispatches `input` and `change` itself — what a React `onChange` is actually l
 **The bar at a selection** (`PageFocusBar`) is a `HostedOverlay` — SwiftUI hosted in AppKit beside
 the `WKWebView`, because SwiftUI drawn over a web view never sees the mouse, the same reason a
 column's close badge is one. It is positioned from `PageFocus.rect`: above the selection where there
-is room, below it where there is not, never off the sides. It carries the primary verbs as icons and
-a `…` menu with the rest and **Ask…**, which puts the caret in the ⌘K line with the selection
+is room, below it where there is not, never off the sides. It carries the primary verbs **named**, not as icons,
+and a `…` menu with the rest and **Ask…**, which puts the caret in the ⌘K line with the selection
 already the subject (`AssistantStore.focusLine()`).
+
+Named because icons alone read as a stray capsule near the text rather than as something offering
+to do something. That costs a measurement: `HostedOverlay` needs an explicit frame, so the titles
+are measured in AppKit's own font (`itemWidth`) before SwiftUI lays them out — "Исправить ошибки" is
+half again as wide as "Fix", and a guessed constant truncates one language or pads the other. Text
+you can write in gets the verbs that write (Fix, Rewrite); Explain and Summarize apply there too but
+step back into the `…` menu, because four named verbs over a comment box is a bar half the width of
+the window.
 
 It is offered for a selection of more than one character, and for a caret only in a `<textarea>` or
 a rich editor: a bar over every search box on the web is noise, and a single-line field still has
@@ -131,9 +139,18 @@ Unchanged, and still the reason everything runs through Foundation Models' `Lang
 
 The ⌘K line can still be answered by an ACP agent (the menu's second section), and `research: …`
 still starts a deep-research run ([deep-research.md](deep-research.md)). Both stream into the same
-one-answer strip; an agent's permission request appears inside it, as it does in the panel. Verbs
-are not offered while an agent is the chosen model: a verb is a prompt to a language model, and an
-agent has a session, a working directory and a transcript of its own.
+one-answer strip; an agent's permission request appears inside it, as it does in the panel.
+
+**A verb goes wherever the line goes, the agent included**, and that took three tries to get right.
+Verbs were first hidden whenever the line was set to an agent, on the argument that a verb is a
+prompt to a language model and an agent is a process with a working directory; what that produced
+on a Mac with Claude Code chosen was a capsule containing one `…`, hovering over a selected
+paragraph — a bar that had lost its buttons. The second try fell back to the on-device model, which
+on a Mac whose Apple Intelligence assets are still downloading answers `modelNotReady` — a fallback
+onto a floor that is not there, so every verb failed. What is left has no surprise in it: one model
+answers everything the assistant is asked, and it is the one that was chosen. The agent is given the
+whole composed prompt rather than a link to the page, because a verb is about the text in front of
+the person and the agent should not have to go and find it.
 
 ## Tools
 
@@ -161,6 +178,14 @@ both remote options with an explanation if the runtime and the SDK diverge.
 ## Watching it work
 
 `SIX_UI_DEBUG=1` prints a line whenever the focus changes — the kind, whether it is editable, where
-it is and what it says. That is the only way to see this from a terminal: the bar is AppKit drawn
+it is and what it says — and a second line saying where the bar was placed for it, which is how the
+bar's coordinates were checked against the page's own (`getBoundingClientRect` against the view's
+box: 1412×737 reported by the page, 1412×738 measured by the overlay).
+
+`SIX_VERB_SELFTEST=explain` presses a verb. It waits for something to be selected — over MCP, from
+outside — then runs that catalog entry on it and logs the answer, the landing and whether it can be
+applied. Nothing on this machine can click the bar, so this is the only way to see a verb run end to
+end; `fix` on «это текст с ашипками» coming back as «это текст с ошибками», `replaceSelection`,
+applicable, is what it looks like when it works. That is the only way to see this from a terminal: the bar is AppKit drawn
 over a web view, `screencapture` writes black on this machine, and `take_screenshot` over MCP
 renders the *page* and not the window (CLAUDE.md).

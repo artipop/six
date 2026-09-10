@@ -96,8 +96,7 @@ struct AssistantBar: View {
     }
 
     private var verbs: [AssistantAction] {
-        guard !isAgent else { return [] }
-        return AssistantAction.offered(for: focus)
+        AssistantAction.offered(for: focus)
     }
 
     private var contextBadge: (text: LocalizedStringResource, symbol: String)? {

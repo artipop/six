@@ -1,4 +1,5 @@
 #if os(macOS)
+import AppKit
 import SwiftUI
 
 /// The verbs, where the text is.
@@ -21,6 +22,12 @@ struct PageFocusBar: View {
     private static let button: CGFloat = 26
     private static let padding: CGFloat = 5
     private static let gap: CGFloat = 8
+    /// What a labelled verb costs beside its own text: the icon, the space after it, and the
+    /// padding either side.
+    private static let icon: CGFloat = 15
+    private static let iconGap: CGFloat = 5
+    private static let labelPadding: CGFloat = 9
+    private static let font = NSFont.systemFont(ofSize: 12, weight: .medium)
 
     private var focus: PageFocus { focusStore[tab.id] }
 
@@ -36,22 +43,48 @@ struct PageFocusBar: View {
         }
     }
 
-    /// A verb is a prompt to a language model. While the line is set to an agent there is nothing
-    /// to send it to that would not be a different model than the one chosen, so the bar keeps only
-    /// its last button — the one that hands the selection to whatever is chosen.
-    private var isAgent: Bool { assistant.settings.model.agentDefinition != nil }
-
+    /// The verbs are offered whatever the ⌘K line is set to — an ACP agent included, which is
+    /// where they now go (`AssistantStore.run`). They used to be hidden in that case, which is how
+    /// a bar with nothing in it but `…` came to hover over a selected paragraph.
+    ///
+    /// Text you can write in gets the verbs that write. Explain and Summarize apply there too —
+    /// they apply to any selection — but four named verbs over a comment box is a bar half the
+    /// width of the window, and in a box you are typing in the thing you want is Fix, not Explain.
+    /// So they step back into the `…` menu, where nothing has to earn its width.
     private var actions: [AssistantAction] {
-        isAgent ? [] : AssistantAction.primary(for: focus)
+        let primary = AssistantAction.primary(for: focus)
+        guard focus.isEditable else { return primary }
+        let writing = primary.filter { $0.requirement != .selection }
+        return writing.isEmpty ? primary : writing
     }
 
     private var extras: [AssistantAction] {
-        isAgent ? [] : AssistantAction.offered(for: focus).filter { !$0.isPrimary && $0.requirement != .page }
+        let shown = Set(actions.map(\.id))
+        return AssistantAction.offered(for: focus)
+            .filter { !shown.contains($0.id) && $0.requirement != .page }
+    }
+
+    /// The verbs are named, not left as icons.
+    ///
+    /// They were icons at first, and that is how a bar of two symbols and an ellipsis came to read
+    /// as a stray capsule floating near the text rather than as a thing offering to do something —
+    /// worse still with an ACP agent chosen, when the two verbs were hidden and only the ellipsis
+    /// was left. A word is what makes it a bar.
+    ///
+    /// The width is measured rather than guessed: `HostedOverlay` gets an explicit frame (a hosting
+    /// view that publishes its own size inside a SwiftUI window feeds constraints back into it), so
+    /// the text has to be measured in AppKit's own font before SwiftUI lays it out. "Исправить
+    /// ошибки" is half again as wide as "Fix", and a guessed constant truncates one language or
+    /// pads the other.
+    private func itemWidth(_ action: AssistantAction) -> CGFloat {
+        let text = String(localized: action.title) as NSString
+        let label = ceil(text.size(withAttributes: [.font: Self.font]).width)
+        return Self.icon + Self.iconGap + label + Self.labelPadding * 2
     }
 
     /// One more button than the verbs: the menu that carries the rest and the free question.
     private var width: CGFloat {
-        CGFloat(actions.count + 1) * Self.button + Self.padding * 2
+        actions.reduce(Self.button) { $0 + itemWidth($1) } + Self.padding * 2
     }
 
     private var height: CGFloat { Self.button + Self.padding * 2 }
@@ -64,6 +97,14 @@ struct PageFocusBar: View {
                 }
                 .frame(width: width, height: height)
                 .offset(place(in: proxy.size))
+                // Where the bar went, next to where the page said the text was — the only way to
+                // see this one, since the bar is AppKit over a web view and no screenshot on this
+                // machine can catch it (CLAUDE.md).
+                .task(id: focus) {
+                    guard ProcessInfo.processInfo.environment["SIX_UI_DEBUG"] != nil else { return }
+                    let place = place(in: proxy.size)
+                    Log.debug(.ui, "focus bar: rect \(focus.rect.debugDescription) in view \(proxy.size.width)×\(proxy.size.height) → \(place.width),\(place.height)")
+                }
             }
         }
         .animation(.easeOut(duration: 0.12), value: focus)
@@ -83,12 +124,17 @@ struct PageFocusBar: View {
         HStack(spacing: 0) {
             ForEach(actions) { action in
                 Button { assistant.run(action, focus: focus, about: tab) } label: {
-                    Image(systemName: action.symbol)
-                        .frame(width: Self.button, height: Self.button)
-                        .contentShape(Rectangle())
+                    HStack(spacing: Self.iconGap) {
+                        Image(systemName: action.symbol)
+                            .frame(width: Self.icon)
+                        Text(action.title)
+                            .lineLimit(1)
+                            .fixedSize()
+                    }
+                    .frame(width: itemWidth(action), height: Self.button)
+                    .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
-                .help(Text(action.title))
             }
             Menu {
                 ForEach(extras) { action in

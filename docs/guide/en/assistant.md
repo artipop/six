@@ -91,9 +91,9 @@ it points at is a setting: `six://settings` ▸ **Assistant** holds an endpoint,
 model name and a key. A local server wants no key at all, and an empty field
 means no authorization header is sent. The Anthropic key goes in the same place.
 
-While an agent is answering, the verbs are not offered: an agent has a session, a
-working directory and a transcript of its own, and a verb is a prompt to a
-language model.
+The verbs are answered by whatever answers the `⌘K` line, an agent included. One
+chosen model answers everything the assistant is asked; an agent takes longer and
+may ask permission, but the buttons over a selection always work.
 
 ::: warning About keys, honestly
 Keys are kept in the application's settings. That is enough to work on your own
