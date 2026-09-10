@@ -14,7 +14,7 @@ extension RailWindow {
     /// red: a page that could not be translated is not an error, it is a thing that did not happen.
     static let warningColor = rgb(226, 168, 76)
 
-    /// A globe, and its colour says what state the page is in.
+    /// The 文A mark, and its colour says what state the page is in.
     ///
     /// Four states and no text, which is the most a 30-pixel button can carry: nothing to translate
     /// (dim), a page in another language (bright), translated or working (the profile's colour), and
@@ -36,7 +36,32 @@ extension RailWindow {
         case nil:
             color = Self.dimLabelColor
         }
-        drawText(hdc, ChromeFonts.Glyph.translate, in: rect, font: fonts.glyph, color: color,
+        drawTranslateTiles(hdc, in: rect, color: color)
+    }
+
+    /// The Mac's translate mark — SF Symbols' `translate`, which is Google Translate's own shape: a
+    /// filled tile with 文 in it and an outlined one with A overlapping its corner. Drawn rather than
+    /// taken from the icon font because Windows 10's has nothing like it (`ChromeFonts.Glyph` says
+    /// what was looked at). The globe that stood here said "language"; this says "translation",
+    /// which is the one thing the button does.
+    ///
+    /// One colour for both tiles, so the button's four states still read as four: the 文 is knocked
+    /// out of its tile in the bar's own colour rather than drawn in a second one, and the front tile
+    /// is filled with the bar so it covers the corner of the one behind it.
+    private func drawTranslateTiles(_ hdc: HDC, in rect: RECT, color: COLORREF) {
+        let tile = px(11), offset = px(6), radius = max(1, px(2.5))
+        let size = tile + offset
+        let left = rect.left + (rect.right - rect.left - size) / 2
+        let top = rect.top + (rect.bottom - rect.top - size) / 2
+        let back = RECT(left: left, top: top, right: left + tile, bottom: top + tile)
+        roundedRect(hdc, back, radius: radius, fill: color, border: color, borderWidth: 1)
+        drawText(hdc, "文", in: back, font: fonts.tile, color: Self.barColor,
+                 format: DT_CENTER | DT_VCENTER | DT_SINGLELINE)
+        let front = RECT(left: left + offset, top: top + offset,
+                         right: left + offset + tile, bottom: top + offset + tile)
+        roundedRect(hdc, front, radius: radius, fill: Self.barColor, border: color,
+                    borderWidth: max(1, px(1.2)))
+        drawText(hdc, "A", in: front, font: fonts.tile, color: color,
                  format: DT_CENTER | DT_VCENTER | DT_SINGLELINE)
     }
 

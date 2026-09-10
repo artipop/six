@@ -57,7 +57,7 @@ other.
 
 | | |
 |---|---|
-| **Windows** | the globe in the top bar, to the right of the address. Press to translate, press again for the original, a third time for the translation. While it runs, a line appears under the bar with the count and a progress bar |
+| **Windows** | the 文A translate mark in the top bar, to the right of the address — the same one the Mac has. Press to translate, press again for the original, a third time for the translation. While it runs, a line appears under the bar with the count and a progress bar |
 | **Linux** | the **Translate** button in the toolbar, and the same line under it |
 
 The languages are not arbitrary: Mozilla trained every model against English, so

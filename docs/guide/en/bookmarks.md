@@ -84,11 +84,11 @@ orange arrow appears on the row with the reason.
 
 ## On Windows and Linux
 
-The star is there too, and the same index is behind it. **On Windows** it is to
-the right of the address, and `Ctrl+D` does the same; **on Linux** it is the star
-in the toolbar, with `Ctrl+D` beside it. Press to save, press again to forget. A
-filled star takes the profile's colour: a bookmark belongs to a profile rather
-than to the browser.
+The bookmark button is there too, and the same index is behind it. **On
+Windows** it is the bookmark to the right of the address, as on the Mac, and
+`Ctrl+D` does the same; **on Linux** it is the star in the toolbar, with `Ctrl+D`
+beside it. Press to save, press again to forget. A saved page's bookmark takes the
+profile's colour: a bookmark belongs to a profile rather than to the browser.
 
 The model behind search by meaning is the same one — multilingual-e5-small — but
 it arrives by a different road: not through Metal, which those machines do not

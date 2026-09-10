@@ -371,7 +371,7 @@ it the animations and video that the software path now carries.
 
 ## Translation
 
-A page in another language gets a globe in the top bar; pressing it translates the page in place,
+A page in another language gets the Mac's 文A translate mark in the top bar; pressing it translates the page in place,
 pressing it again shows the original, and a third press puts the translation back. While a run is
 going on the bar grows a second line saying how far it has got, and the rail below moves down by
 exactly that much — `topChromeHeight` counts the banner, so the cards, the live view and the
@@ -689,7 +689,7 @@ matched, so `⌥F4`, `⌥Space` and plain `F10` still behave like system keys.
   `SixBrowser` imports `SixCore`, so `AppDatabase`, `SettingsStore`, `History` and `Bookmark` are all
   reachable, and the profiles are the proof that reading and writing them here works.
 - **The bar's right-hand half.** The Mac's carries downloads, the extension actions, the agent panel
-  and the overview; this one has the bookmark star, the translate globe, the workspace stepper and
+  and the overview; this one has the bookmark button, the translate button, the workspace stepper and
   the full-width toggle, because those four are the only ones whose subsystem exists on this front.
 
 ## Bookmarks, vectors and the embedder
@@ -714,20 +714,24 @@ pages — плов in Russian, pilaf in English, a page about reserved domain na
 deletes what it wrote. Both write to the log rather than to stdout, because a `print` from a process whose stdout is a
 file sits in a buffer until it exits.
 
-**The star** sits against the right end of the address field, where the Mac's does and for the reason
-`ContentView.BookmarkButton` gives: it comes and goes with the field, because a star on an empty workspace is a
-control about nothing. `⌃D` is the same action, in the `handleChromeKey` table beside ⌃L/⌃T/⌃W/⌃R, since ⌘D is a menu
+**The bookmark button** sits against the right end of the address field, where the Mac's does and for the reason
+`ContentView.BookmarkButton` gives: it comes and goes with the field, because a bookmark button on an empty workspace
+is a control about nothing. `⌃D` is the same action, in the `handleChromeKey` table beside ⌃L/⌃T/⌃W/⌃R, since ⌘D is a menu
 item on the Mac rather than a row in `KeyBindings`. Filled and in the profile's colour when the page is saved, hollow
 when it is not, dim and unclickable when there is nothing to save — a private profile, or a column with no address
 yet; `chromeAction` returns `nil` in that case so the hand cursor does not promise a click that would be a no-op.
 
-The glyph is Segoe MDL2's `FavoriteStar`/`FavoriteStarFill` rather than the Mac's `bookmark`/`bookmark.fill`. It is
-the pair Windows' own icon font has for "saved", and the GTK front is already on `starred`/`non-starred`; what has to
-match across the three fronts is which page is saved, not the shape.
+It is a book's ribbon, the Mac's `bookmark`/`bookmark.fill`, and it is **drawn** rather than taken from the icon
+font — as is the translate button's 文A tile. Every Segoe MDL2 codepoint from E700 to E8FF and F000 to F0FF was
+rendered to a sheet and looked at, and Windows 10's icon font has neither shape: the nearest translate glyph is E8C1,
+a bare "A字", and the star and the globe that stood in for them at first read as other things. So
+`drawBookmarkRibbon` is a five-point polygon and `drawTranslateTiles` two rounded rectangles with 文 and A in
+Microsoft YaHei UI — the one face that has both and ships in every Windows 10 — all in `px()` units like the pips
+and the profile dot. The GTK front keeps adwaita's star; that one was never measured against anything.
 
-Measured by `PrintWindow` and a `WM_LBUTTONDOWN` sent from another process — the star drawn hollow, filled after a
-click, hollow again after the second, and gone along with the field after stepping to an empty workspace. The click
-landing where the star is drawn is also the check that matters at 150 %: the rectangle comes from `chromeLayout()`,
+Measured by `PrintWindow` and a `WM_LBUTTONDOWN` sent from another process — the ribbon drawn hollow, filled after
+a click, hollow again after the second, and gone along with the field after stepping to an empty workspace. The click
+landing where the ribbon is drawn is also the check that matters at 150 %: the rectangle comes from `chromeLayout()`,
 which paint and hit-test both read, so there is one place for the two to agree.
 
 ## Persistence: where to pick this up next

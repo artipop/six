@@ -26,8 +26,8 @@ extension RailWindow {
         if layout.forward.contains(x: x, y: y) { return .forward }
         if layout.reload.contains(x: x, y: y) { return .reload }
         if layout.addressPill.contains(x: x, y: y) { return .address }
-        // Only when it could do something. A star that answers the cursor and then does nothing is
-        // worse than one that does not answer at all — `WM_SETCURSOR` reads this same function, so
+        // Only when it could do something. A bookmark button that answers the cursor and then does
+        // nothing is worse than one that does not answer at all — `WM_SETCURSOR` reads this same function, so
         // saying `nil` here is what stops the hand cursor promising a click that is a no-op.
         if layout.bookmark.contains(x: x, y: y), model.canBookmarkFocusedPage { return .bookmark }
         if layout.workspaceUp.contains(x: x, y: y) { return .workspaceUp }

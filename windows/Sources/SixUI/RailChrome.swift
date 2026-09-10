@@ -139,9 +139,16 @@ extension RailWindow {
         var glyph: HFONT?
         /// The window controls, which Windows draws smaller than anything else in a title bar.
         var caption: HFONT?
+        /// The 文 and the A inside the translate tiles.
+        var tile: HFONT?
 
         static let uiFace = "Segoe UI"
         static let glyphFace = "Segoe MDL2 Assets"
+        /// One face that has both 文 and A at a size a tile can hold. Microsoft YaHei UI ships in
+        /// every Windows 10 whatever its language, because the shell falls back to it for CJK —
+        /// Segoe UI has no 文 of its own and would only reach one through font linking, which
+        /// picks a face this file cannot see.
+        static let tileFace = "Microsoft YaHei UI"
 
         enum Glyph {
             static let back = "\u{E72B}"
@@ -152,14 +159,12 @@ extension RailWindow {
             static let fullWidth = "\u{E740}"
             static let restoreWidth = "\u{E73F}"
             static let close = "\u{E711}"
-            /// Segoe MDL2's globe, which is what Windows itself uses for anything about language.
-            static let translate = "\u{E774}"
-            // A star rather than the Mac's `bookmark`/`bookmark.fill`: this is the pair Windows'
-            // own icon font has for "saved", it is what Explorer and Edge draw, and the GTK front
-            // is already on `starred`/`non-starred` for the same reason. The Mac's shape stays the
-            // Mac's; what has to match across the three is which page is saved, not the glyph.
-            static let star = "\u{E734}"
-            static let starFilled = "\u{E735}"
+            // No bookmark and no translate glyph, and that was looked at rather than assumed: every
+            // codepoint from E700 to E8FF and from F000 to F0FF was rendered to a sheet. Windows
+            // 10's icon font has neither a book's ribbon nor the 文A tile the Mac gets from SF
+            // Symbols' `translate` — the nearest is E8C1, a bare "A字", and the star and the globe
+            // that used to stand in for them read as other things. So both are drawn, in `px()`
+            // units like the pips and the profile dot: `drawBookmarkRibbon`, `drawTranslateTiles`.
             // The window controls. These four are a set of their own in the icon font, drawn at
             // stroke widths meant for a title bar rather than for a toolbar.
             static let chromeMinimize = "\u{E921}"
@@ -172,7 +177,7 @@ extension RailWindow {
     /// Called once the window has an `HWND` to ask a DPI of, and again on `WM_DPICHANGED`; deletes
     /// what it replaces.
     func refreshFonts() {
-        for font in [fonts.ui, fonts.strong, fonts.small, fonts.glyph, fonts.caption] where font != nil {
+        for font in [fonts.ui, fonts.strong, fonts.small, fonts.glyph, fonts.caption, fonts.tile] where font != nil {
             DeleteObject(font)
         }
         fonts = ChromeFonts(
@@ -180,7 +185,12 @@ extension RailWindow {
             strong: Self.makeFont(face: ChromeFonts.uiFace, size: 13, weight: FW_SEMIBOLD, scale: scale),
             small: Self.makeFont(face: ChromeFonts.uiFace, size: 12, weight: FW_NORMAL, scale: scale),
             glyph: Self.makeFont(face: ChromeFonts.glyphFace, size: 12, weight: FW_NORMAL, scale: scale),
-            caption: Self.makeFont(face: ChromeFonts.glyphFace, size: 10, weight: FW_NORMAL, scale: scale)
+            caption: Self.makeFont(face: ChromeFonts.glyphFace, size: 10, weight: FW_NORMAL, scale: scale),
+            // Greyscale rather than ClearType, and only here: subpixel smoothing assumes it is drawn
+            // over the background it was tuned for, and the 文 is knocked out of a filled tile, so
+            // ClearType gave it orange and blue fringes at every stroke. Measured on a 5x crop.
+            tile: Self.makeFont(face: ChromeFonts.tileFace, size: 8, weight: FW_SEMIBOLD, scale: scale,
+                                quality: ANTIALIASED_QUALITY)
         )
         if let addressBarHwnd, let ui = fonts.ui {
             // The `EDIT` goes on drawing in whatever it was last told, so this is the half of a DPI
@@ -191,13 +201,14 @@ extension RailWindow {
 
     /// A negative height is character height rather than cell height — the size a person means when
     /// they say "14 point".
-    private static func makeFont(face: String, size: Double, weight: Int32, scale: Double) -> HFONT? {
+    private static func makeFont(face: String, size: Double, weight: Int32, scale: Double,
+                                 quality: Int32 = CLEARTYPE_QUALITY) -> HFONT? {
         face.withCString(encodedAs: UTF16.self) { name in
             CreateFontW(
                 -Int32((size * scale).rounded()), 0, 0, 0, weight,
                 0, 0, 0,
                 DWORD(DEFAULT_CHARSET), DWORD(OUT_TT_PRECIS), DWORD(CLIP_DEFAULT_PRECIS),
-                DWORD(CLEARTYPE_QUALITY), DWORD(DEFAULT_PITCH | FF_DONTCARE), name
+                DWORD(quality), DWORD(DEFAULT_PITCH | FF_DONTCARE), name
             )
         }
     }
@@ -213,7 +224,7 @@ extension RailWindow {
         var forward = RECT()
         var reload = RECT()
         var addressPill = RECT()
-        /// The star, immediately right of the field. Empty whenever the field is.
+        /// The bookmark button, immediately right of the field. Empty whenever the field is.
         var bookmark = RECT()
         var workspaceUp = RECT()
         var workspacePips = RECT()
@@ -317,18 +328,19 @@ extension RailWindow {
         let share = Double(client.right) / scale * Metric.addressShare
         let wanted = px(min(max(share, Metric.addressMinWidth), Metric.addressMaxWidth))
         let leftLimit = layout.reload.right + gap * 2
-        // The star's width comes off the field's room rather than out of the gap beside it, and it
-        // is reserved whether or not the star can be used: a field that grew by thirty pixels on a
-        // private profile would be the bar changing shape for a reason nobody could see.
+        // The bookmark button's width comes off the field's room rather than out of the gap beside
+        // it, and it is reserved whether or not the button can be used: a field that grew by thirty
+        // pixels on a private profile would be the bar changing shape for a reason nobody could see.
         let rightLimit = layout.translate.left - gap * 2 - buttonWidth - gap
         let width = max(0, min(wanted, rightLimit - leftLimit))
         var left = (client.right - width) / 2
         left = min(max(left, leftLimit), max(leftLimit, rightLimit - width))
         let address = centred(Metric.addressHeight)
         layout.addressPill = RECT(left: left, top: address.top, right: left + width, bottom: address.bottom)
-        // Against the field, the way the Mac's is, and it comes and goes with it: a star on an empty
-        // workspace is a control about nothing, greyed out in the middle of the bar beside a page
-        // that says "New Window". `ContentView.BookmarkButton` says the same thing at more length.
+        // Against the field, the way the Mac's is, and it comes and goes with it: a bookmark button
+        // on an empty workspace is a control about nothing, greyed out in the middle of the bar
+        // beside a page that says "New Window". `ContentView.BookmarkButton` says the same thing at
+        // more length.
         layout.bookmark = RECT(left: layout.addressPill.right + gap, top: button.top,
                                right: layout.addressPill.right + gap + buttonWidth, bottom: button.bottom)
         return layout
@@ -364,7 +376,7 @@ extension RailWindow {
         drawGlyph(hdc, ChromeFonts.Glyph.reload, in: layout.reload, enabled: live != nil)
 
         drawAddressField(hdc, in: layout.addressPill)
-        drawBookmarkStar(hdc, in: layout.bookmark)
+        drawBookmarkRibbon(hdc, in: layout.bookmark)
 
         drawTranslateButton(hdc, in: layout.translate)
         drawGlyph(hdc, ChromeFonts.Glyph.chevronUp, in: layout.workspaceUp, enabled: model.canFocusWorkspace(-1))
@@ -469,27 +481,47 @@ extension RailWindow {
         if let previous { SelectObject(hdc, previous) }
     }
 
-    /// A button's glyph, greyed when the thing it does is not available. The state is drawn, not
-    /// the control disabled — CLAUDE.md's note about a disabled item eating its key equivalent is
-    /// the Mac's version of the same preference.
-    /// Filled and in the profile's colour when the page is saved, hollow when it is not, dim either
-    /// way when there is nothing it could do — which on this front means a private profile or a
-    /// column whose address is not yet one.
+    /// A book's ribbon, the Mac's `bookmark`/`bookmark.fill` drawn by hand: filled in the profile's
+    /// colour when the page is saved, an outline when it is not, dim either way when there is
+    /// nothing it could do — a private profile, or a column whose address is not yet one.
     ///
-    /// The colour is the profile's for the same reason the Mac's is: a star is the one control in
-    /// the bar whose state is about *this* profile's library, and two profiles' stars looking
+    /// The colour is the profile's for the same reason the Mac's is: this is the one control in the
+    /// bar whose state is about *this* profile's library, and two profiles' bookmarks looking
     /// identical is how a page gets saved into the wrong one.
-    private func drawBookmarkStar(_ hdc: HDC, in rect: RECT) {
+    private func drawBookmarkRibbon(_ hdc: HDC, in rect: RECT) {
         guard rect.right > rect.left else { return }
         let saved = model.isFocusedPageBookmarked
         let usable = model.canBookmarkFocusedPage
         let color: COLORREF = saved ? Self.color(hex: model.activeProfile.colorHex)
             : (usable ? Self.textColor : Self.dimLabelColor)
-        drawText(hdc, saved ? ChromeFonts.Glyph.starFilled : ChromeFonts.Glyph.star,
-                 in: rect, font: fonts.glyph, color: color,
-                 format: DT_CENTER | DT_VCENTER | DT_SINGLELINE)
+        // Ten by fourteen with a notch four deep: SF Symbols' proportions for `bookmark`, near
+        // enough that the two read as one thing, at the height the other glyphs in the bar have.
+        let width = px(10), height = px(14), notch = px(4)
+        let left = rect.left + (rect.right - rect.left - width) / 2
+        let top = rect.top + (rect.bottom - rect.top - height) / 2
+        var points = [POINT(x: left, y: top), POINT(x: left + width, y: top),
+                      POINT(x: left + width, y: top + height),
+                      POINT(x: left + width / 2, y: top + height - notch),
+                      POINT(x: left, y: top + height)]
+        let pen = CreatePen(Int32(PS_SOLID), max(1, px(1.5)), color)
+        let brush: HBRUSH? = saved ? CreateSolidBrush(color) : nil
+        let previousPen = SelectObject(hdc, pen)
+        let previousBrush: HGDIOBJ?
+        if let brush {
+            previousBrush = SelectObject(hdc, brush)
+        } else {
+            previousBrush = SelectObject(hdc, GetStockObject(Int32(NULL_BRUSH)))
+        }
+        _ = Polygon(hdc, &points, Int32(points.count))
+        SelectObject(hdc, previousPen)
+        SelectObject(hdc, previousBrush)
+        DeleteObject(pen)
+        if let brush { DeleteObject(brush) }
     }
 
+    /// A button's glyph, greyed when the thing it does is not available. The state is drawn, not
+    /// the control disabled — CLAUDE.md's note about a disabled item eating its key equivalent is
+    /// the Mac's version of the same preference.
     func drawGlyph(_ hdc: HDC, _ glyph: String, in rect: RECT, enabled: Bool) {
         drawText(hdc, glyph, in: rect, font: fonts.glyph,
                  color: enabled ? Self.textColor : Self.dimLabelColor,
