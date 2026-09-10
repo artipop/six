@@ -22,8 +22,10 @@ let package = Package(
     name: "six-windows",
     dependencies: [
         // Named, unlike `linux/Package.swift`'s bare `.package(path: "..")`: a path dependency takes
-        // its identity from the *directory*, and this checkout is `six-main` rather than `six`, so
-        // `package: "six"` below would not resolve without saying so here.
+        // its identity from the *directory*, so `package: "six"` below is only right for as long as
+        // the checkout happens to be called that. Saying the name here makes it right in any folder,
+        // which it had to be — this front was written in a copy of the repository named `six-main`,
+        // where the bare form did not resolve at all.
         .package(name: "six", path: ".."),
         .package(url: "https://github.com/pointfreeco/sqlite-data", from: "1.11.0"),
         // The vector index, the same one the Mac app links: `vec0` virtual tables and the KNN the

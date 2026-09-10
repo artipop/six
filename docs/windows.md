@@ -444,8 +444,9 @@ what is being fetched and what was loaded.
 
 ```
 windows/Package.swift              Depends on the root package by path (named `six` explicitly:
-                                    a path dependency takes its identity from the directory, and
-                                    this checkout is `six-main`), on sqlite-data, and on
+                                    a path dependency takes its identity from the directory, so
+                                    the name is pinned here rather than left to whatever the
+                                    checkout is called), on sqlite-data, and on
                                     combine-schedulers only to hold it at the version the mirror
                                     carries. The `SixCoreShared` symlink target it used to carry is
                                     gone — see above.

@@ -477,12 +477,14 @@ anything added there has to exist on both:
   them is always mechanical: `Package.resolved`, where it is a stray resolve (above), and the root `Info.plist`.
 - **A `swift build` of the root package overwrites the root `Info.plist`.** `SixCore` is `path: "six"` and the String
   Catalogs there are resources, so SwiftPM builds a resource bundle — and stages it into the *package root*, dropping
-  its generated 497-byte `BNDL` plist (`CFBundleIdentifier` `six-main.SixCore.resources`) on top of the real one and
-  leaving copies of `InfoPlist.xcstrings` and `Localizable.xcstrings` beside it. The real file is what makes macOS
-  treat six as a browser at all — the http/https claim, the document types, the camera and microphone prompt strings
-  — so committing that diff ships a browser that cannot be made the default and whose permission prompts are blank.
-  It sat dirty for two days once. `git checkout -- Info.plist` and delete the two stray catalogues; the tell is that
-  they are byte-identical to the ones in `six/` and all three carry the same timestamp.
+  its generated 497-byte `BNDL` plist on top of the real one and leaving copies of `InfoPlist.xcstrings` and
+  `Localizable.xcstrings` beside it. Its `CFBundleIdentifier` is `<checkout folder>.SixCore.resources`: SwiftPM takes
+  a root package's identity from the directory rather than from the `name:` in the manifest, so the prefix follows
+  whatever the clone happens to be called — it read `six-main` where this was first found. The real file is what
+  makes macOS treat six as a browser at all — the http/https claim, the document types, the camera and microphone
+  prompt strings — so committing that diff ships a browser that cannot be made the default and whose permission
+  prompts are blank. It sat dirty for two days once. `git checkout -- Info.plist` and delete the two stray
+  catalogues; the tell is that they are byte-identical to the ones in `six/` and all three carry the same timestamp.
 - **Commit messages are prose.** A sentence for the title — what changed, in the voice of the thing that changed
   ("The window that was closed comes back where it stood") — and a body that explains the why, the measurement, and
   what was left honest. No conventional-commits prefixes. Quotes in the subject break the shell; commit via
