@@ -138,7 +138,10 @@ struct BergamotCatalogTests {
         let catalogue = try Self.catalogue()
         // Maltese goes to English and comes back from nowhere.
         #expect(catalogue.route(from: "en", to: "mt").isEmpty)
-        #expect(catalogue.route(from: "mt", to: "de").isEmpty)
+        // Maltese to French: mt-en exists, but nothing trains en-fr, so the pivot's second half
+        // is missing. "de" would be the wrong example here — en-de is in the fixture, so that pair
+        // pivots just fine and belongs to pivotsThroughEnglish instead.
+        #expect(catalogue.route(from: "mt", to: "fr").isEmpty)
         #expect(catalogue.route(from: "ru", to: "ru").isEmpty)
     }
 
