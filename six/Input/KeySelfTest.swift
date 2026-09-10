@@ -86,6 +86,7 @@ enum KeySelfTest {
         case .pictureInPicture: return "picture"
         case .copyAddress: return "copy address"
         case .stepSwitcher(let step): return step < 0 ? "ring ←" : "ring →"
+        case .walkSwitcher(let step): return step < 0 ? "card ←" : "card →"
         case .landSwitcher: return "land"
         case .cancelSwitcher: return "cancel"
         case .leaveOverview: return "leave overview"

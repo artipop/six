@@ -87,16 +87,30 @@ final class WindowSwitcher {
         var seen = Set<UUID>()
         walk = order.filter { seen.insert(stop($0)).inserted }
 
+        // Stops that stand in one place on the rail are drawn in one place here: the whole group
+        // arrives together, in rail order, where the **first** of them falls in memory. Keeping only
+        // their order was not enough — a pair whose halves were used at different times kept its
+        // left-then-right but took the slots memory gave it, so another window could stand between
+        // two halves of one column, which on the rail is a thing that cannot happen.
         let rank = Dictionary(ids.enumerated().map { ($1, $0) }, uniquingKeysWith: { first, _ in first })
-        var slots: [UUID: [Int]] = [:]
-        for (position, id) in walk.enumerated() { slots[group(id), default: []].append(position) }
-        ring = walk
-        for (_, places) in slots where places.count > 1 {
-            let alongTheRail = places.map { walk[$0] }.sorted { (rank[$0] ?? 0) < (rank[$1] ?? 0) }
-            for (place, id) in zip(places, alongTheRail) { ring[place] = id }
+        var drawn = Set<UUID>()
+        ring = walk.flatMap { id -> [UUID] in
+            guard drawn.insert(group(id)).inserted else { return [] }
+            return walk.filter { group($0) == group(id) }.sorted { (rank[$0] ?? 0) < (rank[$1] ?? 0) }
         }
         index = current.flatMap { ring.firstIndex(of: $0) } ?? 0
         return true
+    }
+
+    /// One card along the **row**, the way it is drawn, and round the ends of it.
+    ///
+    /// The arrows, against ⌃Tab's step through memory. Two keys, two questions, and they stopped
+    /// being the same one the moment the row was drawn along the rail: `⌃→` means *the card over
+    /// there*, and pointing at a row while it answers by recency is the kind of thing that makes a
+    /// person stop trusting a panel.
+    func walkRow(_ delta: Int) {
+        guard !ring.isEmpty else { return }
+        index = ((index + delta) % ring.count + ring.count) % ring.count
     }
 
     /// One step along the **memory**, and round the end of it: a ring is a list of what you have, not

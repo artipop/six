@@ -150,8 +150,17 @@ Vertical is **one workspace per gesture**: deltas accumulate into a rubber-band 
 the threshold commits the switch, and the rest of the gesture — trackpad momentum included — is swallowed, so a flick
 never skips two. Discrete mouse wheels have no gesture phase and are throttled by time instead.
 
-Horizontal works the same way **while centring is on**: one window per gesture, with a `horizontalPreview` rubber band
-below the threshold. The rail then has no free resting position — `panStrip` refuses to move it at all, so no gesture
+Horizontal is **a window per push, and as many as the hand asks for**: the same rubber band
+(`horizontalPreview`) below the threshold, but crossing it steps and keeps going, with the overshoot carried into the
+next step rather than thrown away — discarding it made each step longer than the one before, which is felt as the rail
+getting heavier the further you push. It was one window per gesture too, and that was the vertical rule applied to
+something it does not fit: a rail is a row of windows a few inches long, and having to lift your fingers between every
+two of them reads as the rail being stuck rather than as it being careful. Momentum is still swallowed whole, so a
+flick lands where it was aimed. A gesture that has stepped along the rail also stops being able to switch a workspace
+(`steppedColumns`) — the hand does not stay on the line, and a workspace arriving out of the drift is the one mistake
+here you cannot undo by pushing back.
+
+The rail then has no free resting position — `panStrip` refuses to move it at all, so no gesture
 can leave a window sitting half-way. With centring off (`⌥C`) horizontal scrolling pans the rail freely, and on
 release focus snaps to the column nearest the middle and scrolls it fully into view.
 
@@ -220,12 +229,18 @@ either direction — so `⌥←` / `⌥→` walk the rail and `⌃Tab` walks the
   back there, with the other half further along where it belongs. Both measured by `KeySelfTest`:
   `⌃⇥ inside a split → ring 5, columns 4, windows 5, lands on the other half`, and
   `⌃⇥ from the window before it → lands on the half it came from, ring 4`.
+- **The arrows walk the row; `⌃Tab` walks the memory.** They were one action until the row started
+  being drawn along the rail, and then an arrow answering by recency would have moved the highlight
+  the other way from the one it points. `walkRow` against `step`, and `KeyBindings` sends the two keys
+  to different actions.
 - **The row is walked by memory and drawn along the rail.** ⌃Tab means *the window I was in before*,
   so stepping follows recency — but the two halves of a column are always left then right in front of
   you, and a row that put them in memory order swapped them from one press to the next and asked you
   to read the pair again every time. `WindowSwitcher` keeps both orders: `walk` is what the key moves
   through, `ring` is what is drawn, and they differ only in that same-column stops are placed in rail
-  order into the slots memory gave them. The highlight therefore sometimes moves *left* on a forward
+  order into the slots memory gave them — the **whole group at once**, at the place its nearest member
+  falls, because keeping the pair's order without keeping it together let another window stand between
+  two halves of one column, which is a thing the rail itself cannot do. The highlight therefore sometimes moves *left* on a forward
   press, which is right: the key names a window, and the card for it is where the window is. Measured
   by `KeySelfTest`, which dumps the ring from each half in turn — `[half: C63D] *[half: 26EB]` and
   `*[half: C63D] [half: 26EB]`, the same order both times with only the `*` moving.

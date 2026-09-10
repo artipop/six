@@ -1362,6 +1362,14 @@ final class BrowserState {
         ringWindows(at: stop).count == 1 && layout.columnMates(of: stop).count > 1
     }
 
+    /// The arrows, while the ring is up: one card along the row as it is drawn. ⌃Tab's own step is
+    /// through memory (`stepWindowSwitch`), and the two have not been the same thing since the row
+    /// started being drawn along the rail.
+    func walkWindowSwitch(_ delta: Int) {
+        guard switcher.isOpen else { return }
+        withAnimation(.smooth(duration: 0.2)) { switcher.walkRow(delta) }
+    }
+
     /// ⌃ came up: fly to the window the ring landed on.
     func endWindowSwitch() {
         var landing: UUID?

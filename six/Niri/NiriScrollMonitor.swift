@@ -8,10 +8,20 @@ import WebKit
 /// gestures work over the layout's own chrome (window title bars, the gaps, the background), which
 /// keeps plain scrolling inside pages and panels untouched.
 ///
-/// Vertical: one workspace per gesture. Deltas accumulate into a rubber-band preview; once they pass
-/// the threshold the switch is committed and everything else in that gesture (including trackpad
-/// momentum) is swallowed, so a single flick never skips two workspaces.
-/// Horizontal: free panning of the strip, then focus snaps to the column nearest the centre.
+/// Vertical: **one workspace per gesture**. Deltas accumulate into a rubber-band preview; once they
+/// pass the threshold the switch is committed and everything else in that gesture (including
+/// trackpad momentum) is swallowed, so a single flick never skips two workspaces. A workspace is a
+/// place you went to on purpose and overshooting one is a real loss.
+///
+/// Horizontal, with centring on: **a window per `threshold` of travel**, and as many as the hand
+/// asks for. It used to be one per gesture as well, and that was the same rule applied to a thing it
+/// does not fit — a rail is a row of windows a few inches long, and a rule that made you lift your
+/// fingers between every two of them read as the rail being stuck rather than as it being careful.
+/// The travel is what limits it, so a flick still lands where you aimed and momentum is still
+/// swallowed whole.
+///
+/// Horizontal with centring off: free panning of the strip, then focus snaps to the column nearest
+/// the centre.
 @MainActor
 final class NiriScrollMonitor {
     /// The niri "Mod" key. ⌥ stays out of the way of the browser's own ⌘ shortcuts.
@@ -38,7 +48,12 @@ final class NiriScrollMonitor {
     private var clickMonitor: Any?
     private var accumulated: CGFloat = 0
     private var accumulatedX: CGFloat = 0
+    /// The vertical has switched a workspace in this gesture, and will not switch another.
     private var didCommit = false
+    /// This gesture has stepped along the rail, so it is a horizontal gesture and stays one. Without
+    /// it, a hand drifting off the line after a step would switch a workspace on the way — which the
+    /// old one-commit-per-gesture rule prevented as a side effect of preventing everything else.
+    private var steppedColumns = false
     private var isPanning = false
     private var lastEventTime: TimeInterval = 0
     private var lastCommitTime: TimeInterval = 0
@@ -121,10 +136,14 @@ final class NiriScrollMonitor {
             accumulatedX += dx
             if abs(accumulatedX) >= threshold {
                 let direction = accumulatedX < 0 ? 1 : -1
-                didCommit = true
+                steppedColumns = true
                 lastCommitTime = event.timestamp
-                accumulatedX = 0
-                onPreviewColumn(0)
+                // What is left over after the step, and not zero: the travel a hand puts in is
+                // continuous, and throwing away the overshoot of every step makes the next one
+                // longer than the one before it — which is felt as the rail getting heavier the
+                // further you push.
+                accumulatedX += threshold * (accumulatedX < 0 ? 1 : -1)
+                onPreviewColumn(accumulatedX * 0.35)
                 onStepColumn(direction)
             } else {
                 onPreviewColumn(accumulatedX * 0.35)
@@ -133,6 +152,10 @@ final class NiriScrollMonitor {
         }
 
         guard dy != 0 else { return nil }
+        // A gesture that has walked the rail is a horizontal one until the fingers lift. The hand
+        // does not stay on the line, and a workspace arriving because of the drift is the one
+        // mistake here you cannot undo by pushing back.
+        guard !steppedColumns else { return nil }
 
         if !event.hasPreciseScrollingDeltas {
             commitStep(at: event.timestamp) { self.onStepWorkspace(dy < 0 ? 1 : -1) }
@@ -195,6 +218,7 @@ final class NiriScrollMonitor {
         accumulated = 0
         accumulatedX = 0
         didCommit = false
+        steppedColumns = false
     }
 
     private func endGesture() {

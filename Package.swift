@@ -96,6 +96,13 @@ let package = Package(
                 "Bookmarks/Embedding/EmbeddingStore.swift",
                 "Bookmarks/Embedding/EmbedderDriver.swift",
                 "Bookmarks/Embedding/WebEmbedder.swift",
+                // The ⌃Tab ring. Two orders over a list of ids and nothing else — no window, no
+                // picture, no key — and the order is the whole of the feature: which stop is next in
+                // memory, and where each is drawn so that two halves of one column stay together and
+                // in the order they stand in. That got out twice by eye and is arithmetic, so it
+                // lives where it can be tested, and a second front inherits the ring rather than
+                // reinventing its order.
+                "Browser/WindowSwitcher.swift",
                 "Browser/SearchEngine.swift",
                 // A page six owns and nobody sees, for running something that is a program written
                 // for a JavaScript engine rather than a library six could link. Bergamot below is

@@ -44,7 +44,7 @@ page* cannot be told apart from the page around it, and the rail wins there.
 | `⌥O` | overview on / off; `Esc` also leaves it (also View ▸ Overview) |
 | `⌥C` | centre the focused window (on by default) — off means the rail moves as little as possible. The switch is on `six://settings` ▸ Windows |
 | `⌥` + vertical scroll | one workspace per gesture |
-| `⌥` + horizontal scroll | one window per gesture while centring is on; free panning with `⌥C` off |
+| `⌥` + horizontal scroll | a window per push while centring is on — as many as the hand asks for, one per 55 pt of travel; free panning with `⌥C` off |
 
 Where the rail runs out, the gesture is answered rather than ignored: the edge pushed into lights up
 in the profile's colour and the rubber band gives less, and nothing moves, because there is nothing
@@ -56,7 +56,7 @@ that way ([layout.md](layout.md#the-ends-of-the-rail)).
 |---|---|
 | `⌃Tab` | hold `⌃`: the windows on the rail in front of you, as pictures, in the order they were last looked at, the one you would land on in the middle. Each press steps one along the ring; letting `⌃` go flies there |
 | `⌃⇧Tab` | the same, the other way |
-| `⌃←` `⌃→` | the same step, said the way the row of cards is drawn |
+| `⌃←` `⌃→` | one card along the row, the way it is drawn — which is not `⌃Tab`'s step, and has not been since the row started being drawn along the rail ([layout.md](layout.md#⌃tab--the-order-the-windows-were-looked-at)) |
 | `↩` `⌤` | fly now, without waiting for `⌃` to come up |
 | `Esc` | let go of the ring without going anywhere |
 

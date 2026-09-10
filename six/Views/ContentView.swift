@@ -173,6 +173,7 @@ extension ContentView {
             case .toggleOverview: browser.toggleOverview()
             case .toggleCenterFocus: browser.toggleCenterFocus()
             case .stepSwitcher(let step): browser.stepWindowSwitch(step)
+            case .walkSwitcher(let step): browser.walkWindowSwitch(step)
             case .landSwitcher: browser.endWindowSwitch()
             case .cancelSwitcher: browser.cancelWindowSwitch()
             case .leaveOverview:

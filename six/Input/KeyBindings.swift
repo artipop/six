@@ -26,8 +26,13 @@ enum KeyBindings {
         KeyBinding(.code(.tab), .any, .switcher, .stepSwitcher(1)),
         // The arrows are the reason this table exists. The ring is a row of cards drawn left to
         // right; the two keys that mean "left" and "right" used to land it and fall through.
-        KeyBinding(.code(.rightArrow), .any, .switcher, .stepSwitcher(1)),
-        KeyBinding(.code(.leftArrow), .any, .switcher, .stepSwitcher(-1)),
+        //
+        // They walk the **row** and not the memory ⌃Tab walks. The two were the same thing until the
+        // row started being drawn along the rail — a split's halves keep their places there rather
+        // than taking the order they were used in — and after that an arrow that answered by recency
+        // would move the highlight the other way from the one it points.
+        KeyBinding(.code(.rightArrow), .any, .switcher, .walkSwitcher(1)),
+        KeyBinding(.code(.leftArrow), .any, .switcher, .walkSwitcher(-1)),
         KeyBinding(.code(.returnKey), .any, .switcher, .landSwitcher),
         KeyBinding(.code(.keypadEnter), .any, .switcher, .landSwitcher),
         // `⎋` out of the ring, which the docs have promised all along: it was written as a binding
@@ -216,6 +221,7 @@ enum KeyAction: Equatable {
     case pictureInPicture
     case copyAddress
     case stepSwitcher(Int)
+    case walkSwitcher(Int)
     case landSwitcher
     case cancelSwitcher
     case leaveOverview

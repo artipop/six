@@ -19,7 +19,7 @@ equivalent](/en/layout#with-the-mouse-alone).
 | `⌥O` | overview (`Esc` to leave) |
 | `⌥C` | centre the focused window (on by default) |
 | `⌥` + vertical scroll | one workspace per gesture |
-| `⌥` + horizontal scroll | one window per gesture |
+| `⌥` + horizontal scroll | a window per ~55 pt of travel — as far as you push |
 
 Where the rail has run out, the gesture is not lost in silence: the edge you
 pushed into lights up in the profile's colour, the rubber band stiffens, and
