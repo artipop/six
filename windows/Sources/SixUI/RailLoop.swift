@@ -3,80 +3,71 @@ import Foundation
 import SixBrowser
 import WinSDK
 
-/// The message loop, rearranged so that Swift concurrency runs at all.
+/// The message loop, and the one line in it that makes Swift concurrency work here.
 ///
-/// **This is not a preference. `GetMessageW` in a `while` loop and `await` are mutually exclusive.**
-/// On Windows, the main actor's executor is libdispatch's main queue, and a thread parked in
-/// `GetMessageW` never drains it: an `await` that hops back to the main actor is enqueued and then
-/// simply never runs. Measured, not assumed — a `Task { @MainActor in … }` under the old loop landed
-/// nowhere and the program went on as though it had never been written. docs/linux.md has been
-/// saying the same thing about `g_main_loop_run` for as long as that front has existed.
+/// **`GetMessageW` in a `while` loop and `await` are mutually exclusive, and that is not a
+/// preference.** On Windows the main actor's executor *is* libdispatch's main queue, and a thread
+/// parked in `GetMessageW` never drains it: a `Task { @MainActor in … }` is enqueued and then simply
+/// never runs. Measured with a standalone probe rather than inferred — the program went on as
+/// though the task had never been written. docs/linux.md has been saying the same thing about
+/// `g_main_loop_run` for as long as that front has existed, and the fix below is the one that front
+/// wants too.
 ///
-/// The rearrangement is the smallest one that works. `dispatchMain()` gives the process to
-/// libdispatch, which drains the main queue — on Windows, on a worker thread of its own rather than
-/// on the process's first thread. So the window is *created* there too, inside the first block this
-/// posts: Win32 ties a window to the thread that created it and does not care which thread that is,
-/// and the one thing that must be true is that the window, its message loop and the main actor are
-/// all the same thread. They are, and `MainActor.assumeIsolated` in the window procedure is
-/// therefore telling the truth — it is called from inside a main-queue block, which is exactly what
-/// that assertion checks.
+/// The fix is the same one CoreFoundation uses. libdispatch exports two entry points for exactly
+/// this — a waitable handle that is signalled when the main queue has work, and a call that drains
+/// it on the calling thread — and `CFRunLoop` on Linux and Windows is built on them. So the loop
+/// waits on the message queue *and* that handle at once, and drains whichever woke it. Nothing is
+/// polled, nothing is on a timer, and the window, its messages and the main actor are all on the
+/// process's own main thread, which is what makes `MainActor.assumeIsolated` in the window
+/// procedure true rather than merely unchecked.
 ///
-/// What is lost is the blocking wait: the loop cannot sit in `GetMessageW`, because that is the
-/// thread the rest of Swift needs back. `MsgWaitForMultipleObjectsEx` is the compromise — it blocks
-/// like `GetMessageW` and returns the instant input arrives, but it gives up after four
-/// milliseconds so that whatever the main actor has queued gets its turn. Input latency is
-/// unchanged (the wait wakes on the message, not on the timeout); a main-actor continuation waits at
-/// most one slice, and an idle window costs two hundred and fifty empty wake-ups a second, which is
-/// less than the page in it costs while doing nothing.
+/// The two symbols are underscored, and that is worth one sentence of justification: they are not
+/// experimental, they are the supported seam for embedding the main queue in a foreign run loop —
+/// swift-corelibs-foundation's own `CFRunLoop` is their oldest caller — and the alternative found
+/// while looking for one (the `swift_task_enqueueMainExecutor_hook`) is not called at all any more
+/// on this toolchain, because the main actor's executor is now implemented in Swift and enqueues
+/// straight onto the queue.
 @MainActor
 public enum RailLoop {
-    /// How long the loop is allowed to sit in the wait before handing the thread back to Swift.
-    private static let slice: DWORD = 4
+    /// Signalled by libdispatch whenever the main queue has something to run. A `HANDLE` here, an
+    /// eventfd on Linux; the same call names it on both.
+    @_silgen_name("_dispatch_get_main_queue_handle_4CF")
+    private static func mainQueueHandle() -> HANDLE?
 
-    private static var window: RailWindow?
+    /// Runs everything the main queue has, on this thread, and returns. The argument is a Mach
+    /// message on Darwin and unused everywhere else.
+    @_silgen_name("_dispatch_main_queue_callback_4CF")
+    private static func drainMainQueue(_ message: UnsafeMutableRawPointer?)
 
-    /// Give the process to Swift, and start the window on the thread Swift will be running on.
-    ///
-    /// `startUp` runs once, on the main queue, and everything it creates belongs to that thread.
-    /// Never returns: `dispatchMain()` parks the calling thread for the life of the process, and
-    /// the way out is `WM_QUIT`, below.
-    public nonisolated static func run(_ startUp: @escaping @MainActor () -> RailWindow?) -> Never {
-        DispatchQueue.main.async {
-            MainActor.assumeIsolated {
-                guard let created = startUp() else {
-                    FileHandle.standardError.write(Data("[six] the rail window could not be created\n".utf8))
-                    exit(1)
-                }
-                window = created
-                pump()
-            }
-        }
-        dispatchMain()
-    }
-
-    /// One slice: everything Windows has to say, then back to the queue.
-    ///
-    /// It re-posts itself rather than looping, and that is the whole trick — between two slices the
-    /// main queue is free, which is when a `Task`'s continuation, a `URLSession` completion hopping
-    /// back to the main actor, and an actor's answer all get to run.
-    private static func pump() {
-        guard let window else { return }
+    /// Runs until `WM_QUIT`. The exit code is the one `PostQuitMessage` was given.
+    public static func run(_ window: RailWindow) -> Int32 {
+        var waitOn: [HANDLE?] = [mainQueueHandle()]
         var message = MSG()
-        while PeekMessageW(&message, nil, 0, 0, UINT(PM_REMOVE)) {
-            if Int32(message.message) == WM_QUIT {
-                exit(Int32(message.wParam))
+
+        while true {
+            // Before the wait, not only after it: work enqueued while the last batch of messages
+            // was being dispatched is already there, and waiting for a *further* signal to notice it
+            // would stall it until the next mouse move.
+            drainMainQueue(nil)
+
+            let woke = waitOn.withUnsafeMutableBufferPointer { buffer in
+                MsgWaitForMultipleObjectsEx(1, buffer.baseAddress, INFINITE,
+                                            DWORD(QS_ALLINPUT), DWORD(MWMO_INPUTAVAILABLE))
             }
-            // The rail's own keys and its ⌥-scroll, taken before the window they were aimed at —
-            // usually WebKit's — ever sees them. Unchanged from the loop this replaced.
-            if window.route(message) { continue }
-            TranslateMessage(&message)
-            DispatchMessageW(&message)
+            if woke == WAIT_FAILED {
+                // Nothing to be done about it and nothing to be gained by spinning on it.
+                FileHandle.standardError.write(Data("[six] message wait failed: \(GetLastError())\n".utf8))
+                return 1
+            }
+
+            while PeekMessageW(&message, nil, 0, 0, UINT(PM_REMOVE)) {
+                if Int32(message.message) == WM_QUIT { return Int32(message.wParam) }
+                // The rail's own keys and its ⌥-scroll, taken before the window they were aimed at —
+                // usually WebKit's — ever sees them.
+                if window.route(message) { continue }
+                TranslateMessage(&message)
+                DispatchMessageW(&message)
+            }
         }
-        // Nothing to do until either input arrives or the slice runs out. `MWMO_INPUTAVAILABLE` is
-        // what makes this safe against the race the plain wake mask has: a message that arrived
-        // *after* the loop above drained the queue and *before* this call would otherwise be waited
-        // through for the whole slice.
-        _ = MsgWaitForMultipleObjectsEx(0, nil, slice, DWORD(QS_ALLINPUT), DWORD(MWMO_INPUTAVAILABLE))
-        DispatchQueue.main.async { MainActor.assumeIsolated { pump() } }
     }
 }
