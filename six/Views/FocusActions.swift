@@ -16,4 +16,6 @@ extension FocusedValues {
     @Entry var translatePage: FocusAddressBarAction?
     /// Translate whatever is selected, in the system's own popover.
     @Entry var translateSelection: FocusAddressBarAction?
+    /// ⌘F: bring up the focused window's find bar, or give it the keyboard if it is already up.
+    @Entry var showFindBar: FocusAddressBarAction?
 }

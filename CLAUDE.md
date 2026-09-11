@@ -27,7 +27,7 @@ the single LLM API, ACP for agents, and the browser itself as an MCP server. Swi
 six/Niri          NiriLayout (workspaces, columns, geometry, focus/move), NiriScrollMonitor (⌥+scroll gestures)
 six/Input         KeyBindings + KeyContext (the table, in SixCore), KeyEvents (the AppKit half), KeyRouter, KeySelfTest
 six/Browser       BrowserState, BrowserTab (WebPage), Profile/ProfileStore, History, SearchEngine, LivePageCache,
-                  SitePermissions, CertificateStore, Downloads, IDN, PersonalSuggestions, PageThumbnails
+                  SitePermissions, CertificateStore, Downloads, IDN, PersonalSuggestions, PageThumbnails, PageFinder
 six/Views         ContentView (top bar), NiriStripView (rail + overview), StartPage, SettingsPageView, AssistantBar,
                   AgentPanel, MCPApps*, Phone/ (the iOS layout)
 six/Data          AppSupport (the one place that knows the bundle id → folder), AppDatabase, SettingsStore
@@ -511,10 +511,10 @@ anything added there has to exist on both:
 Built: the rail and workspaces with the full gesture set, profiles with isolated data stores, persistence (a SQLite
 system of record plus a versioned JSON snapshot), history and bookmarks with on-device multilingual embeddings and
 personal search on the start page, ad/tracker blocking down to scriptlets and extended CSS, extra certificate
-authorities, `WKWebExtension` hosting, site permissions, downloads, page translation, picture-in-picture, the ⌘K
-assistant, the ACP agent panel, `six --mcp`, MCP apps (SEP-1865) with OAuth, deep research with document windows and
-highlights, DevTools capture, localization, and the Linux, Android and Windows fronts at the parity levels their
-docs state.
+authorities, `WKWebExtension` hosting, site permissions, downloads, page translation, find on page (⌘F), picture-in-
+picture, the ⌘K assistant, the ACP agent panel, `six --mcp`, MCP apps (SEP-1865) with OAuth, deep research with
+document windows and highlights, DevTools capture, localization, and the Linux, Android and Windows fronts at the
+parity levels their docs state.
 
 Not built, with reasons: [docs/todo.md](docs/todo.md) — web archives, bookmark images, the content-script boundary
 `WebPage` cannot cross, geolocation and screen sharing, floating windows, passkeys, CloudKit sync, and what the

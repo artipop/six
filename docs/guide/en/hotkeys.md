@@ -60,6 +60,7 @@ workspaces, not other profiles — and this run only.
 | `⌘⇧N` | a new document |
 | `⌘⇧P` | a new private window |
 | `⌘⇧C` | copy the focused window's address, whole; a tick appears in the field (also Edit ▸ Copy Address). Nothing to copy on a start page, a document or an app window, and there the key does nothing |
+| `⌘F` | find on the page; `↩` / `⇧↩` for the next / previous match, `Esc` to close |
 | `⌘L` | focus the address field |
 | `⌘K` | the assistant line |
 | `⌘⇧A` | the agent panel |

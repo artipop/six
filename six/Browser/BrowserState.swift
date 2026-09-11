@@ -69,6 +69,8 @@ final class BrowserState {
     /// Translating a page in place, and the engine that does it. Both are `@Observable` themselves,
     /// so the reference can be ignored here while the views still see them change.
     @ObservationIgnored let translation = PageTranslator()
+    /// ⌘F, per window. `@Observable` itself, like `translation` above.
+    @ObservationIgnored let find = PageFinder()
     /// Apple's on-device translator. Held by name as well as behind the protocol, because the
     /// hidden `.translationTask` host needs the concrete one — that is the whole point of it.
     @ObservationIgnored let appleTranslator = AppleTranslator()
@@ -676,6 +678,7 @@ final class BrowserState {
                 // Before `.finished`, so the old page's batches are dead before the new page is
                 // looked at. A private window translates like any other — the work never leaves it.
                 self.translation.forget(tab.id)
+                self.find.forget(tab.id) // a page gone is a page whose matches went with it
                 if !profile.isPrivate { history.record(url, title: page.title, in: tab.profileID) }
             case .finished:
                 // Above the private guard, deliberately. A private window keeps no history and
@@ -1121,6 +1124,7 @@ final class BrowserState {
         devTools?.forget(id)
         pageFocus?.forget(id)
         pageControllers.forget(id)
+        find.forget(id)
         if let document = closed.document {
             documents.remove(id: document.id)
             research.removeAll { $0.documentTabID == closed.id }

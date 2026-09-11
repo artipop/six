@@ -89,6 +89,7 @@ One rail's windows only — the workspace on screen — and this run only. `⌥�
 | `⌥⇧H` | highlight the selection on the page; it comes back when the page is opened again (File → Remove Highlights on This Page to clear) |
 | `⌥⇧P` | the focused window's video into the floating picture-in-picture player, and out of it again. WebKit's own player, above every other application, and it keeps playing when the window is scrolled off the rail — the page behind it is never given back for the live-page budget while it is up ([layout.md](layout.md#picture-in-picture)) |
 | `⌘⇧C` | copy the address of the window you are reading, whole, as it would be pasted — the field shows a tick (Edit ▸ Copy Address). Arc's Copy URL, and `⌃⇧C` on the fronts with no `⌘` (`KeyBindings.copyAddressChord`). Nothing to copy on a start page, a document or an app window, and there the key is left to whatever else wants it. A **table row** and not just the menu item, unlike every other `⌘` key here: it is pressed with the page focused, and a focused `WKWebView` answers a key equivalent before the menu bar is asked. `⌘C` stays the page's — that one is the selection |
+| `⌘F` | find on the page in front of you — searches the page's own JavaScript, since `WebPage` carries no find API of its own and `WKWebView`'s is an async completion-handler with no menu (also View ▸ Find on Page…) |
 | `⌘L` | focus the address field |
 | `⌘K` | focus the assistant line |
 | `⌘⇧A` | agent panel on / off |
@@ -112,6 +113,20 @@ One rail's windows only — the workspace on screen — and this run only. `⌥�
 | | |
 |---|---|
 | `↩` | open the address, or search for the text |
+
+## Find on page (`⌘F`)
+
+A sibling of the web view in the column's stack, like `TranslateBar` and `PermissionBar` and for the
+same reason: pushed above the page rather than drawn over it, so the field takes the keyboard without
+going through `HostedOverlay`. Matches are painted with the CSS Custom Highlight API — nothing is
+written into the page's DOM.
+
+| | |
+|---|---|
+| typing | searches as you type, case-insensitive, and lands on the first match |
+| `↩` | next match, wrapping to the first past the last |
+| `⇧↩` | previous match, wrapping the other way |
+| `Esc` | close — the query is kept, the highlights are not; `⌘F` again picks up where it left off |
 
 ## Bookmarks (`⌘⌥B`)
 

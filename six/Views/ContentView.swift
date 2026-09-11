@@ -72,6 +72,9 @@ struct ContentView: View {
         .focusedSceneValue(\.translateSelection, FocusAddressBarAction {
             if let tab = browser.selectedTab { browser.translateSelection(of: tab) }
         })
+        .focusedSceneValue(\.showFindBar, FocusAddressBarAction {
+            if let tab = browser.selectedTab { browser.find.show(tab.id) }
+        })
         .clearHistoryDialog(isPresented: $confirmClearHistory)
         // A named workspace has just run out of windows and wants an answer (`NiriLayout`).
         .workspaceRemovalDialog()
@@ -147,6 +150,13 @@ struct ContentView: View {
             // floor — which is the only way to tune the floor against real bookmarks.
             if let query = ProcessInfo.processInfo.environment["SIX_PERSONAL_SELFTEST"], !query.isEmpty {
                 await personalSelfTest(query)
+            }
+            // `SIX_FIND_SELFTEST="query:https://example.com"` drives ⌘F's own store — `show`,
+            // `search`, `step`, `hide` — without a keystroke to send it, the same reason every
+            // other selftest here exists (CLAUDE.md: nothing on this machine can post ⌘F from
+            // outside the app, and `KeySelfTest` only covers the table, not menu items).
+            if let spec = ProcessInfo.processInfo.environment["SIX_FIND_SELFTEST"], !spec.isEmpty {
+                await findSelfTest(spec)
             }
         }
     }
@@ -262,6 +272,50 @@ extension ContentView {
         for hit in personal.hits {
             say(String(format: "  %.3f  ", hit.score) + hit.bookmark.displayTitle + "  · " + hit.bookmark.displayDetail)
         }
+    }
+
+    /// `SIX_FIND_SELFTEST="query:url"` — loads `url`, searches `query`, walks a couple of matches
+    /// and closes the bar, printing the count and current index at each step.
+    fileprivate func findSelfTest(_ spec: String) async {
+        func say(_ text: String) { print("[find] \(text)"); fflush(stdout) }
+
+        guard let split = spec.range(of: ":"), let url = URL(string: String(spec[split.upperBound...])) else {
+            return say("usage: SIX_FIND_SELFTEST=\"query:https://example.com\"")
+        }
+        let query = String(spec[..<split.lowerBound])
+        // A fresh window rather than whatever the strip already had focused: the selftest must not
+        // depend on the last-open window being an ordinary page — `load` is a no-op on six's own
+        // pages (`BrowserTab.isWebPage`), which is exactly what a restored `six://settings` window
+        // is one launch out of every few.
+        let tab = browser.newTab(url: url)
+        for _ in 0..<80 where tab.isLoading || tab.currentURL == nil {
+            try? await Task.sleep(for: .milliseconds(250))
+        }
+        say("loaded \(tab.currentURL?.absoluteString ?? "nothing")")
+
+        browser.find.show(tab.id)
+        say("shown: isActive=\(browser.find[tab.id]?.isActive ?? false)")
+
+        await browser.find.search(query, in: tab, id: tab.id)
+        say("search \(query.debugDescription): \(describe(tab))")
+
+        await browser.find.step(1, in: tab, id: tab.id)
+        say("step +1: \(describe(tab))")
+        await browser.find.step(1, in: tab, id: tab.id)
+        say("step +1: \(describe(tab))")
+        await browser.find.step(-1, in: tab, id: tab.id)
+        say("step -1: \(describe(tab))")
+
+        await browser.find.search("", in: tab, id: tab.id)
+        say("cleared: \(describe(tab))")
+
+        browser.find.hide(tab, id: tab.id)
+        say("hidden: isActive=\(browser.find[tab.id]?.isActive ?? true)")
+    }
+
+    fileprivate func describe(_ tab: BrowserTab) -> String {
+        guard let state = browser.find[tab.id] else { return "no state" }
+        return "count=\(state.count) current=\(state.current)"
     }
 
     /// Drives one page through translation from launch, printing what happened. A harness, in the

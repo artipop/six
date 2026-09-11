@@ -480,6 +480,12 @@ private struct ColumnView: View {
                 TranslateBar(tab: tab, state: translation)
                 Divider()
             }
+            // ⌘F, until ⎋ or its own × closes it. Above the page like every other bar here and for
+            // the same reason: a `TextField` drawn *over* a `WKWebView` never sees the keyboard.
+            if let find = browser.find[tab.id], find.isActive {
+                FindBar(tab: tab, state: find)
+                Divider()
+            }
             if tab.showsStartPage {
                 // Pure SwiftUI, so the plain overlay is enough to catch the first click here.
                 StartPage(tab: tab, isActive: isFocused && !browser.layout.isOverview)
