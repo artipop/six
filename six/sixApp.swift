@@ -44,7 +44,14 @@ struct sixApp: App {
     #endif
     @State private var persistence: StatePersistence<FileSnapshotStore<AppStateSnapshot>>
     @State private var blocker: ContentBlocker
+    #if os(macOS)
+    /// `WKWebExtension` is Apple's API, and iOS could in principle host it (iOS 18.4+) — but nothing
+    /// here has a `WKWebView` per tab to give a content script back its background
+    /// (`docs/extensions.md`), and the phone gained no `WebViewResponder`-style view-tree walk to
+    /// change that. A half-working host with no UI to reach it is worse than none, so it stays a
+    /// Mac's — the same call already made for the agent layer and deep research above.
     @State private var extensions: ExtensionStore
+    #endif
     @State private var devTools: DevToolsStore
     @State private var permissions: SitePermissions
     @State private var certificates: CertificateStore
@@ -117,6 +124,7 @@ struct sixApp: App {
         if ProcessInfo.processInfo.environment["SIX_EMBED_SELFTEST"] != nil, let mlx = bookmarks.embedder as? MLXEmbedder {
             Task { let report = await mlx.diagnostics(); Log.info(.embed, "selftest:\n\(report)") }
         }
+        #if os(macOS)
         let extensions = ExtensionStore(settings: settings)
         extensions.browser = browser
         browser.extensions = extensions
@@ -128,6 +136,7 @@ struct sixApp: App {
         if let path = ProcessInfo.processInfo.environment["SIX_EXTENSION"], !path.isEmpty {
             Task { await extensions.installFromEnvironment(path) }
         }
+        #endif
         let highlights = HighlightStore()
         highlights.isPrivate = { [weak browser] id in browser?.isPrivate(id) ?? false }
         browser.highlights = highlights
@@ -211,7 +220,9 @@ struct sixApp: App {
         #endif
         _highlights = State(initialValue: highlights)
         _blocker = State(initialValue: blocker)
+        #if os(macOS)
         _extensions = State(initialValue: extensions)
+        #endif
         _devTools = State(initialValue: devTools)
         _permissions = State(initialValue: permissions)
         _certificates = State(initialValue: certificates)
@@ -322,7 +333,6 @@ struct sixApp: App {
                 .environment(bookmarks)
                 .environment(highlights)
                 .environment(blocker)
-                .environment(extensions)
                 .environment(devTools)
                 .environment(permissions)
                 .environment(certificates)

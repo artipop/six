@@ -12,7 +12,6 @@ struct PhoneContentView: View {
     @State private var showHistory = false
     @State private var showBookmarks = false
     @State private var showFilterLists = false
-    @State private var showExtensions = false
     @State private var showSitePermissions = false
     @State private var showCertificates = false
     @State private var confirmClearHistory = false
@@ -23,7 +22,6 @@ struct PhoneContentView: View {
             PhoneToolbar(showHistory: $showHistory,
                          showBookmarks: $showBookmarks,
                          showFilterLists: $showFilterLists,
-                         showExtensions: $showExtensions,
                          showSitePermissions: $showSitePermissions,
                          showCertificates: $showCertificates,
                          confirmClearHistory: $confirmClearHistory)
@@ -32,7 +30,6 @@ struct PhoneContentView: View {
         .sheet(isPresented: $showHistory) { HistoryView() }
         .sheet(isPresented: $showBookmarks) { BookmarksView() }
         .sheet(isPresented: $showFilterLists) { BlockingView() }
-        .sheet(isPresented: $showExtensions) { ExtensionsView() }
         .sheet(isPresented: $showSitePermissions) { PermissionsView() }
         .sheet(isPresented: $showCertificates) { CertificatesView() }
         // The rail's own question, asked here too: the rule that empties a workspace is the layout's
@@ -48,7 +45,6 @@ private struct PhoneToolbar: View {
     @Binding var showHistory: Bool
     @Binding var showBookmarks: Bool
     @Binding var showFilterLists: Bool
-    @Binding var showExtensions: Bool
     @Binding var showSitePermissions: Bool
     @Binding var showCertificates: Bool
     @Binding var confirmClearHistory: Bool
@@ -79,7 +75,6 @@ private struct PhoneToolbar: View {
                 Button("Bookmarks…", systemImage: "book") { showBookmarks = true }
                 Button("History…", systemImage: "clock") { showHistory = true }
                 Button("Filter Lists…", systemImage: "shield") { showFilterLists = true }
-                Button("Extensions…", systemImage: "puzzlepiece.extension") { showExtensions = true }
                 Button("Site Permissions…", systemImage: "checkmark.shield") { showSitePermissions = true }
                 Button("Certificates…", systemImage: "checkmark.seal") { showCertificates = true }
                 Divider()
