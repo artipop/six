@@ -66,8 +66,10 @@ a `WebPage` with a tab — with the measurements from [extensions.md](extensions
 is the precedent: something that lives on `WKWebView`, lifted into the new API.
 
 Smaller things that follow once the boundary moves (or that are worth doing anyway): a workspace per extension
-window rather than one window per profile strip, `commands` bound to real keys, `menus` in the page context menu,
-and extension pages (options, new-tab override) as ordinary columns rather than plain windows.
+window rather than one window per profile strip, `menus` in the page context menu, and extension pages (options,
+new-tab override) as ordinary columns rather than plain windows.
+
+`commands` bound to real keys is no longer on this list — see [extensions.md](extensions.md#commands-an-extensions-own-shortcuts).
 
 ## Someday: six's own WebKit build
 

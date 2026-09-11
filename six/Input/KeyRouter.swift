@@ -19,6 +19,10 @@ final class KeyRouter {
     var perform: (KeyAction) -> Bool = { _ in false }
     var isSwitching: () -> Bool = { false }
     var isOverview: () -> Bool = { false }
+    /// A key an installed extension bound to itself — dynamic, so it is asked about only once the
+    /// table above has had nothing to say, which every `⌘` chord always does (`KeyBindings` is
+    /// `⌥`/`⌃` alone; see `ExtensionStore.performCommand(for:in:)`).
+    var performExtensionCommand: (NSEvent) -> Bool = { _ in false }
 
     private var keyMonitor: Any?
     private var flagsMonitor: Any?
@@ -54,6 +58,10 @@ final class KeyRouter {
     private func handle(_ event: NSEvent) -> NSEvent? {
         let context = KeyContext(event: event, isSwitching: isSwitching(), isOverview: isOverview())
         guard let binding = KeyBindings.all.first(where: { $0.matches(event, in: context) }) else {
+            if performExtensionCommand(event) {
+                trace(event, context, "an extension's own command")
+                return nil
+            }
             return passThrough(event, context, why: "no binding")
         }
         if binding.yieldsToCaret(in: context) {

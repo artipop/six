@@ -111,6 +111,20 @@ other extension; it simply does not block.
   `promptForPermissions` and asks. Actions are buttons in the top bar, and the popup is WebKit's own `NSPopover`
   pointed at the button that was clicked.
 
+## Commands: an extension's own shortcuts
+
+`commands` in a manifest — Focus Mode's ⌘B — cannot be a static menu item the way six's own `⌘` keys are
+(`ViewCommands` and the rest): nobody knows the shortcut until the extension is installed. So it goes through
+`KeyRouter` instead, the monitor that already sees a key before the focused page can, tried only once the `⌥`/`⌃`
+table has declined it — which every `⌘` chord always does, since the table holds none.
+
+`WKWebExtensionContext.performCommand(for:)` is tried first, and is not enough by itself: it answers by the
+character the event carries, and a Russian layout's ⌘B reports «И» — the same bug `KeyBindings.Key.letter` exists
+to answer for six's own bindings ([hotkeys.md](hotkeys.md)), here on WebKit's side of the fence. When that method
+declines, `ExtensionStore.performCommand(for:in:)` checks each of the extension's `commands` again itself, this
+time by the event's physical key code against a small US-ANSI letter table — the same "code or character" shape,
+independently arrived at for a type six does not otherwise touch.
+
 ## To revisit
 
 The whole "does not work" table was one missing method, and macOS now answers it — see above, and re-measure before

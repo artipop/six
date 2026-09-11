@@ -275,6 +275,47 @@ final class ExtensionStore {
         context.performAction(for: adapter(for: tab))
     }
 
+    #if os(macOS)
+    /// A key an extension bound to itself (`commands` in its manifest) — Focus Mode's ⌘B, say.
+    /// Dynamic, so it cannot be a static menu item the way six's own `⌘` keys are: nobody knows the
+    /// shortcut until the extension is installed. `KeyRouter` tries this only after its own table has
+    /// declined the key, which every `⌘` chord always does — the table is `⌥`/`⌃` alone.
+    ///
+    /// `context.performCommand(for:)` is tried first and is not enough on its own: it answers by the
+    /// character the event carries, and a Russian layout's ⌘B reports «И» — the exact bug
+    /// `KeyBindings.Key.letter` exists to avoid for six's own bindings, here on WebKit's side of the
+    /// fence instead. `matches(_:_:)` below is that same fix, by physical key code, for commands.
+    func performCommand(for event: NSEvent, in profileID: Profile.ID) -> Bool {
+        guard let runtime = runtimes[profileID] else { return false }
+        for context in runtime.contexts.values {
+            if context.performCommand(for: event) { return true }
+            if let command = context.commands.first(where: { matches(event, $0) }) {
+                context.performCommand(command)
+                return true
+            }
+        }
+        return false
+    }
+
+    /// US-ANSI virtual key codes for every letter — a command's `activationKey` is a plain letter
+    /// like "B", declared against that layout regardless of the one actually in use, the same
+    /// contract six's own `KeyCode` letters keep (a narrower table, only what six's bindings need).
+    private static let usLetterKeyCodes: [Character: UInt16] = [
+        "A": 0, "B": 11, "C": 8, "D": 2, "E": 14, "F": 3, "G": 5, "H": 4, "I": 34,
+        "J": 38, "K": 40, "L": 37, "M": 46, "N": 45, "O": 31, "P": 35, "Q": 12,
+        "R": 15, "S": 1, "T": 17, "U": 32, "V": 9, "W": 13, "X": 7, "Y": 16, "Z": 6
+    ]
+
+    private func matches(_ event: NSEvent, _ command: WKWebExtension.Command) -> Bool {
+        guard let key = command.activationKey?.uppercased().first,
+              let code = Self.usLetterKeyCodes[key],
+              event.keyCode == code
+        else { return false }
+        return event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            == command.modifierFlags.intersection(.deviceIndependentFlagsMask)
+    }
+    #endif
+
     func optionsPageURL(for record: InstalledExtension) -> URL? {
         guard let profileID = browser?.selectedProfileID, let context = runtimes[profileID]?.contexts[record.id] else { return nil }
         return context.optionsPageURL

@@ -171,6 +171,10 @@ extension ContentView {
     private func startKeyRouter() {
         keys.isSwitching = { browser.switcher.isOpen }
         keys.isOverview = { browser.layout.isOverview }
+        keys.performExtensionCommand = { event in
+            guard let extensions = browser.extensions else { return false }
+            return extensions.performCommand(for: event, in: browser.selectedProfileID)
+        }
         keys.perform = { action in
             switch action {
             case .focusColumn(let step): browser.focusColumn(step)
