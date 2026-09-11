@@ -920,16 +920,16 @@ private struct StripEdgeButton: View {
             ? (hovering && !disarmed ? 1 : 0)
             : (hovering ? 1 : 0.45)
         if symbol == "plus" {
-            // Drawn rather than the SF Symbol: a scaled-up glyph blurs, and the shape wanted here isn't
-            // a bigger dot but a taller mark, closer to the outline of the column it opens. Two capsules
-            // instead of one square-cornered cross — the same softness the rest of the chrome draws
-            // with (`RoundedRectangle`, never a hard corner).
-            ZStack {
-                Capsule().frame(width: 2.5, height: 20)
-                Capsule().frame(width: 12, height: 2.5)
-            }
-            .foregroundStyle(browser.selectedProfile.color)
-            .opacity(shown)
+            // A word instead of a mark: neither shape of `+` read as anything other than a stray dot in
+            // a sliver this narrow. Turned on its side, the label fits the lane's width with its own
+            // height and uses the lane's height for its length — read bottom to top, the way a spine
+            // reads on a shelf.
+            Text("New Window")
+                .font(.system(size: 11, weight: .semibold))
+                .fixedSize()
+                .rotationEffect(.degrees(-90))
+                .foregroundStyle(browser.selectedProfile.color)
+                .opacity(shown)
         } else {
             Image(systemName: symbol)
                 .font(.system(size: min(11, width), weight: .bold))
