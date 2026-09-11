@@ -266,6 +266,20 @@ final class ExtensionStore {
         }
     }
 
+    #if os(macOS)
+    /// What every enabled extension wants added to this tab's own context menu — `menus` in a
+    /// manifest, or `contextMenus.create` at runtime. WebKit hands back real `NSMenuItem`s, target
+    /// and action already wired to the extension, in whatever order and nesting it built them; six
+    /// only has to find a place for them (`PageContextMenu`).
+    func contextMenuItems(for tab: BrowserTab) -> [NSMenuItem] {
+        guard let runtime = runtimes[tab.profileID] else { return [] }
+        let adapter = adapter(for: tab)
+        return installed.filter(\.isEnabled).flatMap { record in
+            runtime.contexts[record.id]?.menuItems(for: adapter) ?? []
+        }
+    }
+    #endif
+
     /// A click on one of those buttons: the extension decides what it means — a popup, or a message
     /// to its background.
     func performAction(_ record: InstalledExtension, for tab: BrowserTab, anchor: CGRect?) {

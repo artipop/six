@@ -60,6 +60,13 @@ extension View {
             // The window's own commands. They used to live on its title bar; the page runs edge to
             // edge now, so the page's menu is where the mouse can still reach them.
             Menu("This Window") { ColumnMenu(tab: tab).environment(browser) }
+            // Whatever an installed extension asked to add here — `menus` in its manifest, or
+            // `contextMenus.create` at runtime. Below six's own items, the way a browser's own
+            // context menu items sit above an extension's contributions in every other one too.
+            if let items = browser.extensions?.contextMenuItems(for: tab), !items.isEmpty {
+                Divider()
+                ExtensionMenuItems(items: items)
+            }
         }
         #elseif os(iOS)
         // A phone has no context menu on a page: the long press is WebKit's own, and there is no
@@ -73,5 +80,35 @@ extension View {
 @MainActor
 private func send(_ selector: String) {
     NSApp.sendAction(Selector((selector)), to: nil, from: nil)
+}
+
+@MainActor
+private func fireExtensionMenuItem(_ item: NSMenuItem) {
+    guard let action = item.action else { return }
+    NSApp.sendAction(action, to: item.target, from: item)
+}
+
+/// WebKit hands back real `NSMenuItem`s — target and action already wired to the extension — so
+/// this only has to place them, recursing into whatever nesting the extension itself asked for
+/// (`contextMenus.create(..., parentId: ...)` builds a submenu the same way a manifest's `menus`
+/// entry can). A named type rather than a function returning `some View`, because a function
+/// cannot call itself through an opaque return type — the compiler has nothing to resolve it to.
+/// `\.self` for `ForEach`'s id: an `NSMenuItem` is an `NSObject`, and identity is exactly what
+/// tells two of an extension's items apart — nothing here reads their content.
+private struct ExtensionMenuItems: View {
+    let items: [NSMenuItem]
+
+    var body: some View {
+        ForEach(items, id: \.self) { item in
+            if item.isSeparatorItem {
+                Divider()
+            } else if let submenu = item.submenu {
+                Menu(item.title) { ExtensionMenuItems(items: submenu.items) }
+            } else {
+                Button(item.title) { fireExtensionMenuItem(item) }
+                    .disabled(!item.isEnabled)
+            }
+        }
+    }
 }
 #endif
