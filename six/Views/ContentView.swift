@@ -1,4 +1,6 @@
 #if os(macOS)
+import CryptoKit
+import Security
 import SwiftUI
 import WebKit
 
@@ -157,6 +159,16 @@ struct ContentView: View {
             // outside the app, and `KeySelfTest` only covers the table, not menu items).
             if let spec = ProcessInfo.processInfo.environment["SIX_FIND_SELFTEST"], !spec.isEmpty {
                 await findSelfTest(spec)
+            }
+            // `SIX_CRX_SELFTEST=1` builds a `.crx` from scratch — a fresh RSA and a fresh P-256 key,
+            // both signing it — and runs `CRXSignature.verify` against it, then against one byte of
+            // it flipped, then against a plain zip. No real signed `.crx` was reachable to test
+            // against from here (the Chrome Web Store's update endpoint answers a bare 204 without a
+            // running Chrome to ask on its behalf), so this is what stands in: it cannot say the
+            // decoder reads a real file's exact byte layout, only that encoding and decoding agree
+            // with each other and that a tampered file is told apart from an intact one.
+            if ProcessInfo.processInfo.environment["SIX_CRX_SELFTEST"] != nil {
+                crxSelfTest()
             }
         }
     }
@@ -320,6 +332,137 @@ extension ContentView {
     fileprivate func describe(_ tab: BrowserTab) -> String {
         guard let state = browser.find[tab.id] else { return "no state" }
         return "count=\(state.count) current=\(state.current)"
+    }
+
+    /// `SIX_CRX_SELFTEST=1` — builds a `.crx` from scratch, RSA-signed and separately ECDSA-signed,
+    /// and runs `CRXSignature.verify` against each, against one flipped byte, and against a plain
+    /// zip. `CRXSignature` only ever decodes; the encoder here exists nowhere else and is not meant
+    /// to — its one job is proving the decoder reads back exactly what a correct encoder writes.
+    fileprivate func crxSelfTest() {
+        func say(_ text: String) { print("[crx] \(text)"); fflush(stdout) }
+
+        func varint(_ value: UInt64) -> Data {
+            var v = value; var out = Data()
+            repeat {
+                var byte = UInt8(v & 0x7F); v >>= 7
+                if v != 0 { byte |= 0x80 }
+                out.append(byte)
+            } while v != 0
+            return out
+        }
+        func field(_ number: Int, _ content: Data) -> Data {
+            varint(UInt64((number << 3) | 2)) + varint(UInt64(content.count)) + content
+        }
+        func le32(_ value: Int) -> Data { withUnsafeBytes(of: UInt32(value).littleEndian) { Data($0) } }
+        func assemble(header: Data, archive: Data) -> Data {
+            Data("Cr24".utf8) + le32(3) + le32(header.count) + header + archive
+        }
+        func signedPayload(over signedHeaderData: Data, archive: Data) -> Data {
+            var payload = Data("CRX3 SignedData\0".utf8)
+            payload.append(le32(signedHeaderData.count))
+            payload.append(signedHeaderData)
+            payload.append(archive)
+            return payload
+        }
+
+        // `SIX_CRX_SELFTEST=/some/dir` (a path rather than `1`) also writes the fixtures there, so
+        // the real install dialog can be tried against a signature that is actually known-good or
+        // known-tampered, rather than only ever a real-world file whose answer nobody here checked.
+        // Installing one all the way needs a real zip behind the signature — `ditto` unpacks it the
+        // same way it would a real `.crx` — so this builds a minimal, genuinely valid extension
+        // rather than reusing the placeholder bytes the plain print-only run is content with.
+        let writeTo = ProcessInfo.processInfo.environment["SIX_CRX_SELFTEST"]
+            .flatMap { $0 == "1" ? nil : URL(fileURLWithPath: $0, isDirectory: true) }
+
+        func realExtensionZip() -> Data? {
+            let scratch = FileManager.default.temporaryDirectory.appending(path: "six-crx-selftest-\(UUID().uuidString)")
+            defer { try? FileManager.default.removeItem(at: scratch) }
+            do {
+                try FileManager.default.createDirectory(at: scratch, withIntermediateDirectories: true)
+                let manifest = #"{"manifest_version":3,"name":"CRX Signature Selftest","version":"1.0"}"#
+                try manifest.write(to: scratch.appending(path: "manifest.json"), atomically: true, encoding: .utf8)
+                let zip = scratch.appending(path: "archive.zip")
+                let process = Process()
+                process.executableURL = URL(fileURLWithPath: "/usr/bin/zip")
+                process.currentDirectoryURL = scratch
+                process.arguments = ["-q", zip.lastPathComponent, "manifest.json"]
+                try process.run()
+                process.waitUntilExit()
+                guard process.terminationStatus == 0 else { return nil }
+                return try Data(contentsOf: zip)
+            } catch {
+                return nil
+            }
+        }
+
+        let archive = (writeTo != nil ? realExtensionZip() : nil) ?? Data("PK\u{03}\u{04} pretend this is a zip archive".utf8)
+
+        // A CRX3 public key is X.509 SubjectPublicKeyInfo; `SecKeyCopyExternalRepresentation` for
+        // an RSA key hands back the bare PKCS#1 structure it wraps, so the wrapping is by hand —
+        // the mirror image of `PKCS1.unwrap` in `CRXSignature`, proving the two sides agree.
+        func derLength(_ n: Int) -> Data {
+            if n < 128 { return Data([UInt8(n)]) }
+            var bytes: [UInt8] = []
+            var v = n
+            while v > 0 { bytes.insert(UInt8(v & 0xFF), at: 0); v >>= 8 }
+            return Data([0x80 | UInt8(bytes.count)] + bytes)
+        }
+        func derSequence(_ content: Data) -> Data { Data([0x30]) + derLength(content.count) + content }
+        func derBitString(_ content: Data) -> Data { Data([0x03]) + derLength(content.count + 1) + Data([0x00]) + content }
+        let rsaAlgorithmID = Data([0x30, 0x0D, 0x06, 0x09, 0x2A, 0x86, 0x48, 0x86, 0xF7, 0x0D, 0x01, 0x01, 0x01, 0x05, 0x00])
+
+        func rsaCRX() -> Data? {
+            let attrs: [CFString: Any] = [kSecAttrKeyType: kSecAttrKeyTypeRSA, kSecAttrKeySizeInBits: 2048]
+            var error: Unmanaged<CFError>?
+            guard let privateKey = SecKeyCreateRandomKey(attrs as CFDictionary, &error) else {
+                say("RSA key generation failed: \(error!.takeRetainedValue())"); return nil
+            }
+            guard let publicKey = SecKeyCopyPublicKey(privateKey),
+                  let pkcs1 = SecKeyCopyExternalRepresentation(publicKey, &error) as Data?
+            else { return nil }
+            let spki = derSequence(rsaAlgorithmID + derBitString(pkcs1))
+            let crxID = Data(SHA256.hash(data: spki)).prefix(16)
+            let signedHeaderData = field(1, crxID)
+            let payload = signedPayload(over: signedHeaderData, archive: archive)
+            guard let signature = SecKeyCreateSignature(
+                privateKey, .rsaSignatureMessagePKCS1v15SHA256, payload as CFData, &error
+            ) as Data? else {
+                say("RSA signing failed: \(error!.takeRetainedValue())"); return nil
+            }
+            let proof = field(1, spki) + field(2, signature)
+            return assemble(header: field(2, proof) + field(4, signedHeaderData), archive: archive)
+        }
+
+        func ecdsaCRX() -> Data? {
+            let key = P256.Signing.PrivateKey()
+            let spki = key.publicKey.derRepresentation
+            let crxID = Data(SHA256.hash(data: spki)).prefix(16)
+            let signedHeaderData = field(1, crxID)
+            let payload = signedPayload(over: signedHeaderData, archive: archive)
+            guard let signature = try? key.signature(for: SHA256.hash(data: payload)) else { return nil }
+            let proof = field(1, spki) + field(2, signature.derRepresentation)
+            return assemble(header: field(3, proof) + field(4, signedHeaderData), archive: archive)
+        }
+
+        if let rsa = rsaCRX() {
+            say("RSA proof: \(CRXSignature.verify(rsa))")
+            var tampered = rsa
+            tampered[tampered.count - 1] ^= 0xFF
+            say("RSA proof, one byte flipped: \(CRXSignature.verify(tampered))")
+            if let writeTo {
+                try? rsa.write(to: writeTo.appending(path: "rsa-signed.crx"))
+                try? tampered.write(to: writeTo.appending(path: "rsa-tampered.crx"))
+            }
+        } else {
+            say("could not build an RSA fixture")
+        }
+        if let ecdsa = ecdsaCRX() {
+            say("ECDSA proof: \(CRXSignature.verify(ecdsa))")
+            if let writeTo { try? ecdsa.write(to: writeTo.appending(path: "ecdsa-signed.crx")) }
+        } else {
+            say("could not build an ECDSA fixture")
+        }
+        say("plain zip, no crx header at all: \(CRXSignature.verify(archive))")
     }
 
     /// Drives one page through translation from launch, printing what happened. A harness, in the

@@ -147,10 +147,13 @@ final class ExtensionStore {
 
     /// Reads an extension without installing it, for the confirmation dialog: what it is, what it
     /// asks for, and what will not work.
-    func inspect(_ source: URL) async throws -> (extension: WKWebExtension, compatibility: ExtensionCompatibility, staged: (folder: URL, id: String)) {
+    func inspect(_ source: URL) async throws -> (
+        extension: WKWebExtension, compatibility: ExtensionCompatibility,
+        staged: (folder: URL, id: String), crxSignatureSummary: (text: String, isWarning: Bool)?
+    ) {
         let staged = try ExtensionInstaller.stage(source)
         let ext = try await WKWebExtension(resourceBaseURL: staged.folder)
-        return (ext, ExtensionInstaller.compatibility(of: ext), staged)
+        return (ext, ExtensionInstaller.compatibility(of: ext), staged, ExtensionInstaller.crxSignatureSummary(of: source))
     }
 
     /// Remembers a staged extension and loads it into every profile that is running one.
@@ -180,7 +183,7 @@ final class ExtensionStore {
     func installFromEnvironment(_ path: String) async {
         let source = URL(fileURLWithPath: path, isDirectory: true)
         do {
-            let (ext, _, staged) = try await inspect(source)
+            let (ext, _, staged, _) = try await inspect(source)
             adopt(ext, staged: staged, origin: source.lastPathComponent)
         } catch {
             log("SIX_EXTENSION install failed: \(error.localizedDescription)")

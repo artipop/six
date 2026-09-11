@@ -148,6 +148,33 @@ enum ExtensionInstaller {
         SHA256.hash(data: Data(text.utf8)).prefix(8).map { String(format: "%02x", $0) }.joined()
     }
 
+    /// A sentence for the install dialog about what a `.crx`'s own signature says, and whether it
+    /// is a caption or a warning — `nil` for anything that is not a signed `.crx` (a folder, a
+    /// `.zip`, an `.xpi`, or a `.crx` with no CRX3 header), which leaves the dialog's own
+    /// disclaimer as the last word for those. The signature is the same on both platforms so the
+    /// type this reads (`CRXSignature.Verdict`, macOS-only — the phone never reaches this call at
+    /// all, but the function still has to compile there) never has to cross into a shared return
+    /// type; `isWarning` rather than a colour, so the caller decides how orange means what here.
+    static func crxSignatureSummary(of source: URL) -> (text: String, isWarning: Bool)? {
+        #if os(macOS)
+        guard let data = try? Data(contentsOf: source), data.count > 4, data.prefix(4) == Data("Cr24".utf8) else {
+            return nil
+        }
+        switch CRXSignature.verify(data) {
+        case .verified(let extensionID):
+            return (String(localized: "Signed .crx, id \(extensionID) — the signature matches the file. Nobody vouches for who holds that key."), false)
+        case .invalid:
+            return (String(localized: "This .crx's signature does not match its contents — it was changed after it was signed."), true)
+        case .malformed(let why):
+            return (String(localized: "This .crx claims to be signed but the signature could not be read (\(why))."), true)
+        case .notSigned:
+            return nil
+        }
+        #else
+        return nil
+        #endif
+    }
+
     // MARK: What will and will not work
 
     /// The verdict, from the manifest alone (see `ExtensionCompatibility`).

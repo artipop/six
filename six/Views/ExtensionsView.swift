@@ -46,6 +46,9 @@ struct ExtensionSettings: View {
         let compatibility: ExtensionCompatibility
         let staged: (folder: URL, id: String)
         let origin: String
+        /// What a `.crx`'s own signature says, in a sentence — `nil` for anything else, including a
+        /// `.crx` with no CRX3 header at all (`ExtensionInstaller.crxSignatureSummary(of:)`).
+        let crxSignatureSummary: (text: String, isWarning: Bool)?
     }
 
     var body: some View {
@@ -107,8 +110,9 @@ struct ExtensionSettings: View {
         guard panel.runModal() == .OK, let url = panel.url else { return }
         Task {
             do {
-                let (ext, compatibility, staged) = try await extensions.inspect(url)
-                pending = PendingInstall(ext: ext, compatibility: compatibility, staged: staged, origin: url.lastPathComponent)
+                let (ext, compatibility, staged, crxSignatureSummary) = try await extensions.inspect(url)
+                pending = PendingInstall(ext: ext, compatibility: compatibility, staged: staged,
+                                          origin: url.lastPathComponent, crxSignatureSummary: crxSignatureSummary)
             } catch {
                 failure = error.localizedDescription
             }
@@ -221,6 +225,11 @@ private struct InstallSheet: View {
                 }
             }
 
+            if let crxSignatureSummary = install.crxSignatureSummary {
+                Text(crxSignatureSummary.text)
+                    .font(.caption2)
+                    .foregroundStyle(crxSignatureSummary.isWarning ? AnyShapeStyle(.orange) : AnyShapeStyle(.secondary))
+            }
             Text("From \(install.origin). Nothing checks who made it — an extension can read and change the pages it is given.")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
