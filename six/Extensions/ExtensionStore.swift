@@ -335,6 +335,39 @@ final class ExtensionStore {
         return context.optionsPageURL
     }
 
+    #if os(macOS)
+    /// Whether `record` could stand in for the start page — `WKWebExtension.hasOverrideNewTabPage`,
+    /// for the toggle in `ExtensionsView`. Not whether it currently *does*; see
+    /// `overrideNewTabPageURL(for:)` for the one the user actually turned on.
+    func canOverrideNewTabPage(_ record: InstalledExtension) -> Bool {
+        guard let profileID = browser?.selectedProfileID else { return false }
+        return runtimes[profileID]?.contexts[record.id]?.webExtension.hasOverrideNewTabPage ?? false
+    }
+
+    /// The URL to load instead of the start page on a blank new window — the one extension the user
+    /// has allowed to do this (`SettingsStore.newTabOverrideExtensionID`), if it is still installed,
+    /// enabled, and still declares the capability. Checked fresh every time rather than trusted from
+    /// the setting alone, because uninstalling or disabling the extension does not clear it.
+    func overrideNewTabPageURL(for profileID: Profile.ID) -> URL? {
+        guard let id = settings.newTabOverrideExtensionID,
+              installed.first(where: { $0.id == id })?.isEnabled == true,
+              let context = runtimes[profileID]?.contexts[id],
+              context.webExtension.hasOverrideNewTabPage
+        else { return nil }
+        return context.overrideNewTabPageURL
+    }
+
+    func isNewTabOverride(_ record: InstalledExtension) -> Bool {
+        settings.newTabOverrideExtensionID == record.id
+    }
+
+    /// Only one extension may stand in for the start page at a time, the same rule every browser
+    /// with this feature keeps — turning it on for one is what turns it off for whichever had it.
+    func setNewTabOverride(_ record: InstalledExtension, _ on: Bool) {
+        settings.newTabOverrideExtensionID = on ? record.id : nil
+    }
+    #endif
+
     /// Which profile a context belongs to — the delegate is shared by every profile's controller,
     /// so "which strip is this extension talking about" is a lookup, not the selected profile.
     func profileID(of context: WKWebExtensionContext) -> Profile.ID? {

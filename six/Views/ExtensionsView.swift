@@ -153,6 +153,11 @@ private struct ExtensionRow: View {
                     Button("Open Options Page") { extensions.browser?.newTab(url: url) }
                 }
                 #if os(macOS)
+                if extensions.canOverrideNewTabPage(record) {
+                    Toggle("Use as New Tab Page", isOn: Binding(
+                        get: { extensions.isNewTabOverride(record) },
+                        set: { extensions.setNewTabOverride(record, $0) }))
+                }
                 Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([record.folder]) }
                 #endif
                 Divider()

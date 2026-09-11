@@ -662,7 +662,16 @@ final class BrowserState {
             layout.insertColumn(tabID: tab.id, in: profile.id, workspace: workspace, focus: activate, on: side)
         }
         if activate { syncSelection() }
-        if let url { tab.load(url) }
+        if let url {
+            tab.load(url)
+        } else {
+            #if os(macOS)
+            // A blank window is the start page's, unless the user has let an installed extension
+            // stand in for it (`WKWebExtension.hasOverrideNewTabPage`) — checked fresh, not assumed
+            // from the setting alone, since uninstalling the extension does not clear it.
+            if let override = extensions?.overrideNewTabPageURL(for: profile.id) { tab.load(override) }
+            #endif
+        }
         return tab
     }
 

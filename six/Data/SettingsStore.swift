@@ -39,6 +39,10 @@ final class SettingsStore {
         case blockingAllowlist = "blocking.allowlist"
         case blockingRefreshDays = "blocking.refreshDays"
         case installedExtensions = "extensions.installed"
+        /// The one installed extension allowed to replace the start page with its own new-tab page
+        /// (`WKWebExtension.hasOverrideNewTabPage`) — Apple's own note says to ask before using it, so
+        /// this is the record of having asked, not a capability WebKit hands out on its own.
+        case newTabOverride = "extensions.newTabOverride"
         case devToolsInspector = "devtools.inspector"
         case devToolsCapture = "devtools.capture"
         case sitePermissions = "permissions.sites"
@@ -191,6 +195,15 @@ final class SettingsStore {
     var devToolsCapture: Bool {
         get { self[.devToolsCapture].map { $0 == "1" } ?? false }
         set { self[.devToolsCapture] = newValue ? "1" : "0" }
+    }
+
+    /// The installed extension id (if any) allowed to stand in for the start page on a blank new
+    /// window. `nil` until the user turns one on in `ExtensionsView`; uninstalling it does not
+    /// un-set this by itself, so `ExtensionStore.overrideNewTabPageURL(for:)` checks that the
+    /// extension is still installed, enabled, and still declares the capability.
+    var newTabOverrideExtensionID: String? {
+        get { self[.newTabOverride] }
+        set { self[.newTabOverride] = newValue }
     }
 
     /// The profile a front uses when it has no other. Made once and kept, so history and cookies
