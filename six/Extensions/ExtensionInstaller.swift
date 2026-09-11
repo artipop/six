@@ -158,11 +158,18 @@ enum ExtensionInstaller {
         let wantsWebRequest = ext.requestedPermissions.contains(.webRequest)
         let talksToPages = ext.hasInjectedContent && ext.hasBackgroundContent
 
+        // Both used to fail for the identical reason — WebKit could not map a frame back to a tab
+        // without the tab's own `WKWebView`, and `WebPage` handed none out. On macOS it now does
+        // (`WebViewResponder`'s tab→`WKWebView` map, built for keyboard focus and reused here); the
+        // phone has no equivalent yet. The messaging line is the less certain of the two: a purpose-
+        // built test confirmed `scripting.insertCSS` reaches the page, but content-script-to-
+        // background messaging through the same fix has not been exercised the same way — see
+        // docs/extensions.md.
         if ext.hasInjectedContent {
-            details.append(String(localized: "Its content scripts run in pages, but cannot message the extension — and it cannot message them."))
+            details.append(String(localized: "Its content scripts run in pages and should now reach their extension, and be reached back — on macOS; unconfirmed on the phone."))
         }
         if wantsScripting {
-            details.append(String(localized: "`scripting.executeScript` and `scripting.insertCSS` fail here; scripts it registers do run."))
+            details.append(String(localized: "`scripting.executeScript` and `scripting.insertCSS` now reach the page — on macOS; the phone has no live web view to find yet."))
         }
         if wantsWebRequest {
             details.append(String(localized: "`webRequest` is not available in WebKit at all."))
@@ -174,16 +181,23 @@ enum ExtensionInstaller {
             details.append(String(localized: "Background, storage, alarms, tabs and its popup work."))
         }
 
+        // Kept apart rather than folded into one switch, because the two things that used to share a
+        // summary no longer share a confidence level: `webRequest` is a wall WebKit never built a door
+        // in, `scripting.*` is a door that opened on macOS and was watched opening (a purpose-built
+        // test, `scripting.insertCSS` actually changing a real page), and messaging is the same door
+        // with nobody yet standing on the other side to confirm it.
         let verdict: ExtensionCompatibility.Verdict
         let summary: String
-        switch (talksToPages || wantsWebRequest, ext.hasInjectedContent || wantsScripting) {
-        case (true, _):
+        if wantsWebRequest {
             verdict = .partial
-            summary = String(localized: "Works partly — anything it does inside a page will be broken.")
-        case (false, true):
+            summary = String(localized: "Works partly — `webRequest` is not available in WebKit at all.")
+        } else if wantsScripting {
+            verdict = .full
+            summary = String(localized: "Works — `scripting.executeScript` and `scripting.insertCSS` reach the page on macOS.")
+        } else if talksToPages {
             verdict = .partial
-            summary = String(localized: "Works partly — its content scripts run, but it cannot reach into pages beyond them.")
-        default:
+            summary = String(localized: "Works partly — its content scripts should now reach the extension on macOS, unconfirmed end to end.")
+        } else {
             verdict = .full
             summary = String(localized: "Works — nothing it asks for depends on reaching into a page.")
         }

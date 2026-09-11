@@ -61,6 +61,14 @@ final class WebViewResponder {
         views[tabID] = nil
     }
 
+    /// The live `WKWebView` behind a tab, for the one caller outside this file that has no other way
+    /// to reach it: `ExtensionTabAdapter.webView(for:)`, which `WKWebExtension` needs to give a content
+    /// script anything to talk to (`docs/extensions.md`). The same reference `focus(_:)` trusts for the
+    /// keyboard — matched by frame containment, re-claimed on every layout pass — not a fresh guess.
+    func webView(for tabID: UUID) -> WKWebView? {
+        views[tabID]?.view as? WKWebView
+    }
+
     /// Hands the keyboard to a window's page, or — for a window that has no page to hand it to — takes
     /// it off whatever had it.
     ///

@@ -5772,6 +5772,56 @@
           }
         }
       }
+    },
+    "Its content scripts run in pages and should now reach their extension, and be reached back — on macOS; unconfirmed on the phone.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Его content-скрипты работают на страницах и теперь должны достучаться до расширения, и оно до них — на macOS; на телефоне не проверено."
+          }
+        }
+      }
+    },
+    "`scripting.executeScript` and `scripting.insertCSS` now reach the page — on macOS; the phone has no live web view to find yet.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "`scripting.executeScript` и `scripting.insertCSS` теперь достают до страницы — на macOS; на телефоне пока нечего искать."
+          }
+        }
+      }
+    },
+    "Works partly — `webRequest` is not available in WebKit at all.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Работает частично — `webRequest` в WebKit просто нет."
+          }
+        }
+      }
+    },
+    "Works — `scripting.executeScript` and `scripting.insertCSS` reach the page on macOS.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Работает — `scripting.executeScript` и `scripting.insertCSS` достают до страницы на macOS."
+          }
+        }
+      }
+    },
+    "Works partly — its content scripts should now reach the extension on macOS, unconfirmed end to end.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Работает частично — его content-скрипты теперь должны достучаться до расширения на macOS, но это не проверено целиком."
+          }
+        }
+      }
     }
   },
   "version": "1.1"

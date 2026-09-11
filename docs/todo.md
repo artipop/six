@@ -49,16 +49,21 @@ when `ReadablePage` learns to read a PDF `WebPage`.
 ## Extensions: the tab a content script cannot see
 
 Hosting is built ([extensions.md](extensions.md)): install from a folder or an archive, a controller per profile,
-actions in the top bar, permission prompts, and a compatibility verdict shown before anything runs. What is left is
-the one gap behind it — `WKWebExtensionTab.webView(for:)` needs the live `WKWebView` and `WebPage` does not hand its
-own out — which costs messaging between a content script and its extension, `scripting.executeScript` and
-`insertCSS`, and (as far as can be told) uBlock Origin Lite's per-tab logic.
+actions in the top bar, permission prompts, and a compatibility verdict shown before anything runs. The one gap
+behind it — `WKWebExtensionTab.webView(for:)` needed the live `WKWebView` and `WebPage` hands its own out to
+nobody — now answers on macOS, through `WebViewResponder`'s existing per-tab lookup (a view-tree walk for
+`is WKWebView`, matched by frame containment — not reflection into `WebPage`'s own storage, which was tried,
+works, and stays unused). What that closes — messaging between a content script and its extension,
+`scripting.executeScript`/`insertCSS`, uBlock Origin Lite's per-tab logic — is confirmed at the API level
+(`webView(for:)` now answers the right tab correctly) but **not yet re-measured end to end**: a fresh MV3 test
+extension hit a content-script-injection snag unrelated to this method in the same session, so the "what works"
+table in [extensions.md](extensions.md) still describes the state from before this fix. iOS has no view-tree walk
+yet and still answers `nil`.
 
-Reflection into `WebPage`'s private storage would close it and is deliberately not used. The move that might
-actually close it is upstream: nothing on bugs.webkit.org mentions `WKWebExtension` and `WebPage` together, so this
-wants a bug (and a Feedback) asking for the backing view — or for a way to associate a `WebPage` with a tab — with
-the measurements from [extensions.md](extensions.md) as the case. `WebPage.isInspectable` is the precedent: something
-that lives on `WKWebView`, lifted into the new API.
+The move that would close it without a workaround is upstream: nothing on bugs.webkit.org mentions `WKWebExtension`
+and `WebPage` together, so this wants a bug (and a Feedback) asking for the backing view — or for a way to associate
+a `WebPage` with a tab — with the measurements from [extensions.md](extensions.md) as the case. `WebPage.isInspectable`
+is the precedent: something that lives on `WKWebView`, lifted into the new API.
 
 Smaller things that follow once the boundary moves (or that are worth doing anyway): a workspace per extension
 window rather than one window per profile strip, `commands` bound to real keys, `menus` in the page context menu,
@@ -68,8 +73,9 @@ and extension pages (options, new-tab override) as ordinary columns rather than 
 
 Two separate walls in this document are the same wall — WebKit can do the thing, the macOS SDK does not expose it:
 
-- `WKWebExtensionTab.webView(for:)` needs a tab's `WKWebView`, and `WebPage` keeps its own private, so an
-  extension's content scripts run but cannot talk to it ([extensions.md](extensions.md));
+- `WKWebExtensionTab.webView(for:)` needs a tab's `WKWebView`, and `WebPage` keeps its own private — macOS now
+  answers this through a view-tree walk instead of waiting on Apple, but the walk is still a workaround for a wall
+  the SDK put there in the first place ([extensions.md](extensions.md));
 - there is no public way to *open* Web Inspector on your own page — the whole word "Inspector" appears in exactly
   one public header, as `WKWebView.isInspectable` — so six can only let Safari attach ([devtools.md](devtools.md)).
 

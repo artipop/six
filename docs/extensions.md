@@ -4,11 +4,22 @@ six hosts browser extensions on `WKWebExtension` (public API since macOS 15.4): 
 into `WebPage.Configuration.webExtensionController`, a `WKWebExtensionContext` per extension, and the app answers
 for its tabs and windows through `WKWebExtensionTab` / `WKWebExtensionWindow`.
 
-The one thing six cannot provide is `WKWebExtensionTab.webView(for:)` — that wants the live `WKWebView` behind a
-tab, and `WebPage` does not hand its own out. Other WebKit browsers that host extensions do not have this problem
-because they own a `WKWebView` per tab to begin with; six is a `WebPage` browser on purpose, and reaching into
-private storage to get at the view underneath is not a thing to build on. So the gap stays, and what it costs is
-**measured** rather than guessed — with a purpose-built MV3 extension and with a real one (uBlock Origin Lite).
+**`WKWebExtensionTab.webView(for:)`, on macOS, answers now.** It wants the live `WKWebView` behind a tab, and
+`WebPage` hands out none of its own — but `WebViewResponder` already had one on file per tab, for keyboard focus
+(⌥→ moving the rail's selection without AppKit's first responder following it). Found by walking the rendered view
+tree for `is WKWebView` and matched by frame containment, not by `Mirror`-ing into `WebPage`'s private storage — a
+different and sturdier bet than the one this page used to reject outright, and confirmed on the wire: `webView(for:)`
+is now called repeatedly by WebKit itself and answers with the right tab's `WKWebView`, at the right URL, where it
+always answered `nil` before. The phone has no equivalent view-tree walk yet, so it still answers `nil` there.
+
+**What that closes is not yet re-measured.** The table below is the state *before* this fix, and a fresh MV3 test
+extension built to re-run it hit a wall one step short of the tables' own tests — `content_scripts` never fired in
+this environment for a reason that looks environmental rather than about `webView(for:)` (content-script injection
+is WebKit's own static match against a manifest and never calls this method at all), but it means the specific
+"works now" claims below are a prediction from what `webView(for:)` returning correctly implies, not yet a
+measurement with the same rigor as the rest of this page. Whoever re-runs it: confirm `runtime.sendMessage` /
+`tabs.sendMessage` / `scripting.executeScript` / `scripting.insertCSS` and uBlock Origin Lite's per-tab logic again,
+each on its own, before moving this out of "believed fixed."
 
 **Install** from **Extensions › Manage Extensions…**: a folder, a `.zip`, a `.crx` or an `.xpi`. Before anything
 runs, the dialog says what the extension is, what it will be granted, and — from its manifest alone — what will not
@@ -102,15 +113,18 @@ other extension; it simply does not block.
 
 ## To revisit
 
-The whole "does not work" table is one missing method. The routes out, in the order they would be welcome:
+The whole "does not work" table was one missing method, and macOS now answers it — see above, and re-measure before
+trusting the table below. Two routes stayed out on purpose even so:
 
-1. **Apple exposes the backing view** (or a way to associate a `WebPage` with a `WKWebExtensionTab`). `WebPage`
-   already exposes `isInspectable`, so there is precedent for lifting something that lives on `WKWebView` up to the
-   new API. Nothing about this exists on bugs.webkit.org today — a search for `WKWebExtension` + `WebPage` finds
-   nothing at all — so the useful move is to file it, with the measurements in this document as the case.
-2. **Reflection into `WebPage`'s private storage** — verified to work on this SDK, and deliberately not used.
-   Private layout is not a foundation, and an extension host that silently breaks on a WebKit update is worse than
-   one whose limits are known and stated.
+1. **Apple exposes the backing view** (or a way to associate a `WebPage` with a `WKWebExtensionTab`), which would
+   make `WebViewResponder`'s workaround unnecessary rather than merely working. `WebPage` already exposes
+   `isInspectable`, so there is precedent for lifting something that lives on `WKWebView` up to the new API. Nothing
+   about this exists on bugs.webkit.org today — a search for `WKWebExtension` + `WebPage` finds nothing at all — so
+   the useful move is to file it, with the measurements in this document as the case.
+2. **`Mirror`-ing into `WebPage`'s private storage** — verified to work on this SDK, and still deliberately not
+   used, unlike the view-tree walk above. The two are not the same bet: a property Apple renames or restructures
+   next OS is invisible to the type checker and this fails silently, where the view-tree walk fails by finding
+   nothing (a `nil` `webView(for:)`, the same answer as before the fix) rather than finding the wrong thing.
 3. **A `WKWebView` per tab**, which is what every other WebKit browser with extension support does — and which is
    exactly the thing six exists not to do.
 4. **A WebKit build of six's own**, which would also close the devtools wall and costs accordingly — the price is

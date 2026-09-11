@@ -14,9 +14,9 @@ import WebKit
 /// record.
 ///
 /// **What works here and what does not is known, measured, and shown before installing** — see
-/// [docs/extensions.md](../../docs/extensions.md). The short of it: a content script runs, but the
-/// extension cannot talk to it, because `WKWebExtensionTab.webView(for:)` wants the live `WKWebView`
-/// behind a page and `WebPage` does not hand its own out. Every install says what that costs *this*
+/// [docs/extensions.md](../../docs/extensions.md). On macOS, `ExtensionTabAdapter.webView(for:)`
+/// answers from `WebViewResponder`'s own map of live `WKWebView`s, the same one keyboard focus
+/// trusts; the phone has nothing to hand back yet. Every install says what that costs *this*
 /// extension (`ExtensionInstaller.compatibility`), rather than letting someone find out.
 @MainActor
 @Observable
