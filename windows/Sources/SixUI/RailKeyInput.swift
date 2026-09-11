@@ -103,7 +103,7 @@ extension RailWindow {
         case 0x14: model.openColumn()                                 // T
         case 0x11: model.closeColumn()                                // W
         case 0x13: focusedWebView?.reload()                           // R
-        case 0x20: model.toggleFocusedPageBookmark()                  // D — the Mac's ⌘D
+        case 0x20: bookmarkFocusedPage()                              // D — the Mac's ⌘D
         case 0x23: showHistory()                                      // H — the Linux front's too
         case 0x1A: focusedWebView?.goBack()                           // [
         case 0x1B: focusedWebView?.goForward()                        // ]

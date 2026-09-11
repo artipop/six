@@ -75,12 +75,56 @@ final class BookmarkIndexer {
 
     // MARK: Saving
 
+    /// Saves a page now and reads it a moment later.
+    ///
+    /// Two writes rather than one, and the order is the point. The row exists before the page is
+    /// read, so a star points the right way the moment it is pressed; `ReadablePage` then runs in
+    /// the page and the second save replaces the title-only passage with the whole text. A page that
+    /// cannot be read — a canvas, a PDF, one that has not drawn anything yet — keeps the first save,
+    /// which is still a bookmark and still findable by its title.
+    ///
+    /// The Mac reads first and saves after, and can afford to: its star waits on a `Task` with a
+    /// spinner beside it. The embedding the first save queued is not wasted work either way — `embed`
+    /// re-reads the passages in the transaction that writes the vectors, and a run that finds them
+    /// replaced leaves the row unstamped for the second save's own run.
+    @discardableResult
+    func save(url: URL, title: String, profileID: UUID, reading page: some PageScriptRunner) throws -> Bookmark {
+        let saved = try save(url: url, title: title, profileID: profileID)
+        Task { await read(page, into: saved.id, url: url, title: title, profileID: profileID) }
+        return saved
+    }
+
+    private func read(_ page: some PageScriptRunner, into id: Bookmark.ID, url: URL, title: String, profileID: UUID) async {
+        let readable: ReadablePage
+        do {
+            readable = try await ReadablePage.extract(from: page)
+        } catch {
+            Log.info(.bookmarks, "kept \(url) as its title only: \(error.localizedDescription)")
+            return
+        }
+        // The star may have been pressed again while the page was being read. A bookmark removed
+        // meanwhile stays removed, and one removed and saved again has a reader of its own.
+        guard bookmark(for: url, in: profileID)?.id == id else { return }
+        // The page's own claim first, the way the Mac takes it; a guess only where there is none.
+        let language = readable.language.isEmpty
+            ? LanguageGuess.source(claimed: "", sample: String(readable.text.prefix(2000))) ?? ""
+            : readable.language
+        do {
+            try save(url: url, title: readable.title.isEmpty ? title : readable.title,
+                     excerpt: readable.excerpt, siteName: readable.siteName, language: language,
+                     text: readable.text, profileID: profileID)
+            Log.debug(.bookmarks, "read \(readable.text.count) characters of \(url)")
+        } catch {
+            Log.error(.bookmarks, "could not save the text of \(url): \(error)")
+        }
+    }
+
     /// Saves a page and queues its passages for embedding.
     ///
-    /// `text` is the page's readable body, and a front that cannot extract one yet passes `""` —
-    /// the title and the excerpt are still a passage, still embedded, and still findable by
-    /// meaning, which is the difference between a bookmark list and a search. `TextChunker` puts
-    /// them in chunk 0 for exactly this reason.
+    /// `text` is the page's readable body, and `""` where there is none — the title and the
+    /// excerpt are still a passage, still embedded, and still findable by meaning, which is the
+    /// difference between a bookmark list and a search. `TextChunker` puts them in chunk 0 for
+    /// exactly this reason.
     @discardableResult
     func save(
         url: URL, title: String, excerpt: String = "", siteName: String = "", language: String = "",

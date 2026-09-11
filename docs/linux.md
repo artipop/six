@@ -145,8 +145,8 @@ What this front provides is three files in `SixBrowser`, and they are small beca
 is large:
 
 - **`PageScript`** — `webkit_web_view_call_async_javascript_function`, which
-  `TranslationSegment.swift` has been asking for in a comment since translation was written, and
-  which the readable-page extractor and highlights will want next. JSON in, JSON out. The argument
+  `TranslationSegment.swift` has been asking for in a comment since translation was written. The
+  readable-page extractor behind bookmarks runs through it too; highlights will want it next. JSON in, JSON out. The argument
   does not travel as a `GVariant`: `a{sv}` would mean `g_variant_builder_add`, which is variadic and
   out of Swift's reach, and a JSON document is also a JavaScript expression — so it is written into
   the top of the script as a string literal instead.

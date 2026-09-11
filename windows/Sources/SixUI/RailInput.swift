@@ -99,7 +99,7 @@ extension RailWindow {
         case .address:
             focusAddressBar()
         case .bookmark:
-            model.toggleFocusedPageBookmark()
+            bookmarkFocusedPage()
         case .workspaceUp:
             model.focusWorkspace(-1)
         case .workspaceDown:

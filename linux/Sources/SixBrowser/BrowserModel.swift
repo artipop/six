@@ -549,16 +549,20 @@ public final class BrowserModel {
                 trace("bookmark removed \(url)")
             } else {
                 ensureEmbedder()
-                // What is embedded is the title and the address: this front has no readable-text
-                // extractor wired yet, and `TextChunker` puts those in a passage of their own, which
-                // is what makes even this much findable by meaning rather than only by substring.
-                // `PageScript` is here now, so `ReadablePage` is the next thing to reach for.
-                try bookmarks.save(url: url, title: titles[focused] ?? "", profileID: profileID)
+                // Saved at once so the star turns, then read in the page for its text — the same
+                // `ReadablePage` the Mac runs, through `PageScript`. A column whose page has been
+                // discarded has nothing to read, and is saved as its title and address, which
+                // `TextChunker` still makes a passage of its own and findable by meaning.
+                let title = titles[focused] ?? ""
+                if let page = LivePage.focused(focused) {
+                    try bookmarks.save(url: url, title: title, profileID: profileID, reading: page)
+                } else {
+                    try bookmarks.save(url: url, title: title, profileID: profileID)
+                }
                 trace("bookmark added \(url)")
             }
         } catch {
-            FileHandle.standardError.write(Data("[six] bookmark failed: \(error)
-".utf8))
+            Log.error(.bookmarks, "bookmark failed for \(url): \(error)")
         }
     }
 

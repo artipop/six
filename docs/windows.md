@@ -388,8 +388,8 @@ front and, above the seam, with the Mac. What this front provides is three thing
   own JavaScript here. One argument goes in named `input`, carrying the arguments as JSON text; one
   string comes back. That is deliberate: the C API hands a result back as an object graph of
   `WKString`/`WKNumber`/`WKArray`/`WKDictionary`, and walking it into Swift values is a hundred
-  lines that buy nothing when both sides can serialise a string. Everything else this front still
-  owes — the readable-page extractor, highlights, `get_selection` — needs this same call.
+  lines that buy nothing when both sides can serialise a string. The readable-page extractor
+  behind bookmarks runs through it already; highlights and `get_selection` will need the same call.
 - **`RailSandbox`** — a real `WKView` in a one-pixel `WS_POPUP` at −32000,−32000 that is never
   shown. WebKit's Windows port draws into an `HWND` and a view without one is not a view, so the
   window is not optional. Two preferences are set on it that no browsing page gets —
