@@ -3,6 +3,7 @@
 
 #include <windows.h>
 #include <windowsx.h>
+#include <commdlg.h>
 
 // Win32 pieces Swift cannot reach: <windowsx.h>'s macros, three ClangImporter rough edges, and the
 // WPARAM/LPARAM arithmetic that is easy to get subtly wrong by hand. Wrapped here so the C compiler
@@ -50,6 +51,26 @@ static inline void *SixRailGetUserData(HWND hwnd) {
 // away. Same rough edge as `SixRailKeyDown` above, same answer: keep it an `int`.
 static inline int SixRailTrackPopupMenu(HMENU menu, unsigned flags, int x, int y, HWND owner) {
     return (int)TrackPopupMenu(menu, flags, x, y, 0, owner, NULL);
+}
+
+// `GetOpenFileNameW`, filled in here because `OPENFILENAMEW` is twenty-odd fields Swift would have to
+// zero and spell out, and its flags are macros. `buffer` comes back as one full path, or — several
+// chosen, under `OFN_EXPLORER` — the folder, then each name, NUL-separated, ending in two NULs.
+// `int` for the reason `SixRailKeyDown` gives.
+static inline int SixRailOpenFiles(HWND owner, LPCWSTR title, LPCWSTR filter, int multiple,
+                                   LPWSTR buffer, DWORD capacity) {
+    OPENFILENAMEW dialog;
+    ZeroMemory(&dialog, sizeof dialog);
+    dialog.lStructSize = sizeof dialog;
+    dialog.hwndOwner = owner;
+    dialog.lpstrTitle = title;
+    dialog.lpstrFilter = filter;
+    dialog.lpstrFile = buffer;
+    dialog.nMaxFile = capacity;
+    dialog.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_HIDEREADONLY | OFN_NOCHANGEDIR
+        | (multiple ? OFN_ALLOWMULTISELECT : 0);
+    buffer[0] = 0;
+    return GetOpenFileNameW(&dialog) ? 1 : 0;
 }
 
 #endif

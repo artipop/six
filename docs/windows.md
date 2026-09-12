@@ -844,6 +844,42 @@ focused column asks for the camera and the microphone through `RailModel.request
 callback makes — and the answer is logged under `[browser]`. `SIX_MOCK_CAPTURE=1` turns WebKit's mock
 devices on, for an engine that has MediaStream to mock.
 
+## The page's own dialogs
+
+`alert()`, `confirm()`, `prompt()` and `<input type=file>` go through `RailWebView`'s UI client —
+`runJavaScriptAlert`, `Confirm`, `Prompt` and `runOpenPanel`, all in the `WKPageUIClientV6` the media request
+already used. Left `nil`, WebKit answers each itself and always says no: measured before this was written, a page
+that put its answers in its title read `confirm=false prompt=null` with nothing on screen, and a file input never
+opened — the browser that quietly cannot upload a file, which the Mac's `PageDialogs` exists to prevent.
+
+- **The three dialogs** are `RailPageDialog`: an owned popup over the rail with the site in its caption
+  ("example.com says"), OK and Cancel, and a field for a prompt with the page's default selected. `Enter` is OK and
+  `Esc` Cancel, out of the queue through `route`, like the list windows. Not `MessageBoxW`: a prompt needs a field
+  Windows has no box for, and a message box is a modal loop in which nothing drains the main queue, so every `Task`
+  in the browser would stop with the one page that asked. One is on screen at a time and a second page asking
+  waits (`waitingDialogs`). A column closed or discarded with a question up answers it Cancel, and so does closing
+  the browser — `RailWebView.destroy` holds a Cancel for every listener it still owes, because the page's
+  JavaScript is suspended inside each one.
+- **The file picker** is `GetOpenFileNameW` — `SixRailOpenFiles` in `CRailInterop`, linked against `comdlg32` —
+  opened one turn of the main queue after WebKit's callback rather than inside it, with the input's `accept`
+  extensions as the first filter and everything as the second. **A folder (`webkitdirectory`) is refused for now:**
+  that picker is COM's `IFileOpenDialog`.
+- The log says what kind, from which site, how long and whether it was OK — never the text, never what was typed,
+  never a path.
+
+Measured end to end in an isolated run: an alert, a confirm answered OK, one answered Cancel, a prompt offering
+`dflt` answered `typed` — the page's title came back `c1=true c2=false p=typed`; a click on a full-page file input
+opened the picker as "This page is asking for a file", and choosing a file came back to the page as
+`file=pick-me.txt n=1`. Keys were posted to the dialog's own window and the click to the
+`WebKit2WebViewWindowClass` child, so none of it needed the foreground, and reading a control's text from outside
+takes `WM_GETTEXT` — `GetWindowText` answers empty for another process's `EDIT`, which looked like a missing default.
+
+**Test pages want a throwaway `LOCALAPPDATA`.** The rail comes back after a relaunch and `SIX_URL` adds a column to
+it, so a test page from the last run is restored beside this run's and asks its questions too — two pages' dialogs
+interleaved, which read as dialogs arriving in the wrong order. Starting `six-windows.exe` directly with
+`LOCALAPPDATA` pointed at a fresh scratch folder gives it an empty database and an empty rail; the script cannot do
+this for you, because it finds the toolchain through the same variable.
+
 ## The list windows
 
 History and Site Permissions are one type, `RailListPanel`: an owned popup window — a frame of its own,

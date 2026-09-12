@@ -38,6 +38,11 @@ public final class RailWindow {
     var thumbnailDue: [Foundation.UUID: Date] = [:]
     /// History or Site Permissions, when one is open.
     var listPanel: RailListPanel?
+    /// A page's `alert()`, `confirm()` or `prompt()` on screen, which column it belongs to, and the
+    /// ones waiting behind it (`RailPageDialog`).
+    var pageDialog: RailPageDialog?
+    var pageDialogTab: Foundation.UUID?
+    var waitingDialogs: [QueuedPageDialog] = []
 
     /// Translating the page you are reading. Made on first use — it opens a web process of its own
     /// for the engine, and a reader who never translates anything should never pay for one.
@@ -164,7 +169,9 @@ public final class RailWindow {
     /// `true` swallows the message. Only what actually matched is swallowed: `⌥F4`, `⌥Space`, the
     /// page's own keys and everything typed into the address bar go on being somebody else's.
     func route(_ message: MSG) -> Bool {
-        // An open list has its own keys, and is not a child of this window for the check below.
+        // An open list has its own keys, and is not a child of this window for the check below; so
+        // does a page's dialog, which is asked first because it is the one waiting for an answer.
+        if let pageDialog, pageDialog.route(message) { return true }
         if let listPanel, listPanel.route(message) { return true }
         guard let hwnd, let target = message.hwnd,
               target == hwnd || IsChild(hwnd, target) else { return false }
@@ -247,6 +254,7 @@ public final class RailWindow {
 
         case WM_DESTROY:
             if let hwnd { KillTimer(hwnd, Self.pageStateTimer) }
+            dismissPageDialogs()
             listPanel?.close()
             for view in webViews.values { view.destroy() }
             webViews.removeAll()

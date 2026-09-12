@@ -63,6 +63,11 @@ is worth saying out loud: a browser built on these APIs answers all four with
 "no" by default, which means quietly not being able to upload a file. Here they
 are real.
 
+On Windows a dialog comes up as a small window over the browser, and its title
+says which site is asking; `Enter` answers **OK**, `Esc` answers **Cancel**. A
+second page asking waits its turn. Uploading a whole folder does not work there
+yet: the page is told the choice was cancelled.
+
 ## What is not there yet
 
 - **screen sharing** (`getDisplayMedia`);

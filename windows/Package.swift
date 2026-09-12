@@ -76,7 +76,9 @@ let package = Package(
                 "SixBrowser", "CRailInterop", "CWebKit2",
                 .product(name: "SixCore", package: "six")
             ],
-            swiftSettings: [.defaultIsolation(MainActor.self)]
+            swiftSettings: [.defaultIsolation(MainActor.self)],
+            // The file picker behind `<input type=file>` (`SixRailOpenFiles`).
+            linkerSettings: [.linkedLibrary("comdlg32")]
         ),
         .executableTarget(
             name: "six-windows",

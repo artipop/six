@@ -176,6 +176,14 @@ extension RailWindow {
                                microphone: request.microphone, answer: request.answer)
             invalidate()
         }
+        created.onDialog = { [weak self] dialog in
+            guard let self else { return dialog.answer(nil) }
+            askPage(dialog, tabID: tabID)
+        }
+        created.onChooseFiles = { [weak self] choice in
+            guard let self else { return choice.answer(nil) }
+            chooseFiles(choice, tabID: tabID)
+        }
         created.load(model.url(for: tabID))
         webViews[tabID] = created
         return created
@@ -186,6 +194,7 @@ extension RailWindow {
     private func discardWebView(_ id: Foundation.UUID) {
         guard let view = webViews[id] else { return }
         if visibleViews.contains(id) { captureThumbnail(id) }
+        forgetPageDialogs(for: id)
         view.destroy()
         webViews[id] = nil
         visibleViews.remove(id)
@@ -201,6 +210,7 @@ extension RailWindow {
     private func pruneClosedWebViews() {
         let openIDs = model.allTabIDs
         for (id, view) in webViews where !openIDs.contains(id) {
+            forgetPageDialogs(for: id)
             view.destroy()
             webViews[id] = nil
             visibleViews.remove(id)

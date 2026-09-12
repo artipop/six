@@ -189,6 +189,39 @@ final class RailWebView {
         let answer: (Bool) -> Void
     }
 
+    /// Told when the page calls `alert()`, `confirm()` or `prompt()`. The page's JavaScript is
+    /// suspended until `answer` is called — `nil` is Cancel, anything else is OK and, for a prompt,
+    /// what was typed. Nobody listening is WebKit's own answer: the alert gone unseen, the confirm
+    /// refused, the prompt left null.
+    var onDialog: ((PageDialog) -> Void)?
+
+    struct PageDialog {
+        enum Kind { case alert, confirm, prompt(defaultText: String) }
+        /// Who is speaking: the host of the frame's origin, a subframe's own rather than the page's.
+        let host: String
+        let message: String
+        let kind: Kind
+        let answer: (String?) -> Void
+    }
+
+    /// Told when an `<input type=file>` is clicked. `answer` takes the files chosen, or `nil` for
+    /// Cancel; until then the input waits.
+    var onChooseFiles: ((FileChoice) -> Void)?
+
+    struct FileChoice {
+        let allowsMultiple: Bool
+        /// `webkitdirectory`: a folder rather than files.
+        let allowsDirectories: Bool
+        /// From the input's `accept`, without the dots. MIME types are not among them.
+        let extensions: [String]
+        let answer: ([URL]?) -> Void
+    }
+
+    /// The Cancel for every question still on screen or in a queue, so a view torn down in the middle
+    /// of one lets its page go rather than leaving it suspended — and the listener retained — for
+    /// the life of the process.
+    private var owed: [Foundation.UUID: () -> Void] = [:]
+
     /// Where `setFrame` and `setVisible` last put the view, so a repaint that asks again for the same
     /// thing costs nothing. Every visible column is re-placed on every repaint, and a `MoveWindow`
     /// with `bRepaint` set repaints the whole page each time.
@@ -257,9 +290,16 @@ final class RailWebView {
         onFinishNavigation?()
     }
 
-    /// The one UI-client callback six answers: a page wanting the camera or the microphone. Version 6
-    /// is the oldest layout that has it (it arrived in 5); every other callback is left `nil`, which
-    /// is WebKit's own default for each — the same as having no UI client at all.
+    /// What the page asks of the person in front of it: the camera or the microphone, its own
+    /// `alert()`, `confirm()` and `prompt()`, and the file picker. Version 6 is the oldest layout that
+    /// has all of them — the listener-based dialogs arrived in it, the media request in 5 — and every
+    /// callback left `nil` is WebKit's own default for it.
+    ///
+    /// That default is why the dialogs are here at all: it dismisses an alert unseen, answers
+    /// `confirm()` false and `prompt()` null, and never opens a picker. Measured before this was
+    /// written, on a page that put its answers in its title: `confirm=false prompt=null`, with
+    /// nothing on screen — a browser that quietly cannot upload a file, the thing the Mac's
+    /// `PageDialogs` says it exists to prevent.
     private func installUIClient() {
         var client = WKPageUIClientV6()
         client.base.version = 6
@@ -273,7 +313,131 @@ final class RailWebView {
             let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
             MainActor.assumeIsolated { webView.handleMediaRequest(asked, origin: site) }
         }
+        // The same thread argument as the media request, for each of these: WebKit calls them on the
+        // UI process's main thread, and the listener is answered there too, later.
+        client.runJavaScriptAlert = { _, text, _, origin, listener, clientInfo in
+            guard let clientInfo, let listener else { return }
+            nonisolated(unsafe) let asked = listener
+            nonisolated(unsafe) let said = text
+            nonisolated(unsafe) let site = origin
+            let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+            MainActor.assumeIsolated {
+                webView.presentDialog(.alert, message: said, origin: site, listener: asked) { _ in
+                    WKPageRunJavaScriptAlertResultListenerCall(asked)
+                }
+            }
+        }
+        client.runJavaScriptConfirm = { _, text, _, origin, listener, clientInfo in
+            guard let clientInfo, let listener else { return }
+            nonisolated(unsafe) let asked = listener
+            nonisolated(unsafe) let said = text
+            nonisolated(unsafe) let site = origin
+            let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+            MainActor.assumeIsolated {
+                webView.presentDialog(.confirm, message: said, origin: site, listener: asked) { value in
+                    WKPageRunJavaScriptConfirmResultListenerCall(asked, value != nil)
+                }
+            }
+        }
+        client.runJavaScriptPrompt = { _, text, defaultValue, _, origin, listener, clientInfo in
+            guard let clientInfo, let listener else { return }
+            nonisolated(unsafe) let asked = listener
+            nonisolated(unsafe) let said = text
+            nonisolated(unsafe) let offered = defaultValue
+            nonisolated(unsafe) let site = origin
+            let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+            MainActor.assumeIsolated {
+                let kind = PageDialog.Kind.prompt(defaultText: RailWebView.string(from: offered))
+                webView.presentDialog(kind, message: said, origin: site, listener: asked) { value in
+                    // A nil string is what makes `prompt()` return null, which is what Cancel means.
+                    let result = value.flatMap { typed in typed.withCString { WKStringCreateWithUTF8CString($0) } }
+                    WKPageRunJavaScriptPromptResultListenerCall(asked, result)
+                    if let result { WKRelease(UnsafeRawPointer(result)) }
+                }
+            }
+        }
+        client.runOpenPanel = { _, _, parameters, listener, clientInfo in
+            guard let clientInfo, let listener else { return }
+            nonisolated(unsafe) let asked = listener
+            nonisolated(unsafe) let wanted = parameters
+            let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+            MainActor.assumeIsolated { webView.presentFileChoice(wanted, listener: asked) }
+        }
         WKPageSetPageUIClient(page, &client.base)
+    }
+
+    /// One of the three dialogs, handed up with an answer that can only be given once.
+    ///
+    /// The listener is retained here and released after `reply`, because the answer comes long after
+    /// the callback has returned — after a person has read the message.
+    private func presentDialog(_ kind: PageDialog.Kind, message: WKStringRef?, origin: WKSecurityOriginRef?,
+                               listener: OpaquePointer, reply: @escaping (String?) -> Void) {
+        WKRetain(UnsafeRawPointer(listener))
+        let id = Foundation.UUID()
+        var answered = false
+        let answer: (String?) -> Void = { [weak self] value in
+            guard !answered else { return }
+            answered = true
+            self?.owed[id] = nil
+            reply(value)
+            WKRelease(UnsafeRawPointer(listener))
+        }
+        owed[id] = { answer(nil) }
+        guard let onDialog else { return answer(nil) }
+        onDialog(PageDialog(host: Self.host(of: origin), message: Self.string(from: message), kind: kind, answer: answer))
+    }
+
+    /// The file picker's question, the same way: retained, answered once, cancelled with the view.
+    private func presentFileChoice(_ parameters: WKOpenPanelParametersRef?, listener: WKOpenPanelResultListenerRef) {
+        let multiple = parameters.map { WKOpenPanelParametersGetAllowsMultipleFiles($0) } ?? false
+        let directories = parameters.map { WKOpenPanelParametersGetAllowsDirectories($0) } ?? false
+        let extensions = (parameters.map { Self.strings(WKOpenPanelParametersCopyAcceptedFileExtensions($0)) } ?? [])
+            .map { $0.hasPrefix(".") ? String($0.dropFirst()) : $0 }
+            .filter { !$0.isEmpty }
+        WKRetain(UnsafeRawPointer(listener))
+        let id = Foundation.UUID()
+        var answered = false
+        let answer: ([URL]?) -> Void = { [weak self] urls in
+            guard !answered else { return }
+            answered = true
+            self?.owed[id] = nil
+            if let urls, !urls.isEmpty {
+                // `file:///C:/…`: the form WebKit's own picker hands back, and the one it reads a
+                // path out of again. The array adopts the URLs, so releasing it releases them.
+                var items: [UnsafeRawPointer?] = urls.map { url in
+                    url.absoluteString.withCString { WKURLCreateWithUTF8CString($0) }.map { UnsafeRawPointer($0) }
+                }
+                let array = items.withUnsafeMutableBufferPointer { WKArrayCreateAdoptingValues($0.baseAddress, $0.count) }
+                // An empty array rather than nil for the MIME types: WebKit reads the argument as an
+                // array without asking whether it is one.
+                let noTypes = WKArrayCreate(nil, 0)
+                WKOpenPanelResultListenerChooseFiles(listener, array, noTypes)
+                if let array { WKRelease(UnsafeRawPointer(array)) }
+                if let noTypes { WKRelease(UnsafeRawPointer(noTypes)) }
+            } else {
+                WKOpenPanelResultListenerCancel(listener)
+            }
+            WKRelease(UnsafeRawPointer(listener))
+        }
+        owed[id] = { answer(nil) }
+        guard let onChooseFiles else { return answer(nil) }
+        onChooseFiles(FileChoice(allowsMultiple: multiple, allowsDirectories: directories,
+                                 extensions: extensions, answer: answer))
+    }
+
+    /// The host a dialog names as its speaker — the Mac's `PageDialogs.host(of:)`, and its fallback.
+    private static func host(of origin: WKSecurityOriginRef?) -> String {
+        let host = origin.map { takeString(WKSecurityOriginCopyHost($0)) } ?? ""
+        return host.isEmpty ? "This page" : host
+    }
+
+    /// A `WKArray` of `WKString`s this side owns — a `Copy` call's result — read and released.
+    private static func strings(_ array: WKArrayRef?) -> [String] {
+        guard let array else { return [] }
+        defer { WKRelease(UnsafeRawPointer(array)) }
+        return (0..<WKArrayGetSize(array)).compactMap { index in
+            WKArrayGetItemAtIndex(array, index).map { string(from: OpaquePointer($0)) }
+        }
     }
 
     /// Classify the request and hand it up. Screen sharing is a third thing, and six has no word for
@@ -401,6 +565,11 @@ final class RailWebView {
     }
 
     func destroy() {
+        // Every question this page is still waiting on is answered Cancel first: its JavaScript is
+        // suspended inside each of them, and the listeners are held until they are called.
+        let pending = Array(owed.values)
+        owed.removeAll()
+        for cancel in pending { cancel() }
         guard let hwnd else { return }
         scaleShims[shimKey(hwnd)] = nil
         DestroyWindow(hwnd)

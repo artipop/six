@@ -23,3 +23,6 @@
 #include <WebKit/WKUserMediaPermissionRequest.h>
 #include <WebKit/WKSecurityOriginRef.h>
 #include <WebKit/WKArray.h>
+// `<input type=file>`: what the input asks for, and the listener the chosen files go back through.
+#include <WebKit/WKOpenPanelParametersRef.h>
+#include <WebKit/WKOpenPanelResultListener.h>

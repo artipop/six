@@ -38,11 +38,11 @@ picker; **a second window** — `target=_blank`, `window.open`, `⌘`/middle-cli
 context menu on a link** (open beside, copy address — six took the Mac's over for exactly this); **a failed load**
 as a page that says so (`PageFailureView`) rather than a blank card; **the load line** (`LoadingLine`).
 
-- **Windows:** none of it. `RailWebView`'s `WKPageUIClientV6` sets only the media callback, everything else is
-  WebKit's default. The headers have all of it: `WKDownloadClient`, `WKPageUIClient` (alert/confirm/prompt, open
-  panel, `createNewPage`), `WKPageContextMenuClient`, `WKPageNavigationClient`'s failure callbacks. The user guide's
-  permissions page says the dialogs "work as everywhere" — true of the Mac, **unmeasured here**, and most likely
-  false: fix the page or the front, whichever is wrong.
+- **Windows:** **the dialogs are done** (2026-09-12): alert, confirm, prompt and the file picker, measured end to
+  end ([windows.md](windows.md#the-pages-own-dialogs)); a folder upload is still refused. They had been silently
+  answered no, which the guide's "work as everywhere" had not noticed. The rest is still WebKit's default, and the
+  headers have all of it: `WKDownloadClient`, `WKPageUIClient`'s `createNewPage`, `WKPageContextMenuClient`,
+  `WKPageNavigationClient`'s failure callbacks.
 - **Linux:** the same list: `WebKitDownload`, `script-dialog`, `run-file-chooser`, `decide-policy`,
   `context-menu` — [todo.md](todo.md#linux-what-the-third-front-still-owes-the-first) calls them one-to-one onto
   `PageDialogQueue` and the navigation decider.
