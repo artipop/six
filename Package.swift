@@ -96,6 +96,8 @@ let package = Package(
                 // JavaScript function body and every front can run one, so it is here beside the
                 // passages it feeds; only the Mac's `WebPage` door into it stays in the app.
                 "Bookmarks/ReadablePage.swift",
+                // …and the Markdown copy it becomes, written the same way by every front.
+                "Bookmarks/BookmarkFile.swift",
                 // The embedder those fronts run, which is E5 through transformers.js in a
                 // `PageSandbox` — the same bargain Bergamot makes, for the same reason, over the
                 // same seam. `ContextualEmbedder` and `MLXEmbedder` stay in the app: one is

@@ -295,8 +295,10 @@ their chunks and vectors (`six/Data/`, `six/Bookmarks/`, [architecture.md](archi
   by transformers.js in a `PageSandbox` (`WebEmbedder`). Measured on Windows; **Linux is written and unrun** — the
   container is on the Mac. Windows has the bookmark button and `⌃D` now, beside the address the way the Mac's is. A saved page
   is its whole text there too: `ReadablePage` is in `SixCore` and runs through `PageScriptRunner`, so the star saves
-  the row at once and replaces its title-only passage with the page's a moment later. What is still owed is somewhere
-  to *see* the library — neither front has a bookmarks window — and the Markdown copy beside the row.
+  the row at once and replaces its title-only passage with the page's a moment later. The Markdown copy is written
+  beside the row there as well (`BookmarkFile`). What is still owed is somewhere to *see* the library — Windows has no
+  bookmarks window, and Linux's `BookmarksSheet` searches titles and addresses only — and the hourly refresh, which
+  needs an off-screen page with the profile's cookies. Both are item 4 of [parity.md](parity.md).
 - **Linux build of the data layer.** ~~Verify early~~ — done, and it builds: GRDB, SQLiteData, sqlite-vec
   and the `@Table` macros all compile on Swift 6.3.3/aarch64, as do `AppDatabase`, `SettingsStore`, `History`
   and `Bookmark`. No fallback needed. What it costs is two pins: `swift-sharing` 2.10.0 and

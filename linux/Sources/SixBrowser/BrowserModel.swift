@@ -94,7 +94,11 @@ public final class BrowserModel {
             // recommendation does not re-embed somebody's library behind their back — the Mac's
             // `sixApp` makes the same decision in the same order.
             let chosen = SettingsStore(database: database).embeddingModel ?? EmbeddingModelChoice.recommended
-            bookmarks = BookmarkIndexer(database: database, choice: chosen)
+            let indexer = BookmarkIndexer(database: database, choice: chosen)
+            // One profile on this front, and its folder is already the one above: the Markdown
+            // copies go in its `Bookmarks/`, beside the site data, the way the Mac files them.
+            indexer.profileFolder = { [profiles] _ in profiles }
+            bookmarks = indexer
             // The profile id comes out of the settings table rather than being made fresh each
             // launch. Regenerating it orphans every visit the last run recorded — history that is
             // in the database and unreachable is worse than history that is missing.

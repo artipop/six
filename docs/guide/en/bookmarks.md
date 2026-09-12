@@ -93,8 +93,12 @@ profile's colour: a bookmark belongs to a profile rather than to the browser.
 What is saved is more than the title: the page is read whole, the same way the
 Mac reads it, so a bookmark is found by what the page says. The button answers at
 once and the text follows a moment later. A page with nothing to read — a picture
-drawn on a canvas, a PDF — stays a bookmark with its title. There is no Markdown
-copy beside the bookmark on these systems yet.
+drawn on a canvas, a PDF — stays a bookmark with its title.
+
+The Markdown copy is there too, in the same form as on the Mac: on Windows in
+`%LOCALAPPDATA%\six\Profiles\<profile>\Bookmarks`, on Linux in
+`~/.local/share/six/Profiles/Default/Bookmarks`. Remove the bookmark and the file
+goes with it.
 
 The model behind search by meaning is the same one — multilingual-e5-small — but
 it arrives by a different road: not through Metal, which those machines do not

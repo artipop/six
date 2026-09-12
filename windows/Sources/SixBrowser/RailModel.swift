@@ -123,7 +123,14 @@ public final class RailModel {
             // `sixApp` makes the same decision in the same order, and for the same reason.
             let choice = settings.embeddingModel ?? EmbeddingModelChoice.recommended
             if settings.embeddingModel == nil { settings.embeddingModel = choice }
-            bookmarks = BookmarkIndexer(database: database, choice: choice)
+            let indexer = BookmarkIndexer(database: database, choice: choice)
+            // Read from the rows rather than from `self`, which does not exist yet: a copy is kept
+            // in the folder the profile's cookies are already beside, by the same naming rule.
+            let rows = ProfileStore(database: database)
+            indexer.profileFolder = { id in
+                rows.all().first { $0.id == id }.map { Self.profileFolder(named: $0.name, id: $0.id) }
+            }
+            bookmarks = indexer
         } catch {
             fatalError("six: cannot open \(AppDatabase.url.path): \(error)")
         }
@@ -199,10 +206,15 @@ public final class RailModel {
     /// `Profiles/<name>/WebKit`, beside the bookmarks and the scratchpad the Mac keeps in that same
     /// folder, with the id standing in for a name that is empty or all separators.
     private static func storageFolder(named name: String, id: UUID) -> String {
+        nativePath(profileFolder(named: name, id: id).appending(path: "WebKit", directoryHint: .isDirectory))
+    }
+
+    /// `Profiles/<name>`: the site data, the bookmarks' Markdown copies and, one day, the scratchpad.
+    private static func profileFolder(named name: String, id: UUID) -> URL {
         let safe = name.replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: "\\", with: "-")
             .trimmingCharacters(in: .whitespaces)
-        return nativePath(AppSupport.folder("Profiles/\(safe.isEmpty ? id.uuidString : safe)/WebKit"))
+        return AppSupport.folder("Profiles/\(safe.isEmpty ? id.uuidString : safe)")
     }
 
     /// The native spelling, not `URL.path`: these strings are handed to WebKit, to GDI and to

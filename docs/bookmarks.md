@@ -231,6 +231,13 @@ with the title as its only passage, so the star turns at once, and a moment late
 The Mac does it the other way round because its star waits with a spinner. A page with nothing to read — a canvas, a
 PDF, a column whose page has been discarded — keeps the first save and is still found by its title.
 
+**The Markdown copy is theirs too.** `BookmarkFile` holds the file name rule and the front matter, and the Mac's
+`BookmarkStore` writes through it, so a copy is the same file whichever machine saved it. On the other fronts
+`BookmarkIndexer` writes it after the page is read, into `profileFolder(id)/Bookmarks/` — a closure each front sets:
+`%LOCALAPPDATA%\six\Profiles\<name>\` on Windows, `$XDG_DATA_HOME/six/Profiles/Default/` on Linux, which has one
+profile. Removing the bookmark removes the file. What these fronts do not do yet is move the folder when a profile is
+renamed — neither can rename one.
+
 **`SIX_EMBED_SELFTEST=1`** saves three pages — плов in Russian, pilaf in English, a page about reserved domain names —
 into a profile id of its own, embeds them, asks the index four questions and deletes what it wrote. Measured on this
 Windows machine (Debug, int8, one wasm thread): the model loads in 3.3 s and a two-passage page embeds in 0.2–0.35 s.
