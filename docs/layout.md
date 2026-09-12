@@ -404,7 +404,7 @@ button at zero opacity still answers the mouse, which is what makes the sliver i
 
 All of that is the **peek**, and it is a pointer idea: it is asked for by resting somewhere and answered by the rail
 leaning over. A finger has nowhere to rest — it is touching or it is not — so the whole arrangement has a switch,
-`BrowserState.peeksAtEdges` (`six://settings` ▸ Windows ▸ Peek at the Edges, stored in the settings table). Off, there is no lean and no outline: the
+`BrowserState.peeksAtEdges` (`six://configuration` ▸ Windows ▸ Peek at the Edges, stored in the settings table). Off, there is no lean and no outline: the
 slivers are simply drawn where they stand, at a little under half, and do their job on the way in — which is what the
 rail did before the peek existed, and the only thing that works without a pointer. It defaults on for macOS and off
 everywhere else, and it is chrome rather than geometry, so it lives in `BrowserState` and not in `NiriLayout`: a second

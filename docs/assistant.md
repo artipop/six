@@ -102,7 +102,7 @@ and a keylogger.
 
 ## Switching all of it off
 
-`Settings ▸ Assistant ▸ Use Language Models and Agents` (`SettingsStore.isAIEnabled`) is one switch
+`Configuration ▸ Assistant ▸ Use Language Models and Agents` (`ConfigurationStore.isAIEnabled`) is one switch
 over everything in this document, and over the agent panel, deep research and six's own MCP server.
 Off is not a greyed-out button:
 
@@ -122,7 +122,7 @@ remove search and the translate button for a reason nobody asked for.
 The switch is asked about once, on the first launch, in a window on the rail: `six://welcome`
 (`WelcomePage`, `BuiltInPage.welcome`). A page rather than a sheet, for the reason written on
 `BuiltInPage` — and answering it closes the window, which is the first thing a new person does with
-a column. `SettingsStore.hasAnsweredWelcome` is what keeps it to once; until it is answered the
+a column. `ConfigurationStore.hasAnsweredWelcome` is what keeps it to once; until it is answered the
 assistant is on, because six is a browser built around these models and a switch nobody has seen
 yet is not consent to have taken them away either.
 
@@ -162,7 +162,7 @@ serves to agents ([mcp.md](mcp.md)). Bookmarks are searchable from here too; the
 ## OpenAI-compatible
 
 **OpenAI-compatible** is one menu entry rather than a list of models, because what it points at is a
-setting: `six://settings` ▸ Assistant holds an endpoint, a model name and a key. Anything speaking
+setting: `six://configuration` ▸ Assistant holds an endpoint, a model name and a key. Anything speaking
 the OpenAI `/chat/completions` wire format answers there — OpenAI itself, a gateway, or llama.cpp
 and Ollama on this machine, which want no key at all, so an empty one sends no `Authorization`
 header rather than an empty one. `OPENAI_BASE_URL`, `OPENAI_MODEL` and `OPENAI_API_KEY` name any of

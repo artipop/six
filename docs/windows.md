@@ -686,7 +686,7 @@ matched, so `⌥F4`, `⌥Space` and plain `F10` still behave like system keys.
 - **Persistence of the rail, history, bookmarks.** The rail itself still lives in memory and goes on exit —
   which columns were open, where they stood, what they were showing. Profiles are the exception and
   are done (above): rows in `six.sqlite`, folders on disk. Nothing is in the way of the rest either:
-  `SixBrowser` imports `SixCore`, so `AppDatabase`, `SettingsStore`, `History` and `Bookmark` are all
+  `SixBrowser` imports `SixCore`, so `AppDatabase`, `ConfigurationStore`, `History` and `Bookmark` are all
   reachable, and the profiles are the proof that reading and writing them here works.
 - **The bar's right-hand half.** The Mac's carries downloads, the extension actions, the agent panel
   and the overview; this one has the bookmark button, the translate button, the workspace stepper and

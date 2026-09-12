@@ -37,7 +37,7 @@ class ConcurrentWriteTest {
     @Test
     fun manyWritersOnOneConnectionDoNotCollide() {
         val history = HistoryStore(database)
-        val settings = SettingsStore(database)
+        val settings = ConfigurationStore(database)
         val bookmarks = BookmarkStore(database) { File(directory, "Bookmarks") }
         val profile = UUID.randomUUID()
 
@@ -90,7 +90,7 @@ class ConcurrentWriteTest {
     fun aTransactionIsNotInterruptedByAnotherThread() {
         val inside = CountDownLatch(1)
         val other = CountDownLatch(1)
-        val settings = SettingsStore(database)
+        val settings = ConfigurationStore(database)
         var failure: Throwable? = null
 
         val thread = Thread {

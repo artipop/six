@@ -137,14 +137,14 @@ final class CertificateStore {
     /// whenever the list or the switches change.
     @ObservationIgnored private var dormant: [(id: String, certificates: Set<Data>)] = []
 
-    @ObservationIgnored private let settings: SettingsStore?
+    @ObservationIgnored private let settings: ConfigurationStore?
 
     /// Where imported certificates live. One file per bundle, copied in — the file the user picked
     /// may be on a volume that goes away, and a trust decision that stops working when a disk is
     /// unmounted would be a mystery rather than a setting.
     static var folder: URL { AppSupport.folder("Certificates") }
 
-    init(settings: SettingsStore?) {
+    init(settings: ConfigurationStore?) {
         self.settings = settings
         enabled = Set(settings?.decode(.trustedCertificates, as: [String].self) ?? [])
         reload()

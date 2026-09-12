@@ -79,11 +79,11 @@ final class BrowserState {
     /// Windows that were closed, oldest first — what ⌘⇧T puts back. Observed rather than ignored so
     /// the menu item can go grey the moment the last one is used up.
     private var closedWindows: [ClosedWindow] = []
-    /// Whether the strip's edge buttons wait to be found or stand on the screen (`SettingsStore`).
+    /// Whether the strip's edge buttons wait to be found or stand on the screen (`ConfigurationStore`).
     /// Chrome rather than geometry, so it lives here and not in `NiriLayout`: it changes nothing a
     /// second front end would have to agree with, only whether this one asks for a peek.
-    var peeksAtEdges = SettingsStore.peeksByDefault
-    @ObservationIgnored private let settings: SettingsStore
+    var peeksAtEdges = ConfigurationStore.peeksByDefault
+    @ObservationIgnored private let settings: ConfigurationStore
     /// Who the profiles are, in the database beside the history and the bookmarks that are keyed by
     /// them. Not the snapshot: see `ProfileStore` for what the snapshot losing them used to cost.
     @ObservationIgnored private let profileStore: ProfileStore
@@ -98,7 +98,7 @@ final class BrowserState {
     /// `pageControllers`, `blocker` and `devTools` are arguments rather than properties assigned
     /// afterwards because this initializer *builds and loads* the first windows: anything wired later
     /// would arrive after that page had already started loading.
-    init(snapshot: BrowserSnapshot? = nil, history: HistoryStore, settings: SettingsStore,
+    init(snapshot: BrowserSnapshot? = nil, history: HistoryStore, settings: ConfigurationStore,
          profileStore: ProfileStore, pageControllers: PageControllers? = nil, blocker: ContentBlocker? = nil,
          devTools: DevToolsStore? = nil, permissions: SitePermissions? = nil) {
         self.history = history

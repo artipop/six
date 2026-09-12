@@ -3,12 +3,12 @@ package org.deffun.six.core
 /**
  * The `settings` table: keys and strings, and nothing that knows what any of them mean.
  *
- * That is the shape the Mac's own `SettingsStore` was untangled into — each typed accessor lives
+ * That is the shape the Mac's own `ConfigurationStore` was untangled into — each typed accessor lives
  * beside the type it decodes, and what is left here knows only keys — and it is what makes the table
  * safe to share. A setting Android has never heard of is a row it reads, ignores and leaves alone,
  * rather than a decode failure in the middle of launch.
  */
-class SettingsStore(private val database: AppDatabase) {
+class ConfigurationStore(private val database: AppDatabase) {
 
     operator fun get(key: String): String? =
         database.prepare("""SELECT "value" FROM "settings" WHERE "key" = ?""") {

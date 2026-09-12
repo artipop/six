@@ -304,7 +304,7 @@ private struct PhoneColumn: View {
 /// The Mac keeps these out of sight until the pointer comes looking and answers by leaning the whole
 /// strip aside (`StripEdgeButton`, docs/layout.md). That is a pointer idea: a peek is asked for by
 /// *resting* somewhere, and a finger has nowhere to rest — it is touching or it is not. So here they
-/// simply stand where they are, which is what `SettingsStore.peeksAtEdges` being off looks like and
+/// simply stand where they are, which is what `ConfigurationStore.peeksAtEdges` being off looks like and
 /// why it defaults off away from macOS. Touch does not read the flag: honouring an "on" would leave
 /// the strip with no button anything could reach.
 private struct PhoneEdgeButtons: View {

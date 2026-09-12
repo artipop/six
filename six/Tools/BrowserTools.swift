@@ -47,12 +47,12 @@ final class BrowserToolCatalog {
     private let browser: BrowserState
     private let assistant: AssistantSettings
     private let bookmarks: BookmarkStore
-    private let settings: SettingsStore
+    private let settings: ConfigurationStore
     private let highlights: HighlightStore
     /// Console and network capture; the devtools tools say so plainly when it is off.
     var devTools: DevToolsStore?
 
-    init(browser: BrowserState, assistant: AssistantSettings, bookmarks: BookmarkStore, settings: SettingsStore, highlights: HighlightStore) {
+    init(browser: BrowserState, assistant: AssistantSettings, bookmarks: BookmarkStore, settings: ConfigurationStore, highlights: HighlightStore) {
         self.browser = browser
         self.assistant = assistant
         self.bookmarks = bookmarks
@@ -73,7 +73,7 @@ final class BrowserToolCatalog {
         The user also keeps *bookmarks*: pages saved as readable Markdown files (outside your working directory) and \
         indexed by meaning. `search_bookmarks` finds them by topic (any language), `list_bookmarks` lists them, \
         `read_bookmark` returns the saved text, `add_bookmark` saves a window's page. Bookmarks belong to a \
-        profile; the user chooses in Settings whether the assistant sees this profile's or every \
+        profile; the user chooses in Configuration whether the assistant sees this profile's or every \
         profile's, and a `profile` argument (a name, or `all`) overrides that. When a question is about \
         something the user read or saved, search the bookmarks before searching the web — `search_bookmarks` is the \
         way in, then `read_bookmark`; don't grep or read the `Bookmarks/*.md` files (or the original page) \
@@ -112,7 +112,7 @@ final class BrowserToolCatalog {
     private lazy var search = WebSearch()
 
     private static let bookmarkProfile = BrowserTool.Parameter(
-        name: "profile", description: "Profile name, or `all`. Default: the scope the user chose in Settings.")
+        name: "profile", description: "Profile name, or `all`. Default: the scope the user chose in Configuration.")
 
     private static let windowID = BrowserTool.Parameter(
         name: "window_id", description: "Window id from list_workspaces (a prefix is enough). Default: the focused window.")

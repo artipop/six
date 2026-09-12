@@ -9,7 +9,7 @@ struct ContentView: View {
     @Environment(AgentSessionStore.self) private var agentSession
     @Environment(AssistantStore.self) private var assistant
     @Environment(BookmarkStore.self) private var bookmarks
-    @Environment(SettingsStore.self) private var settings
+    @Environment(ConfigurationStore.self) private var settings
     @Environment(HighlightStore.self) private var highlights
     /// Six's own MCP server, here only so the assistant switch can stop and start it.
     @Environment(MCPHost.self) private var mcp
@@ -52,7 +52,7 @@ struct ContentView: View {
         // nothing: it only carries the `.translationTask` that can ask for a language download.
         .translationHost(browser.appleTranslator)
         // Not merely hidden: with the assistant switched off there is no panel to present, so the
-        // ACP process is never spawned and ⌘⇧A has nothing to toggle (`SettingsStore.isAIEnabled`).
+        // ACP process is never spawned and ⌘⇧A has nothing to toggle (`ConfigurationStore.isAIEnabled`).
         .inspector(isPresented: Binding(get: { showAgentPanel && settings.isAIEnabled },
                                         set: { showAgentPanel = $0 })) {
             AgentPanel()

@@ -65,7 +65,7 @@ same question every named workspace gets, whoever named it
 | `split_window` | put two windows side by side in one column — `with` names the second, which moves in beside `window_id`; without it, the window next along comes in, or a column that is already two goes back to being two windows. A column holds at most two ([layout.md](layout.md#two-windows-in-one-column)) |
 | `move_window_to_profile` | move a window to another profile — the same page, reopened with that profile's cookies and extensions ([architecture.md](architecture.md#moving-a-window-to-another-profile)) |
 | `close_window` | close a window |
-| `list_console_messages` | what a window's page logged since it last navigated (`level`, `limit`); needs `six://settings` ▸ Develop ▸ Capture Console and Network — see [devtools.md](devtools.md) |
+| `list_console_messages` | what a window's page logged since it last navigated (`level`, `limit`); needs `six://configuration` ▸ Develop ▸ Capture Console and Network — see [devtools.md](devtools.md) |
 | `list_network_requests` | the requests a page made — method, status, duration, size, kind (`failed_only`, `limit`); same switch |
 | `take_screenshot` | writes a PNG of the whole page under `Application Support/org.deffun.six/Screenshots/` and returns the path |
 | `evaluate_javascript` | run a function body in the page — in the *page's* world, unlike every other tool ([architecture.md](architecture.md#page-side-scripts)); result back as JSON |

@@ -7,7 +7,7 @@ struct AgentPanel: View {
     @Environment(AgentSessionStore.self) private var store
     @Environment(BrowserState.self) private var browser
     @Environment(MCPHost.self) private var mcp
-    @Environment(SettingsStore.self) private var settings
+    @Environment(ConfigurationStore.self) private var settings
     @State private var input = ""
     @State private var attachPage = false
     @State private var showResearch = false

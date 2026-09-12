@@ -43,7 +43,7 @@ final class RailTranslation {
 
     /// What to translate into: the setting, or the language the interface is in.
     var target: Locale.Language {
-        SettingsStore.shared?.translationTarget ?? Locale.current.language
+        ConfigurationStore.shared?.translationTarget ?? Locale.current.language
     }
 
     // MARK: Offering

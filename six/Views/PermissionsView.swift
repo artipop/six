@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// The sheet the phone opens and the site icon in a window's address field asks for:
-/// `PermissionSettings` under a title and a Done button. On the Mac the same content is a section of
+/// `PermissionConfiguration` under a title and a Done button. On the Mac the same content is a section of
 /// `six://settings`.
 struct PermissionsView: View {
     @Environment(\.dismiss) private var dismiss
@@ -16,7 +16,7 @@ struct PermissionsView: View {
             }
             .padding(12)
             Divider()
-            PermissionSettings()
+            PermissionConfiguration()
         }
         .frame(width: 560, height: 420)
     }
@@ -26,7 +26,7 @@ struct PermissionsView: View {
 /// place to change an answer you are not standing on.
 ///
 /// Answers given in a private profile are not here, because they were never written down.
-struct PermissionSettings: View {
+struct PermissionConfiguration: View {
     @Environment(SitePermissions.self) private var permissions
     @Environment(BrowserState.self) private var browser
     @State private var confirmForgetAll = false

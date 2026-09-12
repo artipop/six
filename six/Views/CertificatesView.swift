@@ -1,7 +1,7 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// The sheet the phone opens: `CertificateSettings` under a title and a Done button. On the Mac the
+/// The sheet the phone opens: `CertificateConfiguration` under a title and a Done button. On the Mac the
 /// same content is a section of `six://settings`.
 struct CertificatesView: View {
     @Environment(\.dismiss) private var dismiss
@@ -16,7 +16,7 @@ struct CertificatesView: View {
             }
             .padding(12)
             Divider()
-            CertificateSettings()
+            CertificateConfiguration()
         }
         .frame(width: sheetSize.width, height: sheetSize.height)
     }
@@ -32,7 +32,7 @@ struct CertificatesView: View {
 ///
 /// Everything here starts off; see `CertificateStore` for what switching one on actually does, and
 /// [certificates.md](../../docs/certificates.md) for why the answer is not "put it in the keychain".
-struct CertificateSettings: View {
+struct CertificateConfiguration: View {
     @Environment(CertificateStore.self) private var certificates
     @State private var importing = false
     @State private var failure: String?

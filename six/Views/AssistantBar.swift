@@ -231,7 +231,7 @@ private struct AnswerStrip: View {
 
 private struct ModelMenu: View {
     @Environment(AssistantStore.self) private var assistant
-    @Environment(SettingsStore.self) private var store
+    @Environment(ConfigurationStore.self) private var store
     @Environment(BrowserState.self) private var browser
 
     var body: some View {
@@ -262,7 +262,7 @@ private struct ModelMenu: View {
             Divider()
             // The keys and endpoints live on `six://settings` ▸ Assistant, which is one place and
             // not two. This used to open a sheet carrying the same three fields.
-            Button("Settings…") { browser.openBuiltIn(.settings) }
+            Button("Configuration…") { browser.openBuiltIn(.configuration) }
             Button("New Conversation") { assistant.resetConversation() }
         } label: {
             Image(systemName: settings.model.symbol)
@@ -281,7 +281,7 @@ private struct ModelMenu: View {
 /// happening, and an on-device model has neither. Both are development-shaped: the keys sit in
 /// `UserDefaults`, not the Keychain. One home only, `six://settings` ▸ Assistant; the ⌘K line's own
 /// menu links to it.
-struct AssistantProviderSettings: View {
+struct AssistantProviderConfiguration: View {
     @Environment(AssistantStore.self) private var assistant
 
     var body: some View {

@@ -160,7 +160,7 @@ public final class TranslationController {
 
     /// What to translate into: the setting, or the language the interface is in.
     private var target: Locale.Language {
-        SettingsStore.shared?.translationTarget ?? Locale.current.language
+        ConfigurationStore.shared?.translationTarget ?? Locale.current.language
     }
 
     private func start(_ page: LivePage, tabID: UUID, source known: Locale.Language?) async {

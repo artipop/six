@@ -22,8 +22,8 @@ nonisolated enum SearchEngine: String, CaseIterable, Identifiable, Sendable {
 
     /// The engine in settings — one value for the address bar, every start page and the tools.
     @MainActor static var current: SearchEngine {
-        get { SettingsStore.shared?.searchEngine ?? .duckDuckGo }
-        set { SettingsStore.shared?.searchEngine = newValue }
+        get { ConfigurationStore.shared?.searchEngine ?? .duckDuckGo }
+        set { ConfigurationStore.shared?.searchEngine = newValue }
     }
 
     /// What the engine calls the query in its own address. Three of them say `q`; Yandex says
@@ -106,11 +106,11 @@ nonisolated enum SearchEngine: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
-// MARK: - Settings
+// MARK: - Configuration
 
 /// The setting lives in the settings table; the knowledge of what its string means lives here,
-/// beside the type it means it as. `SettingsStore` itself keeps only keys and strings.
-extension SettingsStore {
+/// beside the type it means it as. `ConfigurationStore` itself keeps only keys and strings.
+extension ConfigurationStore {
     /// The engine six searches with. Read statically through `SearchEngine.current`.
     var searchEngine: SearchEngine {
         get { SearchEngine(rawValue: self[.searchEngine] ?? "") ?? .duckDuckGo }

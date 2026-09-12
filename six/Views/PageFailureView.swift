@@ -60,7 +60,7 @@ struct PageFailureView: View {
                     }
                     #if os(macOS)
                     Button {
-                        tab.load(BuiltInPage.settings.url)
+                        tab.load(BuiltInPage.configuration.url)
                     } label: {
                         Text("Certificates")
                     }

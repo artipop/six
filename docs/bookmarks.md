@@ -104,7 +104,7 @@ and every bookmark the *index signature* (`<modelID>@<indexVersion>`), so switch
 Small has a price: within a language the ranking is right, across languages it is right for topics and shaky for
 details (an English question about a Russian paragraph's sugar can lose to an unrelated English page). The next model
 up is no longer a code edit but a **setting**. `EmbeddingModelChoice` has two rungs — `small` as above and `base`
-(`intfloat/multilingual-e5-base`, 278 M parameters, **768** dimensions, ~1.1 GB) — and Settings ▸ General ▸ Bookmarks ▸
+(`intfloat/multilingual-e5-base`, 278 M parameters, **768** dimensions, ~1.1 GB) — and Configuration ▸ General ▸ Bookmarks ▸
 **Model for Search by Meaning** picks between them.
 
 **Which one a Mac is offered** is `EmbeddingModelChoice.recommended`, and it reads memory and nothing else: 16 GB or
@@ -120,7 +120,7 @@ thresholds in `PersonalSuggestions` were set — `SIX_PERSONAL_SELFTEST="one; tw
 it, on one model and then the other. Until somebody does that, the recommendation rests on what the sizes cost, which
 *is* measured, and not on what they buy.
 
-**The decision is made once.** `SettingsStore.embeddingModel` is nil until six has decided, and the first launch that
+**The decision is made once.** `ConfigurationStore.embeddingModel` is nil until six has decided, and the first launch that
 asks writes down `settings.embeddingModel ?? BookmarkStore.modelOfExistingIndex(in:) ?? .recommended`. The middle
 term is the one that matters: a library already embedded with `small` keeps `small`, whatever this Mac would be
 offered today. An update is not allowed to start a 1.1 GB download and a full re-embed on its own — the

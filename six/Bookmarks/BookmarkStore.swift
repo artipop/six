@@ -36,7 +36,7 @@ final class BookmarkStore {
     @ObservationIgnored var profile: (Profile.ID) -> Profile? = { _ in nil }
     /// The profile's cookie jar, so a refresh sees the page the way the user does. Wired at launch.
     @ObservationIgnored var dataStore: (Profile) -> WKWebsiteDataStore? = { _ in nil }
-    /// Days between refreshes of a page; 0 means never (`SettingsStore.bookmarkRefreshDays`).
+    /// Days between refreshes of a page; 0 means never (`ConfigurationStore.bookmarkRefreshDays`).
     @ObservationIgnored var refreshDays: () -> Int = { 7 }
     private(set) var revision = 0
     /// Bookmarks whose text is being embedded right now.

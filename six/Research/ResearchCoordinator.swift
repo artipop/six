@@ -9,9 +9,9 @@ import Observation
 final class ResearchCoordinator {
     @ObservationIgnored private let browser: BrowserState
     @ObservationIgnored private let agentSession: AgentSessionStore
-    @ObservationIgnored private let settings: SettingsStore
+    @ObservationIgnored private let settings: ConfigurationStore
 
-    init(browser: BrowserState, agentSession: AgentSessionStore, settings: SettingsStore) {
+    init(browser: BrowserState, agentSession: AgentSessionStore, settings: ConfigurationStore) {
         self.browser = browser
         self.agentSession = agentSession
         self.settings = settings

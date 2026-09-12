@@ -23,7 +23,7 @@ import WebKit
 final class AssistantStore {
     let settings: AssistantSettings
 
-    init(settings: SettingsStore) {
+    init(settings: ConfigurationStore) {
         self.settings = AssistantSettings(store: settings)
     }
 

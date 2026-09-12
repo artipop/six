@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The sheet the phone opens and the shield in a window's address field asks for: `BlockingSettings`
+/// The sheet the phone opens and the shield in a window's address field asks for: `BlockingConfiguration`
 /// under a title and a Done button. On the Mac the same content is a section of `six://settings`,
 /// which is why the two are separate types — a sheet is a frame and a way out, and a page has
 /// neither.
@@ -24,7 +24,7 @@ struct BlockingView: View {
             }
             .padding(12)
             Divider()
-            BlockingSettings()
+            BlockingConfiguration()
         }
         .frame(width: sheetSize.width, height: sheetSize.height)
     }
@@ -38,7 +38,7 @@ struct BlockingView: View {
 
 /// The filter lists, what each one costs, and the sites left alone — the content, with no frame and
 /// no way out of its own, so a page and a sheet can each put it where it belongs.
-struct BlockingSettings: View {
+struct BlockingConfiguration: View {
     @Environment(ContentBlocker.self) private var blocker
     @State private var newListAddress = ""
 

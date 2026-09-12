@@ -39,7 +39,7 @@ final class ExtensionStore {
         }
     }
 
-    private let settings: SettingsStore
+    private let settings: ConfigurationStore
     @ObservationIgnored private let delegate = ExtensionDelegate()
     @ObservationIgnored weak var browser: BrowserState?
 
@@ -59,7 +59,7 @@ final class ExtensionStore {
     @ObservationIgnored var popupPanel: NSPanel?
     #endif
 
-    init(settings: SettingsStore) {
+    init(settings: ConfigurationStore) {
         self.settings = settings
         self.installed = settings.installedExtensions
         delegate.store = self
@@ -348,7 +348,7 @@ final class ExtensionStore {
     }
 
     /// The URL to load instead of the start page on a blank new window — the one extension the user
-    /// has allowed to do this (`SettingsStore.newTabOverrideExtensionID`), if it is still installed,
+    /// has allowed to do this (`ConfigurationStore.newTabOverrideExtensionID`), if it is still installed,
     /// enabled, and still declares the capability. Checked fresh every time rather than trusted from
     /// the setting alone, because uninstalling or disabling the extension does not clear it.
     func overrideNewTabPageURL(for profileID: Profile.ID) -> URL? {

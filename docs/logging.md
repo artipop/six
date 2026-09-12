@@ -35,7 +35,7 @@ tail -f ~/Library/Logs/org.deffun.six.dev/six.log     # the dev build; drop `.de
 above unless you ask. **`log` is a zsh builtin in this repo's shell** — write `/usr/bin/log`, or the command dies with
 `too many arguments` and no hint as to why.
 
-`six://settings` ▸ **Develop** ▸ Log names the path, reveals it in Finder, and opens Console.
+`six://configuration` ▸ **Develop** ▸ Log names the path, reveals it in Finder, and opens Console.
 
 ### Three levels, and nothing to configure
 
@@ -75,10 +75,10 @@ read by the shell that started it — and routing it through a log file would be
 |---|---|
 | `six/Data/Log.swift` | `Log`, the categories, and `LogFile` — the queue, the handle, the rotation |
 | `AppSupport.logs` | `~/Library/Logs/<bundle id>` on Apple, `$XDG_STATE_HOME/six` on Linux |
-| `SettingsPageView` → Develop ▸ Log | the path, Reveal in Finder, Open Console |
+| `ConfigurationPageView` → Develop ▸ Log | the path, Reveal in Finder, Open Console |
 
 `Log` is in **SixCore**, listed in `Package.swift`, because the files with the most to say when something goes wrong —
-`SnapshotStore`, `SettingsStore`, `ProfileStore`, `History`, `StatePersistence` — are all in that target. `os.Logger`
+`SnapshotStore`, `ConfigurationStore`, `ProfileStore`, `History`, `StatePersistence` — are all in that target. `os.Logger`
 is behind `#if canImport(os)`; the file half is Foundation and Dispatch, which both fronts have.
 
 A log is deliberately **not** under `AppSupport.root`. It is not application *support*: it is not backed up with the

@@ -46,7 +46,7 @@ public final class RailModel {
     private let profileStore: ProfileStore
     /// Not private: `Bookmarks.swift` is the rest of this type in another file, because what it
     /// wires up — an embedder in an off-screen page — has nothing to do with a rail.
-    let settings: SettingsStore
+    let settings: ConfigurationStore
     /// The saved pages and their vectors. Made here, because the database is; given an embedder
     /// later by `attachSandbox`, because that needs a window.
     private(set) var bookmarks: BookmarkIndexer?
@@ -69,8 +69,8 @@ public final class RailModel {
         do {
             let database = try AppDatabase.open()
             Vectors.selfTestIfAsked(database)
-            settings = SettingsStore(database: database)
-            SettingsStore.shared = settings
+            settings = ConfigurationStore(database: database)
+            ConfigurationStore.shared = settings
             profileStore = ProfileStore(database: database)
             // Written down the first time rather than recomputed, so that an update which moves the
             // recommendation does not re-embed somebody's library behind their back — the Mac's

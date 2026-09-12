@@ -95,7 +95,7 @@ final class MCPHost {
     }
 
     /// Stops listening and drops whoever is connected — what the assistant switch does to it
-    /// (`SettingsStore.isAIEnabled`). The socket file goes with the listener, so `six --mcp` fails
+    /// (`ConfigurationStore.isAIEnabled`). The socket file goes with the listener, so `six --mcp` fails
     /// to connect rather than hanging on a door nobody answers.
     func stop() {
         listener.stop()

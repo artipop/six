@@ -1,12 +1,12 @@
-# Settings
+# Configuration
 
-`⌘,` — or the address `six://settings`, typed into the field.
+`⌘,` — or the address `six://configuration`, typed into the field.
 
-Settings here are a **page**, not a window of their own. It opens as a column of
-the rail, beside the thing it is about: you can look at a site and read what that
-site is allowed at the same time — a settings window would cover exactly what it
-describes. The column keeps its place across a relaunch, it has an address, and
-it moves and closes like any other window.
+Configuration here is a **page**, not a window of its own. It opens as a column
+of the rail, beside the thing it is about: you can look at a site and read what
+that site is allowed at the same time — a configuration window would cover
+exactly what it describes. The column keeps its place across a relaunch, it has
+an address, and it moves and closes like any other window.
 
 ::: tip Where this came from
 VI used to have thirteen menus, five of them one feature each with a switch

@@ -35,7 +35,7 @@ has the query's words anywhere in it. Nothing leaves the machine to do it.
 
 Three rules keep it out of the way:
 
-- **It never wakes the model on its own.** With no bookmarks in scope (`SettingsStore.bookmarkScope` — this profile
+- **It never wakes the model on its own.** With no bookmarks in scope (`ConfigurationStore.bookmarkScope` — this profile
   or all, the same setting the assistant reads) the query is dropped without being embedded, so a fresh install does
   not pull 470 MB of weights because somebody typed in the field. Once there *are* bookmarks the weights are already
   down: indexing them needed the same model. An input that looks like an address is dropped too — a host is not a
@@ -100,8 +100,8 @@ parser serves them all. What they do not agree on is what to call the query in a
 says `text`, so the name is the engine's to say, and both building a search and recognising one ask it rather than
 assuming.
 
-Switch engines from the chip on the left of the search field, or from `six://settings` ▸ **General** ▸ Search Engine. Both
-bind to `settings.searchEngine` on the observed `SettingsStore`, which is the `search.engine` row of the settings table
+Switch engines from the chip on the left of the search field, or from `six://configuration` ▸ **General** ▸ Search Engine. Both
+bind to `settings.searchEngine` on the observed `ConfigurationStore`, which is the `search.engine` row of the settings table
 and the same value `SearchEngine.current` reads (DuckDuckGo is the default), so the choice takes effect everywhere at
 once — every open start page, the address bar, and the assistant's `open_window(query:)`.
 

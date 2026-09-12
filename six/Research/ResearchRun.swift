@@ -85,11 +85,11 @@ nonisolated enum ResearchPreset {
     }
 }
 
-// MARK: - Settings
+// MARK: - Configuration
 
 /// The setting lives in the settings table; the knowledge of what its string means lives here,
-/// beside the type it means it as. `SettingsStore` itself keeps only keys and strings.
-extension SettingsStore {
+/// beside the type it means it as. `ConfigurationStore` itself keeps only keys and strings.
+extension ConfigurationStore {
     /// How many sources a research run opens.
     var researchSources: Int {
         get { Int(self[.researchSources] ?? "") ?? ResearchPreset.defaultSources }

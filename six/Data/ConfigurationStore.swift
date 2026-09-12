@@ -15,7 +15,7 @@ nonisolated struct Setting: Sendable {
 /// database at once.
 @MainActor
 @Observable
-final class SettingsStore {
+final class ConfigurationStore {
     enum Key: String, CaseIterable {
         case searchEngine = "search.engine"
         /// Whether six's language models and agents run at all. See `isAIEnabled`.
@@ -75,7 +75,7 @@ final class SettingsStore {
     }
 
     /// The app's instance, for the few static call sites (`SearchEngine.current`). Set at launch.
-    static var shared: SettingsStore?
+    static var shared: ConfigurationStore?
 
     @ObservationIgnored private let database: any DatabaseWriter
     private var values: [String: String] = [:]

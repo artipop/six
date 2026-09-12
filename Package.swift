@@ -74,7 +74,7 @@ let package = Package(
                 "Persistence/SnapshotStore.swift",
                 "Persistence/StatePersistence.swift",
                 "Data/AppDatabase.swift",
-                "Data/SettingsStore.swift",
+                "Data/ConfigurationStore.swift",
                 "Bookmarks/Bookmark.swift",
                 // Saving a page and making it findable by meaning, for the three fronts that are
                 // not the Mac. Everything that decides whether a search works — how a page is cut
@@ -155,7 +155,7 @@ let package = Package(
                 "MCP/Client/MCPRegistry.swift",
                 "MCP/Client/MCPOAuth.swift"
                 //
-                // `SettingsStore` is in only because it was untangled first: it used to decode six
+                // `ConfigurationStore` is in only because it was untangled first: it used to decode six
                 // subsystems' types out of the settings table, so taking it would have dragged most
                 // of the browser behind it. Each typed accessor now lives beside the type it
                 // decodes, and what is left here knows only keys and strings.
@@ -164,7 +164,7 @@ let package = Package(
         ),
         .testTarget(
             name: "SixCoreTests",
-            // GRDB directly, so a test can hand `SettingsStore` a database of its own rather than
+            // GRDB directly, so a test can hand `ConfigurationStore` a database of its own rather than
             // the one under `AppSupport` that a running six is using.
             dependencies: ["SixCore", .product(name: "SQLiteData", package: "sqlite-data")],
             path: "Tests/SixCoreTests"

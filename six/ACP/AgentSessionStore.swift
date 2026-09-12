@@ -24,7 +24,7 @@ final class AgentSessionStore {
         didSet { if agent != oldValue { disconnect() } }
     }
 
-    init(snapshot: AgentSnapshot? = nil, settings: SettingsStore) {
+    init(snapshot: AgentSnapshot? = nil, settings: ConfigurationStore) {
         self.settings = settings
         guard let snapshot else { return }
         if let saved = ACPAgentDefinition.builtIn.first(where: { $0.id == snapshot.agentID }) { agent = saved }
@@ -74,7 +74,7 @@ final class AgentSessionStore {
     }
     /// Directory the live session was created in; a different `workingDirectory` means reconnecting.
     @ObservationIgnored private var sessionDirectory: URL?
-    @ObservationIgnored private let settings: SettingsStore
+    @ObservationIgnored private let settings: ConfigurationStore
     /// Optional model id passed to the agent (Claude Code reads `ANTHROPIC_MODEL`; Codex ignores it).
     var modelOverride: String {
         get { settings.agentModel }

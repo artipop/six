@@ -22,7 +22,7 @@ final class DevToolsStore {
     static let consoleLimit = 500
     static let networkLimit = 500
 
-    private let settings: SettingsStore
+    private let settings: ConfigurationStore
     @ObservationIgnored private let controllers: PageControllers
     @ObservationIgnored weak var browser: BrowserState?
 
@@ -58,7 +58,7 @@ final class DevToolsStore {
         }
     }
 
-    init(settings: SettingsStore, controllers: PageControllers) {
+    init(settings: ConfigurationStore, controllers: PageControllers) {
         self.settings = settings
         self.controllers = controllers
         self.isInspectable = settings.devToolsInspector

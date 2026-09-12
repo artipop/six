@@ -26,7 +26,7 @@ The same two actions are in the **Privacy** menu.
 
 ## The lists
 
-**Settings ▸ Privacy ▸ Blocking**
+**Configuration ▸ Privacy ▸ Blocking**
 
 | list | what it is | default |
 |---|---|---|

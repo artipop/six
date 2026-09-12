@@ -42,7 +42,7 @@ page* cannot be told apart from the page around it, and the rail wins there.
 | `⌥W` | full width — the page fills the window under the top bar; again to leave (also View ▸ Full Width, and the button beside the profile) |
 | `⌥S` | split — the window next along comes in beside this one, sharing its column; again to put them back on the rail (also View ▸ Split, and the strip's own menu). Both halves are windows in their own right: `⌥←` `⌥→` walk into one and then out to the next column, and closing one leaves the other filling the column ([layout.md](layout.md#two-windows-in-one-column)) |
 | `⌥O` | overview on / off; `Esc` also leaves it (also View ▸ Overview) |
-| `⌥C` | centre the focused window (on by default) — off means the rail moves as little as possible. The switch is on `six://settings` ▸ Windows |
+| `⌥C` | centre the focused window (on by default) — off means the rail moves as little as possible. The switch is on `six://configuration` ▸ Windows |
 | `⌥` + vertical scroll | one workspace per gesture |
 | `⌥` + horizontal scroll | a window per push while centring is on — as many as the hand asks for, one per 55 pt of travel; free panning with `⌥C` off |
 
@@ -78,7 +78,7 @@ One rail's windows only — the workspace on screen — and this run only. `⌥�
 | `⌘⇧R` | load it again without believing the cache — everything asked of the network afresh |
 | `⌘.` | stop loading |
 | `⌘[` `⌘]` | back / forward through this window's own history (also the ‹ › buttons) |
-| `⌘,` | settings — `six://settings`, in a column of the rail like any other address |
+| `⌘,` | settings — `six://configuration`, in a column of the rail like any other address |
 | `⌘T` | new window on the rail, right of the focused one |
 | `⌘⇧N` | new document — a Markdown column next to the pages (edit / preview in the top bar, where its address would be) |
 | `⌘⇧P` | new private window — in the private profile (created on the first press; in-memory session, nothing recorded); File → Close Private Browsing forgets it |

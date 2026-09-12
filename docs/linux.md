@@ -13,7 +13,7 @@ were never about Apple in the first place.
 | built in | a container ([build.md](build.md#linux)) |
 
 The reason this is worth doing at all is the storage layer. `SixCore` — `NiriLayout`, `AppDatabase`,
-`SettingsStore`, `HistoryStore`, `Bookmark`, `AppSupport` — imports Foundation and Observation and
+`ConfigurationStore`, `HistoryStore`, `Bookmark`, `AppSupport` — imports Foundation and Observation and
 nothing else, and builds on Linux unchanged. A database written by the Mac opens here, migrates
 forward, and reads back. That was the premise ([storage.md](storage.md)) and it held.
 

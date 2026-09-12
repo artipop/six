@@ -115,13 +115,13 @@ object UserInput {
 
 /**
  * The setting lives in the `settings` table; the knowledge of what its string means lives here,
- * beside the type it means it as — the same split the Mac makes, and the reason [SettingsStore]
+ * beside the type it means it as — the same split the Mac makes, and the reason [ConfigurationStore]
  * itself knows only keys and strings.
  *
  * `search.engine` is that table's key, and it is the Mac's. A key invented here would be a setting
  * the other platform never sees change.
  */
-var SettingsStore.searchEngine: SearchEngine
+var ConfigurationStore.searchEngine: SearchEngine
     get() = SearchEngine.from(this[SettingsKeys.SEARCH_ENGINE])
     set(value) {
         this[SettingsKeys.SEARCH_ENGINE] = value.id

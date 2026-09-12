@@ -60,7 +60,7 @@ public final class BrowserModel {
     private var titles: [UUID: String] = [:]
     private var urls: [UUID: URL] = [:]
     private var pages = LivePages()
-    private var settings: SettingsStore?
+    private var settings: ConfigurationStore?
     private var bookmarks: BookmarkIndexer?
     /// The page the embedder runs in, made on first use. A reader who never saves anything should
     /// not have a hundred and thirty megabytes of E5 in memory, and the toolkit has to be up before
@@ -93,14 +93,14 @@ public final class BrowserModel {
             // Written down the first time rather than recomputed, so that an update which moves the
             // recommendation does not re-embed somebody's library behind their back — the Mac's
             // `sixApp` makes the same decision in the same order.
-            let chosen = SettingsStore(database: database).embeddingModel ?? EmbeddingModelChoice.recommended
+            let chosen = ConfigurationStore(database: database).embeddingModel ?? EmbeddingModelChoice.recommended
             bookmarks = BookmarkIndexer(database: database, choice: chosen)
             // The profile id comes out of the settings table rather than being made fresh each
             // launch. Regenerating it orphans every visit the last run recorded — history that is
             // in the database and unreachable is worse than history that is missing.
-            let settings = SettingsStore(database: database)
+            let settings = ConfigurationStore(database: database)
             if settings.embeddingModel == nil { settings.embeddingModel = chosen }
-            SettingsStore.shared = settings
+            ConfigurationStore.shared = settings
             self.settings = settings
             profileID = settings.defaultProfileID
             layout.activeProfileID = profileID

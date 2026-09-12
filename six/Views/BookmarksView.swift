@@ -8,7 +8,7 @@ import SwiftUI
 struct BookmarksView: View {
     @Environment(BrowserState.self) private var browser
     @Environment(BookmarkStore.self) private var bookmarks
-    @Environment(SettingsStore.self) private var settings
+    @Environment(ConfigurationStore.self) private var settings
     @Environment(\.dismiss) private var dismiss
     @State private var query = ""
     @State private var hits: [BookmarkHit] = []

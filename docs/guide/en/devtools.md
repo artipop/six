@@ -4,7 +4,7 @@ The **Develop** menu; both switches are off by default.
 
 ## Web Inspector
 
-**Settings ▸ Develop ▸ Allow Safari to Inspect VI's Pages** lets **Safari's inspector** attach to them.
+**Configuration ▸ Develop ▸ Allow Safari to Inspect VI's Pages** lets **Safari's inspector** attach to them.
 There is no inspector window of VI's own and there cannot be one: WebKit lets an
 application declare its pages inspectable, and no more. Safari's inspector,
 though, is the real thing — elements, console, network, sources, breakpoints.
@@ -31,7 +31,7 @@ machine can attach to.
 
 ## Capturing the console and the network
 
-**Settings ▸ Develop ▸ Capture Console and Network** is not for a person but for an
+**Configuration ▸ Develop ▸ Capture Console and Network** is not for a person but for an
 [agent](/en/agents): with it on, the agent can ask what a page logged and what it
 requested — what Chrome's devtools MCP does, on WebKit.
 
@@ -67,7 +67,7 @@ Separately from it, VI keeps a log of **its own** — what it did: settings that
 did not save, a site that did not open, an extension refused without asking.
 
 It goes to `~/Library/Logs/org.deffun.six/six.log` and, in the same words, to
-macOS's system log. **Settings ▸ Develop ▸ Log** names the path, reveals the file
+macOS's system log. **Configuration ▸ Develop ▸ Log** names the path, reveals the file
 in Finder and opens Console.
 
 The file is appended to across launches and rotates at four megabytes, keeping

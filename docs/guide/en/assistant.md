@@ -61,7 +61,7 @@ line is for the keyboard, the list is one.
 
 ## Turning all of it off
 
-**Settings ▸ Assistant ▸ Use Language Models and Agents** is one switch over
+**Configuration ▸ Assistant ▸ Use Language Models and Agents** is one switch over
 everything: the `⌘K` line, the bar over a selection, the agent panel, deep
 research, and six's MCP server.
 
@@ -87,7 +87,7 @@ You are asked once, on the first launch, in a window on the rail —
 | **Claude Code (ACP)**, **Codex (ACP)** | the same line answered by an [agent](/en/agents) — the same session and transcript as the `⌘⇧A` panel |
 
 **OpenAI-compatible** is one menu entry rather than a list of models because what
-it points at is a setting: `six://settings` ▸ **Assistant** holds an endpoint, a
+it points at is a setting: `six://configuration` ▸ **Assistant** holds an endpoint, a
 model name and a key. A local server wants no key at all, and an empty field
 means no authorization header is sent. The Anthropic key goes in the same place.
 

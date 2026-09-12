@@ -53,7 +53,7 @@ final class PageFocusStore {
     @ObservationIgnored private var handlers: [UUID: PageFocusMessageHandler] = [:]
     @ObservationIgnored private let controllers: PageControllers
 
-    /// The assistant switch (`SettingsStore.isAIEnabled`), enforced here rather than in the views:
+    /// The assistant switch (`ConfigurationStore.isAIEnabled`), enforced here rather than in the views:
     /// with it off there is no watcher in the page at all, which is the difference between a
     /// feature that is hidden and one that is not running. Scripts are read when a page starts
     /// loading, so switching it back on reaches the pages loaded after it — the ones already open

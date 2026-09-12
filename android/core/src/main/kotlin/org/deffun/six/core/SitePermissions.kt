@@ -67,7 +67,7 @@ class SitePermissions(
     /**
      * Where an answer goes when it is written down, or null to keep everything in memory.
      *
-     * The Mac hands this class a `SettingsStore` directly. Here it is a callback, and for a reason
+     * The Mac hands this class a `ConfigurationStore` directly. Here it is a callback, and for a reason
      * that is Android's rather than a preference: the settings table is behind a database that must
      * not be opened on the main thread, while a page's question arrives on it. So the decisions are
      * read once, on the way in, and every write is posted back out to whoever owns the file.
@@ -278,7 +278,7 @@ class SitePermissions(
  * convention and not the schema's. Getting that backwards would silently give a profile a second,
  * empty set of answers.
  */
-var SettingsStore.sitePermissions: List<PermissionDecision>
+var ConfigurationStore.sitePermissions: List<PermissionDecision>
     get() = this[SettingsKeys.SITE_PERMISSIONS]
         ?.let { json ->
             runCatching {

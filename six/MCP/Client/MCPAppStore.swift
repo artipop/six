@@ -80,7 +80,7 @@ final class MCPAppStore {
     /// and they are the same code on both platforms. Guarding the property and not its two call
     /// sites is what stopped the iOS target building.
     @ObservationIgnored var onSharedServersChanged: (() -> Void)?
-    @ObservationIgnored weak var settings: SettingsStore?
+    @ObservationIgnored weak var settings: ConfigurationStore?
     @ObservationIgnored private var clients: [MCPServerDefinition.ID: MCPClient] = [:]
     /// `ui://` documents already read, per server. A template is the static half of an app — the
     /// spec says as much, and says a host MAY cache it — so opening the same app twice reads it

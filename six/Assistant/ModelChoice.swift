@@ -86,7 +86,7 @@ enum ModelChoice: String, CaseIterable, Identifiable, Codable {
 @Observable
 final class AssistantSettings {
     @ObservationIgnored private let defaults = UserDefaults.standard
-    @ObservationIgnored private let store: SettingsStore
+    @ObservationIgnored private let store: ConfigurationStore
 
     /// Lives in the settings table with the other preferences.
     var model: ModelChoice {
@@ -119,7 +119,7 @@ final class AssistantSettings {
         set { store.assistantOpenAIModel = newValue }
     }
 
-    init(store: SettingsStore) {
+    init(store: ConfigurationStore) {
         self.store = store
         anthropicAPIKey = defaults.string(forKey: "six.assistant.anthropicKey")
             ?? ProcessInfo.processInfo.environment["ANTHROPIC_API_KEY"] ?? ""
@@ -199,11 +199,11 @@ enum AssistantError: LocalizedError {
     }
 }
 
-// MARK: - Settings
+// MARK: - Configuration
 
 /// The setting lives in the settings table; the knowledge of what its string means lives here,
-/// beside the type it means it as. `SettingsStore` itself keeps only keys and strings.
-extension SettingsStore {
+/// beside the type it means it as. `ConfigurationStore` itself keeps only keys and strings.
+extension ConfigurationStore {
     /// Which model answers ⌘K.
     var assistantModel: ModelChoice {
         get { ModelChoice(rawValue: self[.assistantModel] ?? "") ?? .onDevice }

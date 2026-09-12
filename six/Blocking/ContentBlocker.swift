@@ -45,7 +45,7 @@ final class ContentBlocker {
         var isReady = false
     }
 
-    private let settings: SettingsStore
+    private let settings: ConfigurationStore
     @ObservationIgnored private let store = FilterListStore()
     @ObservationIgnored private let ruleStore = WKContentRuleListStore.default()
     @ObservationIgnored private let advanced = AdvancedRules()
@@ -92,7 +92,7 @@ final class ContentBlocker {
         }
     }
 
-    init(settings: SettingsStore, controllers: PageControllers) {
+    init(settings: ConfigurationStore, controllers: PageControllers) {
         self.settings = settings
         self.controllers = controllers
         self.isEnabled = settings.blockingEnabled

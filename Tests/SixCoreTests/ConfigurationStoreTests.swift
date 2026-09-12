@@ -17,7 +17,7 @@ struct SettingsStoreTests {
     /// A database with the settings table and nothing else. Deliberately not `AppDatabase.open()`:
     /// that resolves a real path under `AppSupport`, and a test must not be able to touch the file a
     /// person's browser is using.
-    private func store() throws -> (SettingsStore, any DatabaseWriter) {
+    private func store() throws -> (ConfigurationStore, any DatabaseWriter) {
         let queue = try DatabaseQueue()
         try queue.write { db in
             try db.execute(sql: """
@@ -27,7 +27,7 @@ struct SettingsStoreTests {
                 )
                 """)
         }
-        return (SettingsStore(database: queue), queue)
+        return (ConfigurationStore(database: queue), queue)
     }
 
     @Test func aSecondWriteReachesTheDatabase() throws {
@@ -37,7 +37,7 @@ struct SettingsStoreTests {
 
         // Read through a *new* store, because the one that wrote it would answer from its cache —
         // which is what hid the bug.
-        #expect(SettingsStore(database: database)[.stripState] == "second")
+        #expect(ConfigurationStore(database: database)[.stripState] == "second")
     }
 
     @Test func aChangedKeyIsUpdatedRatherThanDuplicated() throws {
@@ -48,7 +48,7 @@ struct SettingsStoreTests {
 
         let rows = try database.read { db in
             try Int.fetchOne(db, sql: #"SELECT count(*) FROM "settings" WHERE "key" = ?"#,
-                             arguments: [SettingsStore.Key.defaultProfile.rawValue])
+                             arguments: [ConfigurationStore.Key.defaultProfile.rawValue])
         }
         #expect(rows == 1)
     }
@@ -60,6 +60,6 @@ struct SettingsStoreTests {
         settings[.stripState] = "something"
         settings[.stripState] = nil
 
-        #expect(SettingsStore(database: database)[.stripState] == nil)
+        #expect(ConfigurationStore(database: database)[.stripState] == nil)
     }
 }

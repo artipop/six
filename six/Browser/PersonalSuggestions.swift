@@ -84,7 +84,7 @@ final class PersonalSuggestions {
     /// - Parameters:
     ///   - store: the bookmarks, which own the index and the embedder.
     ///   - scope: this profile's saved pages or every profile's — the same setting the bookmarks
-    ///     window, the assistant and the agents read (`SettingsStore.bookmarkScope`).
+    ///     window, the assistant and the agents read (`ConfigurationStore.bookmarkScope`).
     ///   - profileID: whose window is asking.
     func update(for input: String, in store: BookmarkStore, scope: BookmarkScope, profileID: Profile.ID) {
         task?.cancel()

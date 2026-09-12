@@ -5,7 +5,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 import WebKit
 
-/// The sheet the phone opens: `ExtensionSettings` under a title and a Done button. On the Mac the
+/// The sheet the phone opens: `ExtensionConfiguration` under a title and a Done button. On the Mac the
 /// same content is a section of `six://settings`.
 struct ExtensionsView: View {
     @Environment(\.dismiss) private var dismiss
@@ -20,7 +20,7 @@ struct ExtensionsView: View {
             }
             .padding(12)
             Divider()
-            ExtensionSettings()
+            ExtensionConfiguration()
         }
         .frame(width: sheetSize.width, height: sheetSize.height)
     }
@@ -34,7 +34,7 @@ struct ExtensionsView: View {
 
 /// What is installed, what each one can and cannot do here, and the way in — a folder or an archive,
 /// since `WKWebExtension` only takes an unpacked extension.
-struct ExtensionSettings: View {
+struct ExtensionConfiguration: View {
     @Environment(ExtensionStore.self) private var extensions
     @State private var pending: PendingInstall?
     @State private var failure: String?
@@ -179,7 +179,7 @@ private struct ExtensionRow: View {
 
 /// The one moment where saying what will not work is worth something: before it is installed.
 private struct InstallSheet: View {
-    let install: ExtensionSettings.PendingInstall
+    let install: ExtensionConfiguration.PendingInstall
     let finish: (Bool) -> Void
 
     var body: some View {

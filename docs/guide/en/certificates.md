@@ -12,7 +12,7 @@ and mark it *Always Trust* by hand. That works, and it changes what **every
 application on the machine** trusts, permanently, with nothing to look at
 afterwards.
 
-VI keeps the same decision inside itself: **Settings ▸ Privacy ▸ Certificates** — a list
+VI keeps the same decision inside itself: **Configuration ▸ Privacy ▸ Certificates** — a list
 you can read, a switch you can flip back, and a certificate that stops mattering
 the moment it is off.
 
@@ -52,7 +52,7 @@ when the site's certificate was issued by an authority VI **carries and has not
 switched on** — which one, and a **Trust Russian Trusted CA** button next to
 **Try Again**.
 
-That button is the same switch as the one in **Settings ▸ Privacy ▸
+That button is the same switch as the one in **Configuration ▸ Privacy ▸
 Certificates**, written to the same place. Saying yes here is not saying yes
 somewhere off to the side: the list stays the same list, and it can be switched
 off there.

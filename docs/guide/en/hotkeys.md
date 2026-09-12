@@ -53,7 +53,7 @@ workspaces, not other profiles — and this run only.
 | `⌘⇧R` | load it again from the server, past the cache |
 | `⌘.` | stop loading |
 | `⌘[` `⌘]` | back / forward through this window's own history (so do ‹ ›) |
-| `⌘,` | settings — `six://settings`, a column of the rail like any other address |
+| `⌘,` | settings — `six://configuration`, a column of the rail like any other address |
 | `⌘T` | a new window on the rail, right of the focused one |
 | `⌘W` | close the focused window |
 | `⌘⇧T` | put the last closed window back where it stood |

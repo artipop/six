@@ -15,7 +15,7 @@ import SwiftUI
 struct WelcomePage: View {
     let tab: BrowserTab
 
-    @Environment(SettingsStore.self) private var settings
+    @Environment(ConfigurationStore.self) private var settings
     @Environment(BrowserState.self) private var browser
 
     var body: some View {
@@ -41,7 +41,7 @@ struct WelcomePage: View {
 
                 HStack(spacing: 12) {
                     Choice(title: "Yes, use them",
-                           detail: "The models are chosen in Settings ▸ Assistant. The on-device one keeps everything on this Mac; the others are a key and an endpoint you enter yourself.",
+                           detail: "The models are chosen in Configuration ▸ Assistant. The on-device one keeps everything on this Mac; the others are a key and an endpoint you enter yourself.",
                            symbol: "sparkles",
                            isProminent: true) { answer(true) }
                     Choice(title: "No, none of it",
@@ -51,7 +51,7 @@ struct WelcomePage: View {
                 }
                 .padding(.top, 20)
 
-                Text("Either way it is one switch in Settings ▸ Assistant, and it can be changed at any time.")
+                Text("Either way it is one switch in Configuration ▸ Assistant, and it can be changed at any time.")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                     .padding(.top, 16)

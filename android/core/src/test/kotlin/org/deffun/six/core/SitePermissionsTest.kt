@@ -33,7 +33,7 @@ class SitePermissionsTest {
     private fun permissions() = SitePermissions()
 
     /** Backed by the settings table, the way the app wires it. */
-    private fun permissions(settings: SettingsStore) =
+    private fun permissions(settings: ConfigurationStore) =
         SitePermissions(settings.sitePermissions) { settings.sitePermissions = it }
 
     // MARK: The origin an answer is filed under
@@ -265,7 +265,7 @@ class SitePermissionsTest {
     @Test
     fun answersSurviveThroughTheSettingsTable() {
         AppDatabase.open(File(directory, AppDatabase.FILE_NAME)).use { database ->
-            val settings = SettingsStore(database)
+            val settings = ConfigurationStore(database)
             val permissions = permissions(settings)
             permissions.set(true, SitePermission.CAMERA, "https://example.com", profile)
             permissions.set(false, SitePermission.MOTION, "https://example.com:8443", profile)
@@ -288,7 +288,7 @@ class SitePermissionsTest {
     @Test
     fun theStoredBlobIsTheMacsShape() {
         AppDatabase.open(File(directory, AppDatabase.FILE_NAME)).use { database ->
-            val settings = SettingsStore(database)
+            val settings = ConfigurationStore(database)
             permissions(settings).set(true, SitePermission.CAMERA, "https://example.com", profile)
 
             val json = assertNotNull(settings["permissions.sites"])
@@ -304,7 +304,7 @@ class SitePermissionsTest {
     @Test
     fun emptyingTheListRemovesTheRow() {
         AppDatabase.open(File(directory, AppDatabase.FILE_NAME)).use { database ->
-            val settings = SettingsStore(database)
+            val settings = ConfigurationStore(database)
             val permissions = permissions(settings)
             permissions.set(true, SitePermission.CAMERA, "https://example.com", profile)
             permissions.forgetAll()
@@ -317,7 +317,7 @@ class SitePermissionsTest {
     @Test
     fun aPrivateProfilesAnswersAreNeverWrittenDown() {
         AppDatabase.open(File(directory, AppDatabase.FILE_NAME)).use { database ->
-            val settings = SettingsStore(database)
+            val settings = ConfigurationStore(database)
             val private = UUID.randomUUID()
             val permissions = permissions(settings)
             permissions.isPrivate = { it == private }

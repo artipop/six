@@ -35,7 +35,7 @@ struct sixApp: App {
     @State private var mcp: MCPHost
     @State private var mcpApps: MCPAppStore
     #endif
-    @State private var settings: SettingsStore
+    @State private var settings: ConfigurationStore
     @State private var bookmarks: BookmarkStore
     @State private var window: WindowState
     @State private var highlights: HighlightStore
@@ -71,8 +71,8 @@ struct sixApp: App {
         } catch {
             fatalError("six: cannot open \(AppDatabase.url.path): \(error)")
         }
-        let settings = SettingsStore(database: database)
-        SettingsStore.shared = settings
+        let settings = ConfigurationStore(database: database)
+        ConfigurationStore.shared = settings
         let history = HistoryStore(database: database)
         // The profiles live here now, not in the snapshot beside it: they are the identity the
         // visits, the bookmarks and every cookie jar are keyed by (`ProfileStore`).
@@ -97,7 +97,7 @@ struct sixApp: App {
         devTools.browser = browser
         // Decided once and written down: what this Mac is offered, unless an index is already here
         // (then it is what that index was made with), unless the user has said otherwise (then it is
-        // that). Never re-decided at a later launch — see `SettingsStore.embeddingModel`.
+        // that). Never re-decided at a later launch — see `ConfigurationStore.embeddingModel`.
         let models = AppDatabase.url.deletingLastPathComponent().appending(path: "Models", directoryHint: .isDirectory)
         let embedding = settings.embeddingModel ?? BookmarkStore.modelOfExistingIndex(in: database) ?? .recommended
         settings.embeddingModel = embedding
@@ -110,7 +110,7 @@ struct sixApp: App {
         browser.bookmarks = bookmarks
         bookmarks.resumeIndexing()
         // `SIX_EMBED_SWITCH=base` works the model picker from a terminal, three seconds in. It is the
-        // one control in Settings that nothing here can click — screenshots and synthetic clicks both
+        // one control in Configuration that nothing here can click — screenshots and synthetic clicks both
         // need permissions this machine does not give (CLAUDE.md) — and the half it drives is the live
         // one: a new table, a re-index, the old vectors left where they are. The setting is not
         // written, so a restart is back to whatever the user chose.
@@ -160,7 +160,7 @@ struct sixApp: App {
         assistant.research = research
         let mcp = MCPHost(server: MCPServer(catalog: tools))
         // Nothing is listening while the assistant switch is off: six's MCP server exists to be
-        // driven by an agent, and the switch says there is no agent (`SettingsStore.isAIEnabled`).
+        // driven by an agent, and the switch says there is no agent (`ConfigurationStore.isAIEnabled`).
         // `stop()` on a listener that never started still unlinks the socket file, so a launch
         // with the switch off clears the one the previous launch left behind — otherwise the path
         // sits there looking like a door six is answering.
@@ -281,11 +281,12 @@ struct sixApp: App {
         .defaultSize(width: 1500, height: 950)
         .windowStyle(.hiddenTitleBar)
         .commands {
-            // ⌘, opens `six://settings` in a column, like any other address — see `SettingsPageView`
-            // for why settings are a page and not a window. `CommandGroup(replacing:)` rather than a
-            // Button of our own, so it lands where macOS puts Settings in every other app.
+            // ⌘, opens `six://configuration` in a column, like any other address — see
+            // `ConfigurationPageView` for why configuration is a page and not a window.
+            // `CommandGroup(replacing:)` rather than a Button of our own, so it lands where macOS puts
+            // Settings in every other app.
             CommandGroup(replacing: .appSettings) {
-                Button("Settings…") { browser.openBuiltIn(.settings) }
+                Button("Configuration…") { browser.openBuiltIn(.configuration) }
                     .keyboardShortcut(",")
             }
             CommandGroup(replacing: .newItem) {

@@ -10,7 +10,7 @@ import org.deffun.six.core.BookmarkStore
 import org.deffun.six.core.ThumbnailStore
 import org.deffun.six.core.FileSnapshotStore
 import org.deffun.six.core.HistoryStore
-import org.deffun.six.core.SettingsStore
+import org.deffun.six.core.ConfigurationStore
 
 /**
  * Where six keeps its things on this platform, and the stores opened over them.
@@ -43,7 +43,7 @@ class SixEnvironment(private val context: Context) {
 
     val snapshots = FileSnapshotStore(snapshotFile)
     val history: HistoryStore by lazy { HistoryStore(database) }
-    val settings: SettingsStore by lazy { SettingsStore(database) }
+    val settings: ConfigurationStore by lazy { ConfigurationStore(database) }
 
     /**
      * Bookmarks, over the same folder layout the Mac uses. The folder is named after the profile, so

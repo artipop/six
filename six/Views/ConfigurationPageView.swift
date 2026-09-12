@@ -11,7 +11,7 @@ import SwiftUI
 /// with a switch in it, and a person looking for "does this block ads" had no reason to look under
 /// *Privacy* rather than *Develop*. What is left in the menus is what a menu is for — things you
 /// *do*, with a key beside them. What settled into a state and stayed there is here.
-struct SettingsPageView: View {
+struct ConfigurationPageView: View {
     /// The window this page is in, so the header can name it the way every built-in page does.
     let tab: BrowserTab
 
@@ -89,12 +89,12 @@ struct SettingsPageView: View {
 
     @ViewBuilder private var detail: some View {
         switch section {
-        case .general: GeneralSettings()
-        case .windows: WindowSettings()
-        case .privacy: PrivacySettings()
+        case .general: GeneralConfiguration()
+        case .windows: WindowConfiguration()
+        case .privacy: PrivacyConfiguration()
         case .assistant: AssistantPane()
-        case .extensions: ExtensionSettings()
-        case .develop: DevelopSettings()
+        case .extensions: ExtensionConfiguration()
+        case .develop: DevelopConfiguration()
         }
     }
 }
@@ -103,8 +103,8 @@ struct SettingsPageView: View {
 
 /// What six searches with, what it does with a page's language, and whether the machine sends it
 /// every link.
-private struct GeneralSettings: View {
-    @Environment(SettingsStore.self) private var settings
+private struct GeneralConfiguration: View {
+    @Environment(ConfigurationStore.self) private var settings
     @Environment(BrowserState.self) private var browser
     @Environment(BookmarkStore.self) private var bookmarks
 
@@ -198,7 +198,7 @@ private struct GeneralSettings: View {
 
 /// How the rail behaves — the two switches that used to be in the Layout menu, and are the only two
 /// of it that were settings at all.
-private struct WindowSettings: View {
+private struct WindowConfiguration: View {
     @Environment(BrowserState.self) private var browser
 
     var body: some View {
@@ -258,7 +258,7 @@ private struct LoadedWindows: View {
 
 /// Blocking, what each site was allowed, and what six trusts — the whole of the old Privacy menu,
 /// which was a menu whose every item opened a window.
-private struct PrivacySettings: View {
+private struct PrivacyConfiguration: View {
     @Environment(ContentBlocker.self) private var blocker
     @State private var pane: Pane = .blocking
 
@@ -296,9 +296,9 @@ private struct PrivacySettings: View {
             .padding(.vertical, 8)
             Divider()
             switch pane {
-            case .blocking: BlockingSettings()
-            case .sites: PermissionSettings()
-            case .certificates: CertificateSettings()
+            case .blocking: BlockingConfiguration()
+            case .sites: PermissionConfiguration()
+            case .certificates: CertificateConfiguration()
             }
         }
     }
@@ -312,7 +312,7 @@ private struct AssistantPane: View {
     @Environment(AssistantStore.self) private var assistant
     @Environment(AgentSessionStore.self) private var agentSession
     @Environment(ResearchCoordinator.self) private var research
-    @Environment(SettingsStore.self) private var store
+    @Environment(ConfigurationStore.self) private var store
 
     var body: some View {
         @Bindable var settings = assistant.settings
@@ -321,7 +321,7 @@ private struct AssistantPane: View {
         @Bindable var store = store
         Form {
             // The switch over the whole pane, and over more than the pane: with it off nothing
-            // below is built at all (`SettingsStore.isAIEnabled`), which is why the rest goes grey
+            // below is built at all (`ConfigurationStore.isAIEnabled`), which is why the rest goes grey
             // rather than disappearing — a settings page that empties itself is a settings page you
             // cannot find your way back through.
             SwiftUI.Section {
@@ -361,7 +361,7 @@ private struct AssistantPane: View {
                     Stepper("Sources: \(research.sourceCount)", value: $research.sourceCount, in: 1...20)
                 }
 
-                AssistantProviderSettings()
+                AssistantProviderConfiguration()
             }
             // Everything below the switch is about a thing that is not running while it is off.
             // Greyed out rather than gone: a pane that empties itself gives you nothing to read
@@ -375,7 +375,7 @@ private struct AssistantPane: View {
 // MARK: - Develop
 
 /// The two switches the Develop menu carried, and the two things it could do.
-private struct DevelopSettings: View {
+private struct DevelopConfiguration: View {
     @Environment(DevToolsStore.self) private var devTools
 
     var body: some View {

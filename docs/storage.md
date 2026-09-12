@@ -91,7 +91,7 @@ CloudKit Web Services"]
   USearch would be; losing one is harmless, and a `.wax` file would never be synced.
 - **`Embedder` returns a model id.** That is what keeps vectors compatible across devices and platforms: a chunk
   embedded by another model is re-embedded, not silently searched.
-- **What exists**: `DB`, `HistoryStore`, `SettingsStore` (`six/Data/`, `six/Browser/History.swift`), and for
+- **What exists**: `DB`, `HistoryStore`, `ConfigurationStore` (`six/Data/`, `six/Browser/History.swift`), and for
   bookmarks the `Embedder` protocol with `MLXEmbedder` (and `ContextualEmbedder`) behind it and `BookmarkStore` as
   the retrieval layer over sqlite-vec (`six/Bookmarks/`, [bookmarks.md](bookmarks.md)). `Retrieval` is not a protocol
   yet — the KNN lives inside `BookmarkStore.vectorSearch`, one function to swap. `SyncEngine` is not there.
@@ -108,7 +108,7 @@ CloudKit Web Services"]
 ## SQLiteData on Linux: it builds, and the pins are why
 
 Swift 6.3.3, aarch64, Ubuntu 24.04, in a container: **GRDB, SQLiteData, sqlite-vec and the `@Table` /
-`#sql` macros all build, and so do `AppDatabase`, `SettingsStore`, `History`, `Bookmark` and
+`#sql` macros all build, and so do `AppDatabase`, `ConfigurationStore`, `History`, `Bookmark` and
 `SearchEngine`.** Nothing had to be vendored, and the query layer did not have to be swapped for
 `swift-structured-queries` on its own.
 

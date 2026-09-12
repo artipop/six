@@ -310,7 +310,7 @@ class AppDatabaseTest {
     @Test
     fun settingsAreKeysAndStringsAndTheKeyIsAnUpsert() {
         open().use { database ->
-            val settings = SettingsStore(database)
+            val settings = ConfigurationStore(database)
             assertNull(settings["assistant.model"])
 
             settings["assistant.model"] = "onDevice"
@@ -332,7 +332,7 @@ class AppDatabaseTest {
     @Test
     fun theSearchEngineRoundTripsThroughTheMacsKey() {
         open().use { database ->
-            val settings = SettingsStore(database)
+            val settings = ConfigurationStore(database)
             assertEquals(SearchEngine.DUCK_DUCK_GO, settings.searchEngine)
 
             settings.searchEngine = SearchEngine.GOOGLE

@@ -719,12 +719,21 @@ private struct StripEdgeButtons: View {
                 // maximised the strip's edge is the screen's, and throwing the pointer at the wall is
                 // the way you reach a sliver you cannot see; a target starting one point in is a target
                 // that wall never hits.
-                let left = min(max(inset, (frame?.minX ?? 0) - layout.gap / 2), proxy.size.width - inset)
-                let right = max(min(proxy.size.width - inset, (frame?.maxX ?? proxy.size.width) + layout.gap / 2), inset)
+                //
+                // Clamped against `layout.viewport.width`, not `proxy.size.width`: this GeometryReader
+                // and the one that feeds `layout.viewport` are two independent measurements of the same
+                // size, updated on different passes, and comparing the right edge against the live one
+                // while `frame` comes from the settled one raced them — the right sliver would fall a
+                // hair short of the physical edge on some frames and land flush on others, dropping
+                // hover under a pointer that never moved and reopening it right after. The left edge
+                // never reads `proxy.size` at all, which is why only the right one flickered.
+                let left = min(max(inset, (frame?.minX ?? 0) - layout.gap / 2), layout.viewport.width - inset)
+                let right = max(min(layout.viewport.width - inset, (frame?.maxX ?? layout.viewport.width) + layout.gap / 2), inset)
+                let _ = NiriLayout.trace("edge geom proxyW=\(proxy.size.width) viewportW=\(layout.viewport.width) frameMaxX=\(frame?.maxX ?? -1) left=\(left) right=\(right) edgeHover=\(layout.edgeHover) edgeLean=\(layout.edgeLean)")
                 StripEdgeButton(direction: -1, anchorX: left, anchorY: proxy.size.height / 2)
                 StripEdgeButton(direction: 1, anchorX: right, anchorY: proxy.size.height / 2)
             }
-            .animation(NiriLayout.switchAnimation, value: layout.focusedColumnFrame?.minX)
+            .animation(NiriLayout.switchAnimation, value: layout.focusedColumnFrame)
         }
     }
 }
@@ -795,6 +804,16 @@ private struct StripEdgeButton: View {
         // pointer first arrived, and it must stay reachable while the far side of the lane reaches out
         // to meet the curtain that just opened.
         .position(x: anchorX - CGFloat(direction) * reveal(layout) / 2, y: anchorY)
+        // Hit-tested through an AppKit view whose frame SwiftUI sets directly (`HostedOverlay`, frame-
+        // driven and not constraint-driven), so the size an in-flight `peekAnimation` spring is still
+        // interpolating toward and the size AppKit is actually tracking mouse-inside against can
+        // disagree for a beat while the spring settles — the target falls a hair short of the pointer,
+        // `onHover` reports an exit under a pointer that never moved, the peek unwinds, the target
+        // snaps back to its resting size, and the pointer is inside it again: a clean, self-sustaining
+        // cycle rather than noise. The lean itself — what actually shows the neighbour, at
+        // `NiriStripView.swift:120` — stays a `peekAnimation` spring; only this hit box's own geometry
+        // has to be exact rather than pretty, so it updates in the same beat the state does.
+        .transaction { $0.animation = nil }
     }
 
     /// One button for both jobs, and deliberately one: it is what keeps its identity when the strip
@@ -839,6 +858,7 @@ private struct StripEdgeButton: View {
             .buttonStyle(.plain)
             .frame(width: width, height: targetHeight(layout))
             .onHover { inside in
+                NiriLayout.trace("edge onHover dir=\(direction) inside=\(inside) width=\(width) anchorX=\(anchorX)")
                 hovering = inside
                 disarmed = false // the hand moved to get here, so it meant to be here
                 if browser.peeksAtEdges { peek(layout, inside) }
@@ -982,7 +1002,7 @@ private struct StripMenu: View {
         Toggle("Split", isOn: Binding(get: { browser.layout.isSplit }, set: { _ in browser.toggleSplit() }))
             .disabled(!browser.layout.canSplit)
         Divider()
-        Button("Settings…") { browser.openBuiltIn(.settings) }
+        Button("Configuration…") { browser.openBuiltIn(.configuration) }
     }
 }
 

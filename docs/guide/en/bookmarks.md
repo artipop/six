@@ -48,7 +48,7 @@ context menu has **Show File in Finder**.
 
 ### Which model
 
-VI picks one for your Mac and says which: **Settings ▸ General ▸ Bookmarks ▸ Model for
+VI picks one for your Mac and says which: **Configuration ▸ General ▸ Bookmarks ▸ Model for
 Search by Meaning**. Below 16 GB of memory the recommendation is **Compact — 465 MB**,
 above it **Larger — 1.1 GB**; the recommended one is marked in the list. The other is
 yours to take, at your own risk — larger ranks a little better between languages, but

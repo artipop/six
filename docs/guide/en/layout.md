@@ -121,13 +121,13 @@ There is no bounce and no sound: a bounce is the rail moving, and the one thing
 that has to stay true here is that it did not.
 
 **Right-click the background** — a new window, a document, workspaces, the
-overview, full width, settings. **Right-click a page ▸ This Window** — close,
+overview, full width, configuration. **Right-click a page ▸ This Window** — close,
 full width, move left/right, move to the workspace above/below.
 
 **The full-width button** on the left of the top bar, beside the profile: one
 button with two states. It used to be a mode picker with a menu of eight things
 hanging off it; two of those were switches, and switches are settings and live in
-**Settings** now, while moving a window is what a right-click on the page is for.
+**Configuration** now, while moving a window is what a right-click on the page is for.
 
 **The workspace stepper** on the right: `⌃`/`⌄` step one workspace up and down, a
 click on a pip jumps to it.
@@ -304,7 +304,7 @@ builds its page again when you come back to it.
   field or a filled-in password is discarded — nor is a page whose video is in
   the floating picture-in-picture window, even when it is paused.
 - The budget is sized from the machine's memory and cannot be changed: how many
-  processes this Mac will carry is not a thing a person can know. **Settings ▸
+  processes this Mac will carry is not a thing a person can know. **Configuration ▸
   Windows** shows how many windows are holding a page right now, and offers
   **Unload Background Windows**.
 - Under memory pressure the budget shrinks on its own and grows back when the

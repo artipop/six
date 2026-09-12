@@ -18,12 +18,12 @@ struct StripState: Codable {
     var titles: [String: String] = [:]
     var activeProfile: String = ""
 
-    static func load(from settings: SettingsStore) -> StripState? {
+    static func load(from settings: ConfigurationStore) -> StripState? {
         guard let json = settings[.stripState], let data = json.data(using: .utf8) else { return nil }
         return try? JSONDecoder().decode(StripState.self, from: data)
     }
 
-    func save(to settings: SettingsStore) {
+    func save(to settings: ConfigurationStore) {
         guard let data = try? JSONEncoder().encode(self) else { return }
         settings[.stripState] = String(decoding: data, as: UTF8.self)
     }

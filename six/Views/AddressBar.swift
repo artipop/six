@@ -317,7 +317,7 @@ struct AddressBar: View {
             .disabled(!blocker.isEnabled)
             // The page, not a sheet: what is blocked is worth reading beside the site it is
             // blocked on, and a sheet covers exactly that.
-            Button("Filter Lists…") { browser.openBuiltIn(.settings) }
+            Button("Filter Lists…") { browser.openBuiltIn(.configuration) }
         } label: {
             Image(systemName: isAllowed ? "shield.slash" : "shield.lefthalf.filled")
                 .font(.system(size: 10))
@@ -373,7 +373,8 @@ struct AddressBar: View {
     /// icon it would only need sometimes.
     @ViewBuilder
     private var siteIcon: some View {
-        let symbol = if tab.builtIn != nil { "gearshape" }
+        let symbol = if tab.builtIn == .configuration { "9.square" }
+                     else if tab.builtIn != nil { "gearshape" }
                      else if tab.currentURL?.scheme == "https" { "lock.fill" }
                      else { "globe" }
         if let origin, !decided.isEmpty {
@@ -392,7 +393,7 @@ struct AddressBar: View {
                 Button("Forget This Site's Choices") {
                     permissions.forget(origin: origin, profileID: tab.profileID)
                 }
-                Button("Site Permissions…") { browser.openBuiltIn(.settings) }
+                Button("Site Permissions…") { browser.openBuiltIn(.configuration) }
             } label: {
                 Image(systemName: symbol)
                     .font(.system(size: 10))

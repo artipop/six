@@ -57,7 +57,7 @@ is typing.
 `↑` `↓` walk the rows, `↩` opens the selected one, `Esc` clears the field.
 
 The engine is switched from the chip to the left of the field, or from
-**Settings ▸ General ▸ Search Engine**; DuckDuckGo by default. The choice is shared by the
+**Configuration ▸ General ▸ Search Engine**; DuckDuckGo by default. The choice is shared by the
 start page, the address bar and the assistant.
 
 ::: tip The query leaves the machine as you type

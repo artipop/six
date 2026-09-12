@@ -16,7 +16,7 @@ struct StartPage: View {
     /// The rows that came from what this person saved, not from what everybody is typing.
     @State private var personal = PersonalSuggestions()
     @FocusState private var fieldFocused: Bool
-    @Environment(SettingsStore.self) private var settings
+    @Environment(ConfigurationStore.self) private var settings
     /// From settings, not a local copy: every other start page redraws when this one switches engines.
     private var engine: SearchEngine { settings.searchEngine }
 

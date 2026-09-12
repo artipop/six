@@ -316,7 +316,7 @@ their chunks and vectors (`six/Data/`, `six/Bookmarks/`, [architecture.md](archi
   owed: a readable-text extractor on those fronts, so a saved page is embedded as more than its title and excerpt,
   and somewhere to *see* the library — neither front has a bookmarks window.
 - **Linux build of the data layer.** ~~Verify early~~ — done, and it builds: GRDB, SQLiteData, sqlite-vec
-  and the `@Table` macros all compile on Swift 6.3.3/aarch64, as do `AppDatabase`, `SettingsStore`, `History`
+  and the `@Table` macros all compile on Swift 6.3.3/aarch64, as do `AppDatabase`, `ConfigurationStore`, `History`
   and `Bookmark`. No fallback needed. What it costs is two pins: `swift-sharing` 2.10.0 and
   `combine-schedulers` 1.2.1 regressed on Linux, and `sqlite-data` 1.11.0 does not compile against
   `structured-queries` 0.38 on any platform. The package's `Package.resolved` is seeded from the app's,

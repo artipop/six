@@ -546,7 +546,7 @@ struct BuiltInPageView: View {
         switch page {
         case .apps: MCPAppsView(tab: tab)
         #if os(macOS)
-        case .settings: SettingsPageView(tab: tab)
+        case .configuration: ConfigurationPageView(tab: tab)
         case .welcome: WelcomePage(tab: tab)
         #endif
         }

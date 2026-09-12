@@ -10,7 +10,7 @@ six/Input       KeyBindings + KeyContext (the table and what has the keyboard �
                 docs/hotkeys.md), KeyEvents (NSEvent → those values), KeyRouter (the one key monitor)
 six/Browser     Profile, BrowserTab (WebPage), LivePageCache (the live-page budget), BrowserState, History, SitePermissions + PageDialogs (camera/microphone per site, the page's own dialogs), SearchEngine, SearchSuggestions, WebSearch
 six/Bookmarks   Bookmark (tables), ReadablePage (page → Markdown), Embedder + MLXEmbedder (multilingual-e5 over MLX), BookmarkStore (files, vec0 index, search)
-six/Views       ContentView (top bar), NiriStripView (the rail + overview), SettingsPageView (six://settings), StartPage, AssistantBar, AgentPanel, HistoryView, BookmarksView
+six/Views       ContentView (top bar), NiriStripView (the rail + overview), ConfigurationPageView (six://configuration), StartPage, AssistantBar, AgentPanel, HistoryView, BookmarksView
 six/Assistant   ModelChoice/AssistantSettings, AssistantStore (streaming), FoundationModelsCompatibility
 six/ACP         ACPJSON, JSONRPCConnection, ACPTypes, ACPAgent (process), ACPClient (actor), AgentSessionStore
 six/Tools       BrowserToolCatalog (the tools, over BrowserState), BrowserModelTool (Foundation Models adapter)
@@ -19,7 +19,7 @@ six/Highlights  Highlight (the selectors), HighlightStore (highlights.json, re-a
 six/Research    ResearchRun + ResearchPreset (the snapshot shape and the prompt), ResearchCoordinator (workspace + document + agent)
 six/MCP         MCPServer + MCPHost (the catalog over a Unix socket), MCPSocket, MCPStdioBridge (`six --mcp`)
 six/Persistence AppStateSnapshot (the Codable shape), SnapshotStore (a versioned JSON file), StatePersistence (autosave)
-six/Data        AppDatabase (the SQLite file, migrations), SettingsStore (the settings table)
+six/Data        AppDatabase (the SQLite file, migrations), ConfigurationStore (the settings table)
 six/Vendor      ClaudeForFoundationModels sources
 six/*.xcstrings Localizable + InfoPlist String Catalogs (English source, Russian) — see [localization](localization.md)
 ```
@@ -135,7 +135,7 @@ still on them.
   for a picture of itself, a dozen times over, every time the view moves. The pictures are taken on the way in.
 - **The rest is LRU**, `budget` deep. The default is sized from the machine — about one page per gigabyte of RAM,
   clamped to 8…32. Nothing sets it: it was a picker in the Layout menu, under a status line, and how many web
-  content processes a Mac can carry is not a thing a person knows. `six://settings` ▸ Windows shows the number
+  content processes a Mac can carry is not a thing a person knows. `six://configuration` ▸ Windows shows the number
   and offers no way to change it; `SIX_LIVE_PAGES=n` pins it for measuring.
 - **Guards**, the ones Chrome's Memory Saver uses: a page loading (for the last 20 s — plenty of pages never stop
   loading at all), playing audio or video, or holding a draft in a `textarea` or a filled-in password is skipped and
@@ -283,7 +283,7 @@ no `UNIQUE` elsewhere, columns only ever added — so turning its `SyncEngine` o
 `visits(id, profileID, url, title, visitedAt)` is history:
 each `BrowserTab` feeds `WebPage.navigations` to `BrowserState`, which records the committed URL under the tab's
 profile and fills in the title when the load finishes. `settings(key, value)` holds the preferences (search engine,
-assistant model, `⌥C`, agent model override) behind the typed `SettingsStore`; the Anthropic API key stays in
+assistant model, `⌥C`, agent model override) behind the typed `ConfigurationStore`; the Anthropic API key stays in
 `UserDefaults` — a credential has no business in a table that may sync. `HistoryStore` keeps a `revision` that every write
 bumps, so a view reading through it under observation re-queries on change; searching and ranking run in Swift over
 the profile's recent visits because SQLite's `LIKE`/`lower()` are ASCII-only. The **History** menu lists the selected profile's 20 most recent pages

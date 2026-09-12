@@ -105,7 +105,7 @@ draws them where they stand: `‹ ›` at the two ends of the focused window, tu
 strip runs down the screen, and a `+` at whichever end the strip has run out of — the same two
 answers `StripEdgeButton.step` gives, with the arrow facing along the strip instead of across it.
 
-This is what `SettingsStore.peeksAtEdges` being **off** looks like, and why it defaults off away from
+This is what `ConfigurationStore.peeksAtEdges` being **off** looks like, and why it defaults off away from
 macOS. Touch deliberately does not read the flag: honouring an "on" would leave the strip with no
 button anything could reach.
 

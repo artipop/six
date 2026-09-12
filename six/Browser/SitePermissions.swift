@@ -122,9 +122,9 @@ final class SitePermissions {
     /// assigned, and a question arriving from a C signal assigns nothing. So the one thing the Mac
     /// gets for free is said out loud here.
     @ObservationIgnored var onQuestionsChanged: (() -> Void)?
-    @ObservationIgnored private let settings: SettingsStore
+    @ObservationIgnored private let settings: ConfigurationStore
 
-    init(settings: SettingsStore) {
+    init(settings: ConfigurationStore) {
         self.settings = settings
         self.decisions = settings.sitePermissions
     }
@@ -341,11 +341,11 @@ final class SitePermissions {
     #endif
 }
 
-// MARK: - Settings
+// MARK: - Configuration
 
 /// The setting lives in the settings table; the knowledge of what its string means lives here,
-/// beside the type it means it as. `SettingsStore` itself keeps only keys and strings.
-extension SettingsStore {
+/// beside the type it means it as. `ConfigurationStore` itself keeps only keys and strings.
+extension ConfigurationStore {
     /// What sites were allowed — or refused — the camera, the microphone and the motion sensors.
     /// A private profile's answers never reach here; see `SitePermissions`.
     var sitePermissions: [SitePermissions.Decision] {
