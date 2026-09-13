@@ -43,6 +43,9 @@ public final class RailWindow {
     var pageDialog: RailPageDialog?
     var pageDialogTab: Foundation.UUID?
     var waitingDialogs: [QueuedPageDialog] = []
+    /// The release of a click the rail took for itself — a middle or `Ctrl`-click that opened a link
+    /// (`openLinkIfAsked`) — so the page is not handed the second half of a click it never saw.
+    var swallowedRelease: UINT?
 
     /// Translating the page you are reading. Made on first use — it opens a web process of its own
     /// for the engine, and a reader who never translates anything should never pay for one.
@@ -183,7 +186,17 @@ public final class RailWindow {
         // A press on a page that is not the focused one focuses its column — and then goes on to
         // the page, which is where it was aimed.
         case WM_LBUTTONDOWN, WM_RBUTTONDOWN, WM_MBUTTONDOWN:
-            if target != hwnd { focusColumnOwning(target) }
+            if target != hwnd {
+                focusColumnOwning(target)
+                // A middle or `Ctrl`-click on a link is the rail's to answer, not the page's.
+                if openLinkIfAsked(message, target: target) { return true }
+            }
+            return false
+        case WM_LBUTTONUP, WM_MBUTTONUP:
+            if let swallowed = swallowedRelease, message.message == swallowed {
+                swallowedRelease = nil
+                return true
+            }
             return false
         case WM_KEYDOWN, WM_SYSKEYDOWN:
             let handled = handleChromeKey(virtualKey: Int32(message.wParam), lParam: message.lParam)

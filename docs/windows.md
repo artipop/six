@@ -880,6 +880,43 @@ interleaved, which read as dialogs arriving in the wrong order. Starting `six-wi
 `LOCALAPPDATA` pointed at a fresh scratch folder gives it an empty database and an empty rail; the script cannot do
 this for you, because it finds the toolchain through the same variable.
 
+## A second window
+
+The Mac's rule from [links.md](links.md): a window a page opened for itself comes forward, a link opened on
+purpose goes behind with the focus left on the page being read, and both land right of the column that asked
+(`RailModel.openColumn(url:from:focus:)`, over `NiriLayout.insertColumn(tabID:in:focus:)`). All of it is
+`RailNewWindows.swift`.
+
+- **`window.open` and `target=_blank`** reach the UI client's `createNewPage`, which is handed a view made on
+  WebKit's own configuration (`WebEngine.makeView(parent:frame:configuration:)`) and returns its page at +1 — WebKit
+  adopts it, which is why MiniBrowser's own `createNewPage` ends in `WKRetainPtr(page).leakRef()`. The page then loads
+  its request into that view by itself. This is **better than the Mac**, which cancels the navigation and loads the
+  address into a fresh column: here the new page is related to the one that opened it, so `window.opener` works and a
+  sign-in popup can report back.
+- **`window.close()`** reaches `close`, and the column goes. WebKit allows it only to a window a script opened.
+- **A middle click or a `Ctrl`-click on a link** opens it behind; `Ctrl`+`Shift` opens it in front. WebKit's C API
+  says nothing about the button or the keys behind a navigation — a `WKNavigationActionRef` has its request, its type
+  and whether there was a gesture, no more — so the rail catches those clicks on their way in (`route`), against the
+  link the page last reported under the pointer (`mouseDidMoveOverElement` → `RailWebView.hoveredLink`). The press
+  and its release are both taken, so the page never sees half a click. A middle click the rail does not take goes to
+  the page, and on this port that starts WebKit's **pan scrolling**, which then eats the next click — worth knowing
+  before reading a test that "clicks and nothing happens".
+- **A link to somebody else's app** — `mailto:`, `magnet:`, a claimed scheme — is not handed to the system yet. A new
+  column is made only for what a column can show (http, https, file, about, data, blob); anything else goes to the
+  page as before. On Windows the handoff wants a question in front of it: a protocol handler opened without one is
+  how `ms-msdt:` became an exploit.
+
+Measured in an isolated run (`SIX_UI_DEBUG=1`, stderr to a file): a plain click on a page whose script called
+`window.open('about:blank')` put a new column in front titled from the opener's script, the opener read
+`w.opener === window` as true, and `w.close()` four seconds later took the column away — `popup=true opener=true`
+on the page that was left, and `a page opened a window` / `a page closed its own window` in the log. A pointer moved
+over a link reported `hover: link=data`, and a middle click there opened the link behind: two pages, the title still
+the first page's, `a link opened behind` in the log. `Ctrl`-click is the same path and is unmeasured, because the
+keys are read from the keyboard's state and a posted message cannot hold `Ctrl` down.
+
+The first run of that test reported no link under the pointer at all, and the reason was the test: it hovered 400
+physical pixels down a page that was not that tall. WebKit reports nothing past the edge of the view.
+
 ## The list windows
 
 History and Site Permissions are one type, `RailListPanel`: an owned popup window — a frame of its own,

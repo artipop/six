@@ -40,9 +40,13 @@ as a page that says so (`PageFailureView`) rather than a blank card; **the load 
 
 - **Windows:** **the dialogs are done** (2026-09-12): alert, confirm, prompt and the file picker, measured end to
   end ([windows.md](windows.md#the-pages-own-dialogs)); a folder upload is still refused. They had been silently
-  answered no, which the guide's "work as everywhere" had not noticed. The rest is still WebKit's default, and the
-  headers have all of it: `WKDownloadClient`, `WKPageUIClient`'s `createNewPage`, `WKPageContextMenuClient`,
-  `WKPageNavigationClient`'s failure callbacks.
+  answered no, which the guide's "work as everywhere" had not noticed. **The second window is done** (2026-09-13):
+  `window.open` and `target=_blank` as real related pages (`window.opener` works, unlike the Mac), `window.close()`,
+  and a middle or `Ctrl`-click opening a link behind ([windows.md](windows.md#a-second-window)). Still owed:
+  downloads (`WKDownloadClient`), the link's context menu (`WKPageContextMenuClient`), a failed load
+  (`WKPageNavigationClient`'s failure callbacks), and **links to other apps** — `mailto:` and the like, handed to the
+  system only after a question, because an unasked protocol handler on Windows is an exploit route. That last one
+  wants the Mac's `ExternalScheme` in `SixCore`, which means splitting `MCPAppScheme` out of its WebKit file first.
 - **Linux:** the same list: `WebKitDownload`, `script-dialog`, `run-file-chooser`, `decide-policy`,
   `context-menu` — [todo.md](todo.md#linux-what-the-third-front-still-owes-the-first) calls them one-to-one onto
   `PageDialogQueue` and the navigation decider.

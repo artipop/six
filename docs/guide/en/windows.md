@@ -49,6 +49,13 @@ to open it, what was typed is a search like anything else. A page that opened a 
 at. WebKit's own popup blocking runs before any of this, so an ad that opens
 itself gets no column.
 
+**On Windows** a middle click on a link, or `Ctrl` + click, opens it in a new
+window to the right, behind; `Ctrl` + `Shift` + click opens it and takes you there.
+A window a page opens itself comes forward, as on the Mac, and stays connected to
+the page that opened it — so a "Sign in with…" window can report back and close
+itself when it is done. There is no context menu on links there yet, and a link to
+another app (`mailto:` and the like) is not handed to it yet.
+
 ## The page's context menu
 
 It is entirely VI's own, because two of its link items could not be repaired in

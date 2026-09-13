@@ -26,3 +26,8 @@
 // `<input type=file>`: what the input asks for, and the listener the chosen files go back through.
 #include <WebKit/WKOpenPanelParametersRef.h>
 #include <WebKit/WKOpenPanelResultListener.h>
+// A page opening a window: the action behind it and the request it carries — and the link under the
+// pointer, which is how a middle or `Ctrl`-click is told from a plain one.
+#include <WebKit/WKNavigationActionRef.h>
+#include <WebKit/WKURLRequest.h>
+#include <WebKit/WKHitTestResult.h>

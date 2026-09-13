@@ -96,6 +96,15 @@ enum WebEngine {
             WKPreferencesSetMockCaptureDevicesEnabled(preferences, true)
         }
         WKPageConfigurationSetPreferences(pageConfiguration, preferences)
+        return makeView(parent: parent, frame: frame, configuration: pageConfiguration)
+    }
+
+    /// A view on a configuration already made: `makeView(parent:frame:profile:)`'s, or the one WebKit
+    /// hands `createNewPage` for a window a page opened. That second one is why this is separate — it
+    /// carries the opener, so the new page is related to the one that asked (`window.opener`, a
+    /// sign-in popup's way back) and browses in that page's store without being told which.
+    static func makeView(parent: HWND, frame: RECT, configuration pageConfiguration: WKPageConfigurationRef?) -> RailWebView? {
+        ensureStarted()
 
         // Created at `frame` divided by the display scale, and grown to the real `frame` by the
         // `setFrame` that follows in `RailLiveView.updateLiveView` — which is what puts the first
@@ -216,6 +225,21 @@ final class RailWebView {
         let extensions: [String]
         let answer: ([URL]?) -> Void
     }
+
+    /// Told when the page opens a window of its own — `window.open`, a `target=_blank` link — with the
+    /// configuration WebKit wants it made on and the address it is for. Answer with the view that is
+    /// that window, made on that configuration (`WebEngine.makeView(parent:frame:configuration:)`), or
+    /// `nil` to refuse; the new page loads its request by itself.
+    var onCreatePage: ((WKPageConfigurationRef, String) -> RailWebView?)?
+
+    /// Told when the page closes itself. WebKit allows `window.close()` only to a window a script
+    /// opened, so this is a popup going away when it is done — a sign-in window, usually.
+    var onClose: (() -> Void)?
+
+    /// The link under the pointer as the page last reported it, `nil` over anything else. What a middle
+    /// click or a `Ctrl`-click is read against: WebKit's C API tells a navigation nothing about the
+    /// button or the keys behind it, so the rail catches those clicks on their way in (`route`).
+    private(set) var hoveredLink: String?
 
     /// The Cancel for every question still on screen or in a queue, so a view torn down in the middle
     /// of one lets its page go rather than leaving it suspended — and the listener retained — for
@@ -363,7 +387,57 @@ final class RailWebView {
             let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
             MainActor.assumeIsolated { webView.presentFileChoice(wanted, listener: asked) }
         }
+        client.createNewPage = { _, configuration, action, _, clientInfo in
+            guard let clientInfo, let configuration else { return nil }
+            nonisolated(unsafe) let offered = configuration
+            nonisolated(unsafe) let asked = action
+            nonisolated(unsafe) var made: WKPageRef?
+            let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+            MainActor.assumeIsolated {
+                guard let created = webView.onCreatePage?(offered, RailWebView.address(of: asked)) else { return }
+                // Handed back at +1: WebKit adopts the page it is given, which is why MiniBrowser's own
+                // `createNewPage` on Windows ends in `WKRetainPtr(page).leakRef()`.
+                WKRetain(UnsafeRawPointer(created.page))
+                made = created.page
+            }
+            return made
+        }
+        client.close = { _, clientInfo in
+            guard let clientInfo else { return }
+            let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+            MainActor.assumeIsolated { webView.onClose?() }
+        }
+        client.mouseDidMoveOverElement = { _, hit, _, _, clientInfo in
+            guard let clientInfo else { return }
+            nonisolated(unsafe) let result = hit
+            let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+            MainActor.assumeIsolated {
+                webView.hoveredLink = RailWebView.link(in: result)
+                // The scheme and nothing more: an address is where somebody was reading.
+                if ProcessInfo.processInfo.environment["SIX_UI_DEBUG"] == "1" {
+                    let over = webView.hoveredLink.flatMap { URL(string: $0)?.scheme } ?? "none"
+                    FileHandle.standardError.write(Data("[six] hover: link=\(over)\n".utf8))
+                }
+            }
+        }
         WKPageSetPageUIClient(page, &client.base)
+    }
+
+    /// The address a navigation action is for, `""` when it has none — `window.open()` with no
+    /// argument, which is `about:blank` by the time anything loads.
+    static func address(of action: WKNavigationActionRef?) -> String {
+        guard let action, let request = WKNavigationActionCopyRequest(action) else { return "" }
+        defer { WKRelease(UnsafeRawPointer(request)) }
+        guard let url = WKURLRequestCopyURL(request) else { return "" }
+        defer { WKRelease(UnsafeRawPointer(url)) }
+        return takeString(WKURLCopyString(url))
+    }
+
+    private static func link(in result: WKHitTestResultRef?) -> String? {
+        guard let result, let url = WKHitTestResultCopyAbsoluteLinkURL(result) else { return nil }
+        defer { WKRelease(UnsafeRawPointer(url)) }
+        let link = takeString(WKURLCopyString(url))
+        return link.isEmpty ? nil : link
     }
 
     /// One of the three dialogs, handed up with an answer that can only be given once.

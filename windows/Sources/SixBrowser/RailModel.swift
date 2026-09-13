@@ -414,6 +414,22 @@ public final class RailModel {
         changed()
     }
 
+    /// A column a page asked for: a window it opened (`window.open`, `target=_blank`), in front; or a
+    /// link that was middle- or `Ctrl`-clicked, behind, with the focus left where it was — the Mac's
+    /// `openInNewWindow(_:from:background:)`. Right of the focused column, which is the one that asked
+    /// unless a page in the background opened a window, and then it goes where the reader is; in the
+    /// asking column's profile, whose cookies the new page shares.
+    @discardableResult
+    public func openColumn(url: String?, from source: UUID, focus: Bool) -> UUID {
+        let tabID = UUID()
+        titles[tabID] = "New Tab \(nextTabNumber)"
+        nextTabNumber += 1
+        if let url, !url.isEmpty { urls[tabID] = url }
+        layout.insertColumn(tabID: tabID, in: profile(of: source).id, focus: focus)
+        changed()
+        return tabID
+    }
+
     public func closeColumn(_ tabID: UUID? = nil) {
         guard let target = tabID ?? layout.focusedTabID else { return }
         layout.removeColumn(tabID: target)

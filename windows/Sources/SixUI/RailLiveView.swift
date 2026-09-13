@@ -113,12 +113,19 @@ extension RailWindow {
     /// takes the click, so the rail only hears about it from the queue (`route`). The click itself
     /// goes on to the page.
     func focusColumnOwning(_ target: HWND) {
-        guard let id = webViews.first(where: { _, view in
-            guard let child = view.hwnd else { return false }
-            return child == target || IsChild(child, target)
-        })?.key, id != model.focusedTabID else { return }
+        guard let id = webViewEntry(owning: target)?.tabID, id != model.focusedTabID else { return }
         model.focus(id)
         invalidate()
+    }
+
+    /// The live column whose page this `HWND` is, or is inside — WebKit's child window takes a click,
+    /// so a message aimed at a page names that window and not the column.
+    func webViewEntry(owning target: HWND) -> (tabID: Foundation.UUID, view: RailWebView)? {
+        guard let entry = webViews.first(where: { _, view in
+            guard let child = view.hwnd else { return false }
+            return child == target || IsChild(child, target)
+        }) else { return nil }
+        return (entry.key, entry.value)
     }
 
     /// `SIX_UI_DEBUG=1`: what `setFrame` asked for against where the `WKView`'s `HWND` actually is,
@@ -150,6 +157,16 @@ extension RailWindow {
         guard let created = WebEngine.makeView(parent: parent, frame: frame, profile: model.profile(of: tabID)) else {
             return nil
         }
+        wire(created, tabID: tabID)
+        created.load(model.url(for: tabID))
+        webViews[tabID] = created
+        return created
+    }
+
+    /// Everything a live column's view tells the rail. Separate from `makeWebView` because a view is
+    /// not only made for a column: a page opening a window makes one too (`openPageWindow`), and that
+    /// one loads its own request rather than the column's address.
+    func wire(_ created: RailWebView, tabID: Foundation.UUID) {
         created.onTitleChange = { [weak self] title in
             self?.model.setTitle(title, for: tabID)
             self?.invalidate()
@@ -184,9 +201,16 @@ extension RailWindow {
             guard let self else { return choice.answer(nil) }
             chooseFiles(choice, tabID: tabID)
         }
-        created.load(model.url(for: tabID))
-        webViews[tabID] = created
-        return created
+        created.onCreatePage = { [weak self] configuration, url in
+            self?.openPageWindow(configuration, url: url, from: tabID)
+        }
+        // `window.close()`: the column goes, and its view with it on the next repaint.
+        created.onClose = { [weak self] in
+            guard let self else { return }
+            Log.info(.pages, "a page closed its own window")
+            model.closeColumn(tabID)
+            invalidate()
+        }
     }
 
     /// Past the budget: the page is given back, and the column keeps its place, its title, its
