@@ -10,7 +10,10 @@ over stdio to an adapter process.
   `fs/read_text_file` / `fs/write_text_file` back to the agent, restricted to the session cwd.
 - `AgentSessionStore` — the view model: transcript items, plans, permission prompts, working directory, model override.
   `session/new` also hands the agent the browser itself as an MCP server (`six --mcp`, see [mcp](mcp.md)), so it can
-  open windows, read and summarize pages.
+  open windows, read and summarize pages. Through the same server it reaches the tools a page declares for agents
+  (WebMCP — `list_page_tools`, `call_page_tool`) when `six://settings` ▸ Develop ▸ WebMCP is on; the catalog's
+  instructions put them after a connected service's own tools and before reading the page, and fence everything a
+  page says as its data rather than instructions ([webmcp.md](webmcp.md)).
 
 ## What a tool call is called
 

@@ -56,6 +56,7 @@ struct sixApp: App {
     @State private var extensions: ExtensionStore
     #endif
     @State private var devTools: DevToolsStore
+    @State private var webMCP: WebMCPStore
     @State private var permissions: SitePermissions
     @State private var certificates: CertificateStore
     #if os(macOS)
@@ -85,6 +86,9 @@ struct sixApp: App {
         let pageControllers = PageControllers()
         let blocker = ContentBlocker(settings: settings, controllers: pageControllers)
         let devTools = DevToolsStore(settings: settings, controllers: pageControllers)
+        // Pages declaring tools for agents (WebMCP). Before the browser like devtools: its polyfill
+        // has to be in a restored window's controller before that window starts loading.
+        let webMCP = WebMCPStore(settings: settings, controllers: pageControllers)
         // Built before the browser for the same reason as the blocker: a restored window can ask for
         // the camera the moment it loads, and a question with nowhere to go is answered no.
         let permissions = SitePermissions(settings: settings)
@@ -109,6 +113,8 @@ struct sixApp: App {
         #endif
         blocker.startRefreshSchedule()
         devTools.browser = browser
+        webMCP.browser = browser
+        browser.webMCP = webMCP
         // Decided once and written down: what this Mac is offered, unless an index is already here
         // (then it is what that index was made with), unless the user has said otherwise (then it is
         // that). Never re-decided at a later launch — see `ConfigurationStore.embeddingModel`.
@@ -163,6 +169,8 @@ struct sixApp: App {
         browser.pageFocus = pageFocus
         let tools = BrowserToolCatalog(browser: browser, assistant: assistant.settings, bookmarks: bookmarks, settings: settings, highlights: highlights)
         tools.devTools = devTools
+        tools.webMCP = webMCP
+        webMCP.runSelfTestIfAsked()
         assistant.tools = tools
         #if os(macOS)
         // The agent layer and the MCP server are local processes talking to local processes. The
@@ -258,6 +266,7 @@ struct sixApp: App {
         _extensions = State(initialValue: extensions)
         #endif
         _devTools = State(initialValue: devTools)
+        _webMCP = State(initialValue: webMCP)
         _permissions = State(initialValue: permissions)
         _certificates = State(initialValue: certificates)
     }
@@ -293,6 +302,7 @@ struct sixApp: App {
                 .environment(blocker)
                 .environment(extensions)
                 .environment(devTools)
+                .environment(webMCP)
                 .environment(permissions)
                 .environment(certificates)
                 .background(WindowObserver(state: window))
@@ -375,6 +385,7 @@ struct sixApp: App {
                 .environment(highlights)
                 .environment(blocker)
                 .environment(devTools)
+                .environment(webMCP)
                 .environment(permissions)
                 .environment(certificates)
                 .onOpenURL { url in

@@ -40,3 +40,7 @@
 // The context menu: WebKit's own items, and the one six adds to them.
 #include <WebKit/WKContextMenuItemTypes.h>
 #include <WebKit/WKContextMenuItem.h>
+// A page's user scripts and the channel back from it — WebMCP's polyfill (`RailWebMCP`).
+#include <WebKit/WKUserContentControllerRef.h>
+#include <WebKit/WKUserScriptRef.h>
+#include <WebKit/WKScriptMessageRef.h>

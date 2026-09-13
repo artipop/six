@@ -110,6 +110,8 @@ final class BrowserTab: Identifiable {
     @ObservationIgnored weak var devTools: DevToolsStore?
     /// What this window has selected, or a caret in; set by `BrowserState`.
     @ObservationIgnored weak var pageFocus: PageFocusStore?
+    /// The tools this window's page declares for agents (WebMCP); set by `BrowserState`.
+    @ObservationIgnored weak var webMCP: WebMCPStore?
     /// What sites were allowed to use the camera, the microphone and the motion sensors. The page's
     /// `deviceSensorAuthorization` is this window's question routed here; set by `BrowserState`.
     @ObservationIgnored weak var permissions: SitePermissions?
@@ -746,9 +748,11 @@ final class BrowserTab: Identifiable {
             // Redirects and history moves never go through the decider.
             blocker?.note(id, showing: page.url)
             extensions?.noteChanged(self, [.URL, .loading])
-            // What was captured belonged to the page being left, and so did what was selected in it.
+            // What was captured belonged to the page being left, and so did what was selected in it
+            // and the tools it declared.
             devTools?.noteNavigation(id)
             pageFocus?.noteNavigation(id)
+            webMCP?.noteNavigation(id)
             onNavigation?(self, .committed)
         case .finished:
             savedURL = page.url ?? savedURL

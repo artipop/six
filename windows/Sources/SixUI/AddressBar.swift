@@ -70,7 +70,9 @@ extension RailWindow {
         let height = px(18)
         let left = pill.left + inset
         let top = pill.top + (pill.bottom - pill.top - height) / 2
-        let width = max(0, pill.right - pill.left - inset * 2)
+        // Short of the page-tools badge when there is one (`RailWebMCP`), which is drawn in the pill
+        // behind the control and would otherwise be under it.
+        let width = max(0, pill.right - pill.left - inset * 2 - pageToolsBadgeWidth)
         let frame = RECT(left: left, top: top, right: left + width, bottom: top + height)
         if let current = addressBarFrame, current.left == frame.left, current.top == frame.top,
            current.right == frame.right, current.bottom == frame.bottom { return }
