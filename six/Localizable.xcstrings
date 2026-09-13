@@ -71,6 +71,96 @@
         }
       }
     },
+    "Call Page Tool" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вызвать инструмент страницы"
+          }
+        }
+      }
+    },
+    "consequential" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "с последствиями"
+          }
+        }
+      }
+    },
+    "Declared by the page through WebMCP. Agents reach them with list_page_tools and call_page_tool." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Страница объявила их через WebMCP. Агенты находят их через list_page_tools и вызывают через call_page_tool."
+          }
+        }
+      }
+    },
+    "Experimental. A page declares tools through document.modelContext, and agents list and call them with list_page_tools and call_page_tool. There is no per-site permission or confirmation yet: keep it off outside testing." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Экспериментально. Страница объявляет инструменты через document.modelContext, а агенты видят и вызывают их через list_page_tools и call_page_tool. Разрешений по сайтам и подтверждения вызовов пока нет — вне тестов держите это выключенным."
+          }
+        }
+      }
+    },
+    "Let Pages Offer Tools to Agents" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешить страницам предлагать инструменты агентам"
+          }
+        }
+      }
+    },
+    "Page Tools" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Инструменты страницы"
+          }
+        }
+      }
+    },
+    "read-only" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "только чтение"
+          }
+        }
+      }
+    },
+    "Tools this page offers to agents" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Инструменты, которые страница предлагает агентам"
+          }
+        }
+      }
+    },
+    "WebMCP" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WebMCP"
+          }
+        }
+      }
+    },
     "· %@" : {
       "localizations" : {
         "ru" : {

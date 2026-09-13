@@ -414,9 +414,11 @@ private struct AssistantPane: View {
 /// The two switches the Develop menu carried, and the two things it could do.
 private struct DevelopConfiguration: View {
     @Environment(DevToolsStore.self) private var devTools
+    @Environment(WebMCPStore.self) private var webMCP
 
     var body: some View {
         @Bindable var devTools = devTools
+        @Bindable var webMCP = webMCP
         Form {
             SwiftUI.Section("Web Inspector") {
                 // six has no inspector window of its own — WebKit lets an app allow inspection, not
@@ -443,6 +445,15 @@ private struct DevelopConfiguration: View {
                 Button("Clear Captured Logs") { devTools.clear() }
                     .controlSize(.small)
                     .disabled(!devTools.isCapturing)
+            }
+
+            // Here and not beside the assistant's switches: until a site has to be allowed and a
+            // call confirmed (docs/webmcp.md, stage 3), this is a thing to test, not to live with.
+            SwiftUI.Section("WebMCP") {
+                Toggle("Let Pages Offer Tools to Agents", isOn: $webMCP.isEnabled)
+                Text("Experimental. A page declares tools through document.modelContext, and agents list and call them with list_page_tools and call_page_tool. There is no per-site permission or confirmation yet: keep it off outside testing.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             SwiftUI.Section("Log") {
