@@ -937,6 +937,9 @@ final class RailWebView {
     func goBack() { WKPageGoBack(page) }
     func goForward() { WKPageGoForward(page) }
     func reload() { WKPageReload(page) }
+    /// What the reload button does while the page is loading. The cancel it causes comes back as a
+    /// failure that `handleFailedNavigation` knows is not one, so no error page follows it.
+    func stopLoading() { WKPageStopLoading(page) }
 
     func setFrame(_ rect: RECT) {
         guard let hwnd else { return }

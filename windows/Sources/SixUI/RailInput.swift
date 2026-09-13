@@ -97,7 +97,12 @@ extension RailWindow {
         case .forward:
             focusedWebView?.goForward()
         case .reload:
-            focusedWebView?.reload()
+            // The button draws a cross while the page loads (`drawTopBar`), and does what it draws.
+            if let view = focusedWebView, view.isLoading {
+                view.stopLoading()
+            } else {
+                focusedWebView?.reload()
+            }
         case .address:
             focusAddressBar()
         case .bookmark:

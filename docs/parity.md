@@ -50,11 +50,12 @@ as a page that says so (`PageFailureView`) rather than a blank card; **the load 
   `LoadingLine` under the address and across the other cards ([windows.md](windows.md#a-failed-load-and-the-loading-line)).
   **The link's context menu is done** (2026-09-13): WebKit's own, alive here where the Mac's was dead, with Open Link
   Behind added and Download Linked File handed to the downloads ([windows.md](windows.md#the-context-menu)); Open Link
-  Beside and This Window wait for the split and the column commands. Still owed: a Stop in place of Reload while
-  loading. **Links to other apps are done** (2026-09-13): `ExternalScheme` moved into `SixCore` (with
+  Beside and This Window wait for the split and the column commands. **Links to other apps are done** (2026-09-13): `ExternalScheme` moved into `SixCore` (with
   `MCPAppScheme`'s two names split out of its WebKit file), and on Windows every route to such an address asks
   first, names the app, and refuses a page that tries it without a click
-  ([windows.md](windows.md#links-to-other-apps)). The Mac and iOS builds of that move are unbuilt here.
+  ([windows.md](windows.md#links-to-other-apps)). The Mac and iOS builds of that move are unbuilt here. And
+  **Stop** in place of Reload while a page loads ([windows.md](windows.md#a-failed-load-and-the-loading-line)).
+  **Item 1 is closed on Windows**; its Linux half is still to be written.
 - **Linux:** the same list: `WebKitDownload`, `script-dialog`, `run-file-chooser`, `decide-policy`,
   `context-menu` — [todo.md](todo.md#linux-what-the-third-front-still-owes-the-first) calls them one-to-one onto
   `PageDialogQueue` and the navigation decider.

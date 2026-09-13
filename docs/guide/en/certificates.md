@@ -65,7 +65,7 @@ settings.
 system said, and a **Try Again** button. There is no offer to trust a certificate
 there, because the Windows version has no certificate list yet. While a page is
 loading, a thin line runs under the address — and across the top of the card, for
-the windows beside it.
+the windows beside it — and the reload button becomes a cross that stops it.
 
 ## What is already on the list
 

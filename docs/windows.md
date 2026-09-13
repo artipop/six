@@ -989,7 +989,10 @@ under the address field for the window being read and along the foot of the card
 trickling in repaints a handful of times. Measured against a local server that sent a page in twelve pieces over six
 seconds: a picture of the bar half-way through shows the line about half the field's width, and one after shows none.
 
-Not built: Stop in place of Reload while a page is loading.
+**Stop.** While the page being read is loading, the bar's reload button draws a cross and stops the load
+(`WKPageStopLoading`) — the Mac's Reload-or-Stop. It changes with `isLoading`, which the page-state timer already
+repaints on. The cancel a stop causes comes back through `didFailProvisionalNavigation` as a failure that is not one
+(the list above), so stopping a page never puts "This page didn't open" in its place.
 
 ## The context menu
 

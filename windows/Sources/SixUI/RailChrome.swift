@@ -392,7 +392,10 @@ extension RailWindow {
         let live = focusedWebView
         drawGlyph(hdc, ChromeFonts.Glyph.back, in: layout.back, enabled: live?.canGoBack ?? false)
         drawGlyph(hdc, ChromeFonts.Glyph.forward, in: layout.forward, enabled: live?.canGoForward ?? false)
-        drawGlyph(hdc, ChromeFonts.Glyph.reload, in: layout.reload, enabled: live != nil)
+        // A cross while the page is loading, the Mac's Reload-or-Stop: the one button that means
+        // "again" once a page is here and "never mind" while it is still on its way.
+        drawGlyph(hdc, live?.isLoading == true ? ChromeFonts.Glyph.close : ChromeFonts.Glyph.reload,
+                  in: layout.reload, enabled: live != nil)
 
         drawAddressField(hdc, in: layout.addressPill)
         // The window being read has its loading line here, under its address, rather than on its card.
