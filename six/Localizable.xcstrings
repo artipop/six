@@ -41,6 +41,26 @@
         }
       }
     },
+    "%lld elements · %lld ms" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Элементов: %1$lld · %2$lld мс"
+          }
+        }
+      }
+    },
+    "%lld without a name" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Без имени: %lld"
+          }
+        }
+      }
+    },
     "_The run failed: %@_" : {
       "localizations" : {
         "ru" : {
@@ -67,6 +87,186 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : ", %@ сверх лимита WebKit"
+          }
+        }
+      }
+    },
+    "Accessibility" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступность"
+          }
+        }
+      }
+    },
+    "Accessibility Overlay" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Слой доступности"
+          }
+        }
+      }
+    },
+    "Accessibility Tree" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дерево доступности"
+          }
+        }
+      }
+    },
+    "Controls" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Управление"
+          }
+        }
+      }
+    },
+    "Fields" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поля"
+          }
+        }
+      }
+    },
+    "Headings" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заголовки"
+          }
+        }
+      }
+    },
+    "Hide Accessibility Overlay (⌥⌘A)" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скрыть слой доступности (⌥⌘A)"
+          }
+        }
+      }
+    },
+    "Images" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Изображения"
+          }
+        }
+      }
+    },
+    "Landmarks" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Области"
+          }
+        }
+      }
+    },
+    "no name" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "без имени"
+          }
+        }
+      }
+    },
+    "Open Privacy & Security" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть «Конфиденциальность и безопасность»"
+          }
+        }
+      }
+    },
+    "Other" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Прочее"
+          }
+        }
+      }
+    },
+    "Read Again" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Прочитать заново"
+          }
+        }
+      }
+    },
+    "Reading…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Читаю…"
+          }
+        }
+      }
+    },
+    "six needs permission to read the page's accessibility tree: System Settings ▸ Privacy & Security ▸ Accessibility." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Чтобы читать дерево доступности страницы, six нужно разрешение: Системные настройки ▸ Конфиденциальность и безопасность ▸ Универсальный доступ."
+          }
+        }
+      }
+    },
+    "Text" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Текст"
+          }
+        }
+      }
+    },
+    "The window is not on screen." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Окна нет на экране."
+          }
+        }
+      }
+    },
+    "There is no web page under this window to read." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В этом окне нет веб-страницы, которую можно прочитать."
           }
         }
       }

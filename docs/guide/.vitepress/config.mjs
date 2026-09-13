@@ -70,6 +70,7 @@ const ru = {
                     {text: 'Агенты ⌘⇧A', link: '/agents'},
                     {text: 'Глубокое исследование', link: '/research'},
                     {text: 'MCP-приложения', link: '/apps'},
+                    {text: 'Слой доступности ⌥⌘A', link: '/accessibility'},
                 ],
             },
             {
@@ -158,6 +159,7 @@ const en = {
                     {text: 'Agents (⌘⇧A)', link: '/en/agents'},
                     {text: 'Deep research', link: '/en/research'},
                     {text: 'MCP apps', link: '/en/apps'},
+                    {text: 'The accessibility overlay (⌥⌘A)', link: '/en/accessibility'},
                 ],
             },
             {

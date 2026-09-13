@@ -228,6 +228,23 @@ final class BrowserToolCatalog {
             run: { [unowned self] args in try await self.screenshot(args) }
         ),
         BrowserTool(
+            name: "get_accessibility_tree",
+            title: String(localized: "Accessibility Tree"),
+            description: "What the page in a window is made of as macOS accessibility sees it — WebKit's own accessibility "
+                + "tree, not the DOM: ARIA roles and names already applied, hidden parts gone. One numbered line per element "
+                + "that matters (controls, fields, headings, landmarks, named images): role, accessible name, value, state, "
+                + "what can be done with it (press, type, increment…) and its box in the window. Only the part of the page "
+                + "on screen — scroll and ask again for more. Needs the window on screen (focus_window first) and six "
+                + "allowed under Privacy & Security ▸ Accessibility; the tool says which is missing.",
+            parameters: [
+                Self.windowID,
+                .init(name: "include_text", description: "Also list the text runs between the elements (default false).", type: .boolean),
+                .init(name: "max_nodes", description: "At most this many lines (default 400).", type: .integer),
+            ],
+            surfaces: .mcp,
+            run: { [unowned self] args in try await self.accessibilityTree(args) }
+        ),
+        BrowserTool(
             name: "focus_window",
             title: String(localized: "Focus Window"),
             description: "Brings a window on screen: switches to its profile and workspace and scrolls the rail to it.",
@@ -822,6 +839,21 @@ final class BrowserToolCatalog {
         let file = DevToolsStore.screenshotFolder.appending(path: "\(stamp)-\(tab.id.uuidString.prefix(8)).png")
         try data.write(to: file)
         return "\(Self.describe(tab))\n\nWrote \(data.count / 1024) KB to \(file.path)"
+    }
+
+    /// The same read the accessibility overlay draws, so with the overlay on the person sees what the
+    /// agent was just given (`AccessibilityOverlay`).
+    private func accessibilityTree(_ args: ACPJSON) async throws -> String {
+        let tab = try webTab(args)
+        guard !tab.showsStartPage else { return "\(Self.describe(tab))\n\nThis window shows six's start page; there is no web page to read." }
+        #if os(macOS)
+        await Self.waitForLoad(tab)
+        let placed = try await AccessibilityOverlay.shared.read(tab)
+        let limit = min(max(20, args["max_nodes"]?.intValue ?? 400), 2000)
+        return "\(Self.describe(tab))\n\n" + placed.outline(includeText: args["include_text"]?.boolValue ?? false, limit: limit)
+        #else
+        throw BrowserTool.Failure(message: "The accessibility tree is read on the Mac only.")
+        #endif
     }
 
     private func pageContent(_ args: ACPJSON) async throws -> String {

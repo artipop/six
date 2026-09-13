@@ -111,6 +111,14 @@ struct ViewCommands: Commands {
             // pressed on a page of text.
             Button("Picture in Picture") { browser.togglePictureInPicture() }
                 .keyboardShortcut("p", modifiers: [.option, .shift])
+            // ⌥⌘A, a menu key and not a `KeyBindings` row: a `⌘` key reaches the menu past a focused
+            // page (`KeySelfTest.menuKeys`), and the table is shared with the fronts that have no
+            // accessibility tree to draw. A toggle, with the same caveat about its tick as Full Width.
+            Toggle("Accessibility Overlay", isOn: Binding(
+                get: { AccessibilityOverlay.shared.isOn },
+                set: { AccessibilityOverlay.shared.isOn = $0 }
+            ))
+            .keyboardShortcut("a", modifiers: [.command, .option])
 
             Divider()
 
