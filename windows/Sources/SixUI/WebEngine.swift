@@ -2,6 +2,7 @@ import CRailInterop
 import CWebKit2
 import Foundation
 import SixBrowser
+@testable import SixCore
 import WinSDK
 
 /// Starts the real engine once, and hands out one `RailWebView` per live column. The WebKit2 C API
@@ -164,7 +165,11 @@ enum WebEngine {
         WKViewSetIsInWindow(view, true)
         WKViewWindowAncestryDidChange(view)
         guard let page = WKViewGetPage(view) else { return nil }
-        return RailWebView(view: view, page: page)
+        let sandbox = RailWebView(view: view, page: page)
+        // Six's own programs, not somebody's page: a `file:` document that does not load is a
+        // failure its driver has to see, not an error page that would look to it like a load.
+        sandbox.showsFailures = false
+        return sandbox
     }
 }
 
@@ -248,6 +253,21 @@ final class RailWebView {
     /// button or the keys behind it, so the rail catches those clicks on their way in (`route`).
     private(set) var hoveredLink: String?
 
+    /// Between a navigation starting and it finishing or failing — what the loading line is drawn for.
+    private(set) var isLoading = false
+    /// WebKit's own guess at how far the page has got, `0…1`, read on the page-state timer.
+    var estimatedProgress: Double { WKPageGetEstimatedProgress(page) }
+    /// The page on screen is six's "this page didn't open", not the site's. Such a page is not a
+    /// visit, and the navigation that put it there is not a load anybody was waiting for.
+    private(set) var isShowingFailure = false
+    /// Set just before the failure page is loaded, so the navigation it starts is known for what it is.
+    private var loadingFailurePage = false
+    /// The navigation that started last, by the address of its `WKNavigationRef`. A failure belongs
+    /// to the page only if it is this one's (`handleFailedNavigation`).
+    private var currentNavigation: Int?
+    /// False for the sandbox views, whose pages are six's own programs (`makeSandboxView`).
+    var showsFailures = true
+
     /// The Cancel for every question still on screen or in a queue, so a view torn down in the middle
     /// of one lets its page go rather than leaving it suspended — and the listener retained — for
     /// the life of the process.
@@ -312,6 +332,28 @@ final class RailWebView {
             let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
             MainActor.assumeIsolated { webView.handleFinishedNavigation() }
         }
+        // Navigations are told apart by the address of their `WKNavigationRef`, kept as a number: it
+        // is compared, never followed, so nothing needs retaining for it.
+        client.didStartProvisionalNavigation = { _, navigation, _, clientInfo in
+            guard let clientInfo else { return }
+            let started = navigation.map { Int(bitPattern: UnsafeRawPointer($0)) }
+            let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+            MainActor.assumeIsolated { webView.handleStartedNavigation(started) }
+        }
+        client.didFailProvisionalNavigation = { _, navigation, error, _, clientInfo in
+            guard let clientInfo else { return }
+            nonisolated(unsafe) let failure = error
+            let failed = navigation.map { Int(bitPattern: UnsafeRawPointer($0)) }
+            let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+            MainActor.assumeIsolated { webView.handleFailedNavigation(failure, navigation: failed, provisional: true) }
+        }
+        client.didFailNavigation = { _, navigation, error, _, clientInfo in
+            guard let clientInfo else { return }
+            nonisolated(unsafe) let failure = error
+            let failed = navigation.map { Int(bitPattern: UnsafeRawPointer($0)) }
+            let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+            MainActor.assumeIsolated { webView.handleFailedNavigation(failure, navigation: failed, provisional: false) }
+        }
         // A file rather than a page. Left to WebKit's default, both of these answer "show it": a
         // `<a download>` link opens the file as a page, and a zip or an attachment becomes a blank
         // column — the Mac's table in links.md, row for row, before six answered them there.
@@ -353,9 +395,111 @@ final class RailWebView {
     }
 
     private func handleFinishedNavigation() {
+        isLoading = false
         if !title.isEmpty { onTitleChange?(title) }
         if !url.isEmpty { onURLChange?(url) }
         onFinishNavigation?()
+    }
+
+    private func handleStartedNavigation(_ navigation: Int?) {
+        currentNavigation = navigation
+        if loadingFailurePage {
+            loadingFailurePage = false
+            isShowingFailure = true
+        } else {
+            isShowingFailure = false
+            isLoading = true
+        }
+    }
+
+    /// A load that did not happen, answered the way the Mac's `BrowserTab.noteFailure` answers it —
+    /// with the same two things that are not failures.
+    ///
+    /// Only a *provisional* failure gets a page: a page that committed and then failed has something
+    /// of its own on screen, and taking it away to say so would be worse than the failure.
+    private func handleFailedNavigation(_ error: WKErrorRef?, navigation: Int?, provisional: Bool) {
+        // A navigation that is no longer the page's latest failed: something newer has started, and
+        // this says nothing about it — not that it stopped loading, and certainly not that it failed.
+        // Measured: a page going somewhere else while a slow address was still connecting had that
+        // first navigation fail a moment later, and the page put up on top of it cancelled the new
+        // one, so the window ended on "This page didn't open" for an address nobody was waiting for.
+        if let navigation, let currentNavigation, navigation != currentNavigation { return }
+        isLoading = false
+        guard showsFailures, provisional, let error else { return }
+        let domain = Self.takeString(WKErrorCopyDomain(error))
+        let code = Int(WKErrorGetErrorCode(error))
+        // Cancelled is not a failure: `stopLoading` looks like this, and so does a navigation that
+        // succeeded somewhere else. The Mac's spelling, and then this port's: WebKit's network layer
+        // here is curl, not `CFNetwork`, and says "cancelled" as `WebKitErrorDomain` 302 — the
+        // superseded navigation above came back as exactly that.
+        if domain == "NSURLErrorDomain", code == -999 { return }
+        // WebKit's own words for the same thing: a policy that sent the request elsewhere (101, 102
+        // — a download, a new window), a plugin that took the load (203), and the network's cancel.
+        if domain == "WebKitErrorDomain", [101, 102, 203, 302].contains(code) { return }
+        let address: String = WKErrorCopyFailingURL(error).map { url in
+            defer { WKRelease(UnsafeRawPointer(url)) }
+            return Self.takeString(WKURLCopyString(url))
+        } ?? ""
+        // The domain and the code, which say what kind of failure; never the address, which says
+        // where somebody was going.
+        Log.info(.pages, "a page did not load: \(domain) \(code)")
+        guard !address.isEmpty else { return }
+        let message = Self.takeString(WKErrorCopyLocalizedDescription(error))
+        showFailure(address: address, message: message, detail: "\(domain) \(code)")
+    }
+
+    /// Six's "this page didn't open", in place of the page that did not.
+    ///
+    /// `WKPageLoadAlternateHTMLString`, which is what the call is for: the page shown is six's, but
+    /// the back-forward item and the address stay the unreachable one, so going back and forward
+    /// passes through it the way it would through the site. The Mac draws `PageFailureView` over the
+    /// window instead; the words are its words.
+    private func showFailure(address: String, message: String, detail: String) {
+        guard let html = Self.wkString(Self.failurePage(address: address, message: message, detail: detail)) else { return }
+        defer { WKRelease(UnsafeRawPointer(html)) }
+        guard let unreachable = address.withCString({ WKURLCreateWithUTF8CString($0) }) else { return }
+        defer { WKRelease(UnsafeRawPointer(unreachable)) }
+        loadingFailurePage = true
+        WKPageLoadAlternateHTMLString(page, html, nil, unreachable)
+    }
+
+    /// The Mac's `PageFailureView`, as a page: what happened, where, what six can say about it, a
+    /// way to try again, and — demoted, at the bottom — the system's own sentence, which is the thing
+    /// to paste into a search. Its title is the host, so the card keeps saying where it was going.
+    /// `color-scheme` and the system colours, so it is dark when Windows is.
+    private static func failurePage(address: String, message: String, detail: String) -> String {
+        let host = URL(string: address)?.host() ?? ""
+        let shown = escape(host.isEmpty ? address : host)
+        return """
+            <!doctype html><html><head><meta charset="utf-8"><meta name="color-scheme" content="light dark">
+            <title>\(shown)</title><style>
+            html,body{height:100%;margin:0}
+            body{display:flex;align-items:center;justify-content:center;font:15px "Segoe UI",system-ui,sans-serif;background:Canvas;color:CanvasText}
+            main{max-width:460px;padding:0 28px}
+            .mark{font-size:34px;opacity:.55}
+            h1{font-size:22px;font-weight:600;margin:14px 0 6px}
+            .host{font-family:Consolas,monospace;opacity:.65;margin:0 0 14px;word-break:break-all}
+            p{opacity:.75;margin:0 0 18px}
+            button{font:inherit;padding:6px 16px;border-radius:6px}
+            .detail{font-size:12px;opacity:.45;margin-top:18px;word-break:break-word}
+            </style></head><body><main>
+            <div class="mark">&#9888;</div>
+            <h1>This page didn&#8217;t open</h1>
+            <div class="host">\(shown)</div>
+            <p>six could not reach this address.</p>
+            <button id="again" data-url="\(escape(address))">Try Again</button>
+            <div class="detail">\(escape(message)) (\(escape(detail)))</div>
+            </main><script>document.getElementById('again').onclick=function(){location.replace(this.dataset.url)}</script>
+            </body></html>
+            """
+    }
+
+    private static func escape(_ text: String) -> String {
+        text.replacingOccurrences(of: "&", with: "&amp;")
+            .replacingOccurrences(of: "<", with: "&lt;")
+            .replacingOccurrences(of: ">", with: "&gt;")
+            .replacingOccurrences(of: "\"", with: "&quot;")
+            .replacingOccurrences(of: "'", with: "&#39;")
     }
 
     /// What the page asks of the person in front of it: the camera or the microphone, its own

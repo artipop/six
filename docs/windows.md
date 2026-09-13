@@ -954,6 +954,44 @@ Measured in an isolated run with `SIX_DOWNLOADS` pointed at a scratch folder: tw
 a picture of the bar (`PrintWindow`, from a per-monitor-aware process) showed the arrow with its dot, and a posted
 click on it opened the list with both rows, "Done · 12 B" and "Done · 9 B", the dot gone.
 
+## A failed load and the loading line
+
+**A page that did not open says so.** Left alone, a failed provisional navigation left the column exactly as it was —
+blank, or the previous page — and silent about why, which is the report the Mac's `PageFailureView` was written
+against. `RailWebView.handleFailedNavigation` puts the Mac's words in its place with `WKPageLoadAlternateHTMLString`:
+"This page didn't open", the host, "six could not reach this address.", **Try Again** (a `location.replace` back to
+the unreachable address), and the system's own sentence with its domain and code, demoted to the bottom. The call is
+the one meant for it — the page is six's, the back-forward item and the address stay the unreachable one — and the
+page's `<title>` is the host, so the card still says where it was going. `color-scheme` and system colours let it
+follow Windows' light or dark. There is no certificate offer, because this front has no `CertificateStore` yet.
+
+What is **not** a failure, and the two things measured to get there:
+
+- The Mac's two: `NSURLErrorDomain` −999 and `WebKitErrorDomain` 101/102 — a cancel, and a policy that sent the
+  request elsewhere (a download, a new window). Plus 203, a plugin taking the load.
+- **`WebKitErrorDomain` 302, which is how this port says "cancelled".** Its network layer is curl, not `CFNetwork`,
+  and a navigation superseded by another came back as exactly that. The first version did not know it, and the
+  error page it put up cancelled the new navigation in turn: a page that went somewhere else while a slow address was
+  still connecting ended on "This page didn't open" for an address nobody was waiting for any more.
+- **Anything about a navigation that is no longer the latest.** The navigation client hands every callback its
+  `WKNavigationRef`; the one that started last is remembered by address, and a failure of any other is ignored — it
+  says nothing about what is loading now. This covers the cancel codes nobody has met yet.
+
+A real failure measured for each kind: an address on a port WebKit refuses (`127.0.0.1:9`, `WebKitErrorDomain` 103,
+"Not allowed to use restricted network port") and one where nothing listens (`127.0.0.1:65530`, `CurlErrorDomain`
+7) both put the page up, titled `127.0.0.1`. The error page is not a visit and is not offered for translation
+(`isShowingFailure`), and the sandbox views never get one (`showsFailures`): their pages are six's own programs, and
+a failure there is their driver's to see. The log keeps the domain and the code, never the address.
+
+**The loading line** is the Mac's `LoadingLine`: two pixels in the profile's colour, never shorter than a sliver,
+under the address field for the window being read and along the foot of the card's header for every other one.
+`isLoading` comes from the navigation client (started → finished or failed), the progress from
+`WKPageGetEstimatedProgress` on the page-state timer that already polls titles, in steps of a twentieth so a page
+trickling in repaints a handful of times. Measured against a local server that sent a page in twelve pieces over six
+seconds: a picture of the bar half-way through shows the line about half the field's width, and one after shows none.
+
+Not built: Stop in place of Reload while a page is loading.
+
 ## The list windows
 
 History and Site Permissions are one type, `RailListPanel`: an owned popup window — a frame of its own,

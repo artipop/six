@@ -137,6 +137,16 @@ extension RailWindow {
 
         drawGlyph(hdc, ChromeFonts.Glyph.close, in: closeBoxRect(for: card), enabled: true)
 
+        // The page arriving, along the foot of the card's header — for every window but the one
+        // being read, whose line is under the address field (`drawTopBar`): the Mac's arrangement,
+        // in which a neighbour still has to be able to say for itself that it is loading.
+        if !column.isFocused, live, let progress = loadProgress[column.id] {
+            let inset = px(Metric.cardRadius)
+            let foot = card.top + px(Metric.cardHeader)
+            drawLoadingLine(hdc, progress: progress, color: accent,
+                            in: RECT(left: card.left + inset, top: foot - px(2), right: card.right - inset, bottom: foot))
+        }
+
         // The picture the page left, under where the page goes: a live view covers it, and a column
         // whose view is still being built — or was given back — shows what it last looked like
         // rather than a flat colour.
@@ -145,5 +155,14 @@ extension RailWindow {
             drawThumbnail(hdc, picture, into: RECT(left: body.left + 1, top: body.top, right: body.right - 1, bottom: body.bottom - 1))
         }
         if let question = column.permission { drawPermissionBar(hdc, question, in: card) }
+    }
+
+    /// The Mac's `LoadingLine`: two pixels the page seems to push along, never shorter than a sliver,
+    /// so a load that has only just begun still shows that it has.
+    func drawLoadingLine(_ hdc: HDC, progress: Double, color: COLORREF, in track: RECT) {
+        var line = track
+        let width = Double(track.right - track.left) * min(max(progress, 0.03), 1)
+        line.right = track.left + max(px(3), Int32(width))
+        fill(hdc, line, with: color)
     }
 }

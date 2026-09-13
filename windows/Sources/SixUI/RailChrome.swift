@@ -395,6 +395,13 @@ extension RailWindow {
         drawGlyph(hdc, ChromeFonts.Glyph.reload, in: layout.reload, enabled: live != nil)
 
         drawAddressField(hdc, in: layout.addressPill)
+        // The window being read has its loading line here, under its address, rather than on its card.
+        if let focused = model.focusedTabID, webViews[focused] != nil, let progress = loadProgress[focused] {
+            let pill = layout.addressPill
+            drawLoadingLine(hdc, progress: progress, color: Self.color(hex: model.activeProfile.colorHex),
+                            in: RECT(left: pill.left + px(12), top: pill.bottom - px(2),
+                                     right: pill.right - px(12), bottom: pill.bottom))
+        }
         drawBookmarkRibbon(hdc, in: layout.bookmark)
 
         drawTranslateButton(hdc, in: layout.translate)

@@ -52,6 +52,9 @@ public final class RailWindow {
     /// Columns opened to carry a link, and the column each was opened from — until the page in it
     /// finishes loading. A download that arrives in one first closes it (`closeIfOnlyCarried`).
     var carriers: [Foundation.UUID: Foundation.UUID] = [:]
+    /// How far each live page has got while it loads, absent when it is not loading — what the
+    /// loading lines are drawn from (`refreshLivePageState`).
+    var loadProgress: [Foundation.UUID: Double] = [:]
 
     /// Translating the page you are reading. Made on first use — it opens a web process of its own
     /// for the engine, and a reader who never translates anything should never pay for one.

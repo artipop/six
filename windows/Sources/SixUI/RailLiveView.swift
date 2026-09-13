@@ -94,6 +94,17 @@ extension RailWindow {
                 changed = true
             }
         }
+        // How far each page has got, for the lines under the address and across the cards. In steps
+        // of a twentieth, so a page trickling in repaints a handful of times rather than four a second.
+        for (id, view) in webViews {
+            let progress: Double? = view.isLoading ? view.estimatedProgress : nil
+            let known = loadProgress[id]
+            if (progress == nil) != (known == nil) || abs((progress ?? 0) - (known ?? 0)) >= 0.05 {
+                loadProgress[id] = progress
+                changed = true
+            }
+        }
+        for id in loadProgress.keys where webViews[id] == nil { loadProgress[id] = nil }
         if let view = focusedWebView {
             let navigation = [view.canGoBack, view.canGoForward]
             if navigation != lastNavigationState {
@@ -183,6 +194,13 @@ extension RailWindow {
             // It showed a page: whatever it was opened to carry, it is a window now.
             carriers[tabID] = nil
             translation.pageChanged(tabID)
+            // Six's "this page didn't open" is not a visit and not a page to translate; it is still
+            // worth a picture, since it is what the column now looks like.
+            if view.isShowingFailure {
+                thumbnailDue[tabID] = Date().addingTimeInterval(1.5)
+                invalidate()
+                return
+            }
             translation.consider(view, tabID: tabID)
             model.pageDidFinishLoading(tabID, url: view.url, title: view.title)
             thumbnailDue[tabID] = Date().addingTimeInterval(1.5)

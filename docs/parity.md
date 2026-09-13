@@ -45,8 +45,11 @@ as a page that says so (`PageFailureView`) rather than a blank card; **the load 
   and a middle or `Ctrl`-click opening a link behind ([windows.md](windows.md#a-second-window)). **Downloads are
   done** (2026-09-13): WebKit's own transfer, the Downloads folder, the button and its list, `Ctrl+J`, the carrier
   column closing itself ([windows.md](windows.md#downloads)) — without resume, Try Again or rows across a relaunch,
-  which the C API has nowhere to hand a stopped transfer back to. Still owed: the link's context menu
-  (`WKPageContextMenuClient`), a failed load (`WKPageNavigationClient`'s failure callbacks), and **links to other apps** — `mailto:` and the like, handed to the
+  which the C API has nowhere to hand a stopped transfer back to. **A failed load and the loading line
+  are done** (2026-09-13): the Mac's "This page didn't open" as an alternate page with Try Again, and the Mac's
+  `LoadingLine` under the address and across the other cards ([windows.md](windows.md#a-failed-load-and-the-loading-line)).
+  Still owed: the link's context menu (`WKPageContextMenuClient`), a Stop in place of Reload while loading, and
+  **links to other apps** — `mailto:` and the like, handed to the
   system only after a question, because an unasked protocol handler on Windows is an exploit route. That last one
   wants the Mac's `ExternalScheme` in `SixCore`, which means splitting `MCPAppScheme` out of its WebKit file first.
 - **Linux:** the same list: `WebKitDownload`, `script-dialog`, `run-file-chooser`, `decide-policy`,
