@@ -1917,12 +1917,12 @@
         }
       }
     },
-    "\u2318E Line" : {
+    "⌘E Line" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "\u0421\u0442\u0440\u043e\u043a\u0430 \u2318E"
+            "value" : "Строка ⌘E"
           }
         }
       }
@@ -5031,7 +5031,7 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "\u041f\u0435\u0440\u0435\u0447\u0438\u0442\u0430\u0442\u044c"
+            "value" : "Перечитать"
           }
         }
       }
@@ -6998,6 +6998,1070 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Разгруппировать"
+          }
+        }
+      }
+    },
+    "%lld elements · %lld ms" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Элементов: %1$lld · %2$lld мс"
+          }
+        }
+      }
+    },
+    "%lld without a name" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Без имени: %lld"
+          }
+        }
+      }
+    },
+    "Accessibility" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступность"
+          }
+        }
+      }
+    },
+    "Accessibility Overlay" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Слой доступности"
+          }
+        }
+      }
+    },
+    "Accessibility Tree" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дерево доступности"
+          }
+        }
+      }
+    },
+    "Controls" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Управление"
+          }
+        }
+      }
+    },
+    "Fields" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поля"
+          }
+        }
+      }
+    },
+    "Headings" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заголовки"
+          }
+        }
+      }
+    },
+    "Hide Accessibility Overlay (⌥⌘A)" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скрыть слой доступности (⌥⌘A)"
+          }
+        }
+      }
+    },
+    "Images" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Изображения"
+          }
+        }
+      }
+    },
+    "Landmarks" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Области"
+          }
+        }
+      }
+    },
+    "no name" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "без имени"
+          }
+        }
+      }
+    },
+    "Open Privacy & Security" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть «Конфиденциальность и безопасность»"
+          }
+        }
+      }
+    },
+    "Other" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Прочее"
+          }
+        }
+      }
+    },
+    "Read Again" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Прочитать заново"
+          }
+        }
+      }
+    },
+    "Reading…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Читаю…"
+          }
+        }
+      }
+    },
+    "six needs permission to read the page's accessibility tree: System Settings ▸ Privacy & Security ▸ Accessibility." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Чтобы читать дерево доступности страницы, six нужно разрешение: Системные настройки ▸ Конфиденциальность и безопасность ▸ Универсальный доступ."
+          }
+        }
+      }
+    },
+    "Text" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Текст"
+          }
+        }
+      }
+    },
+    "The window is not on screen." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Окна нет на экране."
+          }
+        }
+      }
+    },
+    "There is no web page under this window to read." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В этом окне нет веб-страницы, которую можно прочитать."
+          }
+        }
+      }
+    },
+    "%@, swept %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, обход %2$@"
+          }
+        }
+      }
+    },
+    "%lld of %lld draw a window" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld of %2$lld draw a window"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld из %2$lld рисуют окно"
+          }
+        }
+      }
+    },
+    "`scripting.executeScript` and `scripting.insertCSS` fail here; scripts it registers do run." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "`scripting.executeScript` и `scripting.insertCSS` здесь не работают; скрипты, которые оно регистрирует, — работают."
+          }
+        }
+      }
+    },
+    "`scripting.executeScript` and `scripting.insertCSS` now reach the page — on macOS; the phone has no live web view to find yet." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "`scripting.executeScript` и `scripting.insertCSS` теперь достают до страницы — на macOS; на телефоне пока нечего искать."
+          }
+        }
+      }
+    },
+    "`webRequest` is not available in WebKit at all." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "`webRequest` в WebKit нет вообще."
+          }
+        }
+      }
+    },
+    "A browser with a rail instead of tabs: a page is a full-height window, the windows stand side by side, and the rail scrolls. ⌥← and ⌥→ move along it; ⌥↑ and ⌥↓ move between workspaces." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Браузер с рельсом вместо вкладок: страница — это окно во всю высоту, окна стоят рядом, рельс прокручивается вбок. ⌥← и ⌥→ ходят по нему, ⌥↑ и ⌥↓ — между рабочими столами."
+          }
+        }
+      }
+    },
+    "A site is checked against the system's certificate authorities first. These are only consulted for a site the system has already turned down." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сайт сначала проверяется по удостоверяющим центрам системы. Эти нужны лишь тогда, когда система уже отказала."
+          }
+        }
+      }
+    },
+    "A window off the screen gives its page back when six is over what this machine can carry, and keeps everything it takes to put the same page back — its address, its history, its scroll offset and a picture of itself. The budget comes from the machine's memory and follows the pressure the system reports." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Окно за пределами экрана отдаёт свою страницу, когда six выходит за то, что тянет этот компьютер, и сохраняет всё, чтобы вернуть ту же страницу обратно: адрес, историю, позицию прокрутки и снимок самого себя. Лимит берётся из памяти компьютера и следует за нагрузкой, о которой сообщает система."
+          }
+        }
+      }
+    },
+    "A workspace named after the question, a document the agent writes into, and the sources it read open next to it." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Откроется рабочий стол с названием по вопросу, документ, в который пишет агент, и рядом — прочитанные им источники."
+          }
+        }
+      }
+    },
+    "Agent panel (⌘⇧A)" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Панель агента (⌘⇧A)"
+          }
+        }
+      }
+    },
+    "An app is a window on the rail, drawn by the server that answered the tool call. The registry does not say which servers carry one, so six asks them." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приложение — это окно на ленте, нарисованное сервером, который ответил на вызов инструмента. Реестр не говорит, у каких серверов оно есть, поэтому six спрашивает их сам."
+          }
+        }
+      }
+    },
+    "Any server speaking the OpenAI /chat/completions format: OpenAI, a gateway, or llama.cpp and Ollama on this machine — those want no key." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Любой сервер, говорящий в формате OpenAI /chat/completions: сам OpenAI, шлюз или llama.cpp и Ollama на этом компьютере — последним ключ не нужен."
+          }
+        }
+      }
+    },
+    "Background, storage, alarms, tabs and its popup work." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Фоновая страница, storage, alarms, tabs и всплывающее окно работают."
+          }
+        }
+      }
+    },
+    "Blocking is off" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Блокировка выключена"
+          }
+        }
+      }
+    },
+    "Blocking is off — nothing is fetched or attached to a page." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Блокировка выключена — ничего не скачивается и не подключается к странице."
+          }
+        }
+      }
+    },
+    "Capture" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запись"
+          }
+        }
+      }
+    },
+    "Capture Console and Network" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Записывать консоль и сеть"
+          }
+        }
+      }
+    },
+    "Clear Captured Logs" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очистить записанные логи"
+          }
+        }
+      }
+    },
+    "Deep research: a workspace of sources and a document the agent writes into" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Глубокое исследование: рабочий стол с источниками и документ, в который пишет агент"
+          }
+        }
+      }
+    },
+    "Either way it is one switch in Configuration ▸ Assistant, and it can be changed at any time." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В любом случае это один переключатель в Конфигурации ▸ Ассистент, и его можно передвинуть в любой момент."
+          }
+        }
+      }
+    },
+    "Expired — it can no longer vouch for anything" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Истёк — больше ни за что не ручается"
+          }
+        }
+      }
+    },
+    "For the list_console_messages and list_network_requests tools; it runs a hook in the page's own world." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Для инструментов list_console_messages и list_network_requests; ставит перехватчик в собственном мире страницы."
+          }
+        }
+      }
+    },
+    "From %@. Nothing checks who made it — an extension can read and change the pages it is given." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Из %@. Никто не проверяет, кто это написал: расширение может читать и менять страницы, которые ему дают."
+          }
+        }
+      }
+    },
+    "Holding a Page" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Держат страницу"
+          }
+        }
+      }
+    },
+    "Install one from a folder, a .zip, a .crx or an .xpi. Extensions from the App Store belong to their own apps and cannot be adopted." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Установите из папки, .zip, .crx или .xpi. Расширения из App Store принадлежат своим приложениям — их подключить нельзя."
+          }
+        }
+      }
+    },
+    "It will be granted" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Будут выданы права"
+          }
+        }
+      }
+    },
+    "Its content scripts run in pages and should now reach their extension, and be reached back — on macOS; unconfirmed on the phone." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Его content-скрипты работают на страницах и теперь должны достучаться до расширения, и оно до них — на macOS; на телефоне не проверено."
+          }
+        }
+      }
+    },
+    "Its content scripts run in pages, but cannot message the extension — and it cannot message them." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Его content-скрипты работают на страницах, но не могут писать расширению — и оно им тоже."
+          }
+        }
+      }
+    },
+    "Its declarativeNetRequest rules work — those block for real." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Его правила declarativeNetRequest работают — они блокируют по-настоящему."
+          }
+        }
+      }
+    },
+    "Its last window has been closed. Kept, it stays on the rail with its name and nothing in it." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "На нём закрылось последнее окно. Если оставить, он останется в ленте — с именем и пустой."
+          }
+        }
+      }
+    },
+    "Larger — 1.1 GB" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Крупнее — 1,1 ГБ"
+          }
+        }
+      }
+    },
+    "macOS asks once for six itself; this list is six asking for each site." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS спрашивает один раз про сам six; этот список — то, о чём six спрашивает про каждый сайт."
+          }
+        }
+      }
+    },
+    "Model for Search by Meaning" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Модель поиска по смыслу"
+          }
+        }
+      }
+    },
+    "Muted — click to let this page see and hear again" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выключено — нажмите, чтобы страница снова видела и слышала"
+          }
+        }
+      }
+    },
+    "New Window on the Rail" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Новое окно на ленте"
+          }
+        }
+      }
+    },
+    "No sites. The shield in a window's address field allows the site it is showing." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сайтов нет. Щит в адресной строке окна разрешает рекламу на том сайте, который в нём открыт."
+          }
+        }
+      }
+    },
+    "No, none of it" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нет, ничего этого"
+          }
+        }
+      }
+    },
+    "Nothing is built and nothing is injected into a page: no ⌘K line, no bar over a selection, no agent, no socket. Bookmark search and page translation are not affected." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ничего не строится и в страницу ничего не внедряется: ни строки ⌘K, ни полоски над выделением, ни агента, ни сокета. Поиска по закладкам и перевода страниц это не касается."
+          }
+        }
+      }
+    },
+    "Nothing is kept in this profile. Closing it forgets the session." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В этом профиле ничего не сохраняется. Закройте его — и сессия забыта."
+          }
+        }
+      }
+    },
+    "Off means off: nothing is fetched, compiled or attached to a page" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выключено значит выключено: ничего не скачивается, не компилируется и не подключается к странице"
+          }
+        }
+      }
+    },
+    "On, nothing is drawn in the gaps beside the focused window until the pointer arrives, and the rail leans over to show what is on that side. Off, the buttons stand where they are and do their job on the way in — which is the only thing that works without a pointer to rest." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Включено — в промежутках рядом с активным окном ничего не нарисовано, пока туда не придёт указатель, и лента наклоняется, показывая, что с этой стороны. Выключено — кнопки стоят на своих местах и срабатывают по пути к ним; только так это и работает там, где указателю негде замереть."
+          }
+        }
+      }
+    },
+    "On, the window you are reading sits in the middle of the screen and both neighbours peek in by the same amount. Off, the rail moves as little as it can — ⌥C." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Включено — окно, которое вы читаете, стоит посередине экрана, и оба соседа заглядывают одинаково. Выключено — лента сдвигается настолько мало, насколько может (⌥C)."
+          }
+        }
+      }
+    },
+    "Passed to the ACP agent as ANTHROPIC_MODEL. Blank leaves the agent on whatever it picks for itself." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Передаётся ACP-агенту как ANTHROPIC_MODEL. Пусто — агент выбирает сам."
+          }
+        }
+      }
+    },
+    "Peek at the Edges" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Подглядывать у краёв"
+          }
+        }
+      }
+    },
+    "Private browsing — nothing is kept; close it to forget the session" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приватный просмотр — ничего не сохраняется; закройте его, чтобы забыть сессию"
+          }
+        }
+      }
+    },
+    "Put into the page — ⌘Z takes it back" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вставлено в страницу — ⌘Z вернёт как было"
+          }
+        }
+      }
+    },
+    "Re-read Now" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перечитать сейчас"
+          }
+        }
+      }
+    },
+    "Recommended by this Mac's memory. The other one is yours to choose, at your own risk: the larger model ranks a little better between languages, downloads about twice as much and holds twice as much memory while six runs — on a Mac with less than 16 GB that is paid for by the pages. Either way, changing this embeds every saved page again." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Рекомендовано по памяти этого Mac. Другую можно выбрать на свой страх и риск: крупная модель чуть лучше ранжирует между языками, скачивает примерно вдвое больше и вдвое больше держит в памяти, пока six работает, — на Mac, где памяти меньше 16 ГБ, за это платят открытые страницы. В любом случае смена модели заново индексирует все сохранённые страницы."
+          }
+        }
+      }
+    },
+    "Refresh Now" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обновить сейчас"
+          }
+        }
+      }
+    },
+    "Register this exact address with the provider — the sign-in comes back to it" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Зарегистрируйте этот адрес у провайдера — вход вернётся именно на него"
+          }
+        }
+      }
+    },
+    "In Other Apps' Share Menu" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В меню „Поделиться“ других приложений"
+          }
+        }
+      }
+    },
+    "Puts six in the Share menu of Safari, Mail, Finder and anything else that shares a link: a page, some text or a file, and a sheet that asks which workspace it goes to. This is the same switch as the one in System Settings; six turns it on once, when it first finds it off." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавляет six в меню «Поделиться» Safari, Почты, Finder и всего, что умеет делиться ссылкой: страницей, текстом или файлом. six спросит, на какой рабочий стол это положить. Тот же переключатель есть в Системных настройках; six включает его один раз — при первом запуске, когда видит выключенным."
+          }
+        }
+      }
+    },
+    "macOS has no record of six's share extension yet. It is registered when the app is launched from where it is installed." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS пока не знает о расширении six. Оно регистрируется, когда приложение запускается оттуда, куда установлено."
+          }
+        }
+      }
+    },
+    "Shared servers' tools reach the agent as six's own; a tool with an interface opens a window" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Инструменты отданных серверов приходят агенту как собственные инструменты six; инструмент с интерфейсом открывает окно"
+          }
+        }
+      }
+    },
+    "Signed .crx, id %@ — the signature matches the file. Nobody vouches for who holds that key." : {
+      "comment" : "A sentence for the install dialog about what a `.crx`'s own signature says. The argument is the extension ID.",
+      "isCommentAutoGenerated" : true
+    },
+    "Site data is the profile's cookies, local storage and caches — clearing it signs you out everywhere, and the profile's open pages reload." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Данные сайтов — это куки, локальное хранилище и кэши профиля: очистить их значит везде выйти из аккаунтов, а открытые страницы профиля перезагрузятся."
+          }
+        }
+      }
+    },
+    "six does not run a tool again by itself unless the server says it changes nothing." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "six не запускает инструмент повторно сам, если сервер не сказал, что тот ничего не меняет."
+          }
+        }
+      }
+    },
+    "six opens them" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "их открывает six"
+          }
+        }
+      }
+    },
+    "six writes what it did to %@, and to the system log under %@." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "six пишет то, что делал, в %1$@ и в системный журнал под именем %2$@."
+          }
+        }
+      }
+    },
+    "Stored locally for development. Production builds should use App Attest or a proxy." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Хранится локально, для разработки. В релизной сборке нужен App Attest или прокси."
+          }
+        }
+      }
+    },
+    "swept %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "обход %@"
+          }
+        }
+      }
+    },
+    "The ⌘K Line Asks" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Строка ⌘K спрашивает"
+          }
+        }
+      }
+    },
+    "The ⌘K line, the verbs over selected text and in a field, the agent panel, deep research, and six's own MCP server. Off means none of them run and nothing is added to a page. Bookmark search and page translation are not affected." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Строка ⌘K, глаголы над выделенным текстом и в поле ввода, панель агента, глубокое исследование и собственный MCP-сервер six. Выключено — значит ничего из этого не работает и в страницу ничего не добавляется. Поиска по закладкам и перевода страниц это не касается."
+          }
+        }
+      }
+    },
+    "The ⌘K line, the verbs that appear over selected text and in a field you are typing in, the agent panel, deep research, and six's own MCP server — everything that talks to a model or an agent." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Строка ⌘K, глаголы над выделенным текстом и в поле, куда вы печатаете, панель агента, глубокое исследование и собственный MCP-сервер six — всё, что общается с моделью или агентом."
+          }
+        }
+      }
+    },
+    "The agent's session gets `six --mcp` as an MCP server. %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сессия агента получает `six --mcp` как MCP-сервер. %@"
+          }
+        }
+      }
+    },
+    "The models are chosen in Configuration ▸ Assistant. The on-device one keeps everything on this Mac; the others are a key and an endpoint you enter yourself." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Модель выбирается в Конфигурации ▸ Ассистент. На устройстве — всё остаётся на этом Mac; остальные — это ключ и адрес, которые вы вводите сами."
+          }
+        }
+      }
+    },
+    "The Rail" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Лента"
+          }
+        }
+      }
+    },
+    "Then attach from Safari: Develop › %@ › six" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дальше подключитесь из Safari: Разработка › %@ › six"
+          }
+        }
+      }
+    },
+    "This page is using the camera, microphone or screen — click to mute" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Страница использует камеру, микрофон или экран — нажмите, чтобы выключить"
+          }
+        }
+      }
+    },
+    "This server refused six without a token" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Этот сервер отказал six без токена"
+          }
+        }
+      }
+    },
+    "This site’s certificate was issued by %@, an authority six carries and does not trust until you say so. Nothing else on the web is affected by turning it on." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сертификат этого сайта выдан удостоверяющим центром «%@» — six возит его с собой, но не доверяет ему, пока вы не разрешите. На остальной веб это не влияет."
+          }
+        }
+      }
+    },
+    "Trust here belongs to six alone — nothing else on this machine is affected, and switching one off takes it back." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доверие остаётся внутри six — ничто другое на устройстве его не получает, а выключатель забирает его обратно."
+          }
+        }
+      }
+    },
+    "Unload Background Windows Now" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выгрузить фоновые окна сейчас"
+          }
+        }
+      }
+    },
+    "Update Now" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обновить сейчас"
+          }
+        }
+      }
+    },
+    "Used for what is typed in the address field and for the suggestions under it. Also on the start page, as the chip beside the field." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Используется для того, что набрано в адресной строке, и для подсказок под ней. И на стартовой странице — как значок рядом с полем."
+          }
+        }
+      }
+    },
+    "What list_bookmarks and search_bookmarks return unless the agent names a profile" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Что вернут list_bookmarks и search_bookmarks, если агент не назвал профиль"
+          }
+        }
+      }
+    },
+    "What the list, the assistant and the agents see" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Что видят список, ассистент и агенты"
+          }
+        }
+      }
+    },
+    "When a site asks for the camera, the microphone or the motion sensors, your answer is remembered here." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Когда сайт запросит камеру, микрофон или датчики движения, ваш ответ появится здесь."
+          }
+        }
+      }
+    },
+    "Where a query goes, and where the suggestions come from" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Куда уходит запрос и откуда берутся подсказки"
+          }
+        }
+      }
+    },
+    "Works — `scripting.executeScript` and `scripting.insertCSS` reach the page on macOS." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Работает — `scripting.executeScript` и `scripting.insertCSS` достают до страницы на macOS."
+          }
+        }
+      }
+    },
+    "Works — nothing it asks for depends on reaching into a page." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Работает — ничего из того, что оно просит, не требует лезть в страницу."
+          }
+        }
+      }
+    },
+    "Works partly — `webRequest` is not available in WebKit at all." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Работает частично — `webRequest` в WebKit просто нет."
+          }
+        }
+      }
+    },
+    "Works partly — anything it does inside a page will be broken." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Работает частично — всё, что оно делает внутри страницы, сломано."
+          }
+        }
+      }
+    },
+    "Works partly — it is content scripts, which run but cannot be configured or updated by it." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Работает частично — это content-скрипты: они работают, но расширение не может их ни настроить, ни обновить."
+          }
+        }
+      }
+    },
+    "Works partly — its content scripts run, but it cannot reach into pages beyond them." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Работает частично — его content-скрипты работают, но дальше в страницу оно не дотянется."
+          }
+        }
+      }
+    },
+    "Works partly — its content scripts should now reach the extension on macOS, unconfirmed end to end." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Работает частично — его content-скрипты теперь должны достучаться до расширения на macOS, но это не проверено целиком."
           }
         }
       }

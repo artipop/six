@@ -89,6 +89,7 @@ the current row; never other profiles, and this run only.
 | `⌥⇧T` | translate the selection |
 | `⌥⇧H` | highlight the selection on the page |
 | `⌥⇧P` | the video into the floating picture-in-picture window, and back |
+| `⌥⌘A` | the [accessibility overlay](/en/accessibility) over the page, on and off |
 | `⌘` + click a link | open it in a new window to the right, behind |
 | `Esc` | close the overview; otherwise the page's own |
 | `↩` | in the overview, go into the focused window |

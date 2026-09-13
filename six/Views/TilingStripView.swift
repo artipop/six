@@ -799,6 +799,12 @@ struct ColumnView: View {
                     .pageContextMenu(for: tab, in: browser)
                     .id(tab.generation)
                     .onAppear(perform: tab.resumeIfNeeded)
+                    // The page's accessibility tree over the page itself, while View ▸ Accessibility
+                    // Overlay is on — what `get_accessibility_tree` hands an agent, drawn where it
+                    // is. The focused window only: the tree is read from what is on screen.
+                    .overlay {
+                        if isFocused, !capturesClicks { AccessibilityOverlayView(tab: tab) }
+                    }
                     // The ⌘E line, where the text is. Over the page and inside it: the coordinates the
                     // page reports are its viewport's, which is exactly this view's box.
                     .overlay(alignment: .topLeading) {

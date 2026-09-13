@@ -65,6 +65,15 @@ https://docs.google.com/spreadsheets/d/<id>/gviz/tq?tqx=out:csv&sheet=<name>
 Ставка на обычный веб — формы, кнопки, ссылки, логины, чекауты — то есть на девяносто процентов случаев, а не на
 Google.
 
+**Глаза уже есть, и не из DOM.** `get_accessibility_tree` ([accessibility.md](accessibility.md)) отдаёт то же самое
+— пронумерованные элементы с ролью, именем и списком того, что с ними можно сделать, — но из дерева доступности
+WebKit, а не из собственного обхода: роли и имена по ARIA уже вычислены движком, скрытое уже убрано, а `div` с
+обработчиком клика уже помечен как нажимаемый. Цена — разрешение «Универсальный доступ» для six, и только Mac.
+Обход DOM ниже остаётся как вариант без разрешения и для Linux, Windows и iOS; действия по номеру (`click(ref)`
+и соседи) могут идти через `AXUIElementPerformAction` / `AXUIElementSetAttributeValue` — это нажатие так, как его
+делает VoiceOver, — или через DOM, и это решение этапа, а не этого абзаца. Если страница сама объявила
+инструменты, всё это не нужно вовсе — [webmcp.md](webmcp.md).
+
 `page_snapshot(window_id?, max_elements?)` — обход интерактивных узлов (`a[href]`, `button`, `input`, `select`,
 `textarea`, `[role]`, `[contenteditable]`, обработчики клика), только видимых (`checkVisibility`), с доступным
 именем: `aria-label` → `<label>` → `placeholder` → текст. Наружу — пронумерованный список вида
