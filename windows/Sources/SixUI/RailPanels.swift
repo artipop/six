@@ -88,7 +88,7 @@ extension RailWindow {
     }
 
     /// One list at a time: opening the other replaces it rather than stacking a second window on it.
-    private func present(_ panel: RailListPanel) {
+    func present(_ panel: RailListPanel) {
         guard let hwnd else { return }
         listPanel?.close()
         listPanel = panel

@@ -159,6 +159,16 @@ final class RailListPanel {
         if let hwnd { InvalidateRect(hwnd, nil, true) }
     }
 
+    /// The rows again, keeping the selection where it was — for a list whose rows change while it is
+    /// open, which is what a download in progress is.
+    func refresh() {
+        let selected = selectedIndex
+        reload()
+        if let listHwnd, let selected, !rows.isEmpty {
+            SendMessageW(listHwnd, UINT(LB_SETCURSEL), WPARAM(min(selected, rows.count - 1)), 0)
+        }
+    }
+
     private var query: String {
         guard let searchHwnd else { return "" }
         let length = Int(GetWindowTextLengthW(searchHwnd))

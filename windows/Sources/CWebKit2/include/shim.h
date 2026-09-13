@@ -31,3 +31,9 @@
 #include <WebKit/WKNavigationActionRef.h>
 #include <WebKit/WKURLRequest.h>
 #include <WebKit/WKHitTestResult.h>
+// A response that is a file rather than a page, the decision that makes it one, and the download it
+// becomes — which carries a client of its own for where it goes and how far it has got.
+#include <WebKit/WKFramePolicyListener.h>
+#include <WebKit/WKNavigationResponseRef.h>
+#include <WebKit/WKURLResponse.h>
+#include <WebKit/WKDownloadRef.h>

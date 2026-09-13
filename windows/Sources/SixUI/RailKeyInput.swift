@@ -105,6 +105,7 @@ extension RailWindow {
         case 0x13: focusedWebView?.reload()                           // R
         case 0x20: bookmarkFocusedPage()                              // D — the Mac's ⌘D
         case 0x23: showHistory()                                      // H — the Linux front's too
+        case 0x24: showDownloads()                                    // J — every Windows browser's
         case 0x1A: focusedWebView?.goBack()                           // [
         case 0x1B: focusedWebView?.goForward()                        // ]
         default: return false

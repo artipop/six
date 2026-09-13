@@ -180,6 +180,8 @@ extension RailWindow {
         // picture once it has had a moment to draw.
         created.onFinishNavigation = { [weak self] in
             guard let self, let view = webViews[tabID] else { return }
+            // It showed a page: whatever it was opened to carry, it is a window now.
+            carriers[tabID] = nil
             translation.pageChanged(tabID)
             translation.consider(view, tabID: tabID)
             model.pageDidFinishLoading(tabID, url: view.url, title: view.title)
@@ -200,6 +202,11 @@ extension RailWindow {
         created.onChooseFiles = { [weak self] choice in
             guard let self else { return choice.answer(nil) }
             chooseFiles(choice, tabID: tabID)
+        }
+        created.onDownload = { [weak self] download in
+            guard let self else { return }
+            downloads.adopt(download)
+            closeIfOnlyCarried(tabID)
         }
         created.onCreatePage = { [weak self] configuration, url in
             self?.openPageWindow(configuration, url: url, from: tabID)

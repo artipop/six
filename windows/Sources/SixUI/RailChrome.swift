@@ -161,6 +161,8 @@ extension RailWindow {
             static let close = "\u{E711}"
             /// The horizontal ellipsis File Explorer's own "See more" draws.
             static let more = "\u{E712}"
+            /// The arrow into a tray, Windows' own for "downloads".
+            static let download = "\u{E896}"
             // No bookmark and no translate glyph, and that was looked at rather than assumed: every
             // codepoint from E700 to E8FF and from F000 to F0FF was rendered to a sheet. Windows
             // 10's icon font has neither a book's ribbon nor the 文A tile the Mac gets from SF
@@ -233,6 +235,8 @@ extension RailWindow {
         var workspaceDown = RECT()
         var fullWidth = RECT()
         var translate = RECT()
+        /// Downloads, left of the translate button — empty until there has been one.
+        var downloads = RECT()
         /// "⋯": History, Site Permissions and the overview — the three things the Linux front puts
         /// in its toolbar as buttons, in a menu here because a title bar has no room for three more.
         var more = RECT()
@@ -319,6 +323,12 @@ extension RailWindow {
         // not about where you have been.
         layout.translate = RECT(left: layout.workspaceUp.left - gap - buttonWidth, top: button.top,
                                 right: layout.workspaceUp.left - gap, bottom: button.bottom)
+        // Only once there is something in it, the way the Mac's appears with the first download and
+        // not before: a button for a list that is always empty is a button nobody needs.
+        if !downloads.isEmpty {
+            layout.downloads = RECT(left: layout.translate.left - gap - buttonWidth, top: button.top,
+                                    right: layout.translate.left - gap, bottom: button.bottom)
+        }
 
         if translationBannerHeight > 0 {
             layout.banner = RECT(left: 0, top: px(Metric.barHeight),
@@ -339,7 +349,8 @@ extension RailWindow {
         // The bookmark button's width comes off the field's room rather than out of the gap beside
         // it, and it is reserved whether or not the button can be used: a field that grew by thirty
         // pixels on a private profile would be the bar changing shape for a reason nobody could see.
-        let rightLimit = layout.translate.left - gap * 2 - buttonWidth - gap
+        let clusterLeft = downloads.isEmpty ? layout.translate.left : layout.downloads.left
+        let rightLimit = clusterLeft - gap * 2 - buttonWidth - gap
         let width = max(0, min(wanted, rightLimit - leftLimit))
         var left = (client.right - width) / 2
         left = min(max(left, leftLimit), max(leftLimit, rightLimit - width))
@@ -387,6 +398,7 @@ extension RailWindow {
         drawBookmarkRibbon(hdc, in: layout.bookmark)
 
         drawTranslateButton(hdc, in: layout.translate)
+        if !downloads.isEmpty { drawDownloadsButton(hdc, in: layout.downloads) }
         drawGlyph(hdc, ChromeFonts.Glyph.chevronUp, in: layout.workspaceUp, enabled: model.canFocusWorkspace(-1))
         drawWorkspacePips(hdc, in: layout.workspacePips)
         drawGlyph(hdc, ChromeFonts.Glyph.chevronDown, in: layout.workspaceDown, enabled: model.canFocusWorkspace(1))

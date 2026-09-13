@@ -917,6 +917,43 @@ keys are read from the keyboard's state and a posted message cannot hold `Ctrl` 
 The first run of that test reported no link under the pointer at all, and the reason was the test: it hovered 400
 physical pixels down a page that was not that tall. WebKit reports nothing past the edge of the view.
 
+## Downloads
+
+The transfer is WebKit's, which is the one place this front is simpler than the Mac. There, SwiftUI's `WebPage` has
+no download delegate, so six rebuilds the request — cookies, referrer, user agent — and runs it through `URLSession`
+([links.md](links.md#downloads)). The C API has downloads: `RailWebView`'s navigation client answers "download"
+instead of "show" for `<a download>` (`WKNavigationActionShouldPerformDownload`) and for a response that is a file — an
+attachment, or a type the page cannot show — and the `WKDownloadRef` that comes back through
+`navigation…DidBecomeDownload` already carries the page's cookies. All `RailDownloads` adds is a client
+(`WKDownloadClientV0`): where the file goes (`decideDestinationWithResponse`, a path handed back at +1), how far it
+has got, and how it ended.
+
+- **Where.** The user's Downloads folder by `SHGetKnownFolderPath`, not `%USERPROFILE%\Downloads`, which is only
+  where it starts out. The call is made from Swift: declared in `WinSDK.Shell`, it is invisible to a C header in a
+  module of its own, whatever that header includes. `SIX_DOWNLOADS=<folder>` stands in front of it, so a test run does
+  not fill the real one. The name is the server's suggestion, made safe for Windows (no `\ / : * ? " < > |`, no
+  trailing dot), and the Mac's `report 2.pdf` rule against both the files there and the ones other downloads are about
+  to write. A `data:` link with no `download` attribute is suggested the tail of its own address by WebKit —
+  `octet-stream,binary bytes`, measured — and comes down as `download` instead.
+- **The button** appears in the bar with the first download, as the Mac's does, left of the translate button: an
+  arrow, a thin bar under it while something is coming in, a dot in the profile's colour when something finished
+  that nobody has looked at. It opens the list — a `RailListPanel`, refreshed as rows change — and so does `Ctrl+J`.
+  `Enter` opens a finished file with whatever the system opens it with; `Delete` stops a download, or takes a row off
+  the list and leaves the file alone.
+- **A column that only carried the link** — a `target=_blank` or a middle click that turned out to be a file — closes
+  itself and gives the focus back, the Mac's `closeIfOnlyCarriedALink`: `carriers` remembers who opened it, until the
+  page in it finishes loading.
+- **Not built, and why.** A stopped download stays stopped: `didFailWithError` hands back resume data and nothing in
+  the C API takes it. There is no Try Again either — nothing starts a download from an address — and the unfinished
+  rows are not written down for the next launch, since a restored row could offer nothing. A file small enough to
+  arrive in one piece finishes without a single `didWriteData`, so the size of a finished row is read off the file.
+
+Measured in an isolated run with `SIX_DOWNLOADS` pointed at a scratch folder: two clicks on a
+`<a download="hello.txt">` link left `hello.txt` and `hello 2.txt`, nine bytes each; a middle click on a
+`data:application/octet-stream` link opened a column behind that became a download, closed itself, and left one page;
+a picture of the bar (`PrintWindow`, from a per-monitor-aware process) showed the arrow with its dot, and a posted
+click on it opened the list with both rows, "Done · 12 B" and "Done · 9 B", the dot gone.
+
 ## The list windows
 
 History and Site Permissions are one type, `RailListPanel`: an owned popup window — a frame of its own,

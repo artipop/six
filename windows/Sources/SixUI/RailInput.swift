@@ -16,6 +16,7 @@ extension RailWindow {
         case workspace(Int)
         case fullWidth
         case translate
+        case downloads
         case more
     }
 
@@ -44,6 +45,7 @@ extension RailWindow {
         }
         if layout.fullWidth.contains(x: x, y: y) { return .fullWidth }
         if layout.translate.contains(x: x, y: y) { return .translate }
+        if layout.downloads.contains(x: x, y: y) { return .downloads }
         if layout.more.contains(x: x, y: y) { return .more }
         return nil
     }
@@ -110,6 +112,8 @@ extension RailWindow {
             model.toggleFullWidth()
         case .translate:
             translateFocusedPage()
+        case .downloads:
+            showDownloads()
         case .more:
             showMoreMenu(below: chromeLayout().more)
         }

@@ -32,6 +32,7 @@ extension RailWindow {
         }
         wire(view, tabID: tabID)
         webViews[tabID] = view
+        carriers[tabID] = source
         Log.info(.pages, "a page opened a window beside itself")
         invalidate()
         return view
@@ -60,7 +61,8 @@ extension RailWindow {
         }
         let forward = control && SixRailKeyDown(Int32(VK_SHIFT)) != 0
         swallowedRelease = UINT(middle ? WM_MBUTTONUP : WM_LBUTTONUP)
-        model.openColumn(url: link, from: entry.tabID, focus: forward)
+        let opened = model.openColumn(url: link, from: entry.tabID, focus: forward)
+        carriers[opened] = entry.tabID
         Log.info(.pages, "a link opened \(forward ? "beside, in front" : "behind")")
         invalidate()
         return true

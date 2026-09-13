@@ -46,6 +46,12 @@ public final class RailWindow {
     /// The release of a click the rail took for itself — a middle or `Ctrl`-click that opened a link
     /// (`openLinkIfAsked`) — so the page is not handed the second half of a click it never saw.
     var swallowedRelease: UINT?
+    /// Files pages handed over (`RailDownloads`), and its list while it is open.
+    lazy var downloads = RailDownloads { [weak self] in self?.downloadsChanged() }
+    weak var downloadsPanel: RailListPanel?
+    /// Columns opened to carry a link, and the column each was opened from — until the page in it
+    /// finishes loading. A download that arrives in one first closes it (`closeIfOnlyCarried`).
+    var carriers: [Foundation.UUID: Foundation.UUID] = [:]
 
     /// Translating the page you are reading. Made on first use — it opens a web process of its own
     /// for the engine, and a reader who never translates anything should never pay for one.

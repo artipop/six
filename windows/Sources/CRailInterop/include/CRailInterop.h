@@ -4,6 +4,7 @@
 #include <windows.h>
 #include <windowsx.h>
 #include <commdlg.h>
+#include <shellapi.h>
 
 // Win32 pieces Swift cannot reach: <windowsx.h>'s macros, three ClangImporter rough edges, and the
 // WPARAM/LPARAM arithmetic that is easy to get subtly wrong by hand. Wrapped here so the C compiler
@@ -71,6 +72,12 @@ static inline int SixRailOpenFiles(HWND owner, LPCWSTR title, LPCWSTR filter, in
         | (multiple ? OFN_ALLOWMULTISELECT : 0);
     buffer[0] = 0;
     return GetOpenFileNameW(&dialog) ? 1 : 0;
+}
+
+// A file opened with whatever the system opens it with. `> 32` is ShellExecute's own spelling of
+// success; anything at or under it is an error code dressed as a handle.
+static inline int SixRailShellOpen(LPCWSTR target) {
+    return (INT_PTR)ShellExecuteW(NULL, L"open", target, NULL, NULL, SW_SHOWNORMAL) > 32;
 }
 
 #endif

@@ -77,8 +77,9 @@ let package = Package(
                 .product(name: "SixCore", package: "six")
             ],
             swiftSettings: [.defaultIsolation(MainActor.self)],
-            // The file picker behind `<input type=file>` (`SixRailOpenFiles`).
-            linkerSettings: [.linkedLibrary("comdlg32")]
+            // The file picker behind `<input type=file>` (`SixRailOpenFiles`); the Downloads folder
+            // and opening a finished file (`SixRailDownloadsFolder`, `SixRailShellOpen`).
+            linkerSettings: [.linkedLibrary("comdlg32"), .linkedLibrary("shell32"), .linkedLibrary("ole32")]
         ),
         .executableTarget(
             name: "six-windows",

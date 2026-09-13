@@ -90,6 +90,8 @@ enum WebEngine {
         // page ever asks, and `RailWebView.onMediaRequest` is wiring for the WebKit that is not
         // Playwright's (docs/todo.md) — `SIX_PERMISSION_SELFTEST` exercises everything above it.
         WKPreferencesSetMediaDevicesEnabled(preferences, true)
+        // `<a download>`: the page saying a link is a file to keep, not a page to show.
+        WKPreferencesSetDownloadAttributeEnabled(preferences, true)
         // A camera and a microphone that are not there, for testing the question and its answer on
         // a machine that has neither — the Linux front's `SIX_MOCK_CAPTURE`, spelled the same.
         if ProcessInfo.processInfo.environment["SIX_MOCK_CAPTURE"] == "1" {
@@ -232,6 +234,11 @@ final class RailWebView {
     /// `nil` to refuse; the new page loads its request by itself.
     var onCreatePage: ((WKPageConfigurationRef, String) -> RailWebView?)?
 
+    /// Told when a navigation has become a download — the page's own `<a download>`, or a response
+    /// that is a file. The transfer is WebKit's, with the page's cookies already on it; what the rail
+    /// owes it is a client (`RailDownloads.adopt`).
+    var onDownload: ((WKDownloadRef) -> Void)?
+
     /// Told when the page closes itself. WebKit allows `window.close()` only to a window a script
     /// opened, so this is a popup going away when it is done — a sign-in window, usually.
     var onClose: (() -> Void)?
@@ -304,6 +311,43 @@ final class RailWebView {
             guard let clientInfo else { return }
             let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
             MainActor.assumeIsolated { webView.handleFinishedNavigation() }
+        }
+        // A file rather than a page. Left to WebKit's default, both of these answer "show it": a
+        // `<a download>` link opens the file as a page, and a zip or an attachment becomes a blank
+        // column — the Mac's table in links.md, row for row, before six answered them there.
+        client.decidePolicyForNavigationAction = { _, action, listener, _, _ in
+            guard let listener else { return }
+            if let action, WKNavigationActionShouldPerformDownload(action) {
+                WKFramePolicyListenerDownload(listener)
+            } else {
+                WKFramePolicyListenerUse(listener)
+            }
+        }
+        client.decidePolicyForNavigationResponse = { _, navigationResponse, listener, _, _ in
+            guard let listener else { return }
+            guard let navigationResponse else { return WKFramePolicyListenerUse(listener) }
+            var attachment = false
+            if let response = WKNavigationResponseCopyResponse(navigationResponse) {
+                attachment = WKURLResponseIsAttachment(response)
+                WKRelease(UnsafeRawPointer(response))
+            }
+            if attachment || !WKNavigationResponseCanShowMIMEType(navigationResponse) {
+                WKFramePolicyListenerDownload(listener)
+            } else {
+                WKFramePolicyListenerUse(listener)
+            }
+        }
+        client.navigationActionDidBecomeDownload = { _, _, download, clientInfo in
+            guard let clientInfo, let download else { return }
+            nonisolated(unsafe) let started = download
+            let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+            MainActor.assumeIsolated { webView.onDownload?(started) }
+        }
+        client.navigationResponseDidBecomeDownload = { _, _, download, clientInfo in
+            guard let clientInfo, let download else { return }
+            nonisolated(unsafe) let started = download
+            let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+            MainActor.assumeIsolated { webView.onDownload?(started) }
         }
         WKPageSetPageNavigationClient(page, &client.base)
     }

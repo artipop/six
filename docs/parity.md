@@ -42,9 +42,11 @@ as a page that says so (`PageFailureView`) rather than a blank card; **the load 
   end ([windows.md](windows.md#the-pages-own-dialogs)); a folder upload is still refused. They had been silently
   answered no, which the guide's "work as everywhere" had not noticed. **The second window is done** (2026-09-13):
   `window.open` and `target=_blank` as real related pages (`window.opener` works, unlike the Mac), `window.close()`,
-  and a middle or `Ctrl`-click opening a link behind ([windows.md](windows.md#a-second-window)). Still owed:
-  downloads (`WKDownloadClient`), the link's context menu (`WKPageContextMenuClient`), a failed load
-  (`WKPageNavigationClient`'s failure callbacks), and **links to other apps** — `mailto:` and the like, handed to the
+  and a middle or `Ctrl`-click opening a link behind ([windows.md](windows.md#a-second-window)). **Downloads are
+  done** (2026-09-13): WebKit's own transfer, the Downloads folder, the button and its list, `Ctrl+J`, the carrier
+  column closing itself ([windows.md](windows.md#downloads)) — without resume, Try Again or rows across a relaunch,
+  which the C API has nowhere to hand a stopped transfer back to. Still owed: the link's context menu
+  (`WKPageContextMenuClient`), a failed load (`WKPageNavigationClient`'s failure callbacks), and **links to other apps** — `mailto:` and the like, handed to the
   system only after a question, because an unasked protocol handler on Windows is an exploit route. That last one
   wants the Mac's `ExternalScheme` in `SixCore`, which means splitting `MCPAppScheme` out of its WebKit file first.
 - **Linux:** the same list: `WebKitDownload`, `script-dialog`, `run-file-chooser`, `decide-policy`,

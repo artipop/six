@@ -106,6 +106,17 @@ already downloaded were in a temporary folder the system is entitled to empty, s
 promising them would be dishonest. Finished downloads are not kept: the file is in
 the folder, and there is nothing to lose.
 
+**On Windows** downloads work the same way in outline: a file lands in
+**Downloads** under the name the server suggested, a second one of the same name
+gets a number, and a window opened only to carry the link closes itself. The
+button is an arrow in the top bar, beside the translate button. It appears with the
+first download, shows a thin bar while something is coming in and a dot when
+something finished that you have not looked at. `Ctrl+J` opens the list too. In
+the list, `Enter` opens a finished file and `Delete` stops a download or takes it
+off the list. Not there yet: resuming a stopped download, **Try Again**, and the
+rows surviving a relaunch — the engine the Windows version runs on has nothing to
+hand a stopped transfer back to.
+
 A window opened only to carry a link that turned out to be a file closes itself
 once the download starts: nothing was in it, and there is nothing to go back to.
 
