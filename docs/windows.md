@@ -901,10 +901,9 @@ purpose goes behind with the focus left on the page being read, and both land ri
   and its release are both taken, so the page never sees half a click. A middle click the rail does not take goes to
   the page, and on this port that starts WebKit's **pan scrolling**, which then eats the next click — worth knowing
   before reading a test that "clicks and nothing happens".
-- **A link to somebody else's app** — `mailto:`, `magnet:`, a claimed scheme — is not handed to the system yet. A new
-  column is made only for what a column can show (http, https, file, about, data, blob); anything else goes to the
-  page as before. On Windows the handoff wants a question in front of it: a protocol handler opened without one is
-  how `ms-msdt:` became an exploit.
+- **A link to somebody else's app** — `mailto:`, `magnet:`, a claimed scheme — gets no column: a new one is made only
+  for what a column can show (http, https, file, about, data, blob), and the rest is
+  [Links to other apps](#links-to-other-apps).
 
 Measured in an isolated run (`SIX_UI_DEBUG=1`, stderr to a file): a plain click on a page whose script called
 `window.open('about:blank')` put a new column in front titled from the opener's script, the opener read
@@ -1018,6 +1017,38 @@ front.
 
 Not offered, and why: the Mac's **Open Link Beside**, because nothing on this front makes a window share its column
 yet; and its **This Window** submenu, the column's own commands.
+
+## Links to other apps
+
+`mailto:`, `magnet:`, `tel:`, whatever an app claimed. Which addresses these are is `ExternalScheme` — the Mac's list,
+moved into `SixCore` for this (`six/Browser/ExternalScheme.swift`), because a second copy of an allowlist is a second
+chance to let a scheme through. It needed the two MCP-app scheme names with it, so `MCPAppScheme` is now declared in
+`MCPAppTypes.swift`, the wire half, and extended in `MCPAppScheme.swift`, where the WebKit-facing handler stays.
+
+**Every route asks the same question.** The navigation client takes any navigation to such an address away from the
+page (`decidePolicyForNavigationAction` → `RailWebView.handOff`): a click in place, a script, an `<iframe>`. So does
+`createNewPage`, so a `target=_blank` to one makes no column; so does a middle or `Ctrl`-click on one. All of them end
+in `offerExternalLink`.
+
+**Asked, and only after a click.** The Mac hands these to the system on a click without asking. Windows is not the
+same place: a protocol handler opened without a question is how `ms-msdt:` became an exploit, and every Windows
+browser asks. So:
+
+- no user gesture behind it (`WKNavigationActionHasUnconsumedUserGesture`) — refused, and a line in the log;
+- an app claims the scheme — "Open this link in *Mail*?", the name from `AssocQueryStringW` with
+  `ASSOCF_IS_PROTOCOL`, which honours the default picked in Settings; OK hands the address to `ShellExecuteW`;
+- the scheme is Windows' own and nobody was picked for it — measured on this machine for `mailto:`, where the
+  "app" Windows names is its own picker ("Choose an app", in the system's language) because what would run is
+  `OpenWith.exe` — "Open this link in another app? Windows will ask which one.";
+- nothing claims it — a sentence that says so, and nothing else.
+
+The log keeps the scheme and the app, never the address. The address bar is left alone: typed text with a scheme and
+no `://` is a search on this front, which is the safe reading of `note: buy milk`.
+
+Measured in an isolated run, every question answered Cancel so that nothing was launched: a page's own
+`location='ms-settings:display'` a second after it loaded was refused with nothing on screen; a click and a middle
+click on a `mailto:` link each asked, as the picker case; a click on a `magnet:` link, on a machine with no torrent
+client, said no app opens those; the page never navigated.
 
 ## The list windows
 

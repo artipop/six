@@ -226,6 +226,9 @@ extension RailWindow {
             downloads.adopt(download)
             closeIfOnlyCarried(tabID)
         }
+        created.onExternalLink = { [weak self] address, gesture in
+            self?.offerExternalLink(address, gesture: gesture, from: tabID)
+        }
         created.onOpenLinkBehind = { [weak self] link in
             self?.openLink(link, from: tabID, focus: false)
         }

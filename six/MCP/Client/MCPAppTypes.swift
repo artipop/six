@@ -1,5 +1,15 @@
 import Foundation
 
+/// The two schemes an MCP app is served on — the shell, and the app's own document. Here, in the wire
+/// half, rather than beside the handler that serves them (`MCPAppScheme.swift`, which is WebKit's and
+/// the app's): `ExternalScheme` lists them among what a window shows, and that list is `SixCore`'s.
+nonisolated enum MCPAppScheme {
+    /// The shell.
+    static let shell = "mcp-app"
+    /// The app's own document.
+    static let content = "mcp-app-content"
+}
+
 /// The other half of [MCP](https://modelcontextprotocol.io) in six: not the browser answering an
 /// agent (`MCPServer`), but the browser *asking* — a host for servers that carry interfaces.
 ///

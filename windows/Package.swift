@@ -79,7 +79,9 @@ let package = Package(
             swiftSettings: [.defaultIsolation(MainActor.self)],
             // The file picker behind `<input type=file>` (`SixRailOpenFiles`); the Downloads folder
             // and opening a finished file (`SixRailDownloadsFolder`, `SixRailShellOpen`).
-            linkerSettings: [.linkedLibrary("comdlg32"), .linkedLibrary("shell32"), .linkedLibrary("ole32")]
+            // …and which app a link to somebody else's scheme would open in (`AssocQueryStringW`).
+            linkerSettings: [.linkedLibrary("comdlg32"), .linkedLibrary("shell32"), .linkedLibrary("ole32"),
+                             .linkedLibrary("shlwapi")]
         ),
         .executableTarget(
             name: "six-windows",

@@ -115,6 +115,10 @@ let package = Package(
                 // hands back, and deciding when it is safe to show the name behind it is the same
                 // decision on all of them.
                 "Browser/IDN.swift",
+                // Which addresses are somebody else's app's to open. The list is the same on every
+                // front, and a second copy of an allowlist is a second chance to let a scheme through;
+                // opening one is each platform's own call.
+                "Browser/ExternalScheme.swift",
                 "Browser/History.swift",
                 // How many columns keep a real page. The Mac's `LivePageCache` imports WebKit and
                 // stays in the app; this is its rule — the budget, the pins, the eviction order —

@@ -244,6 +244,18 @@ final class RailWebView {
     /// owes it is a client (`RailDownloads.adopt`).
     var onDownload: ((WKDownloadRef) -> Void)?
 
+    /// Told when the page wants an address that is somebody else's app's (`ExternalScheme`), with
+    /// whether a click was behind it. The navigation has already been refused; opening the app is the
+    /// rail's decision, and it asks first.
+    var onExternalLink: ((String, Bool) -> Void)?
+
+    /// `true` takes the navigation away from the page: the address is not one a window shows.
+    func handOff(_ address: String, gesture: Bool) -> Bool {
+        guard let url = URL(string: address), ExternalScheme.isExternal(url) else { return false }
+        onExternalLink?(address, gesture)
+        return true
+    }
+
     /// Told when Open Link Behind is chosen in the page's context menu, with the link it was opened on.
     var onOpenLinkBehind: ((String) -> Void)?
     /// The link under the pointer when the context menu was opened, `nil` when it was not on one.
@@ -363,10 +375,26 @@ final class RailWebView {
         // A file rather than a page. Left to WebKit's default, both of these answer "show it": a
         // `<a download>` link opens the file as a page, and a zip or an attachment becomes a blank
         // column — the Mac's table in links.md, row for row, before six answered them there.
-        client.decidePolicyForNavigationAction = { _, action, listener, _, _ in
+        client.decidePolicyForNavigationAction = { _, action, listener, _, clientInfo in
             guard let listener else { return }
             if let action, WKNavigationActionShouldPerformDownload(action) {
-                WKFramePolicyListenerDownload(listener)
+                return WKFramePolicyListenerDownload(listener)
+            }
+            // Somebody else's app — `mailto:`, `magnet:`, whatever an app claimed. Never the page's
+            // to load, and never the page's to launch either: it is handed up with whether a click
+            // was behind it, and the rail asks (`offerExternalLink`). A frame's navigation is asked
+            // here too, which is how an `<iframe src="ms-settings:">` is stopped with the rest.
+            nonisolated(unsafe) let asked = action
+            let gesture = action.map { WKNavigationActionHasUnconsumedUserGesture($0) } ?? false
+            var handedOff = false
+            if let clientInfo {
+                let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+                MainActor.assumeIsolated {
+                    handedOff = webView.handOff(RailWebView.address(of: asked), gesture: gesture)
+                }
+            }
+            if handedOff {
+                WKFramePolicyListenerIgnore(listener)
             } else {
                 WKFramePolicyListenerUse(listener)
             }
@@ -674,8 +702,13 @@ final class RailWebView {
             nonisolated(unsafe) let asked = action
             nonisolated(unsafe) var made: WKPageRef?
             let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+            let gesture = action.map { WKNavigationActionHasUnconsumedUserGesture($0) } ?? false
             MainActor.assumeIsolated {
-                guard let created = webView.onCreatePage?(offered, RailWebView.address(of: asked)) else { return }
+                let address = RailWebView.address(of: asked)
+                // A `target=_blank` to somebody else's app is not a window: it is the same question a
+                // click on it asks, and no column is made for it.
+                if webView.handOff(address, gesture: gesture) { return }
+                guard let created = webView.onCreatePage?(offered, address) else { return }
                 // Handed back at +1: WebKit adopts the page it is given, which is why MiniBrowser's own
                 // `createNewPage` on Windows ends in `WKRetainPtr(page).leakRef()`.
                 WKRetain(UnsafeRawPointer(created.page))

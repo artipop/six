@@ -53,8 +53,10 @@ itself gets no column.
 window to the right, behind; `Ctrl` + `Shift` + click opens it and takes you there.
 A window a page opens itself comes forward, as on the Mac, and stays connected to
 the page that opened it — so a "Sign in with…" window can report back and close
-itself when it is done. There is no context menu on links there yet, and a link to
-another app (`mailto:` and the like) is not handed to it yet.
+itself when it is done. A link to another app (`mailto:` and the like) is handed
+to it only after you say so: VI asks "Open this link in *Mail*?", naming the app
+Windows would use — or says that Windows will ask which one, or that no app on the
+computer opens such links. A page that tries it without a click is simply refused.
 
 ## The page's context menu
 
