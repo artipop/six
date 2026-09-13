@@ -405,6 +405,7 @@ extension StripWindow {
                             in: RECT(left: pill.left + px(12), top: pill.bottom - px(2),
                                      right: pill.right - px(12), bottom: pill.bottom))
         }
+        drawPageToolsBadge(hdc, in: layout.addressPill)
         drawBookmarkRibbon(hdc, in: layout.bookmark)
 
         drawTranslateButton(hdc, in: layout.translate)

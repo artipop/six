@@ -54,6 +54,10 @@ final class BrowserState {
     @ObservationIgnored var pageFocus: PageFocusStore? {
         didSet { for tab in tabs { tab.pageFocus = pageFocus } }
     }
+    /// The tools each window's page declares for agents (WebMCP); wired at launch.
+    @ObservationIgnored var webMCP: WebMCPStore? {
+        didSet { for tab in tabs { tab.webMCP = webMCP } }
+    }
     /// The camera, the microphone and the motion sensors, per site (`SitePermissions`). Handed to
     /// the initializer for the same reason as the blocker: the windows it restores are built and
     /// answered before anything assigned afterwards could reach them.
@@ -643,6 +647,7 @@ final class BrowserState {
         tab.pageControllers = pageControllers
         tab.devTools = devTools
         tab.pageFocus = pageFocus
+        tab.webMCP = webMCP
         tab.permissions = permissions
     }
 
@@ -1059,6 +1064,7 @@ final class BrowserState {
         blocker?.forget(id)
         devTools?.forget(id)
         pageFocus?.forget(id)
+        webMCP?.forget(id)
         pageControllers.forget(id)
         let tab = rebuilt(old, in: profile)
         tab.adopt(trail)
@@ -1155,6 +1161,7 @@ final class BrowserState {
         extensions?.noteClosed(closed)
         devTools?.forget(id)
         pageFocus?.forget(id)
+        webMCP?.forget(id)
         pageControllers.forget(id)
         find.forget(id)
         if let document = closed.document {

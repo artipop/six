@@ -172,7 +172,16 @@ let package = Package(
                 "ACP/JSONRPCError.swift",
                 "MCP/Client/MCPAppTypes.swift",
                 "MCP/Client/MCPRegistry.swift",
-                "MCP/Client/MCPOAuth.swift"
+                "MCP/Client/MCPOAuth.swift",
+                // WebMCP: a page declaring tools of its own for agents (docs/webmcp.md). The
+                // polyfill is JavaScript in a string, the registry is plain values and the calls
+                // are one main-actor class, and none of it knows which engine it runs in — the
+                // bargain translation makes, so each front owes a bridge and nothing more.
+                "WebMCP/WebMCPRegistry.swift",
+                "WebMCP/WebMCPScript.swift",
+                "WebMCP/WebMCPHost.swift",
+                "WebMCP/WebMCPPage.swift",
+                "WebMCP/WebMCPSelfTest.swift"
                 //
                 // `ConfigurationStore` is in only because it was untangled first: it used to decode six
                 // subsystems' types out of the settings table, so taking it would have dragged most

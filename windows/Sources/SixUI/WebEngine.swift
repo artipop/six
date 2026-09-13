@@ -71,7 +71,8 @@ enum WebEngine {
     /// A new `WKView`, hosted as a child of `parent` at `frame` (client coordinates), browsing in
     /// `profile`'s own data store. `nil` only if WebKit itself refuses — there is nothing more
     /// specific to say without deeper diagnostics.
-    static func makeView(parent: HWND, frame: RECT, profile: StripModel.ProfileInfo) -> StripWebView? {
+    static func makeView(parent: HWND, frame: RECT, profile: StripModel.ProfileInfo,
+                         userContent: WKUserContentControllerRef? = nil) -> StripWebView? {
         ensureStarted()
         guard let context, let websiteDataStore = dataStore(for: profile) else { return nil }
 
@@ -99,6 +100,9 @@ enum WebEngine {
             WKPreferencesSetMockCaptureDevicesEnabled(preferences, true)
         }
         WKPageConfigurationSetPreferences(pageConfiguration, preferences)
+        // WebMCP's polyfill and its channel (`RailWebMCP`), when it is on. Without one the page is
+        // configured exactly as it was before WebMCP: no user content controller at all.
+        if let userContent { WKPageConfigurationSetUserContentController(pageConfiguration, userContent) }
         return makeView(parent: parent, frame: frame, configuration: pageConfiguration)
     }
 

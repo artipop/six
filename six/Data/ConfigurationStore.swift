@@ -62,6 +62,8 @@ final class ConfigurationStore {
         case newTabOverride = "extensions.newTabOverride"
         case devToolsInspector = "devtools.inspector"
         case devToolsCapture = "devtools.capture"
+        /// Whether pages may declare tools for agents (WebMCP). See `webMCP`.
+        case webMCP = "webmcp.enabled"
         case sitePermissions = "permissions.sites"
         /// The default profile's identifier. On the Mac profiles live in the state snapshot; a front
         /// that has no snapshot yet still needs the id to be the same one tomorrow, or every launch
@@ -248,6 +250,16 @@ final class ConfigurationStore {
     var newTabOverrideExtensionID: String? {
         get { self[.newTabOverride] }
         set { self[.newTabOverride] = newValue }
+    }
+
+    /// WebMCP: pages may declare tools through `document.modelContext`, and agents may call them
+    /// (docs/webmcp.md). Off by default, and a developer switch rather than a feature until the
+    /// per-site permission and the per-call confirmation exist — without them a page's tools are one
+    /// agent call away from acting in the session the person is signed into. Here rather than in the
+    /// app because the Windows front reads it too.
+    var webMCP: Bool {
+        get { self[.webMCP].map { $0 == "1" } ?? false }
+        set { self[.webMCP] = newValue ? "1" : "0" }
     }
 
     /// The profile a front uses when it has no other. Made once and kept, so history and cookies
