@@ -226,6 +226,9 @@ extension RailWindow {
             downloads.adopt(download)
             closeIfOnlyCarried(tabID)
         }
+        created.onOpenLinkBehind = { [weak self] link in
+            self?.openLink(link, from: tabID, focus: false)
+        }
         created.onCreatePage = { [weak self] configuration, url in
             self?.openPageWindow(configuration, url: url, from: tabID)
         }

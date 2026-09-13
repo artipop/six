@@ -37,3 +37,6 @@
 #include <WebKit/WKNavigationResponseRef.h>
 #include <WebKit/WKURLResponse.h>
 #include <WebKit/WKDownloadRef.h>
+// The context menu: WebKit's own items, and the one six adds to them.
+#include <WebKit/WKContextMenuItemTypes.h>
+#include <WebKit/WKContextMenuItem.h>

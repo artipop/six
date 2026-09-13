@@ -992,6 +992,33 @@ seconds: a picture of the bar half-way through shows the line about half the fie
 
 Not built: Stop in place of Reload while a page is loading.
 
+## The context menu
+
+The menu over a page is **WebKit's**, and on this port that is a real menu. Read off the one a right-click put up
+(`MN_GETHMENU` on the `#32768` window, then the menu's own strings): over a link it offers Open Link, Open Link in New
+Window, Download Linked File and Copy Link; over plain text on a fresh page, Reload and nothing else. The Mac had to
+throw WebKit's menu away and build its own ([links.md](links.md#the-context-menu-is-sixs)), because in a SwiftUI
+`WebView` two of those four are dead — they go to a UI client and a download delegate that API has no seat for. Here
+they are alive: Open Link in New Window reaches `createNewPage` ([A second window](#a-second-window)), and Download
+Linked File reaches the navigation client's `contextMenuDidCreateDownload`, which hands it to `RailDownloads` like any
+other download.
+
+So the menu stays WebKit's, and six adds the one item of the Mac's it lacks: **Open Link Behind**, right after Open
+Link in New Window. It goes in through `getContextMenuFromProposedMenu` (`WKPageContextMenuClientV2`), which hands over
+WebKit's items and the hit test the menu was opened on; the link is read then, because by the time an item is chosen
+the pointer has moved. Its tag is above `kWKContextMenuItemBaseApplicationTag`, so WebKit hands the choice back
+through `customContextMenuItemSelected` rather than acting on it, and it ends in `openLink(_:from:focus:)` — the same
+place a middle click does. The array handed back is WebKit's to adopt, and handing back nothing is not "use your own":
+it is an empty menu, so the proposed items always go back, with or without the addition.
+
+Measured in an isolated run, each item chosen with the keys a person would press (`↓` to it, `Enter`, posted to the
+menu's window): Open Link Behind opened a column behind with the first page still in focus; Download Linked File left a
+file in the downloads folder; Copy Link put the link on the clipboard; Open Link in New Window opened a column in
+front.
+
+Not offered, and why: the Mac's **Open Link Beside**, because nothing on this front makes a window share its column
+yet; and its **This Window** submenu, the column's own commands.
+
 ## The list windows
 
 History and Site Permissions are one type, `RailListPanel`: an owned popup window — a frame of its own,

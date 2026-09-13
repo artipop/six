@@ -244,6 +244,11 @@ final class RailWebView {
     /// owes it is a client (`RailDownloads.adopt`).
     var onDownload: ((WKDownloadRef) -> Void)?
 
+    /// Told when Open Link Behind is chosen in the page's context menu, with the link it was opened on.
+    var onOpenLinkBehind: ((String) -> Void)?
+    /// The link under the pointer when the context menu was opened, `nil` when it was not on one.
+    private var menuLink: String?
+
     /// Told when the page closes itself. WebKit allows `window.close()` only to a window a script
     /// opened, so this is a popup going away when it is done — a sign-in window, usually.
     var onClose: (() -> Void)?
@@ -284,6 +289,7 @@ final class RailWebView {
         self.page = page
         installNavigationClient()
         installUIClient()
+        installContextMenuClient()
         installScaleShim()
     }
 
@@ -391,7 +397,94 @@ final class RailWebView {
             let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
             MainActor.assumeIsolated { webView.onDownload?(started) }
         }
+        // The context menu's Download Linked File: a download made by the menu, with no navigation
+        // behind it, so it arrives here rather than through either of the two above.
+        client.contextMenuDidCreateDownload = { _, download, clientInfo in
+            guard let clientInfo, let download else { return }
+            nonisolated(unsafe) let started = download
+            let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+            MainActor.assumeIsolated { webView.onDownload?(started) }
+        }
         WKPageSetPageNavigationClient(page, &client.base)
+    }
+
+    /// The menu over a page is WebKit's, and on this port it is a real one: over a link it offers
+    /// Open Link, Open Link in New Window, Download Linked File and Copy Link — measured, reading the
+    /// menu a right-click put up. The Mac had to throw WebKit's menu away and build its own, because
+    /// in a SwiftUI `WebView` two of those four are dead; here they are not, since the UI client
+    /// (`createNewPage`) and the downloads (`contextMenuDidCreateDownload`) are wired. So the menu
+    /// stays WebKit's, with the Mac's one item it lacks put in after Open Link in New Window: **Open
+    /// Link Behind**. The Mac's Open Link Beside is not offered — nothing on this front makes a
+    /// window share its column yet.
+    private func installContextMenuClient() {
+        var client = WKPageContextMenuClientV2()
+        client.base.version = 2
+        client.base.clientInfo = UnsafeRawPointer(Unmanaged.passUnretained(self).toOpaque())
+        client.getContextMenuFromProposedMenu = { _, proposed, newMenu, hit, _, clientInfo in
+            guard let newMenu else { return }
+            nonisolated(unsafe) let offered = proposed
+            nonisolated(unsafe) let result = hit
+            nonisolated(unsafe) var made: WKArrayRef?
+            if let clientInfo {
+                let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+                MainActor.assumeIsolated { made = webView.menu(from: offered, over: result) }
+            } else if let offered {
+                // No client to ask: WebKit's own menu, as it was.
+                WKRetain(UnsafeRawPointer(offered))
+                made = offered
+            }
+            // At +1, and always something: WebKit adopts what it is handed, and treats nothing as an
+            // empty menu rather than as "use your own".
+            newMenu.pointee = made
+        }
+        client.customContextMenuItemSelected = { _, item, clientInfo in
+            guard let clientInfo, let item else { return }
+            let tag = WKContextMenuItemGetTag(item)
+            let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+            MainActor.assumeIsolated { webView.menuItemChosen(tag) }
+        }
+        WKPageSetPageContextMenuClient(page, &client.base)
+    }
+
+    /// Six's own items live above WebKit's application base, where WebKit hands their choice back
+    /// through `customContextMenuItemSelected` instead of acting on them itself.
+    private static let openLinkBehindTag = WKContextMenuItemTag(kWKContextMenuItemBaseApplicationTag) + 1
+
+    /// WebKit's proposed menu with Open Link Behind added over a link. The link is read now, from the
+    /// hit test the menu was opened on, because by the time an item is chosen the pointer has moved.
+    private func menu(from proposed: WKArrayRef?, over hit: WKHitTestResultRef?) -> WKArrayRef? {
+        menuLink = Self.link(in: hit)
+        var items: [UnsafeRawPointer?] = []
+        if let proposed {
+            for index in 0..<WKArrayGetSize(proposed) { items.append(WKArrayGetItemAtIndex(proposed, index)) }
+        }
+        var added: WKContextMenuItemRef?
+        if let link = menuLink, onOpenLinkBehind != nil, Self.opensInColumn(link),
+           let title = Self.wkString("Open Link Behind") {
+            added = WKContextMenuItemCreateAsAction(Self.openLinkBehindTag, title, true)
+            WKRelease(UnsafeRawPointer(title))
+            let newWindow = WKContextMenuItemTag(kWKContextMenuItemTagOpenLinkInNewWindow)
+            let after = items.firstIndex { item in
+                item.map { WKContextMenuItemGetTag(OpaquePointer($0)) == newWindow } ?? false
+            }
+            items.insert(added.map { UnsafeRawPointer($0) }, at: after.map { $0 + 1 } ?? items.count)
+        }
+        // `WKArrayCreate` retains what it holds, so the item made here is let go once it is in.
+        let array = items.withUnsafeMutableBufferPointer { WKArrayCreate($0.baseAddress, $0.count) }
+        if let added { WKRelease(UnsafeRawPointer(added)) }
+        return array
+    }
+
+    private func menuItemChosen(_ tag: WKContextMenuItemTag) {
+        guard tag == Self.openLinkBehindTag, let link = menuLink else { return }
+        onOpenLinkBehind?(link)
+    }
+
+    /// What a new column can show — the same answer `RailNewWindows.opensInColumn` gives a middle
+    /// click, so the menu does not offer to open behind what a column cannot open.
+    private static func opensInColumn(_ link: String) -> Bool {
+        guard let scheme = URL(string: link)?.scheme?.lowercased() else { return false }
+        return ["http", "https", "file", "about", "data", "blob"].contains(scheme)
     }
 
     private func handleFinishedNavigation() {

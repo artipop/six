@@ -74,6 +74,12 @@ The price is what WebKit's menu knew about an element that is not a link: Save
 Image, Copy Image, Look Up and the spelling suggestions. It is a trade: without
 its own menu, those two link items would not work at all.
 
+**On Windows** the menu is WebKit's own, and there both of those link items do
+work, so VI only adds to it. Over a link you get **Open Link**, **Open Link in New
+Window**, **Open Link Behind**, **Download Linked File** and **Copy Link**.
+Elsewhere on a page it is WebKit's usual menu — on a plain page, just **Reload**.
+**Open Link Beside** and **This Window** are not there yet.
+
 ## Downloads
 
 Files land in your **Downloads** folder under the name the server suggested, and

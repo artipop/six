@@ -61,11 +61,19 @@ extension RailWindow {
         }
         let forward = control && SixRailKeyDown(Int32(VK_SHIFT)) != 0
         swallowedRelease = UINT(middle ? WM_MBUTTONUP : WM_LBUTTONUP)
-        let opened = model.openColumn(url: link, from: entry.tabID, focus: forward)
-        carriers[opened] = entry.tabID
-        Log.info(.pages, "a link opened \(forward ? "beside, in front" : "behind")")
-        invalidate()
+        openLink(link, from: entry.tabID, focus: forward)
         return true
+    }
+
+    /// A link in a column of its own, right of the one it was in — behind, or in front. A middle
+    /// click, a `Ctrl`-click and the context menu's Open Link Behind all end here, the way the Mac's
+    /// three routes all end at `openInNewWindow(_:from:background:)`.
+    func openLink(_ link: String, from source: Foundation.UUID, focus: Bool) {
+        guard Self.opensInColumn(link) else { return }
+        let opened = model.openColumn(url: link, from: source, focus: focus)
+        carriers[opened] = source
+        Log.info(.pages, "a link opened \(focus ? "beside, in front" : "behind")")
+        invalidate()
     }
 
     /// What a new column can show. Everything else — `mailto:`, `magnet:`, a scheme an app claimed — is
