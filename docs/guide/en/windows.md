@@ -70,7 +70,8 @@ anybody else's:
 | Open Link Behind | This Window ▸ … |
 | Open Link Beside | |
 | Download Linked File | |
-| Copy Link | |
+| Copy Link | Share ▸ … |
+| Share Link ▸ … | |
 
 The price is what WebKit's menu knew about an element that is not a link: Save
 Image, Copy Image, Look Up and the spelling suggestions. It is a trade: without
@@ -137,6 +138,41 @@ once the download starts: nothing was in it, and there is nothing to go back to.
 
 A page saves as `.html`, `.pdf` or `.txt`; a document as `.md`, `.html` or
 `.pdf`. The folder is remembered. There is no `.webarchive`.
+
+## Sharing
+
+**Sending a page to another app.** The **Share** button sits to the right of the
+bookmark star. It opens the system's share menu: Mail, Messages, AirDrop, Notes,
+and any other app that takes links. The same is in the page's context menu
+(**Share**, and **Share Link** over a link) and in the phone's `…` menu. A start
+page or a document has nothing to share, so the button is greyed out there.
+
+**Taking a page from another app.** VI is in every app's Share menu: Safari,
+Mail, Finder. Pick it, and a sheet comes up over that app and asks where the page
+goes:
+
+- the profile, if there is more than one;
+- the workspace: each row shows its first windows' titles, the current one is
+  marked **In front**, and the last one, **New Workspace**, gives the page a row of
+  its own;
+- **Open** opens the page as a new window on that workspace and brings VI
+  forward;
+- **Add to Bookmarks** saves the page to that workspace's profile without opening
+  anything or bringing VI forward;
+- the hand button is **Open in Private Window**.
+
+What can be sent besides a link:
+
+| what | what VI offers |
+|---|---|
+| a link, a page from Safari | Open, Add to Bookmarks |
+| text that is just an address | the same as a link |
+| any other text | **Search**, with your search engine |
+| a PDF, HTML, web archive, image or plain-text file | Open |
+
+VI is not offered for any other kind of file. If VI is not in the menu at all,
+switch it on in System Settings, in the list of Sharing extensions. Taking pages
+from other apps is Mac-only for now.
 
 ## The "This Window" menu
 

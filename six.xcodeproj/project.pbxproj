@@ -19,11 +19,37 @@
 		AC9001010000000000000024 /* Tokenizers in Frameworks */ = {isa = PBXBuildFile; productRef = AC9001010000000000000014 /* Tokenizers */; };
 		AC9001010000000000000025 /* ContentBlockerConverter in Frameworks */ = {isa = PBXBuildFile; productRef = AC9001010000000000000015 /* ContentBlockerConverter */; };
 		C4E57E1CA358AD438C0F5731 /* SQLiteVecData in Frameworks */ = {isa = PBXBuildFile; productRef = 82F43A23555A3254647ADAE5 /* SQLiteVecData */; };
+		AC9002010000000000000012 /* six-share.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = AC9002010000000000000008 /* six-share.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		AC900201000000000000000F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AC897659303CEC20008426C2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AC9002010000000000000001;
+			remoteInfo = "six-share";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		AC9002010000000000000013 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				AC9002010000000000000012 /* six-share.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		AC897661303CEC20008426C2 /* six.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = six.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AC9001010000000000000008 /* six.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = six.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AC9002010000000000000008 /* six-share.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "six-share.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -88,6 +114,21 @@
 			);
 			target = AC897660303CEC20008426C2 /* six */;
 		};
+		AC900201000000000000000A /* Exceptions for "ShareExtension" folder in "six-share" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+				ShareExtension.entitlements,
+			);
+			target = AC9002010000000000000001 /* six-share */;
+		};
+		AC900201000000000000000B /* Exceptions for "six" folder in "six-share" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Share/ShareHandoff.swift,
+			);
+			target = AC9002010000000000000001 /* six-share */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -96,8 +137,17 @@
 			exceptions = (
 				AC90010100000000000000A0 /* Exceptions for "six" folder in "six" target */,
 				AC9001010000000000000009 /* Exceptions for "six" folder in "six-iOS" target */,
+				AC900201000000000000000B /* Exceptions for "six" folder in "six-share" target */,
 			);
 			path = six;
+			sourceTree = "<group>";
+		};
+		AC9002010000000000000009 /* ShareExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				AC900201000000000000000A /* Exceptions for "ShareExtension" folder in "six-share" target */,
+			);
+			path = ShareExtension;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -125,6 +175,11 @@
 				AC9001010000000000000025 /* ContentBlockerConverter in Frameworks */,
 			);
 		};
+		AC9002010000000000000006 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -132,6 +187,7 @@
 			isa = PBXGroup;
 			children = (
 				AC897663303CEC20008426C2 /* six */,
+				AC9002010000000000000009 /* ShareExtension */,
 				AC897662303CEC20008426C2 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -141,6 +197,7 @@
 			children = (
 				AC897661303CEC20008426C2 /* six.app */,
 				AC9001010000000000000008 /* six.app */,
+				AC9002010000000000000008 /* six-share.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -155,8 +212,12 @@
 				AC89765D303CEC20008426C2 /* Sources */,
 				AC89765E303CEC20008426C2 /* Frameworks */,
 				AC89765F303CEC20008426C2 /* Resources */,
+				AC9002010000000000000013 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
+			);
+			dependencies = (
+				AC900201000000000000000E /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				AC897663303CEC20008426C2 /* six */,
@@ -200,6 +261,24 @@
 			productReference = AC9001010000000000000008 /* six.app */;
 			productType = "com.apple.product-type.application";
 		};
+		AC9002010000000000000001 /* six-share */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AC9002010000000000000002 /* Build configuration list for PBXNativeTarget "six-share" */;
+			buildPhases = (
+				AC9002010000000000000005 /* Sources */,
+				AC9002010000000000000006 /* Frameworks */,
+				AC9002010000000000000007 /* Resources */,
+			);
+			buildRules = (
+			);
+			fileSystemSynchronizedGroups = (
+				AC9002010000000000000009 /* ShareExtension */,
+			);
+			name = "six-share";
+			productName = "six-share";
+			productReference = AC9002010000000000000008 /* six-share.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -214,6 +293,9 @@
 						CreatedOnToolsVersion = 27.0;
 					};
 					AC9001010000000000000001 = {
+						CreatedOnToolsVersion = 27.0;
+					};
+					AC9002010000000000000001 = {
 						CreatedOnToolsVersion = 27.0;
 					};
 				};
@@ -243,6 +325,7 @@
 			targets = (
 				AC897660303CEC20008426C2 /* six */,
 				AC9001010000000000000001 /* six-iOS */,
+				AC9002010000000000000001 /* six-share */,
 			);
 		};
 /* End PBXProject section */
@@ -254,6 +337,11 @@
 			);
 		};
 		AC9001010000000000000007 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		AC9002010000000000000007 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
 			);
@@ -271,7 +359,20 @@
 			files = (
 			);
 		};
+		AC9002010000000000000005 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		AC900201000000000000000E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AC9002010000000000000001 /* six-share */;
+			targetProxy = AC900201000000000000000F /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		AC89766A303CEC22008426C2 /* Debug configuration for PBXProject "six" */ = {
@@ -333,6 +434,8 @@
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_SWIFT_FLAGS = "-plugin-path $(DEVELOPER_DIR)/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins";
 				SDKROOT = /Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk;
+				SIX_APP_IDENTIFIER = org.deffun.six.dev;
+				SIX_SHARE_SCHEME = "six-dev-share";
 				SIX_WEB_SCHEME_HTTP = "six-dev-http";
 				SIX_WEB_SCHEME_HTTPS = "six-dev-https";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
@@ -392,6 +495,8 @@
 				MTL_FAST_MATH = YES;
 				OTHER_SWIFT_FLAGS = "-plugin-path $(DEVELOPER_DIR)/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins";
 				SDKROOT = /Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk;
+				SIX_APP_IDENTIFIER = org.deffun.six;
+				SIX_SHARE_SCHEME = "six-share";
 				SIX_WEB_SCHEME_HTTP = http;
 				SIX_WEB_SCHEME_HTTPS = https;
 				SWIFT_COMPILATION_MODE = wholemodule;
@@ -554,6 +659,64 @@
 			};
 			name = Release;
 		};
+		AC9002010000000000000003 /* Debug configuration for PBXNativeTarget "six-share" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ShareExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "six dev";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.deffun.six.dev.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		AC9002010000000000000004 /* Release configuration for PBXNativeTarget "six-share" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ShareExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "six";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.deffun.six.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -578,6 +741,14 @@
 			buildConfigurations = (
 				AC9001010000000000000003 /* Debug configuration for PBXNativeTarget "six-iOS" */,
 				AC9001010000000000000004 /* Release configuration for PBXNativeTarget "six-iOS" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		AC9002010000000000000002 /* Build configuration list for PBXNativeTarget "six-share" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AC9002010000000000000003 /* Debug configuration for PBXNativeTarget "six-share" */,
+				AC9002010000000000000004 /* Release configuration for PBXNativeTarget "six-share" */,
 			);
 			defaultConfigurationName = Release;
 		};

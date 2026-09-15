@@ -43,6 +43,9 @@ struct sixApp: App {
     @State private var research: ResearchCoordinator
     #endif
     @State private var persistence: StatePersistence<FileSnapshotStore<AppStateSnapshot>>
+    #if os(macOS)
+    @State private var shareTargets: StatePersistence<FileSnapshotStore<ShareTargets>>
+    #endif
     @State private var blocker: ContentBlocker
     #if os(macOS)
     /// `WKWebExtension` is Apple's API, and iOS could in principle host it (iOS 18.4+) — but nothing
@@ -209,6 +212,14 @@ struct sixApp: App {
         }
         persistence.start()
         #if os(macOS)
+        // The rail as the share extension offers it, in a file it is allowed to read (`ShareHandoff`).
+        let shareTargets = StatePersistence(store: FileSnapshotStore<ShareTargets>(fileNamed: ShareTargets.fileName)) {
+            browser.shareTargets
+        }
+        shareTargets.start()
+        _shareTargets = State(initialValue: shareTargets)
+        #endif
+        #if os(macOS)
         let terminating = NSApplication.willTerminateNotification
         #elseif os(iOS)
         let terminating = UIApplication.willTerminateNotification
@@ -277,6 +288,13 @@ struct sixApp: App {
                 // iPhone. macOS delivers through them but leaves the app that was clicked in front,
                 // so each one asks for the front afterwards.
                 .onOpenURL { url in
+                    // The share extension's handoff (`ShareHandoff`). A page saved to bookmarks is
+                    // saved from wherever it was shared, so only the two that open a window come forward.
+                    if let request = ShareRequest(address: url) {
+                        browser.receive(request)
+                        if request.action != .bookmark { ExternalOpen.comeForward() }
+                        return
+                    }
                     browser.newTab(url: ExternalOpen.resolve(url))
                     ExternalOpen.comeForward()
                 }
@@ -348,7 +366,9 @@ struct sixApp: App {
                 .environment(devTools)
                 .environment(permissions)
                 .environment(certificates)
-                .onOpenURL { url in browser.newTab(url: url) }
+                .onOpenURL { url in
+                    if let request = ShareRequest(address: url) { browser.receive(request) } else { browser.newTab(url: url) }
+                }
                 .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
                     guard let url = activity.webpageURL else { return }
                     browser.newTab(url: url)

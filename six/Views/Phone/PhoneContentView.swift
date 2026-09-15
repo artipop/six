@@ -79,6 +79,11 @@ private struct PhoneToolbar: View {
                 Button("Certificates…", systemImage: "checkmark.seal") { showCertificates = true }
                 Divider()
                 if let tab, !tab.showsStartPage {
+                    if let url = tab.shareableURL {
+                        ShareLink(item: url, subject: Text(tab.shareTitle), preview: SharePreview(tab.shareTitle)) {
+                            Label("Share", systemImage: "square.and.arrow.up")
+                        }
+                    }
                     Button("Add Bookmark", systemImage: "star") { Task { try? await bookmarks.add(tab) } }
                     // The phone has no menu bar and no ⌥⇧P, so this is the only way to ask for it
                     // other than the button in the player's own controls.

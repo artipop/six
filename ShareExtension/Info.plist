@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Where the handoff goes and where the rail is read from. Build settings, so that the
+	     development build's sheet talks to the development build: six-dev-share and
+	     Application Support/org.deffun.six.dev. -->
+	<key>SixShareScheme</key>
+	<string>$(SIX_SHARE_SCHEME)</string>
+	<key>SixAppIdentifier</key>
+	<string>$(SIX_APP_IDENTIFIER)</string>
+	<key>NSExtension</key>
+	<dict>
+		<key>NSExtensionAttributes</key>
+		<dict>
+			<!-- What six is offered for, and it is what the other browsers take: a web page or its
+			     address (Safari, Chrome and Firefox all share one), text — an address somebody copied,
+			     or words to search for, as Firefox and Chrome on iOS do — and a single file of a kind
+			     six can show (PDF, HTML, a web archive, an image, plain text). Any other file is not
+			     offered six at all: a sheet that opens only to say "can't" is worse than none.
+			     A file-url is tested first because a file shared from Finder also registers its own
+			     type, and a text file must not turn into a search for its contents. -->
+			<key>NSExtensionActivationRule</key>
+			<string>SUBQUERY (
+    extensionItems,
+    $item,
+    SUBQUERY (
+        $item.attachments,
+        $attachment,
+        (
+            ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO "public.file-url"
+            AND (
+                ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO "com.adobe.pdf"
+                OR ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO "public.html"
+                OR ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO "com.apple.webarchive"
+                OR ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO "public.image"
+                OR ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO "public.plain-text"
+            )
+        )
+        OR (
+            NOT (ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO "public.file-url")
+            AND (
+                ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO "public.url"
+                OR ANY $attachment.registeredTypeIdentifiers UTI-CONFORMS-TO "public.plain-text"
+            )
+        )
+    ).@count > 0
+).@count > 0</string>
+		</dict>
+		<key>NSExtensionPointIdentifier</key>
+		<string>com.apple.share-services</string>
+		<key>NSExtensionPrincipalClass</key>
+		<string>ShareViewController</string>
+	</dict>
+</dict>
+</plist>

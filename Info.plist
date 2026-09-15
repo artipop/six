@@ -31,6 +31,18 @@
 				<string>$(SIX_WEB_SCHEME_HTTPS)</string>
 			</array>
 		</dict>
+		<!-- The share extension's handoff (six/Share/ShareHandoff.swift). A build setting for the
+		     same reason as the web schemes: the development build answers six-dev-share. -->
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>Shared from another app</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>$(SIX_SHARE_SCHEME)</string>
+			</array>
+		</dict>
 		<dict>
 			<key>CFBundleURLName</key>
 			<string>Local file URL</string>

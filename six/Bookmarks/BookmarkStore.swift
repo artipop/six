@@ -174,6 +174,18 @@ final class BookmarkStore {
         return try await store(readable, url: url, fallbackTitle: tab.title, profile: profile, existing: existing, refreshed: existing != nil)
     }
 
+    /// Saves a page that is not open anywhere — one handed over from another app's share sheet. It is
+    /// read off screen with the profile's cookies, the way a refresh reads one, so a page behind a
+    /// login is saved as the person sees it and not as the login form.
+    @discardableResult
+    func add(url: URL, title: String, in profileID: Profile.ID) async throws -> Bookmark {
+        guard let profile = profile(profileID) else { throw Failure("Unknown profile") }
+        guard !profile.isPrivate else { throw Failure("Private browsing keeps no bookmarks") }
+        let readable = try await Self.read(url, dataStore: dataStore(profile))
+        let existing = bookmark(for: url, in: profile.id)
+        return try await store(readable, url: url, fallbackTitle: title, profile: profile, existing: existing, refreshed: existing != nil)
+    }
+
     /// Writes the file, the row and the chunks for a page just read, and queues the embedding. Unchanged
     /// text (same hash) on a bookmark that is already indexed keeps its vectors and only stamps the time.
     private func store(_ readable: ReadablePage, url: URL, fallbackTitle: String, profile: Profile, existing: Bookmark?, refreshed: Bool) async throws -> Bookmark {

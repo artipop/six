@@ -4472,6 +4472,26 @@
         }
       }
     },
+    "Share" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поделиться"
+          }
+        }
+      }
+    },
+    "Share Link" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поделиться ссылкой"
+          }
+        }
+      }
+    },
     "Shared servers' tools reach the agent as six's own; a tool with an interface opens a window" : {
       "localizations" : {
         "ru" : {
@@ -5442,9 +5462,7 @@
         }
       }
     },
-    "Use as New Tab Page" : {
-
-    },
+    "Use as New Tab Page" : {},
     "Use Language Models and Agents" : {
       "localizations" : {
         "ru" : {

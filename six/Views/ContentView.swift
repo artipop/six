@@ -606,6 +606,7 @@ private struct TopBar: View {
                 AddressBar(tab: tab, addressFocus: addressFocus)
                     .frame(maxWidth: addressWidth)
                 BookmarkButton(tab: tab)
+                ShareButton(tab: tab)
             }
             Spacer(minLength: 8)
             DownloadsButton()
@@ -679,6 +680,29 @@ private struct BookmarkButton: View {
         .buttonStyle(.borderless)
         .disabled(tab.showsStartPage || browser.isPrivate(tab.profileID))
         .help(saved ? (indexing ? "Saved; indexing for search… Remove Bookmark (⌘D)" : "Remove Bookmark (⌘D)") : "Add Bookmark (⌘D)")
+    }
+}
+
+/// The system's share picker for the page this bar describes — Mail, Messages, AirDrop, Notes, and
+/// every other app's share extension. Greyed out rather than gone when there is nothing to share, so
+/// the bar does not shift under the pointer between a page and a start page.
+private struct ShareButton: View {
+    let tab: BrowserTab
+
+    var body: some View {
+        if let url = tab.shareableURL {
+            ShareLink(item: url, subject: Text(tab.shareTitle), preview: SharePreview(tab.shareTitle)) {
+                Image(systemName: "square.and.arrow.up")
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.borderless)
+            .help("Share")
+        } else {
+            Button {} label: { Image(systemName: "square.and.arrow.up") }
+                .buttonStyle(.borderless)
+                .disabled(true)
+                .help("Share")
+        }
     }
 }
 

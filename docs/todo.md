@@ -436,6 +436,17 @@ Built and measured; see [linux.md](linux.md) for the whole picture. What is left
 - **Favicons and find-in-page**, which WebKitGTK gives away (`WebKitFaviconDatabase`, `WebKitFindController`) and six
   has on no platform.
 
+## Sharing into six on iOS
+
+The Mac takes pages in through a share extension that reads one file and opens one URL ([sharing.md](sharing.md)).
+Neither half is available on iOS. An extension there cannot open its containing app (the responder-chain trick that
+does it is private API, and App Review has refused it), and a sandbox on iOS has no temporary exceptions that would
+let it read the rail from the app's container. Both halves become an **App Group**: the app writes
+`share-targets.json` into the group container, and the extension leaves the request there for the app to pick up
+on its next activation, or on a Darwin notification while it runs. An App Group needs a developer team, and this
+machine signs ad hoc. The wire (`ShareRequest`, `ShareTargets`) is already portable Foundation, so once a team exists
+this is a target, an entitlement and a queue.
+
 ## Smaller things
 
 - A readable maximum width for the default column on ultra-wide displays: 88 % of a 5K panel is a very long line.

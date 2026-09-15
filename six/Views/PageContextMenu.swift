@@ -40,6 +40,7 @@ extension View {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(url.absoluteString, forType: .string)
                 }
+                ShareLink("Share Link", item: url)
                 Divider()
             }
             if showsPageCommands {
@@ -48,6 +49,9 @@ extension View {
                 Button("Forward") { tab.goForward() }
                     .disabled(!tab.canGoForward)
                 Button(tab.isLoading ? "Stop" : "Reload") { tab.reloadOrStop() }
+                if let url = tab.shareableURL {
+                    ShareLink("Share", item: url, subject: Text(tab.shareTitle), preview: SharePreview(tab.shareTitle))
+                }
                 Divider()
             }
             // Through the responder chain, so the page's own selection and its text fields answer —

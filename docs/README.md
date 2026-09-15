@@ -34,6 +34,7 @@ from [`six/Localizable.xcstrings`](../six/Localizable.xcstrings) rather than tra
 | [linux.md](linux.md) | the Linux front on WebKitGTK: the module split, what is built, and what GTK does differently |
 | [extensions.md](extensions.md) | browser extensions: installing from a file, a controller per profile, and the measured boundary of what a `WebPage` browser can host |
 | [links.md](links.md) | links: the context menu six had to take over, ⌘-click, and downloads without `WKDownload` |
+| [sharing.md](sharing.md) | the Share menu both ways: the share button, and the extension that takes a page, text or a file from another app into a workspace or the bookmarks |
 | [blocking.md](blocking.md) | ads and trackers: filter lists, `WKContentRuleList`, the shield and the per-site allowlist |
 | [permissions.md](permissions.md) | site permissions: the camera and microphone per site, the page's own dialogs, what a `WebPage` browser still cannot ask for, and the same questions on Linux |
 | [certificates.md](certificates.md) | extra certificate authorities: the Минцифры CA six ships switched off, what a switch actually does, and importing your own |
