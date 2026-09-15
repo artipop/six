@@ -358,12 +358,13 @@ struct AddressBar: View {
             .buttonStyle(.plain)
             .foregroundStyle(muted ? AnyShapeStyle(.tertiary) : AnyShapeStyle(Color.red))
             .help(muted ? "Muted — click to let this page see and hear again"
-                        : "This page is using the camera or microphone — click to mute")
+                        : "This page is using the camera, microphone or screen — click to mute")
         }
     }
 
-    /// The camera wins the icon when both are on: it is the one people want to know about.
+    /// The screen wins the icon, then the camera: in that order they show the most of you.
     private func captureSymbol(muted: Bool) -> String {
+        if tab.displayCapture != .none { return muted ? "rectangle.on.rectangle.slash" : "rectangle.on.rectangle" }
         if tab.cameraCapture != .none { return muted ? "video.slash.fill" : "video.fill" }
         return muted ? "mic.slash.fill" : "mic.fill"
     }

@@ -5150,12 +5150,12 @@
         }
       }
     },
-    "This page is using the camera or microphone — click to mute" : {
+    "This page is using the camera, microphone or screen — click to mute" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Страница использует камеру или микрофон — нажмите, чтобы выключить"
+            "value" : "Страница использует камеру, микрофон или экран — нажмите, чтобы выключить"
           }
         }
       }

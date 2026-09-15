@@ -201,11 +201,13 @@ agent still cannot do is *act* on a page except through `evaluate_javascript`, a
 - **Request bodies and headers**, and request interception. The page-world hooks see status and timing only; going
   further means either the inspector protocol or a `WKURLSchemeHandler`-shaped proxy, and neither is cheap.
 
-## Geolocation, screen sharing and Web Push: one trade, not three
+## Geolocation and Web Push: one trade, not two
 
 Site permissions are built ([permissions.md](permissions.md)): the camera, the microphone and the motion sensors are
-asked for per site, remembered per origin and profile, and takeable back. Three things a browser is expected to do are
-still missing, and they are the *same* missing thing — each needs SPI on `WKWebView` or beneath it.
+asked for per site, remembered per origin and profile, and takeable back, and screen sharing works through the picker
+WebKit presents by itself ([permissions.md](permissions.md#screen-sharing-which-webkit-asks-for-by-itself)). Two things
+a browser is expected to do are still missing, and they are the *same* missing thing — each needs SPI on `WKWebView`
+or beneath it.
 
 **Geolocation** is half public, and the public half was built and taken out again. macOS 27's
 `requestGeolocationPermissionFor:initiatedBy:` decides permission only; the position comes from a provider installed
@@ -214,11 +216,6 @@ to a page that waits forever ([permissions.md](permissions.md#what-a-webpage-bro
 half would be six running `CLLocationManager` itself and handing WebKit `WKGeolocationPositionCreate` values, with the
 proxy from `e64dd24` back in front of `WebPage`'s delegate. Unproven: the first step is showing that a position
 arrives at all. A Feedback is still worth filing — a permission hook with no provider is a hole in the new API.
-
-**Screen sharing** (`getDisplayMedia`) is SPI, but shallow SPI: `WKPreferences._screenCaptureEnabled` plus
-`_webView:requestDisplayCapturePermissionForOrigin:initiatedByFrame:withSystemAudio:decisionHandler:` (macOS 13+),
-where returning `ScreenPrompt` or `WindowPrompt` hands the picker back to WebKit — six would not have to draw one. The
-same proxy shape would carry it, guarded by `respondsToSelector:`.
 
 **Web Push** is SPI and deep: `_getPendingPushMessages` / `_processPushMessage` / `_processPersistentNotificationClick`
 on `WKWebsiteDataStore`, a push partition, and a daemon. Worth its own decision, not this one.
@@ -391,7 +388,7 @@ Built and measured; see [linux.md](linux.md) for the whole picture. What is left
   restoring the rendered one — no scroll position, no form state, no cached response. `WKWebView` has had
   `interactionState` since macOS 12 for exactly this, and `WebPage` exposes nothing equivalent: its
   `backForwardList` is read-only and its only way in is `load(_ item:)` on an item WebKit already has. This is the
-  same hole as [geolocation](#geolocation-screen-sharing-and-web-push-one-trade-not-three) — a `WKWebView` property
+  same hole as [geolocation](#geolocation-and-web-push-one-trade-not-two) — a `WKWebView` property
   that did not make the crossing — and wants the same answer, a Feedback citing `WebPage.isInspectable` as the
   precedent.
 - A window whose address *is* a download re-downloads it on every launch. Nothing was committed in it, so the

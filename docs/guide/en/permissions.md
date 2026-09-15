@@ -47,12 +47,22 @@ is worth saying out loud: a browser built on these APIs answers all four with
 "no" by default, which means quietly not being able to upload a file. Here they
 are real.
 
+## Screen sharing
+
+When a site asks to see your screen, macOS opens its own picker: the whole screen
+or one window. That choice is the permission, so nothing is remembered — the site
+asks again next time, as in any browser. While sharing is on, an indicator shows
+in the address field, and clicking it pauses the sharing, the same as with the
+camera.
+
+A window that is sharing the screen or holding a call is not unloaded from
+memory, even when you scroll the rail away from it.
+
 ## What is not there yet
 
-- **screen sharing** (`getDisplayMedia`);
 - **geolocation** — WebKit now lets a browser answer the permission question, but
   does not hand it the coordinates through public API. So a site is refused at
   once rather than left waiting;
 - **web push**.
 
-All three run into private WebKit API that any macOS update could take away.
+Both run into private WebKit API that any macOS update could take away.

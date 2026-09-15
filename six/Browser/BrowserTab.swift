@@ -268,17 +268,20 @@ final class BrowserTab: Identifiable {
         livePage?.isInspectable = isInspectable
     }
 
-    // MARK: The camera and the microphone
+    // MARK: The camera, the microphone and the screen
 
     /// What this window's page is doing with the devices right now. `WebPage` publishes both, so the
     /// title bar's indicator follows the page without polling it — and reads `livePage`, never
     /// `page`, so drawing a title bar never builds one.
     var cameraCapture: WKMediaCaptureState { livePage?.cameraCaptureState ?? .none }
     var microphoneCapture: WKMediaCaptureState { livePage?.microphoneCaptureState ?? .none }
-    var isCapturing: Bool { cameraCapture != .none || microphoneCapture != .none }
+    /// Screen or window sharing, which `WebPage` publishes nothing about: on the Mac `DisplayCapture`
+    /// fills this in from the `WKWebView` underneath, and everywhere else it stays `.none`.
+    var displayCapture: WKMediaCaptureState = .none
+    var isCapturing: Bool { cameraCapture != .none || microphoneCapture != .none || displayCapture != .none }
     /// Muted only counts while something is actually on: a window using nothing is not a quiet one.
     var isCaptureMuted: Bool {
-        isCapturing && cameraCapture != .active && microphoneCapture != .active
+        isCapturing && cameraCapture != .active && microphoneCapture != .active && displayCapture != .active
     }
 
     /// The mute switch behind the indicator. Muted is not stopped — the call stays up and the page
@@ -286,6 +289,11 @@ final class BrowserTab: Identifiable {
     func setCaptureMuted(_ muted: Bool) {
         guard let page = livePage else { return }
         let state: WKMediaCaptureState = muted ? .muted : .active
+        #if os(macOS)
+        if displayCapture != .none, let webView = WebViewResponder.shared.webView(for: id) {
+            DisplayCapture.setState(state, on: webView)
+        }
+        #endif
         Task {
             if page.cameraCaptureState != .none { await page.setCameraCaptureState(state) }
             if page.microphoneCaptureState != .none { await page.setMicrophoneCaptureState(state) }
@@ -553,6 +561,8 @@ final class BrowserTab: Identifiable {
         permissions?.forget(id)
         page.stopLoading()
         livePage = nil
+        // Nothing will report on the web view that is going; the next one starts from its own state.
+        displayCapture = .none
         generation += 1
         // Nothing asynchronous here on purpose: an `await` on the way out means something is holding
         // the page while it waits, and a page that is held is a page that was not given back. The

@@ -55,7 +55,15 @@ final class WebViewResponder {
         guard let found else { return }
         views[tabID] = WeakView(found)
         Log.debug(.keys, "the keyboard can reach \(tabID.uuidString.prefix(8)) at \(Int(mine.width))pt")
+        if let webView = found as? WKWebView { onWebViewFound(tabID, webView) }
     }
+
+    /// Told on every claim, with the live `WKWebView` — the only moment anything outside WebKit gets a
+    /// hold of it, since `WebPage` never hands one out. Every claim and not just the first, because a
+    /// page discarded and rebuilt is a new view behind the same tab id; the callee tells a view it
+    /// has already seen from a fresh one (`DisplayCapture.observe`). A plain callback wired at
+    /// launch, so this file stays free of the browser's own model.
+    var onWebViewFound: (UUID, WKWebView) -> Void = { _, _ in }
 
     func forget(_ tabID: UUID) {
         views[tabID] = nil

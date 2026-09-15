@@ -93,6 +93,14 @@ struct sixApp: App {
                                    profileStore: profileStore, pageControllers: pageControllers,
                                    blocker: blocker, devTools: devTools, permissions: permissions)
         permissions.isPrivate = { [weak browser] id in browser?.isPrivate(id) ?? false }
+        #if os(macOS)
+        // Screen sharing is the one capture `WebPage` publishes nothing about — see `DisplayCapture.swift`.
+        WebViewResponder.shared.onWebViewFound = { [weak browser] tabID, webView in
+            DisplayCapture.observe(webView) { [weak browser] state in
+                browser?.tab(tabID)?.displayCapture = state
+            }
+        }
+        #endif
         blocker.startRefreshSchedule()
         devTools.browser = browser
         // Decided once and written down: what this Mac is offered, unless an index is already here

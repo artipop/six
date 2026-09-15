@@ -81,6 +81,29 @@ six is not sandboxed ([build.md](build.md)), so there are no `com.apple.security
 usage strings and a signed bundle are the whole requirement. If either string were missing the request would
 be denied with no prompt at all, which is why they are there and why they are localized.
 
+## Screen sharing, which WebKit asks for by itself
+
+`getDisplayMedia()` needs no delegate and no question of six's own. When the UI delegate does not implement the
+private `_webView:requestDisplayCapturePermissionForOrigin:…`, WebKit goes straight to macOS's content-sharing picker
+(`SCContentSharingPicker`, presented from its GPU process) and hands the page whatever the person picked. Measured
+before a line of code was written for it: a `video:Screen` track came back, and `ScreenCaptureKitCaptureSource::stop`
+was in the log the moment the page stopped that track. The picker *is* the consent, so nothing is filed per site —
+every browser asks this one every time.
+
+The page has to have focus. From a window of an app that is not in front, WebKit refuses with `InvalidStateError:
+Document is not fully active or does not have focus` before any picker appears, which is also why a call made over
+`six --mcp` only works while six is the front app.
+
+What `WebPage` leaves out is that sharing is *happening*: it publishes `cameraCaptureState` and
+`microphoneCaptureState` and nothing for the screen. `DisplayCapture` reads it from the `WKWebView` underneath,
+handed over by `WebViewResponder.onWebViewFound`: `_displayCaptureState` is SPI but KVO-compliant, and
+`_setDisplayCaptureState:completionHandler:` mutes it. That drives the same indicator as the camera, and
+`LivePageCache` now keeps any capturing page alive — which camera and microphone calls had been missing too, since
+only "playing media" protected them, and only when the page happened to be showing a video.
+
+The observer hangs on the web view as an associated object, so it lives exactly as long as the view it watches.
+Both SPI calls sit behind `responds(to:)`: a macOS that drops them loses the indicator, not the sharing.
+
 ## What a `WebPage` browser still cannot ask for
 
 - **Geolocation.** Half of it is public now, and it is the wrong half. macOS 27 added
@@ -100,14 +123,10 @@ be denied with no prompt at all, which is why they are there and why they are lo
   nobody retains is gone the moment it is installed. And taking `SitePermission.location` back out meant deleting the
   dev database's one `location` row first: `sitePermissions` decodes the list whole, so one unknown case forgets
   every answer.
-- **Screen sharing** (`getDisplayMedia`). No public API, not even the permission half. WebKit has it —
-  `WKPreferences._screenCaptureEnabled` plus
-  `_webView:requestDisplayCapturePermissionForOrigin:initiatedByFrame:withSystemAudio:decisionHandler:`, which returns
-  `ScreenPrompt`/`WindowPrompt` and lets WebKit run its own picker — but both are SPI.
 - **Web Push.** SPI as well (`_getPendingPushMessages`, `_processPushMessage` on `WKWebsiteDataStore`), and a push
   daemon's worth of work beyond the call itself.
 
-All three are the same trade: SPI on `WKWebView` or beneath it, which can go away in any macOS update. Worth doing
+Both are the same trade: SPI on `WKWebView` or beneath it, which can go away in any macOS update. Worth doing
 when one of them is actually wanted; not worth doing pre-emptively. See [todo.md](todo.md).
 
 ## The same questions on Linux

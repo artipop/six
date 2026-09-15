@@ -263,6 +263,9 @@ final class LivePageCache {
 
     /// Chrome's exclusions: a page doing something the user would notice losing is not a candidate.
     private func keepAliveReason(_ tab: BrowserTab) async -> String? {
+        // A call scrolled out of view is still a call: discarding its page hangs up on the camera,
+        // the microphone and the screen being shown, and "playing media" only catches it by accident.
+        if tab.isCapturing { return "capturing" }
         if tab.isLoadingRecently { return "still loading" }
         if await tab.isPlayingMedia { return "playing media" }
         // The floating player is the one thing on this list that is *on screen* while its window is
