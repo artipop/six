@@ -373,8 +373,7 @@ struct AddressBar: View {
     /// icon it would only need sometimes.
     @ViewBuilder
     private var siteIcon: some View {
-        let symbol = if tab.builtIn == .configuration { "9.square" }
-                     else if tab.builtIn != nil { "gearshape" }
+        let symbol = if tab.builtIn != nil { "gearshape" }
                      else if tab.currentURL?.scheme == "https" { "lock.fill" }
                      else { "globe" }
         if let origin, !decided.isEmpty {
