@@ -50,9 +50,9 @@ are real.
 ## What is not there yet
 
 - **screen sharing** (`getDisplayMedia`);
-- **geolocation** — the application has the system permission, but the public API
-  through which a page could ask for it does not exist yet for this way of
-  drawing pages;
+- **geolocation** — WebKit now lets a browser answer the permission question, but
+  does not hand it the coordinates through public API. So a site is refused at
+  once rather than left waiting;
 - **web push**.
 
-All three run into the same thing and will arrive together with it.
+All three run into private WebKit API that any macOS update could take away.

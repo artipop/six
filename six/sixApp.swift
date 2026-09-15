@@ -93,20 +93,6 @@ struct sixApp: App {
                                    profileStore: profileStore, pageControllers: pageControllers,
                                    blocker: blocker, devTools: devTools, permissions: permissions)
         permissions.isPrivate = { [weak browser] id in browser?.isPrivate(id) ?? false }
-        #if os(macOS)
-        // The one permission `WebPage` has no hook for at all — see `GeolocationDelegate.swift`.
-        // `WebViewResponder` already finds the live `WKWebView` behind every tab for the keyboard;
-        // this rides the same notification rather than teaching that file about permissions too.
-        WebViewResponder.shared.onWebViewFound = { [weak browser, weak permissions] tabID, webView in
-            guard #available(macOS 27.0, *), let browser, let permissions,
-                  let profileID = browser.tab(tabID)?.profileID
-            else { return nil }
-            return GeolocationDelegateProxy.install(on: webView) { [weak permissions] origin in
-                guard let permissions else { return .deny }
-                return await permissions.decideLocation(origin: origin, in: tabID, profileID: profileID)
-            }
-        }
-        #endif
         blocker.startRefreshSchedule()
         devTools.browser = browser
         // Decided once and written down: what this Mac is offered, unless an index is already here
