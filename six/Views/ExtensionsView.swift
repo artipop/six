@@ -153,8 +153,8 @@ private struct ExtensionRow: View {
             }
             Spacer()
             Menu {
-                if let url = extensions.optionsPageURL(for: record) {
-                    Button("Open Options Page") { extensions.browser?.newTab(url: url) }
+                if extensions.optionsPageURL(for: record) != nil {
+                    Button("Open Options Page") { extensions.openOptionsPage(for: record) }
                 }
                 #if os(macOS)
                 if extensions.canOverrideNewTabPage(record) {
@@ -277,12 +277,17 @@ private struct ExtensionActionButton: View {
     let record: InstalledExtension
     let action: WKWebExtension.Action
     let tab: BrowserTab?
-    @State private var frame: CGRect = .zero
+    #if os(macOS)
+    @State private var anchor = PopupAnchor.Box()
+    #endif
 
     var body: some View {
         Button {
             guard let tab else { return }
-            extensions.performAction(record, for: tab, anchor: frame)
+            #if os(macOS)
+            extensions.popupAnchorView = anchor.view
+            #endif
+            extensions.performAction(record, for: tab)
         } label: {
             ZStack(alignment: .topTrailing) {
                 if let icon = action.icon(for: CGSize(width: 16, height: 16)) {
@@ -303,18 +308,34 @@ private struct ExtensionActionButton: View {
         .buttonStyle(.borderless)
         .disabled(!action.isEnabled || tab == nil)
         .help(action.labelIfAny ?? record.name)
-        .background {
-            #if os(macOS)
-            // The popup is WebKit's own `NSPopover`; all six has to do is say where it points.
-            GeometryReader { proxy in
-                Color.clear.onChange(of: proxy.frame(in: .global), initial: true) { _, rect in
-                    guard let window = NSApp.mainWindow, let content = window.contentView else { return }
-                    let flipped = NSRect(x: rect.minX, y: content.bounds.height - rect.maxY, width: rect.width, height: rect.height)
-                    frame = flipped
-                }
-            }
-            #endif
-        }
+        #if os(macOS)
+        // The popup is WebKit's own `NSPopover`; all six has to do is say where it points.
+        .background { PopupAnchor(box: anchor) }
+        #endif
     }
 }
+
+#if os(macOS)
+/// A plain AppKit view the size of the button, for the popover to point at.
+///
+/// It used to be SwiftUI's global frame, flipped by hand into the window's content view — and the
+/// popup opened at the bottom of the window instead of under the button. SwiftUI's hosting view is
+/// already flipped, so a flip done by hand lands the anchor on the button's mirror image. A view of
+/// its own carries its own geometry, and `NSPopover` converts from it whatever the hierarchy above
+/// is doing.
+private struct PopupAnchor: NSViewRepresentable {
+    final class Box { weak var view: NSView? }
+    let box: Box
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        box.view = view
+        return view
+    }
+
+    func updateNSView(_ view: NSView, context: Context) {
+        box.view = view
+    }
+}
+#endif
 

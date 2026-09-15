@@ -26,6 +26,7 @@ and the verdict stays on its row afterwards.
 | dynamically registered scripts | run |
 | `declarativeNetRequest` | **blocks for real** — subresources and navigations alike |
 | the action popup | works; its button lives in the top bar |
+| an extension's settings page and its other pages | open **in a window of their own**, not as a column on the rail |
 
 ## What does not
 

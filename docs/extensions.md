@@ -48,8 +48,48 @@ ExtensionAdapters    a column as WKWebExtensionTab, a profile's strip as WKWebEx
 | **content scripts declared in the manifest** | **run** — `document_start`, DOM touched, `browser.*` available inside them |
 | **`scripting.registerContentScripts`** | **works** — dynamically registered scripts run in pages |
 | **`declarativeNetRequest`** | **blocks** — subresources *and* main-frame navigations, static rulesets and dynamic rules alike, including rules conditioned on `initiatorDomains`, `excludedInitiatorDomains` and `requestDomains` |
-| action popup | works — WebKit hands over its own `NSPopover` (and a live `WKWebView` on `webkit-extension://…/popup.html`), which six points at the toolbar button that was clicked |
+| action popup | works — WebKit hands over its own `NSPopover` (and a live `WKWebView` on `webkit-extension://…/popup.html`), which six points at the toolbar button that was clicked, through that button's own AppKit view |
+| extension pages (options, dashboards, `tabs.create` of its own pages) | work, **in a window of their own** — see below |
 | permissions | granted programmatically, or through `promptForPermissions` on the delegate |
+
+### Extension pages get a window, not a column
+
+uBlock Origin Lite's settings button opened `webkit-extension://…/dashboard.html` in a column and got "the page did
+not open": `NSURLErrorResourceUnavailable` (-1008). That error comes from WebKit's `WebExtensionURLSchemeHandler`,
+which loads an extension's page as a main frame only into a web view whose configuration names that extension
+(`requiredWebExtensionBaseURL`). The configuration that does is `WKWebExtensionContext.webViewConfiguration` — what
+WebKit builds the popup's web view from — and `WebPage.Configuration` cannot take one, nor set the base URL; the
+only setter is SPI (`_setRequiredWebExtensionBaseURL:`), and it would have to reach inside `WebPage` before its web
+view exists.
+
+So `ExtensionStore.openExtensionPage` builds a `WKWebView` from the context's configuration in an `NSWindow` of its
+own, for `openOptionsPage`, for "Open Options Page" in the Extensions list, and for `tabs.create` of the extension's
+own pages (which then reports no tab, because there is none). Measured with uBOL Lite: the dashboard loads, its
+background answers `getOptionsPageData`, `windows.getCurrent()` answers, and `tabs.getCurrent()` answers none, which
+the dashboard does not need. The very first open, seconds after installing, showed the page still hidden behind
+uBOL's own `loading` class — not measured further; the next open rendered.
+
+The new-tab override has the same cause and is **not** fixed: it loads the extension's page into an ordinary column,
+which WebKit refuses the same way. [api-watch.md](api-watch.md) has what would let these be columns.
+
+### Each profile's copy of an extension sees only its own tabs
+
+Every profile has a controller of its own, and each loads its own copy of every extension. The delegate used to
+work out a context's profile by looking the context up among the loaded ones and, failing that, taking the
+selected profile. A context is filed only once `controller.load` returns, and WebKit asks for its windows *during*
+`load` — so the second profile's copy was handed the first profile's window and tabs, and WebKit kept them. From
+then on it logged `web view … returned by webViewForWebExtensionContext: is not configured with the same
+WKWebExtensionController as extension context` in bursts, at every load and roughly every ten minutes after, when
+uBOL walked its tabs.
+
+The delegate now asks which runtime owns the `controller` it was called with, which is exact from the first call;
+and `ExtensionTabAdapter.webView(for:)` hands WebKit a view only when its configuration carries the context's own
+controller. Measured: under the same conditions that logged the bursts before (a web page restored and claimed
+before the extensions load, two profiles), none. Two other WebKit messages remain and predate this: a
+`WKWebExtension.Error` 6 (invalid manifest entry) at every launch, once per profile, and an occasional "array
+returned by tabsForWebExtensionContext: does not contain the active tab". six writes each extension's
+`WKWebExtensionContext.errors` to its own log now (`[extensions] <name> reports …`), so which extension a recorded
+error belongs to is no longer a guess.
 
 ## What does not work, and why it is all one thing
 

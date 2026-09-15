@@ -28,6 +28,8 @@ final class ExtensionStore {
         let controller: WKWebExtensionController
         lazy var window = ExtensionWindowAdapter(store: store, profileID: profileID)
         var contexts: [String: WKWebExtensionContext] = [:]
+        /// One `errorsDidUpdateNotification` subscription per loaded context, dropped with it.
+        var errorObservers: [String: any NSObjectProtocol] = [:]
         let profileID: Profile.ID
         unowned let store: ExtensionStore
 
@@ -52,11 +54,13 @@ final class ExtensionStore {
 
     @ObservationIgnored private var runtimes: [Profile.ID: Runtime] = [:]
     @ObservationIgnored private var adapters: [UUID: ExtensionTabAdapter] = [:]
-    /// Where the popup should point: the toolbar button's frame, in the window's coordinates.
-    @ObservationIgnored var popupAnchor: CGRect?
     #if os(macOS)
+    /// The toolbar button the next popup points at — the button's own AppKit view (`PopupAnchor`).
+    @ObservationIgnored weak var popupAnchorView: NSView?
     /// Holds a popup that WebKit did not wrap in a popover of its own (see the delegate).
     @ObservationIgnored var popupPanel: NSPanel?
+    /// Extension pages open in windows of their own (`openExtensionPage`), held here until closed.
+    @ObservationIgnored var extensionPageWindows: [NSWindow] = []
     #endif
 
     init(settings: ConfigurationStore) {
@@ -239,20 +243,45 @@ final class ExtensionStore {
             try runtime.controller.load(context)
             runtime.contexts[record.id] = context
             errors[record.id] = nil
+            let name = record.name
+            runtime.errorObservers[record.id] = NotificationCenter.default.addObserver(
+                forName: WKWebExtensionContext.errorsDidUpdateNotification, object: context, queue: .main
+            ) { [weak self, weak context] _ in
+                MainActor.assumeIsolated {
+                    guard let self, let context else { return }
+                    self.logErrors(of: context, named: name)
+                }
+            }
             for tab in tabs(in: runtime.profileID) { runtime.controller.didOpenTab(tab) }
             if ext.hasBackgroundContent {
                 try? await context.loadBackgroundContent()
             }
             actionRevision &+= 1
             log("loaded \(record.name) in profile \(runtime.profileID)")
+            // Whatever WebKit recorded while loading, before anything was subscribed to hear it.
+            logErrors(of: context, named: name)
         } catch {
             errors[record.id] = error.localizedDescription
             log("\(record.name) failed to load: \(error.localizedDescription)")
         }
     }
 
+    /// What WebKit recorded against an extension: a manifest entry it could not use, a rule set it
+    /// could not load. `WKWebExtensionContext.errors` is the only place these live, and nothing
+    /// shows them unless they are written down — the whole list, each time it changes.
+    private func logErrors(of context: WKWebExtensionContext, named name: String) {
+        for error in context.errors {
+            let error = error as NSError
+            let details = error.userInfo.isEmpty ? "" : " \(error.userInfo)"
+            log("\(name) reports \(error.domain) \(error.code): \(error.localizedDescription)\(details)")
+        }
+    }
+
     private func unload(_ id: String, from runtime: Runtime) {
         guard let context = runtime.contexts.removeValue(forKey: id) else { return }
+        if let observer = runtime.errorObservers.removeValue(forKey: id) {
+            NotificationCenter.default.removeObserver(observer)
+        }
         try? runtime.controller.unload(context)
         actionRevision &+= 1
     }
@@ -285,9 +314,8 @@ final class ExtensionStore {
 
     /// A click on one of those buttons: the extension decides what it means — a popup, or a message
     /// to its background.
-    func performAction(_ record: InstalledExtension, for tab: BrowserTab, anchor: CGRect?) {
+    func performAction(_ record: InstalledExtension, for tab: BrowserTab) {
         guard let runtime = runtimes[tab.profileID], let context = runtime.contexts[record.id] else { return }
-        popupAnchor = anchor
         context.userGesturePerformed(in: adapter(for: tab))
         context.performAction(for: adapter(for: tab))
     }
@@ -338,6 +366,50 @@ final class ExtensionStore {
         return context.optionsPageURL
     }
 
+    /// The Extensions list's "Open Options Page", for the selected profile's copy of the extension.
+    func openOptionsPage(for record: InstalledExtension) {
+        guard let profileID = browser?.selectedProfileID, let context = runtimes[profileID]?.contexts[record.id],
+              let url = context.optionsPageURL else { return }
+        #if os(macOS)
+        openExtensionPage(url, in: context)
+        #else
+        browser?.newTab(url: url)
+        #endif
+    }
+
+    #if os(macOS)
+    /// An extension's own page — its options, its dashboard, a page it opens with `tabs.create` — in a
+    /// window of its own rather than a column.
+    ///
+    /// Not a column, because a column is a `WebPage`, and WebKit will not load an extension's page as a
+    /// main frame into a web view whose configuration does not name that extension
+    /// (`requiredWebExtensionBaseURL`, checked in `WebExtensionURLSchemeHandler`): the load fails with
+    /// `NSURLErrorResourceUnavailable` (-1008), which is what uBlock Origin Lite's dashboard showed as
+    /// "the page did not open". The configuration that does name it is
+    /// `WKWebExtensionContext.webViewConfiguration`, and `WebPage.Configuration` has no way to take
+    /// one. A `WKWebView` built from it does — so the page gets a window, the way the popup already
+    /// gets WebKit's popover. False when the context has no configuration to give.
+    @discardableResult
+    func openExtensionPage(_ url: URL, in context: WKWebExtensionContext) -> Bool {
+        guard let configuration = context.webViewConfiguration else { return false }
+        extensionPageWindows.removeAll { !$0.isVisible }
+        let frame = NSRect(x: 0, y: 0, width: 960, height: 720)
+        let webView = WKWebView(frame: frame, configuration: configuration)
+        let window = NSWindow(contentRect: frame, styleMask: [.titled, .closable, .miniaturizable, .resizable],
+                              backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        window.title = context.webExtension.displayName ?? url.lastPathComponent
+        window.contentView = webView
+        window.center()
+        extensionPageWindows.append(window)
+        webView.load(URLRequest(url: url))
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate()
+        log("opened \(url.lastPathComponent) of \(window.title) in a window of its own")
+        return true
+    }
+    #endif
+
     #if os(macOS)
     /// Whether `record` could stand in for the start page — `WKWebExtension.hasOverrideNewTabPage`,
     /// for the toggle in `ExtensionsView`. Not whether it currently *does*; see
@@ -373,8 +445,13 @@ final class ExtensionStore {
 
     /// Which profile a context belongs to — the delegate is shared by every profile's controller,
     /// so "which strip is this extension talking about" is a lookup, not the selected profile.
-    func profileID(of context: WKWebExtensionContext) -> Profile.ID? {
-        runtimes.first { $0.value.contexts.values.contains(where: { $0 === context }) }?.key
+    /// Whose controller this is — the one question every delegate call can answer exactly, because
+    /// each profile has a controller of its own. Asked by context instead, it used to fall back to the
+    /// selected profile while a context was still loading (it is filed only once `load` returns, and
+    /// WebKit asks for windows during `load`), so a second profile's copy of an extension was handed
+    /// the first profile's tabs — and kept them.
+    func profileID(of controller: WKWebExtensionController) -> Profile.ID? {
+        runtimes.first { $0.value.controller === controller }?.key
     }
 
     func noteActionsChanged() {
@@ -391,29 +468,37 @@ final class ExtensionStore {
 final class ExtensionDelegate: NSObject, WKWebExtensionControllerDelegate {
     weak var store: ExtensionStore?
 
-    private func profileID(of context: WKWebExtensionContext) -> Profile.ID? {
-        store?.profileID(of: context) ?? store?.browser?.selectedProfileID
-    }
-
     func webExtensionController(_ controller: WKWebExtensionController, openWindowsFor context: WKWebExtensionContext) -> [any WKWebExtensionWindow] {
-        guard let store, let profileID = profileID(of: context), let window = store.window(for: profileID) else { return [] }
+        guard let store, let profileID = store.profileID(of: controller), let window = store.window(for: profileID) else { return [] }
         return [window]
     }
 
     func webExtensionController(_ controller: WKWebExtensionController, focusedWindowFor context: WKWebExtensionContext) -> (any WKWebExtensionWindow)? {
-        guard let store, let profileID = profileID(of: context) else { return nil }
+        guard let store, let profileID = store.profileID(of: controller) else { return nil }
         return store.window(for: profileID)
     }
 
     func webExtensionController(_ controller: WKWebExtensionController, openNewTabUsing configuration: WKWebExtension.TabConfiguration, for context: WKWebExtensionContext) async throws -> (any WKWebExtensionTab)? {
         guard let store, let browser = store.browser else { return nil }
+        #if os(macOS)
+        // An extension opening one of its own pages gets a window, not a column (`openExtensionPage`).
+        // There is no tab to hand back, so `tabs.create` reports none — which is the truth.
+        if let url = configuration.url, url.scheme == context.baseURL.scheme, url.host == context.baseURL.host,
+           store.openExtensionPage(url, in: context) {
+            return nil
+        }
+        #endif
         let tab = browser.newTab(url: configuration.url)
         return store.adapter(for: tab)
     }
 
     func webExtensionController(_ controller: WKWebExtensionController, openOptionsPageFor context: WKWebExtensionContext) async throws {
-        guard let store, let browser = store.browser, let url = context.optionsPageURL else { return }
-        browser.newTab(url: url)
+        guard let store, let url = context.optionsPageURL else { return }
+        #if os(macOS)
+        store.openExtensionPage(url, in: context)
+        #else
+        store.browser?.newTab(url: url)
+        #endif
     }
 
     /// WebKit builds the popover itself; six only has to say where it points — the toolbar button
@@ -424,12 +509,20 @@ final class ExtensionDelegate: NSObject, WKWebExtensionControllerDelegate {
         // TODO: the phone has no popover to hang this on — it wants a sheet over the strip.
         store.log("popup for \(action.labelIfAny ?? "an extension") is not presented on this platform")
         #elseif os(macOS)
-        let anchor = { (content: NSView) in
-            store.popupAnchor ?? NSRect(x: content.bounds.midX, y: content.bounds.maxY - 40, width: 1, height: 1)
-        }
-        if let popover = action.popupPopover, let content = NSApp.mainWindow?.contentView {
-            popover.show(relativeTo: anchor(content), of: content, preferredEdge: .minY)
-            return
+        if let popover = action.popupPopover {
+            // Under the button that was clicked, pointed at from the button's own view (`PopupAnchor`).
+            if let button = store.popupAnchorView, button.window != nil {
+                popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+                return
+            }
+            // Asked for by the extension itself, with no click to point at: under the top of the
+            // window, whichever way its content view happens to be flipped.
+            if let content = NSApp.mainWindow?.contentView {
+                let top = content.isFlipped ? 40 : content.bounds.maxY - 40
+                popover.show(relativeTo: NSRect(x: content.bounds.midX, y: top, width: 1, height: 1), of: content,
+                             preferredEdge: content.isFlipped ? .maxY : .minY)
+                return
+            }
         }
         // WebKit usually hands over a popover of its own; when it only hands over the web view, six
         // puts it in a panel rather than dropping the click on the floor.
