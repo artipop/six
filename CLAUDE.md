@@ -524,4 +524,5 @@ parity levels their docs state.
 
 Not built, with reasons: [docs/todo.md](docs/todo.md) — web archives, bookmark images, the content-script boundary
 `WebPage` cannot cross, geolocation and site notifications, floating windows, passkeys, CloudKit sync, and what the
-Linux front still owes the Mac.
+Linux front still owes the Mac. What six is waiting on Apple to make public, and how to notice when it does:
+[docs/api-watch.md](docs/api-watch.md).
