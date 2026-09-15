@@ -1166,16 +1166,6 @@
         }
       }
     },
-    "Back to the rail (⌥W)" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Обратно на ленту (⌥W)"
-          }
-        }
-      }
-    },
     "Background, storage, alarms, tabs and its popup work." : {
       "localizations" : {
         "ru" : {
@@ -2385,16 +2375,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Во всю ширину"
-          }
-        }
-      }
-    },
-    "Full Width (⌥W)" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Во всю ширину (⌥W)"
           }
         }
       }

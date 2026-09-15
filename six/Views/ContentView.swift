@@ -592,7 +592,6 @@ private struct TopBar: View {
         HStack(spacing: 8) {
             Color.clear.frame(width: 68, height: 1) // room for the window buttons
             ProfileMenuButton()
-            FullWidthButton()
             Spacer(minLength: 8)
             // Against the field, not out with the rail's buttons. The star is about the page whose
             // address is right there — it fills for that page and ⌘D toggles it — and every browser
@@ -649,35 +648,6 @@ private struct TopBar: View {
     /// the ceiling are the two places where a share stops being sensible.
     private var addressWidth: CGFloat {
         max(280, min(760, browser.layout.viewport.width * 0.4))
-    }
-}
-
-/// Full width, as one button: the focused page keeps its gaps and its rounded corners, or takes the
-/// whole window (⌥W).
-///
-/// It used to be a mode picker with a menu hanging off it — three fills, the overview, the centring
-/// switch, and where the focused window goes in the rail. Two of those three fills were the same
-/// answer to the same question, the two switches are settings and now live on `six://settings`, and
-/// moving a window is what the page's own right-click menu is for. What was left is one thing with
-/// two states, and a thing with two states is a button.
-private struct FullWidthButton: View {
-    @Environment(BrowserState.self) private var browser
-
-    var body: some View {
-        let filled = browser.layout.showsFill == .window
-        Button { browser.toggleFullWindow() } label: {
-            Image(systemName: filled ? "rectangle.inset.filled" : "rectangle.split.3x1")
-                .font(.system(size: 12))
-        }
-        .buttonStyle(.borderless)
-        .controlSize(.small)
-        .fixedSize()
-        .padding(.horizontal, 5)
-        .frame(height: 24)
-        .background(filled ? AnyShapeStyle(browser.selectedProfile.color.opacity(0.22))
-                           : AnyShapeStyle(.quaternary.opacity(0.35)),
-                    in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-        .help(filled ? "Back to the rail (⌥W)" : "Full Width (⌥W)")
     }
 }
 

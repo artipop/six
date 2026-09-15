@@ -100,9 +100,10 @@ final class ConfigurationStore {
     }
 
     /// Tiled or full-window, whichever the user last chose — so an empty workspace losing its last
-    /// window and being rebuilt fresh does not quietly answer this itself. Tiled until anyone has.
+    /// window and being rebuilt fresh does not quietly answer this itself. Full window until anyone
+    /// has chosen otherwise.
     var fill: NiriFill {
-        get { self[.fill].flatMap(NiriFill.init(rawValue:)) ?? .tiled }
+        get { self[.fill].flatMap(NiriFill.init(rawValue:)) ?? .window }
         set { self[.fill] = newValue.rawValue }
     }
 
