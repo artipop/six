@@ -55,9 +55,9 @@ nonisolated enum WebMCPError: LocalizedError, Equatable {
 @MainActor
 @Observable
 final class WebMCPHost {
-    static let defaultTimeout: Duration = .seconds(30)
+    nonisolated static let defaultTimeout: Duration = .seconds(30)
     /// The ceiling on an answer, the same as `get_page_content`'s default.
-    static let resultLimit = 20_000
+    nonisolated static let resultLimit = 20_000
 
     private(set) var registry = WebMCPRegistry()
     /// Told when what a window offers changes. SwiftUI observes `registry` and needs nothing; this is
