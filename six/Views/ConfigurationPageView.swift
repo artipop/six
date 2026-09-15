@@ -416,15 +416,8 @@ private struct DevelopConfiguration: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
-                HStack {
-                    Button("Reveal in Finder") {
-                        NSWorkspace.shared.activateFileViewerSelecting([Log.current])
-                    }
-                    Button("Open Console") {
-                        if let console = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.Console") {
-                            NSWorkspace.shared.openApplication(at: console, configuration: NSWorkspace.OpenConfiguration())
-                        }
-                    }
+                Button("Reveal in Finder") {
+                    NSWorkspace.shared.activateFileViewerSelecting([Log.current])
                 }
                 .controlSize(.small)
             }

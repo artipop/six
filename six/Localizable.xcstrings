@@ -3510,16 +3510,6 @@
         }
       }
     },
-    "Open Console" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Открыть «Консоль»"
-          }
-        }
-      }
-    },
     "Open in New Window" : {
       "localizations" : {
         "ru" : {
@@ -4747,16 +4737,6 @@
       }
     },
     "six writes what it did to %@, and to the system log under %@." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "six writes what it did to %1$@, and to the system log under %2$@."
-          }
-        }
-      }
-    },
-    "six writes what it did to %1$@, and to the system log under %2$@." : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
