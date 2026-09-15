@@ -66,8 +66,18 @@ a `WebPage` with a tab — with the measurements from [extensions.md](extensions
 is the precedent: something that lives on `WKWebView`, lifted into the new API.
 
 Smaller things that follow once the boundary moves (or that are worth doing anyway): a workspace per extension
-window rather than one window per profile strip, `menus` in the page context menu, and extension pages (options,
-new-tab override) as ordinary columns rather than plain windows.
+window rather than one window per profile strip.
+
+**Extension pages inside six's own interface.** An extension's options page, its dashboard and the pages it opens
+with `tabs.create` open today in a plain `NSWindow` of their own (`ExtensionStore.openExtensionPage`), because a
+column is a `WebPage` and WebKit will not load an extension's page as a main frame into one
+([extensions.md](extensions.md#extension-pages-get-a-window-not-a-column)). Try to fit them into the rail anyway.
+The options, cheapest first: a panel six places and sizes over the focused column instead of a free-floating window
+(still a `WKWebView` from `context.webViewConfiguration`); a column kind that hosts that `WKWebView` through
+`NSViewRepresentable` — an exception to the `WebPage`-only rule, to be weighed against everything such a column would
+not have (find, translation, highlights, DevTools capture, discarding); or, if `WebPage.Configuration` ever takes a
+configuration or a `requiredWebExtensionBaseURL` ([api-watch.md](api-watch.md)), ordinary columns with nothing
+special about them. The new-tab override is blocked on the same thing.
 
 `commands` bound to real keys is no longer on this list — see [extensions.md](extensions.md#commands-an-extensions-own-shortcuts).
 
