@@ -63,6 +63,10 @@ memory, even when you scroll the rail away from it.
 - **geolocation** — WebKit now lets a browser answer the permission question, but
   does not hand it the coordinates through public API. So a site is refused at
   once rather than left waiting;
-- **web push**.
+- **site notifications** — a site is refused at once, with no question shown.
+  WebKit lets a browser both ask and show them only through undocumented
+  functions;
+- **web push** — Apple opens it only to its own apps.
 
-Both run into private WebKit API that any macOS update could take away.
+Geolocation and notifications can be done, but through undocumented WebKit
+functions that any macOS update could change.

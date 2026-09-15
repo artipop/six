@@ -123,11 +123,21 @@ Both SPI calls sit behind `responds(to:)`: a macOS that drops them loses the ind
   nobody retains is gone the moment it is installed. And taking `SitePermission.location` back out meant deleting the
   dev database's one `location` row first: `sitePermissions` decodes the list whole, so one unknown case forgets
   every answer.
-- **Web Push.** SPI as well (`_getPendingPushMessages`, `_processPushMessage` on `WKWebsiteDataStore`), and a push
-  daemon's worth of work beyond the call itself.
+- **Notifications.** `Notification.requestPermission()` answers `denied` and no question appears — which is why
+  Mattermost prompts in Safari and not here. WebKit asks only a private `WKUIDelegate` method,
+  `_webView:requestNotificationPermissionForSecurityOrigin:decisionHandler:`, and refuses when nothing implements it.
+  Answering it is half: a granted page's `new Notification()` reaches the UI process and stops there until the app
+  installs a notification provider through C SPI (`WKNotificationManagerSetProvider`). The feature flag
+  `BuiltInNotificationsEnabled`, which looks like WebKit showing them itself, hands both halves to `webpushd`
+  instead, and that daemon serves only Apple's own apps. Measured, with the traps (a user gesture is required;
+  private profiles are refused before any delegate is asked), in
+  [todo.md](todo.md#geolocation-and-notifications-webkits-c-api-one-header-for-both).
+- **Web Push.** Closed, not merely undocumented: `webpushd` requires the private entitlement
+  `com.apple.private.webkit.webpush` from every client.
 
-Both are the same trade: SPI on `WKWebView` or beneath it, which can go away in any macOS update. Worth doing
-when one of them is actually wanted; not worth doing pre-emptively. See [todo.md](todo.md).
+Geolocation and notifications are the same trade: C functions `WebKit.framework` exports and the SDK does not
+declare, which a bridging header can declare and any macOS update can change. That is the direction chosen — see
+[todo.md](todo.md).
 
 ## The same questions on Linux
 

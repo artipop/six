@@ -456,6 +456,12 @@ anything added there has to exist on both:
   by path and not by process, so it also takes down the **other session's** dev six, however they launched it —
   a run of `SIX_KEY_SELFTEST` every few minutes looks from over there like an unexplained SIGKILL at 75–135 s with no
   crash report. Say so before a series of them, and ask before taking the app down if someone needs a long window.
+- **A page API that wants a person is refused over `six --mcp`, fast and without a word.**
+  `Notification.requestPermission()` needs a user gesture and answers `denied` in milliseconds without one;
+  `getDisplayMedia()` needs the page to have focus and throws `InvalidStateError` while six is not the front app.
+  Neither refusal reaches six's own code, so a `denied` from `evaluate_javascript` says nothing about the permission
+  code under test. Have Artem click, or send a real click into a throwaway app's window
+  ([docs/todo.md](docs/todo.md#geolocation-and-notifications-webkits-c-api-one-header-for-both)).
 
 ## How we work
 
@@ -517,5 +523,5 @@ document windows and highlights, DevTools capture, localization, and the Linux, 
 parity levels their docs state.
 
 Not built, with reasons: [docs/todo.md](docs/todo.md) — web archives, bookmark images, the content-script boundary
-`WebPage` cannot cross, geolocation, floating windows, passkeys, CloudKit sync, and what the Linux front still owes
-the Mac.
+`WebPage` cannot cross, geolocation and site notifications, floating windows, passkeys, CloudKit sync, and what the
+Linux front still owes the Mac.

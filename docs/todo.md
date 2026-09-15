@@ -201,28 +201,67 @@ agent still cannot do is *act* on a page except through `evaluate_javascript`, a
 - **Request bodies and headers**, and request interception. The page-world hooks see status and timing only; going
   further means either the inspector protocol or a `WKURLSchemeHandler`-shaped proxy, and neither is cheap.
 
-## Geolocation and Web Push: one trade, not two
+## Geolocation and notifications: WebKit's C API, one header for both
 
 Site permissions are built ([permissions.md](permissions.md)): the camera, the microphone and the motion sensors are
 asked for per site, remembered per origin and profile, and takeable back, and screen sharing works through the picker
-WebKit presents by itself ([permissions.md](permissions.md#screen-sharing-which-webkit-asks-for-by-itself)). Two things
-a browser is expected to do are still missing, and they are the *same* missing thing — each needs SPI on `WKWebView`
-or beneath it.
+WebKit presents by itself ([permissions.md](permissions.md#screen-sharing-which-webkit-asks-for-by-itself)).
+Geolocation and notifications are still missing, and missing the same way: WebKit asks the app for permission through
+a delegate, then expects the app to *supply* the thing — a position, a banner — through C functions that
+`WebKit.framework` exports and the SDK does not declare.
 
-**Geolocation** is half public, and the public half was built and taken out again. macOS 27's
-`requestGeolocationPermissionFor:initiatedBy:` decides permission only; the position comes from a provider installed
-through C SPI (`WKGeolocationManagerSetProvider` on the process pool's `WKContextRef`), and without one "Allow" leads
-to a page that waits forever ([permissions.md](permissions.md#what-a-webpage-browser-still-cannot-ask-for)). The SPI
-half would be six running `CLLocationManager` itself and handing WebKit `WKGeolocationPositionCreate` values, with the
-proxy from `e64dd24` back in front of `WebPage`'s delegate. Unproven: the first step is showing that a position
-arrives at all. A Feedback is still worth filing — a permission hook with no provider is a hole in the new API.
+The direction chosen (Artem, 2026-09-15) is to declare them, in a bridging header copied from WebKit's open-source
+`WKGeolocationManager.h`, `WKNotificationManager.h` and `WKNotificationProvider.h`. The alternative weighed was a
+JavaScript stand-in for `Notification` installed at document start: public API only, but an imitation, and no answer
+for service-worker notifications.
 
-**Web Push** is SPI and deep: `_getPendingPushMessages` / `_processPushMessage` / `_processPersistentNotificationClick`
-on `WKWebsiteDataStore`, a push partition, and a daemon. Worth its own decision, not this one.
+What the two share, built once:
 
-six is not sandboxed and not on the App Store, so SPI carries no review risk here — only the ordinary one, that it
-goes away in a macOS update; `respondsToSelector:` and a feature that quietly disappears rather than a crash is the
-shape that takes.
+- **The header.** six has none today. The functions — `WKContextGetGeolocationManager`,
+  `WKGeolocationManagerSetProvider`, `WKGeolocationManagerProviderDidChangePosition`, `WKGeolocationPositionCreate`;
+  `WKContextGetNotificationManager`, `WKNotificationManagerSetProvider`, `WKNotificationManagerProviderDidShowNotification`,
+  `…DidClickNotification`, `…DidCloseNotifications`, `WKNotificationCopyTitle`, `WKNotificationCopyBody`,
+  `WKNotificationGetID` — are all in WebKit's exports on this macOS (`dyld_info -exports`). The provider structs are
+  versioned (`WKGeolocationProviderV1`, `WKNotificationProviderV0`), and a layout that no longer matches is a crash
+  rather than a compile error, so the header pins one version.
+- **The `WKContextRef`.** Both managers hang off the process pool `WebPage` built: `configuration.processPool` of the
+  `WKWebView` that `WebViewResponder` finds. How that object becomes a `WKContextRef` from Swift is the first unproven
+  step.
+- **The delegate proxy.** Both permission questions are `WKUIDelegate` methods, answered in front of `WebPage`'s own
+  adapter by the forwarding proxy from `e64dd24`, with its two lessons: the selector built from its string, and the
+  proxy retained somewhere, because `uiDelegate` is weak. Forwarding everything else was verified — `confirm()` and
+  the microphone still reached the adapter.
+
+**Geolocation.** The permission hook is public (`requestGeolocationPermissionFor:initiatedBy:`, macOS 27); the
+provider is not. six would run `CLLocationManager` itself — `NSLocationWhenInUseUsageDescription` is already in the
+Info.plist — and hand WebKit positions. Without a provider "Allow" led to a page that waited forever
+([permissions.md](permissions.md#what-a-webpage-browser-still-cannot-ask-for)). First step: a position arriving in a
+page at all.
+
+**Notifications.** Measured on 2026-09-15 in a throwaway app, not in six:
+
+- `Notification.requestPermission()` is refused inside WebCore, before anyone is asked, unless it runs in a user
+  gesture and a secure context. A script run over `six --mcp` is not a gesture, which is why an early check from six
+  read `denied` in 3 ms and proved nothing about the delegate.
+- A non-persistent data store — what six's private profiles use — is refused in `WebNotificationClient` before the
+  delegate too (`sessionID().isEphemeral()`). Private profiles would stay without notifications, as in Safari.
+- With a persistent store, made the way six makes its other profiles, and a real click, the private delegate method
+  `_webView:requestNotificationPermissionForSecurityOrigin:decisionHandler:` was called, answered yes, and the page got
+  `granted`. `new Notification()` then reached the UI process (`showNotification called` in the log) and went no
+  further: no provider, no banner, no `onshow`.
+- `BuiltInNotificationsEnabled`, the feature flag that looks like WebKit showing them itself, sends both permission and
+  display to `webpushd` through the network process: `requestPermission failed: no active connection to webpushd`,
+  refused in 0 ms, with the data store's `webPushMachServiceName` set.
+
+The provider would post through `UserNotifications` (a system prompt of its own, once for the app), report shows and
+clicks back to WebKit, and answer `notificationPermissions` from `SitePermissions`. Service-worker notifications come
+through the same provider marked persistent, but their clicks go to `WKWebsiteDataStore` SPI — later, not first.
+
+**Web Push** is out of reach rather than undocumented: `webpushd` checks the private entitlement
+`com.apple.private.webkit.webpush` before serving a client, and Apple does not hand it out.
+
+six is not sandboxed and not on the App Store, so undeclared API carries no review risk here — only the ordinary one,
+that it changes in a macOS update.
 
 ## Blocking: cosmetic rules inside a frame
 
@@ -388,7 +427,7 @@ Built and measured; see [linux.md](linux.md) for the whole picture. What is left
   restoring the rendered one — no scroll position, no form state, no cached response. `WKWebView` has had
   `interactionState` since macOS 12 for exactly this, and `WebPage` exposes nothing equivalent: its
   `backForwardList` is read-only and its only way in is `load(_ item:)` on an item WebKit already has. This is the
-  same hole as [geolocation](#geolocation-and-web-push-one-trade-not-two) — a `WKWebView` property
+  same hole as [geolocation](#geolocation-and-notifications-webkits-c-api-one-header-for-both) — a `WKWebView` property
   that did not make the crossing — and wants the same answer, a Feedback citing `WebPage.isInspectable` as the
   precedent.
 - A window whose address *is* a download re-downloads it on every launch. Nothing was committed in it, so the
