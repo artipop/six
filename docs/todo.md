@@ -441,6 +441,11 @@ Built and measured; see [linux.md](linux.md) for the whole picture. What is left
 - Deep research without an agent: a native loop over the ⌘K model for machines with no Claude Code / Codex, and
   exporting a run as one HTML file with its sources inlined ([deep-research.md](deep-research.md)).
 - A way back to the start page after navigating (a "home" affordance, or `⌘⇧H`).
+- **The rail that moves up, shown moving up — in the overview.** Taking the last window off a rail (⌥⇧↓, or a drag
+  in the overview) empties it, and niri's rule removes it: the rail below takes its place, so the window you just
+  sent *down* ends up on the top rail — which is right, and reads strangely. On the rail itself rows are not
+  visible as rows, so nothing there can show it; the overview draws the whole stack, and there the lower rail could
+  fly up into the gap instead of the rows being renumbered in one cut.
 - Forget one site: drop a single host's cookies and storage (`WKWebsiteDataStore.fetchDataRecords` →
   `remove(ofTypes:for:)`). Clearing a whole profile is the only option today, and it takes every login with it.
 - Per-site user-agent overrides through `WebPage.customUserAgent`, for sites that sniff wrongly even at Safari's

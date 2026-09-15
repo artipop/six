@@ -29,8 +29,13 @@ struct NiriStripView: View {
                 // there they are all on screen at once.
                 ForEach(Array(layout.workspaces.enumerated()), id: \.element.id) { index, workspace in
                     if layout.isOverview || abs(index - layout.focusedWorkspaceIndex) <= 1 {
-                        WorkspaceView(workspace: workspace, size: proxy.size)
-                            .offset(y: offset(of: index, height: proxy.size.height, layout: layout))
+                        let rowY = offset(of: index, height: proxy.size.height, layout: layout)
+                        WorkspaceView(workspace: workspace, size: proxy.size, offsetY: rowY)
+                            .offset(y: rowY)
+                            // The row holding the window ⌥⇧ is carrying draws over the others: the
+                            // window stands still on screen while its row slides in, and the row it
+                            // left is still there, drawn in the same place.
+                            .zIndex(carries(workspace, layout: layout) ? 1 : 0)
                     }
                 }
                 // Above every row, and last so it is: the window in the hand, and the layer that put
@@ -57,6 +62,11 @@ struct NiriStripView: View {
         .contextMenu { StripMenu() }
         .onAppear(perform: startMonitor)
         .onDisappear { monitor.stop() }
+    }
+
+    private func carries(_ workspace: NiriWorkspace, layout: NiriLayout) -> Bool {
+        guard let lifted = layout.liftedTabID else { return false }
+        return workspace.columns.contains { $0.tabID == lifted || $0.second == lifted }
     }
 
     private func offset(of index: Int, height: CGFloat, layout: NiriLayout) -> CGFloat {
@@ -87,6 +97,9 @@ struct NiriStripView: View {
 private struct WorkspaceView: View {
     let workspace: NiriWorkspace
     let size: CGSize
+    /// Where the strip has put this row, vertically. The window ⌥⇧ is carrying takes it back off its
+    /// own offset, so it stays where it is on screen while the row it now belongs to slides under it.
+    var offsetY: CGFloat = 0
 
     @Environment(BrowserState.self) private var browser
 
@@ -134,9 +147,11 @@ private struct WorkspaceView: View {
             // The window the `+` under the pointer would open, where it would open: the strip has
             // leaned aside to make room for it, and this is what stands in the room.
             if isCurrent, let outline = layout.newColumnFrame {
-                NewColumnOutline()
+                NewColumnOutline(filled: layout.fillsViewport,
+                                 leading: layout.edgeHover > 0,
+                                 band: min(layout.columnWidth + layout.gap, layout.peekAmount))
                     .frame(width: outline.width, height: outline.height)
-                    .offset(x: outline.minX - scroll, y: outline.minY)
+                    .modifier(PixelOffset(x: outline.minX - scroll, y: outline.minY))
                     .allowsHitTesting(false)
                     .transition(.opacity)
             }
@@ -148,13 +163,15 @@ private struct WorkspaceView: View {
                 if let tab = browser.tab(place.tabID), place.tabID != carried {
                     let frame = place.frame
                     let isFocused = isCurrent && place.tabID == focusedTabID
+                    let isLifted = layout.liftedTabID == place.tabID
                     ColumnView(
                         tab: tab,
                         isFocused: isFocused,
                         isCurrentWorkspace: isCurrent,
                         side: place.side,
                         isLive: isLive(workspaceDistance: abs(row - layout.focusedWorkspaceIndex),
-                                       x: frame.minX - scroll, width: frame.width, layout: layout)
+                                       x: frame.minX - scroll, width: frame.width, layout: layout),
+                        isLifted: isLifted
                     )
                     .frame(width: frame.width, height: frame.height)
                     // A window changing width is a live page being laid out again, and it lands in
@@ -162,7 +179,9 @@ private struct WorkspaceView: View {
                     // the width: the *offset* is the rail scrolling, which is the movement the
                     // animation is for.
                     .animation(nil, value: frame.size)
-                    .offset(x: frame.minX - scroll, y: frame.minY)
+                    // A picture of the page at 90%, not a page laid out at 90%: the width above stays.
+                    .scaleEffect(isLifted ? 0.9 : 1)
+                    .modifier(PixelOffset(x: frame.minX - scroll, y: frame.minY - (isLifted ? offsetY : 0)))
                     .zIndex(isFocused ? 1 : 0)
                     // A new window slides in from beside its neighbour and settles; a closed one fades
                     // out where it stood. The slide is a fraction of the column, not a point count.
@@ -177,7 +196,11 @@ private struct WorkspaceView: View {
         // has to keep up with the pointer, so animating every change here would make it swim.
         .animation(.smooth(duration: 0.22), value: layout.dropTarget)
         .frame(width: layerWidth, height: size.height, alignment: .topLeading)
-        .clipped()
+        // Clipped to the row in the overview, where rows sit side by side on one screen. On the rail
+        // the strip's own clip is enough, and a window carried across rows is drawn outside its row
+        // for the length of the slide. The same shape either way, so toggling the overview is not a
+        // new view — and not a new web view — for every window in the row.
+        .clipShape(Rectangle().inset(by: layout.isOverview ? 0 : -size.height))
         .offset(x: -(layerWidth - size.width) / 2)
         .opacity(layout.isOverview && !isCurrent ? 0.7 : 1)
         // A workspace that is not on screen answers nothing. It is laid out a screen above or below,
@@ -408,19 +431,60 @@ private struct CardsShape: Shape {
     }
 }
 
+/// An offset that lands on whole device pixels on every frame of an animation, not only at its end.
+///
+/// Two full-width windows stand edge to edge with no gap, and a plain `.offset` animates them through
+/// fractional positions: both edges are antialiased half-transparent, the background shows through the
+/// seam at a strength that changes every frame, and the seam shimmers for as long as the rail moves.
+/// Snapped here, one window's right edge and the next one's left edge are always the same pixel.
+private struct PixelOffset: ViewModifier, Animatable {
+    var x: CGFloat
+    var y: CGFloat
+
+    @Environment(\.displayScale) private var scale
+
+    var animatableData: AnimatablePair<CGFloat, CGFloat> {
+        get { AnimatablePair(x, y) }
+        set { x = newValue.first; y = newValue.second }
+    }
+
+    func body(content: Content) -> some View {
+        content.offset(x: (x * scale).rounded() / scale, y: (y * scale).rounded() / scale)
+    }
+}
+
 /// The window that isn't there yet: the place the `+` under the pointer would fill, drawn as an
 /// outline so it reads as a promise rather than as a window. Most of it is off the edge of the
 /// screen — the strip only leans far enough for a glance — and the part that is on it is the point.
 private struct NewColumnOutline: View {
+    /// The window it promises has no corners of its own once it fills the viewport — a rounded promise
+    /// of a window that opens square reads as a mismatch the moment it lands.
+    let filled: Bool
+    /// The outline stands past the right end of the strip, so its near edge is its leading one.
+    let leading: Bool
+    /// How much of it the lean brings on screen, measured from that near edge.
+    let band: CGFloat
+
     @Environment(BrowserState.self) private var browser
 
     var body: some View {
         let accent = browser.selectedProfile.color
-        RoundedRectangle(cornerRadius: 12, style: .continuous)
+        let radius: CGFloat = filled ? 0 : 12
+        RoundedRectangle(cornerRadius: radius, style: .continuous)
             .fill(accent.opacity(0.07))
             .overlay {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                RoundedRectangle(cornerRadius: radius, style: .continuous)
                     .strokeBorder(accent.opacity(0.5), lineWidth: 2)
+            }
+            // The label rides in on the outline rather than waiting at the edge button: drawn there, it
+            // was up at full strength over the page while the strip had barely started to lean.
+            .overlay(alignment: leading ? .leading : .trailing) {
+                Text("New Window")
+                    .font(.system(size: 11, weight: .semibold))
+                    .fixedSize()
+                    .rotationEffect(.degrees(-90))
+                    .foregroundStyle(accent)
+                    .frame(width: band)
             }
     }
 }
@@ -435,6 +499,8 @@ private struct ColumnView: View {
     let isCurrentWorkspace: Bool
     let side: NiriColumnSide
     let isLive: Bool
+    /// Held up off the rail by ⌥⇧ (`NiriLayout.lift`): a filled window gets its corners back for it.
+    var isLifted = false
 
     @Environment(BrowserState.self) private var browser
     @Environment(SitePermissions.self) private var permissions
@@ -571,7 +637,7 @@ private struct ColumnView: View {
                 LoadingLine(progress: tab.estimatedProgress, accent: accent)
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: filled ? 0 : 12, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: filled && !isLifted ? 0 : 12, style: .continuous))
         .overlay {
             if !filled {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -829,7 +895,10 @@ private struct StripEdgeButton: View {
                 // already used, and a second click there is a second window nobody asked for. Disarm
                 // right away rather than waiting for `step.opens` to flip — it won't, since the new
                 // window is itself the last column and the button reads `+` before and after.
-                if step.opens {
+                // And the chevron click that reaches the end is the same event again. Let go here, in
+                // the click, and not in `onChange(of: step.opens)` a frame later: the outline — and the
+                // word on it — would otherwise come up for that frame under a hand that never asked.
+                if step.opens || !layout.canFocusColumn(direction) {
                     disarmed = true
                     if browser.peeksAtEdges { peek(layout, false) }
                 }
@@ -943,13 +1012,15 @@ private struct StripEdgeButton: View {
             // A word instead of a mark: neither shape of `+` read as anything other than a stray dot in
             // a sliver this narrow. Turned on its side, the label fits the lane's width with its own
             // height and uses the lane's height for its length — read bottom to top, the way a spine
-            // reads on a shelf.
-            Text("New Window")
-                .font(.system(size: 11, weight: .semibold))
-                .fixedSize()
-                .rotationEffect(.degrees(-90))
-                .foregroundStyle(browser.selectedProfile.color)
-                .opacity(shown)
+            // reads on a shelf. Where the strip peeks, the outline carries the word (`NewColumnOutline`).
+            if !browser.peeksAtEdges {
+                Text("New Window")
+                    .font(.system(size: 11, weight: .semibold))
+                    .fixedSize()
+                    .rotationEffect(.degrees(-90))
+                    .foregroundStyle(browser.selectedProfile.color)
+                    .opacity(shown)
+            }
         } else {
             Image(systemName: symbol)
                 .font(.system(size: min(11, width), weight: .bold))

@@ -349,8 +349,13 @@ final class NiriLayout {
     /// (0…1). See `hitWall`.
     private(set) var wall: NiriEdge?
     private(set) var wallGlow: CGFloat = 0
+    /// The window ⌥⇧ just moved, held up off the rail until the move has landed. See `lift`.
+    private(set) var liftedTabID: UUID?
     @ObservationIgnored private var peekTask: Task<Void, Never>?
     @ObservationIgnored private var wallTask: Task<Void, Never>?
+    @ObservationIgnored private var liftTask: Task<Void, Never>?
+    /// A row `normalize` leaves standing once even though it is empty. See `moveColumnToWorkspace`.
+    @ObservationIgnored private var keepsEmptyOnce: UUID?
     /// The strip on screen. Switching to another profile shows a strip that was last laid out at
     /// whatever the viewport was then, so it gets put back under its focused window on the way in.
     var activeProfileID: UUID = UUID() {
@@ -503,8 +508,8 @@ final class NiriLayout {
     /// removes it is the answer to `NiriWorkspaceRemoval`, not this.
     private func normalize(_ s: inout NiriStrip) {
         let focusedID = s.workspaces.indices.contains(s.focus) ? s.workspaces[s.focus].id : nil
-        var kept = s.workspaces.filter { !$0.isEmpty || !$0.name.isEmpty }
-        if let trailing = s.workspaces.last, trailing.isEmpty, trailing.name.isEmpty {
+        var kept = s.workspaces.filter { !$0.isEmpty || !$0.name.isEmpty || $0.id == keepsEmptyOnce }
+        if let trailing = s.workspaces.last, trailing.isEmpty, trailing.name.isEmpty, trailing.id != keepsEmptyOnce {
             kept.append(trailing) // reuse its identity so focus survives the prune
         } else {
             kept.append(NiriWorkspace())
@@ -519,6 +524,7 @@ final class NiriLayout {
             s.focus = min(max(0, s.focus), kept.count - 1)
         }
         s.workspaces = kept
+        keepsEmptyOnce = nil
     }
 
     // MARK: Geometry
@@ -781,6 +787,27 @@ final class NiriLayout {
             guard !Task.isCancelled else { return } // a newer peek owns the band now, and will let go
             withAnimation(NiriLayout.switchAnimation) { self.horizontalPreview = 0 }
             NiriLayout.trace("peek back \(horizontalPreview)")
+        }
+    }
+
+    /// ⌥⇧ moves the window you are reading, and on the rail that is the one move you cannot see: the
+    /// rail follows the window, so it stands exactly where it stood and only what is around it changes
+    /// — off screen, at full width. The overview shows it, because there the window is a card among
+    /// cards. This borrows that for the length of the move: the window comes up off the rail a little,
+    /// with corners, so the rail can be seen going past behind it, and settles back once it has landed.
+    private func lift(_ tabID: UUID, animated: Bool, holding hold: Int = 340) {
+        guard !isOverview else { return }
+        liftTask?.cancel()
+        if animated {
+            withAnimation(.smooth(duration: 0.2)) { liftedTabID = tabID }
+        } else {
+            liftedTabID = tabID
+        }
+        liftTask = Task { @MainActor [weak self] in
+            // The length of `switchAnimation`: set down once the rail has arrived, not while it moves.
+            try? await Task.sleep(for: .milliseconds(hold))
+            guard !Task.isCancelled, let self else { return }
+            withAnimation(.smooth(duration: 0.35)) { self.liftedTabID = nil }
         }
     }
 
@@ -1166,6 +1193,8 @@ final class NiriLayout {
     }
 
     func moveColumn(_ delta: Int) {
+        var moved: UUID?
+        defer { if let moved { lift(moved, animated: true) } }
         mutate { s in
             guard s.workspaces.indices.contains(s.focus) else { return }
             var ws = s.workspaces[s.focus]
@@ -1182,12 +1211,14 @@ final class NiriLayout {
                 column.pane += delta
                 ws.columns[ws.focus] = column
                 s.workspaces[s.focus] = ws
+                moved = column.focusedTabID
                 return
             }
             let target = ws.focus + delta
             guard ws.columns.indices.contains(target) else { return }
             ws.columns.swapAt(ws.focus, target)
             ws.focus = target
+            moved = ws.columns[target].focusedTabID
             scrollFocusIntoView(&ws)
             s.workspaces[s.focus] = ws
         }
@@ -1634,7 +1665,26 @@ final class NiriLayout {
     /// (`unanimated`, which is where the reason is written down), and the focus follows in a second
     /// one that keeps the switch animation — so the workspace still slides up or down under you,
     /// which is the movement this gesture is actually about.
+    ///
+    /// And the row the window leaves stands until the second change. Emptied, it would be pruned by
+    /// the first one — un-animated — and every row below it would move up a place with no animation at
+    /// all: going down, the row the window landed in would already be the focused index, the second
+    /// change would have nothing to do, and the whole move was a cut. Kept once, it goes in the second
+    /// change, where the slide is — niri holds `clean_up_workspaces` back until the switch is over for
+    /// the same reason.
     func moveColumnToWorkspace(_ delta: Int) {
+        guard let landed = carryColumn(toWorkspace: delta) else { return }
+        focusWorkspace(id: landed)
+    }
+
+    /// The first of the two changes: the window changes rows and the focus stays where it was.
+    ///
+    /// Apart from the second so that a front can draw the rows once in between. Made one after the
+    /// other in the same turn, the two were folded into one update and the slide never showed — the
+    /// window was lifted and set down again in a rail that had not visibly moved. Returns the row the
+    /// window landed in.
+    @discardableResult
+    func carryColumn(toWorkspace delta: Int) -> UUID? {
         var landed: UUID?
         unanimated {
             mutate { s in
@@ -1657,6 +1707,7 @@ final class NiriLayout {
                 }
                 scrollFocusIntoView(&source)
                 askBeforeRemoving(source, in: activeProfileID)
+                if source.isEmpty { keepsEmptyOnce = source.id }
                 s.workspaces[s.focus] = source
 
                 if target >= s.workspaces.count { s.workspaces.append(NiriWorkspace()) }
@@ -1667,13 +1718,22 @@ final class NiriLayout {
                 scrollFocusIntoView(&destination)
                 s.workspaces[target] = destination
                 landed = destination.id
+                // Here, inside the un-animated change: the window is a new view in the row it joins,
+                // and it has to be built already lifted rather than animate its way there.
+                // Held past the slide, which starts a frame after this (`BrowserState`): set down while
+                // its row is still moving, the window would stop standing still and jump with it.
+                lift(moved, animated: false, holding: 460)
             }
         }
-        // By id and not by index: `normalize` runs between the two, and the row the window left can
-        // be pruned out from under an index that was true a moment ago.
-        guard let landed else { return }
+        return landed
+    }
+
+    /// The second: the focus follows the window into the row it landed in. By id and not by index —
+    /// `normalize` runs between the two, and the row the window left can be pruned out from under an
+    /// index that was true a moment ago.
+    func focusWorkspace(id: UUID) {
         mutate { s in
-            guard let index = s.workspaces.firstIndex(where: { $0.id == landed }) else { return }
+            guard let index = s.workspaces.firstIndex(where: { $0.id == id }) else { return }
             s.focus = index
         }
     }

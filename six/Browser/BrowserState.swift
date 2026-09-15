@@ -1305,7 +1305,19 @@ final class BrowserState {
     func moveColumn(_ delta: Int) { animateLayout { layout.moveColumn(delta) } }
     func focusWorkspace(_ delta: Int) { animateLayout { layout.focusWorkspace(delta) } }
     func focusWorkspace(at index: Int) { animateLayout { layout.focusWorkspace(at: index) } }
-    func moveColumnToWorkspace(_ delta: Int) { animateLayout { layout.moveColumnToWorkspace(delta) } }
+    /// ⌥⇧↑/↓ in the layout's two changes, with the rows drawn once between them: first the window in
+    /// its new row with the rail still where it was, then the slide to it as an update of its own.
+    func moveColumnToWorkspace(_ delta: Int) {
+        layout.verticalPreview = 0
+        layout.horizontalPreview = 0
+        guard let landed = layout.carryColumn(toWorkspace: delta) else { return }
+        Task { @MainActor in
+            // A timer and not the next job on the main queue: that one can still run before the run
+            // loop gets round to drawing, and the two changes would be one update again.
+            try? await Task.sleep(for: .milliseconds(16))
+            animateLayout { layout.focusWorkspace(id: landed) }
+        }
+    }
 
     // MARK: Flying between windows (⌃Tab)
 
