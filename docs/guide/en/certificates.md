@@ -61,6 +61,12 @@ If the authority is one VI does not carry, the page says only what it honestly
 knows: the chain could not be traced, and your own certificate can be added in
 settings.
 
+**On Windows** a page that did not open says so too: the address, what the
+system said, and a **Try Again** button. There is no offer to trust a certificate
+there, because the Windows version has no certificate list yet. While a page is
+loading, a thin line runs under the address — and across the top of the card, for
+the windows beside it — and the reload button becomes a cross that stops it.
+
 ## What is already on the list
 
 Three Ministry certificates: the root and two intermediates (2022 and 2024) —

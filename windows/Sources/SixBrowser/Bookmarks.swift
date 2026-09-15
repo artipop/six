@@ -53,10 +53,8 @@ extension RailModel {
         }
     }
 
-    /// Saves the page a column is on, or unsaves it if it is already there. The title and the
-    /// address are what this front knows without reading the page again; `text` is the readable body
-    /// once there is an extractor to produce one, and until then the title and the host are a
-    /// passage of their own and still searchable.
+    /// Saves the page a column is on, or unsaves it if it is already there, from nothing but its
+    /// title and address — the self-test's door, and the star's when there is no page to read.
     @discardableResult
     public func toggleBookmark(url: URL, title: String, text: String = "") -> Bool {
         guard let bookmarks else { return false }
@@ -105,11 +103,27 @@ extension RailModel {
         return isBookmarked(page.url)
     }
 
-    /// The star's click. Saved is saved as soon as the row exists — the embedding that follows is
-    /// the index's business, and a star that waited for it would spend a second looking broken.
-    public func toggleFocusedPageBookmark() {
-        guard canBookmarkFocusedPage, let page = focusedPage else { return }
-        toggleBookmark(url: page.url, title: page.title)
+    /// The star's click. Saved is saved as soon as the row exists — the reading and the embedding
+    /// that follow are the index's business, and a star that waited for them would spend a second
+    /// looking broken.
+    ///
+    /// `runScript` is the focused column's page, as the one call `ReadablePage` needs: a closure for
+    /// the reason `attachSandbox` takes two, since `PageScriptRunner` is `SixCore`'s and internal.
+    /// Without one the page is saved as its title and address, which is what this front did before.
+    public func toggleFocusedPageBookmark(
+        runScript: (@MainActor (String, [String: Any]) async throws -> Any?)? = nil
+    ) {
+        guard canBookmarkFocusedPage, let page = focusedPage, let bookmarks else { return }
+        guard let runScript, !isBookmarked(page.url) else {
+            toggleBookmark(url: page.url, title: page.title)
+            return
+        }
+        do {
+            try bookmarks.save(url: page.url, title: page.title, profileID: activeProfile.id,
+                               reading: ClosureRunner(runScript))
+        } catch {
+            Log.error(.bookmarks, "could not save \(page.url): \(error)")
+        }
     }
 
     /// What a search of the saved pages answers: enough to draw a row, and nothing else.
@@ -151,4 +165,18 @@ private final class ClosureSandbox: PageSandbox {
 
     func open(_ url: URL) async throws { try await openPage(url) }
     func call(_ body: String, input: String) async throws -> String { try await callPage(body, input) }
+}
+
+/// `PageScriptRunner`, made out of the closure the star handed over.
+@MainActor
+private final class ClosureRunner: PageScriptRunner {
+    private let run: @MainActor (String, [String: Any]) async throws -> Any?
+
+    init(_ run: @escaping @MainActor (String, [String: Any]) async throws -> Any?) {
+        self.run = run
+    }
+
+    func runScript(_ body: String, arguments: [String: Any]) async throws -> Any? {
+        try await run(body, arguments)
+    }
 }

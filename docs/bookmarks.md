@@ -221,9 +221,22 @@ import fine, and the wasm is named explicitly beside it because the glue would o
 
 **The shared half.** `BookmarkIndexer` holds the row, the passages, the queue and the search for these fronts;
 `TextChunker` holds the cutting rules and `indexVersion` (moved out of `BookmarkStore`, so all four fronts cut a page
-the same way); `VectorIndex` holds the `vec0` table, the blob format and the KNN. `BookmarkStore` keeps only the two
-halves that are Apple's — the off-screen `WKWebView` that re-reads a page, and the Markdown copy. A bookmark saved on
-Windows is a row the Mac reads, re-embeds and ranks.
+the same way); `VectorIndex` holds the `vec0` table, the blob format and the KNN; `ReadablePage` holds the extractor, which is a
+JavaScript function body and runs through `PageScriptRunner` — `LivePage` on Linux, `RailWebView` on Windows.
+`BookmarkStore` keeps only the two halves that are Apple's — the off-screen `WKWebView` that re-reads a page, and the
+Markdown copy. A bookmark saved on Windows is a row the Mac reads, re-embeds and ranks.
+
+**The star saves first and reads second** on those two fronts (`BookmarkIndexer.save(…, reading:)`): the row goes in
+with the title as its only passage, so the star turns at once, and a moment later the extractor's text replaces it.
+The Mac does it the other way round because its star waits with a spinner. A page with nothing to read — a canvas, a
+PDF, a column whose page has been discarded — keeps the first save and is still found by its title.
+
+**The Markdown copy is theirs too.** `BookmarkFile` holds the file name rule and the front matter, and the Mac's
+`BookmarkStore` writes through it, so a copy is the same file whichever machine saved it. On the other fronts
+`BookmarkIndexer` writes it after the page is read, into `profileFolder(id)/Bookmarks/` — a closure each front sets:
+`%LOCALAPPDATA%\six\Profiles\<name>\` on Windows, `$XDG_DATA_HOME/six/Profiles/Default/` on Linux, which has one
+profile. Removing the bookmark removes the file. What these fronts do not do yet is move the folder when a profile is
+renamed — neither can rename one.
 
 **`SIX_EMBED_SELFTEST=1`** saves three pages — плов in Russian, pilaf in English, a page about reserved domain names —
 into a profile id of its own, embeds them, asks the index four questions and deletes what it wrote. Measured on this

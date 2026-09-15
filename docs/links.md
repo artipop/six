@@ -65,7 +65,8 @@ the two link items working at all.
 - A page that opened the window itself (`window.open`, a `_blank` link clicked plainly) comes **forward**, because it
   was opened to be looked at.
 - A link that is not the web — `magnet:`, `mailto:`, `tel:`, a custom scheme — goes to the system, not into a
-  column. `ExternalScheme` in [`ExternalOpen.swift`](../six/Browser/ExternalOpen.swift) holds the one rule, and all
+  column. `ExternalScheme` in [`ExternalScheme.swift`](../six/Browser/ExternalScheme.swift) — `SixCore`'s, so the
+  Windows front asks the same list ([windows.md](windows.md#links-to-other-apps)) — holds the one rule, and all
   three routes ask it: the decider (a link clicked **in place** — WebKit does call the decider for `magnet:`, and a
   `.allow` there is a click that does nothing at all, silently), the column a `target=_blank` would have opened, and
   the address bar. It is an allowlist of what a window can show — http(s), file, about, data, blob, javascript,

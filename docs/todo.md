@@ -100,7 +100,7 @@ missed:
 ## Windows: a WebKit that is not Playwright's
 
 The Windows front runs the WebKit that `playwright install webkit` puts on the machine, and takes whatever
-revision the installed Playwright pins — `webkit-2359` at the time of writing. Two separate reasons to want a
+revision the installed Playwright pins — `webkit-2359` at the time of writing. Three separate reasons to want a
 different build, and they are worth keeping apart:
 
 - **A newer one** was the original hope, and is now known to be pointless on its own: the cause is a patch
@@ -111,6 +111,10 @@ different build, and they are worth keeping apart:
   `WebView::onSizeEvent`, which is precisely the division `RailWebView.installScaleShim` puts back from outside.
   So any non-Playwright build — CI or self-built — makes the shim, the divided creation rect and probably the
   compositing preference all unnecessary. A *newer Playwright* build never will; they all carry the patch.
+- **One with MediaStream in it**, found while wiring site permissions: Playwright's WebCore is built without
+  it — `JSMediaStream`, `JSMediaDevices` and `UserMediaRequest` are absent from `WebCore.dll`, and a page reads
+  `navigator.mediaDevices` as `undefined` whatever the preferences say. The UI client, the bar and the list are
+  built and wait on the engine ([windows.md](windows.md#site-permissions)).
 
 **Neither is available right now**, and both routes have been checked rather than guessed at:
 
@@ -289,9 +293,12 @@ their chunks and vectors (`six/Data/`, `six/Bookmarks/`, [architecture.md](archi
   per process (`Vectors.register()`) before the first connection, `VectorIndex` holds the `vec0` table and the KNN for
   every front, and `BookmarkIndexer` writes the rows, the passages and the vectors. The embedder is the same E5, run
   by transformers.js in a `PageSandbox` (`WebEmbedder`). Measured on Windows; **Linux is written and unrun** — the
-  container is on the Mac. Windows has the bookmark button and `⌃D` now, beside the address the way the Mac's is. What is still
-  owed: a readable-text extractor on those fronts, so a saved page is embedded as more than its title and excerpt,
-  and somewhere to *see* the library — neither front has a bookmarks window.
+  container is on the Mac. Windows has the bookmark button and `⌃D` now, beside the address the way the Mac's is. A saved page
+  is its whole text there too: `ReadablePage` is in `SixCore` and runs through `PageScriptRunner`, so the star saves
+  the row at once and replaces its title-only passage with the page's a moment later. The Markdown copy is written
+  beside the row there as well (`BookmarkFile`). What is still owed is somewhere to *see* the library — Windows has no
+  bookmarks window, and Linux's `BookmarksSheet` searches titles and addresses only — and the hourly refresh, which
+  needs an off-screen page with the profile's cookies. Both are item 4 of [parity.md](parity.md).
 - **Linux build of the data layer.** ~~Verify early~~ — done, and it builds: GRDB, SQLiteData, sqlite-vec
   and the `@Table` macros all compile on Swift 6.3.3/aarch64, as do `AppDatabase`, `SettingsStore`, `History`
   and `Bookmark`. No fallback needed. What it costs is two pins: `swift-sharing` 2.10.0 and

@@ -49,6 +49,15 @@ to open it, what was typed is a search like anything else. A page that opened a 
 at. WebKit's own popup blocking runs before any of this, so an ad that opens
 itself gets no column.
 
+**On Windows** a middle click on a link, or `Ctrl` + click, opens it in a new
+window to the right, behind; `Ctrl` + `Shift` + click opens it and takes you there.
+A window a page opens itself comes forward, as on the Mac, and stays connected to
+the page that opened it — so a "Sign in with…" window can report back and close
+itself when it is done. A link to another app (`mailto:` and the like) is handed
+to it only after you say so: VI asks "Open this link in *Mail*?", naming the app
+Windows would use — or says that Windows will ask which one, or that no app on the
+computer opens such links. A page that tries it without a click is simply refused.
+
 ## The page's context menu
 
 It is entirely VI's own, because two of its link items could not be repaired in
@@ -66,6 +75,12 @@ anybody else's:
 The price is what WebKit's menu knew about an element that is not a link: Save
 Image, Copy Image, Look Up and the spelling suggestions. It is a trade: without
 its own menu, those two link items would not work at all.
+
+**On Windows** the menu is WebKit's own, and there both of those link items do
+work, so VI only adds to it. Over a link you get **Open Link**, **Open Link in New
+Window**, **Open Link Behind**, **Download Linked File** and **Copy Link**.
+Elsewhere on a page it is WebKit's usual menu — on a plain page, just **Reload**.
+**Open Link Beside** and **This Window** are not there yet.
 
 ## Downloads
 
@@ -98,6 +113,17 @@ to fetch it again. It cannot pick up from the middle across a restart — the by
 already downloaded were in a temporary folder the system is entitled to empty, so
 promising them would be dishonest. Finished downloads are not kept: the file is in
 the folder, and there is nothing to lose.
+
+**On Windows** downloads work the same way in outline: a file lands in
+**Downloads** under the name the server suggested, a second one of the same name
+gets a number, and a window opened only to carry the link closes itself. The
+button is an arrow in the top bar, beside the translate button. It appears with the
+first download, shows a thin bar while something is coming in and a dot when
+something finished that you have not looked at. `Ctrl+J` opens the list too. In
+the list, `Enter` opens a finished file and `Delete` stops a download or takes it
+off the list. Not there yet: resuming a stopped download, **Try Again**, and the
+rows surviving a relaunch — the engine the Windows version runs on has nothing to
+hand a stopped transfer back to.
 
 A window opened only to carry a link that turned out to be a file closes itself
 once the download starts: nothing was in it, and there is nothing to go back to.

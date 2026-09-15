@@ -60,12 +60,10 @@ extension RailWindow {
             model.selectProfile(profile.id)
         }
 
-        // A profile change is a different strip, so everything that tracks the focused column has to
-        // be told: the pages of the profile being left go out of sight (they are not destroyed — the
-        // strip is still there to come back to), and the address bar is showing another profile's URL.
-        for (id, view) in webViews where !model.columns.contains(where: { $0.id == id }) {
-            view.setVisible(false)
-        }
+        // A profile change is a different strip. Its pages go out of sight on the repaint this asks
+        // for (`updateLiveView`, which photographs them first — they are not destroyed, the strip is
+        // still there to come back to); what has to be said here is that the address bar is showing
+        // another profile's URL.
         addressBarShownTabID = nil
         invalidate()
     }

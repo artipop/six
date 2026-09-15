@@ -1,11 +1,16 @@
 import Foundation
-import WebKit
 
 /// The page as something a person (or a model) can read: the main content as Markdown, plus the
 /// metadata a bookmark keeps. Extracted in the page itself, Readability-style: `<article>` /
 /// `<main>` when the page says where the content is, otherwise the element that holds the most
 /// paragraph text; navigation, asides, footers, forms and hidden nodes are dropped; headings,
 /// lists, quotes, code, links, tables and large images survive the conversion.
+///
+/// In `SixCore` because the script is plain JavaScript and every front can run one: the fronts
+/// that are not the Mac hand it over as a `PageScriptRunner`, the same seam translation walks a
+/// page through, and the Mac's off-screen `WebPage` in `ReadablePage+WebPage.swift`. One script
+/// is the point — a page saved on two machines has to be cut into the same passages, and Android's
+/// `ReadablePageScriptTest` reads the literal below out of this file to hold its copy to it.
 nonisolated struct ReadablePage: Decodable, Sendable {
     var title: String
     var byline: String
@@ -20,8 +25,13 @@ nonisolated struct ReadablePage: Decodable, Sendable {
 
     /// The page must be loaded; the caller waits for that.
     @MainActor
-    static func extract(from page: WebPage) async throws -> ReadablePage {
-        let value = try await page.six(script)
+    static func extract(from page: some PageScriptRunner) async throws -> ReadablePage {
+        try decode(try await page.runScript(script))
+    }
+
+    /// What the script returned, as a page — or `noContent` for a page with no text in it, which is
+    /// a canvas, a PDF, or a page that has not drawn anything yet.
+    static func decode(_ value: Any?) throws -> ReadablePage {
         guard let object = value as? [String: Any], JSONSerialization.isValidJSONObject(object) else {
             throw ExtractionError.noContent
         }
