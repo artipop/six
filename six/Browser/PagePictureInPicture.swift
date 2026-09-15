@@ -1,4 +1,3 @@
-import ObjectiveC
 import WebKit
 
 /// Picture-in-picture: the one thing a video can ask for that the new API has no switch for.
@@ -26,11 +25,16 @@ import WebKit
 ///   then sees is the low byte of an address, which is whatever the allocator felt like.
 ///   `setValue(_:forKey:)` looks for `set<Key>:` and then `_set<Key>:`, and boxes the number
 ///   properly. With `perform` the preference read back false and stayed false.
-/// * **The `WKWebView` behind the page is found with `Mirror`.** `WebPage` does not hand it out; it
-///   is a `lazy` stored property and the label is the compiler's own. A page nobody has asked
-///   anything of has none yet, which is what the `_ = url` is for — reading any property builds it.
-///   If WebKit renames that storage, `allowPictureInPicture` does nothing and six is back where it
-///   was before this file.
+/// * **The `WKWebView` comes from `WebViewResponder`**, the one door six has to it: the view a pane
+///   finds in its own hierarchy, handed to `allowPictureInPicture(on:)` through `onWebViewFound` and
+///   asked for by tab id everywhere else. It used to be `Mirror` into `WebPage`'s lazy storage under
+///   the compiler's own label — that worked, and was a second door with a failure the type checker
+///   never sees. The one door costs timing: the preference is set when a pane first shows the page,
+///   not when the page is built, which is still before anything in it could ask to float.
+///
+/// **On iOS there is nothing to turn on.** `allowsPictureInPictureMediaPlayback` is public there and
+/// documented as on by default, and `_isPictureInPictureActive` is a macOS `WKWebView`'s, so the
+/// page's own answer is the whole answer on a phone.
 ///
 /// **Everything else is the page's own API**, run in six's content world, and that is a measurement
 /// rather than a preference. macOS `WKWebView` also carries `_canTogglePictureInPicture`,
@@ -53,32 +57,32 @@ import WebKit
 /// six where the player went, not the other way round.
 /// [layout.md](../../docs/layout.md#picture-in-picture) has the measurements.
 extension WebPage {
-    /// Lets this page's videos into picture-in-picture. Called once, as the page is built.
-    ///
-    /// It wants a page that exists: the preference travels to the web content process when it
-    /// changes, and a page with no web view yet has nothing to travel to.
-    func allowPictureInPicture() {
-        guard let preferences = backingWebView?.configuration.preferences,
-              preferences.responds(to: Self.allowsPictureInPicture) else { return }
+    #if os(macOS)
+    /// Lets the page behind `webView` float its videos. Called on every claim of a pane, so a view
+    /// that already allows it is left alone rather than sent the same preference again.
+    static func allowPictureInPicture(on webView: WKWebView) {
+        let preferences = webView.configuration.preferences
+        guard preferences.responds(to: allowsPictureInPicture) else { return }
+        if preferences.responds(to: allowsPictureInPictureGetter),
+           preferences.value(forKey: "allowsPictureInPictureMediaPlayback") as? Bool == true { return }
         preferences.setValue(true, forKey: "allowsPictureInPictureMediaPlayback")
     }
+    #endif
 
     /// Is any of this page's videos in the floating window right now?
     ///
     /// Two answers, because neither one is complete. The page's own is exact for every video in the
     /// main frame and blind to cross-origin iframes — an embedded player on somebody else's page.
-    /// WebKit's is the other way round: it sees whatever frame the video is in and only if that video
-    /// is the one it considers the page's main one.
-    var isInPictureInPicture: Bool {
-        get async {
-            if webKitReportsPictureInPicture { return true }
-            let answer = try? await six("""
-                return Array.prototype.some.call(document.querySelectorAll('video'), function (video) {
-                    return video.webkitPresentationMode === 'picture-in-picture';
-                });
-                """)
-            return (answer as? Bool) ?? false
-        }
+    /// WebKit's, asked of `webView` when there is one, is the other way round: it sees whatever frame
+    /// the video is in and only if that video is the one it considers the page's main one.
+    func isInPictureInPicture(reportedBy webView: WKWebView?) async -> Bool {
+        if Self.webKitReportsPictureInPicture(webView) { return true }
+        let answer = try? await six("""
+            return Array.prototype.some.call(document.querySelectorAll('video'), function (video) {
+                return video.webkitPresentationMode === 'picture-in-picture';
+            });
+            """)
+        return (answer as? Bool) ?? false
     }
 
     /// In, or back out — the same command both ways, which is how a person thinks of the button.
@@ -121,25 +125,14 @@ extension WebPage {
 
     /// WebKit's own answer, for the video it considers this page's main one. Read the note above
     /// before trusting it on its own: it is false for plenty of videos that are floating.
-    private var webKitReportsPictureInPicture: Bool {
-        guard let view = backingWebView, view.responds(to: Self.isActive) else { return false }
+    private static func webKitReportsPictureInPicture(_ view: WKWebView?) -> Bool {
+        guard let view, view.responds(to: isActive) else { return false }
         return view.value(forKey: "isPictureInPictureActive") as? Bool ?? false
     }
 
-    /// The web view behind the page. Reading `url` first is not a nicety: the storage is lazy, and a
-    /// page that has been built but never asked anything has nothing in it.
-    ///
-    /// Not private, because the same door is the only way to reach the hosting bug that element
-    /// fullscreen dies of (`PageElementFullscreen`).
-    var backingWebView: WKWebView? {
-        _ = url
-        for child in Mirror(reflecting: self).children where child.label == Self.backingWebViewLabel {
-            return Mirror(reflecting: child.value).children.first?.value as? WKWebView
-        }
-        return nil
-    }
-
-    private static let backingWebViewLabel = "$__lazy_storage_$_backingWebView"
+    #if os(macOS)
     private static let allowsPictureInPicture = Selector(("_setAllowsPictureInPictureMediaPlayback:"))
+    private static let allowsPictureInPictureGetter = Selector(("_allowsPictureInPictureMediaPlayback"))
+    #endif
     private static let isActive = Selector(("_isPictureInPictureActive"))
 }

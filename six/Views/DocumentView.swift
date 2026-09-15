@@ -23,6 +23,11 @@ struct DocumentView: View {
                         // again whenever it changes, and it has no history to walk.
                         .pageContextMenu(for: tab, in: browser, showsPageCommands: false)
                         .id(tab.generation)
+                        #if os(macOS)
+                        // The same handle a web page's pane leaves: the preview's web view is found
+                        // through it like every other (`WebViewResponder`).
+                        .background { WebViewResponder.Handle(tabID: tab.id) }
+                        #endif
                 } else {
                     Color.documentBackground
                 }

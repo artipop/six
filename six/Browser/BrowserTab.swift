@@ -325,7 +325,11 @@ final class BrowserTab: Identifiable {
     var isInPictureInPicture: Bool {
         get async {
             guard let livePage else { return false }
-            return await livePage.isInPictureInPicture
+            #if os(macOS)
+            return await livePage.isInPictureInPicture(reportedBy: WebViewResponder.shared.webView(for: id))
+            #else
+            return await livePage.isInPictureInPicture(reportedBy: nil)
+            #endif
         }
     }
 
@@ -511,14 +515,14 @@ final class BrowserTab: Identifiable {
                            dialogPresenter: PageDialogs())
         }
         livePage = page
-        // Every page WebKit builds has picture-in-picture off and no field in the configuration to
-        // ask with, so it is asked for here, once, for every kind of window (`PagePictureInPicture`).
-        page.allowPictureInPicture()
         // WebKit's fullscreen window cannot size a view SwiftUI holds by constraints, so the
         // hold is swapped for the duration (`PageElementFullscreen`). Measured on macOS and fixed
         // there only: the same page on iOS has no window to be moved into, and nobody has looked.
+        // Picture-in-picture is not switched on here: a page just built has no web view on file
+        // yet, so it is switched on as a pane claims one (`onWebViewFound`, in `sixApp`).
         #if os(macOS)
-        page.watchElementFullscreenHosting()
+        let tabID = id
+        page.watchElementFullscreenHosting { WebViewResponder.shared.webView(for: tabID) }
         #endif
         generation += 1
         watchNavigations(of: page)

@@ -94,8 +94,11 @@ struct sixApp: App {
                                    blocker: blocker, devTools: devTools, permissions: permissions)
         permissions.isPrivate = { [weak browser] id in browser?.isPrivate(id) ?? false }
         #if os(macOS)
-        // Screen sharing is the one capture `WebPage` publishes nothing about — see `DisplayCapture.swift`.
+        // Everything six asks of the `WKWebView` behind a page goes through `WebViewResponder`, the one
+        // door to it: picture-in-picture is switched on here (`PagePictureInPicture`), and screen
+        // sharing — the one capture `WebPage` publishes nothing about — is watched (`DisplayCapture`).
         WebViewResponder.shared.onWebViewFound = { [weak browser] tabID, webView in
+            WebPage.allowPictureInPicture(on: webView)
             DisplayCapture.observe(webView) { [weak browser] state in
                 browser?.tab(tabID)?.displayCapture = state
             }

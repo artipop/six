@@ -60,19 +60,21 @@ final class WebViewResponder {
 
     /// Told on every claim, with the live `WKWebView` — the only moment anything outside WebKit gets a
     /// hold of it, since `WebPage` never hands one out. Every claim and not just the first, because a
-    /// page discarded and rebuilt is a new view behind the same tab id; the callee tells a view it
-    /// has already seen from a fresh one (`DisplayCapture.observe`). A plain callback wired at
-    /// launch, so this file stays free of the browser's own model.
+    /// page discarded and rebuilt is a new view behind the same tab id; each callee tells a view it
+    /// has already seen from a fresh one (`DisplayCapture.observe`, `WebPage.allowPictureInPicture`).
+    /// A plain callback wired at launch, so this file stays free of the browser's own model.
     var onWebViewFound: (UUID, WKWebView) -> Void = { _, _ in }
 
     func forget(_ tabID: UUID) {
         views[tabID] = nil
     }
 
-    /// The live `WKWebView` behind a tab, for the one caller outside this file that has no other way
-    /// to reach it: `ExtensionTabAdapter.webView(for:)`, which `WKWebExtension` needs to give a content
-    /// script anything to talk to (`docs/extensions.md`). The same reference `focus(_:)` trusts for the
+    /// The live `WKWebView` behind a tab — the one door six has to it, since `WebPage` hands none out.
+    /// Extensions (`ExtensionTabAdapter.webView(for:)`, `docs/extensions.md`), the screen-sharing mute,
+    /// picture-in-picture's question and element fullscreen's hold all come through here; nothing
+    /// reflects into `WebPage`'s storage any more. The same reference `focus(_:)` trusts for the
     /// keyboard — matched by frame containment, re-claimed on every layout pass — not a fresh guess.
+    /// A page no pane has shown yet answers `nil`.
     func webView(for tabID: UUID) -> WKWebView? {
         views[tabID]?.view as? WKWebView
     }

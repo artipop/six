@@ -538,9 +538,11 @@ So it is SPI: `WKPreferences._setAllowsPictureInPictureMediaPlayback:` to turn i
 for the menu item and the key, `_isPictureInPictureActive` for the question below. All of it lives in
 `six/Browser/PagePictureInPicture.swift`, all of it behind `responds(to:)`, on the terms [todo.md](todo.md) already
 set for SPI here: six is not sandboxed and not on the App Store, so the only risk is a selector going away in a macOS
-update, and the shape that takes is a feature that is quietly not there rather than a crash. The fragile part is not
-the selectors but the way to the `WKWebView` behind a `WebPage`, which the new API does not hand out — it is a `lazy`
-stored property of the model object and `Mirror` is the way in. Reading any property of the page is what builds it.
+update, and the shape that takes is a feature that is quietly not there rather than a crash. The way to the
+`WKWebView` behind a `WebPage`, which the new API does not hand out, is `WebViewResponder`'s — the same view-tree
+lookup the keyboard, extensions and screen sharing use — so the preference is set when a pane first shows the page
+rather than when the page is built. It used to be `Mirror` into the page's `lazy` storage: that worked, and was a
+second way in whose failure the type checker never sees.
 
 **Keeping it alive.** A column far from the viewport loses its live `WebView` (`isLive`, above), and further out its
 page (`LivePageCache`). Losing the view turns out not to matter: the floating player is a window of WebKit's, not a

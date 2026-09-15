@@ -135,8 +135,9 @@ trusting the table below. Two routes stayed out on purpose even so:
    `isInspectable`, so there is precedent for lifting something that lives on `WKWebView` up to the new API. Nothing
    about this exists on bugs.webkit.org today — a search for `WKWebExtension` + `WebPage` finds nothing at all — so
    the useful move is to file it, with the measurements in this document as the case.
-2. **`Mirror`-ing into `WebPage`'s private storage** — verified to work on this SDK, and still deliberately not
-   used, unlike the view-tree walk above. The two are not the same bet: a property Apple renames or restructures
+2. **`Mirror`-ing into `WebPage`'s private storage** — verified to work on this SDK, and not used anywhere in
+   six: picture-in-picture and element fullscreen reached the view that way until they moved onto the same
+   view-tree walk. The two are not the same bet: a property Apple renames or restructures
    next OS is invisible to the type checker and this fails silently, where the view-tree walk fails by finding
    nothing (a `nil` `webView(for:)`, the same answer as before the fix) rather than finding the wrong thing.
 3. **A `WKWebView` per tab**, which is what every other WebKit browser with extension support does — and which is

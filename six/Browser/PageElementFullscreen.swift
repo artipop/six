@@ -29,28 +29,31 @@ import WebKit
 /// WebKit has it, from `enteringFullscreen` to the moment the state comes back to
 /// `notInFullscreen`, and SwiftUI has it back the rest of the time.
 ///
-/// Two things keep this honest. The door is the same `Mirror` one picture-in-picture uses, with the
-/// same failure mode — if WebKit renames that storage nothing happens and fullscreen is black
-/// again, which is where it was. And the watch is `withObservationTracking`, re-armed after every
+/// Two things keep this honest. The web view comes from `WebViewResponder` — the one door six has to
+/// it, asked by tab id at the moment of the transition, when the pane has long since been laid out
+/// and the view is on file. If it is not, nothing is flipped and fullscreen is black again, which is
+/// where it was. (It used to be `Mirror` into `WebPage`'s lazy storage, a second door with a failure
+/// the type checker never sees.) And the watch is `withObservationTracking`, re-armed after every
 /// change, because `fullscreenState` is the only notice WebKit gives.
 extension WebPage {
-    /// Starts following this page's fullscreen state. Called once, as the page is built.
-    func watchElementFullscreenHosting() {
+    /// Starts following this page's fullscreen state. Called once, as the page is built, with the way
+    /// to the web view behind it.
+    func watchElementFullscreenHosting(webView: @escaping @MainActor @Sendable () -> WKWebView?) {
         withObservationTracking {
             _ = fullscreenState
         } onChange: { [weak self] in
             // `onChange` fires before the value moves, so the new state is read a hop later.
             Task { @MainActor in
                 guard let self else { return }
-                self.holdForElementFullscreen(self.fullscreenState != .notInFullscreen)
-                self.watchElementFullscreenHosting()
+                Self.holdForElementFullscreen(webView(), byFrame: self.fullscreenState != .notInFullscreen)
+                self.watchElementFullscreenHosting(webView: webView)
             }
         }
     }
 
     /// Hands the web view its frame for the duration, and gives it back to Auto Layout after.
-    private func holdForElementFullscreen(_ byFrame: Bool) {
-        guard let view = backingWebView, view.translatesAutoresizingMaskIntoConstraints != byFrame else { return }
+    private static func holdForElementFullscreen(_ view: WKWebView?, byFrame: Bool) {
+        guard let view, view.translatesAutoresizingMaskIntoConstraints != byFrame else { return }
         view.translatesAutoresizingMaskIntoConstraints = byFrame
         view.autoresizingMask = byFrame ? [.width, .height] : []
     }
