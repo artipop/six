@@ -517,5 +517,5 @@ document windows and highlights, DevTools capture, localization, and the Linux, 
 parity levels their docs state.
 
 Not built, with reasons: [docs/todo.md](docs/todo.md) — web archives, bookmark images, the content-script boundary
-`WebPage` cannot cross, geolocation and screen sharing, floating windows, passkeys, CloudKit sync, and what the
-Linux front still owes the Mac.
+`WebPage` cannot cross, screen sharing, floating windows, passkeys, CloudKit sync, and what the Linux front still
+owes the Mac.

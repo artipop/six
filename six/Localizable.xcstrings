@@ -2880,6 +2880,16 @@
         }
       }
     },
+    "location" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "местоположение"
+          }
+        }
+      }
+    },
     "Log" : {
       "localizations" : {
         "ru" : {

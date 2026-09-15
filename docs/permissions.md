@@ -81,22 +81,54 @@ six is not sandboxed ([build.md](build.md)), so there are no `com.apple.security
 usage strings and a signed bundle are the whole requirement. If either string were missing the request would
 be denied with no prompt at all, which is why they are there and why they are localized.
 
+## Geolocation, which needed a `WKWebView` after all
+
+Every other permission above rides `WebPage.DeviceSensorAuthorization`, which has cases for camera, microphone and
+motion — and none for location. The public hook for it (`WKUIDelegate.requestGeolocationPermissionForOrigin:`,
+macOS 27) exists only on `WKUIDelegate`, one layer below anything `WebPage` exposes, and `WebPage` gives out no
+reference to the `WKWebView` it wraps.
+
+`WebViewResponder` already finds that `WKWebView` for a different reason — it is how the keyboard follows the rail's
+focus (`six/Input/WebViewResponder.swift`) — and by the time geolocation needed one, it was also how an extension's
+`webView(for:)` reached the same view. Geolocation rides the same notification rather than teaching that file about
+permissions too: `WebViewResponder.onWebViewFound` hands `sixApp.swift` the live `WKWebView` the moment a tab's pane
+is claimed, and that closure installs `GeolocationDelegateProxy` on it.
+
+The proxy cannot simply replace `WebPage`'s own `WKUIDelegate`. `WebPage` already has one installed on that same
+`WKWebView` — a private `WKUIDelegateAdapter` that answers the camera/microphone request and all four JS dialogs —
+and swapping it out would take those down too. So `GeolocationDelegateProxy` stands in front of it instead: it
+answers `requestGeolocationPermissionFor:initiatedBy:` itself, routing to `SitePermissions.decideLocation(origin:in:
+profileID:)` — the same bar, the same per-site storage, the same "grant" that resolves `getCurrentPosition()` — and
+forwards every other `WKUIDelegate` message to the adapter it displaced, through `NSObject`'s own
+`responds(to:)`/`forwardingTarget(for:)` pair.
+
+Two things about it are not obvious from reading it cold:
+
+- The selector it intercepts is built from the raw string
+  (`Selector(("webView:requestGeolocationPermissionForOrigin:initiatedByFrame:decisionHandler:"))`), not
+  `#selector(...)`. The `#selector` form resolves to whatever Swift synthesizes for the `async` overload
+  `WK_SWIFT_ASYNC_NAME` exposes, not to the selector WebKit's Objective-C runtime actually sends —
+  `responds(to:)` answered `true` with `#selector` in place and WebKit still never called the method.
+- `WKWebView.uiDelegate` is `weak`, matching `WebPage`'s own `WKUIDelegateAdapter`. Nothing else was holding the proxy,
+  so ARC freed it the instant `install(on:)` returned, and every request read as denied. `WebViewResponder` keeps a
+  `retained: [UUID: AnyObject]` dictionary for exactly this, cleared in `forget(_:)` alongside the weak view entry it
+  already tracked.
+
+`#if os(macOS)` end to end — `WebViewResponder` is Mac-only already, and iOS has no title bar to draw the bar under.
+
 ## What a `WebPage` browser still cannot ask for
 
 - **Screen sharing** (`getDisplayMedia`). No public API. WebKit has it — `WKPreferences._screenCaptureEnabled` plus
   `_webView:requestDisplayCapturePermissionForOrigin:initiatedByFrame:withSystemAudio:decisionHandler:`, which returns
   `ScreenPrompt`/`WindowPrompt` and lets WebKit run its own picker — but both are SPI on `WKWebView`, and `WebPage`
-  does not expose the `WKWebView` underneath.
-- **Geolocation.** The public delegate method arrived in macOS 27
-  (`WKUIDelegate.requestGeolocationPermissionForOrigin:`), which six targets — but it is a `WKUIDelegate` method, and
-  `WebPage.DeviceSensorAuthorization.Permission` has only `mediaCapture` and `deviceOrientationAndMotion`. So
-  `NSLocationWhenInUseUsageDescription` sits in the Info.plist with nothing wired to it yet.
+  does not expose the `WKWebView` underneath. Geolocation only escaped this by having a *public* WKUIDelegate hook to
+  stand in front of; screen sharing has none, so the same trick has nothing to attach to.
 - **Web Push.** SPI as well (`_getPendingPushMessages`, `_processPushMessage` on `WKWebsiteDataStore`), and a push
   daemon's worth of work beyond the call itself.
 
-All three are the same trade rather than three different ones: they need `WKWebView` and a delegate, which means
-giving up `WebPage` and the SwiftUI-native model six is built on. Worth doing when one of them is actually wanted;
-not worth doing pre-emptively. See [todo.md](todo.md).
+Both are the same trade: they need `WKWebView` and a delegate for a method that is SPI, not public — a step further
+than geolocation's `WKUIDelegateProxy` could take without leaving Apple's supported surface. Worth doing when one is
+actually wanted; not worth doing pre-emptively. See [todo.md](todo.md).
 
 ## The same questions on Linux
 
@@ -123,7 +155,9 @@ six took the request or it should fall back to its own denial.
 `SIX_MOCK_CAPTURE=1` turns on `WebKitSettings:enable-mock-capture-devices`, which is how this is tested: without a
 device `getUserMedia` is refused before anyone is asked, and a container has neither a camera nor PulseAudio.
 
-WebKitGTK does offer what the Apple build cannot — `WebKitGeolocationPermissionRequest`, screen sharing through
-`is_for_display_device`, notifications, pointer lock. None of them are wired: `SitePermission` is a `Codable` enum
-stored in a table both builds read, so a case that exists on one platform and not the other is a row the other
-cannot decode. Widening it is a change to the shared model, and it belongs with the platform that would use it.
+`SitePermission.location` is shared code now, but only the Apple side asks `WKUIDelegate` for it — WebKitGTK's
+`WebKitGeolocationPermissionRequest` is unwired, and so is everything WebKitGTK offers that Apple still cannot:
+screen sharing through `is_for_display_device`, notifications, pointer lock. That is fine for the enum itself —
+`SitePermission` is `Codable`, stored in a table both builds read, and a case unwired on one platform is just a row
+that platform never writes — but the Linux `permission-request` handler still needs its own geolocation arm before a
+site's location request there resolves as anything but WebKitGTK's own default.

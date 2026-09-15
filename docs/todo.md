@@ -201,36 +201,27 @@ agent still cannot do is *act* on a page except through `evaluate_javascript`, a
 - **Request bodies and headers**, and request interception. The page-world hooks see status and timing only; going
   further means either the inspector protocol or a `WKURLSchemeHandler`-shaped proxy, and neither is cheap.
 
-## Geolocation, screen sharing and Web Push: one trade, not three
+## Screen sharing and Web Push: still the one trade
 
-Site permissions are built ([permissions.md](permissions.md)): the camera, the microphone and the motion sensors are
-asked for per site, remembered per origin and profile, and takeable back. Three things a browser is expected to do are
-still missing, and they are the *same* missing thing — each needs a `WKWebView` and a delegate on it, which `WebPage`
-does not hand out.
-
-**Geolocation** is the one that stings, because it is not even SPI any more. macOS 27 added
-`WKUIDelegate.webView(_:requestGeolocationPermissionForOrigin:initiatedByFrame:decisionHandler:)` — public,
-`API_AVAILABLE(macos(27.0))`, and six already targets 27. But it is a `WKUIDelegate` method, and the SwiftUI-native
-surface has no equivalent: `WebPage.DeviceSensorAuthorization.Permission` carries `mediaCapture` and
-`deviceOrientationAndMotion` and nothing else. So `NSLocationWhenInUseUsageDescription` sits in the Info.plist wired to
-nothing, and `navigator.geolocation` is dead on six's pages. Before writing any code, this wants a Feedback: the gap is
-a hole in the new API rather than a missing capability, and it is the cheapest of the three to have closed upstream.
-`WebPage.isInspectable` — a `WKWebView` property lifted into the new API — is the precedent to cite.
+Site permissions are built ([permissions.md](permissions.md)): the camera, the microphone, the motion sensors and now
+geolocation are asked for per site, remembered per origin and profile, and takeable back. Two things a browser is
+expected to do are still missing, and they are the *same* missing thing — each needs `WKWebView` SPI with no public
+equivalent, where geolocation's hook was public and let `GeolocationDelegateProxy` stand in front of `WebPage`'s own
+`WKUIDelegate` adapter without displacing it ([permissions.md](permissions.md#geolocation-which-needed-a-wkwebview-after-all)).
 
 **Screen sharing** (`getDisplayMedia`) is SPI, but shallow SPI: `WKPreferences._screenCaptureEnabled` plus
 `_webView:requestDisplayCapturePermissionForOrigin:initiatedByFrame:withSystemAudio:decisionHandler:` (macOS 13+),
-where returning `ScreenPrompt` or `WindowPrompt` hands the picker back to WebKit — six would not have to draw one.
+where returning `ScreenPrompt` or `WindowPrompt` hands the picker back to WebKit — six would not have to draw one. The
+same `WKUIDelegate`-proxy shape geolocation used would work for it too, since it is still one delegate method to
+intercept — the difference is only that it is SPI, so `respondsToSelector:` has to guard a method that might vanish in
+a future macOS rather than one Apple has committed to.
 
 **Web Push** is SPI and deep: `_getPendingPushMessages` / `_processPushMessage` / `_processPersistentNotificationClick`
 on `WKWebsiteDataStore`, a push partition, and a daemon. Worth its own decision, not this one.
 
-The order to take them in follows the price: file the geolocation Feedback and wait a release; if it lands, geolocation
-costs nothing. If it does not — or if screen sharing starts being missed — the move is to drop `BrowserTab` back onto
-`WKWebView` + `NSViewRepresentable`, which is a real rewrite of the one file everything else talks to, and which the
-extension gap wants anyway ([extensions.md](extensions.md)). Doing it once for all four reasons is a different
-proposition from doing it for geolocation alone. six is not sandboxed and not on the App Store, so SPI carries no
-review risk here — only the ordinary one, that it goes away in a macOS update; `respondsToSelector:` and a feature that
-quietly disappears rather than a crash is the shape that takes.
+six is not sandboxed and not on the App Store, so SPI carries no review risk here — only the ordinary one, that it
+goes away in a macOS update; `respondsToSelector:` and a feature that quietly disappears rather than a crash is the
+shape that takes.
 
 ## Blocking: cosmetic rules inside a frame
 
@@ -396,7 +387,7 @@ Built and measured; see [linux.md](linux.md) for the whole picture. What is left
   restoring the rendered one — no scroll position, no form state, no cached response. `WKWebView` has had
   `interactionState` since macOS 12 for exactly this, and `WebPage` exposes nothing equivalent: its
   `backForwardList` is read-only and its only way in is `load(_ item:)` on an item WebKit already has. This is the
-  same hole as [geolocation](#geolocation-screen-sharing-and-web-push-one-trade-not-three) — a `WKWebView` property
+  same hole [geolocation used to sit in](#screen-sharing-and-web-push-still-the-one-trade) — a `WKWebView` property
   that did not make the crossing — and wants the same answer, a Feedback citing `WebPage.isInspectable` as the
   precedent.
 - A window whose address *is* a download re-downloads it on every launch. Nothing was committed in it, so the
