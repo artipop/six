@@ -109,6 +109,7 @@ final class BrowserState {
         self.devTools = devTools
         self.permissions = permissions
         layout.centersFocus = settings.centersFocus
+        layout.setFill(settings.fill)
         peeksAtEdges = settings.peeksAtEdges
         // Who the profiles are comes from the table; what was open comes from the snapshot. The two
         // used to be one file, and the day it would not decode the profiles were born again with new
@@ -1143,7 +1144,7 @@ final class BrowserState {
             layout.removeColumn(tabID: id)
         }
         // Nothing left to fill the screen with: a filled mode would be a blank wall with no way back.
-        if layout.fill != .tiled, layout.focusedWorkspace?.isEmpty != false { layout.setFill(.tiled) }
+        if layout.fill != .tiled, layout.focusedWorkspace?.isEmpty != false { layout.setFill(.window) }
         guard wasActive else { return }
         // And nothing is opened in its place, not even when that was the last window of the profile.
         // An empty rail is a state the strip already draws — the row offers "New Window" in the
@@ -1481,6 +1482,7 @@ final class BrowserState {
         layout.horizontalPreview = 0
         if value != .tiled { layout.isOverview = false }
         layout.setFill(value)
+        settings.fill = value
         syncSelection()
     }
 

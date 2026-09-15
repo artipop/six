@@ -321,8 +321,9 @@ final class NiriLayout {
     /// Whether the focused window is given the whole window, as a mode rather than per-window state.
     /// The rail goes on working underneath, so ⌥←/⌥→ walks from one full-width window to the next.
     /// Not macOS fullscreen (the green button), and not a page asking for `requestFullscreen`, which
-    /// WebKit handles on its own inside the web view.
-    private(set) var fill: NiriFill = .window
+    /// WebKit handles on its own inside the web view. This is only the value before anything has been
+    /// read into it; `BrowserState.init` overwrites it with what `ConfigurationStore.fill` remembers.
+    private(set) var fill: NiriFill = .tiled
     /// niri's `center-focused-column`: park the focused window in the middle of the screen instead of
     /// scrolling as little as possible. Off means the rail only moves when the focus would fall off it.
     /// Set from settings by `BrowserState`, which also writes the toggle back.

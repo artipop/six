@@ -27,6 +27,7 @@ final class ConfigurationStore {
         case assistantOpenAIBaseURL = "assistant.openai.baseURL"
         case assistantOpenAIModel = "assistant.openai.model"
         case centersFocus = "layout.centersFocus"
+        case fill = "layout.fill"
         case peeksAtEdges = "layout.peeksAtEdges"
         case agentModel = "agent.model"
         case bookmarkScope = "bookmarks.scope"
@@ -96,6 +97,13 @@ final class ConfigurationStore {
     var centersFocus: Bool {
         get { self[.centersFocus].map { $0 == "1" } ?? true }
         set { self[.centersFocus] = newValue ? "1" : "0" }
+    }
+
+    /// Tiled or full-window, whichever the user last chose — so an empty workspace losing its last
+    /// window and being rebuilt fresh does not quietly answer this itself. Tiled until anyone has.
+    var fill: NiriFill {
+        get { self[.fill].flatMap(NiriFill.init(rawValue:)) ?? .tiled }
+        set { self[.fill] = newValue.rawValue }
     }
 
     /// Whether the strip's edge buttons wait to be found or stand on the screen. A peek is a pointer
