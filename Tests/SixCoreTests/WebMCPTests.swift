@@ -99,8 +99,10 @@ struct WebMCPRegistryTests {
 
     @Test func keepsTheOrderTheyCameIn() {
         var registry = WebMCPRegistry()
-        #expect(registry.apply(register("b"), from: window))
-        #expect(registry.apply(register("a"), from: window))
+        var changed = registry.apply(register("b"), from: window)
+        #expect(changed)
+        changed = registry.apply(register("a"), from: window)
+        #expect(changed)
         #expect(registry.tools(in: window).map(\.name) == ["b", "a"])
     }
 
@@ -108,8 +110,10 @@ struct WebMCPRegistryTests {
     @Test func aSecondRegistrationReplacesTheFirst() {
         var registry = WebMCPRegistry()
         registry.apply(register("a"), from: window)
-        #expect(!registry.apply(register("a"), from: window), "the same tool again changes nothing")
-        #expect(registry.apply(register("a", readOnly: true), from: window))
+        var changed = registry.apply(register("a"), from: window)
+        #expect(!changed, "the same tool again changes nothing")
+        changed = registry.apply(register("a", readOnly: true), from: window)
+        #expect(changed)
         #expect(registry.tools(in: window).map(\.readOnly) == [true])
     }
 
@@ -117,16 +121,19 @@ struct WebMCPRegistryTests {
         var registry = WebMCPRegistry()
         registry.apply(register("a"), from: window)
         registry.apply(register("b"), from: window)
-        #expect(registry.apply(.unregister(doc: "d1", name: "a"), from: window))
+        var changed = registry.apply(.unregister(doc: "d1", name: "a"), from: window)
+        #expect(changed)
         #expect(registry.tools(in: window).map(\.name) == ["b"])
-        #expect(!registry.apply(.unregister(doc: "d1", name: "a"), from: window))
+        changed = registry.apply(.unregister(doc: "d1", name: "a"), from: window)
+        #expect(!changed)
     }
 
     /// The heart of it: no navigation event is needed to take the old page's tools away.
     @Test func aNewDocumentStartsOver() {
         var registry = WebMCPRegistry()
         registry.apply(register("a"), from: window)
-        #expect(registry.apply(.document(doc: "d2", url: "https://example.com/next"), from: window))
+        let changed = registry.apply(.document(doc: "d2", url: "https://example.com/next"), from: window)
+        #expect(changed)
         #expect(registry.tools(in: window).isEmpty)
         registry.apply(register("c", doc: "d2"), from: window)
         #expect(registry.tools(in: window).map(\.name) == ["c"])
@@ -136,9 +143,11 @@ struct WebMCPRegistryTests {
     @Test func settlingOnAnotherDocumentEmptiesTheWindow() {
         var registry = WebMCPRegistry()
         registry.apply(register("a"), from: window)
-        #expect(!registry.settle(window, document: "d1"), "the page it came from is still there")
+        var changed = registry.settle(window, document: "d1")
+        #expect(!changed, "the page it came from is still there")
         #expect(registry.tools(in: window).count == 1)
-        #expect(registry.settle(window, document: nil), "a page with no polyfill")
+        changed = registry.settle(window, document: nil)
+        #expect(changed, "a page with no polyfill")
         #expect(registry.tools(in: window).isEmpty)
     }
 
@@ -149,7 +158,8 @@ struct WebMCPRegistryTests {
         registry.apply(register("old"), from: window)
         registry.apply(.document(doc: "d2", url: ""), from: window)
         registry.apply(register("new", doc: "d2"), from: window)
-        #expect(!registry.settle(window, document: "d2"))
+        let changed = registry.settle(window, document: "d2")
+        #expect(!changed)
         #expect(registry.tools(in: window).map(\.name) == ["new"])
     }
 
@@ -160,7 +170,8 @@ struct WebMCPRegistryTests {
         registry.apply(register("b", doc: "e1"), from: other)
         registry.apply(.document(doc: "d2", url: ""), from: window)
         #expect(registry.tools(in: other).map(\.name) == ["b"])
-        #expect(registry.forget(other))
+        let changed = registry.forget(other)
+        #expect(changed)
         #expect(registry.tools(in: other).isEmpty)
     }
 
@@ -313,7 +324,7 @@ struct WebMCPHostTests {
 struct WebMCPScriptTests {
     @Test func literalsSurviveEveryEngine() {
         #expect(WebMCPScript.literal("a\"b") == #""a\"b""#)
-        #expect(WebMCPScript.literal("line\u{2028}end") == #""line end""#)
+        #expect(WebMCPScript.literal("line\u{2028}end") == #""line\u2028end""#)
     }
 
     @Test func theArgumentsTravelAsAString() {
