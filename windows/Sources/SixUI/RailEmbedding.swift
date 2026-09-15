@@ -28,3 +28,19 @@ final class RailEmbedding {
         )
     }
 }
+
+extension RailWindow {
+    /// The star and `Ctrl+D`: save the page on screen, and hand the model the page itself so the
+    /// bookmark is its text and not only its title. Weakly, because the reading happens a moment
+    /// after the click and a column closed in that moment should not be kept alive for it.
+    func bookmarkFocusedPage() {
+        guard let view = focusedWebView else {
+            model.toggleFocusedPageBookmark()
+            return
+        }
+        model.toggleFocusedPageBookmark(runScript: { [weak view] body, arguments in
+            guard let view else { throw RailScriptError.noPage }
+            return try await view.runScript(body, arguments: arguments)
+        })
+    }
+}

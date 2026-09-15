@@ -94,7 +94,11 @@ public final class BrowserModel {
             // recommendation does not re-embed somebody's library behind their back — the Mac's
             // `sixApp` makes the same decision in the same order.
             let chosen = ConfigurationStore(database: database).embeddingModel ?? EmbeddingModelChoice.recommended
-            bookmarks = BookmarkIndexer(database: database, choice: chosen)
+            let indexer = BookmarkIndexer(database: database, choice: chosen)
+            // One profile on this front, and its folder is already the one above: the Markdown
+            // copies go in its `Bookmarks/`, beside the site data, the way the Mac files them.
+            indexer.profileFolder = { [profiles] _ in profiles }
+            bookmarks = indexer
             // The profile id comes out of the settings table rather than being made fresh each
             // launch. Regenerating it orphans every visit the last run recorded — history that is
             // in the database and unreachable is worse than history that is missing.
@@ -549,16 +553,20 @@ public final class BrowserModel {
                 trace("bookmark removed \(url)")
             } else {
                 ensureEmbedder()
-                // What is embedded is the title and the address: this front has no readable-text
-                // extractor wired yet, and `TextChunker` puts those in a passage of their own, which
-                // is what makes even this much findable by meaning rather than only by substring.
-                // `PageScript` is here now, so `ReadablePage` is the next thing to reach for.
-                try bookmarks.save(url: url, title: titles[focused] ?? "", profileID: profileID)
+                // Saved at once so the star turns, then read in the page for its text — the same
+                // `ReadablePage` the Mac runs, through `PageScript`. A column whose page has been
+                // discarded has nothing to read, and is saved as its title and address, which
+                // `TextChunker` still makes a passage of its own and findable by meaning.
+                let title = titles[focused] ?? ""
+                if let page = LivePage.focused(focused) {
+                    try bookmarks.save(url: url, title: title, profileID: profileID, reading: page)
+                } else {
+                    try bookmarks.save(url: url, title: title, profileID: profileID)
+                }
                 trace("bookmark added \(url)")
             }
         } catch {
-            FileHandle.standardError.write(Data("[six] bookmark failed: \(error)
-".utf8))
+            Log.error(.bookmarks, "bookmark failed for \(url): \(error)")
         }
     }
 

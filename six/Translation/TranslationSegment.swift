@@ -97,9 +97,9 @@ protocol PageTranslating: AnyObject {
 /// own world and hand back what it returned.
 ///
 /// On Apple this is `WebPage.six(_:arguments:)` in a line. On Linux it is
-/// `webkit_web_view_call_async_javascript_function`, which `SixGtk.WebKitView` does not expose yet —
-/// and will have to for highlights and the readable-page extractor too, so it is not a cost this
-/// feature invents.
+/// `webkit_web_view_call_async_javascript_function` (`LivePage`), on Windows
+/// `WKPageCallAsyncJavaScript` (`RailScript`) — and `ReadablePage` reads a bookmark's text through
+/// the same seam, so it is not a cost this feature invents.
 @MainActor
 protocol PageScriptRunner: AnyObject {
     func runScript(_ functionBody: String, arguments: [String: Any]) async throws -> Any?

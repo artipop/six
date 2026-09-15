@@ -4,9 +4,10 @@
 /// `NiriLayout` — rather than a second table kept in step by hand. What crosses into `SixUI` is a
 /// small public vocabulary; `KeyBindings`' own `KeyCode`/`KeyAction` stay internal on purpose.
 ///
-/// The context is always the Mac's one plain browser window: this front has a single window, no text
-/// field a key could yield to, no ⌃Tab ring and no overview. Actions whose subsystem does not exist
-/// here yet come back `nil` — the table still says what to do, there is just nothing to do it to.
+/// The context is the Mac's one plain browser window, with the overview flag the window hands in:
+/// this front has a single window, no text field a key could yield to and no ⌃Tab ring. Actions
+/// whose subsystem does not exist here yet come back `nil` — the table still says what to do, there
+/// is just nothing to do it to.
 public enum RailKeyAction: Equatable {
     case focusColumn(Int)
     case moveColumn(Int)
@@ -15,6 +16,8 @@ public enum RailKeyAction: Equatable {
     case moveColumnToWorkspace(Int)
     case toggleFullWidth
     case toggleCenterFocus
+    case toggleOverview
+    case leaveOverview
 }
 
 /// No `⌘` case: nothing in `KeyBindings.all` asks for `.command`, because on the Mac those are menu
@@ -38,7 +41,8 @@ public enum RailKey: Equatable {
 public enum RailKeyLookup {
     /// `nil` when nothing in the table matches, or when it matches something this front does not
     /// build yet.
-    public static func action(for key: RailKey, modifiers: RailKeyModifiers) -> RailKeyAction? {
+    public static func action(for key: RailKey, modifiers: RailKeyModifiers,
+                              isOverview: Bool = false) -> RailKeyAction? {
         let code: KeyCode
         var character: Character?
         switch key {
@@ -69,7 +73,7 @@ public enum RailKeyLookup {
         if modifiers.contains(.alt) { held.insert(.option) }
         if modifiers.contains(.shift) { held.insert(.shift) }
 
-        let context = KeyContext(window: .main)
+        let context = KeyContext(window: .main, isOverview: isOverview)
         guard let binding = KeyBindings.all.first(where: {
             $0.matches(code: code.rawValue, character: character, held: held, in: context)
         }) else { return nil }
@@ -82,13 +86,19 @@ public enum RailKeyLookup {
         case .moveColumnToWorkspace(let delta): return .moveColumnToWorkspace(delta)
         case .toggleFullWidth: return .toggleFullWidth
         case .toggleCenterFocus: return .toggleCenterFocus
+        case .toggleOverview: return .toggleOverview
+        // The row is scoped to the rail, not to the overview, and the Mac's handler is what says
+        // "only while it is open". Here that is this line — and it matters more than it looks: a
+        // bare `Esc` answered outside the overview would be taken from every page and every dialog
+        // in it.
+        case .leaveOverview: return isOverview ? .leaveOverview : nil
         // ⌥S splits a column into two panes and ⌃⇧C puts the address on the clipboard; the rail
         // here draws one window per column and owns no clipboard code, so both are table rows with
         // nothing yet to act on. `copyAddressChord` already spells itself ⌃⇧C off Apple, so the
         // binding is waiting on this front rather than the other way round.
         case .toggleSplit, .copyAddress,
-             .toggleOverview, .translateSelection, .highlightSelection, .pictureInPicture,
-             .stepSwitcher, .landSwitcher, .cancelSwitcher, .leaveOverview:
+             .translateSelection, .highlightSelection, .pictureInPicture,
+             .stepSwitcher, .landSwitcher, .cancelSwitcher:
             return nil
         }
     }

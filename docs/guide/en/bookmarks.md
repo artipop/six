@@ -90,11 +90,26 @@ Windows** it is the bookmark to the right of the address, as on the Mac, and
 beside it. Press to save, press again to forget. A saved page's bookmark takes the
 profile's colour: a bookmark belongs to a profile rather than to the browser.
 
+What is saved is more than the title: the page is read whole, the same way the
+Mac reads it, so a bookmark is found by what the page says. The button answers at
+once and the text follows a moment later. A page with nothing to read — a picture
+drawn on a canvas, a PDF — stays a bookmark with its title.
+
+The Markdown copy is there too, in the same form as on the Mac: on Windows in
+`%LOCALAPPDATA%\six\Profiles\<profile>\Bookmarks`, on Linux in
+`~/.local/share/six/Profiles/Default/Bookmarks`. Remove the bookmark and the file
+goes with it.
+
 The model behind search by meaning is the same one — multilingual-e5-small — but
 it arrives by a different road: not through Metal, which those machines do not
 have, but through the page engine six already ships. There is one honest
 difference: the model has to be downloaded, about 155 MB, once. That starts with
 the first page you save rather than at launch.
+
+History is there too — the same table of visits, per profile. On Windows it is
+`Ctrl+H` or **⋯ ▸ History**: search by title and address, and `Enter` opens the
+page as a new window beside the one you are on. On Linux it is `Ctrl+H` or the
+button in the toolbar. A private profile records none.
 
 Two things are missing on both: six saves the title, the description and the
 address but does not read the page's text yet, so a bookmark is found by what it

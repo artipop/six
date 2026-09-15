@@ -8,15 +8,17 @@ out. A page loads, navigates, reports its title back, renders inside its own car
 real resolution, and answers a click where the click looks like it landed. Above the rail is the
 same band the Mac's `TopBar` occupies, and in the same place: the bar *is* the title bar, so which
 profile you are in, the navigation buttons, the focused page's address and the window controls are
-all on one line, the way they are on the Mac. Past that the Mac still has the assistant, the agent
-panel and the overview, which this front does not draw.
+all on one line, the way they are on the Mac. Since the parity pass it also has what the Linux front
+had and this one did not — history, the rail across a relaunch, the overview, a live-page budget
+with pictures of the pages it gives back, and site permissions. Past that the Mac still has the
+assistant and the agent panel.
 
 | | |
 |---|---|
 | toolkit | **Win32** (`WinSDK`), GDI painting for the chrome — no WinUI, no XAML |
 | engine | **real WebKit** (WebKit2 C API), software compositing — see "DPI and scale" |
 | language | Swift, the same source tree — and now the same `SixCore`, not a subset of it |
-| storage | the profiles are real rows in `six.sqlite`, each with its own WebKit data store, and the one on screen comes back after a relaunch; the rail itself does not persist yet |
+| storage | the profiles are real rows in `six.sqlite`, each with its own WebKit data store; the one on screen and every profile's rail come back after a relaunch, and history is the Mac's `visits` table |
 | built with | `6.3.3+NoAsserts`, and that is not a preference — see below |
 | built in | on the Windows dev machine directly — `scripts/six-windows.ps1` |
 | verified | **yes** — built, run, every rail mechanic and real page loads exercised by hand |
@@ -386,8 +388,8 @@ front and, above the seam, with the Mac. What this front provides is three thing
   own JavaScript here. One argument goes in named `input`, carrying the arguments as JSON text; one
   string comes back. That is deliberate: the C API hands a result back as an object graph of
   `WKString`/`WKNumber`/`WKArray`/`WKDictionary`, and walking it into Swift values is a hundred
-  lines that buy nothing when both sides can serialise a string. Everything else this front still
-  owes — the readable-page extractor, highlights, `get_selection` — needs this same call.
+  lines that buy nothing when both sides can serialise a string. The readable-page extractor
+  behind bookmarks runs through it already; highlights and `get_selection` will need the same call.
 - **`RailSandbox`** — a real `WKView` in a one-pixel `WS_POPUP` at −32000,−32000 that is never
   shown. WebKit's Windows port draws into an `HWND` and a view without one is not a view, so the
   window is not optional. Two preferences are set on it that no browsing page gets —
@@ -462,7 +464,10 @@ windows/Sources/SixUI/Rail*        The window, the bar, the input, the live view
                                     translation, RailLoop (the message loop and the main-queue
                                     drain), RailScript (callAsyncJavaScript), RailSandbox (the
                                     off-screen page the wasm engine runs in), RailTranslation and
-                                    RailTranslationChrome.
+                                    RailTranslationChrome — and, since the parity pass,
+                                    RailThumbnails (pictures of pages), RailOverview,
+                                    RailPermissionBar, RailListPanel (the History and Site
+                                    Permissions windows) and RailPanels (the "⋯" menu).
 
 windows/Sources/CRailInterop       <windowsx.h>'s mouse/wheel macros, the WM_NCCREATE / GWLP_USERDATA
                                     dance a WNDPROC needs, and the cursor/key-state helpers that
@@ -506,8 +511,9 @@ windows/Sources/SixUI              RailWindow (the Win32 window, message dispatc
                                     else borrows back), RailInput (mouse and wheel), RailKeyInput
                                     (WM_KEYDOWN / WM_SYSKEYDOWN), ProfileChip (the profile dropdown),
                                     WebEngine + RailWebView (the WebKit2 wrapper, one website data
-                                    store per profile), RailLiveView (positions the focused column's
-                                    WKView over its card's body, and polls what the page says it is),
+                                    store per profile), RailLiveView (positions every live column's
+                                    WKView over its card's body, keeps them within the budget, and
+                                    polls what the pages say they are),
                                     AddressBar (a plain Win32 EDIT control, sunk into a drawn pill).
 
 windows/Sources/six-windows        main.swift: declare DPI awareness, create the window, pump
@@ -676,21 +682,12 @@ matched, so `⌥F4`, `⌥Space` and plain `F10` still behave like system keys.
 
 ## What is not
 
-- **The overview** (`⌥O`). `NiriLayout.isOverview` would flip happily, but this front does not draw
-  the zoomed-out view yet, and a toggle nothing on screen answers to is worse than no toggle — so
-  neither `RailModel` nor `RailKeyLookup` expose it. Whoever adds it next has
-  `linux/Sources/SixUI/BrowserContent.swift` and the Mac's `NiriStripView` as the two existing
-  readings of the same `NiriLayout` state.
-- **A live-page budget.** Only the focused column ever gets a `WKView`; every other front's version
-  of "more than one column can be live at once" is future work here too.
-- **Persistence of the rail, history, bookmarks.** The rail itself still lives in memory and goes on exit —
-  which columns were open, where they stood, what they were showing. Profiles are the exception and
-  are done (above): rows in `six.sqlite`, folders on disk. Nothing is in the way of the rest either:
-  `SixBrowser` imports `SixCore`, so `AppDatabase`, `ConfigurationStore`, `History` and `Bookmark` are all
-  reachable, and the profiles are the proof that reading and writing them here works.
+- **The overview's hands.** Dragging a window to another row and renaming a workspace are the Mac's;
+  this overview looks and goes, it does not rearrange.
 - **The bar's right-hand half.** The Mac's carries downloads, the extension actions, the agent panel
-  and the overview; this one has the bookmark button, the translate button, the workspace stepper and
-  the full-width toggle, because those four are the only ones whose subsystem exists on this front.
+  and the overview; this one has the bookmark button, the translate button, the workspace stepper,
+  the full-width toggle and "⋯", because those are the ones whose subsystem exists on this front.
+- **A camera or a microphone for a page.** The engine's gap, not six's — see "Site permissions".
 
 ## Bookmarks, vectors and the embedder
 
@@ -734,41 +731,334 @@ a click, hollow again after the second, and gone along with the field after step
 landing where the ribbon is drawn is also the check that matters at 150 %: the rectangle comes from `chromeLayout()`,
 which paint and hit-test both read, so there is one place for the two to agree.
 
-## Persistence: where to pick this up next
+## The rail across a relaunch
 
-The question this section used to ask — *does the dependency graph a storage layer needs even
-compile here?* — is answered, measured, and no longer the obstacle. `SixCore` builds, `SQLiteData`
-builds, and a `@Table` type went through a migration, two inserts, a `.where {}.select()` and back
-out of a real file on disk. `AppSupport.root` knows where six lives on Windows
-(`%LOCALAPPDATA%\six`, spelled out rather than left to Foundation, which would have chosen the
-roaming profile). What is left is the front's own work, and it is ordinary:
+Every profile's strip is written down after anything that changes its shape — a column opened,
+closed, focused or moved, a page that went somewhere or got a title — rather than on quit, because a
+browser that only saves on quit loses everything to the one crash it was going to have. It goes into
+the `settings` table under `strip.state` as `StripState`: `NiriStrip` itself, the Mac's `Codable`
+unchanged, plus each column's address and title. That type was the Linux front's; it is `SixCore`'s
+now (`six/Persistence/StripState.swift`, compiled away on Apple, where `state.json` does this job), so
+the two fronts write one shape under one key. `FileSnapshotStore` was the other candidate and lost
+on the same argument Linux made: the database is already open, migrated, and where every other
+preference lives.
 
-1. **A snapshot of the rail.** `SixCore` already carries `FileSnapshotStore` and `StatePersistence`
-   — a versioned JSON file plus a debounced autosave — and they are generic over the snapshot type.
-   The Mac's `AppStateSnapshot` is not in `SixCore`, so this front needs its own small `Codable`
-   describing what `RailModel` holds: the workspaces, each column's tab id, URL and title, and which
-   one had focus.
-2. **The database under it.** Done, for the one table everything else is keyed by: `RailModel`
-   reads and writes real `ProfileStore` rows, so a profile id in a snapshot now names something that
-   outlives the launch. `AppDatabase`'s other migrations are plain `#sql` DDL that compiles here, so
-   history and bookmarks are the same shape of work.
-3. **A place to flush.** The Mac flushes on termination. Here that is `WM_CLOSE`/`WM_DESTROY` in
-   `RailWindow`, before the message loop ends.
+Three things the profiles work had settled, and this keeps:
 
-Three things the profiles work settled that a snapshot has to account for, written down here because
-they are easy to get wrong and cost nothing to know:
+- **A strip per profile.** `NiriLayout.allStrips` is what is saved, so switching profiles loses
+  nothing that was not on screen.
+- **Which profile was on screen is `profile.selected`**, not a field of the snapshot. `StripState`
+  still carries `activeProfile` because Linux reads it; this front writes it and never reads it.
+- **The private profile is in none of it** — its strip, its addresses and its titles are filtered
+  out before anything is written.
 
-- **A strip per profile, not one strip.** `NiriLayout` keeps `strips[profileID]`, and this front now
-  uses more than one of them. Anything that saves "the rail" saves every profile's, or switching
-  profiles loses whichever one was not on screen. `RailModel.allTabIDs` is the existing walk over all
-  of them — and it exists for the same distinction a snapshot needs: a column absent from the active
-  strip has been closed, a column absent from `allTabIDs` no longer exists anywhere.
-- **Which profile was on screen is already written down**, in `settings` under `profile.selected`, so
-  a snapshot does not need a field for it — but it does need to agree with it. Two records of the
-  same fact that can disagree is worse than one, so a snapshot should read that key rather than carry
-  its own copy.
-- **The private profile must not be in it.** It is written down nowhere by definition — no row, no
-  folder, no place in a snapshot — which on the Mac is `AppStateSnapshot` filtering
-  `profiles.filter { !$0.isPrivate }`.
+A strip whose profile has no row any more is dropped on the way in. `SIX_URL` still means something
+over a restored rail: it opens one more column at that address, which is how a scripted run lands on
+its test page whatever the previous run left. Measured by relaunching three times with a different
+`SIX_URL` each: `[storage] restored 1 columns`, then `2`, each run adding its page beside the ones it
+found.
 
-Nothing above needs a decision that has not already been made — it needs writing.
+## History
+
+Visits go into the Mac's `visits` table through `SixCore`'s `HistoryStore` — under the column's own
+profile rather than the one on screen, since a page kept live in another profile can still finish
+loading. A private profile records nothing.
+
+`didFinishNavigation` is the visit, and it is not the moment a title exists ("What the page says it
+is, on a timer"), so the visit is written with whatever title there is and the column is marked as
+awaiting one: the next title the poll reads is handed to the visit even when it is the title the card
+already shows. That case is not hypothetical — it is every restored column reloading the page it was
+on, and before this those visits were listed by their address.
+
+**History** (`Ctrl+H`, or **⋯ ▸ History**) is a list window over it: type to search title and address,
+`↑`/`↓` from the field, `Enter` or a double-click opens the row as a new column beside the focused
+one, `Esc` closes. Empty is the recent pages, one row per address; anything typed is
+`HistoryStore.search`.
+
+## Live pages, discarding, and pictures
+
+Every column the strip is showing, and half a screen either side of it, gets a real `WKView` —
+`NiriLayout.visibleTabIDs`, the set the Mac's `LivePageCache` pins. Everything else lives or dies by
+`LivePages` (about a page per gigabyte, 8…32, `SIX_LIVE_PAGES=n` to pin it): the Mac's rule, moved out
+of the Linux front into `SixCore` so both run the same code. What this front hands it as "all" is every
+column of every profile, so a hidden view of the workspace above survives while it is in budget; Linux
+hands it the focused workspace, because that is all its strip widget builds.
+
+A view out of sight is hidden, not destroyed, and stepping back to it does not reload. A view past the
+budget is destroyed; its column keeps its place, title and address, and is built again from the
+address when the strip reaches it. Measured with `SIX_LIVE_PAGES=2` on three columns: `[pages]
+discarded …, 1 of 2 live` on the first step away, and the page back on the step back.
+
+Clicking into a page that is not the focused column focuses its column. WebKit's child `HWND` takes the
+click, so `route` sees the press on its way through the queue, focuses, and lets it go on to the page.
+
+**Pictures.** A column that has no view — every column in the overview, and a discarded one — shows
+the last picture of its page: `PrintWindow(PW_RENDERFULLCONTENT)` on the view's own `HWND`, the call
+that already captured WebKit children for the harness, halved and kept as a 32-bit BMP at
+`Thumbnails\<column>.bmp` (GDI writes and loads one with nothing but itself; the Mac and Linux keep
+PNGs). A hidden view cannot be photographed, so pictures are taken on the way *out*: a moment after a
+page finishes loading, just before a view is hidden or discarded, before the overview opens, and on
+`WM_CLOSE`. A capture that comes back all zeros is a view that had not drawn yet, and is thrown away
+rather than written over a good picture. The folder is pruned to the columns that exist at launch.
+
+## The overview
+
+`Alt+O`, or **⋯ ▸ Overview**; `Esc` leaves. It is the Mac's geometry point for point — each workspace a
+row at `NiriLayout.rowY`, each row centred by `canvasX`, the whole canvas scaled about the window's
+centre by `overviewScale`, which is what `.scaleEffect(_, anchor: .center)` does there — drawn in GDI
+from `RailModel.overviewCards`, each workspace's name where its row begins. Every view is hidden while
+it is open (a child `HWND` has no transform, and a page at a fifth of its size is neither sharp nor
+useful), so the cards are the pictures above — which is also what the Mac draws there. A click on a
+card focuses it and closes the overview, a click anywhere else closes it where it stood, and the wheel
+needs no `Alt` — the Mac's scroll monitor drops its modifier in the overview for the same reason.
+
+`⌥O` and `Esc` come out of `KeyBindings` like every other rail key. `Esc`'s row is scoped to the rail
+rather than to the overview, so `RailKeyLookup` answers it only while the overview is open: a bare
+`Esc` taken outside it would be taken from every page.
+
+## Site permissions
+
+The Mac's `SitePermissions`, out of `SixCore`: the remembered answers (the same `permissions.sites`
+row the Mac writes), the queue per window, the suspended page, the private profile's answers kept in
+memory. What this front adds is where a question comes from and where it is drawn:
+
+- **`RailWebView.onMediaRequest`** — a `WKPageUIClientV6` with only
+  `decidePolicyForUserMediaPermissionRequest` set (version 5 is where it arrived; every other callback
+  is left `nil`, which is WebKit's own default for each). The origin is built from the
+  `WKSecurityOriginRef` the way the Mac's `string(for:)` writes it, the request is retained until it
+  is answered, the first device of each kind is what an allow hands over, and screen capture is
+  denied rather than asked about as if it were the camera.
+- **The bar** — `RailPermissionBar`, under the card's title, pushing the page down (`bodyRect(for:)`)
+  so its **Block** and **Allow** are GDI's and not under a child `HWND`.
+- **Site permissions** (**⋯ ▸ Site permissions**) — every remembered site, whose profile, what was
+  answered; `Delete` forgets a row.
+
+**No page can ask yet on this engine.** Playwright's WebCore has MediaStream compiled out:
+`JSMediaStream`, `JSMediaDevices`, `UserMediaRequest` and `UserMediaController` appear nowhere in
+`WebCore.dll` while `JSHTMLDivElement` does, and a page on `http://localhost` — a secure context — reads
+`navigator.mediaDevices`, `MediaStream` and `RTCPeerConnection` as `undefined`, with
+`WKPreferencesSetMediaDevicesEnabled` on and with the `MediaStreamEnabled` feature key set, both tried.
+So the callback is wiring for the WebKit that is not Playwright's ([todo.md](todo.md)), and
+`SIX_PERMISSION_SELFTEST=1` exercises everything past it: the first page to finish loading in the
+focused column asks for the camera and the microphone through `RailModel.requestMedia` — the call the
+callback makes — and the answer is logged under `[browser]`. `SIX_MOCK_CAPTURE=1` turns WebKit's mock
+devices on, for an engine that has MediaStream to mock.
+
+## The page's own dialogs
+
+`alert()`, `confirm()`, `prompt()` and `<input type=file>` go through `RailWebView`'s UI client —
+`runJavaScriptAlert`, `Confirm`, `Prompt` and `runOpenPanel`, all in the `WKPageUIClientV6` the media request
+already used. Left `nil`, WebKit answers each itself and always says no: measured before this was written, a page
+that put its answers in its title read `confirm=false prompt=null` with nothing on screen, and a file input never
+opened — the browser that quietly cannot upload a file, which the Mac's `PageDialogs` exists to prevent.
+
+- **The three dialogs** are `RailPageDialog`: an owned popup over the rail with the site in its caption
+  ("example.com says"), OK and Cancel, and a field for a prompt with the page's default selected. `Enter` is OK and
+  `Esc` Cancel, out of the queue through `route`, like the list windows. Not `MessageBoxW`: a prompt needs a field
+  Windows has no box for, and a message box is a modal loop in which nothing drains the main queue, so every `Task`
+  in the browser would stop with the one page that asked. One is on screen at a time and a second page asking
+  waits (`waitingDialogs`). A column closed or discarded with a question up answers it Cancel, and so does closing
+  the browser — `RailWebView.destroy` holds a Cancel for every listener it still owes, because the page's
+  JavaScript is suspended inside each one.
+- **The file picker** is `GetOpenFileNameW` — `SixRailOpenFiles` in `CRailInterop`, linked against `comdlg32` —
+  opened one turn of the main queue after WebKit's callback rather than inside it, with the input's `accept`
+  extensions as the first filter and everything as the second. **A folder (`webkitdirectory`) is refused for now:**
+  that picker is COM's `IFileOpenDialog`.
+- The log says what kind, from which site, how long and whether it was OK — never the text, never what was typed,
+  never a path.
+
+Measured end to end in an isolated run: an alert, a confirm answered OK, one answered Cancel, a prompt offering
+`dflt` answered `typed` — the page's title came back `c1=true c2=false p=typed`; a click on a full-page file input
+opened the picker as "This page is asking for a file", and choosing a file came back to the page as
+`file=pick-me.txt n=1`. Keys were posted to the dialog's own window and the click to the
+`WebKit2WebViewWindowClass` child, so none of it needed the foreground, and reading a control's text from outside
+takes `WM_GETTEXT` — `GetWindowText` answers empty for another process's `EDIT`, which looked like a missing default.
+
+**Test pages want a throwaway `LOCALAPPDATA`.** The rail comes back after a relaunch and `SIX_URL` adds a column to
+it, so a test page from the last run is restored beside this run's and asks its questions too — two pages' dialogs
+interleaved, which read as dialogs arriving in the wrong order. Starting `six-windows.exe` directly with
+`LOCALAPPDATA` pointed at a fresh scratch folder gives it an empty database and an empty rail; the script cannot do
+this for you, because it finds the toolchain through the same variable.
+
+## A second window
+
+The Mac's rule from [links.md](links.md): a window a page opened for itself comes forward, a link opened on
+purpose goes behind with the focus left on the page being read, and both land right of the column that asked
+(`RailModel.openColumn(url:from:focus:)`, over `NiriLayout.insertColumn(tabID:in:focus:)`). All of it is
+`RailNewWindows.swift`.
+
+- **`window.open` and `target=_blank`** reach the UI client's `createNewPage`, which is handed a view made on
+  WebKit's own configuration (`WebEngine.makeView(parent:frame:configuration:)`) and returns its page at +1 — WebKit
+  adopts it, which is why MiniBrowser's own `createNewPage` ends in `WKRetainPtr(page).leakRef()`. The page then loads
+  its request into that view by itself. This is **better than the Mac**, which cancels the navigation and loads the
+  address into a fresh column: here the new page is related to the one that opened it, so `window.opener` works and a
+  sign-in popup can report back.
+- **`window.close()`** reaches `close`, and the column goes. WebKit allows it only to a window a script opened.
+- **A middle click or a `Ctrl`-click on a link** opens it behind; `Ctrl`+`Shift` opens it in front. WebKit's C API
+  says nothing about the button or the keys behind a navigation — a `WKNavigationActionRef` has its request, its type
+  and whether there was a gesture, no more — so the rail catches those clicks on their way in (`route`), against the
+  link the page last reported under the pointer (`mouseDidMoveOverElement` → `RailWebView.hoveredLink`). The press
+  and its release are both taken, so the page never sees half a click. A middle click the rail does not take goes to
+  the page, and on this port that starts WebKit's **pan scrolling**, which then eats the next click — worth knowing
+  before reading a test that "clicks and nothing happens".
+- **A link to somebody else's app** — `mailto:`, `magnet:`, a claimed scheme — gets no column: a new one is made only
+  for what a column can show (http, https, file, about, data, blob), and the rest is
+  [Links to other apps](#links-to-other-apps).
+
+Measured in an isolated run (`SIX_UI_DEBUG=1`, stderr to a file): a plain click on a page whose script called
+`window.open('about:blank')` put a new column in front titled from the opener's script, the opener read
+`w.opener === window` as true, and `w.close()` four seconds later took the column away — `popup=true opener=true`
+on the page that was left, and `a page opened a window` / `a page closed its own window` in the log. A pointer moved
+over a link reported `hover: link=data`, and a middle click there opened the link behind: two pages, the title still
+the first page's, `a link opened behind` in the log. `Ctrl`-click is the same path and is unmeasured, because the
+keys are read from the keyboard's state and a posted message cannot hold `Ctrl` down.
+
+The first run of that test reported no link under the pointer at all, and the reason was the test: it hovered 400
+physical pixels down a page that was not that tall. WebKit reports nothing past the edge of the view.
+
+## Downloads
+
+The transfer is WebKit's, which is the one place this front is simpler than the Mac. There, SwiftUI's `WebPage` has
+no download delegate, so six rebuilds the request — cookies, referrer, user agent — and runs it through `URLSession`
+([links.md](links.md#downloads)). The C API has downloads: `RailWebView`'s navigation client answers "download"
+instead of "show" for `<a download>` (`WKNavigationActionShouldPerformDownload`) and for a response that is a file — an
+attachment, or a type the page cannot show — and the `WKDownloadRef` that comes back through
+`navigation…DidBecomeDownload` already carries the page's cookies. All `RailDownloads` adds is a client
+(`WKDownloadClientV0`): where the file goes (`decideDestinationWithResponse`, a path handed back at +1), how far it
+has got, and how it ended.
+
+- **Where.** The user's Downloads folder by `SHGetKnownFolderPath`, not `%USERPROFILE%\Downloads`, which is only
+  where it starts out. The call is made from Swift: declared in `WinSDK.Shell`, it is invisible to a C header in a
+  module of its own, whatever that header includes. `SIX_DOWNLOADS=<folder>` stands in front of it, so a test run does
+  not fill the real one. The name is the server's suggestion, made safe for Windows (no `\ / : * ? " < > |`, no
+  trailing dot), and the Mac's `report 2.pdf` rule against both the files there and the ones other downloads are about
+  to write. A `data:` link with no `download` attribute is suggested the tail of its own address by WebKit —
+  `octet-stream,binary bytes`, measured — and comes down as `download` instead.
+- **The button** appears in the bar with the first download, as the Mac's does, left of the translate button: an
+  arrow, a thin bar under it while something is coming in, a dot in the profile's colour when something finished
+  that nobody has looked at. It opens the list — a `RailListPanel`, refreshed as rows change — and so does `Ctrl+J`.
+  `Enter` opens a finished file with whatever the system opens it with; `Delete` stops a download, or takes a row off
+  the list and leaves the file alone.
+- **A column that only carried the link** — a `target=_blank` or a middle click that turned out to be a file — closes
+  itself and gives the focus back, the Mac's `closeIfOnlyCarriedALink`: `carriers` remembers who opened it, until the
+  page in it finishes loading.
+- **Not built, and why.** A stopped download stays stopped: `didFailWithError` hands back resume data and nothing in
+  the C API takes it. There is no Try Again either — nothing starts a download from an address — and the unfinished
+  rows are not written down for the next launch, since a restored row could offer nothing. A file small enough to
+  arrive in one piece finishes without a single `didWriteData`, so the size of a finished row is read off the file.
+
+Measured in an isolated run with `SIX_DOWNLOADS` pointed at a scratch folder: two clicks on a
+`<a download="hello.txt">` link left `hello.txt` and `hello 2.txt`, nine bytes each; a middle click on a
+`data:application/octet-stream` link opened a column behind that became a download, closed itself, and left one page;
+a picture of the bar (`PrintWindow`, from a per-monitor-aware process) showed the arrow with its dot, and a posted
+click on it opened the list with both rows, "Done · 12 B" and "Done · 9 B", the dot gone.
+
+## A failed load and the loading line
+
+**A page that did not open says so.** Left alone, a failed provisional navigation left the column exactly as it was —
+blank, or the previous page — and silent about why, which is the report the Mac's `PageFailureView` was written
+against. `RailWebView.handleFailedNavigation` puts the Mac's words in its place with `WKPageLoadAlternateHTMLString`:
+"This page didn't open", the host, "six could not reach this address.", **Try Again** (a `location.replace` back to
+the unreachable address), and the system's own sentence with its domain and code, demoted to the bottom. The call is
+the one meant for it — the page is six's, the back-forward item and the address stay the unreachable one — and the
+page's `<title>` is the host, so the card still says where it was going. `color-scheme` and system colours let it
+follow Windows' light or dark. There is no certificate offer, because this front has no `CertificateStore` yet.
+
+What is **not** a failure, and the two things measured to get there:
+
+- The Mac's two: `NSURLErrorDomain` −999 and `WebKitErrorDomain` 101/102 — a cancel, and a policy that sent the
+  request elsewhere (a download, a new window). Plus 203, a plugin taking the load.
+- **`WebKitErrorDomain` 302, which is how this port says "cancelled".** Its network layer is curl, not `CFNetwork`,
+  and a navigation superseded by another came back as exactly that. The first version did not know it, and the
+  error page it put up cancelled the new navigation in turn: a page that went somewhere else while a slow address was
+  still connecting ended on "This page didn't open" for an address nobody was waiting for any more.
+- **Anything about a navigation that is no longer the latest.** The navigation client hands every callback its
+  `WKNavigationRef`; the one that started last is remembered by address, and a failure of any other is ignored — it
+  says nothing about what is loading now. This covers the cancel codes nobody has met yet.
+
+A real failure measured for each kind: an address on a port WebKit refuses (`127.0.0.1:9`, `WebKitErrorDomain` 103,
+"Not allowed to use restricted network port") and one where nothing listens (`127.0.0.1:65530`, `CurlErrorDomain`
+7) both put the page up, titled `127.0.0.1`. The error page is not a visit and is not offered for translation
+(`isShowingFailure`), and the sandbox views never get one (`showsFailures`): their pages are six's own programs, and
+a failure there is their driver's to see. The log keeps the domain and the code, never the address.
+
+**The loading line** is the Mac's `LoadingLine`: two pixels in the profile's colour, never shorter than a sliver,
+under the address field for the window being read and along the foot of the card's header for every other one.
+`isLoading` comes from the navigation client (started → finished or failed), the progress from
+`WKPageGetEstimatedProgress` on the page-state timer that already polls titles, in steps of a twentieth so a page
+trickling in repaints a handful of times. Measured against a local server that sent a page in twelve pieces over six
+seconds: a picture of the bar half-way through shows the line about half the field's width, and one after shows none.
+
+**Stop.** While the page being read is loading, the bar's reload button draws a cross and stops the load
+(`WKPageStopLoading`) — the Mac's Reload-or-Stop. It changes with `isLoading`, which the page-state timer already
+repaints on. The cancel a stop causes comes back through `didFailProvisionalNavigation` as a failure that is not one
+(the list above), so stopping a page never puts "This page didn't open" in its place.
+
+## The context menu
+
+The menu over a page is **WebKit's**, and on this port that is a real menu. Read off the one a right-click put up
+(`MN_GETHMENU` on the `#32768` window, then the menu's own strings): over a link it offers Open Link, Open Link in New
+Window, Download Linked File and Copy Link; over plain text on a fresh page, Reload and nothing else. The Mac had to
+throw WebKit's menu away and build its own ([links.md](links.md#the-context-menu-is-sixs)), because in a SwiftUI
+`WebView` two of those four are dead — they go to a UI client and a download delegate that API has no seat for. Here
+they are alive: Open Link in New Window reaches `createNewPage` ([A second window](#a-second-window)), and Download
+Linked File reaches the navigation client's `contextMenuDidCreateDownload`, which hands it to `RailDownloads` like any
+other download.
+
+So the menu stays WebKit's, and six adds the one item of the Mac's it lacks: **Open Link Behind**, right after Open
+Link in New Window. It goes in through `getContextMenuFromProposedMenu` (`WKPageContextMenuClientV2`), which hands over
+WebKit's items and the hit test the menu was opened on; the link is read then, because by the time an item is chosen
+the pointer has moved. Its tag is above `kWKContextMenuItemBaseApplicationTag`, so WebKit hands the choice back
+through `customContextMenuItemSelected` rather than acting on it, and it ends in `openLink(_:from:focus:)` — the same
+place a middle click does. The array handed back is WebKit's to adopt, and handing back nothing is not "use your own":
+it is an empty menu, so the proposed items always go back, with or without the addition.
+
+Measured in an isolated run, each item chosen with the keys a person would press (`↓` to it, `Enter`, posted to the
+menu's window): Open Link Behind opened a column behind with the first page still in focus; Download Linked File left a
+file in the downloads folder; Copy Link put the link on the clipboard; Open Link in New Window opened a column in
+front.
+
+Not offered, and why: the Mac's **Open Link Beside**, because nothing on this front makes a window share its column
+yet; and its **This Window** submenu, the column's own commands.
+
+## Links to other apps
+
+`mailto:`, `magnet:`, `tel:`, whatever an app claimed. Which addresses these are is `ExternalScheme` — the Mac's list,
+moved into `SixCore` for this (`six/Browser/ExternalScheme.swift`), because a second copy of an allowlist is a second
+chance to let a scheme through. It needed the two MCP-app scheme names with it, so `MCPAppScheme` is now declared in
+`MCPAppTypes.swift`, the wire half, and extended in `MCPAppScheme.swift`, where the WebKit-facing handler stays.
+
+**Every route asks the same question.** The navigation client takes any navigation to such an address away from the
+page (`decidePolicyForNavigationAction` → `RailWebView.handOff`): a click in place, a script, an `<iframe>`. So does
+`createNewPage`, so a `target=_blank` to one makes no column; so does a middle or `Ctrl`-click on one. All of them end
+in `offerExternalLink`.
+
+**Asked, and only after a click.** The Mac hands these to the system on a click without asking. Windows is not the
+same place: a protocol handler opened without a question is how `ms-msdt:` became an exploit, and every Windows
+browser asks. So:
+
+- no user gesture behind it (`WKNavigationActionHasUnconsumedUserGesture`) — refused, and a line in the log;
+- an app claims the scheme — "Open this link in *Mail*?", the name from `AssocQueryStringW` with
+  `ASSOCF_IS_PROTOCOL`, which honours the default picked in Settings; OK hands the address to `ShellExecuteW`;
+- the scheme is Windows' own and nobody was picked for it — measured on this machine for `mailto:`, where the
+  "app" Windows names is its own picker ("Choose an app", in the system's language) because what would run is
+  `OpenWith.exe` — "Open this link in another app? Windows will ask which one.";
+- nothing claims it — a sentence that says so, and nothing else.
+
+The log keeps the scheme and the app, never the address. The address bar is left alone: typed text with a scheme and
+no `://` is a search on this front, which is the safe reading of `note: buy milk`.
+
+Measured in an isolated run, every question answered Cancel so that nothing was launched: a page's own
+`location='ms-settings:display'` a second after it loaded was refused with nothing on screen; a click and a middle
+click on a `mailto:` link each asked, as the picker case; a click on a `magnet:` link, on a machine with no torrent
+client, said no app opens those; the page never navigated.
+
+## The list windows
+
+History and Site Permissions are one type, `RailListPanel`: an owned popup window — a frame of its own,
+movable off the page it is about — with an `EDIT` to search in and an owner-drawn `LISTBOX`, because a
+list box's own rows are one line of system text and a visit is two things. Its keys come out of the
+queue through its own `route`, which `RailWindow.route` asks first, since an `EDIT` and a `LISTBOX`
+each have their own idea of `Enter`, `Esc` and the arrows. Its caption is the system's, and on Windows
+10 that is a light title bar over a dark list; `DWMWA_USE_IMMERSIVE_DARK_MODE` would fix it and was
+not reached for.

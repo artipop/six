@@ -24,12 +24,10 @@ import WebKit
 /// This is the spec's sandbox-proxy arrangement, arrived at from the other side. A *web* host must
 /// build it out of two iframes because it has only one origin to work with; six has as many origins
 /// as it cares to name, and a whole web content process per window besides.
-nonisolated enum MCPAppScheme {
-    /// The shell.
-    static let shell = "mcp-app"
-    /// The app's own document.
-    static let content = "mcp-app-content"
-
+///
+/// The two scheme names themselves are declared in `MCPAppTypes.swift`, which is `SixCore`'s: they
+/// are in `ExternalScheme`'s list of what a window shows, and that list is asked on every front.
+nonisolated extension MCPAppScheme {
     static func shellURL(host: String) -> URL { URL(string: "\(shell)://\(host)/")! }
     static func contentURL(host: String) -> URL { URL(string: "\(content)://\(host)/")! }
 

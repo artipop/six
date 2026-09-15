@@ -258,6 +258,24 @@ In the overview:
 Nothing loads in the overview: every window there is a card, and a card is the
 last picture of its page.
 
+### On Windows and Linux
+
+The overview is there too, on `Alt+O`. **On Windows** it is the Mac's — every
+workspace of the profile stacked, each card the last picture of its page — and it
+also opens from **⋯ ▸ Overview** at the right end of the bar. A click on a card
+opens that window and closes the overview; a click anywhere else, or `Esc`, just
+closes it; the wheel scrolls it without `Alt`. **On Linux** it shows the focused
+rail end to end. Dragging windows and renaming workspaces in the overview are
+still the Mac's alone.
+
+Pages are discarded by the rule described below: the ones on screen, and half a
+screen either side, stay live; the rest stay while the budget allows. A discarded
+window keeps its place and its picture.
+
+The rail survives a relaunch there as well: windows, workspaces, addresses and
+titles come back as they were left, in every profile. A private profile does not
+come back.
+
 ## Workspaces make themselves
 
 There is always exactly one empty workspace at the bottom. Move a window into it

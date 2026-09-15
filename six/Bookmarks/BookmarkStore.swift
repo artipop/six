@@ -578,37 +578,16 @@ final class BookmarkStore {
 
     // MARK: Files
 
-    /// `<title slug>-<first 8 of the id>.md`, ASCII-folded so it is the same on any file system.
+    /// `BookmarkFile`'s rule, shared with the fronts that are not the Mac so a copy is named the same
+    /// whichever machine saved it.
     nonisolated static func fileName(for title: String, id: UUID) -> String {
-        let folded = title.folding(options: [.diacriticInsensitive, .caseInsensitive, .widthInsensitive], locale: nil)
-        var slug = ""
-        for scalar in folded.unicodeScalars {
-            if scalar.properties.isAlphabetic || scalar.properties.numericType != nil { slug.append(Character(scalar)) }
-            else if !slug.hasSuffix("-") { slug.append("-") }
-        }
-        slug = slug.trimmingCharacters(in: CharacterSet(charactersIn: "-"))
-        if slug.count > 60 { slug = String(slug.prefix(60)).trimmingCharacters(in: CharacterSet(charactersIn: "-")) }
-        let short = String(id.uuidString.prefix(8)).lowercased()
-        return (slug.isEmpty ? short : "\(slug)-\(short)") + ".md"
+        BookmarkFile.name(for: title, id: id)
     }
 
     /// Markdown with YAML front matter — readable in any editor, and enough to rebuild the row.
     nonisolated private static func write(_ page: ReadablePage, bookmark: Bookmark, profile: Profile, to url: URL) throws {
-        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-        func quoted(_ value: String) -> String { "\"" + value.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"") + "\"" }
-        var lines = ["---", "title: \(quoted(bookmark.title))", "url: \(bookmark.url.absoluteString)", "site: \(quoted(bookmark.siteName))"]
-        if !page.byline.isEmpty { lines.append("author: \(quoted(page.byline))") }
-        if let image = bookmark.imageURL { lines.append("image: \(image.absoluteString)") }
-        if !bookmark.language.isEmpty { lines.append("language: \(bookmark.language)") }
-        lines.append("profile: \(quoted(profile.name))")
-        lines.append("saved: \(ISO8601DateFormatter().string(from: bookmark.createdAt))")
-        lines.append("id: \(bookmark.id.uuidString)")
-        lines.append("---")
-        lines.append("")
-        if !bookmark.title.isEmpty, !page.markdown.hasPrefix("# ") { lines.append("# \(bookmark.title)"); lines.append("") }
-        lines.append(page.markdown)
-        lines.append("")
-        try lines.joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
+        try BookmarkFile.write(markdown: page.markdown, byline: page.byline, bookmark: bookmark,
+                               profileName: profile.name, to: url)
     }
 
     // MARK: Plumbing

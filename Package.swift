@@ -73,6 +73,10 @@ let package = Package(
                 "Data/Log.swift",
                 "Persistence/SnapshotStore.swift",
                 "Persistence/StatePersistence.swift",
+                // The rail as the fronts without a snapshot leave it, in the settings table. It
+                // was Linux's own until Windows needed the same thing, and two copies of a
+                // `Codable` both fronts write under one key is two chances to disagree about it.
+                "Persistence/StripState.swift",
                 "Data/AppDatabase.swift",
                 "Data/ConfigurationStore.swift",
                 "Bookmarks/Bookmark.swift",
@@ -88,6 +92,12 @@ let package = Package(
                 "Bookmarks/Embedder.swift",
                 "Bookmarks/BookmarkIndexer.swift",
                 "Bookmarks/BookmarkSelfTest.swift",
+                // What a saved page *says*, rather than what it is called. The extractor is a
+                // JavaScript function body and every front can run one, so it is here beside the
+                // passages it feeds; only the Mac's `WebPage` door into it stays in the app.
+                "Bookmarks/ReadablePage.swift",
+                // …and the Markdown copy it becomes, written the same way by every front.
+                "Bookmarks/BookmarkFile.swift",
                 // The embedder those fronts run, which is E5 through transformers.js in a
                 // `PageSandbox` — the same bargain Bergamot makes, for the same reason, over the
                 // same seam. `ContextualEmbedder` and `MLXEmbedder` stay in the app: one is
@@ -112,7 +122,15 @@ let package = Package(
                 // hands back, and deciding when it is safe to show the name behind it is the same
                 // decision on all of them.
                 "Browser/IDN.swift",
+                // Which addresses are somebody else's app's to open. The list is the same on every
+                // front, and a second copy of an allowlist is a second chance to let a scheme through;
+                // opening one is each platform's own call.
+                "Browser/ExternalScheme.swift",
                 "Browser/History.swift",
+                // How many columns keep a real page. The Mac's `LivePageCache` imports WebKit and
+                // stays in the app; this is its rule — the budget, the pins, the eviction order —
+                // without the engine, for the two fronts whose engines are C APIs.
+                "Browser/LivePages.swift",
                 // Who the profiles are. The row and the table are plain values and plain SQL, and
                 // the reason they exist at all — that the identity every other table is keyed by
                 // must not live in a file that can fail to decode — is the same on every front.

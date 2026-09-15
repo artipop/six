@@ -35,6 +35,11 @@ final class BookmarkIndexer {
     /// `@Observable` revision on this; a front without observation wants a closure.
     var onChange: (() -> Void)?
 
+    /// The folder a profile's things live in — `Profiles/<name>` under `AppSupport` — so a page that
+    /// was read can be kept as a Markdown copy in its `Bookmarks/`, where the Mac keeps its own. A
+    /// closure because only the front knows how it names a profile's folder; nil keeps no copies.
+    var profileFolder: ((UUID) -> URL?)?
+
     /// Bookmarks whose passages are being embedded right now.
     private(set) var indexing: Set<Bookmark.ID> = []
     private var queue: [Bookmark.ID] = []
@@ -75,16 +80,87 @@ final class BookmarkIndexer {
 
     // MARK: Saving
 
+    /// Saves a page now and reads it a moment later.
+    ///
+    /// Two writes rather than one, and the order is the point. The row exists before the page is
+    /// read, so a star points the right way the moment it is pressed; `ReadablePage` then runs in
+    /// the page and the second save replaces the title-only passage with the whole text. A page that
+    /// cannot be read — a canvas, a PDF, one that has not drawn anything yet — keeps the first save,
+    /// which is still a bookmark and still findable by its title.
+    ///
+    /// The Mac reads first and saves after, and can afford to: its star waits on a `Task` with a
+    /// spinner beside it. The embedding the first save queued is not wasted work either way — `embed`
+    /// re-reads the passages in the transaction that writes the vectors, and a run that finds them
+    /// replaced leaves the row unstamped for the second save's own run.
+    @discardableResult
+    func save(url: URL, title: String, profileID: UUID, reading page: some PageScriptRunner) throws -> Bookmark {
+        let saved = try save(url: url, title: title, profileID: profileID)
+        Task { await read(page, into: saved.id, url: url, title: title, profileID: profileID) }
+        return saved
+    }
+
+    private func read(_ page: some PageScriptRunner, into id: Bookmark.ID, url: URL, title: String, profileID: UUID) async {
+        let readable: ReadablePage
+        do {
+            readable = try await ReadablePage.extract(from: page)
+        } catch {
+            Log.info(.bookmarks, "kept \(url) as its title only: \(error.localizedDescription)")
+            return
+        }
+        // The star may have been pressed again while the page was being read. A bookmark removed
+        // meanwhile stays removed, and one removed and saved again has a reader of its own.
+        guard bookmark(for: url, in: profileID)?.id == id else { return }
+        // The page's own claim first, the way the Mac takes it; a guess only where there is none.
+        let language = readable.language.isEmpty
+            ? LanguageGuess.source(claimed: "", sample: String(readable.text.prefix(2000))) ?? ""
+            : readable.language
+        do {
+            let saved = try save(url: url, title: readable.title.isEmpty ? title : readable.title,
+                                 excerpt: readable.excerpt, siteName: readable.siteName, language: language,
+                                 imageURL: readable.imageURL, text: readable.text, profileID: profileID)
+            keepCopy(of: readable, as: saved)
+            Log.debug(.bookmarks, "read \(readable.text.count) characters of \(url)")
+        } catch {
+            Log.error(.bookmarks, "could not save the text of \(url): \(error)")
+        }
+    }
+
+    /// Writes the page's Markdown beside the row and records the file's name on it. Every read
+    /// rewrites the copy under the same name, so starring a page again brings its copy up to date.
+    /// A copy that cannot be written is logged and nothing more: the row and its passages are the
+    /// bookmark, and the file is the human copy of it.
+    private func keepCopy(of page: ReadablePage, as bookmark: Bookmark) {
+        guard let folder = profileFolder?(bookmark.profileID) else { return }
+        let fileName = bookmark.fileName.isEmpty ? BookmarkFile.name(for: bookmark.title, id: bookmark.id) : bookmark.fileName
+        let profileName = (try? database.read { db in
+            try ProfileIdentity.where { $0.id.eq(bookmark.profileID) }.fetchAll(db)
+        })?.first?.name
+        do {
+            try BookmarkFile.write(markdown: page.markdown, byline: page.byline, bookmark: bookmark,
+                                   profileName: profileName, to: Self.copy(fileName, in: folder))
+            guard fileName != bookmark.fileName else { return }
+            try database.write { db in
+                try Bookmark.where { $0.id.eq(bookmark.id) }.update { $0.fileName = fileName }.execute(db)
+            }
+        } catch {
+            Log.error(.bookmarks, "could not keep a copy of \(bookmark.url): \(error)")
+        }
+    }
+
+    private static func copy(_ fileName: String, in profileFolder: URL) -> URL {
+        profileFolder.appending(path: "Bookmarks", directoryHint: .isDirectory).appending(path: fileName)
+    }
+
     /// Saves a page and queues its passages for embedding.
     ///
-    /// `text` is the page's readable body, and a front that cannot extract one yet passes `""` —
-    /// the title and the excerpt are still a passage, still embedded, and still findable by
-    /// meaning, which is the difference between a bookmark list and a search. `TextChunker` puts
-    /// them in chunk 0 for exactly this reason.
+    /// `text` is the page's readable body, and `""` where there is none — the title and the
+    /// excerpt are still a passage, still embedded, and still findable by meaning, which is the
+    /// difference between a bookmark list and a search. `TextChunker` puts them in chunk 0 for
+    /// exactly this reason.
     @discardableResult
     func save(
         url: URL, title: String, excerpt: String = "", siteName: String = "", language: String = "",
-        text: String = "", profileID: UUID
+        imageURL: URL? = nil, text: String = "", profileID: UUID
     ) throws -> Bookmark {
         let existing = try database.read { db in
             try Bookmark.where { $0.profileID.eq(profileID) }.where { $0.url.eq(url) }.fetchAll(db)
@@ -100,7 +176,7 @@ final class BookmarkIndexer {
             id: id, profileID: profileID, url: url,
             title: title.isEmpty ? (existing?.title ?? "") : title,
             excerpt: excerpt, siteName: siteName.isEmpty ? (url.host() ?? "") : siteName,
-            imageURL: existing?.imageURL, fileName: existing?.fileName ?? "", language: language,
+            imageURL: imageURL ?? existing?.imageURL, fileName: existing?.fileName ?? "", language: language,
             characterCount: text.count, createdAt: existing?.createdAt ?? Date(),
             indexedAt: unchanged ? existing?.indexedAt : nil,
             embeddingModel: unchanged ? indexSignature : "",
@@ -129,9 +205,14 @@ final class BookmarkIndexer {
     /// the last of those for us.
     func remove(_ id: Bookmark.ID) throws {
         queue.removeAll { $0 == id } // not yet embedded: never will be
+        let row = try database.read { db in try Bookmark.where { $0.id.eq(id) }.fetchAll(db) }.first
         try database.write { [index] db in
             try Self.dropIndex(of: id, index: index, in: db)
             try Bookmark.where { $0.id.eq(id) }.delete().execute(db)
+        }
+        // The copy goes with the bookmark, as it does on the Mac.
+        if let row, !row.fileName.isEmpty, let folder = profileFolder?(row.profileID) {
+            try? FileManager.default.removeItem(at: Self.copy(row.fileName, in: folder))
         }
         onChange?()
     }

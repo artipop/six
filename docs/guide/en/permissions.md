@@ -40,12 +40,33 @@ prompt comes **first** — once for the whole application, not once per site. So
 the very first request you ever make costs two answers, and every one after it at
 most one.
 
+## On Windows and Linux
+
+The question is the same there — a bar in the window that asked, with **Block**
+and **Allow** — and the answers go into the same table, per site and per profile.
+The whole list: on Linux, the camera button in the toolbar; on Windows, **⋯ ▸ Site
+permissions** at the right end of the bar. `Delete` on a row forgets the answer,
+and the site asks again.
+
+::: warning On Windows the question does not come yet
+And it is not six. The WebKit the Windows version runs on today (Playwright's
+build) is compiled without the camera and the microphone for pages —
+`navigator.mediaDevices` is not there, so a site has nothing to ask with. The bar,
+the answer and the list are ready, and will work with the first engine that has
+them.
+:::
+
 ## The page's own dialogs
 
 `alert()`, `confirm()`, `prompt()` and the file picker work as everywhere. That
 is worth saying out loud: a browser built on these APIs answers all four with
 "no" by default, which means quietly not being able to upload a file. Here they
 are real.
+
+On Windows a dialog comes up as a small window over the browser, and its title
+says which site is asking; `Enter` answers **OK**, `Esc` answers **Cancel**. A
+second page asking waits its turn. Uploading a whole folder does not work there
+yet: the page is told the choice was cancelled.
 
 ## Screen sharing
 

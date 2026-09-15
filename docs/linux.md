@@ -61,7 +61,11 @@ command here — see the comment at the top of `Package.swift` for the three rea
 - History and bookmarks, in the shared tables, scoped per profile.
 - Private browsing as a profile with an ephemeral `WebKitNetworkSession`.
 - Site permissions for the camera and the microphone ([permissions.md](permissions.md)).
-- The strip comes back after a relaunch, out of the `settings` table.
+- The strip comes back after a relaunch, out of the `settings` table. `StripState`, the row it is
+  written as, and `LivePages`, the budget above, were this front's and are `SixCore`'s now — the
+  Windows front runs the same two files (compiled away on Apple). After pulling that change into a
+  warm container, `rm -f /tmp/g/build.db`: it is a root-manifest edit, and CLAUDE.md has why a path
+  dependency's manifest edit is otherwise a silent no-op.
 - Page translation with Bergamot, shared with the Windows front — see below.
 
 ## What is not
@@ -141,8 +145,8 @@ What this front provides is three files in `SixBrowser`, and they are small beca
 is large:
 
 - **`PageScript`** — `webkit_web_view_call_async_javascript_function`, which
-  `TranslationSegment.swift` has been asking for in a comment since translation was written, and
-  which the readable-page extractor and highlights will want next. JSON in, JSON out. The argument
+  `TranslationSegment.swift` has been asking for in a comment since translation was written. The
+  readable-page extractor behind bookmarks runs through it too; highlights will want it next. JSON in, JSON out. The argument
   does not travel as a `GVariant`: `a{sv}` would mean `g_variant_builder_add`, which is variadic and
   out of Swift's reach, and a JSON document is also a JavaScript expression — so it is written into
   the top of the script as a string literal instead.
