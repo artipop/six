@@ -15,6 +15,10 @@ enum SitePermission: String, Codable, CaseIterable, Sendable, Identifiable {
     /// `DeviceOrientationEvent` and `DeviceMotionEvent`. A desktop has neither sensor, but the
     /// question still arrives here, and answering it costs less than explaining the silence.
     case motion
+    /// `navigator.geolocation`. Reached through `GeolocationDelegateProxy`, not
+    /// `deviceSensorAuthorization` — `WebPage.DeviceSensorAuthorization.Permission` has no case for
+    /// it at all, only `WKUIDelegate` does (`docs/permissions.md`).
+    case location
 
     var id: String { rawValue }
 
@@ -27,12 +31,14 @@ enum SitePermission: String, Codable, CaseIterable, Sendable, Identifiable {
         case .camera: "camera"
         case .microphone: "microphone"
         case .motion: "motion sensors"
+        case .location: "location"
         }
         #else
         switch self {
         case .camera: String(localized: "camera")
         case .microphone: String(localized: "microphone")
         case .motion: String(localized: "motion sensors")
+        case .location: String(localized: "location")
         }
         #endif
     }
@@ -42,6 +48,7 @@ enum SitePermission: String, Codable, CaseIterable, Sendable, Identifiable {
         case .camera: "video"
         case .microphone: "mic"
         case .motion: "gyroscope"
+        case .location: "location"
         }
     }
 }
@@ -144,6 +151,14 @@ final class SitePermissions {
         let allowed = await decide(Self.permissions(for: permission),
                                    origin: Self.string(for: origin),
                                    in: windowID, profileID: profileID)
+        return allowed ? .grant : .deny
+    }
+
+    /// The page is asking for its location — the one device `WebPage` has no hook for at all.
+    /// `GeolocationDelegateProxy` calls this instead of routing through `deviceSensorAuthorization`,
+    /// which has no case to route it through in the first place.
+    func decideLocation(origin: WKSecurityOrigin, in windowID: UUID, profileID: UUID) async -> WKPermissionDecision {
+        let allowed = await decide([.location], origin: Self.string(for: origin), in: windowID, profileID: profileID)
         return allowed ? .grant : .deny
     }
     #endif

@@ -29,6 +29,19 @@ final class WebViewResponder {
         init(_ view: NSView?) { self.view = view }
     }
 
+    /// Told once per tab per claim, with the live `WKWebView` — the only reliable moment anything
+    /// AppKit-side gets a hold of it, since `WebPage` never hands one out. Nil by default and wired
+    /// once at launch, the same as `SitePermissions.isPrivate`; kept a plain callback rather than
+    /// giving this file an import of the browser's own model, which it otherwise has none of.
+    ///
+    /// Returns whatever the caller needs kept alive, retained here and released in `forget(_:)`.
+    /// This is not decoration: `WKWebView.uiDelegate` is `weak`
+    /// (`GeolocationDelegateProxy` is the one caller so far), and a delegate nobody retains is one
+    /// ARC drops the instant this closure returns — measured by installing one, logging its class
+    /// right after, and finding `uiDelegate` `nil` again on the very next claim.
+    var onWebViewFound: (UUID, WKWebView) -> AnyObject? = { _, _ in nil }
+    private var retained: [UUID: AnyObject] = [:]
+
     /// Registers the web view a handle is standing on, if it can be found.
     ///
     /// **By frame, and not by walking the view tree.** Climbing from the handle to the nearest
@@ -55,10 +68,20 @@ final class WebViewResponder {
         guard let found else { return }
         views[tabID] = WeakView(found)
         Log.debug(.keys, "the keyboard can reach \(tabID.uuidString.prefix(8)) at \(Int(mine.width))pt")
+        // Called on every claim, not just the first — a page discarded and rebuilt is a new
+        // `WKWebView` behind the same tab id, and only `onWebViewFound`'s own callee
+        // (`GeolocationDelegateProxy.install`) can tell a fresh view from one it has already
+        // wrapped. Overwriting `retained[tabID]` on a real reinstall releases the old proxy, whose
+        // web view is already gone; a call that finds nothing new to keep returns `nil` and leaves
+        // the existing entry alone.
+        if let webView = found as? WKWebView, let keepAlive = onWebViewFound(tabID, webView) {
+            retained[tabID] = keepAlive
+        }
     }
 
     func forget(_ tabID: UUID) {
         views[tabID] = nil
+        retained[tabID] = nil
     }
 
     /// The live `WKWebView` behind a tab, for the one caller outside this file that has no other way
