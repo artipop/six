@@ -39,8 +39,12 @@ enum DisplayCapture {
     /// values in the same order (none, active, muted), which is what lets one indicator drive both.
     static func setState(_ state: WKMediaCaptureState, on webView: WKWebView) {
         guard webView.responds(to: setter), let method = class_getInstanceMethod(type(of: webView), setter) else { return }
-        typealias Setter = @convention(c) (WKWebView, Selector, Int, @convention(block) () -> Void) -> Void
-        unsafeBitCast(method_getImplementation(method), to: Setter.self)(webView, setter, state.rawValue, {})
+        // `@escaping`, because WebKit keeps the block to call when the GPU process answers — spelled
+        // without it, Swift's "non-escaping closure has escaped" check took the browser down on the
+        // first click. `@Sendable`, so it is not inferred onto the main actor and trapped when WebKit
+        // calls it from somewhere else.
+        typealias Setter = @convention(c) (WKWebView, Selector, Int, @escaping @Sendable @convention(block) () -> Void) -> Void
+        unsafeBitCast(method_getImplementation(method), to: Setter.self)(webView, setter, state.rawValue, { @Sendable in })
     }
 
     private final class Observer: NSObject {
