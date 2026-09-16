@@ -4472,6 +4472,46 @@
         }
       }
     },
+    "Sharing" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поделиться"
+          }
+        }
+      }
+    },
+    "In Other Apps' Share Menu" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В меню «Поделиться» других приложений"
+          }
+        }
+      }
+    },
+    "Puts six in the Share menu of Safari, Mail, Finder and anything else that shares a link: a page, some text or a file, and a sheet that asks which workspace it goes to. This is the same switch as the one in System Settings; six turns it on once, when it first finds it off." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавляет six в меню «Поделиться» Safari, Почты, Finder и всего, что умеет делиться ссылкой: страница, текст или файл, и окно с вопросом, на какой рабочий стол это положить. Это тот же переключатель, что в Системных настройках; six включает его один раз, когда впервые находит выключенным."
+          }
+        }
+      }
+    },
+    "macOS has no record of six's share extension yet. It is registered when the app is launched from where it is installed." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS пока не знает о расширении six. Оно регистрируется, когда приложение запускается оттуда, куда установлено."
+          }
+        }
+      }
+    },
     "Share" : {
       "localizations" : {
         "ru" : {

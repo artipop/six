@@ -172,6 +172,10 @@ private struct GeneralConfiguration: View {
                 }
             }
 
+            SwiftUI.Section("Sharing") {
+                ShareExtensionRow()
+            }
+
             // A development build is a second app wearing the same face, and giving it the web
             // would send every link on the machine into a browser that is about to be killed and
             // built again — so it is not offered the choice at all, rather than shown a dead one.
@@ -191,6 +195,39 @@ private struct GeneralConfiguration: View {
             }
         }
         .formStyle(.grouped)
+    }
+}
+
+/// The system's switch for six's own share extension, brought here.
+///
+/// It lives in System Settings, several screens deep; six switches it on once at the first launch
+/// that finds it off, and this is where it is turned back off (`ShareExtensionSwitch`). The state is
+/// read from the system every time this page appears rather than kept in the database: System
+/// Settings can have changed it since, and a switch that shows six's opinion instead of the system's
+/// would be a lie the moment it did.
+private struct ShareExtensionRow: View {
+    @State private var state: ShareExtensionSwitch.State?
+    @State private var isWorking = false
+
+    var body: some View {
+        Toggle("In Other Apps' Share Menu", isOn: Binding(
+            get: { state == .on },
+            set: { on in
+                isWorking = true
+                Task { state = await ShareExtensionSwitch.set(on); isWorking = false }
+            }
+        ))
+        .disabled(state == nil || state == .unregistered || isWorking)
+        .task { state = await ShareExtensionSwitch.state() }
+        if state == .unregistered {
+            Text("macOS has no record of six's share extension yet. It is registered when the app is launched from where it is installed.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        } else {
+            Text("Puts six in the Share menu of Safari, Mail, Finder and anything else that shares a link: a page, some text or a file, and a sheet that asks which workspace it goes to. This is the same switch as the one in System Settings; six turns it on once, when it first finds it off.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
     }
 }
 

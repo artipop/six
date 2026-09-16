@@ -170,9 +170,15 @@ What can be sent besides a link:
 | any other text | **Search**, with your search engine |
 | a PDF, HTML, web archive, image or plain-text file | Open |
 
-VI is not offered for any other kind of file. If VI is not in the menu at all,
-switch it on in System Settings, in the list of Sharing extensions. Taking pages
-from other apps is Mac-only for now.
+VI is not offered for any other kind of file.
+
+macOS registers extensions like this switched off, so VI switches itself into the
+Share menu — once, at the first launch that finds it off. Turning it back off, and
+on again, is where everything else is: **Configuration ▸ General ▸ Sharing ▸ In
+Other Apps' Share Menu**. It is the same switch as the one in System Settings,
+without the hunt for it; and if you switch it off yourself, VI leaves it off.
+
+Taking pages from other apps is Mac-only for now.
 
 ## The "This Window" menu
 

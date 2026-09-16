@@ -218,6 +218,16 @@ struct sixApp: App {
         }
         shareTargets.start()
         _shareTargets = State(initialValue: shareTargets)
+        // And the sheet itself, once: macOS registers a new share extension switched off, where
+        // nobody will find it. Once — the record is written whatever the answer, so switching it
+        // back off holds (`ShareExtensionSwitch`).
+        if !settings.hasOfferedShareExtension {
+            Task { @MainActor in
+                let state = await ShareExtensionSwitch.enableIfOff()
+                settings.hasOfferedShareExtension = true
+                Log.info(.app, "share extension: \(state)")
+            }
+        }
         #endif
         #if os(macOS)
         let terminating = NSApplication.willTerminateNotification

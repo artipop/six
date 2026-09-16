@@ -400,6 +400,18 @@ anything added there has to exist on both:
   down the first time a translation model finished downloading. Remove-if-present plus `moveItem`.
   `.libraryDirectory` on Windows answers with an *empty array*, which is the same shape of trap one
   subscript along — `AppSupport.logs` spells Windows out for that reason.
+- **A share extension is registered by bundle id, and another session's build answers for yours.** The
+  copy in the *other* worktree's DerivedData carries the same `org.deffun.six.dev.share`, and
+  LaunchServices picks one of them — so a rebuild here can change nothing that actually runs, and the
+  new log lines simply never appear. `pluginkit -m -v -i <id>` prints the path that won; `pluginkit -r
+  <the other .appex>` then `pluginkit -a <yours>` moves it, and `lsregister -f -R` on the app does not.
+  A freshly built extension is also registered **disabled** — the leading `+` in that listing is the
+  switch, and `pluginkit -e use -i <id>` is what System Settings' own toggle does.
+- **A share extension's view must be a hosting *controller*, not an `NSHostingView`.** The sheet is a
+  remote view owned by the app that shared, SwiftUI's sizing goes through the controller, and with a
+  bare hosting view the remote view never gets a size and never appears: the host app dims and draws
+  nothing, and Esc is the only way out. `viewDidAppear` never firing is the tell — an empty sheet still
+  appears. [docs/sharing.md](docs/sharing.md).
 - **`WebPage.callJavaScript` is not `callAsyncJavaScript`** — an `await` in the body fails at parse time with a bare
   "A JavaScript exception occurred". Page scripts stay synchronous; poll from Swift for anything that must wait.
 - **sqlite-vec on Apple's SQLite** works only per connection (`sqlite3_vec_init` from GRDB's `prepareDatabase`);

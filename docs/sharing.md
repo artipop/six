@@ -69,6 +69,44 @@ without that order it would turn into a search for its contents. **Add to Bookma
 (`OpenConfiguration.activates = false`). The bookmark goes to the profile of the chosen workspace, because bookmarks
 are kept per profile.
 
+### The switch
+
+macOS registers a newly installed share extension **disabled**, and the only switch for it is in
+System Settings, several screens deep, in a list where six is one line among a dozen. There is no
+`Info.plist` key that asks for it to be on, and no framework call either: `pluginkit` is the whole
+interface, and it is what System Settings itself drives.
+
+So `ShareExtensionSwitch` ([`six/Share/ShareExtensionSwitch.swift`](../six/Share/ShareExtensionSwitch.swift))
+shells out to it — six is not sandboxed — and the app does exactly two things with it:
+
+- **Switches it on once**, at the first launch that finds it off (`sixApp.init`). The record of having
+  done it (`ConfigurationStore.hasOfferedShareExtension`) is written whatever the answer was, so a
+  person who switches it back off is never overruled by the next launch.
+- **Shows the same switch** in Configuration ▸ General ▸ Sharing, read from the system every time the
+  page appears. Not cached in the database: System Settings can have changed it since, and a switch
+  showing six's opinion rather than the system's is a lie the moment it does.
+
+`pluginkit -m -i <id>` prints one line whose first character is the state (`+` on, a space off), and
+`pluginkit -e use|ignore -i <id>` is the write. No line at all means macOS has no record of the
+extension — the app has not been launched from where it is installed — and the row says so instead of
+offering a switch that would do nothing.
+
+### Two traps, both measured
+
+- **An `NSHostingView` as the controller's `view` never appears at all.** A share sheet is a *remote*
+  view: the app that shared owns the window, and what crosses the process boundary is a view
+  controller. SwiftUI's own sizing goes through a hosting *controller*, so with a bare hosting view
+  nothing ever gave the remote view a size — the note dimmed, nothing was drawn over it, and Esc was
+  the only way out. None of `viewWillAppear`, `viewDidLayout` or `viewDidAppear` ever fired, which is
+  the tell: a sheet that is merely empty still appears. An `NSHostingController` added as a child,
+  with `preferredContentSize` set in points, comes up at 440×420 with every callback firing.
+- **A share extension is registered by bundle id, and another build's copy answers for yours.**
+  Another session's `six.app` in its own DerivedData carries the same `org.deffun.six.dev.share`, and
+  LaunchServices resolved the id to *that* one — so a rebuild here changed nothing that ran, and three
+  rounds of "the new code never runs" were one stale copy. `pluginkit -m -v -i <id>` prints the path
+  that won, which is the only way to see it; `pluginkit -r <the other .appex>` and then
+  `pluginkit -a <yours>` puts it back. `lsregister -f -R` on the app does *not* move it.
+
 ### Checking it without a screen
 
 No clicks can be sent here (CLAUDE.md), so each half is checked on its own:

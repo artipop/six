@@ -73,6 +73,10 @@ final class ConfigurationStore {
         /// The certificate bundles six trusts on top of the system's, by id (a JSON array). Empty
         /// until somebody switches one on; see `CertificateStore`.
         case trustedCertificates = "trust.certificates"
+        /// Whether six has already switched its own share extension on for this person. Written once
+        /// and never read as a capability: it is the record of an offer made, so that a person who
+        /// switches it back off is not overruled at the next launch (`ShareExtensionSwitch`).
+        case shareExtensionOffered = "sharing.extensionOffered"
     }
 
     /// The app's instance, for the few static call sites (`SearchEngine.current`). Set at launch.
@@ -150,6 +154,12 @@ final class ConfigurationStore {
     var isAIEnabled: Bool {
         get { self[.aiEnabled].map { $0 == "1" } ?? true }
         set { self[.aiEnabled] = newValue ? "1" : "0" }
+    }
+
+    /// Has six already switched its share extension on once? See `ShareExtensionSwitch` for why once.
+    var hasOfferedShareExtension: Bool {
+        get { self[.shareExtensionOffered] == "1" }
+        set { self[.shareExtensionOffered] = newValue ? "1" : "0" }
     }
 
     /// Has the welcome window been answered? Until it has, it is what six opens with.
