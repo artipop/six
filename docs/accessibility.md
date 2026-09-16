@@ -195,32 +195,39 @@ Two things the probe learned that six will need if it goes this way:
 - **A rebuild costs the grant.** The bundle is ad-hoc signed, so re-signing it makes macOS ask again — the same
   trap the Debug app has.
 
-**Whose permission is it?** Measured three ways, because a second checkbox for the person to find and tick
-would be a poor trade for a tree.
+**Whose permission is it?** Five shapes, measured against a running build with six allowed in
+Privacy & Security ▸ Accessibility and nothing else granted:
 
-| who calls `AXIsProcessTrusted` | launched by | trusted, with six allowed |
+| who calls `AXIsProcessTrusted` | launched by | trusted |
 |---|---|---|
 | a separate binary in `Contents/Helpers` | six | **no** |
 | the same binary re-signed with six's identifier | six | **no** |
 | **six's own executable, `six --ax-read <pid>`** | six | **yes** |
 | six's own executable, same arguments | a shell | **no** |
+| **an XPC service in `Contents/XPCServices`** | six, through `NSXPCConnection` | **yes** |
 
-TCC's own log explains all four lines. A request is attributed up a chain —
-`AttributionChain: responsible={… identifier=org.deffun.six.dev …}`, `AUTHREQ_SUBJECT: subject=org.deffun.six.dev`
-— so *who launched it* decides whose permission is being asked for, which is why the same binary run from a
-terminal is refused: there the responsible process is the terminal. And the record is tied to the code that was
-allowed, which is why a different binary is refused even when six is the responsible process: `matches platform
-requirements: No`. Re-signing the helper with six's identifier does not help; for an ad-hoc signature the
-requirement is the code hash.
+TCC's log explains every line. A request is attributed up a chain — `AttributionChain:
+responsible={… identifier=org.deffun.six.dev …}`, `AUTHREQ_SUBJECT: subject=org.deffun.six.dev` — so who
+launched it decides whose permission is asked for, which is why the same binary run from a terminal is refused:
+there the responsible process is the terminal. And the grant is tied to the code that was allowed
+(`matchesCodeRequirement: … cdhash …`), which is why a *different* binary is refused even with six responsible.
+Re-signing the helper with six's identifier does not help: under an ad-hoc signature the requirement is the code
+hash.
 
-So the shape that costs the person nothing is six spawning **itself** with a flag, the way `--mcp` already works:
-same executable, same signature, the same single checkbox — and still a separate process, so nothing asks itself
-anything and the deadlock has no way in. (An XPC service is not obviously better: the one report on Apple's forums
-has the service appearing in the Accessibility list in its own right.)
+**An XPC service inside the bundle is trusted**, which is the tidiest of the shapes and the one Apple's own
+tooling produces. The measurement went only that far: the service reported `trusted: true`, and then asked its
+parent — which is `launchd`, since an XPC service is started by the system rather than by the app, so six's pid
+has to be handed to it over the connection. Reading a *given* process is the same `AXUIElement` call the outside
+probe already makes against six, so nothing else is expected to differ; it has not been run end to end.
 
-The measurement ran with a temporary `--ax-read` mode, which is not in this branch — it existed to answer the
-question and was taken out. What it did answer, it answered plainly: `trusted: true` from the child of six, and
-six went on working.
+So there are two workable shapes rather than one: an XPC service, or six spawning its own executable with a flag
+the way `--mcp` already does. Both are one checkbox, both are a second process, which is all the deadlock needs.
+
+**One more thing the probe found: ask twice.** WebKit builds a page's accessibility tree when it is first asked
+for one, so the first read after launch can come back with no web area at all — three passes over a fresh six
+counted 0, then 1, then 1, and a child that asked once reported "no web area … after 331 elements" while the
+probe asking a moment later walked the whole article. `PageAccessibilityReader` already re-reads after 400 ms for
+this reason; whatever does the asking has to keep that.
 
 **Signing, since the probe lost its grant twice.** That is ad-hoc signing, not something helpers do: with no Team
 ID, TCC has only the code directory hash to key the grant to, and every rebuild produces a new one. Signed with a
@@ -250,3 +257,13 @@ above, with its four blind spots.
 - **Other fronts.** WebKitGTK exposes the same tree over AT-SPI (D-Bus), so Linux could have this without a
   permission prompt. Windows' WebKit and iOS have no route.
 - **Cross-origin iframes** in separate processes (site isolation) appear as remote frames inside the tree; not tested.
+
+## Sources
+
+- [`AXUIElement`](https://developer.apple.com/documentation/applicationservices/axuielement) and
+  [`AXIsProcessTrustedWithOptions`](https://developer.apple.com/documentation/applicationservices/1459186-axisprocesstrustedwithoptions) — the API and the permission check.
+- [The Curious Case of the Responsible Process](https://www.qt.io/blog/the-curious-case-of-the-responsible-process) — what "responsible" means, and how a launched process inherits it.
+- [Permissions, privacy and TCC](https://eclecticlight.co/2025/11/08/explainer-permissions-privacy-and-tcc/) — how the records are kept and matched.
+- [Accessibility Permission in macOS](https://jano.dev/apple/macos/swift/2025/01/08/Accessibility-Permission.html) — including why App Sandbox rules this out entirely (six's is off).
+- [The host app appears in Accessibility Permission](https://developer.apple.com/forums/thread/777040) — the report that an extension's own entry can appear; our XPC measurement above is the answer for a service six launches itself.
+- [Focus follows mouse deadlocks on a hit test into its own SwiftUI panel](https://github.com/vorssaint/vorssaint-utils/issues/1420) — the same deadlock, found by someone else, with the same conclusion: do not ask yourself.
