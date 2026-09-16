@@ -44,6 +44,7 @@ from [`six/Localizable.xcstrings`](../six/Localizable.xcstrings) rather than tra
 | [devtools.md](devtools.md) | Web Inspector on six's pages, and the console/network capture the agent tools read |
 | [logging.md](logging.md) | what six says happened: the unified log, the file under `~/Library/Logs`, and the levels |
 | [mcp.md](mcp.md) | `six --mcp`: the browser as an MCP server, and its tools |
+| [accessibility.md](accessibility.md) | the accessibility overlay and `get_accessibility_tree`: WebKit's accessibility tree as the agent's eyes, read through `AXUIElement`, why that takes a permission — and why, with the permission given, the read deadlocks the browser |
 | [localization.md](localization.md) | the String Catalogs, English and Russian, and the line between what a person reads and what a model reads |
 | [android.md](android.md) | the fourth front end: Kotlin and Compose on the system WebView, what it shares with the Mac and what it deliberately does not |
 | [build.md](build.md) | toolchain, SDK override, sandbox |
@@ -53,3 +54,4 @@ from [`six/Localizable.xcstrings`](../six/Localizable.xcstrings) rather than tra
 | [passkeys.md](passkeys.md) | plan: WebAuthn / passkeys and password autofill in a third-party WebKit browser |
 | [storage.md](storage.md) | plan: where data lives, the portable core and the Apple/Linux adapters behind four protocol seams (diagram) |
 | [sync.md](sync.md) | plan: CloudKit sync of history and other records; what CloudKit can carry (and vectors) |
+| [webmcp.md](webmcp.md) | plan (in Russian): WebMCP — pages declaring tools for agents through `document.modelContext`, as six's own polyfill since WebKit opposes it |
