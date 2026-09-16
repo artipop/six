@@ -158,29 +158,62 @@ Until it does, **leave six switched off in Privacy & Security ▸ Accessibility*
 `kAXErrorAPIDisabled` at once and the feature is merely absent; trusted, the overlay and the tool are each one
 keystroke away from taking the browser down.
 
-### Where to go from here
+### Asked from outside instead — measured, and it works
 
-- **The DOM and its ARIA, read in the page** — [agent-actions.md](agent-actions.md#этап-2-снимок-и-действия-по-dom)'s
-  stage 2. Role from `role` and the tag, the name from `aria-label`/`aria-labelledby`/`alt`/the text inside,
-  hiddenness from `display`/`visibility`/`aria-hidden`/`inert`, the box from `getBoundingClientRect()`. It needs no
-  permission, it is the same code on every front, and acting happens where the reading happened. What it gives up is
-  what the engine computed: implicit roles, the full name-from-content rules, and the list of what an element
-  actually answers.
-- **A helper process that asks six from outside**, which is the direction `AXUIElement` was made for. VoiceOver reads
-  SwiftUI apps all day without hanging them, so the external direction is likely safe — but the suspension is still
-  done inside six, so this is a thing to measure before it is a thing to build, and it costs a second binary with a
-  permission of its own.
-- **Reading at a quiet moment** is not a way out: whether SwiftUI's lock is free cannot be known from inside, and the
-  suspension lands wherever the system decides.
+`~/sources/angels/axprobe` (outside this repo) is a small `.app` that asks *another* process for its tree, plus
+`stand/ax-stand.html`, ten cases where the two readings can disagree, and `stand/domdump.js`, the same page read
+the other way — roles from `role` and the tag, names from the obvious attributes, boxes from
+`getBoundingClientRect()`. A `.app` rather than a bare binary because a command run from a shell is answered for
+by the terminal, and the grant would land there.
+
+**What the tree holds that a DOM walk cannot get**, on the stand in Safari (the same engine, six not involved):
+
+| the case | the accessibility tree | the DOM walk in the page |
+|---|---|---|
+| a **closed** shadow root | its button and field are there | nothing: `shadowRoot` is `null` |
+| light DOM slotted into a shadow tree | the button is named "Slotted label" | the button has no name |
+| `aria-hidden`, `role=presentation`, `inert` | all three gone | all three present, unless the walk climbs every ancestor |
+| semantics from `ElementInternals` | `AXCheckBox (AXSwitch) "Custom switch"` | an element with no role at all |
+| `<canvas>` with fallback content | the button inside it | a canvas, and nothing in it |
+| an iframe | a web area of its own, with its button | not entered: another document |
+| `aria-labelledby`, `<label for>` | assembled by the engine | the same answer — this part JS can do |
+| what an element answers to | `press`, `increment`, `pick`… per element | nothing: the DOM does not say |
+
+So four of the ten cases are not "harder" from inside the page, they are unreachable. That is what the
+permission buys.
+
+**And the deadlock is specific to a process asking itself.** `axprobe` read the same page inside a running six
+with this branch's build: 400 elements in 0.17–0.40 s, closed shadow root included, three times in a row, and
+six answered over MCP immediately after each read and went on working. A Wikipedia article came back as
+1 889 elements in 0.65 s. Nothing suspended, nothing hung.
+
+Two things the probe learned that six will need if it goes this way:
+
+- **"The first web area" is a lottery.** six's rail keeps off-screen columns as web areas too, so one run walked
+  the neighbouring column's `example.com` instead of the page on screen. Take the widest web area that overlaps
+  a screen.
+- **A rebuild costs the grant.** The bundle is ad-hoc signed, so re-signing it makes macOS ask again — the same
+  trap the Debug app has.
+
+**Signing, since the probe lost its grant twice.** That is ad-hoc signing, not something helpers do: with no Team
+ID, TCC has only the code directory hash to key the grant to, and every rebuild produces a new one. Signed with a
+Developer ID identity, the grant is keyed to the designated requirement — team plus bundle id — and survives
+updates. six is ad-hoc signed today, Debug *and* the Release in `/Applications`, so this is a thing to fix before
+any of it ships, whichever way the read goes.
+
+The other half is already right: **App Sandbox is off** (`six/six.entitlements` says why — the ACP layer spawns
+the user's own toolchain), and it has to be, because a sandboxed process cannot be an accessibility client at all.
+
+What this does not answer: how six would carry a helper — a login item, an XPC service, a binary inside the app
+bundle launched on demand — and what it costs to keep one alive. Nor does it make the tree free: the read is
+still a permission the user grants, and the fallback for the fronts that are not the Mac is still the DOM walk
+above, with its four blind spots.
 
 ## Still not measured
 
-- the boxes sitting on the elements: full width, a split, a window half off the rail, page zoom, after a scroll;
-- time and element count on a long page (a Wikipedia article) — the legend prints both;
-- whether a Debug build keeps its grant across rebuilds;
-- the overlay's own prompt and the legend's button to the right Settings pane.
-
-All four wait on a read that does not hang.
+- the boxes sitting on the elements: full width, a split, a window half off the rail, page zoom, after a scroll —
+  all of it waits on a read six can actually perform;
+- whether the overlay's own prompt and the legend's button reach the right Settings pane.
 
 ## Not built
 
