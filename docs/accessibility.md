@@ -16,7 +16,7 @@ The user-facing account is
 | `six/Accessibility/PageAccessibilityReader.swift` | the walk: `AXUIElement` calls on a serial queue → `AXPageSnapshot`, plain values |
 | `six/Accessibility/AccessibilityOverlay.swift` | the model (`AccessibilityOverlay.shared`), placing the snapshot over the web view, the outline for a model, and the SwiftUI layer |
 | `six/Input/WebViewResponder.swift` | `webView(for:)` — the pane's `WKWebView`, which is the only way to know where on screen a `WebPage` is |
-| `six/Views/NiriStripView.swift` | mounts `AccessibilityOverlayView` over the focused pane |
+| `six/Views/TilingStripView.swift` | mounts `AccessibilityOverlayView` over the focused pane |
 | `six/Views/MacCommands.swift` | the View menu toggle |
 | `six/Tools/BrowserTools.swift` | `get_accessibility_tree` (`surfaces: .mcp`) |
 
