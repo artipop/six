@@ -83,22 +83,22 @@
         }
       }
     },
-    "In front" : {
+    "Current" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Впереди"
+            "value" : "Текущий"
           }
         }
       }
     },
-    "It opens in the workspace that is in front. Start six once and its workspaces are offered here." : {
+    "It opens in the workspace six has in front. Start six once, and its workspaces are offered here." : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Откроется на рабочем столе, который сейчас впереди. Запустите six хотя бы раз — и здесь можно будет выбрать рабочий стол."
+            "value" : "Откроется на текущем рабочем столе. Запустите six хотя бы раз — и здесь можно будет выбрать стол."
           }
         }
       }
@@ -198,7 +198,7 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "six не умеет открыть то, чем поделились."
+            "value" : "six не может открыть то, чем поделились."
           }
         }
       }

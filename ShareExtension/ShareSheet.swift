@@ -38,11 +38,6 @@ final class ShareModel {
         targets?.profiles.first { $0.id == profileID }
     }
 
-    /// For the view to say what happened to it, since nothing here can look at the sheet.
-    func note(_ message: String) {
-        log.info("\(message, privacy: .public)")
-    }
-
     func load(_ items: [NSExtensionItem]) async {
         targets = Self.readTargets()
         let selected = targets?.profiles.first(where: \.isSelected) ?? targets?.profiles.first
@@ -194,13 +189,6 @@ struct ShareSheet: View {
         // The controller's size, filled from the top: a sheet in somebody else's window cannot grow
         // to fit, so the list of workspaces scrolls and everything else keeps its place.
         .frame(width: ShareViewController.size.width, height: ShareViewController.size.height, alignment: .topLeading)
-        // What SwiftUI itself made of it. The AppKit side can report a view of the right size around a
-        // body that laid out as nothing, and from here neither a screenshot nor a click is available.
-        .background {
-            GeometryReader { proxy in
-                Color.clear.onAppear { model.note("body laid out at \(proxy.size.width)×\(proxy.size.height)") }
-            }
-        }
     }
 
     private var header: some View {
@@ -257,7 +245,7 @@ struct ShareSheet: View {
                 }
             }
         } else {
-            Text("It opens in the workspace that is in front. Start six once and its workspaces are offered here.")
+            Text("It opens in the workspace six has in front. Start six once, and its workspaces are offered here.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -353,7 +341,7 @@ private struct WorkspaceRow: View {
                 }
                 Spacer(minLength: 0)
                 if workspace.isFocused {
-                    Text("In front")
+                    Text("Current")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }

@@ -152,8 +152,8 @@ Mail, Finder. Pick it, and a sheet comes up over that app and asks where the pag
 goes:
 
 - the profile, if there is more than one;
-- the workspace: each row shows its first windows' titles, the current one is
-  marked **In front**, and the last one, **New Workspace**, gives the page a row of
+- the workspace: each row shows its first windows' titles, the one open now is
+  marked **Current**, and the last one, **New Workspace**, gives the page a row of
   its own;
 - **Open** opens the page as a new window on that workspace and brings VI
   forward;
