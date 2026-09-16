@@ -174,13 +174,21 @@ by the terminal, and the grant would land there.
 | light DOM slotted into a shadow tree | the button is named "Slotted label" | the button has no name |
 | `aria-hidden`, `role=presentation`, `inert` | all three gone | all three present, unless the walk climbs every ancestor |
 | semantics from `ElementInternals` | `AXCheckBox (AXSwitch) "Custom switch"` | an element with no role at all |
-| `<canvas>` with fallback content | the button inside it | a canvas, and nothing in it |
-| an iframe | a web area of its own, with its button | not entered: another document |
+| `<canvas>` with fallback content | the button inside it | **the same button**: the fallback is ordinary DOM |
+| an iframe | a web area of its own, with its button | **its own document**: same-origin from the page, any origin from six, which can inject per frame (`forMainFrameOnly: false`, as `DevToolsStore` already does) |
 | `aria-labelledby`, `<label for>` | assembled by the engine | the same answer — this part JS can do |
 | what an element answers to | `press`, `increment`, `pick`… per element | nothing: the DOM does not say |
 
-So four of the ten cases are not "harder" from inside the page, they are unreachable. That is what the
-permission buys.
+Two of those rows were the probe's own fault and were corrected after measuring: a canvas's fallback children
+are in the DOM like any others, and a frame is readable — same-origin directly, any origin by injecting into
+every frame and joining the answers, which six already does for console capture. What is left genuinely out of
+reach from inside the page is **two** things: a **closed** shadow root, whose `shadowRoot` is `null` by design,
+and semantics a custom element declares through **`ElementInternals`**, which are deliberately not reflected to
+anyone outside the component — measured on the stand: `getAttribute("role")` and `el.role` both `null` while
+the tree says `AXCheckBox (AXSwitch) "Custom switch"`. Everything else is a matter of how much of the accname
+and hidden-ness rules the walk bothers to implement.
+
+That is what the permission buys — and it is worth knowing it is that narrow before paying for it.
 
 **And the deadlock is specific to a process asking itself.** `axprobe` read the same page inside a running six
 with this branch's build: 400 elements in 0.17–0.40 s, closed shadow root included, three times in a row, and
