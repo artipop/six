@@ -1,7 +1,13 @@
 # The accessibility tree as the agent's eyes
 
 View ▸ Accessibility Overlay (`⌥⌘A`) draws WebKit's accessibility tree over the focused window's page, and
-`get_accessibility_tree` hands the same read to an agent as numbered lines. Mac only. The user-facing account is
+`get_accessibility_tree` hands the same read to an agent as numbered lines. Mac only.
+
+**None of it can be used yet.** Measured on the Mac, the read deadlocks the browser the first time it is allowed to
+happen — "What the Mac answered" below has the two stacks and what follows from them. The branch is kept for the
+walk, the placing and the outline, which are all still right; what has to change is who asks for the tree.
+
+The user-facing account is
 [guide/accessibility.md](guide/accessibility.md); the plan for acting on what is seen is
 [agent-actions.md](agent-actions.md).
 
@@ -46,8 +52,10 @@ Checked in WebKit's source (`Source/WebKit/UIProcess/mac/WebViewImpl.mm`, Septem
 **The one thing still open is the second point**, and `AccessibilityOverlay.probe` exists to settle it: once per
 launch it logs what the web view's in-process child answers for `AXRole` and `AXChildren`, through the old
 `accessibilityAttributeValue:`. If the remote element does answer in-process — if AppKit forwards it without the
-client API's trust check — the tree can be walked without the permission, and the reader should move to that. Read
-it in the log:
+client API's trust check — the tree can be walked without the permission, and the reader should move to that. It
+does not: with the permission not yet granted the line read `trusted false; the web view's own children in process:
+[]`, so the in-process side really does stop at the token and the client API really is the only way in. Read it in
+the log:
 
 ```sh
 grep "accessibility probe" ~/Library/Logs/org.deffun.six.dev/six.log
@@ -120,18 +128,59 @@ given.
 The window must be on screen: the tree is read from what is displayed, and the tool says `focus_window` rather than
 reading a pane that is off the edge of the rail.
 
-## Not verified
+## What the Mac answered
 
-This was written on the Windows machine, with no Mac to build or run it on. Before it is believed, on the Mac:
+Built and run on the Mac (macOS 27, Debug, 16 September 2026). Three of the questions below are answered, and the
+fourth answer stops the feature.
 
-- both Apple schemes build (everything new is inside `#if os(macOS)`; the tool's body has an `#else` for iOS);
-- turning the overlay on puts up macOS's own Accessibility prompt; the legend's button opens the right pane;
-- the probe line above — what the in-process child answers;
-- the hit test reaches the web area (or the downward fallback does) — `get_accessibility_tree` over `six --mcp` on a
-  plain page;
-- the boxes sit on the elements: full width, a split, a window half off the rail, page zoom, after a scroll;
+- **Both Apple schemes build**, with no warning from any of the new files, and `SixCore`'s 201 tests pass.
+- **Without the permission the tool refuses politely** — "six is not allowed to use macOS accessibility… the user has
+  to switch six on in System Settings ▸ Privacy & Security ▸ Accessibility" — and `AccessibilityOverlay.probe`
+  answered `trusted false; the web view's own children in process: []` (above).
+- **With the permission granted, the first read deadlocks the browser.** Reproduced twice: once by turning the
+  overlay on with `⌥⌘A`, once by calling `get_accessibility_tree` over `six --mcp` with no window and no menu
+  involved. The app stays alive at 0% CPU and answers nothing — no MCP, no clicks — and only a kill ends it.
+
+`sample` says the same thing both times. The thread that serves accessibility questions *inside six* suspends
+another thread of six to answer, and that thread is holding SwiftUI's update lock:
+
+```
+main thread   UpdateGroup.begin() → _MovableLockLock → _pthread_mutex_firstfit_lock_wait → __psynch_mutexwait
+HIE: … thread SOME_OTHER_THREAD_SWALLOWED_AT_LEAST_ONE_EXCEPTION (in HIServices) → thread_suspend
+```
+
+So the lock is never given back and the main thread waits for it forever. Nothing in `PageAccessibilityReader` is
+wrong in itself — the read is already off the main thread, with a 1.5 s messaging timeout — because the suspension
+is done by the system, at a point of its choosing, in a process that is asking *itself*. That is the part that has
+to change: the question has to come from outside six.
+
+Until it does, **leave six switched off in Privacy & Security ▸ Accessibility**. Untrusted, the API answers
+`kAXErrorAPIDisabled` at once and the feature is merely absent; trusted, the overlay and the tool are each one
+keystroke away from taking the browser down.
+
+### Where to go from here
+
+- **The DOM and its ARIA, read in the page** — [agent-actions.md](agent-actions.md#этап-2-снимок-и-действия-по-dom)'s
+  stage 2. Role from `role` and the tag, the name from `aria-label`/`aria-labelledby`/`alt`/the text inside,
+  hiddenness from `display`/`visibility`/`aria-hidden`/`inert`, the box from `getBoundingClientRect()`. It needs no
+  permission, it is the same code on every front, and acting happens where the reading happened. What it gives up is
+  what the engine computed: implicit roles, the full name-from-content rules, and the list of what an element
+  actually answers.
+- **A helper process that asks six from outside**, which is the direction `AXUIElement` was made for. VoiceOver reads
+  SwiftUI apps all day without hanging them, so the external direction is likely safe — but the suspension is still
+  done inside six, so this is a thing to measure before it is a thing to build, and it costs a second binary with a
+  permission of its own.
+- **Reading at a quiet moment** is not a way out: whether SwiftUI's lock is free cannot be known from inside, and the
+  suspension lands wherever the system decides.
+
+## Still not measured
+
+- the boxes sitting on the elements: full width, a split, a window half off the rail, page zoom, after a scroll;
 - time and element count on a long page (a Wikipedia article) — the legend prints both;
-- a Debug build keeps its grant across rebuilds; a re-signed binary can lose it, and then the legend says so.
+- whether a Debug build keeps its grant across rebuilds;
+- the overlay's own prompt and the legend's button to the right Settings pane.
+
+All four wait on a read that does not hang.
 
 ## Not built
 
