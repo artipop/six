@@ -195,6 +195,33 @@ Two things the probe learned that six will need if it goes this way:
 - **A rebuild costs the grant.** The bundle is ad-hoc signed, so re-signing it makes macOS ask again — the same
   trap the Debug app has.
 
+**Whose permission is it?** Measured three ways, because a second checkbox for the person to find and tick
+would be a poor trade for a tree.
+
+| who calls `AXIsProcessTrusted` | launched by | trusted, with six allowed |
+|---|---|---|
+| a separate binary in `Contents/Helpers` | six | **no** |
+| the same binary re-signed with six's identifier | six | **no** |
+| **six's own executable, `six --ax-read <pid>`** | six | **yes** |
+| six's own executable, same arguments | a shell | **no** |
+
+TCC's own log explains all four lines. A request is attributed up a chain —
+`AttributionChain: responsible={… identifier=org.deffun.six.dev …}`, `AUTHREQ_SUBJECT: subject=org.deffun.six.dev`
+— so *who launched it* decides whose permission is being asked for, which is why the same binary run from a
+terminal is refused: there the responsible process is the terminal. And the record is tied to the code that was
+allowed, which is why a different binary is refused even when six is the responsible process: `matches platform
+requirements: No`. Re-signing the helper with six's identifier does not help; for an ad-hoc signature the
+requirement is the code hash.
+
+So the shape that costs the person nothing is six spawning **itself** with a flag, the way `--mcp` already works:
+same executable, same signature, the same single checkbox — and still a separate process, so nothing asks itself
+anything and the deadlock has no way in. (An XPC service is not obviously better: the one report on Apple's forums
+has the service appearing in the Accessibility list in its own right.)
+
+The measurement ran with a temporary `--ax-read` mode, which is not in this branch — it existed to answer the
+question and was taken out. What it did answer, it answered plainly: `trusted: true` from the child of six, and
+six went on working.
+
 **Signing, since the probe lost its grant twice.** That is ad-hoc signing, not something helpers do: with no Team
 ID, TCC has only the code directory hash to key the grant to, and every rebuild produces a new one. Signed with a
 Developer ID identity, the grant is keyed to the designated requirement — team plus bundle id — and survives
@@ -204,8 +231,8 @@ any of it ships, whichever way the read goes.
 The other half is already right: **App Sandbox is off** (`six/six.entitlements` says why — the ACP layer spawns
 the user's own toolchain), and it has to be, because a sandboxed process cannot be an accessibility client at all.
 
-What this does not answer: how six would carry a helper — a login item, an XPC service, a binary inside the app
-bundle launched on demand — and what it costs to keep one alive. Nor does it make the tree free: the read is
+What this does not answer: what it costs to keep a second process alive — when to start it, when to let it go,
+and how the two halves talk (a pipe, XPC, a file). Nor does it make the tree free: the read is
 still a permission the user grants, and the fallback for the fronts that are not the Mac is still the DOM walk
 above, with its four blind spots.
 
