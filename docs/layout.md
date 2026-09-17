@@ -593,8 +593,17 @@ instead of turning microscopic. Scrolling sideways pans the rail freely there; `
 the scale) is what every offset is measured against, so the same clamping code serves both modes. Leaving the overview
 puts the rail back under the focused window.
 
-Pages keep rendering but stop taking clicks — the same `ClickCatcher` covers every column — so one click focuses a
-window and leaves the overview.
+A web page is a card there (`ColumnPlaceholder`) with its last picture, and one click on any window focuses it and
+leaves the overview. Six's own pages — configuration, MCP apps — are cards too, with no
+picture, and they stay cards until the zoom back in has finished (`BrowserState.isLeavingOverview`, cleared by the
+exit animation's `.removed` completion). They are SwiftUI, but a form's text fields and steppers are AppKit views,
+and laid out under a scale that is still animating they never settle: each frame of the zoom was a run of SwiftUI's
+"maximum length doesn't satisfy min <= max" faults, about a hundred per open or close, and a crash on 2026-09-17 —
+the configuration page open, the overview opened and closed quickly — was AppKit's layout giving up in the same place
+("more Update Constraints in Window passes than there are views in the window", then an `NSGenericException`). The
+crash itself was not reproduced by a scripted run; the faults were, and with the cards they are gone — zero over 300
+toggles and workspace jumps 40–400 ms apart. `.logicallyComplete` was not enough: the spring's tail still moved the
+scale after it, and a few faults came back each time the page did.
 
 ### Carrying a window
 

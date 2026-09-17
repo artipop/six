@@ -1442,6 +1442,12 @@ final class BrowserState {
     /// The overview has been asked for and is waiting on the pictures of the windows on screen.
     @ObservationIgnored private var overviewOpening = false
 
+    /// The overview has closed and the canvas is still zooming back in. Six's own pages stay cards
+    /// until it is done: they hold AppKit controls, and those laid out under a scale on its way
+    /// somewhere never settle (`ColumnView`, where the card is chosen).
+    private(set) var isLeavingOverview = false
+    @ObservationIgnored private var overviewExits = 0
+
     /// Opening waits, for a moment at most, for the windows on screen to have their pictures taken.
     ///
     /// The overview shows every window as a card, so its web view is unmounted the moment the flag
@@ -1490,11 +1496,19 @@ final class BrowserState {
         NiriLayout.trace("exitOverview (isOverview \(layout.isOverview))")
         guard layout.isOverview else { return }
         layout.cancelColumnDrag() // a window in the hand is put back where it was, not carried out
-        withAnimation(NiriLayout.switchAnimation) {
+        isLeavingOverview = true
+        overviewExits += 1
+        let exit = overviewExits
+        withAnimation(NiriLayout.switchAnimation, completionCriteria: .removed) {
             layout.isOverview = false
             // Free overview scrolling leaves the offset anywhere, and a rail going back to a filled
             // window changes every width on the way out.
             layout.recenterStrips()
+        } completion: { [weak self] in
+            // Only the latest exit's: one interrupted by opening again and closing again must not
+            // end the second one's zoom early.
+            guard let self, exit == self.overviewExits else { return }
+            self.isLeavingOverview = false
         }
     }
 

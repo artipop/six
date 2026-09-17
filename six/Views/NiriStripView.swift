@@ -595,9 +595,18 @@ private struct ColumnView: View {
                                 .onTapGesture(perform: activate)
                         }
                     }
-            } else if let page = tab.builtIn {
+            } else if let page = tab.builtIn, !browser.layout.isOverview, !browser.isLeavingOverview {
                 // One of six's own, and pure SwiftUI like the start page: no web content process is
                 // spent on a list of servers.
+                //
+                // Not in the overview, where it is a card like every page, nor on the way out of it.
+                // SwiftUI here is not only SwiftUI: a form's text fields and steppers are AppKit
+                // views, and under a scale that is animating they are laid out at fractional sizes
+                // that do not settle — every frame of the zoom was a run of "maximum length doesn't
+                // satisfy min <= max" faults from them. A crash on 2026-09-17, with the configuration
+                // page open and the overview being opened and closed quickly, came out of the same
+                // place: more constraint passes in one display cycle than the window has views, and
+                // an exception out of AppKit's layout.
                 BuiltInPageView(page: page, tab: tab)
                     .allowsHitTesting(!capturesClicks)
                     .overlay {
@@ -766,7 +775,7 @@ private struct ColumnPlaceholder: View {
 
     private var card: some View {
         VStack(spacing: 8) {
-            Image(systemName: tab.isDocument ? "doc.text" : "globe")
+            Image(systemName: tab.isDocument ? "doc.text" : tab.builtIn != nil ? "macwindow" : "globe")
                 .font(.system(size: 30, weight: .light))
                 .foregroundStyle(accent)
             Text(tab.title)

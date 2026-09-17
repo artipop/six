@@ -258,7 +258,8 @@ In the overview:
   clears it.
 
 Nothing loads in the overview: every window there is a card, and a card is the
-last picture of its page.
+last picture of its page. Six's own pages — Configuration, MCP Apps — have no
+picture, and in the overview they are a card with their name.
 
 ### On Windows and Linux
 
