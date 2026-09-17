@@ -108,7 +108,36 @@ private struct ProfilePopover: View {
                 .frame(height: 24)
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(HoverHighlightStyle(cornerRadius: 7, idle: 0.45))
+    }
+}
+
+/// A plain button that says it is under the pointer, the way a profile row does.
+///
+/// `.plain` draws nothing on hover, so the footer items and the row's edit button looked dead next to
+/// the rows that light up — the pointer gave no sign that they were something to click. `idle` is how
+/// strong the highlight is: a footer item matches a row, and the edit button, which sits *inside* a row
+/// that is already lit, has to be a step stronger or it would not show at all.
+private struct HoverHighlightStyle: ButtonStyle {
+    var cornerRadius: CGFloat
+    var idle: Double
+
+    func makeBody(configuration: ButtonStyleConfiguration) -> some View {
+        Highlighted(configuration: configuration, cornerRadius: cornerRadius, idle: idle)
+    }
+
+    private struct Highlighted: View {
+        let configuration: ButtonStyleConfiguration
+        let cornerRadius: CGFloat
+        let idle: Double
+        @State private var hovering = false
+
+        var body: some View {
+            configuration.label
+                .background(.quaternary.opacity(configuration.isPressed ? min(1, idle + 0.35) : hovering ? idle : 0),
+                            in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+                .onHover { hovering = $0 }
+        }
     }
 }
 
@@ -174,7 +203,7 @@ private struct ProfileRow: View {
                     .frame(width: 18, height: 18)
                     .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(HoverHighlightStyle(cornerRadius: 5, idle: 0.9))
             .foregroundStyle(.secondary)
             .opacity(hovering || isEditing || isSelected ? 1 : 0)
             .help(isEditing ? "Done" : "Edit this profile")
