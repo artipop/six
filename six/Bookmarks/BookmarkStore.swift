@@ -347,6 +347,30 @@ final class BookmarkStore {
         }
     }
 
+    /// Saved pages whose address or title starts with what is typed — the address field's half of
+    /// the bookmarks, and the half `PersonalSuggestions` deliberately leaves out: it asks the vectors
+    /// what a query is *about*, and declines anything under three letters or shaped like an address,
+    /// which is exactly what somebody typing `git` for the GitHub page they saved is doing. Plain
+    /// string tests, so it answers on the first key and with no model loaded.
+    func suggest(_ query: String, in scope: BookmarkScope, profileID: Profile.ID, limit: Int) -> [Bookmark] {
+        let needle = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !needle.isEmpty else { return [] }
+        let scored: [(Bookmark, Int)] = entries(in: scope, profileID: profileID).compactMap { bookmark in
+            let host = (bookmark.url.host(percentEncoded: false) ?? "").lowercased()
+            let bareHost = host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
+            let title = bookmark.title.lowercased()
+            if bareHost.hasPrefix(needle) || host.hasPrefix(needle) { return (bookmark, 3) }
+            if title.hasPrefix(needle) { return (bookmark, 2) }
+            // Under two letters "somewhere in it" is every bookmark there is.
+            guard needle.count >= 2 else { return nil }
+            let address = (bookmark.url.absoluteString.removingPercentEncoding ?? bookmark.url.absoluteString).lowercased()
+            if title.contains(needle) || address.contains(needle) { return (bookmark, 1) }
+            return nil
+        }
+        // `entries` is newest first and the sort is stable, so a tie goes to the one saved last.
+        return scored.sorted { $0.1 > $1.1 }.prefix(limit).map(\.0)
+    }
+
     func count(in profileID: Profile.ID) -> Int {
         _ = revision
         return (try? database.read { db in try Bookmark.where { $0.profileID.eq(profileID) }.count().fetchOne(db) }) ?? 0

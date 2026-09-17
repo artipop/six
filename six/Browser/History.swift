@@ -113,34 +113,85 @@ final class HistoryStore {
         }
     }
 
-    /// Completions for the start page: pages of this profile matching what is typed, one per URL,
-    /// the ones visited often and recently first. A host prefix (`git` → github.com) beats a match
-    /// somewhere in the middle of a title.
+    /// Completions for the start page and the address field: pages of this profile matching what is
+    /// typed, one row per page, the ones visited often and recently first. A host prefix
+    /// (`git` → github.com) or the start of a query you searched before beats a match somewhere in
+    /// the middle of a title.
+    ///
+    /// Matched against what a person *reads*, not against what the database holds. A search is
+    /// stored as `duckduckgo.com/?q=%D0%BF%D0%BB…` with no title of its own — DuckDuckGo never sets
+    /// one before the results render, and often not after — so a substring test over the raw
+    /// address found every Latin query and not a single Cyrillic one. The query is decoded out of the
+    /// address (`SearchEngine.search(from:)`) and the address itself percent-decoded before anything
+    /// is compared.
     func suggest(_ query: String, in profileID: UUID, limit: Int) -> [Visit] {
         let needle = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !needle.isEmpty else { return [] }
         let now = Date()
-        var best: [URL: (entry: Visit, score: Double)] = [:]
+        var best: [String: (entry: Visit, score: Double)] = [:]
         for entry in window(profileID, limit: Self.rankingWindow) {
-            let host = (entry.url.host() ?? "").lowercased()
-            let bareHost = host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
-            let title = entry.title.lowercased()
-            let address = entry.url.absoluteString.lowercased()
-            let match: Double
-            if bareHost.hasPrefix(needle) || host.hasPrefix(needle) { match = 3 }
-            else if title.hasPrefix(needle) { match = 2 }
-            else if title.contains(needle) || address.contains(needle) { match = 1 }
-            else { continue }
+            guard let match = Self.match(needle, against: entry) else { continue }
             // Visits decay over a couple of weeks, so a page hammered last month doesn't outrank today's.
             let age = now.timeIntervalSince(entry.visitedAt) / 86_400
             let score = match * (1 + 1 / (1 + age / 14))
-            if let existing = best[entry.url] {
-                best[entry.url] = (existing.entry, existing.score + score)
+            let key = Self.suggestionKey(entry.url)
+            if let existing = best[key] {
+                // The window is newest first, so the row keeps the latest visit — unless that one
+                // never got a title and an older one did.
+                let kept = existing.entry.title.isEmpty && !entry.title.isEmpty ? entry : existing.entry
+                best[key] = (kept, existing.score + score)
             } else {
-                best[entry.url] = (entry, score)
+                best[key] = (entry, score)
             }
         }
         return best.values.sorted { $0.score > $1.score }.prefix(limit).map(\.entry)
+    }
+
+    /// How well `needle` (lowercased, trimmed) matches a visit, or nil when it does not.
+    static func match(_ needle: String, against entry: Visit) -> Double? {
+        // Under two letters a match "somewhere in the middle" is every page there is.
+        let loose = needle.count >= 2
+        if let search = SearchEngine.search(from: entry.url) {
+            let asked = search.query.lowercased()
+            if asked.hasPrefix(needle) { return 3 }
+            if startsAWord(needle, in: asked) { return 2 }
+            if loose, asked.contains(needle) { return 1 }
+            return nil
+        }
+        let host = (entry.url.host(percentEncoded: false) ?? "").lowercased()
+        let bareHost = host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
+        let shownHost = IDN.displayHost(bareHost).lowercased()
+        if bareHost.hasPrefix(needle) || host.hasPrefix(needle) || shownHost.hasPrefix(needle) { return 3 }
+        let title = entry.title.lowercased()
+        if title.hasPrefix(needle) { return 2 }
+        if startsAWord(needle, in: title) { return 1.5 }
+        guard loose else { return nil }
+        let address = (entry.url.absoluteString.removingPercentEncoding ?? entry.url.absoluteString).lowercased()
+        if title.contains(needle) || address.contains(needle) { return 1 }
+        return nil
+    }
+
+    /// One row per page as a person counts pages: a search is its engine and query, whatever else
+    /// the engine added to the address (`&ia=web`, `&t=h_`), and a page is its address without the
+    /// fragment — Telegram's web client is one page with a different `#chat` for every chat.
+    nonisolated static func suggestionKey(_ url: URL) -> String {
+        if let search = SearchEngine.search(from: url) {
+            return "search:\(search.engine.rawValue):\(search.query.lowercased())"
+        }
+        var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        components?.fragment = nil
+        return components?.url?.absoluteString ?? url.absoluteString
+    }
+
+    private nonisolated static func startsAWord(_ needle: String, in text: String) -> Bool {
+        var from = text.startIndex
+        while let range = text.range(of: needle, range: from..<text.endIndex) {
+            if range.lowerBound == text.startIndex { return true }
+            let before = text[text.index(before: range.lowerBound)]
+            if !before.isLetter && !before.isNumber { return true }
+            from = text.index(after: range.lowerBound)
+        }
+        return false
     }
 
     // MARK: Plumbing

@@ -17,7 +17,15 @@ struct AddressBar: View {
     @Environment(BrowserState.self) private var browser
     @Environment(ContentBlocker.self) private var blocker
     @Environment(SitePermissions.self) private var permissions
+    @Environment(BookmarkStore.self) private var bookmarks
+    @Environment(ConfigurationStore.self) private var settings
     @State private var text = ""
+    /// What the field was last filled with by six rather than by a hand — the page's address. The
+    /// list opens only once the text differs from it: an address field that dropped a list over the
+    /// page every time ⌘L was pressed would be in the way of the one thing ⌘L is mostly for, copying.
+    @State private var filled = ""
+    @State private var suggestions = AddressSuggestions()
+    @State private var selection: Int?
 
     private var isEditing: Bool { addressFocus.wrappedValue == tab.id }
     private var isWebPage: Bool { tab.currentURL?.scheme?.hasPrefix("http") == true }
@@ -70,8 +78,26 @@ struct AddressBar: View {
                 .lineLimit(1)
                 .focused(addressFocus, equals: tab.id)
                 .onSubmit {
-                    tab.navigate(to: text)
+                    let rows = rows
+                    if let selection, rows.indices.contains(selection) {
+                        rows[selection].open(in: tab)
+                    } else {
+                        tab.navigate(to: text)
+                    }
                     addressFocus.wrappedValue = nil
+                }
+                .onKeyPress(.downArrow) { move(1) }
+                .onKeyPress(.upArrow) { move(-1) }
+                // Esc puts the page's address back, and on a field that already shows it lets go of
+                // the caret — what every address bar does with it.
+                .onKeyPress(.escape) {
+                    guard isEditing else { return .ignored }
+                    if text != filled {
+                        text = filled
+                    } else {
+                        addressFocus.wrappedValue = nil
+                    }
+                    return .handled
                 }
             translate
             // ⌘⇧C leaves nothing on screen; this is the whole of what it says. Two rectangles
@@ -97,18 +123,75 @@ struct AddressBar: View {
         // The field belongs to whichever window is focused, so it has to be repointed when the focus
         // moves as well as when the page navigates — `tab` itself changes under it.
         .onChange(of: tab.currentURL, initial: true) { _, url in
-            if !isEditing { text = displayString(for: url) }
+            if !isEditing { fill(displayString(for: url)) }
         }
         .onChange(of: tab.id, initial: true) { _, _ in
-            if !isEditing { text = displayString(for: tab.currentURL) }
+            if !isEditing { fill(displayString(for: tab.currentURL)) }
         }
         .onChange(of: isEditing) { _, editing in
             guard editing, let url = tab.currentURL else {
-                text = displayString(for: tab.currentURL)
+                fill(displayString(for: tab.currentURL))
                 return
             }
-            text = IDN.displayURL(url)
+            fill(IDN.displayURL(url))
         }
+        .onChange(of: text) { _, value in
+            selection = nil
+            if isEditing, value != filled {
+                suggestions.update(for: value, context: context)
+            } else {
+                suggestions.clear()
+            }
+        }
+        .onChange(of: settings.searchEngine) { _, _ in
+            if isEditing, text != filled { suggestions.update(for: text, context: context) }
+        }
+        // Under the field and over the page, from the field's own leading edge. The top bar is in
+        // front of the rail (`ContentView`), which is what lets this hang below the bar at all.
+        .overlay(alignment: .topLeading) {
+            let rows = rows
+            if !rows.isEmpty {
+                SuggestionList(rows: rows, selection: $selection, accent: profileColor, compact: true) { row in
+                    row.open(in: tab)
+                    addressFocus.wrappedValue = nil
+                }
+                .fixedSize(horizontal: false, vertical: true)
+                .offset(y: 28)
+                .shadow(color: .black.opacity(0.18), radius: 10, y: 4)
+            }
+        }
+    }
+
+    // MARK: Suggestions
+
+    private var context: AddressSuggestions.Context {
+        AddressSuggestions.Context(history: browser.history, bookmarks: bookmarks, scope: settings.bookmarkScope,
+                                   profileID: tab.profileID, isPrivate: browser.isPrivate(tab.profileID),
+                                   searchEngine: settings.searchEngine)
+    }
+
+    private var profileColor: Color {
+        browser.profiles.first { $0.id == tab.profileID }?.color ?? .accentColor
+    }
+
+    /// Only while somebody is typing: the field showing the page's own address has nothing to offer.
+    private var rows: [AddressSuggestions.Row] {
+        guard isEditing, text != filled else { return [] }
+        return suggestions.rows(for: text, context: context, limits: AddressSuggestions.Limits(rows: 8))
+    }
+
+    /// Text six put in the field, as opposed to text somebody typed.
+    private func fill(_ value: String) {
+        filled = value
+        text = value
+    }
+
+    private func move(_ delta: Int) -> KeyPress.Result {
+        let count = rows.count
+        guard count > 0 else { return .ignored }
+        let next = (selection ?? -1) + delta
+        selection = next < 0 ? nil : min(next, count - 1)
+        return .handled
     }
 
     /// The whole address once you are typing in it; the host and path at rest, because a query string

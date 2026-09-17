@@ -43,9 +43,11 @@ As you type, completions gather under it, in this order:
 1. an **address row**, when what you typed looks like one (`apple.com`,
    `localhost:3000`, anything with a scheme), so that `↩` opens it rather than
    searching for it;
-2. up to two **pages you saved**, found by meaning rather than by their titles;
-3. up to four pages **from this profile's history**, by title and host, the
-   often-visited ones first;
+2. up to three **pages you saved**, by the start of the address or title
+   (`git` — the GitHub page you saved) and by meaning;
+3. up to four pages **from this profile's history**, by title, host and
+   address, the often-visited ones first. A past search is found by what you
+   searched for, in any language;
 4. the search engine's own suggestions, each labelled with the engine — *DuckDuckGo
    Search*, *Google Search*, *Bing Search*, *Yandex Search* — so it is clear where
    `↩` goes.
@@ -55,6 +57,11 @@ history is a page you happened to open, and a completion is what everybody else
 is typing.
 
 `↑` `↓` walk the rows, `↩` opens the selected one, `Esc` clears the field, and on an empty one lets go of the caret — as does a click beside the field.
+
+The same completions — bookmarks, history and the engine — drop down under the
+**address field** (`⌘L`) as soon as you start typing in it. `↑` `↓` and `↩` work
+the same there, and `Esc` first puts the page's address back, then lets go of
+the field.
 
 The engine is switched from the chip to the left of the field, or from
 **Configuration ▸ General ▸ Search Engine**; DuckDuckGo by default. The choice is shared by the

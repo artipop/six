@@ -4,13 +4,24 @@ A new window opens on six's own start page instead of loading somebody's home pa
 isn't a network request. It is a native SwiftUI view (`six/Views/StartPage.swift`), not an HTML page: real keyboard
 handling, the profile's colour, no web view to spin up.
 
-One field takes both a query and an address, the same rule the address bar uses (`URL.fromUserInput`). Underneath it:
+One field takes both a query and an address, the same rule the address bar uses (`URL.fromUserInput`). The rows under
+it are `AddressSuggestions` (`six/Views/AddressSuggestions.swift`), which the address bar's field shares — see
+[The address field](#the-address-field) below. With nothing typed there is no list — erasing the input or `Esc` puts it away. Underneath it, once something is typed:
 
 - an **address row** first when the input looks like one (`apple.com`, `localhost:3000`, anything with a scheme), so
   Enter opens it rather than searching for it;
-- then up to two **pages you saved**, matched by meaning rather than by their titles — the section below;
-- then up to four **pages from the profile's history** (`HistoryStore.suggest`: a host prefix beats a title prefix
-  beats a substring; repeat visits add up, and visits decay over a couple of weeks) — title and host, opened directly.
+- then up to three **pages you saved**: first by their letters (`BookmarkStore.suggest` — host prefix, title prefix,
+  then a substring from two letters on, answering on the first key with no model loaded), then by meaning — the
+  section below, which declines anything under three letters or shaped like an address;
+- then up to four **pages from the profile's history** (`HistoryStore.suggest`: a host prefix or the start of a past
+  query beats a title prefix beats the start of a word beats a substring; repeat visits add up, and visits decay over
+  a couple of weeks) — title and host, opened directly.
+  **Matched against what is read, not what is stored.** A search is kept as its results page's address,
+  percent-encoded, and DuckDuckGo leaves the visit without a title — so a substring test over the raw address found
+  every Latin query and not one Cyrillic one. The query is decoded out of the address (`SearchEngine.search(from:)`)
+  and the address percent-decoded before anything is compared. Rows are one per page as a person counts pages
+  (`HistoryStore.suggestionKey`): a search is its engine and query whatever the engine appended (`&ia=web`), and a
+  page is its address without the fragment, or Telegram's web client would be a row per chat.
   A results page of any engine six knows shows as the query it was with "*Engine* Search" beside it, the way Chrome
   does, instead of the page's own title;
 - then **completions** from the search engine, each labelled "*Engine* Search" so it is clear where Enter goes;
@@ -91,6 +102,15 @@ The name and the field hang from a fixed point — a third of the way down the w
 the list. Centred, every row that arrived (and the engine's arrive a moment after the local ones) changed the stack's
 height and moved the field upward under the caret. Only the list may grow, and it grows downward into the empty half
 of the page. In a window too short to hold both, the top inset gives way first, so the last row stays on screen.
+
+## The address field
+
+The top bar's field (`six/Views/AddressBar.swift`) drops the same list, over the page, from its own leading edge — with
+`Limits(rows: 8)`. It opens only once the text differs from what six put there (`filled`): ⌘L
+selects the page's address mostly to copy it, and a list falling over the page every time would be in the way of
+that. `↑` `↓` walk, `Enter` opens the selected row or navigates to the text, and `Esc` first puts the address back,
+then lets go of the field. It hangs below the bar because the top bar is drawn in front of the rail (`zIndex(1)` in
+`ContentView`).
 
 ## Suggestions
 
