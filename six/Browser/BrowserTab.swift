@@ -957,17 +957,19 @@ final class BrowserTab: Identifiable {
     ///
     /// Best effort and rate limited: it costs a round trip to the web content process, and a slightly
     /// stale picture is worth more than none.
-    func rememberViewState(force: Bool = false) {
-        guard let page = livePage, !showsStartPage, !page.isLoading else { return }
-        guard force || Date().timeIntervalSince(lastThumbnailAt) > 3 else { return }
+    ///
+    /// The task is handed back for the one caller that has to wait for the picture: the overview,
+    /// which takes every web view away the moment it opens (`BrowserState.toggleOverview`).
+    @discardableResult
+    func rememberViewState(force: Bool = false) -> Task<Void, Never>? {
+        guard let page = livePage, !showsStartPage, !page.isLoading else { return nil }
+        guard force || Date().timeIntervalSince(lastThumbnailAt) > 3 else { return nil }
         lastThumbnailAt = Date()
         let region = CGRect(origin: .zero, size: displaySize)
-        Task {
-            if let offset = (try? await page.six("return window.scrollY")) as? Double {
-                self.savedScroll = offset
-            }
-        }
-        Task {
+        return Task {
+            // Asked alongside the picture and not before it: a window on its way off the strip is
+            // mounted for this turn only, and a round trip in front of the snapshot may not survive.
+            async let viewport = page.six("return [window.scrollY, window.innerWidth, window.innerHeight]")
             // `afterScreenUpdates: false` takes what is already rendered: a window on its way off the
             // strip will never get another screen update, and waiting for one returns nothing.
             // 400 pt wide: a card is never drawn bigger than a column, and in the overview it is drawn
@@ -976,11 +978,26 @@ final class BrowserTab: Identifiable {
                 region: .rect(region), snapshotWidth: 400, afterScreenUpdates: false)
             let clock = ContinuousClock()
             let started = clock.now
-            guard let data = try? await page.exported(as: configuration),
-                  let image = PlatformImage(data: data), image.size.width > 1 else {
+            let exported = try? await page.exported(as: configuration)
+            let measured = (try? await viewport) as? [Double]
+            if let measured, measured.count == 3 { self.savedScroll = measured[0] }
+            guard let data = exported, let image = PlatformImage(data: data), image.size.width > 1 else {
                 LivePageCache.log("no picture of \(self.title)")
                 return
             }
+            // A page that is not the width of its column has no view to be that width in: it was
+            // taken off the screen before the picture was, and WebKit lays such a page out at 1024×768.
+            // Its picture is that page in the corner of the rectangle and nothing in the rest, and the
+            // one already in hand is better. Only taller is wrong: a find or translation bar over the
+            // page leaves it shorter than its column, and that picture is fine. The Mac only: on a
+            // phone a page with no viewport tag is laid out 980 wide whatever the screen is.
+            #if os(macOS)
+            if let measured, measured.count == 3,
+               abs(measured[1] - region.width) > 4 || measured[2] > region.height + 4 {
+                LivePageCache.log("kept the old picture of \(self.title): the page is \(Int(measured[1]))×\(Int(measured[2])), its column \(Int(region.width))×\(Int(region.height))")
+                return
+            }
+            #endif
             LivePageCache.log("drew \(self.title) at \(Int(image.size.width))×\(Int(image.size.height)), \(data.count / 1024) KB, in \(started.duration(to: clock.now))")
             self.pictureIsStale = false // this one is of the shape the window is now
             self.thumbnail = image

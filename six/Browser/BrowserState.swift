@@ -300,21 +300,18 @@ final class BrowserState {
 
     /// True while the overview is up, so entering it can be told from moving around inside it.
     @ObservationIgnored private var showingOverview = false
-    @ObservationIgnored private var shownTabIDs: Set<UUID> = []
 
     private func refreshLivePages() {
         let visible = layout.visibleTabIDs
-        // On the way into the overview every window on screen is about to become a card: this is the
-        // last moment any of them can be drawn.
+        // On the way into the overview every window on screen has just become a card. Its picture was
+        // taken before the overview opened (`toggleOverview`): by now its web view is gone.
         if layout.isOverview, !showingOverview {
-            for id in shownTabIDs { tabsByID[id]?.rememberViewState(force: true) }
             // The rest of the strip is about to be drawn as cards: the ones with no picture in memory
             // — never shown this launch, or dropped for the budget — read theirs off disk. Only this
             // profile's: the overview shows one strip, and the others are not on screen to be drawn.
             for tab in tabs(in: selectedProfileID) { tab.loadPictureIfNeeded() }
         }
         showingOverview = layout.isOverview
-        shownTabIDs = visible
         // Each window's own width, so the picture taken of it is the shape of the column it fills —
         // or of the half of it, which is where a split's pictures come out narrow and right rather
         // than wide and stretched.
@@ -1442,15 +1439,50 @@ final class BrowserState {
         if !peeksAtEdges { withAnimation(NiriLayout.peekAnimation) { layout.edgeHover = 0 } }
     }
 
+    /// The overview has been asked for and is waiting on the pictures of the windows on screen.
+    @ObservationIgnored private var overviewOpening = false
+
+    /// Opening waits, for a moment at most, for the windows on screen to have their pictures taken.
+    ///
+    /// The overview shows every window as a card, so its web view is unmounted the moment the flag
+    /// flips — and a page with no view is laid out at WebKit's default 1024×768. A picture taken after
+    /// that is a 1024-wide page in the corner of a column-wide rectangle: measured from full window,
+    /// 1440×757 asked for, 1024×768 there. Tiled windows got away with it only because their width
+    /// did not change on the way in, so the detached page kept the layout it had. So the pictures are
+    /// taken first, while the pages are still on screen at their own size, and the overview opens
+    /// when they are in — or after `pictureWait`, since a web content process that does not answer
+    /// must not be able to hold the overview shut.
     func toggleOverview() {
         NiriLayout.trace("toggleOverview (was \(layout.isOverview ? "open" : "closed"))")
         if layout.isOverview {
             exitOverview()
-        } else {
-            withAnimation(NiriLayout.switchAnimation) {
-                layout.isOverview = true
-                layout.recenterStrips() // the overview has its own widths, and a filled window's are not them
-            }
+            return
+        }
+        guard !overviewOpening else { return }
+        overviewOpening = true
+        let pictures = layout.visibleTabIDs.compactMap { tabsByID[$0]?.rememberViewState(force: true) }
+        guard !pictures.isEmpty else { return openOverview() }
+        Task { @MainActor [weak self] in
+            for picture in pictures { await picture.value }
+            self?.openOverview()
+        }
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: Self.pictureWait)
+            self?.openOverview()
+        }
+    }
+
+    /// Snapshots measured at 4–100 ms; a hundred and fifty is still a key press, not a wait.
+    private static let pictureWait: Duration = .milliseconds(150)
+
+    /// Whichever comes first, the pictures or the wait; the other finds nothing left to open, even
+    /// when the overview has been opened and closed again in between.
+    private func openOverview() {
+        guard overviewOpening else { return }
+        overviewOpening = false
+        withAnimation(NiriLayout.switchAnimation) {
+            layout.isOverview = true
+            layout.recenterStrips() // the overview has its own widths, and a filled window's are not them
         }
     }
 
