@@ -95,10 +95,10 @@ final class ShareModel {
     private static func read(_ items: [NSExtensionItem]) async -> Content {
         let providers = items.flatMap { $0.attachments ?? [] }
         for provider in providers where provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
-            if let url = await loadURL(provider, type: .fileURL), url.isFileURL { return .file(url) }
+            if let url = await loadURL(provider), url.isFileURL { return .file(url) }
         }
         for provider in providers where provider.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
-            if let url = await loadURL(provider, type: .url) { return url.isFileURL ? .file(url) : .page(url) }
+            if let url = await loadURL(provider) { return url.isFileURL ? .file(url) : .page(url) }
         }
         for provider in providers where provider.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) {
             if let text = await loadText(provider), let content = classify(text) { return content }
@@ -122,29 +122,18 @@ final class ShareModel {
         return .search(text)
     }
 
-    private static func loadURL(_ provider: NSItemProvider, type: UTType) async -> URL? {
+    /// `loadObject` rather than `loadItem`, which macOS 27 deprecates: `NSURL` reads both `public.url`
+    /// and `public.file-url` itself, and only the address is handed on — the extension never opens the
+    /// file, so no sandbox extension has to travel with it.
+    private static func loadURL(_ provider: NSItemProvider) async -> URL? {
         await withCheckedContinuation { continuation in
-            provider.loadItem(forTypeIdentifier: type.identifier, options: nil) { value, _ in
-                switch value {
-                case let url as URL: continuation.resume(returning: url)
-                case let data as Data: continuation.resume(returning: URL(dataRepresentation: data, relativeTo: nil))
-                case let string as String: continuation.resume(returning: URL(string: string))
-                default: continuation.resume(returning: nil)
-                }
-            }
+            _ = provider.loadObject(ofClass: URL.self) { url, _ in continuation.resume(returning: url) }
         }
     }
 
     private static func loadText(_ provider: NSItemProvider) async -> String? {
         await withCheckedContinuation { continuation in
-            provider.loadItem(forTypeIdentifier: UTType.plainText.identifier, options: nil) { value, _ in
-                switch value {
-                case let string as String: continuation.resume(returning: string)
-                case let text as NSAttributedString: continuation.resume(returning: text.string)
-                case let data as Data: continuation.resume(returning: String(data: data, encoding: .utf8))
-                default: continuation.resume(returning: nil)
-                }
-            }
+            _ = provider.loadObject(ofClass: String.self) { text, _ in continuation.resume(returning: text) }
         }
     }
 

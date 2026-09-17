@@ -145,7 +145,7 @@ nonisolated enum CRXSignature {
 /// them — `CrxFileHeader`, `AsymmetricKeyProof` and `SignedData` have not grown a fixed32/fixed64
 /// field, a map, or a nested `oneof` since CRX3 shipped, and a general decoder would read a lot of
 /// wire format this file never needs to answer three fixed questions.
-private struct ProtoField {
+nonisolated private struct ProtoField {
     let number: Int
     let bytes: Data
 
@@ -189,7 +189,7 @@ private struct ProtoField {
     }
 }
 
-private extension Array where Element == ProtoField {
+nonisolated private extension Array where Element == ProtoField {
     func first(number: Int) -> ProtoField? { first { $0.number == number } }
     func all(number: Int) -> [ProtoField] { filter { $0.number == number } }
 }
@@ -198,7 +198,7 @@ private extension Array where Element == ProtoField {
 /// nested `SEQUENCE`s, skip the algorithm identifier, and take a `BIT STRING`'s content past its
 /// one leading "unused bits" byte (always `0x00` for a DER key). Not a parser for ASN.1 in general —
 /// there is exactly one shape of input this ever sees.
-private enum PKCS1 {
+nonisolated private enum PKCS1 {
     static func unwrap(spki: Data) -> Data? {
         var reader = spki[...]
         guard let outer = readElement(&reader, expectedTag: 0x30) else { return nil } // SEQUENCE

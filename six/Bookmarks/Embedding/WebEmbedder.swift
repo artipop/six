@@ -27,7 +27,7 @@ final class WebEmbedder: Embedder {
     /// longest member and this runtime has one thread, so a long chunk in a big batch makes every
     /// other chunk in it wait on padding it did not need. Eight also keeps the wasm heap's peak
     /// somewhere a machine with 8 GB will not notice.
-    static let batchSize = 8
+    nonisolated static let batchSize = 8
 
     nonisolated let modelID: String
     nonisolated let dimension: Int

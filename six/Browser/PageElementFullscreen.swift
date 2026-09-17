@@ -42,11 +42,14 @@ extension WebPage {
         withObservationTracking {
             _ = fullscreenState
         } onChange: { [weak self] in
-            // `onChange` fires before the value moves, so the new state is read a hop later.
+            // `onChange` fires before the value moves, so the new state is read a hop later. The weak
+            // reference is copied into a `let` first: `[weak self]` makes `self` a var, and a task may
+            // not capture one.
+            let page = self
             Task { @MainActor in
-                guard let self else { return }
-                Self.holdForElementFullscreen(webView(), byFrame: self.fullscreenState != .notInFullscreen)
-                self.watchElementFullscreenHosting(webView: webView)
+                guard let page else { return }
+                Self.holdForElementFullscreen(webView(), byFrame: page.fullscreenState != .notInFullscreen)
+                page.watchElementFullscreenHosting(webView: webView)
             }
         }
     }
