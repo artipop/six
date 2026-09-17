@@ -279,24 +279,39 @@ final class BrowserTab: Identifiable {
     /// fills this in from the `WKWebView` underneath, and everywhere else it stays `.none`.
     var displayCapture: WKMediaCaptureState = .none
     var isCapturing: Bool { cameraCapture != .none || microphoneCapture != .none || displayCapture != .none }
-    /// Muted only counts while something is actually on: a window using nothing is not a quiet one.
-    var isCaptureMuted: Bool {
-        isCapturing && cameraCapture != .active && microphoneCapture != .active && displayCapture != .active
+
+    /// The devices the page holds right now, the screen first: in that order they show the most of
+    /// you. A call holds two at once, and each gets a button of its own in the address field.
+    var capturingDevices: [CaptureDevice] {
+        CaptureDevice.allCases.filter { captureState(of: $0) != .none }
     }
 
-    /// The mute switch behind the indicator. Muted is not stopped — the call stays up and the page
-    /// knows it was muted, which is what a call expects when you press the button in the toolbar.
-    func setCaptureMuted(_ muted: Bool) {
-        guard let page = livePage else { return }
-        let state: WKMediaCaptureState = muted ? .muted : .active
-        #if os(macOS)
-        if displayCapture != .none, let webView = WebViewResponder.shared.webView(for: id) {
-            DisplayCapture.setState(state, on: webView)
+    func captureState(of device: CaptureDevice) -> WKMediaCaptureState {
+        switch device {
+        case .screen: displayCapture
+        case .camera: cameraCapture
+        case .microphone: microphoneCapture
         }
-        #endif
-        Task {
-            if page.cameraCaptureState != .none { await page.setCameraCaptureState(state) }
-            if page.microphoneCaptureState != .none { await page.setMicrophoneCaptureState(state) }
+    }
+
+    /// The mute switch behind one device's button. Muted is not stopped — the call stays up and the
+    /// page knows it was muted, which is what a call expects when you press the button in the
+    /// toolbar. One device at a time, because turning the camera off and staying audible is the
+    /// most ordinary thing to do in a call.
+    func setCaptureMuted(_ muted: Bool, _ device: CaptureDevice) {
+        guard let page = livePage, captureState(of: device) != .none else { return }
+        let state: WKMediaCaptureState = muted ? .muted : .active
+        switch device {
+        case .screen:
+            #if os(macOS)
+            if let webView = WebViewResponder.shared.webView(for: id) {
+                DisplayCapture.setState(state, on: webView)
+            }
+            #endif
+        case .camera:
+            Task { await page.setCameraCaptureState(state) }
+        case .microphone:
+            Task { await page.setMicrophoneCaptureState(state) }
         }
     }
 
@@ -311,6 +326,10 @@ final class BrowserTab: Identifiable {
             case .motion: break
             }
         }
+    }
+
+    enum CaptureDevice: CaseIterable {
+        case screen, camera, microphone
     }
 
     // MARK: Picture-in-picture

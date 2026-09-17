@@ -11,12 +11,14 @@ page](#what-runs-inside-the-page).
 
 ## The shield in the address field
 
-Next to the lock, on every window:
+Next to the lock, on every window — while blocking is on. With it switched off
+in **Configuration ▸ Privacy** there is no shield at all: there is nothing to say
+about the site.
 
 | | |
 |---|---|
 | shield filled | the rules are on this page |
-| shield crossed out | they are not: either the switch is off, or the site is on the allowlist |
+| shield crossed out | they are not: the site is on the allowlist |
 
 A click allows ads on everything under this host — `example.com` covers
 `www.example.com` and `cdn.example.com` — or blocks them again. It is a reload,

@@ -18,8 +18,9 @@ about anything: flip an answer, forget the site's choices, or open the whole
 list. While there is nothing decided for a site the icon stays plain — a control
 that is always there and usually empty teaches people to ignore it.
 
-**The red camera or microphone** appears only while a device is actually in use.
-One click mutes, another lets the page see and hear again: the page is told it
+**The red camera and the red microphone** appear only while a device is actually
+in use — each has an icon of its own, so a call shows two. A click mutes that
+device alone, another brings it back: you can turn the camera off and stay heard. the page is told it
 was muted and the call stays up, which is what the mute button in a call's own
 toolbar does. **Blocking** a device from the site menu does stop it — an answer
 that only applies to the next call is not an answer.
@@ -73,8 +74,8 @@ yet: the page is told the choice was cancelled.
 When a site asks to see your screen, macOS opens its own picker: the whole screen
 or one window. That choice is the permission, so nothing is remembered — the site
 asks again next time, as in any browser. While sharing is on, an indicator shows
-in the address field, and clicking it pauses the sharing, the same as with the
-camera.
+in the address field beside the camera and the microphone, and clicking it pauses
+the sharing alone.
 
 A window that is sharing the screen or holding a call is not unloaded from
 memory, even when you scroll the rail away from it.

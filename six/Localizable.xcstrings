@@ -71,6 +71,66 @@
         }
       }
     },
+    "Camera is off — click to let this page see again" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Камера выключена — нажмите, чтобы страница снова видела"
+          }
+        }
+      }
+    },
+    "Microphone is muted — click to let this page hear again" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Микрофон выключен — нажмите, чтобы страница снова слышала"
+          }
+        }
+      }
+    },
+    "Screen sharing is paused — click to resume" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показ экрана на паузе — нажмите, чтобы продолжить"
+          }
+        }
+      }
+    },
+    "This page is sharing your screen — click to pause" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Страница показывает ваш экран — нажмите, чтобы поставить на паузу"
+          }
+        }
+      }
+    },
+    "This page is using the camera — click to turn it off" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Страница использует камеру — нажмите, чтобы выключить"
+          }
+        }
+      }
+    },
+    "This page is using the microphone — click to mute" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Страница использует микрофон — нажмите, чтобы выключить"
+          }
+        }
+      }
+    },
     "· %@" : {
       "localizations" : {
         "ru" : {
@@ -1242,16 +1302,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Блокировка"
-          }
-        }
-      }
-    },
-    "Blocking is off" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Блокировка выключена"
           }
         }
       }
@@ -3096,16 +3146,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Перенести окно в профиль"
-          }
-        }
-      }
-    },
-    "Muted — click to let this page see and hear again" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Выключено — нажмите, чтобы страница снова видела и слышала"
           }
         }
       }
@@ -5206,16 +5246,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Страница уже на этом языке: %@"
-          }
-        }
-      }
-    },
-    "This page is using the camera, microphone or screen — click to mute" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Страница использует камеру, микрофон или экран — нажмите, чтобы выключить"
           }
         }
       }

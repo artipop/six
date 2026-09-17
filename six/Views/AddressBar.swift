@@ -70,7 +70,9 @@ struct AddressBar: View {
     private var field: some View {
         HStack(spacing: 5) {
             siteIcon
-            if isWebPage { shield }
+            // Nothing to say about a site when nothing is blocked anywhere: a crossed-out shield
+            // would read as "allowed on this site", which is a different and narrower thing.
+            if isWebPage && blocker.isEnabled { shield }
             captureIndicator
             TextField("Search or enter address", text: $text)
                 .textFieldStyle(.plain)
@@ -391,13 +393,13 @@ struct AddressBar: View {
     // MARK: Blocking
 
     /// The state of blocking on this page, and the two things to do about it. Filled shield: the
-    /// rules are on this page. Crossed out: they are not.
+    /// rules are on this page. Crossed out: the site is on the allowlist. Only there while blocking
+    /// is on at all.
     private var shield: some View {
         Menu {
             Button(isAllowed ? "Block Ads on This Site" : "Allow Ads on This Site") {
                 browser.setBlockingAllowed(!isAllowed, for: tab)
             }
-            .disabled(!blocker.isEnabled)
             // The page, not a sheet: what is blocked is worth reading beside the site it is
             // blocked on, and a sheet covers exactly that.
             Button("Filter Lists…") { browser.openBuiltIn(.configuration) }
@@ -409,9 +411,7 @@ struct AddressBar: View {
         .menuIndicator(.hidden)
         .fixedSize()
         .foregroundStyle(isAllowed ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.tint))
-        .help(blocker.isEnabled
-              ? (isAllowed ? "Ads are allowed on this site" : "Ads and trackers are blocked here")
-              : "Blocking is off")
+        .help(isAllowed ? "Ads are allowed on this site" : "Ads and trackers are blocked here")
     }
 
     // MARK: The camera and the microphone
@@ -426,30 +426,39 @@ struct AddressBar: View {
         return permissions.decisions(forOrigin: origin, profileID: tab.profileID)
     }
 
-    /// Only there while a device is actually in use, and red while it is live: the point of an
-    /// indicator is that you never have to go looking for it. One click mutes, another lets the page
-    /// hear and see again — muting rather than stopping, because a call that was cut off is not what
-    /// the button in a call's own toolbar does.
+    /// One button per device the page holds, each only there while that device is in use and red
+    /// while it is live: the point of an indicator is that you never have to go looking for it. A
+    /// call holds the camera and the microphone together, and the two are muted separately —
+    /// muting rather than stopping, because a call that was cut off is not what the button in a
+    /// call's own toolbar does.
     @ViewBuilder
     private var captureIndicator: some View {
-        if tab.isCapturing {
-            let muted = tab.isCaptureMuted
-            Button { tab.setCaptureMuted(!muted) } label: {
-                Image(systemName: captureSymbol(muted: muted))
+        ForEach(tab.capturingDevices, id: \.self) { device in
+            let muted = tab.captureState(of: device) == .muted
+            Button { tab.setCaptureMuted(!muted, device) } label: {
+                Image(systemName: captureSymbol(device, muted: muted))
                     .font(.system(size: 10))
             }
             .buttonStyle(.plain)
             .foregroundStyle(muted ? AnyShapeStyle(.tertiary) : AnyShapeStyle(Color.red))
-            .help(muted ? "Muted — click to let this page see and hear again"
-                        : "This page is using the camera, microphone or screen — click to mute")
+            .help(captureHelp(device, muted: muted))
         }
     }
 
-    /// The screen wins the icon, then the camera: in that order they show the most of you.
-    private func captureSymbol(muted: Bool) -> String {
-        if tab.displayCapture != .none { return muted ? "rectangle.on.rectangle.slash" : "rectangle.on.rectangle" }
-        if tab.cameraCapture != .none { return muted ? "video.slash.fill" : "video.fill" }
-        return muted ? "mic.slash.fill" : "mic.fill"
+    private func captureSymbol(_ device: BrowserTab.CaptureDevice, muted: Bool) -> String {
+        switch device {
+        case .screen: muted ? "rectangle.on.rectangle.slash" : "rectangle.on.rectangle"
+        case .camera: muted ? "video.slash.fill" : "video.fill"
+        case .microphone: muted ? "mic.slash.fill" : "mic.fill"
+        }
+    }
+
+    private func captureHelp(_ device: BrowserTab.CaptureDevice, muted: Bool) -> LocalizedStringKey {
+        switch device {
+        case .screen: muted ? "Screen sharing is paused — click to resume" : "This page is sharing your screen — click to pause"
+        case .camera: muted ? "Camera is off — click to let this page see again" : "This page is using the camera — click to turn it off"
+        case .microphone: muted ? "Microphone is muted — click to let this page hear again" : "This page is using the microphone — click to mute"
+        }
     }
 
     /// The lock (or the globe) turns into a menu once this site has been answered about something —

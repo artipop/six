@@ -178,10 +178,11 @@ request loads.)
 
 ## The shield
 
-Every window's address field carries it, next to the lock:
+Every window's address field carries it, next to the lock — while the switch is on. With the switch off there is no
+shield at all: a crossed-out one read as "allowed on this site", which is a narrower claim than "off everywhere".
 
 - **filled** — the rules are on this page;
-- **crossed out** — they are not: either the switch is off, or the site is on the allowlist.
+- **crossed out** — the site is on the allowlist.
 
 Clicking it allows (or blocks again) every site under this one's host — `example.com` covers `www.example.com` and
 `cdn.example.com` — and offers the filter list panel. The same two actions are on `six://configuration` ▸ Privacy ▸ Blocking, which also has

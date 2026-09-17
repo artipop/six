@@ -56,8 +56,10 @@ every question queued for it with a no (`SitePermissions.forget(_:)`, called fro
 - The **lock (or globe)** becomes a menu once the site has been answered about anything: flip an answer, forget the
   site's choices, or open the whole list. Sites with nothing decided keep a plain icon — a control that is always
   there and usually empty teaches people to ignore it.
-- The **camera / microphone indicator** appears only while a device is actually in use, red while it is live. One
-  click mutes, another lets the page see and hear again. Muted, not stopped: `setCameraCaptureState(.muted)` keeps the
+- The **camera / microphone / screen indicators** are one button per device (`BrowserTab.capturingDevices`), each
+  only while that device is in use, red while it is live. A call holds two, and they mute separately — a camera
+  turned off while the microphone stays on is the ordinary case; a single button that muted everything and showed
+  only the camera's icon left the microphone with no control of its own. Muted, not stopped: `setCameraCaptureState(.muted)` keeps the
   call up and tells the page it was muted, which is what the button in a call's own toolbar does. Blocking a device
   from the site menu *does* stop it (`.none`) — an answer that only applies to the next call is not an answer.
 
@@ -97,7 +99,7 @@ Document is not fully active or does not have focus` before any picker appears, 
 What `WebPage` leaves out is that sharing is *happening*: it publishes `cameraCaptureState` and
 `microphoneCaptureState` and nothing for the screen. `DisplayCapture` reads it from the `WKWebView` underneath,
 handed over by `WebViewResponder.onWebViewFound`: `_displayCaptureState` is SPI but KVO-compliant, and
-`_setDisplayCaptureState:completionHandler:` mutes it. That drives the same indicator as the camera, and
+`_setDisplayCaptureState:completionHandler:` mutes it. That drives an indicator of its own beside the camera's, and
 `LivePageCache` now keeps any capturing page alive — which camera and microphone calls had been missing too, since
 only "playing media" protected them, and only when the page happened to be showing a video.
 
