@@ -75,7 +75,7 @@ that does not send its own intermediate needs us to have it already.
 
 Each row says what it is, how long it is valid, and, on demand, the fingerprint
 you can check against the published one. An expired one is labelled as such:
-*expired — it can no longer vouch for anything*.
+*Expired — no longer valid*.
 
 The **"Used for …"** line answers whether what you switched on is doing anything
 at all. It is a hint for the session, not a second history: it is forgotten on

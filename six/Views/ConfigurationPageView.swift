@@ -115,9 +115,6 @@ private struct GeneralConfiguration: View {
                 Picker("Search Engine", selection: $settings.searchEngine) {
                     ForEach(SearchEngine.allCases) { Text($0.title).tag($0) }
                 }
-                Text("Used for what is typed in the address field and for the suggestions under it. Also on the start page, as the chip beside the field.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
 
             SwiftUI.Section("Translation") {
@@ -158,7 +155,7 @@ private struct GeneralConfiguration: View {
                             .tag(choice)
                     }
                 }
-                Text("Recommended by this Mac's memory. The other one is yours to choose, at your own risk: the larger model ranks a little better between languages, downloads about twice as much and holds twice as much memory while six runs — on a Mac with less than 16 GB that is paid for by the pages. Either way, changing this embeds every saved page again.")
+                Text("Changing the model re-indexes every saved page.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 LabeledContent("In This Profile") {
@@ -220,11 +217,7 @@ private struct ShareExtensionRow: View {
         .disabled(state == nil || state == .unregistered || isWorking)
         .task { state = await ShareExtensionSwitch.state() }
         if state == .unregistered {
-            Text("macOS has no record of six's share extension yet. It is registered when the app is launched from where it is installed.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        } else {
-            Text("Puts six in the Share menu of Safari, Mail, Finder and anything else that shares a link: a page, some text or a file, and a sheet that asks which workspace it goes to. This is the same switch as the one in System Settings; six turns it on once, when it first finds it off.")
+            Text("Not registered yet — launch six from where it is installed.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -245,9 +238,6 @@ private struct WindowConfiguration: View {
                     get: { browser.layout.centersFocus },
                     set: { _ in browser.toggleCenterFocus() }
                 ))
-                Text("On, the window you are reading sits in the middle of the screen and both neighbours peek in by the same amount. Off, the rail moves as little as it can — ⌥C.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             } header: {
                 Text("The Rail")
             }
@@ -257,9 +247,6 @@ private struct WindowConfiguration: View {
                     get: { browser.peeksAtEdges },
                     set: { _ in browser.togglePeeksAtEdges() }
                 ))
-                Text("On, nothing is drawn in the gaps beside the focused window until the pointer arrives, and the rail leans over to show what is on that side. Off, the buttons stand where they are and do their job on the way in — which is the only thing that works without a pointer to rest.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
 
             SwiftUI.Section("Loaded Windows") {
@@ -280,12 +267,9 @@ private struct LoadedWindows: View {
     @Environment(BrowserState.self) private var browser
 
     var body: some View {
-        LabeledContent("Holding a Page") {
+        LabeledContent("Pages in Memory") {
             Text("\(browser.pages.liveCount) of \(browser.tabs.count)").foregroundStyle(.secondary)
         }
-        Text("A window off the screen gives its page back when six is over what this machine can carry, and keeps everything it takes to put the same page back — its address, its history, its scroll offset and a picture of itself. The budget comes from the machine's memory and follows the pressure the system reports.")
-            .font(.caption)
-            .foregroundStyle(.secondary)
         Button("Unload Background Windows Now") { browser.pages.discardBackgroundPages() }
             .controlSize(.small)
     }
@@ -326,7 +310,6 @@ private struct PrivacyConfiguration: View {
                     if blocker.isWorking { ProgressView().controlSize(.small) }
                     Toggle("Block Ads and Trackers", isOn: $blocker.isEnabled)
                         .toggleStyle(.switch)
-                        .help("Off means off: nothing is fetched, compiled or attached to a page")
                 }
             }
             .padding(.horizontal, 12)
@@ -363,9 +346,6 @@ private struct AssistantPane: View {
             // cannot find your way back through.
             SwiftUI.Section {
                 Toggle("Use Language Models and Agents", isOn: $store.isAIEnabled)
-                Text("The ⌘K line, the verbs over selected text and in a field, the agent panel, deep research, and six's own MCP server. Off means none of them run and nothing is added to a page. Bookmark search and page translation are not affected.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
 
             Group {
@@ -389,9 +369,6 @@ private struct AssistantPane: View {
 
                 SwiftUI.Section("Agent Panel") {
                     TextField("Model", text: $agentSession.modelOverride, prompt: Text("the agent's own default"))
-                    Text("Passed to the ACP agent as ANTHROPIC_MODEL. Blank leaves the agent on whatever it picks for itself.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                 }
 
                 SwiftUI.Section("Deep Research") {
@@ -437,9 +414,6 @@ private struct DevelopConfiguration: View {
 
             SwiftUI.Section("Capture") {
                 Toggle("Capture Console and Network", isOn: $devTools.isCapturing)
-                Text("For the list_console_messages and list_network_requests tools; it runs a hook in the page's own world.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
                 Button("Clear Captured Logs") { devTools.clear() }
                     .controlSize(.small)
                     .disabled(!devTools.isCapturing)

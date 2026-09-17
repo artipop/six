@@ -240,7 +240,6 @@ struct AppCommands: Commands {
                         set: { apps.setShared(server, $0) }))
                 }
             }
-            .help("Shared servers' tools reach the agent as six's own; a tool with an interface opens a window")
             if let error = apps.lastError {
                 Divider()
                 Text(error)

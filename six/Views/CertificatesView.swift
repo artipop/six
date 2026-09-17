@@ -49,19 +49,12 @@ struct CertificateConfiguration: View {
                     }
                 } header: {
                     Text("Extra Certificate Authorities")
-                } footer: {
-                    Text("A site is checked against the system's certificate authorities first. These are only consulted for a site the system has already turned down.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                 }
             }
             .listStyle(.inset)
 
             Divider()
             HStack {
-                Text("Trust here belongs to six alone — nothing else on this machine is affected, and switching one off takes it back.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
                 Spacer()
                 Button("Add Certificate…") { importing = true }
                     .controlSize(.small)
@@ -114,7 +107,7 @@ private struct BundleRow: View {
                             .foregroundStyle(.secondary)
                     }
                     if expired {
-                        Label("Expired — it can no longer vouch for anything", systemImage: "exclamationmark.triangle")
+                        Label("Expired — no longer valid", systemImage: "exclamationmark.triangle")
                             .font(.caption2)
                             .foregroundStyle(.orange)
                     }

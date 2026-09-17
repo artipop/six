@@ -149,7 +149,6 @@ struct StartPage: View {
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
         .fixedSize()
-        .help("Where a query goes, and where the suggestions come from")
     }
 
     @ViewBuilder

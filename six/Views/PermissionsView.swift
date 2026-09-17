@@ -36,8 +36,6 @@ struct PermissionConfiguration: View {
             if permissions.sites.isEmpty {
                 ContentUnavailableView {
                     Label("No Sites Yet", systemImage: "video.slash")
-                } description: {
-                    Text("When a site asks for the camera, the microphone or the motion sensors, your answer is remembered here.")
                 }
             } else {
                 List {
@@ -50,9 +48,6 @@ struct PermissionConfiguration: View {
 
             Divider()
             HStack {
-                Text("macOS asks once for six itself; this list is six asking for each site.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
                 Spacer()
                 Button("Forget All", role: .destructive) { confirmForgetAll = true }
                     .disabled(permissions.sites.isEmpty)

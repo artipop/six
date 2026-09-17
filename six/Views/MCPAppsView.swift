@@ -116,10 +116,6 @@ struct MCPAppsView: View {
         if let error = apps.authorization.lastError ?? apps.lastError {
             Text(error).font(.caption).foregroundStyle(.red).padding(10)
         } else {
-            Text("An app is a window on the rail, drawn by the server that answered the tool call. The registry does not say which servers carry one, so six asks them.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .padding(10)
         }
     }
 
@@ -182,9 +178,9 @@ struct MCPAppsView: View {
         guard apps.catalog.generated > .distantPast else { return "" }
         let day = apps.catalog.generated.formatted(date: .abbreviated, time: .omitted)
         guard let host = URL(string: apps.catalog.source)?.host() else {
-            return String(localized: "swept \(day)")
+            return String(localized: "checked \(day)")
         }
-        return String(localized: "\(host), swept \(day)")
+        return String(localized: "\(host), checked \(day)")
     }
 
 }
@@ -295,7 +291,7 @@ private struct MCPProbeBadge: View {
         case .probing:
             ProgressView().controlSize(.mini)
         case .answered(let tools, let apps) where apps > 0:
-            Label("\(apps) of \(tools) draw a window", systemImage: "macwindow")
+            Label("\(apps) of \(tools) have an interface", systemImage: "macwindow")
                 .font(.caption2)
                 .foregroundStyle(.tint)
                 .labelStyle(.titleAndIcon)
@@ -343,7 +339,7 @@ private struct MCPServerRow: View {
             } else if needsSignIn {
                 Button("Sign In") { Task { _ = await apps.authorization.authorize(server, challenge: nil) } }
                     .controlSize(.small)
-                    .help("This server refused six without a token")
+                    .help("This server requires sign-in")
             }
             Toggle("Agent", isOn: Binding(
                 get: { apps.isShared(server) },
@@ -459,7 +455,7 @@ private struct MCPAddServerSheet: View {
                         .controlSize(.small)
                 }
             }
-            .help("Register this exact address with the provider — the sign-in comes back to it")
+            .help("Register this address with the provider")
         }
     }
 

@@ -19,7 +19,6 @@ struct BlockingView: View {
                 Toggle("Block Ads and Trackers", isOn: $blocker.isEnabled)
                     .toggleStyle(.switch)
                     .labelsHidden()
-                    .help("Off means off: nothing is fetched, compiled or attached to a page")
                 Button("Done") { dismiss() }.keyboardShortcut(.cancelAction)
             }
             .padding(12)
@@ -70,7 +69,7 @@ struct BlockingConfiguration: View {
 
                 Section("Sites Left Alone") {
                     if blocker.allowlist.isEmpty {
-                        Text("No sites. The shield in a window's address field allows the site it is showing.")
+                        Text("No sites. To allow ads on a site, click the shield in its address field.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     } else {
@@ -110,7 +109,7 @@ struct BlockingConfiguration: View {
     }
 
     private var footnote: String {
-        guard blocker.isEnabled else { return String(localized: "Blocking is off — nothing is fetched or attached to a page.") }
+        guard blocker.isEnabled else { return String(localized: "Blocking is off") }
         let ready = blocker.lists.filter { blocker.status[$0.id]?.isReady == true }
         let rules = ready.reduce(0) { $0 + (blocker.status[$1.id]?.rules ?? 0) }
         guard rules > 0 else { return String(localized: "Preparing filter lists…") }

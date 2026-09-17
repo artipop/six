@@ -40,10 +40,13 @@ nonisolated struct ExtensionCompatibility: Sendable, Hashable, Codable {
     }
 
     var verdict: Verdict
-    /// One line for the install dialog and the row in the panel.
-    var summary: String
+    /// One line for the install dialog and the row in the panel. Attributed rather than plain,
+    /// because the lines name API (`webRequest`, `scripting.insertCSS`) and a SwiftUI `Text` sets an
+    /// inline-code run in monospace — the backticks in the catalogue are markup for that, and a plain
+    /// `String` used to put them on the screen as they were.
+    var summary: AttributedString
     /// The specifics, listed under it.
-    var details: [String]
+    var details: [AttributedString]
 
     var symbol: String {
         switch verdict {

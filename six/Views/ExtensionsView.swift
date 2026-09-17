@@ -57,7 +57,7 @@ struct ExtensionConfiguration: View {
                 ContentUnavailableView {
                     Label("No Extensions", systemImage: "puzzlepiece.extension")
                 } description: {
-                    Text("Install one from a folder, a .zip, a .crx or an .xpi. Extensions from the App Store belong to their own apps and cannot be adopted.")
+                    Text("Install one from a folder, a .zip, a .crx or an .xpi.")
                 } actions: {
                     Button("Install…", action: pickExtension)
                 }
@@ -142,7 +142,7 @@ private struct ExtensionRow: View {
                     }
                 }
                 if let verdict {
-                    Label(verdict.summary, systemImage: verdict.symbol)
+                    Label { Text(verdict.summary) } icon: { Image(systemName: verdict.symbol) }
                         .font(.caption)
                         .foregroundStyle(verdict.verdict == .full ? AnyShapeStyle(.secondary) : AnyShapeStyle(.orange))
                 }
@@ -203,7 +203,7 @@ private struct InstallSheet: View {
 
             GroupBox {
                 VStack(alignment: .leading, spacing: 6) {
-                    Label(install.compatibility.summary, systemImage: install.compatibility.symbol)
+                    Label { Text(install.compatibility.summary) } icon: { Image(systemName: install.compatibility.symbol) }
                         .foregroundStyle(install.compatibility.verdict == .full ? AnyShapeStyle(.primary) : AnyShapeStyle(.orange))
                     ForEach(install.compatibility.details, id: \.self) { detail in
                         Text("• \(detail)").font(.caption).foregroundStyle(.secondary)
@@ -214,7 +214,7 @@ private struct InstallSheet: View {
 
             if !permissions.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("It will be granted").font(.caption).foregroundStyle(.secondary)
+                    Text("Permissions").font(.caption).foregroundStyle(.secondary)
                     Text(permissions).font(.caption)
                 }
             }
@@ -230,7 +230,7 @@ private struct InstallSheet: View {
                     .font(.caption2)
                     .foregroundStyle(crxSignatureSummary.isWarning ? AnyShapeStyle(.orange) : AnyShapeStyle(.secondary))
             }
-            Text("From \(install.origin). Nothing checks who made it — an extension can read and change the pages it is given.")
+            Text("From \(install.origin). The author is not verified, and an extension can read and change the pages it has access to.")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
 

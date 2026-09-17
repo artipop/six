@@ -37,11 +37,6 @@ struct MCPAppRestoreView: View {
                 Button("Run Again", action: run)
                     .buttonStyle(.borderedProminent)
             }
-            Text("six does not run a tool again by itself unless the server says it changes nothing.")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 24)
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)

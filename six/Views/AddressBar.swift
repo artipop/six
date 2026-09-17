@@ -456,8 +456,8 @@ struct AddressBar: View {
     private func captureHelp(_ device: BrowserTab.CaptureDevice, muted: Bool) -> LocalizedStringKey {
         switch device {
         case .screen: muted ? "Screen sharing is paused — click to resume" : "This page is sharing your screen — click to pause"
-        case .camera: muted ? "Camera is off — click to let this page see again" : "This page is using the camera — click to turn it off"
-        case .microphone: muted ? "Microphone is muted — click to let this page hear again" : "This page is using the microphone — click to mute"
+        case .camera: muted ? "Camera is off — click to turn it back on" : "This page is using the camera — click to turn it off"
+        case .microphone: muted ? "Microphone is muted — click to unmute" : "This page is using the microphone — click to mute"
         }
     }
 

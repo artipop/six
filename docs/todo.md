@@ -2,6 +2,17 @@
 
 What is planned but not built. Ordered by how much it is missed, not by effort.
 
+## Help inside the app
+
+six has no Help menu content and no help book: the only account of what a setting does is the
+VitePress guide on the site. That used to be papered over by captions under almost every setting,
+which made the configuration pages read like the guide and were cut down to the few that say
+something a person cannot do without (a consequence, a missing step). What is owed is a Help menu
+that opens the guide — the page for the pane in front of you, in the interface language — and a
+`?` button on each configuration pane that goes to the same place. Offline is the open question: a
+help book bundled with the app, or the guide's built pages shipped as resources and opened in a
+window of six's own.
+
 ## The ring's arrows are three keys, and only on the Mac
 
 `⌃⇧←` / `⌃⇧→` walk the row of cards while the ring is held open. The `⇧` is a tax, not a design: macOS

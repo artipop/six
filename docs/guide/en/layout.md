@@ -325,7 +325,7 @@ builds its page again when you come back to it.
   the floating picture-in-picture window, even when it is paused.
 - The budget is sized from the machine's memory and cannot be changed: how many
   processes this Mac will carry is not a thing a person can know. **Configuration ▸
-  Windows** shows how many windows are holding a page right now, and offers
+  Windows** shows under **Pages in Memory** how many windows are holding a page right now, and offers
   **Unload Background Windows**.
 - Under memory pressure the budget shrinks on its own and grows back when the
   pressure lifts.

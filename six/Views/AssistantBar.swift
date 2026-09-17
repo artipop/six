@@ -193,7 +193,7 @@ private struct AnswerStrip: View {
             }
             .frame(maxHeight: 220)
             if answer.isApplied {
-                Label("Put into the page — ⌘Z takes it back", systemImage: "checkmark")
+                Label("Inserted into the page — ⌘Z to undo", systemImage: "checkmark")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else if !answer.text.isEmpty, !answer.isRunning {
@@ -291,28 +291,15 @@ struct AssistantProviderConfiguration: View {
             Section("Claude") {
                 SecureField("API Key", text: $settings.anthropicAPIKey, prompt: Text("sk-ant-…"))
             }
-            developmentNote
         case .openAICompatible:
             Section("OpenAI-compatible") {
                 TextField("Endpoint", text: $settings.openAIBaseURL, prompt: Text("https://api.openai.com/v1"))
                     .textContentType(.URL)
                 TextField("Model", text: $settings.openAIModel, prompt: Text("gpt-5"))
                 SecureField("API Key", text: $settings.openAIAPIKey, prompt: Text("sk-… (blank for a local server)"))
-                Text("Any server speaking the OpenAI /chat/completions format: OpenAI, a gateway, or llama.cpp and Ollama on this machine — those want no key.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
-            developmentNote
         default:
             EmptyView()
-        }
-    }
-
-    private var developmentNote: some View {
-        Section {
-            Text("Stored locally for development. Production builds should use App Attest or a proxy.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
         }
     }
 }

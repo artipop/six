@@ -92,8 +92,8 @@ struct PageFailureView: View {
         if let offered {
             // The whole point of the page, in one sentence: six has it, and it is off.
             return String(localized: """
-                This site’s certificate was issued by \(offered.name), an authority six carries and \
-                does not trust until you say so. Nothing else on the web is affected by turning it on.
+                This site’s certificate was issued by \(offered.name). six includes this authority but \
+                does not trust it until you turn it on. Sites with certificates from other authorities are not affected.
                 """)
         }
         if failure.isCertificateProblem {

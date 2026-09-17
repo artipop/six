@@ -13,7 +13,8 @@ nonisolated struct ACPAgentDefinition: Identifiable, Hashable, Codable, Sendable
     var binaryName: String
     /// The underlying CLI the adapter drives (must be installed and logged in).
     var underlyingCLI: String
-    var loginHint: String
+    /// Attributed so the command in it is set in monospace rather than shown between backticks.
+    var loginHint: AttributedString
 
     /// Same agent, launched through the globally installed binary instead of `npx`.
     func usingInstalledBinary() -> ACPAgentDefinition {
@@ -38,7 +39,7 @@ nonisolated struct ACPAgentDefinition: Identifiable, Hashable, Codable, Sendable
         npmPackage: "@agentclientprotocol/claude-agent-acp",
         binaryName: "claude-agent-acp",
         underlyingCLI: "claude",
-        loginHint: String(localized: "Install Claude Code and run `claude` once to log in.")
+        loginHint: AttributedString(localized: "Install Claude Code and run `claude` once to log in.")
     )
 
     /// OpenAI Codex via the official ACP adapter.
@@ -50,7 +51,7 @@ nonisolated struct ACPAgentDefinition: Identifiable, Hashable, Codable, Sendable
         npmPackage: "@agentclientprotocol/codex-acp",
         binaryName: "codex-acp",
         underlyingCLI: "codex",
-        loginHint: String(localized: "Install Codex CLI and run `codex login`.")
+        loginHint: AttributedString(localized: "Install Codex CLI and run `codex login`.")
     )
 
     static let builtIn: [ACPAgentDefinition] = [.claudeCode, .codex]

@@ -71,7 +71,7 @@ struct AgentPanel: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
-                .help("The agent's session gets `six --mcp` as an MCP server. \(mcp.status)")
+                .help(mcp.status)
             // Which bookmarks the agent's search_bookmarks / list_bookmarks see by default.
             @Bindable var settings = settings
             HStack(spacing: 6) {
@@ -86,7 +86,6 @@ struct AgentPanel: View {
                 Text("bookmarks").font(.caption).foregroundStyle(.secondary)
                 Spacer()
             }
-            .help("What list_bookmarks and search_bookmarks return unless the agent names a profile")
             if store.agent.id == ACPAgentDefinition.claudeCode.id {
                 TextField("Model override (ANTHROPIC_MODEL, optional)", text: $store.modelOverride)
                     .textFieldStyle(.roundedBorder)
@@ -150,7 +149,6 @@ struct AgentPanel: View {
                 Button("Research…") { showResearch = true }
                     .controlSize(.small)
                     .disabled(store.state == .prompting)
-                    .help("Deep research: a workspace of sources and a document the agent writes into")
                 Button("Send", action: send)
                     .keyboardShortcut(.return, modifiers: .command)
                     .disabled(input.trimmingCharacters(in: .whitespaces).isEmpty || store.state == .prompting)
@@ -377,10 +375,6 @@ struct ResearchSheet: View {
             Text(existing == nil ? "Deep research" : "Follow-up").font(.headline)
             if let existing {
                 Text("Continues \"\(existing.question)\" in this workspace's document.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } else {
-                Text("A workspace named after the question, a document the agent writes into, and the sources it read open next to it.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

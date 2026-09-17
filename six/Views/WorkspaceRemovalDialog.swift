@@ -34,7 +34,7 @@ struct WorkspaceRemovalDialog: ViewModifier {
             Button("Delete Workspace", role: .destructive) { browser.layout.removeWorkspace(pending.id) }
             Button("Keep It", role: .cancel) { browser.layout.keepWorkspace(pending.id) }
         } message: { _ in
-            Text("Its last window has been closed. Kept, it stays on the rail with its name and nothing in it.")
+            Text("Its last window has been closed. If you keep it, it stays as an empty workspace with its name.")
         }
     }
 }

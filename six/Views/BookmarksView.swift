@@ -30,7 +30,6 @@ struct BookmarksView: View {
                 .pickerStyle(.segmented)
                 .labelsHidden()
                 .fixedSize()
-                .help("What the list, the assistant and the agents see")
                 Spacer()
                 TextField("Search by meaning", text: $query)
                     .textFieldStyle(.roundedBorder)

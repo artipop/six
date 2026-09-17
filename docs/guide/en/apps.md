@@ -43,8 +43,8 @@ opened the panel signed up for.
 ## Signing in
 
 The panel probes remote servers without authorization — so that a search never
-opens a sign-in window for anybody — and reports what it found: "39 of 39 draw a
-window", "sign-in required", "did not answer".
+opens a sign-in window for anybody — and reports what it found: "39 of 39 have an
+interface", "sign-in required", "did not answer".
 
 The **Sign In** button appears only for a server that refused without a token,
 and for nobody else: offered to everyone, it would stop meaning anything. Signing

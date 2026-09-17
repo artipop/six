@@ -34,24 +34,24 @@ struct WelcomePage: View {
 
                 Text("Should six use language models?")
                     .font(.title2.weight(.semibold))
-                Text("The ⌘K line, the verbs that appear over selected text and in a field you are typing in, the agent panel, deep research, and six's own MCP server — everything that talks to a model or an agent.")
+                Text("The ⌘K line, actions over selected text, the agent panel, deep research and the MCP server.")
                     .foregroundStyle(.secondary)
                     .padding(.top, 6)
                     .fixedSize(horizontal: false, vertical: true)
 
                 HStack(spacing: 12) {
                     Choice(title: "Yes, use them",
-                           detail: "The models are chosen in Configuration ▸ Assistant. The on-device one keeps everything on this Mac; the others are a key and an endpoint you enter yourself.",
+                           detail: "The on-device model keeps everything on this Mac; others need your own key.",
                            symbol: "sparkles",
                            isProminent: true) { answer(true) }
-                    Choice(title: "No, none of it",
-                           detail: "Nothing is built and nothing is injected into a page: no ⌘K line, no bar over a selection, no agent, no socket. Bookmark search and page translation are not affected.",
+                    Choice(title: "No, don't use them",
+                           detail: "Nothing is loaded or added to pages. Bookmark search and translation still work.",
                            symbol: "nosign",
                            isProminent: false) { answer(false) }
                 }
                 .padding(.top, 20)
 
-                Text("Either way it is one switch in Configuration ▸ Assistant, and it can be changed at any time.")
+                Text("You can change this at any time in Configuration ▸ Assistant.")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                     .padding(.top, 16)

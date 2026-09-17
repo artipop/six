@@ -35,7 +35,7 @@ struct ProfileMenuButton: View {
         .buttonStyle(.plain)
         .fixedSize()
         .help(profile.isPrivate
-              ? "Private browsing — nothing is kept; close it to forget the session"
+              ? "Private Window"
               : "Profiles")
         .popover(isPresented: $showing, arrowEdge: .bottom) {
             ProfilePopover().environment(browser)
@@ -223,7 +223,7 @@ private struct ProfileRow: View {
         if profile.isPrivate {
             // A private profile has no name and no colour worth keeping — the only thing to do with
             // it is end it, and with it everything it saw.
-            Text("Nothing is kept in this profile. Closing it forgets the session.")
+            Text("Nothing is kept in this profile. Closing it erases the session.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

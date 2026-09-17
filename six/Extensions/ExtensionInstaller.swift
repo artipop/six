@@ -162,7 +162,7 @@ enum ExtensionInstaller {
         }
         switch CRXSignature.verify(data) {
         case .verified(let extensionID):
-            return (String(localized: "Signed .crx, id \(extensionID) — the signature matches the file. Nobody vouches for who holds that key."), false)
+            return (String(localized: "Signed .crx, id \(extensionID) — the signature matches the file, but that says nothing about who owns the key."), false)
         case .invalid:
             return (String(localized: "This .crx's signature does not match its contents — it was changed after it was signed."), true)
         case .malformed(let why):
@@ -179,7 +179,7 @@ enum ExtensionInstaller {
 
     /// The verdict, from the manifest alone (see `ExtensionCompatibility`).
     static func compatibility(of ext: WKWebExtension) -> ExtensionCompatibility {
-        var details: [String] = []
+        var details: [AttributedString] = []
         let wantsScripting = ext.requestedPermissions.contains(.scripting)
             || ext.optionalPermissions.contains(.scripting)
         let wantsWebRequest = ext.requestedPermissions.contains(.webRequest)
@@ -193,19 +193,19 @@ enum ExtensionInstaller {
         // background messaging through the same fix has not been exercised the same way — see
         // docs/extensions.md.
         if ext.hasInjectedContent {
-            details.append(String(localized: "Its content scripts run in pages and should now reach their extension, and be reached back — on macOS; unconfirmed on the phone."))
+            details.append(AttributedString(localized: "Its content scripts run in pages and should be able to exchange messages with the extension on the Mac; on iPhone and iPad this has not been checked."))
         }
         if wantsScripting {
-            details.append(String(localized: "`scripting.executeScript` and `scripting.insertCSS` now reach the page — on macOS; the phone has no live web view to find yet."))
+            details.append(AttributedString(localized: "`scripting.executeScript` and `scripting.insertCSS` work on the Mac, but not yet on iPhone and iPad."))
         }
         if wantsWebRequest {
-            details.append(String(localized: "`webRequest` is not available in WebKit at all."))
+            details.append(AttributedString(localized: "`webRequest` is not available in WebKit at all."))
         }
         if ext.hasContentModificationRules {
-            details.append(String(localized: "Its declarativeNetRequest rules work — those block for real."))
+            details.append(AttributedString(localized: "Its declarativeNetRequest blocking rules work."))
         }
         if ext.hasBackgroundContent {
-            details.append(String(localized: "Background, storage, alarms, tabs and its popup work."))
+            details.append(AttributedString(localized: "Background, storage, alarms, tabs and its popup work."))
         }
 
         // Kept apart rather than folded into one switch, because the two things that used to share a
@@ -214,26 +214,26 @@ enum ExtensionInstaller {
         // test, `scripting.insertCSS` actually changing a real page), and messaging is the same door
         // with nobody yet standing on the other side to confirm it.
         let verdict: ExtensionCompatibility.Verdict
-        let summary: String
+        let summary: AttributedString
         if wantsWebRequest {
             verdict = .partial
-            summary = String(localized: "Works partly — `webRequest` is not available in WebKit at all.")
+            summary = AttributedString(localized: "Works partly — `webRequest` is not available in WebKit at all.")
         } else if wantsScripting {
             verdict = .full
-            summary = String(localized: "Works — `scripting.executeScript` and `scripting.insertCSS` reach the page on macOS.")
+            summary = AttributedString(localized: "Works — `scripting.executeScript` and `scripting.insertCSS` work on the Mac.")
         } else if talksToPages {
             verdict = .partial
-            summary = String(localized: "Works partly — its content scripts should now reach the extension on macOS, unconfirmed end to end.")
+            summary = AttributedString(localized: "Works partly — on the Mac its content scripts should be able to talk to the extension, but this has not been fully checked.")
         } else {
             verdict = .full
-            summary = String(localized: "Works — nothing it asks for depends on reaching into a page.")
+            summary = AttributedString(localized: "Works — nothing it asks for needs access to page content.")
         }
 
         // An extension that is *only* content scripts has nothing left when they go deaf.
         if ext.hasInjectedContent, !ext.hasBackgroundContent, !ext.hasContentModificationRules {
             return ExtensionCompatibility(
                 verdict: .partial,
-                summary: String(localized: "Works partly — it is content scripts, which run but cannot be configured or updated by it."),
+                summary: AttributedString(localized: "Works partly — it is only content scripts: they run, but nothing in the extension can configure or update them."),
                 details: details)
         }
         return ExtensionCompatibility(verdict: verdict, summary: summary, details: details)
