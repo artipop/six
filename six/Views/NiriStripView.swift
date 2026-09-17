@@ -141,7 +141,7 @@ private struct WorkspaceView: View {
         ZStack(alignment: .topLeading) {
             Color.clear
             if places.isEmpty {
-                EmptyWorkspaceHint()
+                EmptyWorkspaceHint(workspaceID: workspace.id)
                     .frame(width: layerWidth, height: size.height)
             }
             // The window the `+` under the pointer would open, where it would open: the strip has
@@ -237,10 +237,19 @@ private struct WorkspaceView: View {
     }
 }
 
+/// What an empty workspace shows: a button for its first window.
+///
+/// In the overview the button is not a button. `newTab` opens beside the focus, and the focus is in
+/// whichever row the overview was opened from — so a click on an empty row's button put the window in
+/// *another* row, which is ⌘T with a misleading picture. There the whole row flies to itself instead,
+/// and the button is pressed where it means what it says.
 private struct EmptyWorkspaceHint: View {
+    let workspaceID: UUID
+
     @Environment(BrowserState.self) private var browser
 
     var body: some View {
+        let overview = browser.layout.isOverview
         VStack(spacing: 10) {
             Image(systemName: "rectangle.split.3x1")
                 .font(.system(size: 26, weight: .light))
@@ -251,10 +260,23 @@ private struct EmptyWorkspaceHint: View {
             }
             .controlSize(.large)
             .buttonStyle(.borderedProminent)
+            .allowsHitTesting(!overview)
             Text("or ⌘T")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background {
+            if overview {
+                Color.clear.contentShape(Rectangle()).onTapGesture(perform: flyHere)
+            }
+        }
+    }
+
+    private func flyHere() {
+        guard let row = browser.layout.workspaces.firstIndex(where: { $0.id == workspaceID }) else { return }
+        browser.focusWorkspace(at: row)
+        browser.exitOverview()
     }
 }
 
