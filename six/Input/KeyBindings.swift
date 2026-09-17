@@ -16,11 +16,21 @@
 /// `KeyBindingsTests`, which reads that file and refuses to let either side promise a key the other
 /// has never heard of. That doc has said "nothing here can drift from the code" since it was
 /// written; this is the first version of it where that is enforced rather than hoped for.
+///
+/// **Most of it is asked second.** A `⌥` key has a meaning on a Mac before six gives it one — word
+/// movement, a typed «∑», a page scrolled by a screen, whatever a web app bound for itself — and six
+/// cannot know in advance which of those the thing in front of you wants. So a `.pageFirst` row lets
+/// the key reach the page, and answers only if WebKit hands it back unhandled, the way Chrome and
+/// Firefox treat every shortcut they do not reserve. The `.reserved` rows are the ones that stay
+/// six's whatever has the focus: the ring, and a `⌃⌥` copy of the rail's navigation for the page that
+/// swallows every key it is given.
 enum KeyBindings {
     /// The ring is listed first because it is on top: while `⌃` holds the cards up, nothing else in
     /// the window is being looked at. Order is meaningful — the first row that matches wins — and
     /// `KeyBindingsTests` checks that no `.any` row is shadowing a narrower one written after it.
-    static let all: [KeyBinding] = [
+    static let all: [KeyBinding] = table + reservedRail
+
+    private static let table: [KeyBinding] = [
         // MARK: The ⌃Tab ring, while it is held open
         KeyBinding(.code(.tab), .exactly([.control, .shift]), .switcher, .stepSwitcher(-1)),
         KeyBinding(.code(.tab), .any, .switcher, .stepSwitcher(1)),
@@ -40,37 +50,45 @@ enum KeyBindings {
         KeyBinding(.code(.escape), .any, .switcher, .cancelSwitcher),
 
         // MARK: The rail (⌥)
-        KeyBinding(.code(.leftArrow), .exactly(.option), .rail, .focusColumn(-1)),
-        KeyBinding(.code(.rightArrow), .exactly(.option), .rail, .focusColumn(1)),
-        KeyBinding(.code(.leftArrow), .exactly([.option, .shift]), .rail, .moveColumn(-1)),
-        KeyBinding(.code(.rightArrow), .exactly([.option, .shift]), .rail, .moveColumn(1)),
-        KeyBinding(.code(.home), .exactly(.option), .rail, .focusColumnEdge(last: false)),
-        KeyBinding(.code(.end), .exactly(.option), .rail, .focusColumnEdge(last: true)),
-        KeyBinding(.code(.upArrow), .exactly(.option), .rail, .focusWorkspace(-1)),
-        KeyBinding(.code(.downArrow), .exactly(.option), .rail, .focusWorkspace(1)),
-        KeyBinding(.code(.upArrow), .exactly([.option, .shift]), .rail, .moveColumnToWorkspace(-1)),
-        KeyBinding(.code(.downArrow), .exactly([.option, .shift]), .rail, .moveColumnToWorkspace(1)),
-        KeyBinding(.letter("w", .w), .exactly(.option), .rail, .toggleFullWidth),
+        // Every one of these is a key macOS or the page may already mean something by, so every one
+        // is offered to the page first. `⌥↑` / `⌥↓` show why that is not a formality: WebKit scrolls
+        // a page by a screen with them and keeps them for as long as the page *can* scroll — at its
+        // bottom edge too, measured — so on an article they are the article's, and on a start page
+        // or a short page they come back and step the workspace.
+        KeyBinding(.code(.leftArrow), .exactly(.option), .rail, .focusColumn(-1), .pageFirst),
+        KeyBinding(.code(.rightArrow), .exactly(.option), .rail, .focusColumn(1), .pageFirst),
+        KeyBinding(.code(.leftArrow), .exactly([.option, .shift]), .rail, .moveColumn(-1), .pageFirst),
+        KeyBinding(.code(.rightArrow), .exactly([.option, .shift]), .rail, .moveColumn(1), .pageFirst),
+        KeyBinding(.code(.home), .exactly(.option), .rail, .focusColumnEdge(last: false), .pageFirst),
+        KeyBinding(.code(.end), .exactly(.option), .rail, .focusColumnEdge(last: true), .pageFirst),
+        KeyBinding(.code(.upArrow), .exactly(.option), .rail, .focusWorkspace(-1), .pageFirst),
+        KeyBinding(.code(.downArrow), .exactly(.option), .rail, .focusWorkspace(1), .pageFirst),
+        KeyBinding(.code(.upArrow), .exactly([.option, .shift]), .rail, .moveColumnToWorkspace(-1), .pageFirst),
+        KeyBinding(.code(.downArrow), .exactly([.option, .shift]), .rail, .moveColumnToWorkspace(1), .pageFirst),
+        KeyBinding(.letter("w", .w), .exactly(.option), .rail, .toggleFullWidth, .pageFirst),
         // ⌥S beside ⌥W: the two keys that change what a window is given, one after the other in the
         // hand. Not a ⌘ key, and not only because ⌘S is Save — it is pressed while reading a page,
         // and a focused `WKWebView` answers a key equivalent before the menu bar is asked.
-        KeyBinding(.letter("s", .s), .exactly(.option), .rail, .toggleSplit),
-        KeyBinding(.letter("o", .o), .exactly(.option), .rail, .toggleOverview),
-        KeyBinding(.letter("c", .c), .exactly(.option), .rail, .toggleCenterFocus),
+        KeyBinding(.letter("s", .s), .exactly(.option), .rail, .toggleSplit, .pageFirst),
+        KeyBinding(.letter("o", .o), .exactly(.option), .rail, .toggleOverview, .pageFirst),
+        KeyBinding(.letter("c", .c), .exactly(.option), .rail, .toggleCenterFocus, .pageFirst),
 
         // MARK: Opening the ring
         KeyBinding(.code(.tab), .exactly(.control), .rail, .stepSwitcher(1)),
         KeyBinding(.code(.tab), .exactly([.control, .shift]), .rail, .stepSwitcher(-1)),
 
         // MARK: The `⌥⇧` verbs the View and File menus show but cannot deliver
-        KeyBinding(.letter("t", .t), .exactly([.option, .shift]), .rail, .translateSelection),
-        KeyBinding(.letter("h", .h), .exactly([.option, .shift]), .rail, .highlightSelection),
+        KeyBinding(.letter("t", .t), .exactly([.option, .shift]), .rail, .translateSelection, .pageFirst),
+        KeyBinding(.letter("h", .h), .exactly([.option, .shift]), .rail, .highlightSelection, .pageFirst),
         // Picture-in-picture is the one of these that is pressed while a video has the focus, which
         // is the case a menu item is worst at: the page is first responder, it is playing, and it
         // would rather have the key.
-        KeyBinding(.letter("p", .p), .exactly([.option, .shift]), .rail, .pictureInPicture),
+        KeyBinding(.letter("p", .p), .exactly([.option, .shift]), .rail, .pictureInPicture, .pageFirst),
 
         // MARK: The address, into the pasteboard
+        // **Not** offered to the page first, though Google Docs has ⌘⇧C for a word count: a ⌘ chord
+        // offered to a focused page never came back through the monitor — measured, nothing copied —
+        // where the ⌥ keys do. A ⌘ key is the browser's by convention, and this one stays six's.
         // ⌘⇧C, which is what Arc calls Copy URL and what the Chromium forks bind on Windows — as
         // `⌃⇧C` there, which is why the chord is asked for rather than written (`copyAddressChord`).
         // It is in the table and not only in the menu because the key is pressed while the page has
@@ -81,6 +99,36 @@ enum KeyBindings {
         // MARK: ⎋
         KeyBinding(.code(.escape), .exactly([]), .rail, .leaveOverview)
     ]
+
+    /// The rail's navigation again, on `⌃⌥`, and **never** offered to anything first.
+    ///
+    /// `⌃⌥` is the one pair of modifiers that means nothing to a Mac: `StandardKeyBinding.dict` binds
+    /// `⌃⌥B`, `⌃⌥F` and `⌃⌥⌫` and no arrow, `com.apple.symbolichotkeys` has none of it, and it types no
+    /// character. So these keys can be taken first without taking anything from anybody — which is
+    /// what a page that swallows every key needs (a game, a remote desktop, Figma), and what a caret
+    /// in a field with text in it needs, since `⌥←` there is word movement and stays that.
+    ///
+    /// The Mac's alone. `RailKeyLookup` reads this table on Windows, where `Ctrl+Alt` *is* AltGr and
+    /// types half of a Polish keyboard.
+    static let reservedRail: [KeyBinding] = {
+        #if os(macOS)
+        let hyper: KeyModifiers = [.control, .option]
+        let move: KeyModifiers = [.control, .option, .shift]
+        return [
+            KeyBinding(.code(.leftArrow), .exactly(hyper), .rail, .focusColumn(-1)),
+            KeyBinding(.code(.rightArrow), .exactly(hyper), .rail, .focusColumn(1)),
+            KeyBinding(.code(.leftArrow), .exactly(move), .rail, .moveColumn(-1)),
+            KeyBinding(.code(.rightArrow), .exactly(move), .rail, .moveColumn(1)),
+            KeyBinding(.code(.upArrow), .exactly(hyper), .rail, .focusWorkspace(-1)),
+            KeyBinding(.code(.downArrow), .exactly(hyper), .rail, .focusWorkspace(1)),
+            KeyBinding(.code(.upArrow), .exactly(move), .rail, .moveColumnToWorkspace(-1)),
+            KeyBinding(.code(.downArrow), .exactly(move), .rail, .moveColumnToWorkspace(1)),
+            KeyBinding(.letter("o", .o), .exactly(hyper), .rail, .toggleOverview)
+        ]
+        #else
+        return []
+        #endif
+    }()
 
     /// ⌘⇧C where there is a ⌘, and ⌃⇧C where there is not — the same chord under the two names the
     /// two keyboards give it, which is how every browser writes this one. The rest of the table is
@@ -101,27 +149,41 @@ struct KeyBinding {
     let modifiers: Modifiers
     let scope: Scope
     let action: KeyAction
+    let precedence: Precedence
 
-    /// Whether a caret keeps this key instead of this binding taking it.
+    /// Who is asked about a key first: six, or whatever has the keyboard.
+    enum Precedence: Equatable {
+        /// Six answers before anything else sees the key. The ring, and the `⌃⌥` rail.
+        case reserved
+        /// The page is asked first, and six answers only what WebKit hands back unhandled. A native
+        /// text field cannot hand anything back, so for one of those `yieldsToCaret(in:)` decides.
+        case pageFirst
+    }
+
+    /// Whether one of six's own text fields keeps this key instead of this binding taking it.
     ///
     /// The whole of the decision, in the one place it can be asked a question: `KeyRouter` had it as
     /// two lines of its own and `KeySelfTest` as a copy of them, so a rule that was true in one was
-    /// only probably true in the other — and the exception below was missing from both.
+    /// only probably true in the other.
     ///
-    /// **The ring is the exception.** While ⌃Tab holds it open nothing else in the window is being
-    /// looked at, and its keys answer first — which docs/hotkeys.md has promised since it was
-    /// written. Without this, `⌃→` over a ring opened while the address field had the caret walked
-    /// the *caret*, and read as an arrow that did nothing at all.
+    /// **A reserved key never yields.** While ⌃Tab holds the ring open nothing else in the window is
+    /// being looked at — without that, `⌃→` over a ring opened while the address field had the caret
+    /// walked the *caret*, and read as an arrow that did nothing at all — and the `⌃⌥` rail is
+    /// reserved precisely so that there is a way off a field with text in it.
     func yieldsToCaret(in context: KeyContext) -> Bool {
-        guard let field = context.field, scope != .switcher else { return false }
+        guard let field = context.field, precedence == .pageFirst else { return false }
+        // `⌥W` types «∑»; `⌘⇧C` types nothing, and a field has no use for it.
+        if case .letter = key { return !modifiers.holds(.command) }
         return key.yields(to: field)
     }
 
-    init(_ key: Key, _ modifiers: Modifiers, _ scope: Scope, _ action: KeyAction) {
+    init(_ key: Key, _ modifiers: Modifiers, _ scope: Scope, _ action: KeyAction,
+         _ precedence: Precedence = .reserved) {
         self.key = key
         self.modifiers = modifiers
         self.scope = scope
         self.action = action
+        self.precedence = precedence
     }
 
     /// A key, by where it sits and by what it says — both, because neither alone is enough.
@@ -151,21 +213,19 @@ struct KeyBinding {
             }
         }
 
-        /// Whether a field with a caret in it keeps this key instead of the rail.
+        /// Whether a field with a caret in it keeps this arrow instead of the rail.
         ///
-        /// Per key and per caret, not per field. `⌥←` is word movement and always was — but only
-        /// while there is a word behind the caret to move over; on the empty field a fresh window
-        /// opens with, that same key is the only way to walk off it, and the old blanket rule spent
-        /// it on nothing. `⌥↑` is paragraph movement, which a one-line field does not have: there it
-        /// did nothing at all, which is the worst answer a key can give. Letters, `Home` and `End`
-        /// are not text movement in any of six's fields and never step aside.
+        /// Per field, and not per caret. It used to be per caret — `⌥←` yielded while there was a
+        /// word behind the caret — and that was a trap: hold `⌥←` in the address field and the caret
+        /// walked to the start of the line and then, one press later, the *window* changed. In a
+        /// field with anything in it every arrow is text movement (`⌥↑` too: in a one-line field it
+        /// goes to the start), and the way out is `⌃⌥←`. On the empty field a fresh window opens
+        /// with they move nothing, and there they are still the only way off it. `Home` and `End`
+        /// are no-ops in Cocoa's text and never step aside.
         func yields(to field: KeyContext.Field) -> Bool {
             guard case .code(let code) = self else { return false }
             switch code {
-            case .leftArrow: return field.hasTextBefore
-            case .rightArrow: return field.hasTextAfter
-            case .upArrow: return field.kind == .multiLine && field.hasTextBefore
-            case .downArrow: return field.kind == .multiLine && field.hasTextAfter
+            case .leftArrow, .rightArrow, .upArrow, .downArrow: return field.hasText
             default: return false
             }
         }
@@ -176,6 +236,11 @@ struct KeyBinding {
     enum Modifiers: Equatable {
         case exactly(KeyModifiers)
         case any
+
+        func holds(_ modifier: KeyModifiers) -> Bool {
+            if case .exactly(let wanted) = self { return wanted.contains(modifier) }
+            return false
+        }
 
         func matches(_ held: KeyModifiers) -> Bool {
             switch self {

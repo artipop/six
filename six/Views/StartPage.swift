@@ -90,6 +90,13 @@ struct StartPage: View {
         ZStack(alignment: .top) {
             LinearGradient(colors: [accent.opacity(0.16), accent.opacity(0.02)],
                            startPoint: .top, endPoint: .bottom)
+                // A click anywhere that is not the field, the list or the engine lets go of the
+                // caret. The field takes the keyboard the moment a window opens, and while it holds
+                // it every `⌥` key is text — «ø» for ⌥O, word movement for ⌥← — so there has to be a
+                // way to hand the keys back to the rail that is not reaching for a different window.
+                // On the gradient, which is behind everything else: the rows and the picker keep
+                // their own clicks, and the empty stretches of the stack above are not hit-testable.
+                .onTapGesture { fieldFocused = false }
             // The stack hangs from a fixed point near the top instead of being centred, and that is
             // the whole reason for the geometry reader. Centred, the field moved every time the list
             // under it changed height: a row arrives from the engine and the thing you are typing
@@ -142,8 +149,14 @@ struct StartPage: View {
                 }
                 .onKeyPress(.downArrow) { move(1) }
                 .onKeyPress(.upArrow) { move(-1) }
+                // Esc clears what was typed, and on a field with nothing in it lets go of the caret —
+                // the way an address bar gives up its text and then the focus. `.ignored` would hand
+                // it on to the page's own Esc, and a start page has none.
                 .onKeyPress(.escape) {
-                    guard !text.isEmpty else { return .ignored }
+                    guard !text.isEmpty else {
+                        fieldFocused = false
+                        return .handled
+                    }
                     text = ""
                     clearSuggestions()
                     return .handled

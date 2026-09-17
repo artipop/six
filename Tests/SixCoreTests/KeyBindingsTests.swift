@@ -83,7 +83,7 @@ struct KeyBindingsTests {
         let onTheRail = KeyContext(window: .main, field: typing)
         let inTheRing = KeyContext(window: .main, field: typing, isSwitching: true)
 
-        // The rail's own ⌥→ steps aside for the caret, as it always has.
+        // The rail's own ⌥→ steps aside for the caret.
         let rail = binding(for: KeyChord(.option, .rightArrow), in: onTheRail)
         #expect(rail?.yieldsToCaret(in: onTheRail) == true)
 
@@ -115,18 +115,59 @@ struct KeyBindingsTests {
 
     // MARK: What a text field keeps
 
-    @Test func theCaretKeepsWordMovementOnlyWhileThereIsAWord() {
+    @Test func aFieldWithTextKeepsEveryArrow() {
         let empty = KeyContext.Field(kind: .singleLine, hasTextBefore: false, hasTextAfter: false)
-        let typed = KeyContext.Field(kind: .singleLine, hasTextBefore: true, hasTextAfter: true)
+        // The caret at the very start of the text: under the old per-caret rule ⌥← went to the rail
+        // from here, which is how holding ⌥← walked the caret home and then changed the window.
+        let atStart = KeyContext.Field(kind: .singleLine, hasTextBefore: false, hasTextAfter: true)
         // The start page's field is focused the moment a window opens, and it is empty. ⌥← there is
         // the only way off the window, not word movement across nothing.
         #expect(KeyBinding.Key.code(.leftArrow).yields(to: empty) == false)
-        #expect(KeyBinding.Key.code(.leftArrow).yields(to: typed))
-        // ⌥↑ is paragraph movement; a one-line field has no paragraphs and used to swallow it whole.
-        #expect(KeyBinding.Key.code(.upArrow).yields(to: typed) == false)
-        #expect(KeyBinding.Key.code(.upArrow).yields(to: .init(kind: .multiLine, hasTextBefore: true, hasTextAfter: true)))
-        // A letter is not text movement in any of six's fields.
-        #expect(KeyBinding.Key.letter("w", .w).yields(to: typed) == false)
+        #expect(KeyBinding.Key.code(.leftArrow).yields(to: atStart))
+        // ⌥↑ in a one-line field goes to its start — text movement like the rest.
+        #expect(KeyBinding.Key.code(.upArrow).yields(to: atStart))
+        #expect(KeyBinding.Key.code(.home).yields(to: atStart) == false)
+    }
+
+    /// `⌥W` types «∑». In a field that is what the key is for, empty or not.
+    @Test func aLetterTypedWithOptionAlwaysGoesToTheField() {
+        let empty = KeyContext(window: .main, field: .init(kind: .singleLine, hasTextBefore: false, hasTextAfter: false))
+        let fullWidth = binding(for: KeyChord(.option, .w), in: empty)
+        #expect(fullWidth?.yieldsToCaret(in: empty) == true)
+        // ⌘⇧C is reserved, and a field has no claim on it.
+        let copy = binding(for: KeyChord(KeyBindings.copyAddressChord, .c), in: empty)
+        #expect(copy?.yieldsToCaret(in: empty) == false)
+    }
+
+    // MARK: Who is asked first
+
+    /// The ring, `⌘⇧C` and the `⌃⌥` rail are six's whatever has the focus; everything else is offered to it.
+    @Test func onlyTheRingAndTheControlOptionRailAreReserved() {
+        for binding in KeyBindings.all {
+            let reserved = binding.scope == .switcher || binding.key.keyCode == .tab
+                || binding.action == .leaveOverview || binding.action == .copyAddress || binding.modifiers == .exactly([.control, .option])
+                || binding.modifiers == .exactly([.control, .option, .shift])
+            #expect((binding.precedence == .reserved) == reserved,
+                    "\(binding.spellings.map(\.label)) → \(binding.action) is \(binding.precedence)")
+        }
+    }
+
+    @Test func aReservedKeyNeverYields() {
+        let typing = KeyContext(window: .main, field: .init(kind: .multiLine, hasTextBefore: true, hasTextAfter: true))
+        for binding in KeyBindings.all where binding.precedence == .reserved {
+            #expect(binding.yieldsToCaret(in: typing) == false, "\(binding.spellings.map(\.label)) yields")
+        }
+    }
+
+    /// The `⌃⌥` rail is the Mac's: on Windows `Ctrl+Alt` is AltGr, and `RailKeyLookup` reads this table.
+    @Test func theControlOptionRailIsTheMacsAlone() {
+        let hyper = KeyBindings.all.filter { $0.modifiers == .exactly([.control, .option]) }
+        #if os(macOS)
+        #expect(hyper.contains { $0.action == .focusColumn(-1) })
+        #expect(hyper.contains { $0.action == .focusWorkspace(1) })
+        #else
+        #expect(hyper.isEmpty)
+        #endif
     }
 
     // MARK: The layout the letters are typed on

@@ -42,6 +42,9 @@ enum KeySelfTest {
             ("⌥⇧P (ru)", [.option, .shift], .p, "з"),
             ("⌘⇧C", [.command, .shift], .c, "c"),
             ("⌘⇧C (ru)", [.command, .shift], .c, "с"),
+            ("⌃⌥←", [.control, .option], .leftArrow, ""),
+            ("⌃⌥⇧↓", [.control, .option, .shift], .downArrow, ""),
+            ("⌃⌥O", [.control, .option], .o, "o"),
             ("⌃Tab", .control, .tab, "\t"),
             ("⌃⇧Tab", [.control, .shift], .tab, "\t"),
             ("⌃→", .control, .rightArrow, ""),
@@ -50,7 +53,7 @@ enum KeySelfTest {
             ("⌃Esc", .control, .escape, "\u{1b}"),
             ("↩", [], .returnKey, "\r")
         ]
-        var out = "[six] keys: what the table answers\n"
+        var out = "[six] keys: what the table answers — «page:» is offered to a focused page first, and answers only if it comes back\n"
         out += pad("") + contexts.map { pad($0.0) }.joined() + "\n"
         for (name, flags, code, characters) in chords {
             let event = self.event(flags: flags, code: code, characters: characters)
@@ -67,7 +70,8 @@ enum KeySelfTest {
     private static func answer(for event: NSEvent, in context: KeyContext) -> String {
         guard let binding = KeyBindings.all.first(where: { $0.matches(event, in: context) }) else { return "—" }
         if binding.yieldsToCaret(in: context) { return "caret" }
-        return label(binding.action)
+        let offered = binding.precedence == .pageFirst && context.field == nil && context.window == .main
+        return (offered ? "page:" : "") + label(binding.action)
     }
 
     private static func label(_ action: KeyAction) -> String {
@@ -124,6 +128,10 @@ enum KeySelfTest {
         for _ in 0..<max(0, 3 - here) { _ = browser.newTab() }
         try? await Task.sleep(for: .milliseconds(400))
         note("rail: \(rail(browser))")
+        // Off the start page's field once the arrows have had their go at it: an `⌥` letter in a field
+        // types its character now («ø» for ⌥O), and the question below is the rail's, not the field's.
+        // `KeySelfTestPage` asks the field's.
+        var releasedField = false
         for (name, flags, code) in [
             ("⌥→", NSEvent.ModifierFlags.option, KeyCode.rightArrow),
             ("⌥→", .option, .rightArrow),
@@ -135,6 +143,7 @@ enum KeySelfTest {
             ("⌥O", .option, .o),
             ("⌥O", .option, .o)
         ] {
+            if code == .w, !releasedField { _ = window.makeFirstResponder(nil); releasedField = true }
             post(flags: flags, code: code, in: window)
             try? await Task.sleep(for: .milliseconds(350))
             note("\(name) → \(rail(browser))")
@@ -171,6 +180,9 @@ enum KeySelfTest {
         // half of each line answers, and its **width** says which pane holds them — half a column or
         // a whole one.
         if let page = webView(in: window) { _ = window.makeFirstResponder(page) }
+        // A rail of start pages has no page to hand it to, and the caret in a start page's field would
+        // take ⌥S as «ß» — the field's, and not the question here.
+        if window.firstResponder is NSText { _ = window.makeFirstResponder(nil) }
         // From a known state: this runs against the dev profile's real rail, and on a rail that
         // already has a split under the focus the first ⌥S un-splits instead — which reads as the
         // key doing the opposite of what it says and cost a round of believing it.
@@ -189,6 +201,7 @@ enum KeySelfTest {
             note("\(name) → \(rail(browser))")
         }
 
+        if window.firstResponder is NSText { _ = window.makeFirstResponder(nil) } // a start page's half
         post(flags: .option, code: .s, in: window)
         try? await Task.sleep(for: .milliseconds(350))
         note("⌥S (back) → \(rail(browser))")
@@ -245,6 +258,7 @@ enum KeySelfTest {
         browser.cancelWindowSwitch()
         browser.closeTab(elsewhere.id) // the rail is left exactly as it was found
 
+        await pageFirst(browser, in: window)
         await menuKeys(browser, in: window)
     }
 
@@ -466,7 +480,7 @@ enum KeySelfTest {
     }
 
     /// Which window on the rail is focused, and how the rail is showing it.
-    private static func rail(_ browser: BrowserState) -> String {
+    static func rail(_ browser: BrowserState) -> String {
         let layout = browser.layout
         let strip = layout.strip(for: browser.selectedProfileID)
         let workspace = strip.workspaces.indices.contains(layout.focusedWorkspaceIndex)
@@ -493,17 +507,18 @@ enum KeySelfTest {
             + (wall ?? "")
     }
 
-    private static func post(flags: NSEvent.ModifierFlags, code: KeyCode, in window: NSWindow) {
+    static func post(flags: NSEvent.ModifierFlags, code: KeyCode, in window: NSWindow) {
         post(flags: flags, rawCode: code.rawValue, characters: characters(for: code), in: window)
     }
 
     /// The menu's keys are not the table's keys, and `KeyCode` is the table's — a `case r` there
     /// would be a name nothing in `KeyBindings` ever says. They are posted by number instead.
-    private static func post(flags: NSEvent.ModifierFlags, rawCode: UInt16, characters: String, in window: NSWindow) {
+    static func post(flags: NSEvent.ModifierFlags, rawCode: UInt16, characters: String,
+                     ignoringModifiers: String? = nil, in window: NSWindow) {
         guard let event = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: flags,
                                            timestamp: ProcessInfo.processInfo.systemUptime,
                                            windowNumber: window.windowNumber, context: nil,
-                                           characters: characters, charactersIgnoringModifiers: characters,
+                                           characters: characters, charactersIgnoringModifiers: ignoringModifiers ?? characters,
                                            isARepeat: false, keyCode: rawCode) else { return }
         NSApp.postEvent(event, atStart: false)
     }
@@ -533,7 +548,7 @@ enum KeySelfTest {
         return String(UnicodeScalar(UInt32(scalar)) ?? " ")
     }
 
-    private static func note(_ message: String) {
+    static func note(_ message: String) {
         Log.info(.keys, message)
     }
 

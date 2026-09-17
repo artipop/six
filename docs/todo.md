@@ -17,6 +17,18 @@ wrong for them. Three keys to page a carousel is a bad answer wherever it is wri
 another one has not been found yet: the ring is held open *by* `⌃`, so every key it can answer is a
 `⌃` chord, and the arrows are the only pair that says "the card over there" without being learned.
 
+## Linux and Windows: the rail's `Alt` keys are the browser's own
+
+The Mac offers every `⌥` key to the page first and keeps a `⌃⌥` copy of the rail's navigation that nothing else
+wants ([hotkeys.md](hotkeys.md)). The other fronts have neither, and
+the conflict is sharper there: `Alt+←` / `Alt+→` are Back and Forward in every browser on both platforms, `Alt+Home`
+is the home page, and `Alt`+letter opens a menu on Windows. The Windows front reads `KeyBindings` through
+`RailKeyLookup`, so it takes them first as the Mac used to; the GTK front binds `<Alt>Left` and friends by hand in
+`BrowserContent.swift`. `⌃⌥` is no answer on Windows, where `Ctrl+Alt` is AltGr. What is: the same page-first order
+(WebKitGTK's `key-press-event` return value and WebKit2's unhandled-key callback both say whether the page took a
+key), and a reserved chord of each platform's own — `Super` is the window manager's on both, so it is a real choice
+and not a transcription.
+
 ## Save As: web archives
 
 Document windows, Save As and highlights are built ([deep-research.md](deep-research.md)). What Save As still

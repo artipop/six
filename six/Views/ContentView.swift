@@ -117,7 +117,9 @@ struct ContentView: View {
             }
             // `SIX_KEY_SELFTEST=1` prints what every binding answers in every context — the only
             // way to check the keyboard on a Mac that cannot press its own keys (`KeySelfTest`).
-            if ProcessInfo.processInfo.environment["SIX_KEY_SELFTEST"] != nil {
+            if ProcessInfo.processInfo.environment["SIX_KEY_SELFTEST"] == "page" {
+                await KeySelfTest.pageOnly(browser)
+            } else if ProcessInfo.processInfo.environment["SIX_KEY_SELFTEST"] != nil {
                 KeySelfTest.run()
                 await KeySelfTest.live(browser)
             }

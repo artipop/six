@@ -54,7 +54,7 @@ Saved above visited above guessed: a bookmark is a page you decided to keep,
 history is a page you happened to open, and a completion is what everybody else
 is typing.
 
-`↑` `↓` walk the rows, `↩` opens the selected one, `Esc` clears the field.
+`↑` `↓` walk the rows, `↩` opens the selected one, `Esc` clears the field, and on an empty one lets go of the caret — as does a click beside the field.
 
 The engine is switched from the chip to the left of the field, or from
 **Configuration ▸ General ▸ Search Engine**; DuckDuckGo by default. The choice is shared by the

@@ -24,13 +24,42 @@ one `NSEvent` monitor (`KeyRouter`). A binding is in the table when a menu item 
 Not a menu. These used to be a **Layout** menu of eleven items, ten of which were an arrow key, and that menu
 could not make them work anyway: a first-responder `WKWebView` answers a key equivalent before the menu bar sees
 it and keeps `⌥←` / `⌥→` for word movement, so after clicking into a page the layout keys went quiet. They come
-through a local `NSEvent` monitor now, which runs before all of it.
+through a local `NSEvent` monitor now (`KeyRouter`).
 
-What is given back to a text field is worked out **per key and per caret**, not per field
-(`KeyBinding.Key.yields(to:)`). `⌥←` is word movement and always was — but only while there is a word behind the
-caret to move over; on the empty field a fresh window opens with, the same key is the only way to walk off it.
-`⌥↑` is paragraph movement, which a one-line field does not have, so there it stays the rail's. A field *inside a
-page* cannot be told apart from the page around it, and the rail wins there.
+**Every key here is offered to the page first** (`KeyBinding.Precedence.pageFirst`). `⌥` has work of its own on a
+Mac before six gives it any — `StandardKeyBinding.dict` makes the arrows word and paragraph movement, the letters
+type «∑ ß ø ç», WebKit pages a scrollable page with `⌥↑` / `⌥↓`, and a web app may bind anything it likes (Google
+Sheets walks its sheets with `⌥↑` / `⌥↓`). Nobody can know in advance which of those the thing in front of you
+wants — a page's `addEventListener` cannot be enumerated from outside — so six does what Chrome and Firefox do
+for every shortcut they do not reserve: the key goes to the page, and six answers only if the page hands it
+back. WebKit already does the handing back. A key the page did not handle — no `preventDefault`, no caret moved,
+nothing scrolled, nothing typed — is sent again through `NSApp.sendEvent` (`WebViewImpl::doneWithKeyEvent`,
+which is how the menu bar gets the `⌘` keys a page leaves alone), and that second delivery passes through the
+same local monitor. `KeyRouter` remembers the key it let through by timestamp and key code and answers it when it
+comes back. Measured, by `SIX_KEY_SELFTEST=page` (`KeySelfTestPage.swift`):
+
+| where | `⌥←` | `⌥↓` | `⌥W` |
+|---|---|---|---|
+| a page that does not scroll | rail | rail | rail |
+| a page that scrolls | — | **the page**, by a screen — at its bottom edge too, so holding it never falls through to the next workspace | rail |
+| a field on the page, with text | **the page** (word) | **the page** | **the page** («∑») |
+| an empty field on the page | **the page** — WebKit keeps it though nothing moves | **the page** | **the page** |
+| a page with its own `keydown` handler for the key | **the page** | **the page** | **the page** |
+
+Six's own fields (the address, `⌘K`, the start page, a document) cannot hand anything back, so for them the router
+decides on the first pass (`KeyBinding.yieldsToCaret(in:)`): **every arrow goes to a field with any text in it**,
+and every `⌥`+letter goes to any field at all, empty included. It used to be per caret — `⌥←` yielded only while
+there was a word behind the caret — and that was a trap: holding `⌥←` walked the caret home and one press later
+changed the *window*. On the empty field a fresh window opens with the arrows move nothing, and there they still
+walk the rail. The `.keyboardShortcut`s the View and File menus show for `⌥W` `⌥S` `⌥O` `⌥⇧T` `⌥⇧H` `⌥⇧P` do not
+take the letter from a field first — measured, the field gets its «∑».
+
+`⌘⇧C` is the exception in the other direction: reserved, although Google Docs binds it for a word count. A `⌘` chord
+offered to a focused page never came back through the monitor — measured, nothing copied — so it is taken first,
+as it always was.
+
+The cost is the obvious one: on a page that scrolls, `⌥↑` / `⌥↓` are the page's, and a page that swallows every key
+(a game, a remote desktop, Figma) keeps them all. That is what the reserved keys below are for.
 
 | | |
 |---|---|
@@ -49,6 +78,26 @@ page* cannot be told apart from the page around it, and the rail wins there.
 Where the rail runs out, the gesture is answered rather than ignored: the edge pushed into lights up
 in the profile's colour and the rubber band gives less, and nothing moves, because there is nothing
 that way ([layout.md](layout.md#the-ends-of-the-rail)).
+
+## Reserved (`⌃⌥` — `KeyBindings.reservedRail`, macOS only)
+
+The rail's navigation again, taken **before** the page or a field sees it (`Precedence.reserved`). `⌃⌥` is the one
+pair of modifiers that means nothing to a Mac: `StandardKeyBinding.dict` binds `⌃⌥B`, `⌃⌥F` and `⌃⌥⌫` and no arrow,
+`com.apple.symbolichotkeys` has none of it, and it types no character — so these can be taken first without taking
+anything from anyone. The way off a field with text in it, and out of a page that keeps every key.
+
+| | |
+|---|---|
+| `⌃⌥←` `⌃⌥→` | focus the window left / right |
+| `⌃⌥⇧←` `⌃⌥⇧→` | move the window left / right |
+| `⌃⌥↑` `⌃⌥↓` | focus the workspace above / below |
+| `⌃⌥⇧↑` `⌃⌥⇧↓` | move the window to the workspace above / below |
+| `⌃⌥O` | overview on / off |
+
+The Mac's alone. `RailKeyLookup` reads this table on Windows, where `Ctrl+Alt` is AltGr and types half of a Polish
+keyboard; the Linux front has its own `<Alt>` shortcuts. Both fronts still have the conflict this section exists
+for — `Alt+←` / `Alt+→` are Back and Forward in every browser there — see [todo.md](todo.md).
+VoiceOver's `VO` keys are `⌃⌥` too; with VoiceOver on, these belong to it.
 
 ## Flying between windows (`⌃` — `KeyBindings`, scope `.switcher`)
 
@@ -106,7 +155,7 @@ One rail's windows only — the workspace on screen — and this run only. `⌥�
 | typing | completions: an address row when the input looks like one, then pages from the profile's history, then the engine's suggestions |
 | `↑` `↓` | walk the rows |
 | `↩` | open the selected row, or the raw input (address, or a search) |
-| `Esc` | clear the field |
+| `Esc` | clear the field; on an empty field, let go of the caret — so the `⌥` keys reach the rail again. A click beside the field does the same |
 
 ## Address field (`⌘L`)
 
@@ -176,14 +225,15 @@ written into the page's DOM.
   reports «ц» from `charactersIgnoringModifiers`; matching only that is why `⌥W` / `⌥O` / `⌥C` were dead for anyone
   not typing in Latin. `KeyBinding.Key.letter` matches either the US key code or the character, so the three work on
   a Cyrillic layout (by position) and on Dvorak (by letter).
-- `⌥W` / `⌥S` / `⌥O` / `⌥C` / `⌥⇧T` / `⌥⇧H` / `⌥⇧P` are taken before anything else sees them, so those `⌥`+letter
-  characters can't be typed into a field. The arrows are not — see the rail section for the rule.
+- `⌥W` / `⌥S` / `⌥O` / `⌥C` / `⌥⇧T` / `⌥⇧H` / `⌥⇧P` type their characters in any field, on a page or six's own; they
+  are the rail's everywhere else. `SIX_UI_DEBUG=1` says which: `offered to the page first` and then either nothing
+  (the page kept it) or `…, after the page`.
 - **Nothing in the table answers outside six's own window.** A sheet, a popover and WebKit's full-screen video are
   `KeyContext.Window.elsewhere`, and there `⎋` closes the sheet instead of the overview behind it and `⌥O` does
   nothing at all.
-- To move the whole layout set to another modifier, change the `.exactly(.option)` rows in `KeyBindings.all` — the
+- To move the whole layout set to another modifier, change the `.exactly(.option)` rows in `KeyBindings.table` — the
   keys are read there and nowhere else. The `.keyboardShortcut`s left in `ViewCommands` and `FileCommands` (`⌥W`,
-  `⌥O`, `⌥⇧T`, `⌥⇧H`, `⌥⇧P`) are for display and for the pointer; the router swallows the key before the menu can act on it.
+  `⌥O`, `⌥⇧T`, `⌥⇧H`, `⌥⇧P`) are for display and for the pointer; the router answers the key before the menu can.
 - **Nothing in the `⌘` table greys out, and the reason is a bug worth knowing.** SwiftUI decides
   `.disabled` when a `Commands` body is built, and a body reading model state is *not* rebuilt when
   that state changes — so an item disabled on `canGoBack` stays disabled after you navigate, and a

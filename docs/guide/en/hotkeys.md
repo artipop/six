@@ -1,7 +1,10 @@
 # Keyboard shortcuts
 
-`⌥` is the rail, `⌘` is the browser. There is no menu for the `⌥` keys: they are
-read before the page is, which is what makes them always answer. None of it is
+`⌥` is the rail, `⌘` is the browser. `⌥` already has work to do on a Mac — word
+movement, typing «∑» and «ø», scrolling a page, a site's own shortcuts — so a key
+goes first to whatever has the focus, and the rail answers only if nothing there
+wanted it. For when it has to work regardless there is `⌃⌥`: those keys the rail
+always takes. None of it is
 required: [every operation has a mouse
 equivalent](/en/layout#with-the-mouse-alone).
 
@@ -25,10 +28,24 @@ Where the rail has run out, the gesture is not lost in silence: the edge you
 pushed into lights up in the profile's colour, the rubber band stiffens, and
 nothing moves — because there is nothing that way.
 
-While the caret is in a field — the address bar, the `⌘K` line, the start page —
-`⌥←` and `⌥→` stay word movement, as they always were. But only while there is a
-word to step over: on the empty field a new window opens with, the same keys walk
-the rail.
+**The page first, then the rail.** While the caret is in a field with text in it —
+the address bar, the `⌘K` line, a field on the page itself — the `⌥` arrows move the
+caret, and `⌥W`, `⌥S`, `⌥O`, `⌥C` type their characters. On a page that scrolls,
+`⌥↑` and `⌥↓` page through it — all the way to the end, without jumping to the next
+workspace. A shortcut a site took for itself (Google Sheets moves between sheets
+with `⌥↑` / `⌥↓`) stays the site's. On the empty field a new window opens with, and
+on a page that does not scroll, the keys walk the rail.
+
+| | |
+|---|---|
+| `⌃⌥←` `⌃⌥→` | focus the window left / right — from a field, a game, anywhere |
+| `⌃⌥⇧←` `⌃⌥⇧→` | move the window left / right |
+| `⌃⌥↑` `⌃⌥↓` | workspace above / below |
+| `⌃⌥⇧↑` `⌃⌥⇧↓` | move the window to the workspace above / below |
+| `⌃⌥O` | overview |
+
+`⌃⌥` means nothing to a Mac, in text or in the system, so the rail takes these first
+without taking anything from anyone.
 
 ## Flying between windows
 
@@ -82,7 +99,7 @@ workspaces, not other profiles — and this run only.
 | typing | completions: an address, pages from history, the engine's suggestions |
 | `↑` `↓` | walk the rows |
 | `↩` | open the selected row, or what you typed |
-| `Esc` | clear the field |
+| `Esc` | clear the field; on an empty field, let go of the caret so the `⌥` keys walk the rail again. A click beside the field does the same |
 
 ## Bookmarks (`⌘⌥B`)
 
@@ -115,11 +132,8 @@ workspaces, not other profiles — and this run only.
 |---|---|
 | `↩` | commit a workspace's name while renaming it |
 
-::: tip Two things worth knowing
-`⌥W`, `⌥S`, `⌥O` and `⌥C` are taken before anything else sees them, so those characters
-cannot be typed into a field.
-
-The arrows are not: while the caret is in the address field or the ⌘K line, `⌥←`
-and `⌥→` are word movement, as they always were. Inside a page they belong to the
-rail — a text field on a page cannot be told apart from the page around it.
+::: tip When a `⌥` key "did nothing"
+Most likely whatever had the focus wanted it: the caret stepped a word, the page
+scrolled, the site ran its own shortcut. That is on purpose — on a Mac `⌥` is about
+text first. `⌃⌥←` `⌃⌥→` `⌃⌥↑` `⌃⌥↓` always work.
 :::

@@ -27,6 +27,7 @@ struct KeyContext: Equatable {
         /// There is something on the left of the caret for `⌥←` to walk over.
         let hasTextBefore: Bool
         let hasTextAfter: Bool
+        var hasText: Bool { hasTextBefore || hasTextAfter }
 
         init(kind: Kind, hasTextBefore: Bool, hasTextAfter: Bool) {
             self.kind = kind

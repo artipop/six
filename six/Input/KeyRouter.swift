@@ -1,5 +1,6 @@
 #if os(macOS)
 import AppKit
+import WebKit
 
 /// The one place a key press is decided.
 ///
@@ -9,6 +10,13 @@ import AppKit
 /// side — but that there is exactly one, that it consults a table rather than a chain of `if`s, and
 /// that it works out what the keyboard is pointed at (`KeyContext`) instead of guessing from the
 /// first responder.
+///
+/// **A key can arrive here twice.** Most of the table is `.pageFirst`: while a page has the keyboard
+/// the key is let through to it, and WebKit, when the page did not want it — no `preventDefault`, no
+/// caret moved, nothing scrolled, nothing typed — sends the very same event again through
+/// `NSApp.sendEvent` (`WebViewImpl::doneWithKeyEvent`), which is how the menu bar gets the `⌘` keys a
+/// page leaves alone. That second delivery passes through this monitor too, measured, and it is the
+/// one six answers. A key the page kept never comes back, and nothing here waits for it.
 ///
 /// `SIX_UI_DEBUG=1` prints a line per key: the chord, the context, and who took it. "⌥→ doesn't
 /// always work" was three sessions of pressing things; it is now one line of output.
@@ -24,6 +32,10 @@ final class KeyRouter {
     /// `⌥`/`⌃` alone; see `ExtensionStore.performCommand(for:in:)`).
     var performExtensionCommand: (NSEvent) -> Bool = { _ in false }
 
+    /// The key last let through to a page, to know it again if WebKit sends it back. By timestamp
+    /// and key code rather than by object: the redelivery is the same event, and a later press of
+    /// the same key — a repeat included — has a timestamp of its own.
+    private var offeredToPage: (timestamp: TimeInterval, keyCode: UInt16)?
     private var keyMonitor: Any?
     private var flagsMonitor: Any?
 
@@ -57,6 +69,10 @@ final class KeyRouter {
 
     private func handle(_ event: NSEvent) -> NSEvent? {
         let context = KeyContext(event: event, isSwitching: isSwitching(), isOverview: isOverview())
+        if let offered = offeredToPage, offered.timestamp == event.timestamp, offered.keyCode == event.keyCode {
+            offeredToPage = nil
+            return handBack(event, context)
+        }
         guard let binding = KeyBindings.all.first(where: { $0.matches(event, in: context) }) else {
             if performExtensionCommand(event) {
                 trace(event, context, "an extension's own command")
@@ -67,6 +83,10 @@ final class KeyRouter {
         if binding.yieldsToCaret(in: context) {
             return passThrough(event, context, why: "the caret has it")
         }
+        if binding.precedence == .pageFirst, event.window?.firstResponder is WKWebView {
+            offeredToPage = (event.timestamp, event.keyCode)
+            return passThrough(event, context, why: "offered to the page first")
+        }
         // A rail key while the ring is up means the pass is over: land first, then do what was asked.
         // Without this a switch could be left standing by anything that took `⌃` away without a
         // `flagsChanged` — the app losing focus mid-press, most of all.
@@ -75,6 +95,21 @@ final class KeyRouter {
             return passThrough(event, context, why: "\(binding.action) had nothing to do")
         }
         trace(event, context, "\(binding.action)")
+        return nil
+    }
+
+    /// The page did not want it. The same row is asked for again rather than remembered, because the
+    /// context is what it is *now* — and only a `.pageFirst` row may answer, since a reserved one
+    /// would never have been offered.
+    private func handBack(_ event: NSEvent, _ context: KeyContext) -> NSEvent? {
+        guard let binding = KeyBindings.all.first(where: { $0.precedence == .pageFirst && $0.matches(event, in: context) }) else {
+            return passThrough(event, context, why: "the page handed it back, and nothing here wants it now")
+        }
+        if binding.scope == .rail, context.isSwitching { _ = perform(.landSwitcher) }
+        guard perform(binding.action) else {
+            return passThrough(event, context, why: "the page handed it back, and \(binding.action) had nothing to do")
+        }
+        trace(event, context, "\(binding.action), after the page")
         return nil
     }
 
