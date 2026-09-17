@@ -140,20 +140,31 @@ private struct GeneralConfiguration: View {
                     Text("Weekly").tag(7)
                     Text("Monthly").tag(30)
                 }
-                Picker("Model for Search by Meaning", selection: Binding(
+                // A menu rather than a plain picker, because a picker shows the same text closed as
+                // open: the list wants the sizes and the recommendation, the closed button only
+                // the name of what was chosen.
+                let searchModel = Binding(
                     get: { settings.embeddingModel ?? .recommended },
                     // The setting and the running store move together: the store creates the new
                     // model's table and re-indexes, and the footer of the bookmarks window says how
                     // far it has got.
-                    set: { choice in
+                    set: { (choice: EmbeddingModelChoice) in
                         settings.embeddingModel = choice
                         bookmarks.use(choice)
                     }
-                )) {
-                    ForEach(EmbeddingModelChoice.allCases) { choice in
-                        Text(choice == .recommended ? String(localized: "\(choice.title) — recommended for this Mac") : choice.title)
-                            .tag(choice)
+                )
+                LabeledContent("Search Model") {
+                    Menu(searchModel.wrappedValue.name) {
+                        Picker("Search Model", selection: searchModel) {
+                            ForEach(EmbeddingModelChoice.allCases) { choice in
+                                Text(choice == .recommended ? String(localized: "\(choice.title) — recommended for this Mac") : choice.title)
+                                    .tag(choice)
+                            }
+                        }
+                        .pickerStyle(.inline)
+                        .labelsHidden()
                     }
+                    .fixedSize()
                 }
                 Text("Changing the model re-indexes every saved page.")
                     .font(.caption)
@@ -180,7 +191,7 @@ private struct GeneralConfiguration: View {
                 SwiftUI.Section("Default Browser") {
                     LabeledContent("Links From Other Apps") {
                         if DefaultBrowser.isDefault {
-                            Label("six opens them", systemImage: "checkmark.circle")
+                            Image(systemName: "checkmark.circle")
                                 .foregroundStyle(.secondary)
                         } else {
                             Button("Set six as Default Browser…") {
@@ -207,7 +218,7 @@ private struct ShareExtensionRow: View {
     @State private var isWorking = false
 
     var body: some View {
-        Toggle("In Other Apps' Share Menu", isOn: Binding(
+        Toggle("Show six in the Share Menu", isOn: Binding(
             get: { state == .on },
             set: { on in
                 isWorking = true
@@ -243,7 +254,7 @@ private struct WindowConfiguration: View {
             }
 
             SwiftUI.Section {
-                Toggle("Peek at the Edges", isOn: Binding(
+                Toggle("Show Neighbours When Hovering Beside the Window", isOn: Binding(
                     get: { browser.peeksAtEdges },
                     set: { _ in browser.togglePeeksAtEdges() }
                 ))

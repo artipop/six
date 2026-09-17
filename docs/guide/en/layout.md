@@ -93,7 +93,7 @@ grows backwards.
 The sliver is as narrow as the gap it stands in and reaches the very edge of the
 screen: throwing the pointer against the wall finds it.
 
-::: tip View ▸ Peek at the Edges
+::: tip Configuration ▸ Windows ▸ Show Neighbours When Hovering Beside the Window
 The lean is a pointer idea: it is asked for by resting somewhere and waiting.
 Turn the switch off and the arrows are simply drawn where they stand and work
 without being hovered. It is on for macOS and always off on a phone.

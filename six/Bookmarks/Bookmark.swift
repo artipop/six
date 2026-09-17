@@ -124,17 +124,32 @@ nonisolated enum EmbeddingModelChoice: String, CaseIterable, Identifiable, Senda
         ProcessInfo.processInfo.physicalMemory >= 16 * 1024 * 1024 * 1024 ? .base : .small
     }
 
-    /// The name in the picker. The size is in it because the size is the decision.
+    /// The name in the picker's list. The size is in it because the size is the decision.
     var title: String {
         #if os(Linux) || os(Windows)
         switch self {
         case .small: "Compact — 465 MB"
-        case .base: "Larger — 1.1 GB"
+        case .base: "Standard — 1.1 GB"
         }
         #else
         switch self {
         case .small: String(localized: "Compact — 465 MB")
-        case .base: String(localized: "Larger — 1.1 GB")
+        case .base: String(localized: "Standard — 1.1 GB")
+        }
+        #endif
+    }
+
+    /// The name on the closed picker, where the choice is already made and the size is noise.
+    var name: String {
+        #if os(Linux) || os(Windows)
+        switch self {
+        case .small: "Compact"
+        case .base: "Standard"
+        }
+        #else
+        switch self {
+        case .small: String(localized: "Compact")
+        case .base: String(localized: "Standard")
         }
         #endif
     }

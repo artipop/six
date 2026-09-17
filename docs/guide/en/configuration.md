@@ -39,7 +39,7 @@ built again.
 middle and both neighbours peek in by the same amount. Off, the rail moves as
 little as it can.
 
-**Peek at the edges** — the rail leaning over when the pointer rests in a gap.
+**Show Neighbours When Hovering Beside the Window** — the rail leaning over when the pointer rests in a gap.
 That is a pointer idea: it is asked for by resting somewhere. A finger has
 nowhere to rest, so the switch is off on the phone and the arrows are simply
 drawn where they stand.

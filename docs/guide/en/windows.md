@@ -174,8 +174,8 @@ VI is not offered for any other kind of file.
 
 macOS registers extensions like this switched off, so VI switches itself into the
 Share menu — once, at the first launch that finds it off. Turning it back off, and
-on again, is where everything else is: **Configuration ▸ General ▸ Sharing ▸ In
-Other Apps' Share Menu**. It is the same switch as the one in System Settings,
+on again, is where everything else is: **Configuration ▸ General ▸ Sharing ▸ Show
+six in the Share Menu**. It is the same switch as the one in System Settings,
 without the hunt for it; and if you switch it off yourself, VI leaves it off.
 
 Taking pages from other apps is Mac-only for now.

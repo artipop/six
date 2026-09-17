@@ -1245,16 +1245,6 @@
         }
       }
     },
-    "Blocking is off" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Блокировка выключена"
-          }
-        }
-      }
-    },
     "bookmarks" : {
       "localizations" : {
         "ru" : {
@@ -2728,12 +2718,32 @@
         }
       }
     },
-    "Larger — 1.1 GB" : {
+    "Standard — 1.1 GB" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Крупнее — 1,1 ГБ"
+            "value" : "Стандартная — 1,1 ГБ"
+          }
+        }
+      }
+    },
+    "Compact" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Компактная"
+          }
+        }
+      }
+    },
+    "Standard" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Стандартная"
           }
         }
       }
@@ -2928,12 +2938,12 @@
         }
       }
     },
-    "Model for Search by Meaning" : {
+    "Search Model" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Модель поиска по смыслу"
+            "value" : "Модель поиска"
           }
         }
       }
@@ -3578,12 +3588,12 @@
         }
       }
     },
-    "Peek at the Edges" : {
+    "Show Neighbours When Hovering Beside the Window" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Подглядывать у краёв"
+            "value" : "Показывать соседние окна при наведении сбоку от окна"
           }
         }
       }
@@ -4370,12 +4380,12 @@
         }
       }
     },
-    "In Other Apps' Share Menu" : {
+    "Show six in the Share Menu" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "В меню «Поделиться» других приложений"
+            "value" : "Показывать six в меню «Поделиться»"
           }
         }
       }
@@ -4636,16 +4646,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "six не смог открыть этот адрес."
-          }
-        }
-      }
-    },
-    "six opens them" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "их открывает six"
           }
         }
       }

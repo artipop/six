@@ -109,7 +109,7 @@ struct BlockingConfiguration: View {
     }
 
     private var footnote: String {
-        guard blocker.isEnabled else { return String(localized: "Blocking is off") }
+        guard blocker.isEnabled else { return "" }
         let ready = blocker.lists.filter { blocker.status[$0.id]?.isReady == true }
         let rules = ready.reduce(0) { $0 + (blocker.status[$1.id]?.rules ?? 0) }
         guard rules > 0 else { return String(localized: "Preparing filter lists…") }
