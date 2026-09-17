@@ -532,6 +532,11 @@ final class BrowserTab: Identifiable {
             }
             page = WebPage(configuration: configuration, navigationDecider: decider,
                            dialogPresenter: PageDialogs())
+            // The one kind of page Safari is ever asked to attach to, and for a while the one that
+            // did not get the switch: `applyInspectable` reached the pages open at the moment it
+            // was flipped, and every page built afterwards — each new window, every one after a
+            // relaunch — was not inspectable, so Safari's Develop menu had no six in it at all.
+            page.isInspectable = devTools?.isInspectable ?? false
         }
         livePage = page
         // WebKit's fullscreen window cannot size a view SwiftUI holds by constraints, so the

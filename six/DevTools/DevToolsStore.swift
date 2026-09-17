@@ -28,6 +28,8 @@ final class DevToolsStore {
 
     private(set) var console: [UUID: [ConsoleMessage]] = [:]
     private(set) var network: [UUID: [NetworkEntry]] = [:]
+    /// Whoever has to hear that the tool list changed — `MCPHost.toolsChanged`, wired in `sixApp`.
+    @ObservationIgnored var onCaptureChanged: (() -> Void)?
     /// Per-window message handlers: the handler is what tells a message which window it came from.
     @ObservationIgnored private var handlers: [UUID: PageMessageHandler] = [:]
 
@@ -41,16 +43,19 @@ final class DevToolsStore {
             // six opens nothing itself — WebKit gives an app no way to open the inspector on its own
             // page, only to allow one to attach. Say where it appears, since nothing else will.
             Log.info(.devtools, isInspectable
-                ? "Web Inspector on — attach from Safari: Develop › \(Self.machineName) › six"
+                ? "Web Inspector on — attach from Safari: Develop › \(Self.machineName) › \(Self.appName)"
                 : "Web Inspector off")
         }
     }
 
-    /// Console and network capture.
+    /// Console and network capture, for agents: it is also what puts `list_console_messages` and
+    /// `list_network_requests` into six's tool list. A person has Safari's inspector for the same
+    /// facts, told by the browser rather than by the page.
     var isCapturing: Bool {
         didSet {
             guard isCapturing != oldValue else { return }
             settings.devToolsCapture = isCapturing
+            onCaptureChanged?()
             controllers.forEach { windowID, controller in install(in: controller, for: windowID) }
             if !isCapturing { console = [:]; network = [:] }
             // User scripts run at the *next* load, so the windows are built again.
@@ -103,11 +108,6 @@ final class DevToolsStore {
         guard isCapturing else { return }
         console[windowID] = []
         network[windowID] = []
-    }
-
-    func clear() {
-        console = [:]
-        network = [:]
     }
 
     // MARK: What the page said
@@ -183,6 +183,13 @@ final class DevToolsStore {
         let all = network[windowID] ?? []
         let filtered = failedOnly ? all.filter(\.isFailed) : all
         return Array(filtered.suffix(limit))
+    }
+
+    /// What Safari calls six under that Mac: the bundle's display name, so a Debug build is `six dev`.
+    static var appName: String {
+        (Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String)
+            ?? (Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String)
+            ?? "six"
     }
 
     /// What Safari calls this Mac in its Develop menu.

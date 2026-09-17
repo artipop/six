@@ -1,6 +1,7 @@
 # Developer tools
 
-Two different things, both under the **Develop** menu, both off by default.
+Two different things, both off by default: Web Inspector under **Develop**, for a person, and capture under
+**Assistant ▸ Agent Panel**, for agents.
 
 ## Web Inspector
 
@@ -18,27 +19,36 @@ is the real thing — elements, console, network, sources, breakpoints.
    content, so it has nothing to inspect; so does a window whose page was discarded by the memory budget until you
    scroll back to it.
 
-six's settings page carries the same instruction under the switch, with this Mac's name filled in, and
-turning the switch on writes it to stderr as well.
+six's settings page carries the same instruction under the switch — naming "this computer's name" rather than
+filling it in, since a Sharing name read back in six's own caption looked like something six had invented — and
+turning the switch on writes it, name and all, to the log.
 
 Off by default because an inspectable page is one another process on the machine can attach to. The switch applies
-to the pages that are open at once, and to every page built after it.
+to the pages that are open at once, and to every page built after it — the second half is set in
+`BrowserTab.materialize`, and for a while the web-page branch there did not set it, so after a relaunch no page was
+inspectable and Safari listed no six.
 
 ## Capture, for agents
 
-An agent driving the browser does not want an inspector window; it wants its facts. `six://configuration` ▸ Develop ▸ **Capture Console and
-Network** turns on a running record per window — what the page logged, what it requested — and three MCP tools read
-it ([mcp.md](mcp.md)):
+An agent driving the browser does not want an inspector window; it wants its facts. `six://configuration` ▸ Assistant ▸
+**Let Agents Read Page Console and Network** turns on a running record per window — what the page logged, what it
+requested — kept in memory and nowhere else, and adds the two MCP tools that read it ([mcp.md](mcp.md)).
+
+The switch lives with the agents and not under Develop because nothing in six shows a person what it records: a
+person has Safari's inspector for the same facts, told by the browser rather than by the page. So the tools are not
+offered at all while it is off — `tools/list` leaves them out and `notifications/tools/list_changed` goes to whoever
+is connected when it flips, since a tool that can only answer "turn something on first" is one a model keeps
+calling.
 
 | tool | what it answers |
+
 |---|---|
 | `list_console_messages` | what the page logged since it last navigated, with uncaught errors and unhandled rejections; `level` filters |
 | `list_network_requests` | the requests it made — method, status, duration, size, kind; `failed_only` narrows to errors and 4xx/5xx |
 | `take_screenshot` | writes a PNG of the whole page (not the visible part) under `Application Support/org.deffun.six/Screenshots/` and returns the path |
 
-`take_screenshot` works whether or not capture is on. The other two say plainly that capture is off rather than
-answering with an empty list — and because the hooks are installed at the *start* of a load, turning capture on
-reloads the open windows.
+`take_screenshot` is there whether or not capture is on. Because the hooks are installed at the *start* of a load,
+turning capture on reloads the open windows.
 
 Each window keeps its last 500 console messages and 500 requests, and both are cleared when the window navigates:
 what was captured belonged to the page being left.

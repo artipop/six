@@ -70,8 +70,8 @@ of a **profile**. Everything defaults to what is on screen.
 | write | create a document, write into it section by section, cite a source, highlight the paragraphs that answer a question |
 | bookmarks | list, search by meaning, read, add, refresh, remove |
 
-The two console-and-network lines need **Configuration ▸ Develop ▸ Capture Console and Network** —
-see [developer tools](/en/devtools).
+The agent sees the console and the network only while **Configuration ▸ Assistant ▸ Let Agents Read Page
+Console and Network** is on — see [developer tools](/en/devtools).
 
 ## The same agent on the ⌘K line
 

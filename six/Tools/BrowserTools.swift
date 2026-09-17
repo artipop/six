@@ -49,8 +49,15 @@ final class BrowserToolCatalog {
     private let bookmarks: BookmarkStore
     private let settings: ConfigurationStore
     private let highlights: HighlightStore
-    /// Console and network capture; the devtools tools say so plainly when it is off.
+    /// Console and network capture. While it is off the two tools that read it are not offered at
+    /// all — a tool that can only answer "turn something on first" is a tool the model keeps calling.
     var devTools: DevToolsStore?
+
+    private static let captureTools: Set = ["list_console_messages", "list_network_requests"]
+
+    private func isOffered(_ tool: BrowserTool) -> Bool {
+        !Self.captureTools.contains(tool.name) || devTools?.isCapturing == true
+    }
 
     init(browser: BrowserState, assistant: AssistantSettings, bookmarks: BookmarkStore, settings: ConfigurationStore, highlights: HighlightStore) {
         self.browser = browser
@@ -101,11 +108,11 @@ final class BrowserToolCatalog {
         """
 
     func tools(for surface: BrowserTool.Surface) -> [BrowserTool] {
-        all.filter { $0.surfaces.contains(surface) }
+        all.filter { $0.surfaces.contains(surface) && isOffered($0) }
     }
 
     func tool(named name: String) -> BrowserTool? {
-        all.first { $0.name == name }
+        all.first { $0.name == name && isOffered($0) }
     }
 
     /// Off-screen, shared by every `web_search` call.
@@ -197,7 +204,7 @@ final class BrowserToolCatalog {
             name: "list_console_messages",
             title: String(localized: "Console Messages"),
             description: "What a window's page logged — console messages and uncaught errors, oldest first, since it last "
-                + "navigated. Needs Develop › Capture Console and Network to be on; the tool says so if it is not.",
+                + "navigated.",
             parameters: [
                 Self.windowID,
                 .init(name: "level", description: "Only this level: log, info, warn, error or debug."),
@@ -210,7 +217,7 @@ final class BrowserToolCatalog {
             name: "list_network_requests",
             title: String(localized: "Network Requests"),
             description: "The requests a window's page made since it last navigated — URL, method, status, duration — as the "
-                + "page itself saw them. Needs Develop › Capture Console and Network to be on.",
+                + "page itself saw them.",
             parameters: [
                 Self.windowID,
                 .init(name: "failed_only", description: "Only requests that failed or answered 4xx/5xx.", type: .boolean),
@@ -779,8 +786,7 @@ final class BrowserToolCatalog {
     private func requireCapture() throws -> DevToolsStore {
         guard let devTools else { throw BrowserTool.Failure(message: "Developer tools are not available in this build.") }
         guard devTools.isCapturing else {
-            throw BrowserTool.Failure(message: "Console and network capture is off. Turn on Develop › Capture Console and Network, "
-                + "then reload the page — the hooks run from the start of a load.")
+            throw BrowserTool.Failure(message: "Console and network capture was turned off.")
         }
         return devTools
     }

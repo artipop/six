@@ -1311,26 +1311,6 @@
         }
       }
     },
-    "Capture" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Запись"
-          }
-        }
-      }
-    },
-    "Capture Console and Network" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Записывать консоль и сеть"
-          }
-        }
-      }
-    },
     "Centre the Focused Window" : {
       "localizations" : {
         "ru" : {
@@ -1467,16 +1447,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Очистить историю — %@…"
-          }
-        }
-      }
-    },
-    "Clear Captured Logs" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Очистить записанные логи"
           }
         }
       }
@@ -2498,6 +2468,16 @@
         }
       }
     },
+    "In Safari: the Develop menu, this computer's name, then %@." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В Safari: меню «Разработка», имя этого компьютера, затем %@."
+          }
+        }
+      }
+    },
     "In This Profile" : {
       "localizations" : {
         "ru" : {
@@ -2764,6 +2744,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Последнее обновление не удалось: %@"
+          }
+        }
+      }
+    },
+    "Let Agents Read Page Console and Network" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Давать агентам консоль и сеть страниц"
           }
         }
       }
@@ -4956,16 +4946,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Перевод прерван"
-          }
-        }
-      }
-    },
-    "Then attach from Safari: Develop › %@ › six" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Дальше подключитесь из Safari: Разработка › %@ › six"
           }
         }
       }

@@ -344,9 +344,11 @@ private struct AssistantPane: View {
     @Environment(AgentSessionStore.self) private var agentSession
     @Environment(ResearchCoordinator.self) private var research
     @Environment(ConfigurationStore.self) private var store
+    @Environment(DevToolsStore.self) private var devTools
 
     var body: some View {
         @Bindable var settings = assistant.settings
+        @Bindable var devTools = devTools
         @Bindable var agentSession = agentSession
         @Bindable var research = research
         @Bindable var store = store
@@ -380,6 +382,10 @@ private struct AssistantPane: View {
 
                 SwiftUI.Section("Agent Panel") {
                     TextField("Model", text: $agentSession.modelOverride, prompt: Text("the agent's own default"))
+                    // Here and not under Develop: a person reads a page's console in Safari's
+                    // inspector, and nothing in six shows what this records. It exists for the
+                    // two tools it adds, and turning it on reloads the open windows.
+                    Toggle("Let Agents Read Page Console and Network", isOn: $devTools.isCapturing)
                 }
 
                 SwiftUI.Section("Deep Research") {
@@ -399,7 +405,7 @@ private struct AssistantPane: View {
 
 // MARK: - Develop
 
-/// The two switches the Develop menu carried, and the two things it could do.
+/// Safari's inspector and six's own log — the two things a person developing against six reads.
 private struct DevelopConfiguration: View {
     @Environment(DevToolsStore.self) private var devTools
 
@@ -409,8 +415,10 @@ private struct DevelopConfiguration: View {
             SwiftUI.Section("Web Inspector") {
                 // six has no inspector window of its own — WebKit lets an app allow inspection, not
                 // open it. Where to attach from is written here rather than left to devtools.md.
+                // The computer is named by what it is rather than by what it is called: the name is
+                // whatever Sharing says, and read here it looked like something six had made up.
                 Toggle("Allow Safari to Inspect six's Pages", isOn: $devTools.isInspectable)
-                Text("Then attach from Safari: Develop › \(DevToolsStore.machineName) › six")
+                Text("In Safari: the Develop menu, this computer's name, then \(DevToolsStore.appName).")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 if devTools.isInspectable {
@@ -421,13 +429,6 @@ private struct DevelopConfiguration: View {
                     }
                     .controlSize(.small)
                 }
-            }
-
-            SwiftUI.Section("Capture") {
-                Toggle("Capture Console and Network", isOn: $devTools.isCapturing)
-                Button("Clear Captured Logs") { devTools.clear() }
-                    .controlSize(.small)
-                    .disabled(!devTools.isCapturing)
             }
 
             SwiftUI.Section("Log") {

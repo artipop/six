@@ -191,6 +191,8 @@ struct sixApp: App {
         // what the agent would be given changes, whoever is connected has to be told, because it
         // asked for the list once and would otherwise keep the old one until the next launch.
         mcpApps.onSharedServersChanged = { [weak mcp] in mcp?.toolsChanged() }
+        // The console and network tools come and go with their switch, for the same reason.
+        devTools.onCaptureChanged = { [weak mcp] in mcp?.toolsChanged() }
         agentSession.appContext = { [weak mcpApps] in mcpApps?.pendingModelContext() ?? [] }
         mcpApps.watchAppearance()
         mcpApps.runSelfTestIfRequested()

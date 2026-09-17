@@ -1,6 +1,6 @@
 # Developer tools
 
-The **Develop** menu; both switches are off by default.
+Both switches are off by default.
 
 ## Web Inspector
 
@@ -18,8 +18,8 @@ How to attach:
 2. in Safari's menu bar: **Develop › ‹the name of this Mac› › six › ‹the page's
    title›**.
 
-An **Open Safari to Attach** button appears beside the switch, and its help tag
-already has your machine's name in it.
+An **Open Safari to Attach** button appears beside the switch. The computer's
+name in Safari's menu is the one set in **System Settings › General › Sharing**.
 
 The window has to be showing a **page**: a fresh window is the start page, which
 is drawn natively rather than as web content, so there is nothing in it to
@@ -31,8 +31,9 @@ machine can attach to.
 
 ## Capturing the console and the network
 
-**Configuration ▸ Develop ▸ Capture Console and Network** is not for a person but for an
-[agent](/en/agents): with it on, the agent can ask what a page logged and what it
+**Configuration ▸ Assistant ▸ Let Agents Read Page Console and Network** is not for a
+person but for an [agent](/en/agents): a person has Safari's inspector for the same
+thing, told more exactly. With it on, the agent gets two more tools and can ask what a page logged and what it
 requested — what Chrome's devtools MCP does, on WebKit.
 
 | | |
@@ -41,9 +42,9 @@ requested — what Chrome's devtools MCP does, on WebKit.
 | requests | method, status, duration, size, kind; the failures can be asked for on their own |
 | screenshot | a PNG of the **whole** page, not the visible part — works with capture off too |
 
-Each window keeps 500 messages and 500 requests, and both are cleared when it
-navigates: what was captured belonged to the page being left. **Clear Captured
-Logs** does it at once.
+What is captured stays in memory — nothing is written to disk, so there is no
+file for it. Each window keeps 500 messages and 500 requests, and both are cleared when it
+navigates: what was captured belonged to the page being left.
 
 Turning capture on reloads the open windows: the hook is installed at the start
 of a load, or it does not see the load's beginning.
