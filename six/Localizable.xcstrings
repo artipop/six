@@ -4295,7 +4295,7 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Поиск или адрес"
+            "value" : "Запрос или адрес"
           }
         }
       }
