@@ -71,6 +71,10 @@ the two link items working at all.
   `.allow` there is a click that does nothing at all, silently), the column a `target=_blank` would have opened, and
   the address bar. It is an allowlist of what a window can show — http(s), file, about, data, blob, javascript,
   `six:`, the extension and MCP-app schemes — because the schemes to hand off are unbounded by definition.
+  A page that navigates *itself* to a scheme nothing on the machine claims is dropped without a word: Telemost's
+  join page tries `telemost://` to wake its desktop app and carries on in the browser, and handing that to the
+  system put up macOS's "no application to open the URL" alert on every call. Only a clicked link (`linkActivated`)
+  still gets that alert, where it is the answer to something the person did.
   The address bar asks LaunchServices first: `magnet:?xt=…` is an address on a machine with a torrent client and a
   search query on one without, which is also what keeps «note: buy milk» a search. The tools do not ask — an agent
   that names a scheme six cannot show gets a search, not the power to launch whatever app registered it.

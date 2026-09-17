@@ -1020,7 +1020,17 @@ private final class TabNavigationDecider: WebPage.NavigationDeciding {
         // WebKit will not load one and says nothing about it either, so `.allow` here is a link that
         // does nothing; the app that owns the scheme gets it instead. Before the new-window branch,
         // because a `target=_blank` magnet link wants the torrent client and not a blank column.
+        //
+        // Only a clicked link earns the system's "no application" sheet when nobody claims the
+        // scheme. A page that sends *itself* there — Telemost's join page tries `telemost://` to
+        // wake the desktop app and carries on in the browser when nothing answers — is probing, and
+        // the sheet would be an alert about an app the person never asked for. Dropped quietly, the
+        // way every other browser drops it and the Windows front already does.
         if ExternalScheme.isExternal(url) {
+            guard action.navigationType == .linkActivated || ExternalScheme.hasHandler(for: url) else {
+                LinkTrace.log("external \(url.scheme ?? "") unclaimed, not a click — dropped")
+                return .cancel
+            }
             let opened = ExternalScheme.open(url)
             LinkTrace.log("external \(url.absoluteString) opened=\(opened)")
             return .cancel
