@@ -91,6 +91,7 @@ workspaces, not other profiles — and this run only.
 | `⌥⇧P` | the video into the floating picture-in-picture window, and back |
 | `⌘` + click a link | open it in a new window to the right, behind |
 | `Esc` | close the overview; otherwise the page's own |
+| `↩` | in the overview, go into the focused window |
 
 ## The start page
 

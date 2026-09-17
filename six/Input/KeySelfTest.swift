@@ -20,7 +20,9 @@ enum KeySelfTest {
             ("typed-in field", KeyContext(window: .main, field: .init(kind: .singleLine, hasTextBefore: true, hasTextAfter: true))),
             ("document", KeyContext(window: .main, field: .init(kind: .multiLine, hasTextBefore: true, hasTextAfter: true))),
             ("sheet", KeyContext(window: .elsewhere)),
-            ("ring open", KeyContext(window: .main, isSwitching: true))
+            ("ring open", KeyContext(window: .main, isSwitching: true)),
+            ("overview", KeyContext(window: .main, isOverview: true)),
+            ("renaming", KeyContext(window: .main, field: .init(kind: .singleLine, hasTextBefore: true, hasTextAfter: false), isOverview: true))
         ]
         let chords: [(String, NSEvent.ModifierFlags, KeyCode, String)] = [
             ("⌥←", .option, .leftArrow, ""),
@@ -51,7 +53,8 @@ enum KeySelfTest {
             ("⌃←", .control, .leftArrow, ""),
             ("Esc", [], .escape, "\u{1b}"),
             ("⌃Esc", .control, .escape, "\u{1b}"),
-            ("↩", [], .returnKey, "\r")
+            ("↩", [], .returnKey, "\r"),
+            ("⌤", [], .keypadEnter, "\r")
         ]
         var out = "[six] keys: what the table answers — «page:» is offered to a focused page first, and answers only if it comes back\n"
         out += pad("") + contexts.map { pad($0.0) }.joined() + "\n"
@@ -258,8 +261,30 @@ enum KeySelfTest {
         browser.cancelWindowSwitch()
         browser.closeTab(elsewhere.id) // the rail is left exactly as it was found
 
+        await overviewReturn(browser, in: window)
         await pageFirst(browser, in: window)
         await menuKeys(browser, in: window)
+    }
+
+    /// `↩` in the overview goes into the focused window. The focus is moved one column first, so
+    /// "left the overview" and "left it onto the window the focus was moved to" are two answers and
+    /// not one; `⌥O`, pressed the same way, is the control that says the keys arrive at all.
+    private static func overviewReturn(_ browser: BrowserState, in window: NSWindow) async {
+        let start = browser.selectedTab?.id
+        // The ring above leaves the caret in the address field, where ⌥O types «ø».
+        _ = window.makeFirstResponder(nil)
+        post(flags: .option, code: .o, in: window)
+        try? await Task.sleep(for: .milliseconds(700))
+        let opened = browser.layout.isOverview
+        post(flags: .option, code: .leftArrow, in: window)
+        try? await Task.sleep(for: .milliseconds(500))
+        let moved = browser.selectedTab?.id
+        post(flags: [], code: .returnKey, in: window)
+        try? await Task.sleep(for: .milliseconds(700))
+        note("⌥O → overview \(opened), ⌥← → moved \(moved != start), ↩ (responder \(responder(window))) → overview \(browser.layout.isOverview), on the moved-to window \(browser.selectedTab?.id == moved)")
+        if browser.layout.isOverview { browser.exitOverview() }
+        if let start { browser.selectTab(start) }
+        try? await Task.sleep(for: .milliseconds(500))
     }
 
     /// The `⌘` keys, which are menu items rather than table rows — here for the same doubt the

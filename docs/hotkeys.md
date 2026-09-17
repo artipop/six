@@ -147,6 +147,7 @@ One rail's windows only — the workspace on screen — and this run only. `⌥�
 | `⌘⌥B` | bookmarks, searchable by meaning |
 | `⌘` + click a link | open it in a new window right of this one, behind — the rail leans right for a moment to show it. `⇧` and `⌘⇧` clicks do nothing at all: WebKit never passes them on, and a middle click arrives indistinguishable from a plain one ([links.md](links.md)) |
 | `Esc` | close the overview; otherwise the page's own |
+| `↩` `⌤` | in the overview, fly into the focused window — what a click on its card does. Scoped to the overview (`KeyBinding.Scope.overview`), so outside it the key never reaches the table; a workspace being renamed on its plate keeps it |
 
 ## Start page (a new window)
 

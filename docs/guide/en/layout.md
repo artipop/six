@@ -30,7 +30,7 @@ could not do. `⌥` and an arrow stays word movement while the caret is in a tex
 | `⌥↑` `⌥↓` | workspace above / below |
 | `⌥⇧↑` `⌥⇧↓` | move the window to the workspace above / below and follow it |
 | `⌥W` | full width |
-| `⌥O` | overview (`Esc` to leave) |
+| `⌥O` | overview (`↩` into the focused window, `Esc` to leave) |
 | `⌥C` | centre the focused window; off means the rail moves as little as it can |
 
 ### Flying between windows — `⌃Tab`

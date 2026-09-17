@@ -104,7 +104,8 @@ struct KeyBindingsTests {
 
     @Test func noRowIsShadowedByTheOnesAboveIt() {
         for (index, binding) in KeyBindings.all.enumerated() {
-            let context = KeyContext(window: .main, isSwitching: binding.scope == .switcher)
+            let context = KeyContext(window: .main, isSwitching: binding.scope == .switcher,
+                                     isOverview: binding.scope == .overview)
             let reachable = binding.spellings.contains { chord in
                 KeyBindings.all.firstIndex { $0.matches(chord: chord, in: context) } == index
             }
@@ -145,7 +146,7 @@ struct KeyBindingsTests {
     @Test func onlyTheRingAndTheControlOptionRailAreReserved() {
         for binding in KeyBindings.all {
             let reserved = binding.scope == .switcher || binding.key.keyCode == .tab
-                || binding.action == .leaveOverview || binding.action == .copyAddress || binding.modifiers == .exactly([.control, .option])
+                || (binding.action == .leaveOverview && binding.scope == .rail) || binding.action == .copyAddress || binding.modifiers == .exactly([.control, .option])
                 || binding.modifiers == .exactly([.control, .option, .shift])
             #expect((binding.precedence == .reserved) == reserved,
                     "\(binding.spellings.map(\.label)) → \(binding.action) is \(binding.precedence)")

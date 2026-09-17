@@ -97,7 +97,17 @@ enum KeyBindings {
         KeyBinding(.letter("c", .c), .exactly(copyAddressChord), .rail, .copyAddress),
 
         // MARK: ⎋
-        KeyBinding(.code(.escape), .exactly([]), .rail, .leaveOverview)
+        KeyBinding(.code(.escape), .exactly([]), .rail, .leaveOverview),
+
+        // MARK: ↩, in the overview
+        // Into the focused window, which is what a click on its card does. The same action as ⎋ —
+        // leaving puts the rail back under the focused window either way — but ↩ is the key a
+        // person presses to go *into* something. Scoped to the overview rather than declined outside
+        // it, as ⎋ is: a bare ↩ is every page's and every field's, and outside the overview it
+        // should not so much as pass through here. And `.pageFirst`, which in the overview asks
+        // only the caret: a workspace being renamed on its plate keeps its ↩ to finish the name.
+        KeyBinding(.code(.returnKey), .exactly([]), .overview, .leaveOverview, .pageFirst),
+        KeyBinding(.code(.keypadEnter), .exactly([]), .overview, .leaveOverview, .pageFirst)
     ]
 
     /// The rail's navigation again, on `⌃⌥`, and **never** offered to anything first.
@@ -226,6 +236,8 @@ struct KeyBinding {
             guard case .code(let code) = self else { return false }
             switch code {
             case .leftArrow, .rightArrow, .upArrow, .downArrow: return field.hasText
+            // A field always has a use for ↩: it is how what was typed is finished.
+            case .returnKey, .keypadEnter: return true
             default: return false
             }
         }
@@ -256,6 +268,8 @@ struct KeyBinding {
         case switcher
         /// In six's own window: not in a sheet, not in a popover, not in a video playing full screen.
         case rail
+        /// The rail, while the overview is open.
+        case overview
 
         /// The modifier that holds this scope open, and so the one a person writing the key down is
         /// already holding. The ring's `←` is written `⌃←`; the rail's is written `←`.
@@ -268,6 +282,7 @@ struct KeyBinding {
         switch scope {
         case .switcher: return context.isSwitching
         case .rail: return context.window == .main
+        case .overview: return context.window == .main && context.isOverview
         }
     }
 
