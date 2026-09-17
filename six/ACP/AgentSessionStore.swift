@@ -194,7 +194,7 @@ final class AgentSessionStore {
 
     // MARK: Prompting
 
-    /// What a prompt streams back to whoever asked (the ⌘K bar mirrors it).
+    /// What a prompt streams back to whoever asked (the ⌘E bar mirrors it).
     enum LiveUpdate {
         case text(String)       // the agent's message so far
         case activity(String)   // a tool call title

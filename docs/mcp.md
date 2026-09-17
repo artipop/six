@@ -13,7 +13,7 @@ agent ──stdio──▶ six --mcp ──unix socket──▶ six.app (MCPHost
 - The running app listens on `~/Library/Application Support/org.deffun.six/mcp.sock` (mode 0600; override with
   `SIX_MCP_SOCKET`). `MCPHost` gives each client its own `JSONRPCConnection` — the same transport the ACP client
   uses — and `MCPServer` answers `initialize`, `ping`, `tools/list`, `tools/call` on the main actor. The tools
-  themselves live in `BrowserToolCatalog` (`six/Tools/`), shared with the ⌘K assistant (see [assistant.md](assistant.md)).
+  themselves live in `BrowserToolCatalog` (`six/Tools/`), shared with the ⌘E assistant (see [assistant.md](assistant.md)).
 - The agent panel passes the server to every ACP session (`session/new` → `mcpServers: [{name: "six",
   command: <this binary>, args: ["--mcp"]}]`), so Claude Code sees the tools as `mcp__six__*` and asks for permission
   through the panel as for any other tool — the panel says them differently, see [names](#names).
@@ -29,7 +29,7 @@ What no client can read is `mcp__six__open_window`. That mangling is not in the 
 aggregating client **SHOULD** disambiguate colliding names "such as prefixing tool names with a server identifier"
 and leaves the shape of the prefix to the client. Claude Code chose `mcp__<server>__<tool>`, and over ACP that is
 what arrives in the tool call's title, so six takes it apart again: `AgentToolName.display` drops the `mcp__` and
-turns the `__` into a space, and the panel, the permission prompt and the ⌘K activity line all say
+turns the `__` into a space, and the panel, the permission prompt and the ⌘E activity line all say
 
 ```
 six open_window
@@ -59,7 +59,7 @@ same question every named workspace gets, whoever named it
 | `navigate` | load a URL / search in an existing window, wait for the load |
 | `get_page_content` | title, URL and `innerText` of a window (waits for loading; `max_chars`, default 20 000) |
 | `get_page_links` | `text — URL` lines of the page's links (`max_links`) |
-| `summarize_page` | summary from the assistant's own model (⌘K's choice: on-device / PCC / Claude); `focus` narrows it |
+| `summarize_page` | summary from the assistant's own model (⌘E's choice: on-device / PCC / Claude); `focus` narrows it |
 | `focus_window` | switch to the window's profile and workspace and scroll to it |
 | `move_window` | move a window to another workspace of its profile |
 | `split_window` | put two windows side by side in one column — `with` names the second, which moves in beside `window_id`; without it, the window next along comes in, or a column that is already two goes back to being two windows. A column holds at most two ([layout.md](layout.md#two-windows-in-one-column)) |
@@ -73,7 +73,7 @@ same question every named workspace gets, whoever named it
 | `write_document` | `mode`: `replace` the text, `append`, or `section` — replace the body of one `## heading` (added when missing); `document_id` defaults to the run's document in the on-screen workspace |
 | `read_document` | the document's Markdown and its section list |
 | `cite` | adds `[n]: url "title" — retrieved …` (+ the passage) to the document's `## Sources` and returns `[n]`; from a window, a `url`, or a `highlight_id` (then the URL carries the `#:~:text=` fragment) |
-| `highlight_page` | marks the paragraphs that answer `question` — the ⌘K model (on-device when ⌘K is an agent) picks *numbers* from `list_page_blocks`, six anchors them — or `blocks` given by hand; returns id, text and a text-fragment link per passage — see [deep-research.md](deep-research.md#highlighted-passages) |
+| `highlight_page` | marks the paragraphs that answer `question` — the ⌘E model (on-device when ⌘E is an agent) picks *numbers* from `list_page_blocks`, six anchors them — or `blocks` given by hand; returns id, text and a text-fragment link per passage — see [deep-research.md](deep-research.md#highlighted-passages) |
 | `list_page_blocks` `list_highlights` `remove_highlight` | the numbered paragraphs of a page; the highlights stored for a page; delete one |
 | `list_bookmarks` `search_bookmarks` `read_bookmark` `add_bookmark` `refresh_bookmark` `remove_bookmark` | the profile's (or every profile's) saved pages, searched by meaning — see [bookmarks.md](bookmarks.md) |
 

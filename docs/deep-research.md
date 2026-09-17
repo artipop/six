@@ -16,13 +16,13 @@ everything else, exportable like a page, with citations that point at the senten
 
 The agent, not the app. Claude Code / Codex already plan, call tools, retry and summarize; six does not grow a second
 planner. The app gives the loop a place to work (a workspace), the tools to work with, and a surface to write into.
-A native loop over the ⌘K model for machines without an agent is in [todo.md](todo.md).
+A native loop over the ⌘E model for machines without an agent is in [todo.md](todo.md).
 
 ## Starting a run
 
 - **Research…** in the agent panel (`⌘⇧A`): the question, how many sources to open, and the preset itself — editable,
   with a reset; both live in settings.
-- `research: …` or `/research …` on the `⌘K` line.
+- `research: …` or `/research …` on the `⌘E` line.
 
 `ResearchCoordinator.start` (`six/Research/`) creates a workspace named after the question (unique within the
 profile), a document window in it with the question as its `# ` title and the preview on, and a `ResearchRun` —
@@ -76,7 +76,7 @@ The user types while the agent appends. Section-level writes and "never rewrite 
 
 ## Tools
 
-In `BrowserToolCatalog`, so the ⌘K assistant and MCP get the same ones; the full table is in [mcp.md](mcp.md#tools).
+In `BrowserToolCatalog`, so the ⌘E assistant and MCP get the same ones; the full table is in [mcp.md](mcp.md#tools).
 
 | tool | what it does |
 |---|---|
@@ -113,7 +113,7 @@ making the mark survive being reopened. Everything is in `six/Highlights/`.
 
 **Choosing them.** Not by asking a model to quote — a model that retypes a passage mis-types it, and then nothing
 matches. `HighlightScript.blocks` lists the page's paragraph-ish elements as a numbered list (text and an XPath);
-the ⌘K model — the on-device model when ⌘K is set to an agent, since "which of these is about X" is within its reach —
+the ⌘E model — the on-device model when ⌘E is set to an agent, since "which of these is about X" is within its reach —
 answers with *numbers* and a few words of reason; six anchors those blocks itself. The model never handles the text
 it is marking, so it cannot corrupt it. `blocks: "12, 13"` skips the model; `⌥⇧H` does the same for a selection by
 hand.

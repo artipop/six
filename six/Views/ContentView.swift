@@ -38,8 +38,11 @@ struct ContentView: View {
                     if !browser.layout.isOverview, settings.isAIEnabled {
                         // Tucked away always, not just in fullscreen: a bar resting over the bottom of
                         // every page is in the way of the page — a video's controls sit exactly there.
-                        // ⌘K brings it back (and an answer keeps it up), which is what it was for.
-                        AssistantBar(isHidden: true)
+                        // ⌘E brings it back (and an answer keeps it up), which is what it was for.
+                        AssistantBar(place: .bottom)
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 12)
+                            .frame(maxWidth: 720)
                     }
                 }
         }
@@ -119,6 +122,8 @@ struct ContentView: View {
             // way to check the keyboard on a Mac that cannot press its own keys (`KeySelfTest`).
             if ProcessInfo.processInfo.environment["SIX_KEY_SELFTEST"] == "page" {
                 await KeySelfTest.pageOnly(browser)
+            } else if ProcessInfo.processInfo.environment["SIX_KEY_SELFTEST"] == "assistant" {
+                await KeySelfTest.assistantOnly(browser, assistant, pageFocus)
             } else if ProcessInfo.processInfo.environment["SIX_KEY_SELFTEST"] != nil {
                 KeySelfTest.run()
                 await KeySelfTest.live(browser)
@@ -126,7 +131,7 @@ struct ContentView: View {
             // `SIX_MCP_PANEL=1` opens the servers page on launch, so it can be looked at without
             // reaching for the menu (docs/mcp-apps.md).
             if ProcessInfo.processInfo.environment["SIX_MCP_PANEL"] != nil { browser.openBuiltIn(.apps) }
-            // `SIX_ASSISTANT_SELFTEST="acp:claude-code:open example.com"` does the same through the ⌘K line.
+            // `SIX_ASSISTANT_SELFTEST="acp:claude-code:open example.com"` does the same through the ⌘E line.
             if let spec = ProcessInfo.processInfo.environment["SIX_ASSISTANT_SELFTEST"],
                let split = spec.range(of: ":", options: .backwards),
                let model = ModelChoice(rawValue: String(spec[..<split.lowerBound])) {
@@ -137,7 +142,7 @@ struct ContentView: View {
             // `SIX_VERB_SELFTEST=explain` presses a verb from the catalog on whatever the focused
             // page has selected, and narrates the answer. The bar it normally comes from is AppKit
             // over a web view, and nothing on this machine can click one (CLAUDE.md) — this is the
-            // only way to see a verb run end to end, including which model took it while the ⌘K
+            // only way to see a verb run end to end, including which model took it while the ⌘E
             // line is set to an agent.
             if let id = ProcessInfo.processInfo.environment["SIX_VERB_SELFTEST"], !id.isEmpty {
                 await verbSelfTest(id)

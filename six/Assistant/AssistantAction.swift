@@ -5,7 +5,7 @@ import Foundation
 /// The catalog is the point of the whole rebuild. Every use case used to want a place of its own to
 /// live — a panel, a menu item, a sheet — and the ones that never got built are the ones nobody
 /// wanted to draw a panel for. Here a use case is a row: a title, where it applies, what it says to
-/// the model, and where the answer lands. The three surfaces (the bar at a selection, the ⌘K line, a
+/// the model, and where the answer lands. The three surfaces (the bar at a selection, the ⌘E line, a
 /// caret in a field) all read this one list, so a new verb appears in all of them at once and adds
 /// no interface at all.
 ///
@@ -31,11 +31,16 @@ struct AssistantAction: Identifiable, Sendable, Equatable {
     enum Requirement: Sendable, Equatable {
         /// Text is selected, anywhere — an article, a comment box, a table.
         case selection
+        /// Text is selected in something being read and not written: a summary or a fact-check of
+        /// your own half-written draft is not what a selection in a comment box is for.
+        case readingSelection
         /// Text is selected inside something six can write to.
         case editableSelection
         /// A caret in a field, with nothing selected.
         case caret
-        /// Nothing in particular: the page itself is the subject.
+        /// Nothing pointed at: the page itself is the subject. Not offered over a selection or a caret —
+        /// there the thing pointed at is the subject, and "Summarize This Page" beside a comment box
+        /// is a verb about something else.
         case page
     }
 
@@ -46,15 +51,14 @@ struct AssistantAction: Identifiable, Sendable, Equatable {
     let landing: Landing
     /// What the model is told to do. The subject text is appended by `AssistantStore`.
     let prompt: String
-    /// Shown in the bar at the selection, rather than only in the ⌘K line's list.
-    var isPrimary = false
 
     func applies(to focus: PageFocus) -> Bool {
         switch requirement {
         case .selection: focus.kind == .selection
+        case .readingSelection: focus.kind == .selection && !focus.isEditable
         case .editableSelection: focus.kind == .selection && focus.isEditable
         case .caret: focus.kind == .caret && focus.isEditable
-        case .page: true
+        case .page: focus.kind == .none
         }
     }
 }
@@ -73,17 +77,15 @@ extension AssistantAction {
             requirement: .selection,
             landing: .show,
             prompt: "Explain the selected text in plain language. If it contains a term of art, an "
-                + "abbreviation or a reference, say what it means. Be brief: a few sentences.",
-            isPrimary: true),
+                + "abbreviation or a reference, say what it means. Be brief: a few sentences."),
         AssistantAction(
             id: "summarize-selection",
             title: "Summarize",
             symbol: "text.line.first.and.arrowtriangle.forward",
-            requirement: .selection,
+            requirement: .readingSelection,
             landing: .show,
             prompt: "Summarize the selected text. Keep every claim that carries information and drop "
-                + "the rest. Three sentences at most, or a short list where the text is a list.",
-            isPrimary: true),
+                + "the rest. Three sentences at most, or a short list where the text is a list."),
         AssistantAction(
             id: "define",
             title: "What is this?",
@@ -96,7 +98,7 @@ extension AssistantAction {
             id: "check",
             title: "Check this claim",
             symbol: "checkmark.seal",
-            requirement: .selection,
+            requirement: .readingSelection,
             landing: .show,
             prompt: "The selection is a claim. Say whether it holds up, what it depends on, and what "
                 + "would have to be true for it to be wrong. Say plainly when you do not know."),
@@ -111,8 +113,7 @@ extension AssistantAction {
             requirement: .editableSelection,
             landing: .replaceSelection,
             prompt: "Correct spelling, grammar and punctuation in the text. Keep the wording, the "
-                + "register and the language exactly as they are — change nothing that is not wrong.",
-            isPrimary: true),
+                + "register and the language exactly as they are — change nothing that is not wrong."),
         AssistantAction(
             id: "rewrite",
             title: "Rewrite",
@@ -120,8 +121,7 @@ extension AssistantAction {
             requirement: .editableSelection,
             landing: .replaceSelection,
             prompt: "Rewrite the text so it reads clearly and naturally, in the same language and at "
-                + "the same length. Keep every point it makes.",
-            isPrimary: true),
+                + "the same length. Keep every point it makes."),
         AssistantAction(
             id: "shorten",
             title: "Make It Shorter",
@@ -149,8 +149,7 @@ extension AssistantAction {
             requirement: .caret,
             landing: .insert,
             prompt: "Continue the text from exactly where it stops, in its language and voice. "
-                + "Return only the continuation — no repetition of what is already there.",
-            isPrimary: true),
+                + "Return only the continuation — no repetition of what is already there."),
         AssistantAction(
             id: "reply",
             title: "Draft a Reply",
@@ -159,8 +158,7 @@ extension AssistantAction {
             landing: .insert,
             prompt: "The field is for a reply to what is on the page. Draft one in the language of "
                 + "the page: to the point, no flattery, no restating of the question. Return the "
-                + "reply only.",
-            isPrimary: true),
+                + "reply only."),
         AssistantAction(
             id: "polish-field",
             title: "Polish What Is Written",
@@ -184,13 +182,14 @@ extension AssistantAction {
                 + "need to know. Five sentences at most."),
     ]
 
-    /// What the bar at a selection offers, and the ⌘K line lists under the field.
+    /// What the ⌘E line lists after `/`: each verb where its subject is, and nowhere else.
+    ///
+    /// In a field the verbs that write come first, because Return after a bare `/` runs the first one
+    /// and in a field the thing wanted is the edit, not the explanation.
     static func offered(for focus: PageFocus) -> [AssistantAction] {
-        all.filter { $0.applies(to: focus) }
-    }
-
-    static func primary(for focus: PageFocus) -> [AssistantAction] {
-        offered(for: focus).filter(\.isPrimary)
+        let offered = all.filter { $0.applies(to: focus) }
+        guard focus.isEditable else { return offered }
+        return offered.filter(\.landing.writesToPage) + offered.filter { !$0.landing.writesToPage }
     }
 
     static func action(_ id: String) -> AssistantAction? {

@@ -1,16 +1,30 @@
 # The assistant
 
-Six's assistant is not a chat. It is a set of verbs offered where you are already
-pointing at something: **text selected on a page**, **a caret in a field**, and
-the **`⌘K` line** at the bottom of the rail. One list of actions serves all
-three, so a new verb shows up in every one of them at once.
+Six's assistant is not a chat. It is one line, `⌘E`, and it comes up where you
+are already pointing: under selected text, beside the field your caret is in,
+and at the bottom of the rail when nothing on the page is pointed at. It never
+comes up by itself.
 
 The only conversation with a history left in six is the [agent](/en/agents) panel
 on `⌘⇧A`, where the transcript is the work.
 
+## The ⌘E line
+
+`⌘E` brings the line up, `Esc` or `⌘E` again sends it away. An answer keeps it
+up.
+
+Ask freely, in your own words. The line says what the question will be about —
+the selection, this field, or the whole page.
+
+Ready-made actions are behind `/`: type `/` and the ones that fit what you are
+pointing at appear above the line; keep typing to narrow them — `/sum` leaves
+**Summarize This Page** — and `⏎` runs the first.
+
+`⏎` sends the question. `⏎` on an empty line applies the answer already there.
+
 ## When you select text
 
-A small bar appears over the selection:
+Select some text and press `⌘E` — the line stands under the selection. After `/`:
 
 | | |
 |---|---|
@@ -18,23 +32,25 @@ A small bar appears over the selection:
 | **Summarize** | the same, shorter: three sentences, or a list where the text is one |
 | **What is this?** | for a name, a term or a title |
 | **Check this claim** | what it rests on, and what would have to be true for it to be wrong |
-| **Ask…** | the caret moves to the `⌘K` line with the selection already the subject |
 
 If the selection is **inside something you can write in** — a comment box, a
-message, an editor on the page — the verbs that change text join in: **Fix
+message, an editor on the page — the actions that change text come first: **Fix
 Spelling and Grammar**, **Rewrite**, **Make It Shorter**, **Translate to
-English**.
+English**. **Explain** and **What is this?** stay; Summarize and Check this claim
+do not — they are for text you are reading, not for your own draft.
 
 ## When the caret is in a field
 
-Nothing is sent anywhere while you type: the assistant wakes up only when it is
-called. Call it from the bar beside the field, or from the `⌘K` line:
+Nothing is sent anywhere while you type. Leave the caret in the field and press
+`⌘E` — the line stands beside the field. After `/`:
 
 | | |
 |---|---|
 | **Continue Writing** | carry on from exactly where you stopped |
 | **Draft a Reply** | the field is a reply to what is on the page; here is one |
 | **Polish What Is Written** | spelling, grammar and punctuation across the whole field, in your words rather than its own |
+
+`Esc` puts the caret back in the field.
 
 **Password fields are not read at all** — no content, no caret, no event: the
 page drops them before anything reaches six. The same goes for fields that look
@@ -43,29 +59,16 @@ like a one-time code or a card number.
 ## How an answer gets into the page
 
 It never gets there by itself. **Insert** or **Replace** appears under the
-answer, and `⏎` on an empty `⌘K` line does the same. The text lands in the field
-as if it had been typed, so `⌘Z` takes it back.
-
-## The ⌘K line
-
-The line is out of sight until it is asked for — a bar resting over the bottom of
-every page covers what the page put there, which is usually a video's controls.
-`⌘K` brings it up, an answer keeps it up, `Esc` sends it away.
-
-Ask freely, in your own words. The line says what the question will be about —
-the selection, this field, or the whole page — and while it has focus the same
-verbs stand above it as in the bar over the text: the bar is for the mouse, the
-line is for the keyboard, the list is one.
-
-`⏎` sends the question. `⏎` on an empty line applies the answer already there.
+answer, and `⏎` on an empty line does the same. The text lands in the field as
+if it had been typed, so `⌘Z` takes it back.
 
 ## Turning all of it off
 
 **Configuration ▸ Assistant ▸ Use Language Models and Agents** is one switch over
-everything: the `⌘K` line, the bar over a selection, the agent panel, deep
+everything: the `⌘E` line, the agent panel, deep
 research, and six's MCP server.
 
-Off is not a greyed-out button. The line is not there at all, `⌘K` and `⌘⇧A` are
+Off is not a greyed-out button. The line is not there at all, `⌘E` and `⌘⇧A` are
 disabled in the menu, the watcher that follows the selection is **removed from
 the pages** (a page opened after that gets nothing of six's in it), and the
 socket external agents drive the browser through is closed.
@@ -91,9 +94,9 @@ it points at is a setting: `six://configuration` ▸ **Assistant** holds an endp
 model name and a key. A local server wants no key at all, and an empty field
 means no authorization header is sent. The Anthropic key goes in the same place.
 
-The verbs are answered by whatever answers the `⌘K` line, an agent included. One
+The verbs are answered by whatever answers the `⌘E` line, an agent included. One
 chosen model answers everything the assistant is asked; an agent takes longer and
-may ask permission, but the buttons over a selection always work.
+may ask permission, but the actions behind `/` always work.
 
 ::: warning About keys, honestly
 Keys are kept in the application's settings. That is enough to work on your own
@@ -112,7 +115,7 @@ the same picker in the model menu: this profile only, or all of them.
 
 ## The research command
 
-`research: …` or `/research …` on the `⌘K` line starts
+`research: …` or `/research …` on the `⌘E` line starts
 [deep research](/en/research): a workspace of sources and a document the agent
 writes into.
 

@@ -332,8 +332,9 @@ for the outcome later.
 ## Views
 
 `ContentView` is a top bar plus `NiriStripView`, with the assistant line overlaid at the bottom and the agent panel as
-an `.inspector`. The assistant's other surface, the bar over a selection, hangs on the web view itself as a
-`HostedOverlay` — SwiftUI drawn over a `WKWebView` never sees the mouse. The window uses `.hiddenTitleBar` and the top bar reserves 68 pt for the traffic lights.
+an `.inspector`. When ⌘E is pressed over a caret or a selection the same line
+hangs on the web view itself instead (`AnchoredAssistantLine`), as a `HostedOverlay` — SwiftUI drawn over a
+`WKWebView` never sees the mouse. The window uses `.hiddenTitleBar` and the top bar reserves 68 pt for the traffic lights.
 
 `NiriStripView` draws every workspace as a full-size layer offset vertically by `index - focusedIndex`, and every
 column inside it at an absolute offset from `columnFrames`. That is why switching workspaces or scrolling the strip is

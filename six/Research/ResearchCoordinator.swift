@@ -28,7 +28,7 @@ final class ResearchCoordinator {
         set { settings.researchSources = max(1, min(20, newValue)) }
     }
 
-    /// `research: …` or `/research …` on the ⌘K line starts (or continues) a run.
+    /// `research: …` or `/research …` on the ⌘E line starts (or continues) a run.
     static func question(fromCommand text: String) -> String? {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         for prefix in ["/research ", "research: ", "Research: ", "исследуй: ", "Исследуй: "] where trimmed.hasPrefix(prefix) {

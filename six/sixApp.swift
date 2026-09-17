@@ -357,7 +357,7 @@ struct sixApp: App {
                     .keyboardShortcut("c", modifiers: [.command, .shift])
             }
             FileCommands(browser: browser, highlights: highlights)
-            ViewCommands(browser: browser)
+            ViewCommands(browser: browser, assistant: assistant)
             HistoryCommands(browser: browser)
             BookmarkCommands(browser: browser, bookmarks: bookmarks)
             AppCommands(browser: browser, apps: mcpApps)

@@ -66,7 +66,7 @@ Everything starts off. More in [Certificates](/en/certificates).
 
 ## Assistant
 
-Which model answers `⌘K` and which agent answers the `⌘⇧A` panel, how many
+Which model answers `⌘E` and which agent answers the `⌘⇧A` panel, how many
 sources deep research takes, and the keys and addresses for Claude and for any
 server speaking the OpenAI format. More in [The assistant](/en/assistant) and
 [Agents](/en/agents).

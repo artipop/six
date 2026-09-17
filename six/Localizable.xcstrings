@@ -4850,22 +4850,22 @@
         }
       }
     },
-    "The ⌘K Line Asks" : {
+    "The ⌘E Line Asks" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Строка ⌘K спрашивает"
+            "value" : "Строка ⌘E спрашивает"
           }
         }
       }
     },
-    "The ⌘K line, actions over selected text, the agent panel, deep research and the MCP server." : {
+    "The ⌘E line, actions over selected text, the agent panel, deep research and the MCP server." : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Строка ⌘K, действия над выделенным текстом, панель агента, глубокое исследование и MCP-сервер."
+            "value" : "Строка ⌘E, действия над выделенным текстом, панель агента, глубокое исследование и MCP-сервер."
           }
         }
       }

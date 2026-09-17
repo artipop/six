@@ -66,7 +66,7 @@ const ru = {
             {
                 text: 'Ассистент и агенты',
                 items: [
-                    {text: 'Ассистент ⌘K', link: '/assistant'},
+                    {text: 'Ассистент ⌘E', link: '/assistant'},
                     {text: 'Агенты ⌘⇧A', link: '/agents'},
                     {text: 'Глубокое исследование', link: '/research'},
                     {text: 'MCP-приложения', link: '/apps'},
@@ -154,7 +154,7 @@ const en = {
             {
                 text: 'The assistant and the agents',
                 items: [
-                    {text: 'The ⌘K assistant', link: '/en/assistant'},
+                    {text: 'The ⌘E assistant', link: '/en/assistant'},
                     {text: 'Agents (⌘⇧A)', link: '/en/agents'},
                     {text: 'Deep research', link: '/en/research'},
                     {text: 'MCP apps', link: '/en/apps'},

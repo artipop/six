@@ -54,7 +54,7 @@ extension KeyContext {
     }
 
     /// AppKit edits every one-line field through a shared field editor, so the first responder for
-    /// the address bar, the ⌘K line and the start page alike is an `NSText`; a `TextEditor` is an
+    /// the address bar, the ⌘E line and the start page alike is an `NSText`; a `TextEditor` is an
     /// `NSTextView` that is *not* a field editor, which is the whole difference between a field with
     /// paragraphs in it and a field with a line in it.
     private static func field(in window: NSWindow?) -> Field? {

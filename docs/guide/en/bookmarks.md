@@ -119,7 +119,7 @@ window there — the list and the search are still the Mac's.
 ## What the assistant and the agents see
 
 **Bookmarks ▸ Search In: This Profile / All Profiles** is one setting
-for all of it: it decides whose bookmarks the [⌘K assistant](/en/assistant) and
+for all of it: it decides whose bookmarks the [⌘E assistant](/en/assistant) and
 the [agents](/en/agents) look in when nothing says otherwise. They can list
 bookmarks, search them by meaning, read a saved file whole, add, refresh and
 remove one.

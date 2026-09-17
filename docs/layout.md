@@ -312,7 +312,7 @@ inside it. Walking the view tree for the nearest ancestor holding exactly one we
 not work: SwiftUI mounts a `.background` in a layer of its own, and the first ancestor with any web view under it is
 usually the one that has all of them.
 
-Two things it deliberately does not do. It never takes the keyboard **off a text field** — `⌘L` and the `⌘K` line are
+Two things it deliberately does not do. It never takes the keyboard **off a text field** — `⌘L` and the `⌘E` line are
 reached by keystroke and left by keystroke, and a rail that walked into the page under them would eat the next thing
 typed (the same test the key router uses). And for a window with no page to give it to — a card, a start page, which
 is SwiftUI and has no web view at all — it takes the keys off whatever had them rather than leaving them with a

@@ -526,6 +526,7 @@ private struct ColumnView: View {
 
     @Environment(BrowserState.self) private var browser
     @Environment(SitePermissions.self) private var permissions
+    @Environment(AssistantStore.self) private var assistant
 
     private var accent: Color {
         browser.profiles.first { $0.id == tab.profileID }?.color ?? .accentColor
@@ -634,10 +635,12 @@ private struct ColumnView: View {
                     .pageContextMenu(for: tab, in: browser)
                     .id(tab.generation)
                     .onAppear(perform: tab.resumeIfNeeded)
-                    // The verbs, where the text is. Over the page and inside it: the coordinates the
+                    // The ⌘E line, where the text is. Over the page and inside it: the coordinates the
                     // page reports are its viewport's, which is exactly this view's box.
                     .overlay(alignment: .topLeading) {
-                        if isFocused, !capturesClicks { PageFocusBar(tab: tab) }
+                        if isFocused, !capturesClicks, assistant.line == .page(tab.id) {
+                            AnchoredAssistantLine(tab: tab)
+                        }
                     }
                     // Over the page rather than instead of it: the window that failed still holds
                     // whatever it was showing, and a window that succeeds after a failure has to be

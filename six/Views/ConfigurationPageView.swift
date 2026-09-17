@@ -337,7 +337,7 @@ private struct PrivacyConfiguration: View {
 
 // MARK: - Assistant
 
-/// Which model answers ⌘K, which agent answers the panel, and who each of them is told to call.
+/// Which model answers ⌘E, which agent answers the panel, and who each of them is told to call.
 /// Named a pane rather than `AssistantSettings`, which is the model object it edits.
 private struct AssistantPane: View {
     @Environment(AssistantStore.self) private var assistant
@@ -363,7 +363,7 @@ private struct AssistantPane: View {
 
             Group {
                 SwiftUI.Section("Model") {
-                    Picker("The ⌘K Line Asks", selection: $settings.model) {
+                    Picker("The ⌘E Line Asks", selection: $settings.model) {
                         ForEach(ModelChoice.languageModels) { choice in
                             Label(choice.title, systemImage: choice.symbol)
                                 .tag(choice)

@@ -1,9 +1,10 @@
-# The assistant: three surfaces, one catalog
+# The assistant: one line, one catalog
 
-Six's assistant is not a chat. It is a **catalog of verbs** (`AssistantAction`) offered at the three
-places a person is already pointing at something: a **selection** on the page, a **caret** in a
-field, and the **⌘K line** at the bottom of the strip. A use case is a row in that catalog — a title,
-what it says to the model, and where the answer lands — so adding one adds no interface at all.
+Six's assistant is not a chat. It is a **catalog of verbs** (`AssistantAction`) behind one line,
+**⌘E**, which stands where the person is already pointing: under a **selection** or beside a
+**caret** in a field when the page has one, and at the bottom of the strip when it does not. A use
+case is a row in that catalog — a title, what it says to the model, and where the answer lands — so
+adding one adds no interface at all.
 
 The one chat left in six is the ACP agent panel behind ⌘⇧A ([agents.md](agents.md)), where a
 transcript is the work being done rather than a way to ask a question.
@@ -43,14 +44,15 @@ This is the arrangement the readable-page extractor and the highlighter already 
 
 ## The catalog
 
-`AssistantAction` (`six/Assistant/AssistantAction.swift`) is one list, read by all three surfaces:
+`AssistantAction` (`six/Assistant/AssistantAction.swift`) is one list, read by the line wherever it stands:
 
 | requirement | what is offered |
 |---|---|
-| `selection` | Explain, Summarize, What is this?, Check this claim |
-| `editableSelection` | Fix Spelling and Grammar, Rewrite, Make It Shorter, Translate to English |
+| `selection` | Explain, What is this? — in text and in a field alike |
+| `readingSelection` | Summarize, Check this claim — only in text being read, not in your own draft |
+| `editableSelection` | Fix Spelling and Grammar, Rewrite, Make It Shorter, Translate to English — listed first in a field |
 | `caret` | Continue Writing, Draft a Reply, Polish What Is Written |
-| `page` | Summarize This Page |
+| `page` | Summarize This Page — only with nothing pointed at |
 
 Each row carries a `landing`: `show` (read it and move on), `replaceSelection`, `replaceField`, or
 `insert`. A landing that writes is downgraded to `show` when the focus is not editable, so the same
@@ -70,35 +72,59 @@ framework-driven field listens for, and it lands in the page's own undo stack, s
 Where the command is refused, the fallback sets the value through the native prototype setter and
 dispatches `input` and `change` itself — what a React `onChange` is actually listening for.
 
-## The surfaces
+## The line
 
-**The bar at a selection** (`PageFocusBar`) is a `HostedOverlay` — SwiftUI hosted in AppKit beside
-the `WKWebView`, because SwiftUI drawn over a web view never sees the mouse, the same reason a
-column's close badge is one. It is positioned from `PageFocus.rect`: above the selection where there
-is room, below it where there is not, never off the sides. It carries the primary verbs **named**, not as icons,
-and a `…` menu with the rest and **Ask…**, which puts the caret in the ⌘K line with the selection
-already the subject (`AssistantStore.focusLine()`).
+**Nothing comes up by itself.** There used to be a bar over every selection, with the primary verbs
+named, and a bar beside every `<textarea>` with Continue Writing and Draft a Reply. Both went. A
+bar at a caret is an assistant that does not wait to be asked — clicking into a field is how
+writing starts — and a bar at a selection sits exactly where the page's own selection toolbar
+(Notion, Medium, Docs) and the system's Look Up already are. What they offered is behind `/`.
 
-Named because icons alone read as a stray capsule near the text rather than as something offering
-to do something. That costs a measurement: `HostedOverlay` needs an explicit frame, so the titles
-are measured in AppKit's own font (`itemWidth`) before SwiftUI lays them out — "Исправить ошибки" is
-half again as wide as "Fix", and a guessed constant truncates one language or pads the other. Text
-you can write in gets the verbs that write (Fix, Rewrite); Explain and Summarize apply there too but
-step back into the `…` menu, because four named verbs over a comment box is a bar half the width of
-the window.
+**⌘E** (`AssistantStore.toggleLine(in:)`) decides where the line goes from the selected window's
+`PageFocus`: a live web page with a caret or a selection gets the line hung on it
+(`LinePlace.page`), anything else gets it at the bottom (`LinePlace.bottom`). Pressed again, or Esc,
+puts it away — from wherever it is, without deciding the place a second time, because the page has
+usually redrawn what it reports by then and the second press once came out as "open at the bottom".
+⌘E rather than ⌘K because it is Dia's, and ⌘K is every web app's command palette. The menu item
+calls the store directly rather than a `@FocusedValue`: a focused value exists only while something
+in the scene has focus, so after Esc the item was greyed out, and a disabled item eats its key.
 
-It is offered for a selection of more than one character, and for a caret only in a `<textarea>` or
-a rich editor: a bar over every search box on the web is noise, and a single-line field still has
-the same verbs on the ⌘K line.
+**Two views, one state.** `AssistantBar` is the line; it is mounted at the bottom by `ContentView`
+and, while `line == .page(id)`, inside that column by `AnchoredAssistantLine`. The store holds
+where the line is (`line`), and each view shows itself only for its own place. The anchored one is a
+`HostedOverlay` — SwiftUI drawn over a `WKWebView` never sees the mouse, and the answer has buttons —
+placed from `PageFocus.rect`: below the field or selection when an answer's height fits under it,
+above otherwise, never off the sides, 420–640 pt wide. Its frame follows the content's measured
+height (`onGeometryChange`), because a hosting view that sizes itself feeds constraints back into the
+window, and a fixed tall frame would leave a clear box over the page that swallows clicks. Below, the
+answer opens under the line; above, over it.
 
-**The ⌘K line** (`AssistantBar`) is the same catalog for the keyboard: while it is focused, the
-verbs that apply appear as chips above it, and the placeholder says what the question will be about.
-Return sends the question; Return with nothing typed applies the answer that is already there.
-Escape dismisses. The model menu, the bookmark scope and the provider settings are unchanged.
+**The subject is snapshotted.** A selection in page text is gone the moment the web view hands the
+keyboard to the line — measured at the bottom as well as beside the text, so it was never kept — so
+the store keeps the `PageFocus` it saw when the line was asked for, and `subject(in:)` answers with
+the live focus while the page still reports one (a caret survives in its field and follows
+scrolling) and with the snapshot once it does not. The question, the verbs offered and the line's
+position all read it. Put away by a key, a line that stood on a page gives the keyboard back to that
+page's web view, so Esc over a comment box goes back to writing.
 
-**The caret** has no surface of its own on purpose. Nothing is sent while a person types — the field
-is read only when a verb is pressed or ⌘K is asked for, which is the difference between an assistant
-and a keylogger.
+**Verbs behind `/`.** Typing `/` brings the verbs that apply up as chips; what follows narrows them
+(by the localized title or by the id, so `/sum` works on any layout), and Return runs the first one
+left. Without the slash the line is a plain question, and the placeholder says what it will be
+about. Return with nothing typed applies the answer that is already there.
+
+**Away means out of the key-view loop.** The bottom line stays mounted while it is away and was
+only transparent, so Tab on a start page landed in it and showed it. Its controls are disabled while
+it is away, and a summons focuses on the next pass of the main queue, once there is something enabled
+to take the caret.
+
+`SIX_KEY_SELFTEST=assistant` checks all of it without a screenshot: the line summoned at the bottom
+of a start page, the ⌘E menu item as a switch, `/sum` ⏎ starting `summarize-page`, Tab walking past
+the line, then a `<textarea>` — the line hung under it (the hosting view's frame is printed), `/con`
+⏎ starting `continue`, Esc handing the keyboard back to the page — and a selection that the line
+still knows after the page has dropped it.
+
+**The caret** is read only when ⌘E is pressed or a verb runs. Nothing is sent while a person types,
+which is the difference between an assistant and a keylogger.
 
 ## Switching all of it off
 
@@ -106,7 +132,7 @@ and a keylogger.
 over everything in this document, and over the agent panel, deep research and six's own MCP server.
 Off is not a greyed-out button:
 
-- `AssistantBar` is not in the view hierarchy, so `focusAssistant` is nil and ⌘K's menu item is
+- `AssistantBar` is not in the view hierarchy, so `focusAssistant` is nil and ⌘E's menu item is
   disabled with it — the same for ⌘⇧A and the inspector behind it;
 - `PageFocusStore.isEnabled` goes false, which pulls the watcher **out of the pages**: the message
   handler is removed at once and the user script is dropped from every window's controller, so a
@@ -137,7 +163,7 @@ Unchanged, and still the reason everything runs through Foundation Models' `Lang
 | Claude Sonnet 5 / Opus 5 | `ClaudeLanguageModel` from [ClaudeForFoundationModels](https://github.com/anthropics/ClaudeForFoundationModels) |
 | OpenAI-compatible | `ChatCompletionsLanguageModel` from Apple's [foundation-models-utilities](https://github.com/apple/foundation-models-utilities) |
 
-The ⌘K line can still be answered by an ACP agent (the menu's second section), and `research: …`
+The ⌘E line can still be answered by an ACP agent (the menu's second section), and `research: …`
 still starts a deep-research run ([deep-research.md](deep-research.md)). Both stream into the same
 one-answer strip; an agent's permission request appears inside it, as it does in the panel.
 

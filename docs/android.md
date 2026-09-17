@@ -234,7 +234,7 @@ shape `AssistantStore` already has. What the platform offers:
 
 - **Gemini Nano through ML Kit GenAI**, over AICore — the recommended route in 2026, but its APIs are
   task-shaped (summarise, rewrite, proofread) rather than free-form, and AICore reaches a narrow set
-  of devices. Enough to answer `summarize_page`; not enough to be the ⌘K line.
+  of devices. Enough to answer `summarize_page`; not enough to be the ⌘E line.
 - **LiteRT-LM** for running a Gemma-class model ourselves. MediaPipe's LLM Inference task is
   maintenance-only now and its successor is the LiteRT-LM Kotlin API. Broad device support, another
   large download, and tool calling that is not worth the name.

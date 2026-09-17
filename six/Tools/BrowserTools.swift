@@ -2,7 +2,7 @@ import Foundation
 import FoundationModels
 import WebKit
 
-/// One browser tool, described once and exposed twice: to the ⌘K assistant as a Foundation Models
+/// One browser tool, described once and exposed twice: to the ⌘E assistant as a Foundation Models
 /// `Tool` (`BrowserModelTool`) and to ACP agents through MCP (`MCPServer`).
 struct BrowserTool {
     enum ParameterType: String { case string, integer, boolean }
@@ -194,7 +194,7 @@ final class BrowserToolCatalog {
         BrowserTool(
             name: "summarize_page",
             title: String(localized: "Summarize Page"),
-            description: "Summarizes a window's page with the browser's own assistant model (the one chosen in ⌘K: on-device, "
+            description: "Summarizes a window's page with the browser's own assistant model (the one chosen in ⌘E: on-device, "
                 + "Private Cloud Compute or Claude). `focus` narrows the summary to a question or aspect.",
             parameters: [Self.windowID, .init(name: "focus", description: "What the summary should concentrate on, if anything.")],
             surfaces: .mcp,
@@ -857,7 +857,7 @@ final class BrowserToolCatalog {
     /// This is the whole of six's answer to "translate this with a model". Apple's translator is
     /// wired into the page and into the address field because it is free, local and fast; a language
     /// model is none of those over a thousand segments, so it does not get a second engine behind
-    /// the translator. It gets this instead — the selection, handed to ⌘K and to every MCP client,
+    /// the translator. It gets this instead — the selection, handed to ⌘E and to every MCP client,
     /// where the model translates or explains it in the conversation and the reader sees what it
     /// did. No new interface, and nothing to pay for when nobody asks.
     private func pageSelection(_ args: ACPJSON) async throws -> String {
@@ -1023,7 +1023,7 @@ final class BrowserToolCatalog {
             most relevant first, at most \(limit), one per line as `N: reason` where the reason is a few words. \
             Answer `none` if nothing on the page answers it. Never quote the paragraphs.
             """
-        // "Which of these is about X" is within the on-device model's reach, so when ⌘K is set to an agent
+        // "Which of these is about X" is within the on-device model's reach, so when ⌘E is set to an agent
         // (not a language model) or its model isn't usable, that is the fallback.
         let session: LanguageModelSession
         if !assistant.model.isAgent, let chosen = try? assistant.makeSession(instructions: instructions) {
@@ -1092,7 +1092,7 @@ final class BrowserToolCatalog {
 
 // MARK: - Foundation Models adapter
 
-/// A `BrowserTool` as a Foundation Models `Tool`, so the ⌘K assistant can call it while answering.
+/// A `BrowserTool` as a Foundation Models `Tool`, so the ⌘E assistant can call it while answering.
 /// Arguments arrive as `GeneratedContent`; they are re-read as JSON, which is what the tool bodies speak.
 nonisolated struct BrowserModelTool: Tool {
     typealias Arguments = GeneratedContent

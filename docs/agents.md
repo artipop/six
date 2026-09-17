@@ -19,7 +19,7 @@ An agent namespaces the tools it got from an MCP server: Claude Code hands them 
 apart before showing anything: `AgentToolName.display` drops `mcp__` and turns `__` into a space, leaving
 **`six open_window`** — the server, then the method. The rewrite happens once, where the notification lands
 (`AgentSessionStore.handle`, and the permission request beside it), so the transcript, the permission prompt, the
-⌘K activity line and the saved chat all agree. Titles an agent wrote itself (`Read`, `Bash`, a whole sentence) pass
+⌘E activity line and the saved chat all agree. Titles an agent wrote itself (`Read`, `Bash`, a whole sentence) pass
 through untouched. See [mcp.md](mcp.md#names) for the naming on the wire.
 
 ## Working directory
@@ -45,7 +45,7 @@ header forgets the current chat and its session.
 ## Debugging
 
 `SIX_ACP_TRACE=1` mirrors the connection steps and every JSON-RPC line to stderr. `SIX_ACP_SELFTEST="hi"` opens the
-panel and sends the text on launch; `SIX_ASSISTANT_SELFTEST="acp:claude-code:hi"` does the same through the ⌘K line
+panel and sends the text on launch; `SIX_ASSISTANT_SELFTEST="acp:claude-code:hi"` does the same through the ⌘E line
 with the given model choice — together they exercise the whole path without clicking:
 
 ```sh

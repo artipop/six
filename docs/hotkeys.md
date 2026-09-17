@@ -46,7 +46,7 @@ comes back. Measured, by `SIX_KEY_SELFTEST=page` (`KeySelfTestPage.swift`):
 | an empty field on the page | **the page** — WebKit keeps it though nothing moves | **the page** | **the page** |
 | a page with its own `keydown` handler for the key | **the page** | **the page** | **the page** |
 
-Six's own fields (the address, `⌘K`, the start page, a document) cannot hand anything back, so for them the router
+Six's own fields (the address, `⌘E`, the start page, a document) cannot hand anything back, so for them the router
 decides on the first pass (`KeyBinding.yieldsToCaret(in:)`): **every arrow goes to a field with any text in it**,
 and every `⌥`+letter goes to any field at all, empty included. It used to be per caret — `⌥←` yielded only while
 there was a word behind the caret — and that was a trap: holding `⌥←` walked the caret home and one press later
@@ -140,7 +140,7 @@ One rail's windows only — the workspace on screen — and this run only. `⌥�
 | `⌘⇧C` | copy the address of the window you are reading, whole, as it would be pasted — the field shows a tick (Edit ▸ Copy Address). Arc's Copy URL, and `⌃⇧C` on the fronts with no `⌘` (`KeyBindings.copyAddressChord`). Nothing to copy on a start page, a document or an app window, and there the key is left to whatever else wants it. A **table row** and not just the menu item, unlike every other `⌘` key here: it is pressed with the page focused, and a focused `WKWebView` answers a key equivalent before the menu bar is asked. `⌘C` stays the page's — that one is the selection |
 | `⌘F` | find on the page in front of you — searches the page's own JavaScript, since `WebPage` carries no find API of its own and `WKWebView`'s is an async completion-handler with no menu (also View ▸ Find on Page…) |
 | `⌘L` | focus the address field |
-| `⌘K` | focus the assistant line |
+| `⌘E` | the assistant line: up and focused, or put away if it is already up |
 | `⌘⇧A` | agent panel on / off |
 | `⌘Y` | history of the current profile |
 | `⌘D` | bookmark the focused page (again: remove the bookmark) |
@@ -200,7 +200,7 @@ written into the page's DOM.
 | `⌫` | the same, while the list itself has the focus |
 | `Esc` | close |
 
-## Assistant line (`⌘K`)
+## Assistant line (`⌘E`)
 
 | | |
 |---|---|
@@ -248,7 +248,7 @@ written into the page's DOM.
   these.
 - **The keyboard follows the rail's focus, and that had to be made to happen.** `⌥→` moves the focus; AppKit's first
   responder stayed where a click had put it, so the keys went on reaching the window you had walked away from
-  ([layout.md](layout.md#the-keyboard-follows-the-focus)). It is never taken off a text field — `⌘L` and `⌘K` are
+  ([layout.md](layout.md#the-keyboard-follows-the-focus)). It is never taken off a text field — `⌘L` and `⌘E` are
   left by keystroke — so nothing here eats what you were typing.
 - **`⌃←` and `⌃→` never reach six, and no application can have them.** They are Mission Control's *Move
   left/right a space* — symbolic hotkeys 79 and 80, on by default — and the WindowServer takes them

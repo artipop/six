@@ -29,7 +29,7 @@ pushed into lights up in the profile's colour, the rubber band stiffens, and
 nothing moves — because there is nothing that way.
 
 **The page first, then the rail.** While the caret is in a field with text in it —
-the address bar, the `⌘K` line, a field on the page itself — the `⌥` arrows move the
+the address bar, the `⌘E` line, a field on the page itself — the `⌥` arrows move the
 caret, and `⌥W`, `⌥S`, `⌥O`, `⌥C` type their characters. On a page that scrolls,
 `⌥↑` and `⌥↓` page through it — all the way to the end, without jumping to the next
 workspace. A shortcut a site took for itself (Google Sheets moves between sheets
@@ -79,7 +79,7 @@ workspaces, not other profiles — and this run only.
 | `⌘⇧C` | copy the focused window's address, whole; a tick appears in the field (also Edit ▸ Copy Address). Nothing to copy on a start page, a document or an app window, and there the key does nothing |
 | `⌘F` | find on the page; `↩` / `⇧↩` for the next / previous match, `Esc` to close |
 | `⌘L` | focus the address field |
-| `⌘K` | the assistant line |
+| `⌘E` | the assistant line: bring it up, or put it away |
 | `⌘⇧A` | the agent panel |
 | `⌘Y` | the profile's history |
 | `⌘D` | bookmark the focused page (again: remove it) |

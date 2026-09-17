@@ -164,7 +164,7 @@ nonisolated enum PageFocusScript {
             // bar left behind at the old place is worse than no bar.
             document.addEventListener('scroll', function () { schedule(80); }, true);
             window.addEventListener('resize', function () { schedule(120); });
-            // A page's own focus leaving for six's chrome must not clear anything: pressing ⌘K
+            // A page's own focus leaving for six's chrome must not clear anything: pressing ⌘E
             // after selecting a paragraph is the ordinary case, and WebKit keeps the selection.
             schedule(200);
         })();

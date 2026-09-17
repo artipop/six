@@ -89,11 +89,11 @@ final class AssistantStore {
 
     // MARK: Asking
 
-    /// The ⌘K line: a question in the person's own words, about whatever is in front of them.
+    /// The ⌘E line: a question in the person's own words, about whatever is in front of them.
     func ask(_ question: String, about tab: BrowserTab?) {
         let question = question.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !question.isEmpty else { return }
-        let focus = tab.map { self.focus?[$0.id] ?? PageFocus() } ?? PageFocus()
+        let focus = tab.map { subject(in: $0.id) } ?? PageFocus()
         start(Answer(title: question, windowID: tab?.id, isRunning: true)) { [self] report in
             #if os(macOS)
             // `research: …` starts a deep-research run: a workspace, a document, and the agent at work.
@@ -111,7 +111,7 @@ final class AssistantStore {
 
     /// A verb from the catalog, on what the page has under the cursor.
     ///
-    /// It goes wherever the ⌘K line goes, the agent included. That is the second answer to this
+    /// It goes wherever the ⌘E line goes, the agent included. That is the second answer to this
     /// question and the right one: the first was to hide the verbs whenever the line was set to an
     /// ACP agent, which is how a bar with nothing in it but `…` came to hover over a selected
     /// paragraph. The second was to fall back to the on-device model — and on a Mac whose Apple
@@ -175,7 +175,7 @@ final class AssistantStore {
     }
 
     #if os(macOS)
-    /// The ⌘K line answered by an ACP agent: the same session as the agent panel, so the transcript,
+    /// The ⌘E line answered by an ACP agent: the same session as the agent panel, so the transcript,
     /// permissions and the profile's working directory are shared.
     private func askAgent(_ agent: ACPAgentDefinition, question: String, about tab: BrowserTab?,
                           report: @escaping (Update) -> Void) async {
@@ -210,11 +210,85 @@ final class AssistantStore {
     }
     #endif
 
-    /// The ⌘K line, asked for from somewhere that has no way to move focus itself — the bar over a
-    /// selection, which lives in an AppKit hosting view of its own.
-    private(set) var focusRequests = 0
+    // MARK: The line
 
-    func focusLine() { focusRequests += 1 }
+    /// Where the ⌘E line stands. At a field or a selection when the page has one — the question is
+    /// about that, so it is asked there — and at the bottom of the rail otherwise.
+    enum LinePlace: Equatable {
+        case bottom
+        /// Hung on this window's `PageFocus.rect`.
+        case page(UUID)
+    }
+
+    /// Nil while the line is away. The store holds it rather than a view, because the two places are
+    /// two views — the bottom one in `ContentView`, the other inside the column — and ⌘E is a menu
+    /// item that has to decide between them without either having focus: a `@FocusedValue` exists
+    /// only while something in the scene has focus, so after Esc the item was greyed out, and a
+    /// disabled item eats its key.
+    private(set) var line: LinePlace?
+    /// Bumped on every summons, so a line that is already standing takes the caret again.
+    private(set) var summons = 0
+    /// Put away by a key (Esc, ⌘E) rather than by the caret leaving for somewhere else. Only then
+    /// does a line hung on a field hand the keyboard back to the page it came from.
+    @ObservationIgnored private(set) var closedByKey = false
+    /// What was pointed at when the line was asked for, and in which window. The page does not keep
+    /// it for us: a selection in text is gone the moment the web view hands the keyboard to the line
+    /// — measured, at the bottom as much as beside the text — so the question would arrive with no
+    /// subject and the line would lose the rectangle it hangs on.
+    private var summonedFocus: (window: UUID, focus: PageFocus)?
+
+    /// The thing the line is about: what the page says now, and what it said when ⌘E was pressed
+    /// once the page has stopped saying anything. A caret survives in its field and keeps moving with
+    /// scrolling; a selection is the snapshot.
+    func subject(in windowID: UUID) -> PageFocus {
+        let live = focus?[windowID] ?? PageFocus()
+        guard live.isEmpty, let summonedFocus, summonedFocus.window == windowID else { return live }
+        return summonedFocus.focus
+    }
+
+    /// ⌘E: up if it is away, away if it is up — wherever it is up. Deciding the place again on the
+    /// second press is how it once rose at the bottom instead of going away: the page had redrawn
+    /// what it reports by then, and the place came out different. An answer on screen counts as up.
+    func toggleLine(in tab: BrowserTab?) {
+        if line != nil || answer != nil { closeLine() } else { summonLine(at: place(for: tab)) }
+    }
+
+    func summonLine(in tab: BrowserTab?) { summonLine(at: place(for: tab)) }
+
+    private func summonLine(at place: LinePlace) {
+        closedByKey = false
+        if line == nil { summonedFocus = snapshot(for: place) }
+        line = place
+        summons += 1
+    }
+
+    /// Esc, the second ⌘E: the line and its answer both.
+    func closeLine() {
+        closedByKey = true
+        dismiss()
+        line = nil
+        summonedFocus = nil
+    }
+
+    /// The caret left the line. It stays while it has an answer to show — the answer's buttons are
+    /// what the pointer went to — and goes with it otherwise.
+    func lineLostFocus(at place: LinePlace) {
+        guard line == place, answer == nil else { return }
+        closedByKey = false
+        line = nil
+        summonedFocus = nil
+    }
+
+    private func snapshot(for place: LinePlace) -> (window: UUID, focus: PageFocus)? {
+        guard case .page(let window) = place, let focus = focus?[window] else { return nil }
+        return (window, focus)
+    }
+
+    private func place(for tab: BrowserTab?) -> LinePlace {
+        guard let tab, tab.livePage != nil, !tab.isDocument, let focus = focus?[tab.id],
+              !focus.isEmpty, focus.rect != .zero else { return .bottom }
+        return .page(tab.id)
+    }
 
     // MARK: Landing
 

@@ -33,4 +33,4 @@ Nothing needs the keyboard: every layout operation has a mouse equivalent. `⌥`
 
 Every binding is in [hotkeys.md](hotkeys.md). In short: `⌥` + arrows / scroll move around the rail, `⌥W` `⌥O` `⌥C`
 change how a window is shown, `⌃Tab` held flies to a window by how recently it was used rather than by
-where it stands, and `⌘T` `⌘W` `⌘L` `⌘K` `⌘D` `⌘⌥B` `⌘Y` `⌘⇧A` `⌘,` are the browser's.
+where it stands, and `⌘T` `⌘W` `⌘L` `⌘E` `⌘D` `⌘⌥B` `⌘Y` `⌘⇧A` `⌘,` are the browser's.

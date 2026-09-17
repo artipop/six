@@ -14,7 +14,7 @@ enum ModelChoice: String, CaseIterable, Identifiable, Codable {
     /// Any server speaking the OpenAI `/chat/completions` wire format — OpenAI itself, or the
     /// endpoint and model named in the settings (a gateway, a local llama.cpp, Ollama).
     case openAICompatible = "openai"
-    /// ACP agents: the same ⌘K line, answered by Claude Code / Codex through the agent session.
+    /// ACP agents: the same ⌘E line, answered by Claude Code / Codex through the agent session.
     case claudeCodeAgent = "acp:claude-code"
     case codexAgent = "acp:codex"
     #endif
@@ -204,7 +204,7 @@ enum AssistantError: LocalizedError {
 /// The setting lives in the settings table; the knowledge of what its string means lives here,
 /// beside the type it means it as. `ConfigurationStore` itself keeps only keys and strings.
 extension ConfigurationStore {
-    /// Which model answers ⌘K.
+    /// Which model answers ⌘E.
     var assistantModel: ModelChoice {
         get { ModelChoice(rawValue: self[.assistantModel] ?? "") ?? .onDevice }
         set { self[.assistantModel] = newValue.rawValue }

@@ -83,7 +83,7 @@ final class WebViewResponder {
     /// it off whatever had it.
     ///
     /// **Not while something is being typed into.** The one first responder that outranks a page is a
-    /// text field: `⌘L` and the `⌘K` line are reached by keystroke and left by keystroke, and a rail
+    /// text field: `⌘L` and the `⌘E` line are reached by keystroke and left by keystroke, and a rail
     /// that walked into the page under them would eat the next thing typed. The same test the key
     /// router uses (`KeyContext`), for the same reason.
     func focus(_ tabID: UUID?) {

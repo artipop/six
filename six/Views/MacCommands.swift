@@ -23,7 +23,7 @@ import WebKit
 /// and swallows it, so the item's own action never runs.
 struct ViewCommands: Commands {
     let browser: BrowserState
-    @FocusedValue(\.focusAssistant) private var focusAssistant
+    let assistant: AssistantStore
     @FocusedValue(\.toggleAgentPanel) private var toggleAgentPanel
     @FocusedValue(\.translatePage) private var translatePage
     @FocusedValue(\.translateSelection) private var translateSelection
@@ -114,9 +114,12 @@ struct ViewCommands: Commands {
 
             Divider()
 
-            Button("Ask Assistant…") { focusAssistant?.perform() }
-                .keyboardShortcut("k")
-                .disabled(focusAssistant == nil)
+            // ⌘E, which is Dia's: the one browser whose assistant is also a line and not a sidebar.
+            // It was ⌘K, which every web app with a command palette also wants for itself.
+            // Never greyed out, and a no-op with the assistant switched off: the bar is not mounted
+            // then, so nothing is listening (`ContentView`). A `.disabled` here would be decided once.
+            Button("Ask Assistant…") { assistant.toggleLine(in: browser.selectedTab) }
+                .keyboardShortcut("e")
             Button("Agent Panel") { toggleAgentPanel?.perform() }
                 .keyboardShortcut("a", modifiers: [.command, .shift])
                 .disabled(toggleAgentPanel == nil)

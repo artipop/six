@@ -279,7 +279,7 @@ Pages change, and so do our models. Two things keep the index honest:
 
 ## The assistant and the agents
 
-The scope — this profile or all — is one setting (`bookmarks.scope`), set from the Bookmarks menu, the ⌘K model
+The scope — this profile or all — is one setting (`bookmarks.scope`), set from the Bookmarks menu, the ⌘E model
 menu or the agent panel's header. It is what `list_bookmarks` and `search_bookmarks` return when the caller doesn't
 say; a `profile` argument (a name, or `all`) overrides it per call. Tools:
 
@@ -292,5 +292,5 @@ say; a `profile` argument (a name, or `all`) overrides it per call. Tools:
 | `refresh_bookmark` | re-read the page now; answers *Updated* or *Unchanged* |
 | `remove_bookmark` | delete the bookmark and its file |
 
-The ⌘K assistant (on-device, PCC, Claude) gets them as Foundation Models tools and is told to search the bookmarks
+The ⌘E assistant (on-device, PCC, Claude) gets them as Foundation Models tools and is told to search the bookmarks
 when the question is about something the user saved; ACP agents get them as `mcp__six__*` ([mcp.md](mcp.md)).

@@ -186,11 +186,11 @@ other stays where it stood with the column to itself.
 
 The keyboard travels with the focus: after `⌥→` the arrow keys scroll the half
 that is highlighted, and typing goes into it. The one exception is a caret in a
-field — `⌘L` and the `⌘K` line are left by keystroke, and the rail does not take
+field — `⌘L` and the `⌘E` line are left by keystroke, and the rail does not take
 what you are typing away from them.
 
 A click on the other half lands the focus on it first, as on any unfocused
-window, and only the next one reaches the page: the address field, `⌘W` and `⌘K`
+window, and only the next one reaches the page: the address field, `⌘W` and `⌘E`
 all speak for the focused window, and a page that answered a click without
 becoming the focused one would leave every one of them pointing at its
 neighbour.

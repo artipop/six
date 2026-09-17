@@ -44,7 +44,7 @@ nonisolated struct TranslationBatchLimits: Sendable {
 /// segments through a network in batches is minutes against seconds; and a model that quietly
 /// merges or drops a line leaves a page that looks translated and is wrong. Where a model *is* the
 /// right answer — a passage that needs nuance, a language pair Apple does not have — the way in is
-/// the agent, not this: `get_selection` hands the selected text to ⌘K and to MCP clients, and the
+/// the agent, not this: `get_selection` hands the selected text to ⌘E and to MCP clients, and the
 /// model translates it in the conversation where the reader can see what it did.
 ///
 /// Deliberately not `Sendable`, and deliberately `@MainActor`: the project builds with

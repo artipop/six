@@ -140,7 +140,7 @@ final class ConfigurationStore {
 
     /// Ad and tracker blocking, on out of the box. Off means off: no lists fetched, nothing
     /// compiled, no rules attached — the switch is there for people who bring their own blocker.
-    /// The one switch over everything in six that talks to a language model or an agent: the ⌘K
+    /// The one switch over everything in six that talks to a language model or an agent: the ⌘E
     /// line and its verbs, the bar over a selection **and the script that watches for one**, the
     /// agent panel and ACP, deep research, and six's own MCP server. Off is not a greyed-out button
     /// — none of it is built, nothing is injected into a page, and no socket is listening.

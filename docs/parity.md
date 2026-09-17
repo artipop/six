@@ -99,7 +99,7 @@ already in `ConfigurationStore`, which is `SixCore`'s.
 ### 6. Highlights and the selection verbs — M
 
 `HighlightScript` is Foundation-only JavaScript, the same case `ReadablePage` was: into `SixCore`, through
-`PageScriptRunner`. Then the selection bar (`PageFocusBar`) for **highlight** and **translate selection** — both are
+`PageScriptRunner`. Then the ⌘E line at a selection (`AnchoredAssistantLine`) for **highlight** and **translate selection** — both are
 key-table rows the fronts drop today. The highlights table is the Mac's ([deep-research.md](deep-research.md)).
 
 ### 7. What the engine gives away — S each
@@ -127,7 +127,7 @@ time, so all three fronts share one catalogue and the Russian the Mac already ha
 
 ### 11. The AI layer — XL
 
-The `⌘K` assistant and the verbs at a selection ([assistant.md](assistant.md)), the ACP agent panel
+The `⌘E` assistant and the verbs at a selection ([assistant.md](assistant.md)), the ACP agent panel
 ([agents.md](agents.md)), `six --mcp` and `BrowserTools` ([mcp.md](mcp.md)), MCP apps, deep research. The most
 portable code in the repository — Foundation, child processes, JSON-RPC — minus Foundation Models, which is
 Apple's: the model choice collapses to ACP, the vendored `ClaudeAPI` and OpenAI-compatible. Linux has `Process`

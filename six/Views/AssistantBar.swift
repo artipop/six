@@ -1,33 +1,49 @@
 #if os(macOS)
 import SwiftUI
 
-/// The line at the bottom of the strip, and the one place an answer lands.
+/// The ⌘E line, and the one place an answer lands.
 ///
 /// It is a line and not a chat, and the difference is deliberate: what is asked is asked about what
 /// is in front of the person — the selection, the field their cursor is in, this page — so the
 /// context is on screen already and a transcript would only be six older contexts in the way. One
 /// answer at a time, dismissed with Escape, applied with Return where it can be applied at all.
 ///
-/// The verbs from `AssistantAction` are offered here as well as at the selection, because the two
-/// surfaces are the same catalog: the bar over the page is for the mouse, this row is for the
-/// keyboard, and neither is a place a use case has to be built twice.
+/// It stands in one of two places (`AssistantStore.LinePlace`), and nowhere until it is asked for.
+/// With a caret in a field or text selected, ⌘E hangs it on that (`AnchoredAssistantLine`): the
+/// question is about the thing, so it is asked next to the thing. With nothing pointed at, it rises
+/// at the bottom of the rail. There used to be bars that came up by themselves — one over every
+/// selection, one beside every comment box — and they were an assistant that would not wait to be
+/// asked, over the page's own selection menus and toolbars. The verbs they carried are behind `/`.
 struct AssistantBar: View {
-    /// The page is what the window is for, so the line steps aside — until ⌘K asks for it, or an
-    /// answer arrives. It stays in the hierarchy either way, which is what keeps ⌘K wired up.
-    var isHidden = false
+    let place: AssistantStore.LinePlace
+    /// The window the question is about. Nil at the bottom, where it is whichever is selected.
+    var tab: BrowserTab?
+    /// Hung below what it points at, the line comes first and the answer opens under it; at the
+    /// bottom of the rail, or above a field near the bottom of the page, the other way round.
+    var growsDown = false
 
     @Environment(BrowserState.self) private var browser
     @Environment(AssistantStore.self) private var assistant
     @Environment(AgentSessionStore.self) private var agentSession
-    @Environment(PageFocusStore.self) private var focusStore
     @State private var question = ""
     @FocusState private var focused: Bool
 
     private var isAgent: Bool { assistant.settings.model.agentDefinition != nil }
 
+    private var subject: BrowserTab? { tab ?? browser.selectedTab }
+
     private var focus: PageFocus {
-        guard let tab = browser.selectedTab else { return PageFocus() }
-        return focusStore[tab.id]
+        guard let subject else { return PageFocus() }
+        return assistant.subject(in: subject.id)
+    }
+
+    /// The bottom line stays mounted while it is away, which is what lets ⌘E land in it. An answer
+    /// that arrived with no line asked for — research, a self-test — shows there as well.
+    private var isShown: Bool {
+        switch place {
+        case .page: true
+        case .bottom: assistant.line == .bottom || (assistant.line == nil && assistant.answer != nil)
+        }
     }
 
     /// What the line says it will do, which depends entirely on what is pointed at.
@@ -45,58 +61,96 @@ struct AssistantBar: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            if let answer = assistant.answer {
-                AnswerStrip(answer: answer)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            if growsDown {
+                field
+                verbRow
+                answerStrip
+            } else {
+                answerStrip
+                verbRow
+                field
             }
-            if focused, !verbs.isEmpty {
-                VerbRow(verbs: verbs) { run($0) }
-                    .transition(.opacity)
-            }
-            HStack(spacing: 8) {
-                ModelMenu()
-                if let badge = contextBadge {
-                    Label(badge.text, systemImage: badge.symbol)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .layoutPriority(-1)
-                }
-                TextField(placeholder, text: $question)
-                    .textFieldStyle(.plain)
-                    .focused($focused)
-                    .onSubmit(submit)
-                if assistant.answer?.isRunning == true {
-                    Button { assistant.cancel() } label: { Image(systemName: "stop.circle.fill") }
-                        .buttonStyle(.plain)
-                } else if !question.isEmpty {
-                    Button(action: submit) { Image(systemName: "arrow.up.circle.fill") }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(browser.selectedProfile.color)
-                }
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(.regularMaterial, in: Capsule())
-            .overlay(Capsule().strokeBorder(.separator))
         }
-        .padding(.horizontal, 16)
-        .padding(.bottom, 12)
-        .frame(maxWidth: 720)
-        .opacity(isTuckedAway ? 0 : 1)
-        .allowsHitTesting(!isTuckedAway)
+        .opacity(isShown ? 1 : 0)
+        .allowsHitTesting(isShown)
         .animation(.snappy, value: assistant.answer)
         .animation(.easeOut(duration: 0.16), value: focused)
-        .animation(.easeOut(duration: 0.16), value: isTuckedAway)
-        .onExitCommand { assistant.dismiss(); focused = false }
-        // The bar at a selection and the ⌘K line are one thing with two ends: "Ask…" over the page
-        // puts the caret down here, with the selection already the subject.
-        .onChange(of: assistant.focusRequests) { focused = true }
-        .focusedSceneValue(\.focusAssistant, FocusAddressBarAction { focused = true })
+        .animation(.easeOut(duration: 0.16), value: isShown)
+        .onExitCommand { assistant.closeLine() }
+        .onAppear { if assistant.line == place { takeCaret() } }
+        .onChange(of: assistant.summons) { if assistant.line == place { takeCaret() } }
+        .onChange(of: focused) { if !focused { assistant.lineLostFocus(at: place) } }
+        .onChange(of: assistant.answer == nil) {
+            if assistant.answer == nil, !focused { assistant.lineLostFocus(at: place) }
+        }
     }
 
+    @ViewBuilder private var answerStrip: some View {
+        if isShown, let answer = assistant.answer {
+            AnswerStrip(answer: answer, tab: subject)
+                .transition(.move(edge: growsDown ? .top : .bottom).combined(with: .opacity))
+        }
+    }
+
+    @ViewBuilder private var verbRow: some View {
+        if focused, isCommand, !verbs.isEmpty {
+            VerbRow(verbs: verbs) { run($0) }
+                .transition(.opacity)
+        }
+    }
+
+    private var field: some View {
+        HStack(spacing: 8) {
+            ModelMenu()
+            if let badge = contextBadge {
+                Label(badge.text, systemImage: badge.symbol)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .layoutPriority(-1)
+            }
+            TextField(placeholder, text: $question)
+                .textFieldStyle(.plain)
+                .focused($focused)
+                .onSubmit(submit)
+            if assistant.answer?.isRunning == true {
+                Button { assistant.cancel() } label: { Image(systemName: "stop.circle.fill") }
+                    .buttonStyle(.plain)
+            } else if !question.isEmpty {
+                Button(action: submit) { Image(systemName: "arrow.up.circle.fill") }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(browser.selectedProfile.color)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(.regularMaterial, in: Capsule())
+        .overlay(Capsule().strokeBorder(.separator))
+        // Invisible is not enough for a line that is away: its field is still in the window's
+        // key-view loop, so Tab on a start page put the caret into a line nobody could see — and a
+        // focused line is a shown one.
+        .disabled(!isShown)
+    }
+
+    /// On the next pass, not now: the line has only just been enabled (or built), and a focus set in
+    /// the same update lands on a field that cannot take it yet.
+    private func takeCaret() {
+        DispatchQueue.main.async { focused = true }
+    }
+
+    /// The verbs wait for a `/`. Offered on every ⌘E they stood over the line whatever it was
+    /// opened for, and a row of buttons nobody asked for is the page's space taken twice. What
+    /// follows the slash narrows the row by title (or by the English id, which a Latin layout can
+    /// always type), and Return runs the first one left.
+    private var isCommand: Bool { question.hasPrefix("/") }
+
     private var verbs: [AssistantAction] {
-        AssistantAction.offered(for: focus)
+        let offered = AssistantAction.offered(for: focus)
+        let typed = question.dropFirst().trimmingCharacters(in: .whitespaces)
+        guard !typed.isEmpty else { return offered }
+        return offered.filter {
+            String(localized: $0.title).localizedStandardContains(typed) || $0.id.localizedStandardContains(typed)
+        }
     }
 
     private var contextBadge: (text: LocalizedStringResource, symbol: String)? {
@@ -107,21 +161,87 @@ struct AssistantBar: View {
         }
     }
 
-    private var isTuckedAway: Bool { isHidden && !focused && assistant.answer == nil }
-
     private func run(_ action: AssistantAction) {
-        assistant.run(action, focus: focus, about: browser.selectedTab)
+        assistant.run(action, focus: focus, about: subject)
+        if isCommand { question = "" }
     }
 
     /// Return sends the question. With nothing typed it takes the answer that is already there and
     /// puts it in the page — the one gesture that finishes a rewrite without reaching for the mouse.
     private func submit() {
-        if question.trimmingCharacters(in: .whitespaces).isEmpty {
-            if assistant.answer?.isApplicable == true { assistant.apply(in: browser.selectedTab) }
+        if isCommand {
+            if let first = verbs.first { run(first) }
             return
         }
-        assistant.ask(question, about: browser.selectedTab)
+        if question.trimmingCharacters(in: .whitespaces).isEmpty {
+            if assistant.answer?.isApplicable == true { assistant.apply(in: subject) }
+            return
+        }
+        assistant.ask(question, about: subject)
         question = ""
+    }
+}
+
+/// The line hung on a field or a selection, inside the column and over its page.
+///
+/// A `HostedOverlay` for the reason `ColumnView`'s close badge is one: SwiftUI drawn over a
+/// `WKWebView` never sees the mouse, and this has buttons — the answer's Insert and Copy. The frame
+/// is explicit (a hosting view that sizes itself feeds constraints back into the window), so the
+/// content reports its own height and the frame follows it: a fixed tall frame would leave a clear
+/// box over the page that swallows clicks.
+struct AnchoredAssistantLine: View {
+    let tab: BrowserTab
+
+    @Environment(BrowserState.self) private var browser
+    @Environment(AssistantStore.self) private var assistant
+    @Environment(AgentSessionStore.self) private var agentSession
+    @Environment(ConfigurationStore.self) private var configuration
+    @State private var height: CGFloat = 44
+
+    private static let gap: CGFloat = 8
+    /// How much room below the field the line wants before it decides to open upwards: the line and
+    /// an answer at its tallest. Decided on the reach, not the current height, so the line does not
+    /// jump to the other side the moment an answer arrives.
+    private static let reach: CGFloat = 340
+    /// Control metrics: a line is as wide as a line needs to be, on any display.
+    private static let minWidth: CGFloat = 420
+    private static let maxWidth: CGFloat = 640
+
+    var body: some View {
+        GeometryReader { proxy in
+            let rect = assistant.subject(in: tab.id).rect
+            let size = proxy.size
+            let width = max(0, min(max(rect.width, Self.minWidth), Self.maxWidth, size.width - Self.gap * 2))
+            let below = rect.maxY + Self.gap + Self.reach <= size.height || rect.minY - Self.gap - Self.reach < 0
+            let x = min(max(rect.minX, Self.gap), max(Self.gap, size.width - width - Self.gap))
+            let y = below ? rect.maxY + Self.gap : rect.minY - Self.gap - height
+            HostedOverlay {
+                line(growsDown: below, width: width)
+            }
+            .frame(width: width, height: height)
+            .offset(x: x, y: min(max(0, y), max(0, size.height - height)))
+        }
+        // The caret goes back to the page when the line is put away with nothing else taking it —
+        // Esc or ⌘E over a comment box means "back to writing", not "nowhere".
+        .onDisappear {
+            guard assistant.line == nil, assistant.closedByKey,
+                  let web = WebViewResponder.shared.webView(for: tab.id) else { return }
+            web.window?.makeFirstResponder(web)
+        }
+    }
+
+    private func line(growsDown: Bool, width: CGFloat) -> some View {
+        AssistantBar(place: .page(tab.id), tab: tab, growsDown: growsDown)
+            .frame(width: width)
+            .fixedSize(horizontal: false, vertical: true)
+            .shadow(color: .black.opacity(0.18), radius: 8, y: 2)
+            .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { height = ceil($0) }
+            .frame(maxHeight: .infinity, alignment: growsDown ? .top : .bottom)
+            .environment(browser)
+            .environment(assistant)
+            .environment(agentSession)
+            .environment(configuration)
+            .tint(browser.selectedProfile.color)
     }
 }
 
@@ -155,6 +275,7 @@ private struct VerbRow: View {
 /// One answer: what was asked, what came back, and the two things that can be done with it.
 private struct AnswerStrip: View {
     let answer: AssistantStore.Answer
+    let tab: BrowserTab?
 
     @Environment(AssistantStore.self) private var assistant
     @Environment(AgentSessionStore.self) private var agentSession
@@ -199,7 +320,7 @@ private struct AnswerStrip: View {
             } else if !answer.text.isEmpty, !answer.isRunning {
                 HStack(spacing: 8) {
                     if answer.isApplicable {
-                        Button { assistant.apply(in: browser.selectedTab) } label: {
+                        Button { assistant.apply(in: tab) } label: {
                             Label(applyTitle, systemImage: "arrow.down.doc")
                         }
                         .keyboardShortcut(.defaultAction)
@@ -276,10 +397,10 @@ private struct ModelMenu: View {
 }
 
 /// Where the remote provider behind the current choice is told who to call and as whom — `Section`s,
-/// so whatever `Form` they land in styles them. Only the one the ⌘K line would actually use is
+/// so whatever `Form` they land in styles them. Only the one the ⌘E line would actually use is
 /// shown: a key field for a provider nobody is talking to is a question about a thing that isn't
 /// happening, and an on-device model has neither. Both are development-shaped: the keys sit in
-/// `UserDefaults`, not the Keychain. One home only, `six://settings` ▸ Assistant; the ⌘K line's own
+/// `UserDefaults`, not the Keychain. One home only, `six://settings` ▸ Assistant; the ⌘E line's own
 /// menu links to it.
 struct AssistantProviderConfiguration: View {
     @Environment(AssistantStore.self) private var assistant
@@ -302,9 +423,5 @@ struct AssistantProviderConfiguration: View {
             EmptyView()
         }
     }
-}
-
-extension FocusedValues {
-    @Entry var focusAssistant: FocusAddressBarAction?
 }
 #endif

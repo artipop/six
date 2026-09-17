@@ -34,7 +34,7 @@ struct WelcomePage: View {
 
                 Text("Should six use language models?")
                     .font(.title2.weight(.semibold))
-                Text("The ⌘K line, actions over selected text, the agent panel, deep research and the MCP server.")
+                Text("The ⌘E line, actions over selected text, the agent panel, deep research and the MCP server.")
                     .foregroundStyle(.secondary)
                     .padding(.top, 6)
                     .fixedSize(horizontal: false, vertical: true)

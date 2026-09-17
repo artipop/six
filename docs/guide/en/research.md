@@ -22,7 +22,7 @@ started it knows which.
 
 - **Research…** in the agent panel (`⌘⇧A`): the question, how many sources to
   open, and the preset itself — visible and editable, with a **Reset**;
-- `research: …` or `/research …` on the `⌘K` line.
+- `research: …` or `/research …` on the `⌘E` line.
 
 A workspace named after the question is created, with a document in it carrying
 the question as its heading, and the agent is sent the task.

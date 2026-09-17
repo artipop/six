@@ -10,7 +10,7 @@ It is a playground for three things:
 1. **SwiftUI + WebKit on the macOS 26+ APIs** — `WebView` / `WebPage` (no `NSViewRepresentable`), with several profiles
    in one window. Each profile is an isolated `WKWebsiteDataStore(forIdentifier:)` and has its own rail of workspaces.
    ⌘T / ⌘W / ⌘L.
-2. **Foundation Models (macOS 27) as the single LLM API** — a Dia-style one-line assistant (⌘K) driven by
+2. **Foundation Models (macOS 27) as the single LLM API** — a Dia-style one-line assistant (⌘E) driven by
    `LanguageModelSession`, switchable between the on-device `SystemLanguageModel`, `PrivateCloudComputeLanguageModel`
    and Claude (`ClaudeLanguageModel` from [anthropics/ClaudeForFoundationModels](https://github.com/anthropics/ClaudeForFoundationModels),
    which conforms to the new `LanguageModel` protocol). Page text is sent as context. There is no official OpenAI

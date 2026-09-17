@@ -73,9 +73,9 @@ of a **profile**. Everything defaults to what is on screen.
 The agent sees the console and the network only while **Configuration ▸ Assistant ▸ Let Agents Read Page
 Console and Network** is on — see [developer tools](/en/devtools).
 
-## The same agent on the ⌘K line
+## The same agent on the ⌘E line
 
-The `⌘K` model menu has **Claude Code (ACP)** and **Codex (ACP)**. That is the
+The `⌘E` model menu has **Claude Code (ACP)** and **Codex (ACP)**. That is the
 same session and the same transcript as the panel: permission requests appear
 inside the answer card, and the tool the agent is using is named next to the
 model.

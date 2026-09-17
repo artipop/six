@@ -137,7 +137,7 @@ same capability from the other end.
 
 ## The assistant: what the three surfaces still owe
 
-Built: the catalog of verbs, the bar at a selection, the caret in a field, and the one-answer ⌘K
+Built: the catalog of verbs, the bar at a selection, the caret in a field, and the one-answer ⌘E
 line ([assistant.md](assistant.md)). What was deliberately left for later, in the order it is
 missed:
 
@@ -489,7 +489,7 @@ this is a target, an entitlement and a queue.
   (`rememberViewState`), so a window that stayed put all session would come back at the top anyway; doing it properly
   means reading `window.scrollY` for the visible windows as the snapshot is taken, which is a JavaScript call on the
   autosave path.
-- Deep research without an agent: a native loop over the ⌘K model for machines with no Claude Code / Codex, and
+- Deep research without an agent: a native loop over the ⌘E model for machines with no Claude Code / Codex, and
   exporting a run as one HTML file with its sources inlined ([deep-research.md](deep-research.md)).
 - A way back to the start page after navigating (a "home" affordance, or `⌘⇧H`).
 - **The rail that moves up, shown moving up — in the overview.** Taking the last window off a rail (⌥⇧↓, or a drag
