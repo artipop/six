@@ -20,7 +20,7 @@ A native loop over the ⌘E model for machines without an agent is in [todo.md](
 
 ## Starting a run
 
-- **Research…** in the agent panel (`⌘⇧A`): the question, how many sources to open, and the preset itself — editable,
+- **Research…** in the agent panel: the question, how many sources to open, and the preset itself — editable,
   with a reset; both live in settings.
 - `research: …` or `/research …` on the `⌘E` line.
 

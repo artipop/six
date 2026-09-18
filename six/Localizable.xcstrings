@@ -1085,12 +1085,12 @@
         }
       }
     },
-    "Agent panel (⌘⇧A)" : {
+    "Agent panel" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Панель агента (⌘⇧A)"
+            "value" : "Панель агента"
           }
         }
       }

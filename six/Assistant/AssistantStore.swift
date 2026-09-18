@@ -13,7 +13,7 @@ import WebKit
 /// transcript of six earlier questions about six other pages is not what makes the seventh answer
 /// good, it is what makes the interface a chat. So: one `Answer`, replaced by the next one, gone on
 /// Escape. The place that genuinely needs a transcript — an ACP agent working through a task — has
-/// one, in the panel behind ⌘⇧A, and that is the only chat in six.
+/// one, in the agent panel (currently hidden from the UI), and that is the only chat in six.
 ///
 /// What replaces the conversation is the focus (`PageFocus`): the assistant knows what is selected
 /// and where the caret is, so a follow-up is usually a different verb on the same text rather than a

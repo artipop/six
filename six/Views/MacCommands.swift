@@ -10,9 +10,7 @@ import WebKit
 /// hunting for one has no way to guess which of five menus it filed itself under. Those went to
 /// `six://settings` (⌘,).
 ///
-/// What is left is the shape every browser has — File, Edit, View, History, Bookmarks — plus Apps,
-/// which is six's own and is a list of things to *open*. The rule for anything new: a menu item is
-/// a verb with a key beside it; everything else is a setting.
+/// Browser commands extend the standard menus. Agent and MCP configuration lives in settings.
 
 /// The window in front, and how the rail is showing it.
 ///
@@ -30,7 +28,7 @@ struct ViewCommands: Commands {
     @FocusedValue(\.showFindBar) private var showFindBar
 
     var body: some Commands {
-        CommandMenu("View") {
+        CommandGroup(before: .toolbar) {
             // The verbs the deleted Navigate menu took with it. Reload is the key a browser is
             // pressed most often by, and six had none — the button in the address bar was the whole
             // of it. They are `⌘`, so they are menu items and not `KeyBindings` rows, and measuring
@@ -120,9 +118,9 @@ struct ViewCommands: Commands {
             // then, so nothing is listening (`ContentView`). A `.disabled` here would be decided once.
             Button("Ask Assistant…") { assistant.toggleLine(in: browser.selectedTab) }
                 .keyboardShortcut("e")
-            Button("Agent Panel") { toggleAgentPanel?.perform() }
-                .keyboardShortcut("a", modifiers: [.command, .shift])
-                .disabled(toggleAgentPanel == nil)
+            // Button("Agent Panel") { toggleAgentPanel?.perform() }
+            //     .keyboardShortcut("a", modifiers: [.command, .shift])
+            //     .disabled(toggleAgentPanel == nil)
         }
     }
 }
@@ -213,41 +211,4 @@ struct BookmarkCommands: Commands {
     }
 }
 
-/// The MCP apps six can open — a server, a tool of it that carries an interface, a window.
-///
-/// The list is the servers on `six://apps`, which is also where they are added; picking one here
-/// runs its first app tool. See [mcp-apps.md](../../docs/mcp-apps.md).
-struct AppCommands: Commands {
-    let browser: BrowserState
-    let apps: MCPAppStore
-
-    var body: some Commands {
-        CommandMenu("Apps") {
-            Button("Manage Servers…") { browser.openBuiltIn(.apps) }
-            Divider()
-            if apps.servers.isEmpty {
-                Text("No servers yet")
-            }
-            ForEach(apps.servers) { server in
-                Button(server.name) {
-                    Task { try? await apps.open(server) }
-                }
-            }
-            Divider()
-            // The second half of the menu is not about opening a window: it is about whether the
-            // agent is handed this server's tools at all, and so whether it can open one itself.
-            Menu("Give to the Agent") {
-                ForEach(apps.servers) { server in
-                    Toggle(server.name, isOn: Binding(
-                        get: { apps.isShared(server) },
-                        set: { apps.setShared(server, $0) }))
-                }
-            }
-            if let error = apps.lastError {
-                Divider()
-                Text(error)
-            }
-        }
-    }
-}
 #endif

@@ -55,7 +55,7 @@ struct ContentView: View {
         // nothing: it only carries the `.translationTask` that can ask for a language download.
         .translationHost(browser.appleTranslator)
         // Not merely hidden: with the assistant switched off there is no panel to present, so the
-        // ACP process is never spawned and ⌘⇧A has nothing to toggle (`ConfigurationStore.isAIEnabled`).
+        // ACP process is never spawned and Agent Panel has nothing to toggle (`ConfigurationStore.isAIEnabled`).
         .inspector(isPresented: Binding(get: { showAgentPanel && settings.isAIEnabled },
                                         set: { showAgentPanel = $0 })) {
             AgentPanel()
@@ -624,11 +624,11 @@ private struct TopBar: View {
             }
             .buttonStyle(.borderless)
             .help("Overview (⌥O)")
-            Button { showAgentPanel.toggle() } label: {
-                Image(systemName: "sparkles")
-            }
-            .buttonStyle(.borderless)
-            .help("Agent panel (⌘⇧A)")
+            // Button { showAgentPanel.toggle() } label: {
+            //     Image(systemName: "sparkles")
+            // }
+            // .buttonStyle(.borderless)
+            // .help("Agent panel")
         }
         .padding(.horizontal, 10)
         .frame(height: 40)

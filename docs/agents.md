@@ -1,4 +1,4 @@
-# Agents (⌘⇧A)
+# Agents
 
 `six/ACP/` is a self-contained Swift client for the [Agent Client Protocol](https://agentclientprotocol.com): JSON-RPC
 over stdio to an adapter process.

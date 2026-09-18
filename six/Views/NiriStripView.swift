@@ -778,7 +778,7 @@ private struct ColumnPlaceholder: View {
 
     private var card: some View {
         VStack(spacing: 8) {
-            Image(systemName: tab.isDocument ? "doc.text" : tab.builtIn != nil ? "macwindow" : "globe")
+            Image(systemName: tab.isDocument ? "doc.text" : tab.builtIn != nil ? "gearshape" : "globe")
                 .font(.system(size: 30, weight: .light))
                 .foregroundStyle(accent)
             Text(tab.title)

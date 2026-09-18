@@ -1,6 +1,6 @@
-# Agents (⌘⇧A)
+# Agents
 
-`⌘⇧A` opens the agent panel. An agent here is Claude Code or Codex, running on
+The agent panel buttons and shortcut are temporarily disabled. An agent here is Claude Code or Codex, running on
 your machine and able to **drive the browser**: open windows into a named
 workspace, read pages, summarize them, move and close windows.
 

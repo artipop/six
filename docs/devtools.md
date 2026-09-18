@@ -1,7 +1,7 @@
 # Developer tools
 
 Two different things, both off by default: Web Inspector under **Develop**, for a person, and capture under
-**Assistant ▸ Agent Panel**, for agents.
+**Configuration ▸ Assistant**, for agents.
 
 ## Web Inspector
 

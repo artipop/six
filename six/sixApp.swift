@@ -360,7 +360,6 @@ struct sixApp: App {
             ViewCommands(browser: browser, assistant: assistant)
             HistoryCommands(browser: browser)
             BookmarkCommands(browser: browser, bookmarks: bookmarks)
-            AppCommands(browser: browser, apps: mcpApps)
         }
         #elseif os(iOS)
         // A `WindowGroup`, because that is the only scene a phone has; it still comes up as one

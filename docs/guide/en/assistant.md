@@ -6,7 +6,7 @@ and at the bottom of the rail when nothing on the page is pointed at. It never
 comes up by itself.
 
 The only conversation with a history left in six is the [agent](/en/agents) panel
-on `⌘⇧A`, where the transcript is the work.
+(currently hidden from the UI), where the transcript is the work.
 
 ## The ⌘E line
 
@@ -80,7 +80,7 @@ if it had been typed, so `⌘Z` takes it back.
 everything: the `⌘E` line, the agent panel, deep
 research, and six's MCP server.
 
-Off is not a greyed-out button. The line is not there at all, `⌘E` and `⌘⇧A` are
+Off is not a greyed-out button. The line is not there at all, `⌘E` is
 disabled in the menu, the watcher that follows the selection is **removed from
 the pages** (a page opened after that gets nothing of six's in it), and the
 socket external agents drive the browser through is closed.
@@ -104,7 +104,7 @@ is always there.
 | **Private Cloud Compute** | Apple's cloud, with its guarantees |
 | **Claude Sonnet 5 / Opus 5** | with an Anthropic API key |
 | **OpenAI-compatible** | anything speaking the `/chat/completions` format: OpenAI, a gateway, or llama.cpp and Ollama on this very machine |
-| **Claude Code (ACP)**, **Codex (ACP)** | the same line answered by an [agent](/en/agents) — the same session and transcript as the `⌘⇧A` panel |
+| **Claude Code (ACP)**, **Codex (ACP)** | the same line answered by an [agent](/en/agents) — the same session and transcript as the agent panel |
 
 **OpenAI-compatible** is one menu entry rather than a list of models because what
 it points at is a setting: `six://configuration` ▸ **Assistant** holds an endpoint, a

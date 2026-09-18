@@ -6,7 +6,7 @@ Six's assistant is not a chat. It is a **catalog of verbs** (`AssistantAction`) 
 case is a row in that catalog — a title, what it says to the model, and where the answer lands — so
 adding one adds no interface at all.
 
-The one chat left in six is the ACP agent panel behind ⌘⇧A ([agents.md](agents.md)), where a
+The one chat left in six is the ACP agent panel (currently hidden from the UI) ([agents.md](agents.md)), where a
 transcript is the work being done rather than a way to ask a question.
 
 ## Why not a chat
@@ -157,7 +157,7 @@ over everything in this document, and over the agent panel, deep research and si
 Off is not a greyed-out button:
 
 - `AssistantBar` is not in the view hierarchy, so `focusAssistant` is nil and ⌘E's menu item is
-  disabled with it — the same for ⌘⇧A and the inspector behind it;
+  disabled with it; the agent inspector is not presented either;
 - `PageFocusStore.isEnabled` goes false, which pulls the watcher **out of the pages**: the message
   handler is removed at once and the user script is dropped from every window's controller, so a
   page loaded after that has nothing of six's watching what is selected in it;

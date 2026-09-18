@@ -80,7 +80,6 @@ workspaces, not other profiles — and this run only.
 | `⌘F` | find on the page; `↩` / `⇧↩` for the next / previous match, `Esc` to close |
 | `⌘L` | focus the address field |
 | `⌘E` | the assistant line: bring it up, or put it away |
-| `⌘⇧A` | the agent panel |
 | `⌘Y` | the profile's history |
 | `⌘D` | bookmark the focused page (again: remove it) |
 | `⌘⌥B` | bookmarks and the search across them |
@@ -120,7 +119,7 @@ workspaces, not other profiles — and this run only.
 | `⌘⌫` | forget the visit |
 | `Esc` | close |
 
-## The agent panel (`⌘⇧A`)
+## The agent panel
 
 | | |
 |---|---|

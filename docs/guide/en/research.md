@@ -20,7 +20,7 @@ started it knows which.
 
 ## Starting a run
 
-- **Research…** in the agent panel (`⌘⇧A`): the question, how many sources to
+- **Research…** in the agent panel: the question, how many sources to
   open, and the preset itself — visible and editable, with a **Reset**;
 - `research: …` or `/research …` on the `⌘E` line.
 
