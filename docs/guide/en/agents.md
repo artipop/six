@@ -10,8 +10,10 @@ browser's tools appear in the agent's hands on their own.
 
 ## What has to be installed
 
-The adapters live in **Configuration ▸ Assistant ▸ Agents**, which shows each
-one's version and carries the **Install** and **Update** buttons. The panel says
+The adapters live in **Configuration ▸ Assistant ▸ Agents**, which shows the
+**adapter's** version and, under it, the version of `claude` or `codex` itself —
+two different numbers, since an adapter carries its own copy of the CLI — and
+carries the **Install** and **Update** buttons. The panel says
 nothing while all is well, and one line with a **Set Up…** button when it is
 not.
 

@@ -113,7 +113,8 @@ extension KeySelfTest {
             await agents.toolchain.refresh(agent)
             let report = agents.toolchain.report(for: agent)
             let update = report.update.map { " — \($0.to) is out" } ?? ""
-            note("assistant: \(agent.binaryName) \(report.installedVersion ?? "not installed")\(update)")
+            note("assistant: \(agent.binaryName) \(report.installedVersion ?? "not installed")\(update)"
+                + ", \(agent.underlyingCLI) \(report.underlyingCLIVersion ?? "not found")")
         }
         note("assistant: done")
     }

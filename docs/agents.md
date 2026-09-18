@@ -63,7 +63,12 @@ found — with **Set Up…** to that page, and says nothing at all when everythi
 
 - adapter on `PATH` (`claude-agent-acp` / `codex-acp`) → used directly, with its version read from
   `<adapter> --version` and compared against `npm view <package> version`; when it is behind, the row
-  says so and **Update** runs the install again;
+  says so and **Update** runs the install again. Both numbers are named and shown — **Adapter 1.12.0**
+  over **codex 0.154.0** — because they are different numbers and reading one as the other is the
+  whole of the fault below. (Each CLI answers `--version` its own way: `2.1.276 (Claude Code)`, or the
+  package name and then the number, so the version is the first `1.2.3`-shaped word in the line.) A
+  successful install clears its log — npm's lines about funding are not a report, and the version
+  beside the name is;
 - only `npm` → **Install** runs `npm install -g <adapter>@latest`; until then the agent starts via
   `npx -y <adapter>@latest`;
 - no Node.js → the panel links to the download page;

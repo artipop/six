@@ -29,6 +29,9 @@ final class AgentToolchain {
         /// updated on the machine and nothing on screen to say which of the two was old.
         var installedVersion: String?
         var latestVersion: String?
+        /// The version of the CLI the adapter is named after — `codex`, `claude` — which is a
+        /// different number from the adapter's and the one a person has just updated by hand.
+        var underlyingCLIVersion: String?
 
         var update: (from: String, to: String)? {
             guard let installedVersion, let latestVersion,
@@ -77,6 +80,7 @@ final class AgentToolchain {
         var script = names.map { "command -v \($0) || echo ''" }.joined(separator: "; ")
         script += "; (\(agent.binaryName) --version 2>/dev/null | tail -1) || echo ''"
         script += "; (npm view \(agent.npmPackage) version 2>/dev/null) || echo ''"
+        script += "; (\(agent.underlyingCLI) --version 2>/dev/null | tail -1) || echo ''"
         let output = (try? await Self.runLoginShell(script))?.output ?? ""
         let lines = output.components(separatedBy: "\n")
         func path(_ index: Int) -> String? {
@@ -93,11 +97,24 @@ final class AgentToolchain {
             report.adapter = .nodeMissing
         }
         report.underlyingCLIPath = path(2)
-        // `codex-acp --version` answers "@agentclientprotocol/codex-acp 1.12.0"; the number is the
-        // last word of whichever line it chose to print.
-        report.installedVersion = path(3)?.split(separator: " ").last.map(String.init)
+        // Each of them answers `--version` its own way: "@agentclientprotocol/codex-acp 1.12.0",
+        // "2.0.71 (Claude Code)", a bare number. The version is the first thing in the line that
+        // looks like one — the last word gave "Code)" for Claude.
+        report.installedVersion = Self.version(in: path(3))
         report.latestVersion = path(4)
+        report.underlyingCLIVersion = Self.version(in: path(5))
         reports[agent.id] = report
+    }
+
+    /// The first `1.2.3`-shaped word in a line, if there is one.
+    private static func version(in line: String?) -> String? {
+        guard let line else { return nil }
+        return line.split(whereSeparator: { $0 == " " || $0 == "\t" })
+            .map { $0.trimmingCharacters(in: CharacterSet(charactersIn: "()[]v")) }
+            .first { word in
+                let parts = word.split(separator: ".")
+                return parts.count >= 2 && parts.allSatisfy { $0.first?.isNumber == true }
+            }
     }
 
     func install(_ agent: ACPAgentDefinition) async {
@@ -108,7 +125,14 @@ final class AgentToolchain {
         report.installLog = "$ npm install -g \(agent.npmPackage)@latest\n"
         reports[agent.id] = report
         let result = try? await Self.runLoginShell("npm install -g \(agent.npmPackage)@latest 2>&1")
-        reports[agent.id]?.installLog += result?.output ?? "npm failed to start"
+        // An install that worked has nothing to say: the version beside the adapter's name is the
+        // whole report, and npm's twelve lines about funding are not. The log is kept for the other
+        // case, where it is the only thing that says what went wrong.
+        if result?.status == 0 {
+            reports[agent.id]?.installLog = ""
+        } else {
+            reports[agent.id]?.installLog += result?.output ?? "npm failed to start"
+        }
         reports[agent.id]?.isInstalling = false
         await refresh(agent)
     }

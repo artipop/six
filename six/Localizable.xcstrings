@@ -101,6 +101,26 @@
         }
       }
     },
+    "Adapter %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Адаптер %@"
+          }
+        }
+      }
+    },
+    "Adapter %@ — %@ is out" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Адаптер %1$@ — вышла %2$@"
+          }
+        }
+      }
+    },
     "Agents" : {
       "localizations" : {
         "ru" : {

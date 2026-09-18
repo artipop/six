@@ -36,6 +36,14 @@ struct AgentToolchainRow: View {
                 Spacer()
                 status
             }
+            // The two versions are not one version, and reading the adapter's as the CLI's cost a
+            // session: Codex updated to 0.154 on the machine while the adapter beside it carried
+            // 0.147 of its own and refused today's model. Both numbers, both named.
+            if let version = report.underlyingCLIVersion {
+                Text(verbatim: "\(agent.underlyingCLI) \(version)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             if report.underlyingCLIPath == nil, report.adapter != .unknown, report.adapter != .checking {
                 Label {
                     Text("\(agent.underlyingCLI) CLI not found. \(agent.loginHint)")
@@ -66,13 +74,13 @@ struct AgentToolchainRow: View {
             ProgressView().controlSize(.mini)
         case .installed(let path):
             if let update = report.update {
-                Text("\(update.from) — \(update.to) is out")
+                Text("Adapter \(update.from) — \(update.to) is out")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .help(path)
                 button("Update")
             } else {
-                Text(report.installedVersion ?? "")
+                Text("Adapter \(report.installedVersion ?? "")")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .help(path)
