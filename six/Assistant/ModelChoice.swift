@@ -220,11 +220,15 @@ final class AssistantSettings {
             case .appleIntelligenceNotEnabled:
                 return .unavailable("Apple Intelligence is switched off in System Settings")
             case .modelNotReady:
-                return .unavailable("\(name) is still downloading — it answers when it is here")
+                // Not "downloading": the framework says `modelNotReady` for a download, for the
+                // system still preparing the model, and for an Apple Intelligence enrollment that has
+                // not come through — measured on a Mac where nothing was in flight at all. Six cannot
+                // tell those apart, so it names the one place that can.
+                return .unavailable("The \(name) model is not ready yet — see System Settings ▸ Apple Intelligence & Siri")
             case .deviceNotEligible:
-                return .unavailable("This Mac cannot run \(name)")
+                return .unavailable("This Mac cannot run the \(name) model")
             @unknown default:
-                return .unavailable("\(name) is unavailable")
+                return .unavailable("The \(name) model is unavailable")
             }
         @unknown default:
             return nil

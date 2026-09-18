@@ -71,26 +71,6 @@
         }
       }
     },
-    "%@ is still downloading — it answers when it is here" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ ещё скачивается — ответит, когда будет здесь"
-          }
-        }
-      }
-    },
-    "%@ is unavailable" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ недоступна"
-          }
-        }
-      }
-    },
     "%@ — %@ is out" : {
       "localizations" : {
         "ru" : {
@@ -207,16 +187,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "По этому адресу six обратиться не может"
-          }
-        }
-      }
-    },
-    "This Mac cannot run %@" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Этот Mac не может запустить %@"
           }
         }
       }
@@ -5896,6 +5866,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Anthropic или любой OpenAI-совместимый сервер."
+          }
+        }
+      }
+    },
+    "The %@ model is not ready yet — see System Settings ▸ Apple Intelligence & Siri" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Модель «%@» пока не готова — см. Системные настройки ▸ Apple Intelligence и Siri"
+          }
+        }
+      }
+    },
+    "This Mac cannot run the %@ model" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Этот Mac не может запустить модель «%@»"
+          }
+        }
+      }
+    },
+    "The %@ model is unavailable" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Модель «%@» недоступна"
           }
         }
       }

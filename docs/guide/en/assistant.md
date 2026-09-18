@@ -29,8 +29,8 @@ are behind `/` there: type `/`, keep typing to narrow the list (`/sum` leaves
 
 If the chosen model cannot answer, the line says so in place of the actions: a
 missing key comes with a **Set Up…** button that opens the settings, and `⏎`
-does the same. When it is not a matter of settings — the model is still
-downloading, Apple Intelligence is off, this Mac cannot run it — there is only
+does the same. When it is not a matter of settings — the model is not
+ready yet, Apple Intelligence is off, this Mac cannot run it — there is only
 the sentence.
 
 ## When you select text
