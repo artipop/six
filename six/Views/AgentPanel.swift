@@ -33,7 +33,7 @@ struct AgentPanel: View {
         return VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Picker("Agent", selection: $store.agent) {
-                    ForEach(ACPAgentDefinition.builtIn) { Text($0.name).tag($0) }
+                    ForEach(ACPAgentDefinition.builtIn + settings.customAgents) { Text($0.name).tag($0) }
                 }
                 .labelsHidden()
                 Spacer()
@@ -86,11 +86,7 @@ struct AgentPanel: View {
                 Text("bookmarks").font(.caption).foregroundStyle(.secondary)
                 Spacer()
             }
-            if store.agent.id == ACPAgentDefinition.claudeCode.id {
-                TextField("Model override (ANTHROPIC_MODEL, optional)", text: $store.modelOverride)
-                    .textFieldStyle(.roundedBorder)
-                    .controlSize(.small)
-            }
+            AgentModelPicker(agent: store.agent)
             if let modes = store.modes, !modes.availableModes.isEmpty {
                 Picker("Mode", selection: Binding(get: { modes.currentModeId }, set: { store.setMode($0) })) {
                     ForEach(modes.availableModes) { Text($0.name).tag($0.id) }

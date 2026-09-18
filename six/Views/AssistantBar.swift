@@ -545,7 +545,7 @@ private struct ModelMenu: View {
         Menu {
             Picker("Model", selection: $settings.model) {
                 ForEach(ModelChoice.languageModels) { choice in
-                    Label(choice.title, systemImage: choice.symbol)
+                    Label { Text(choice.title) } icon: { AssistantSymbol(systemImage: choice.symbol) }
                         .tag(choice)
                         .disabled(choice.isThirdParty && !FoundationModelsCompatibility.supportsThirdPartyModels)
                 }
@@ -553,7 +553,8 @@ private struct ModelMenu: View {
             .pickerStyle(.inline)
             Picker("Agent", selection: $settings.model) {
                 ForEach(ModelChoice.agents) { choice in
-                    Label(choice.title, systemImage: choice.symbol).tag(choice)
+                    Label { Text(choice.title) } icon: { AssistantSymbol(systemImage: choice.symbol) }
+                        .tag(choice)
                 }
             }
             .pickerStyle(.inline)
@@ -570,7 +571,7 @@ private struct ModelMenu: View {
             Button("Configuration…") { browser.openBuiltIn(.configuration, section: "assistant") }
             Button("New Conversation") { assistant.resetConversation() }
         } label: {
-            Image(systemName: settings.model.symbol)
+            AssistantSymbol(systemImage: settings.model.symbol)
                 .foregroundStyle(.secondary)
         }
         .menuStyle(.borderlessButton)

@@ -1,6 +1,406 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Terminal could not be found." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось найти Терминал."
+          }
+        }
+      }
+    },
+    "Open Terminal" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть терминал"
+          }
+        }
+      }
+    },
+    "Copy Command" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скопировать команду"
+          }
+        }
+      }
+    },
+    "Open Terminal and run `codex login` to sign in to Codex." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Откройте терминал и выполните `codex login`, чтобы войти в Codex."
+          }
+        }
+      }
+    },
+    "Open Terminal and run `claude` to sign in to Claude Code." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Откройте терминал и выполните `claude`, чтобы войти в Claude Code."
+          }
+        }
+      }
+    },
+    "Loading Models…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Загрузка моделей…"
+          }
+        }
+      }
+    },
+    "Model List Unavailable" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Список моделей недоступен"
+          }
+        }
+      }
+    },
+    "Select Model" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выберите модель"
+          }
+        }
+      }
+    },
+    "Browse MCP Catalog…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть каталог MCP…"
+          }
+        }
+      }
+    },
+    "MCP Catalog" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Каталог MCP"
+          }
+        }
+      }
+    },
+    "Connected Servers" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Подключённые серверы"
+          }
+        }
+      }
+    },
+    "No Connected Servers" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нет подключённых серверов"
+          }
+        }
+      }
+    },
+    "Registry Results" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Результаты поиска"
+          }
+        }
+      }
+    },
+    "Server Actions" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Действия с сервером"
+          }
+        }
+      }
+    },
+    "Connect tools and apps by command or URL. Turn on Agent Access for the servers your agents should use." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Подключайте инструменты и приложения по команде или URL. Включите «Доступ агентам» для нужных серверов."
+          }
+        }
+      }
+    },
+    "Check Connection" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проверить подключение"
+          }
+        }
+      }
+    },
+    "Responses" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ответы"
+          }
+        }
+      }
+    },
+    "MCP Servers and Apps" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MCP-серверы и приложения"
+          }
+        }
+      }
+    },
+    "Assistant Settings" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Настройки ассистента"
+          }
+        }
+      }
+    },
+    "Answers questions and works with selected text on the page (⌘E)." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отвечает на вопросы и работает с выделенным текстом страницы (⌘E)."
+          }
+        }
+      }
+    },
+    "Access" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступ"
+          }
+        }
+      }
+    },
+    "Access to Page Console and Network" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступ к консоли и сетевым запросам страницы"
+          }
+        }
+      }
+    },
+    "Agents can read console messages and network requests. Changing this setting reloads open pages." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Агенты смогут читать сообщения консоли и сетевые запросы. Изменение настройки перезагружает открытые страницы."
+          }
+        }
+      }
+    },
+    "Refresh Models" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обновить список моделей"
+          }
+        }
+      }
+    },
+    "This agent did not provide a model list. Its default model will be used." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Агент не передал список моделей. Будет использована его модель по умолчанию."
+          }
+        }
+      }
+    },
+    "The selected model is no longer available. Choose another model in Assistant settings." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбранная модель больше недоступна. Выберите другую модель в настройках ассистента."
+          }
+        }
+      }
+    },
+    "This agent does not support model selection. Choose its default model in Assistant settings." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Агент не поддерживает выбор модели. Выберите модель по умолчанию в настройках ассистента."
+          }
+        }
+      }
+    },
+    "Set up Claude Code or Codex, or connect another agent that supports ACP. Choose an agent in Responses to use it with ⌘E." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Настройте Claude Code или Codex либо подключите другого агента с поддержкой ACP. Выберите его во вкладке «Ответы», чтобы использовать через ⌘E."
+          }
+        }
+      }
+    },
+    "Add Agent…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавить агента…"
+          }
+        }
+      }
+    },
+    "Add Agent" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавить агента"
+          }
+        }
+      }
+    },
+    "Edit Agent" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Изменить агента"
+          }
+        }
+      }
+    },
+    "Custom Agent" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Другой агент"
+          }
+        }
+      }
+    },
+    "Connect an ACP agent using its executable and launch arguments. It uses your shell environment and existing sign-in." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Укажите исполняемый файл ACP-агента и аргументы запуска. Он использует окружение вашей оболочки и существующую авторизацию."
+          }
+        }
+      }
+    },
+    "Executable" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Исполняемый файл"
+          }
+        }
+      }
+    },
+    "Arguments" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Аргументы"
+          }
+        }
+      }
+    },
+    "/path/to/agent or npx" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "/путь/к/агенту или npx"
+          }
+        }
+      }
+    },
+    "One argument per line; no shell quotes needed." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Каждый аргумент с новой строки, без кавычек оболочки."
+          }
+        }
+      }
+    },
+    "Servers" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Серверы"
+          }
+        }
+      }
+    },
+    "Agent Access" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступ агентам"
+          }
+        }
+      }
+    },
+    "Open App" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть приложение"
+          }
+        }
+      }
+    },
     "" : {
       "localizations" : {
         "ru" : {

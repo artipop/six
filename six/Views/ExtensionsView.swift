@@ -141,15 +141,14 @@ private struct ExtensionRow: View {
                         Text(record.version).font(.caption).foregroundStyle(.secondary)
                     }
                 }
-                if let verdict {
-                    Label { Text(verdict.summary) } icon: { Image(systemName: verdict.symbol) }
-                        .font(.caption)
-                        .foregroundStyle(verdict.verdict == .full ? AnyShapeStyle(.secondary) : AnyShapeStyle(.orange))
+                if let verdict, !verdict.capabilities.isEmpty {
+                    Text(verbatim: verdict.capabilities.joined(separator: ", "))
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.secondary)
                 }
                 if let error = extensions.errors[record.id] {
                     Text(error).font(.caption2).foregroundStyle(.red)
                 }
-                Text("From \(record.origin)").font(.caption2).foregroundStyle(.tertiary)
             }
             Spacer()
             Menu {
@@ -364,4 +363,3 @@ private struct PopupAnchor: NSViewRepresentable {
     }
 }
 #endif
-

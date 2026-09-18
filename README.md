@@ -182,6 +182,5 @@ requests show up in the transcript; permission buttons answer `session/request_p
   from `six/Vendor/` — SwiftPM targets ignore the project's `SDKROOT` override and would build against Xcode's stale SDK.
 - App Sandbox is off because the ACP layer spawns `npx`/`claude`/`codex` from the user's toolchain.
 - Claude Code refuses to run nested inside another Claude Code session; the ACP layer strips `CLAUDECODE` from the
-  agent environment. If your `claude` default model isn't available through the SDK, set "Model override" in the
-  agent panel (exported as `ANTHROPIC_MODEL`).
+  agent environment. Choose the agent and its model in Configuration → Assistant → Responses; each agent supplies its own model list.
 - The Anthropic API key for the assistant is stored in `UserDefaults` for development only.

@@ -31,7 +31,7 @@ machine can attach to.
 
 ## Capturing the console and the network
 
-**Configuration ▸ Assistant ▸ Let Agents Read Page Console and Network** is not for a
+**Configuration ▸ Assistant ▸ Access to Page Console and Network** is not for a
 person but for an [agent](/en/agents): a person has Safari's inspector for the same
 thing, told more exactly. With it on, the agent gets two more tools and can ask what a page logged and what it
 requested — what Chrome's devtools MCP does, on WebKit.

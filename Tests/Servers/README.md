@@ -17,7 +17,7 @@ python3 Tests/Servers/mcp_apps_server.py --persona basic --http 8931    # Stream
 python3 Tests/Servers/mcp_apps_server.py --persona oauth --http 8931    # он же за OAuth 2.1
 ```
 
-Дальше либо `six://apps` → **Add a server**, либо из терминала (см. [docs/mcp-apps.md](../../docs/mcp-apps.md)):
+Дальше либо **Конфигурация → Ассистент → MCP → Добавить сервер…**, либо из терминала (см. [docs/mcp-apps.md](../../docs/mcp-apps.md)):
 
 ```sh
 six=/path/to/six.app/Contents/MacOS/six

@@ -67,11 +67,13 @@ final class AgentToolchain {
 
     /// Launch definition for this agent: installed binary if present, otherwise `npx`.
     func launchDefinition(for agent: ACPAgentDefinition) -> ACPAgentDefinition {
+        guard agent.isBuiltIn else { return agent }
         if case .installed = report(for: agent).adapter { return agent.usingInstalledBinary() }
         return agent
     }
 
     func refresh(_ agent: ACPAgentDefinition) async {
+        guard agent.isBuiltIn else { return }
         reports[agent.id, default: Report()].adapter = .checking
         let names = [agent.binaryName, "npm", agent.underlyingCLI]
         // One shell for all of it: three paths, then the adapter's version and the newest published.

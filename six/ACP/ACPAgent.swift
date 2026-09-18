@@ -15,6 +15,7 @@ nonisolated struct ACPAgentDefinition: Identifiable, Hashable, Codable, Sendable
     var underlyingCLI: String
     /// Attributed so the command in it is set in monospace rather than shown between backticks.
     var loginHint: AttributedString
+    var loginCommand: String? = nil
 
     /// Same agent, launched through the globally installed binary instead of `npx`.
     func usingInstalledBinary() -> ACPAgentDefinition {
@@ -25,9 +26,8 @@ nonisolated struct ACPAgentDefinition: Identifiable, Hashable, Codable, Sendable
     }
 
     var shellCommandLine: String {
-        ([command] + arguments).map { arg in
-            arg.rangeOfCharacter(from: .whitespaces) == nil ? arg : "'\(arg.replacingOccurrences(of: "'", with: "'\\''"))'"
-        }.joined(separator: " ")
+        ([command] + arguments).map { "'\($0.replacingOccurrences(of: "'", with: "'\\''"))'" }
+            .joined(separator: " ")
     }
 
     /// Claude Code via the official ACP adapter (uses the local `claude` login).
@@ -42,7 +42,8 @@ nonisolated struct ACPAgentDefinition: Identifiable, Hashable, Codable, Sendable
         npmPackage: "@agentclientprotocol/claude-agent-acp",
         binaryName: "claude-agent-acp",
         underlyingCLI: "claude",
-        loginHint: AttributedString(localized: "Install Claude Code and run `claude` once to log in.")
+        loginHint: AttributedString(localized: "Open Terminal and run `claude` to sign in to Claude Code."),
+        loginCommand: "claude"
     )
 
     /// OpenAI Codex via the official ACP adapter.
@@ -54,10 +55,35 @@ nonisolated struct ACPAgentDefinition: Identifiable, Hashable, Codable, Sendable
         npmPackage: "@agentclientprotocol/codex-acp",
         binaryName: "codex-acp",
         underlyingCLI: "codex",
-        loginHint: AttributedString(localized: "Install Codex CLI and run `codex login`.")
+        loginHint: AttributedString(localized: "Open Terminal and run `codex login` to sign in to Codex."),
+        loginCommand: "codex login"
     )
 
     static let builtIn: [ACPAgentDefinition] = [.claudeCode, .codex]
+
+    var isBuiltIn: Bool { Self.builtIn.contains { $0.id == id } }
+}
+
+extension ConfigurationStore {
+    var customAgents: [ACPAgentDefinition] {
+        get { decode(.customAgents) ?? [] }
+        set { encode(.customAgents, newValue) }
+    }
+
+    var selectedCustomAgent: ACPAgentDefinition? {
+        customAgents.first { $0.id == self[.selectedCustomAgent] } ?? customAgents.first
+    }
+
+    func model(for agent: ACPAgentDefinition) -> String {
+        let models: [String: String] = decode(.agentModels) ?? [:]
+        return models[agent.id] ?? (agent.id == ACPAgentDefinition.claudeCode.id ? agentModel : "")
+    }
+
+    func setModel(_ model: String, for agent: ACPAgentDefinition) {
+        var models: [String: String] = decode(.agentModels) ?? [:]
+        models[agent.id] = model
+        encode(.agentModels, models)
+    }
 }
 
 /// Runs an agent process and exposes its stdio as a JSON-RPC connection.

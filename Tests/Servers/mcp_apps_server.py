@@ -15,7 +15,7 @@ spec rather than against an SDK is the one that catches a host reading its own S
     python3 mcp_apps_server.py --persona basic --http 8931        # Streamable HTTP
     python3 mcp_apps_server.py --persona oauth --http 8931        # ...behind OAuth 2.1
 
-Then in six: six://apps → Add a server, or from a terminal:
+Then in six: Configuration → Assistant → MCP → Add Server…, or from a terminal:
 
     ./six --mcp-probe 'python3 /path/to/mcp_apps_server.py --persona basic'
     ./six --mcp-probe http://127.0.0.1:8931/mcp

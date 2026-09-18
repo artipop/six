@@ -140,11 +140,11 @@ final class MCPAppStore {
     /// never put a sign-in window in front of someone who only typed a search. A server that
     /// answers 401 is reported as wanting one, and asked properly when it is added.
     @discardableResult
-    func probe(_ definition: MCPServerDefinition, force: Bool = false) async -> Probe {
+    func probe(_ definition: MCPServerDefinition, force: Bool = false, authorize: Bool = false) async -> Probe {
         let key = definition.location
         if !force, let existing = probes[key], existing != .probing { return existing }
         probes[key] = .probing
-        let client = MCPClient(definition: definition, timeout: 15)
+        let client = MCPClient(definition: definition, authorization: authorize ? authorization : nil, timeout: 15)
         let result: Probe
         do {
             try await client.connect()

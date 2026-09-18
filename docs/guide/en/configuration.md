@@ -74,10 +74,13 @@ Everything starts off. More in [Certificates](/en/certificates).
 
 ## Assistant
 
-Which model answers `⌘E` and which agent answers the `⌘⇧A` panel, how many
-sources deep research takes, and the keys and addresses for Claude and for any
-server speaking the OpenAI format. More in [The assistant](/en/assistant) and
-[Agents](/en/agents).
+Three tabs:
+
+- **Responses** — who answers `⌘E`, the model and API credentials. Agent model lists come from the agent itself. **Access to Page Console and Network** also lives here.
+- **Agents** — install or update Claude Code and Codex, add or edit other ACP agents using their launch command.
+- **MCP** — connected servers with addresses, status and Agent Access switches. Each server’s “…” menu contains editing, connection checks, sign-in, opening apps and removal. Adding a server and browsing the MCP catalogue open separately.
+
+Deep research settings have been removed from this page. More in [The assistant](/en/assistant), [Agents](/en/agents) and [MCP apps](/en/apps).
 
 ::: warning The keys are stored locally
 This is a development shape: the keys sit in `UserDefaults`, not the Keychain.
@@ -90,8 +93,7 @@ What is installed, what each one can do here, and installing from a folder, a
 
 ## Develop
 
-Let Safari's inspector attach to VI's pages, and capture the console and the
-network — not for a person, but for the agent's tools. More in
+Let Safari's inspector attach to VI's pages and open the browser log. More in
 [Developer tools](/en/devtools).
 
 ## Where it all lives

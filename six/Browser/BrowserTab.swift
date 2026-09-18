@@ -31,8 +31,10 @@ enum TabContent {
 /// same idea without an address of its own. Configuration is the case that makes the argument: reading
 /// what a site is allowed while looking at the site is the whole point, and a sheet cannot.
 nonisolated enum BuiltInPage: String, Codable, Sendable, CaseIterable {
-    /// The MCP servers six is host to, and what they carry (`MCPAppsView`).
+    #if os(iOS)
+    /// iOS has no Assistant settings page, so MCP connections still have their own page there.
     case apps
+    #endif
     /// Everything that used to be a menu item nobody could find: what six searches with, what it
     /// blocks, what a site is allowed, what the assistant talks to (`ConfigurationPageView`).
     ///
@@ -57,7 +59,9 @@ nonisolated enum BuiltInPage: String, Codable, Sendable, CaseIterable {
 
     var title: String {
         switch self {
+        #if os(iOS)
         case .apps: String(localized: "MCP Apps")
+        #endif
         #if os(macOS)
         case .configuration: String(localized: "Configuration")
         case .welcome: String(localized: "Welcome")
@@ -68,7 +72,7 @@ nonisolated enum BuiltInPage: String, Codable, Sendable, CaseIterable {
     /// The page an address means, when it means one.
     static func page(for url: URL) -> BuiltInPage? {
         guard url.scheme?.lowercased() == "six" else { return nil }
-        // `six://apps` puts the name in the host; `six:apps` would put it in the path. Both read the
+        // `six://configuration` puts the name in the host; `six:configuration` puts it in the path. Both read the
         // same to a person typing, so both are taken.
         let name = (url.host() ?? url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))).lowercased()
         return BuiltInPage(rawValue: name)

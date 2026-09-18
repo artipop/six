@@ -151,7 +151,7 @@ struct AgentToolchainHint: View {
             }
         }
         .task(id: agent.id) {
-            if report.adapter == .unknown { await store.toolchain.refresh(agent) }
+            if agent.isBuiltIn, report.adapter == .unknown { await store.toolchain.refresh(agent) }
         }
     }
 

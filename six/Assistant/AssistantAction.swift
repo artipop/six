@@ -117,7 +117,7 @@ extension AssistantAction {
         AssistantAction(
             id: "rewrite",
             title: "Rewrite",
-            symbol: "wand.and.sparkles",
+            symbol: "pencil.line",
             requirement: .editableSelection,
             landing: .replaceSelection,
             prompt: "Rewrite the text so it reads clearly and naturally, in the same language and at "

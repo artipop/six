@@ -26,41 +26,29 @@ struct ContentView: View {
     @State private var showBookmarks = false
     @State private var confirmClearHistory = false
 
-    var body: some View {
-        VStack(spacing: 0) {
+    var body: some View { contentBody }
+
+    private var contentBody: AnyView {
+        let stack = AnyView(VStack(spacing: 0) {
             TopBar(addressFocus: $addressFocus)
                 // In front of the rail, not behind it. They are siblings in a stack, so the rail is
                 // drawn — and hit-tested — after the bar; anything of the rail's that reaches up into
                 // the bar's band would take the click off its buttons.
                 .zIndex(1)
-            NiriStripView()
-                .overlay(alignment: .bottom) {
-                    if !browser.layout.isOverview, settings.isAIEnabled {
-                        // Tucked away always, not just in fullscreen: a bar resting over the bottom of
-                        // every page is in the way of the page — a video's controls sit exactly there.
-                        // ⌘E brings it back (and an answer keeps it up), which is what it was for.
-                        AssistantBar(place: .bottom)
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 12)
-                            .frame(maxWidth: 720)
-                    }
-                }
-        }
+            NiriStripView().modifier(AssistantBarOverlay())
+        })
+        return AnyView(stack
         .ignoresSafeArea(.container, edges: .top)
-        .overlay { FlightsOverlay() }
+        .modifier(FlightsOverlayModifier())
         // Over the top bar as well as over the rail: while ⌃ is held nothing else in the window is
         // being looked at.
-        .overlay { WindowSwitcherOverlay() }
+        .modifier(WindowSwitcherOverlayModifier())
         // Mounted once, on the root, because six is a `Window` and not a `WindowGroup`. It draws
         // nothing: it only carries the `.translationTask` that can ask for a language download.
         .translationHost(browser.appleTranslator)
         // Not merely hidden: with the assistant switched off there is no panel to present, so the
         // ACP process is never spawned and nothing can ask for it (`ConfigurationStore.isAIEnabled`).
-        .inspector(isPresented: Binding(get: { showAgentPanel && settings.isAIEnabled },
-                                        set: { showAgentPanel = $0 })) {
-            AgentPanel()
-                .inspectorColumnWidth(min: 320, ideal: 400, max: 700)
-        }
+        .modifier(AgentPanelPresentation(isPresented: agentPanelPresentation))
         .tint(browser.selectedProfile.color)
         .navigationTitle(browser.selectedTab?.title ?? "six")
         .focusedSceneValue(\.focusAddressBar, FocusAddressBarAction {
@@ -110,78 +98,92 @@ struct ContentView: View {
             try? await Task.sleep(for: .milliseconds(200))
             addressFocus = nil
         }
-        .task {
-            // Debug harness: `SIX_ACP_SELFTEST="hi"` opens the agent panel and sends the text on launch,
-            // so the ACP path can be exercised (with SIX_ACP_TRACE=1) without clicking.
-            if let text = ProcessInfo.processInfo.environment["SIX_ACP_SELFTEST"], !text.isEmpty {
-                showAgentPanel = true
-                try? await Task.sleep(for: .seconds(1))
-                agentSession.send(text)
-            }
-            // `SIX_KEY_SELFTEST=1` prints what every binding answers in every context — the only
-            // way to check the keyboard on a Mac that cannot press its own keys (`KeySelfTest`).
-            if ProcessInfo.processInfo.environment["SIX_KEY_SELFTEST"] == "page" {
-                await KeySelfTest.pageOnly(browser)
-            } else if ProcessInfo.processInfo.environment["SIX_KEY_SELFTEST"] == "assistant" {
-                await KeySelfTest.assistantOnly(browser, assistant, pageFocus, agentSession)
-            } else if ProcessInfo.processInfo.environment["SIX_KEY_SELFTEST"] != nil {
-                KeySelfTest.run()
-                await KeySelfTest.live(browser)
-            }
-            // `SIX_MCP_PANEL=1` opens the servers page on launch, so it can be looked at without
-            // reaching for the menu (docs/mcp-apps.md).
-            if ProcessInfo.processInfo.environment["SIX_MCP_PANEL"] != nil { browser.openBuiltIn(.apps) }
-            // `SIX_ASSISTANT_SELFTEST="acp:claude-code:open example.com"` does the same through the ⌘E line.
-            if let spec = ProcessInfo.processInfo.environment["SIX_ASSISTANT_SELFTEST"],
-               let split = spec.range(of: ":", options: .backwards),
-               let model = ModelChoice(rawValue: String(spec[..<split.lowerBound])) {
-                assistant.settings.model = model
-                try? await Task.sleep(for: .seconds(1))
-                assistant.ask(String(spec[split.upperBound...]), about: browser.selectedTab)
-            }
-            // `SIX_VERB_SELFTEST=explain` presses a verb from the catalog on whatever the focused
-            // page has selected, and narrates the answer. The bar it normally comes from is AppKit
-            // over a web view, and nothing on this machine can click one (CLAUDE.md) — this is the
-            // only way to see a verb run end to end, including which model took it while the ⌘E
-            // line is set to an agent.
-            if let id = ProcessInfo.processInfo.environment["SIX_VERB_SELFTEST"], !id.isEmpty {
-                await verbSelfTest(id)
-            }
-            // `SIX_TRANSLATE_SELFTEST="https://ru.wikipedia.org/wiki/Браузер"` opens the address and
-            // translates it, narrating each step — the download prompt is the framework's own and
-            // still wants a person, but everything up to and after it can be watched from a terminal.
-            if let address = ProcessInfo.processInfo.environment["SIX_TRANSLATE_SELFTEST"],
-               let url = URL(string: address) {
-                await translateSelfTest(url)
-            }
-            // `SIX_PERSONAL_SELFTEST="плов"` asks the start page's personal rows what they would
-            // show for that query and prints both what the index answered and what survived the
-            // floor — which is the only way to tune the floor against real bookmarks.
-            if let query = ProcessInfo.processInfo.environment["SIX_PERSONAL_SELFTEST"], !query.isEmpty {
-                await personalSelfTest(query)
-            }
-            // `SIX_FIND_SELFTEST="query:https://example.com"` drives ⌘F's own store — `show`,
-            // `search`, `step`, `hide` — without a keystroke to send it, the same reason every
-            // other selftest here exists (CLAUDE.md: nothing on this machine can post ⌘F from
-            // outside the app, and `KeySelfTest` only covers the table, not menu items).
-            if let spec = ProcessInfo.processInfo.environment["SIX_FIND_SELFTEST"], !spec.isEmpty {
-                await findSelfTest(spec)
-            }
-            // `SIX_CRX_SELFTEST=1` builds a `.crx` from scratch — a fresh RSA and a fresh P-256 key,
-            // both signing it — and runs `CRXSignature.verify` against it, then against one byte of
-            // it flipped, then against a plain zip. No real signed `.crx` was reachable to test
-            // against from here (the Chrome Web Store's update endpoint answers a bare 204 without a
-            // running Chrome to ask on its behalf), so this is what stands in: it cannot say the
-            // decoder reads a real file's exact byte layout, only that encoding and decoding agree
-            // with each other and that a tampered file is told apart from an intact one.
-            if ProcessInfo.processInfo.environment["SIX_CRX_SELFTEST"] != nil {
-                crxSelfTest()
+        .task { await runDebugSelfTests() }
+        )
+    }
+}
+
+private struct AgentPanelPresentation: ViewModifier {
+    @Binding var isPresented: Bool
+
+    func body(content: Content) -> some View {
+        content.inspector(isPresented: $isPresented) {
+            AgentPanel()
+                .inspectorColumnWidth(min: 320, ideal: 400, max: 700)
+        }
+    }
+}
+
+private struct AssistantBarOverlay: ViewModifier {
+    @Environment(BrowserState.self) private var browser
+    @Environment(ConfigurationStore.self) private var settings
+
+    func body(content: Content) -> some View {
+        content.overlay(alignment: .bottom) {
+            if !browser.layout.isOverview, settings.isAIEnabled {
+                AssistantBar(place: .bottom)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 12)
+                    .frame(maxWidth: 720)
             }
         }
     }
 }
 
+private struct FlightsOverlayModifier: ViewModifier {
+    func body(content: Content) -> some View { content.overlay { FlightsOverlay() } }
+}
+
+private struct WindowSwitcherOverlayModifier: ViewModifier {
+    func body(content: Content) -> some View { content.overlay { WindowSwitcherOverlay() } }
+}
+
 extension ContentView {
+    private var agentPanelPresentation: Binding<Bool> {
+        Binding(
+            get: { showAgentPanel && settings.isAIEnabled },
+            set: { showAgentPanel = $0 }
+        )
+    }
+
+    private func runDebugSelfTests() async {
+        let environment = ProcessInfo.processInfo.environment
+        if let text = environment["SIX_ACP_SELFTEST"], !text.isEmpty {
+            showAgentPanel = true
+            try? await Task.sleep(for: .seconds(1))
+            agentSession.send(text)
+        }
+        await runKeySelfTest(environment["SIX_KEY_SELFTEST"])
+        if environment["SIX_MCP_PANEL"] != nil {
+            browser.openBuiltIn(.configuration, section: "assistant")
+        }
+        if let spec = environment["SIX_ASSISTANT_SELFTEST"],
+           let split = spec.range(of: ":", options: .backwards),
+           let model = ModelChoice(rawValue: String(spec[..<split.lowerBound])) {
+            assistant.settings.model = model
+            try? await Task.sleep(for: .seconds(1))
+            assistant.ask(String(spec[split.upperBound...]), about: browser.selectedTab)
+        }
+        if let id = environment["SIX_VERB_SELFTEST"], !id.isEmpty { await verbSelfTest(id) }
+        if let address = environment["SIX_TRANSLATE_SELFTEST"], let url = URL(string: address) {
+            await translateSelfTest(url)
+        }
+        if let query = environment["SIX_PERSONAL_SELFTEST"], !query.isEmpty { await personalSelfTest(query) }
+        if let spec = environment["SIX_FIND_SELFTEST"], !spec.isEmpty { await findSelfTest(spec) }
+        if environment["SIX_CRX_SELFTEST"] != nil { crxSelfTest() }
+    }
+
+    private func runKeySelfTest(_ mode: String?) async {
+        switch mode {
+        case "page": await KeySelfTest.pageOnly(browser)
+        case "assistant": await KeySelfTest.assistantOnly(browser, assistant, pageFocus, agentSession)
+        case .some:
+            KeySelfTest.run()
+            await KeySelfTest.live(browser)
+        case nil: break
+        }
+    }
+
     /// The table's actions, turned into calls. This is the view that has all of them in one place —
     /// the rail, the ring, the page being read and the highlights — which is why the router is
     /// installed here and not down in the strip, where the ⌥ keys used to live: half the table was

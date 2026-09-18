@@ -31,7 +31,7 @@ inspectable and Safari listed no six.
 ## Capture, for agents
 
 An agent driving the browser does not want an inspector window; it wants its facts. `six://configuration` ▸ Assistant ▸
-**Let Agents Read Page Console and Network** turns on a running record per window — what the page logged, what it
+**Access to Page Console and Network** turns on a running record per window — what the page logged, what it
 requested — kept in memory and nowhere else, and adds the two MCP tools that read it ([mcp.md](mcp.md)).
 
 The switch lives with the agents and not under Develop because nothing in six shows a person what it records: a

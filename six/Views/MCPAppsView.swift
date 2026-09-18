@@ -1,23 +1,9 @@
 import SwiftUI
 
-/// The servers six is host to: what is there, what the agent is given, the way in — and the way to
-/// find more.
-///
-/// A **page**, at `six://apps`, not a sheet. A sheet belongs to the application and stops the other
-/// nineteen windows to be answered; this is a list of things to look at and come back to, which is
-/// what a browser has columns for. It sits on the rail beside the app it is about, keeps its place
-/// across a relaunch, and can be typed into the address field like any other address.
-///
-/// Three lists. **Found** is the [official registry](https://registry.modelcontextprotocol.io)
-/// searched live. **Yours** is the servers added. **Apps** is six's own catalogue (`MCPCatalog`):
-/// the servers a sweep of the registry found to actually carry an interface, which is a thing no
-/// registry records.
+/// MCP connections, embedded in Assistant settings on macOS.
+/// The saved servers stay on this page; registry search and the app catalogue open in a separate sheet.
 struct MCPAppsView: View {
-    /// The window this page is in — what the header names, and what Close closes.
-    let tab: BrowserTab
-
     @Environment(MCPAppStore.self) private var apps
-    @Environment(BrowserState.self) private var browser
     @State private var isAdding = false
     /// The server whose OAuth client is being filled in. A separate sheet from `isAdding` only in
     /// what it starts from: the same form, opened on something that already exists.
@@ -26,32 +12,56 @@ struct MCPAppsView: View {
     @State private var results: [MCPRegistry.Entry] = []
     @State private var isSearching = false
     @State private var searchError: String?
+    @State private var discovering = false
 
     var body: some View {
         VStack(spacing: 0) {
-            header
-            Divider()
-            searchField
-            Divider()
-            list
-            Divider()
+            Form {
+                Section {
+                    HStack(spacing: 12) {
+                        Button("Add Server…") { isAdding = true }
+                        Button("Browse MCP Catalog…") { discovering = true }
+                    }
+                    Text("Connect tools and apps by command or URL. Turn on Agent Access for the servers your agents should use.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Section("Connected Servers") {
+                    if apps.customServers.isEmpty {
+                        Label("No Connected Servers", systemImage: "server.rack")
+                            .foregroundStyle(.secondary)
+                            .padding(.vertical, 12)
+                    }
+                    ForEach(apps.customServers) { server in
+                        MCPServerRow(server: server) { editing = server }
+                    }
+                }
+            }
+            .formStyle(.grouped)
             footer
         }
         .background(.background)
         .sheet(isPresented: $isAdding) { MCPAddServerSheet() }
         .sheet(item: $editing) { MCPAddServerSheet(editing: $0) }
-        // Debounced by the task's own identity: a keystroke cancels the sleep before it fires.
-        .task(id: query) { await search() }
+        .sheet(isPresented: $discovering) { discovery }
     }
 
-    private var header: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "square.grid.2x2")
-            Text("MCP Apps").font(.headline)
-            Spacer()
-            Button("Add Server…") { isAdding = true }
+    private var discovery: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("MCP Catalog").font(.headline)
+                Spacer()
+                Button("Done") { discovering = false }.keyboardShortcut(.cancelAction)
+            }
+            .padding(16)
+            Divider()
+            searchField
+            Divider()
+            discoveryList
+            footer
         }
-        .padding(12)
+        .frame(minWidth: 560, idealWidth: 720, minHeight: 400, idealHeight: 600)
+        .task(id: query) { await search() }
     }
 
     private var searchField: some View {
@@ -70,13 +80,10 @@ struct MCPAppsView: View {
         .padding(.vertical, 8)
     }
 
-    /// Order matters: what the person already has, then what they are searching for, then the
-    /// catalogue. Three hundred catalogue entries above "Yours" is a list nobody scrolls to the
-    /// bottom of, and their own two servers would be the thing they came for.
-    private var list: some View {
+    private var discoveryList: some View {
         List {
             if !query.isEmpty {
-                Section("Found") {
+                Section("Registry Results") {
                     if let searchError {
                         Text(searchError).font(.caption).foregroundStyle(.secondary)
                     } else if results.isEmpty, !isSearching {
@@ -84,13 +91,6 @@ struct MCPAppsView: View {
                     }
                     ForEach(results) { entry in
                         MCPFoundRow(entry: entry)
-                    }
-                }
-            }
-            if !apps.customServers.isEmpty {
-                Section("Yours") {
-                    ForEach(apps.customServers) { server in
-                        MCPServerRow(server: server) { editing = server }
                     }
                 }
             }
@@ -313,65 +313,60 @@ private struct MCPServerRow: View {
     let edit: () -> Void
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 12) {
             Image(systemName: server.isRemote ? "network" : "terminal")
                 .foregroundStyle(.secondary)
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
-                    Text(server.name)
-                    if !isSignedIn { MCPProbeBadge(probe: apps.probeResult(for: server)) }
-                }
+                .frame(width: 24)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(server.name).font(.body.weight(.medium))
                 Text(server.location)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
+                    .help(server.location)
+                MCPProbeBadge(probe: apps.probeResult(for: server))
             }
-            Spacer(minLength: 8)
-            // Only a server that actually asked. Most want nothing — offering to sign in to all of
-            // them teaches people that the button means nothing, and the one server that does need
-            // it stops standing out. A local server never asks at all: it is a process six
-            // launched, and its credentials came with the environment it was launched with.
-            if isSignedIn {
-                Button("Sign Out") { apps.authorization.signOut(server) }
-                    .controlSize(.small)
-                    .help("Forget the token six holds for this server")
-            } else if needsSignIn {
-                Button("Sign In") { Task { _ = await apps.authorization.authorize(server, challenge: nil) } }
-                    .controlSize(.small)
-                    .help("This server requires sign-in")
-            }
-            Toggle("Agent", isOn: Binding(
+            Spacer(minLength: 12)
+            Toggle("Agent Access", isOn: Binding(
                 get: { apps.isShared(server) },
                 set: { apps.setShared(server, $0) }))
                 .toggleStyle(.switch)
-                .controlSize(.mini)
-                .labelsHidden()
-                .help("Give this server's tools to the agent")
-            Button("Open") { Task { try? await apps.open(server) } }
                 .controlSize(.small)
-            Button { apps.remove(server) } label: { Image(systemName: "minus.circle") }
-                .buttonStyle(.borderless)
-                .help("Remove this server")
-        }
-        .padding(.vertical, 3)
-        .task { await probeIfCheap() }
-        // Reachable even when the server never said it wanted one — a server can start asking, and
-        // a person can want to sign in before it does.
-        .contextMenu {
-            if server.isRemote, !isSignedIn {
-                Button("Sign In…") { Task { _ = await apps.authorization.authorize(server, challenge: nil) } }
+                .fixedSize()
+            Menu {
+                Button("Edit…", action: edit)
+                Button("Check Connection") { Task { await apps.probe(server, force: true, authorize: true) } }
+                    .disabled(apps.probeResult(for: server) == .probing)
+                if apps.probeResult(for: server)?.appCount != 0 {
+                    Button("Open App") { Task { try? await apps.open(server) } }
+                }
+                if server.isRemote {
+                    Divider()
+                    if isSignedIn {
+                        Button("Sign Out") { apps.authorization.signOut(server) }
+                    } else {
+                        Button("Sign In…") { Task { _ = await apps.authorization.authorize(server, challenge: nil) } }
+                    }
+                }
+                Divider()
+                Button("Remove", role: .destructive) { apps.remove(server) }
+            } label: {
+                Label("Server Actions", systemImage: "ellipsis")
+                    .labelStyle(.iconOnly)
+                    .frame(width: 24, height: 24)
+                    .contentShape(Rectangle())
             }
-            Button("Edit…", action: edit)
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .help("Server Actions")
         }
+        .padding(.vertical, 8)
+        .task(id: server) { await probeIfCheap() }
     }
 
     private var isSignedIn: Bool { apps.authorization.signedIn.contains(server.id) }
-
-    /// Asked for, rather than assumed: the server answered `401` when six looked.
-    private var needsSignIn: Bool {
-        server.isRemote && apps.probeResult(for: server) == .needsSignIn
-    }
 
     /// Two HTTP requests for a remote server, and nothing at all for a local one — launching a
     /// process to fill in a row is not what opening a panel asked for.
@@ -540,7 +535,9 @@ struct BuiltInPageView: View {
 
     var body: some View {
         switch page {
-        case .apps: MCPAppsView(tab: tab)
+        #if os(iOS)
+        case .apps: MCPAppsView()
+        #endif
         #if os(macOS)
         case .configuration: ConfigurationPageView(tab: tab)
         case .welcome: WelcomePage(tab: tab)

@@ -76,7 +76,7 @@ struct WelcomePage: View {
         HStack(spacing: 12) {
             Choice(title: "Yes, use them",
                    detail: "The on-device model keeps everything on this Mac; others need your own key.",
-                   symbol: "sparkles",
+                   symbol: nil,
                    isProminent: true) {
                 // Written now, not on Done: the agent rows below ask the toolchain, which is only
                 // built with the switch on. The welcome itself stays unanswered until Done, so a
@@ -214,7 +214,7 @@ struct WelcomePage: View {
     private struct Choice: View {
         let title: LocalizedStringResource
         let detail: LocalizedStringResource
-        let symbol: String
+        let symbol: String?
         let isProminent: Bool
         var height: CGFloat = 170
         let action: () -> Void
@@ -225,7 +225,7 @@ struct WelcomePage: View {
         var body: some View {
             Button(action: action) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Image(systemName: symbol)
+                    AssistantSymbol(systemImage: symbol)
                         .font(.title2)
                         .foregroundStyle(isProminent ? AnyShapeStyle(browser.selectedProfile.color) : AnyShapeStyle(.secondary))
                     Text(title).font(.headline)

@@ -40,13 +40,16 @@ nonisolated struct ExtensionCompatibility: Sendable, Hashable, Codable {
     }
 
     var verdict: Verdict
-    /// One line for the install dialog and the row in the panel. Attributed rather than plain,
+    /// One line for the install dialog. Attributed rather than plain,
     /// because the lines name API (`webRequest`, `scripting.insertCSS`) and a SwiftUI `Text` sets an
     /// inline-code run in monospace — the backticks in the catalogue are markup for that, and a plain
     /// `String` used to put them on the screen as they were.
     var summary: AttributedString
     /// The specifics, listed under it.
     var details: [AttributedString]
+    /// API and permission names declared in the manifest, including optional permissions.
+    /// These describe what the extension requests, not which methods it has called.
+    var capabilities: [String] = []
 
     var symbol: String {
         switch verdict {

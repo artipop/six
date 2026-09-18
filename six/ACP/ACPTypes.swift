@@ -85,6 +85,8 @@ nonisolated enum ACP {
     struct NewSessionResponse: Codable, Sendable {
         var sessionId: String
         var modes: SessionModeState?
+        var models: ACPJSON?
+        var configOptions: [ACPJSON]?
     }
 
     struct LoadSessionRequest: Codable, Sendable {
@@ -95,6 +97,8 @@ nonisolated enum ACP {
 
     struct LoadSessionResponse: Codable, Sendable {
         var modes: SessionModeState?
+        var models: ACPJSON?
+        var configOptions: [ACPJSON]?
     }
 
     struct SetSessionModeRequest: Codable, Sendable {

@@ -678,7 +678,7 @@ final class BrowserState {
 
     private func makeTab(id: UUID = UUID(), profile: Profile, restoring url: URL? = nil, title: String = "") -> BrowserTab {
         let tab = BrowserTab(id: id, profileID: profile.id, dataStore: dataStore(for: profile), restoring: url, title: title)
-        // `six://apps` typed into any window's address field shows the page rather than asking
+        // `six://configuration` typed into any window's address field shows the page rather than asking
         // WebKit to fetch an address it has never heard of.
         tab.onBuiltInAddress = { [weak self] _, page in self?.openBuiltIn(page) }
         tab.onNavigation = { [weak self] tab, outcome in
@@ -842,7 +842,7 @@ final class BrowserState {
 
     // MARK: Six's own pages
 
-    /// Shows one of six's own pages (`six://settings`, `six://apps`) — the one that is already open
+    /// Shows one of six's own pages (such as `six://configuration`) — the one that is already open
     /// in this profile if there is one, otherwise a new column beside the focus.
     ///
     /// Focusing rather than opening a second is the difference between a page and a panel: a person

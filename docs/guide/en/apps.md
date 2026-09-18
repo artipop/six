@@ -9,17 +9,15 @@ back to tomorrow.
 It cost VI nothing: every window already has its own content process and its own
 storage, which is a stronger sandbox than an iframe.
 
-## The Apps menu
+## Server settings
 
-| | |
-|---|---|
-| **Manage Servers…** | opens `six://apps`, the built-in page listing the servers |
-| the list of servers | a click runs that server's first tool with an interface |
-| **Give to the Agent ▸ …** | hand a server's tools to the [agent](/en/agents) — then it opens such windows itself |
+Open **Configuration ▸ Assistant ▸ MCP**. There is no separate Apps menu.
 
-The list of servers is not a sheet but **a page on the rail**: it stands next to
-the app it is about and survives a relaunch. Its address is shown in full, scheme
-and all: `apps` without `six://` would read as somebody's domain.
+- **Connected Servers** — addresses, status and **Agent Access** switches. Editing, connection checks, sign-in and **Open App** are in each server’s “…” menu.
+- **Browse MCP Catalog…** — a separate window with registry search and the catalogue of servers with interfaces.
+- **Add Server…** — connect by command or URL. Ordinary MCP servers without interfaces are configured here too.
+
+On macOS, the separate `six://apps` page has been removed; configure servers here.
 
 ## Where apps come from
 
@@ -33,8 +31,7 @@ an interface.
 > with an HTTP endpoint, all of them asked, an interface found in **308** — and
 > 1,374 tools in them that draw a window.
 
-The upper list in the panel is that one, ready. The search below it goes to the
-registry live, for whatever the sweep did not reach.
+The app catalogue and live registry search are available in the MCP Catalog window.
 
 Package servers (`npx`, `uvx`) are **not run** during the sweep: downloading and
 executing somebody's code to find out what it does is not what the person who

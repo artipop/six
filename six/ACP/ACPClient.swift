@@ -13,6 +13,7 @@ actor ACPClient {
     private let process: ACPAgentProcess
     private let connection: JSONRPCConnection
     private weak var delegate: (any ACPClientDelegate)?
+    private let allowsFileAccess: Bool
 
     private(set) var agentInfo: ACP.Implementation?
     private(set) var agentCapabilities: ACP.AgentCapabilities?
@@ -21,9 +22,10 @@ actor ACPClient {
     /// Directories the agent is allowed to read/write through `fs/*`. Defaults to each session's cwd.
     private var allowedRoots: [String: URL] = [:]
 
-    init(definition: ACPAgentDefinition, delegate: any ACPClientDelegate) async throws {
+    init(definition: ACPAgentDefinition, delegate: any ACPClientDelegate, allowsFileAccess: Bool = true) async throws {
         self.definition = definition
         self.delegate = delegate
+        self.allowsFileAccess = allowsFileAccess
         process = try ACPAgentProcess(definition: definition, environment: await LoginShell.environment())
         connection = process.connection
     }
@@ -50,7 +52,11 @@ actor ACPClient {
                 await self?.handleNotification(method: method, params: params)
             }
         )
-        let request = ACP.InitializeRequest(clientInfo: clientInfo)
+        var request = ACP.InitializeRequest(clientInfo: clientInfo)
+        if !allowsFileAccess {
+            request.clientCapabilities.fs.readTextFile = false
+            request.clientCapabilities.fs.writeTextFile = false
+        }
         let result = try await connection.request("initialize", params: ACPJSON(encoding: request))
         let response: ACP.InitializeResponse = try result.decode()
         guard response.protocolVersion == ACP.protocolVersion else {
@@ -92,6 +98,18 @@ actor ACPClient {
         _ = try await connection.request("session/set_mode", params: ACPJSON(encoding: request))
     }
 
+    func setModel(sessionId: String, modelID: String, catalog: AgentModels) async throws {
+        if let configID = catalog.configID {
+            _ = try await connection.request("session/set_config_option", params: [
+                "sessionId": .string(sessionId), "configId": .string(configID), "value": .string(modelID)
+            ])
+        } else {
+            _ = try await connection.request("session/set_model", params: [
+                "sessionId": .string(sessionId), "modelId": .string(modelID)
+            ])
+        }
+    }
+
     /// Sends a prompt and waits for the turn to finish. Updates stream to the delegate meanwhile.
     func prompt(sessionId: String, _ blocks: [ACP.ContentBlock]) async throws -> ACP.StopReason {
         let request = ACP.PromptRequest(sessionId: sessionId, prompt: blocks)
@@ -115,6 +133,9 @@ actor ACPClient {
     }
 
     private func handleRequest(method: String, params: ACPJSON?) async throws -> ACPJSON {
+        if !allowsFileAccess, method.hasPrefix("fs/") {
+            throw JSONRPCError.invalidParams("File access is unavailable during model discovery")
+        }
         switch method {
         case "session/request_permission":
             guard let params else { throw JSONRPCError.invalidParams(method) }

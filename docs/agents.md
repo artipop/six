@@ -93,5 +93,8 @@ claude-agent-acp   # then paste, one line each:
 ```
 
 Claude Code refuses to run nested inside another Claude Code session, so `CLAUDECODE` is stripped from the agent
-environment. If your default `claude` model isn't available through the SDK, set "Model override" in the panel — it is
-exported as `ANTHROPIC_MODEL`.
+environment. Models are selected in Configuration ▸ Assistant ▸ Responses. The picker shows only options returned by the agent, including its own default option when provided; an unset preference displays the current model from session setup. The list comes from ACP session setup: `configOptions` with category `model`, falling back to the older `models.availableModels` response. Selection is applied with `session/set_config_option` or `session/set_model` before prompting, including resumed sessions. See the [ACP configuration protocol](https://agentclientprotocol.com/protocol/v1/session-config-options).
+
+Model discovery creates a separate session, sends no prompt and exposes no browser tools or filesystem access. It closes the adapter after reading the list, with a 30-second deadline. Preferences are stored per agent in `agents.models`; the old `agent.model` setting is used only for Claude Code.
+
+Custom ACP agents are added and edited in Configuration ▸ Assistant ▸ Agents. Their definitions live in `agents.custom`; `agents.selectedCustom` remembers which one answers through ⌘E. Arguments are entered one per line and shell-quoted when launched.

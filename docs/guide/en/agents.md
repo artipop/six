@@ -61,8 +61,9 @@ above it as a record.
 
 ✎ in the panel header forgets the current chat and its session.
 
-**Model override** in the panel is for when your `claude` default model is not
-available through the SDK.
+**Model** is selected in **Configuration ▸ Assistant ▸ Responses**. The selected agent supplies the list; preferences are saved per agent. No extra default option is inserted: an agent-provided `default` appears once.
+
+**Add Agent…** connects another ACP agent: enter its name, executable and arguments, one per line. Then select the agent in Responses to have it answer through `⌘E`.
 
 ## What an agent can do in the browser
 
@@ -78,8 +79,7 @@ of a **profile**. Everything defaults to what is on screen.
 | write | create a document, write into it section by section, cite a source, highlight the paragraphs that answer a question |
 | bookmarks | list, search by meaning, read, add, refresh, remove |
 
-The agent sees the console and the network only while **Configuration ▸ Assistant ▸ Let Agents Read Page
-Console and Network** is on — see [developer tools](/en/devtools).
+The agent sees the console and the network only while **Configuration ▸ Assistant ▸ Access to Page Console and Network** is on — see [developer tools](/en/devtools).
 
 ## The same agent on the ⌘E line
 

@@ -168,6 +168,7 @@ let package = Package(
                 // session, the store — is WebKit and AppKit and stays in the app target. This much
                 // is the same conversation on any platform, and it is the half worth a test.
                 "ACP/ACPJSON.swift",
+                "ACP/AgentModels.swift",
                 "ACP/JSONRPCError.swift",
                 "MCP/Client/MCPAppTypes.swift",
                 "MCP/Client/MCPRegistry.swift",

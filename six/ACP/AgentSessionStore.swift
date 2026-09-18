@@ -27,7 +27,7 @@ final class AgentSessionStore {
     init(snapshot: AgentSnapshot? = nil, settings: ConfigurationStore) {
         self.settings = settings
         guard let snapshot else { return }
-        if let saved = ACPAgentDefinition.builtIn.first(where: { $0.id == snapshot.agentID }) { agent = saved }
+        if let saved = (ACPAgentDefinition.builtIn + settings.customAgents).first(where: { $0.id == snapshot.agentID }) { agent = saved }
         chats = Dictionary(snapshot.chats.map { ($0.key, $0) }, uniquingKeysWith: { first, _ in first })
     }
 
@@ -75,14 +75,21 @@ final class AgentSessionStore {
     /// Directory the live session was created in; a different `workingDirectory` means reconnecting.
     @ObservationIgnored private var sessionDirectory: URL?
     @ObservationIgnored private let settings: ConfigurationStore
-    /// Optional model id passed to the agent (Claude Code reads `ANTHROPIC_MODEL`; Codex ignores it).
+    /// Model preferences belong to each agent, and are applied through ACP before prompting.
     var modelOverride: String {
-        get { settings.agentModel }
+        get { settings.model(for: agent) }
         set {
-            guard newValue != settings.agentModel else { return }
-            settings.agentModel = newValue
+            guard newValue != settings.model(for: agent) else { return }
+            settings.setModel(newValue, for: agent)
             disconnect()
         }
+    }
+
+    func selectedModel(for definition: ACPAgentDefinition) -> String { settings.model(for: definition) }
+
+    func selectModel(_ model: String, for definition: ACPAgentDefinition) {
+        settings.setModel(model, for: definition)
+        if agent.id == definition.id { disconnect() }
     }
 
     private(set) var state: State = .idle
@@ -92,6 +99,8 @@ final class AgentSessionStore {
     private(set) var sessionId: String?
 
     let toolchain = AgentToolchain()
+    let modelDiscovery = AgentModelDiscovery()
+    private var sessionModels: AgentModels?
 
     @ObservationIgnored private var client: ACPClient?
     @ObservationIgnored private var delegateBox: DelegateBox?
@@ -122,7 +131,9 @@ final class AgentSessionStore {
             if toolchain.report(for: agent).adapter == .unknown { await toolchain.refresh(agent) }
             var definition = toolchain.launchDefinition(for: agent)
             let model = modelOverride.trimmingCharacters(in: .whitespaces)
-            if !model.isEmpty { definition.environment["ANTHROPIC_MODEL"] = model }
+            if !model.isEmpty, agent.id == ACPAgentDefinition.claudeCode.id {
+                definition.environment["ANTHROPIC_MODEL"] = model
+            }
             Self.trace("launching: \(definition.shellCommandLine)")
             let client = try await ACPClient(definition: definition, delegate: box)
             self.delegateBox = box
@@ -136,16 +147,35 @@ final class AgentSessionStore {
             let servers = [MCPStdioBridge.acpServer]
             let agentName = info.agentInfo?.title ?? info.agentInfo?.name ?? agent.name
             let savedSession = chats[key]?.sessionID
+            // A resumed conversation may remember a previously selected model. Read the agent's
+            // fresh-session default before loading it so choosing Default really resets the model.
+            var defaultModel: String?
+            if model.isEmpty, savedSession != nil {
+                let defaults = try await client.newSession(cwd: directory)
+                defaultModel = AgentModels(configOptions: defaults.configOptions, models: defaults.models).current
+            }
             if let savedSession, await resumeSession(savedSession, client: client, capabilities: info.agentCapabilities, cwd: directory, mcpServers: servers) {
                 append(.status(String(localized: "Resumed session with \(agentName) · \(directory.path)")))
             } else {
                 let session = try await client.newSession(cwd: directory, mcpServers: servers)
                 sessionId = session.sessionId
                 modes = session.modes
+                sessionModels = AgentModels(configOptions: session.configOptions, models: session.models)
                 chats[key]?.sessionID = session.sessionId
                 append(.status(savedSession == nil
                     ? String(localized: "Connected to \(agentName) · \(directory.path)")
                     : String(localized: "Previous session couldn't be resumed; new session with \(agentName) · \(directory.path)")))
+            }
+            let requestedModel = model.isEmpty ? (defaultModel ?? "") : model
+            if let sessionId, let catalog = sessionModels, !requestedModel.isEmpty {
+                if !catalog.choices.isEmpty {
+                    guard catalog.choices.contains(where: { $0.id == requestedModel }) else {
+                        throw JSONRPCError.invalidParams(String(localized: "The selected model is no longer available. Choose another model in Assistant settings."))
+                    }
+                    try await client.setModel(sessionId: sessionId, modelID: requestedModel, catalog: catalog)
+                } else if !model.isEmpty, agent.id != ACPAgentDefinition.claudeCode.id {
+                    throw JSONRPCError.invalidParams(String(localized: "This agent does not support model selection. Choose its default model in Assistant settings."))
+                }
             }
             sessionDirectory = directory
             state = .ready
@@ -171,6 +201,7 @@ final class AgentSessionStore {
         do {
             let response = try await client.loadSession(id: id, cwd: cwd, mcpServers: mcpServers)
             if let loaded = response?.modes { modes = loaded }
+            sessionModels = AgentModels(configOptions: response?.configOptions, models: response?.models)
             return true
         } catch {
             Self.trace("load failed: \(error)")
@@ -188,6 +219,7 @@ final class AgentSessionStore {
         sessionDirectory = nil
         liveChatKey = nil
         modes = nil
+        sessionModels = nil
         permissionPrompt = nil
         if !keepState { state = .idle }
     }

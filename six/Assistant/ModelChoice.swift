@@ -17,13 +17,16 @@ enum ModelChoice: String, CaseIterable, Identifiable, Codable {
     /// ACP agents: the same ⌘E line, answered by Claude Code / Codex through the agent session.
     case claudeCodeAgent = "acp:claude-code"
     case codexAgent = "acp:codex"
+    case customAgent = "acp:custom"
     #endif
 
     var id: String { rawValue }
 
     #if os(macOS)
     static let languageModels: [ModelChoice] = [.onDevice, .privateCloudCompute, .claudeSonnet, .claudeOpus, .openAICompatible]
-    static let agents: [ModelChoice] = [.claudeCodeAgent, .codexAgent]
+    static var agents: [ModelChoice] {
+        [.claudeCodeAgent, .codexAgent] + (ConfigurationStore.shared?.customAgents.isEmpty == false ? [.customAgent] : [])
+    }
     #elseif os(iOS)
     static let languageModels: [ModelChoice] = [.onDevice, .privateCloudCompute]
     static let agents: [ModelChoice] = []
@@ -39,18 +42,19 @@ enum ModelChoice: String, CaseIterable, Identifiable, Codable {
         case .openAICompatible: "OpenAI-compatible"
         case .claudeCodeAgent: "Claude Code (ACP)"
         case .codexAgent: "Codex (ACP)"
+        case .customAgent: ConfigurationStore.shared?.selectedCustomAgent?.name ?? String(localized: "Custom Agent")
         #endif
         }
     }
 
-    var symbol: String {
+    var symbol: String? {
         switch self {
         case .onDevice: "cpu"
         case .privateCloudCompute: "icloud"
         #if os(macOS)
-        case .claudeSonnet, .claudeOpus: "sparkles"
+        case .claudeSonnet, .claudeOpus: nil
         case .openAICompatible: "network"
-        case .claudeCodeAgent, .codexAgent: "terminal"
+        case .claudeCodeAgent, .codexAgent, .customAgent: "terminal"
         #endif
         }
     }
@@ -75,6 +79,7 @@ enum ModelChoice: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .claudeCodeAgent: .claudeCode
         case .codexAgent: .codex
+        case .customAgent: ConfigurationStore.shared?.selectedCustomAgent
         default: nil
         }
     }
@@ -158,7 +163,7 @@ final class AssistantSettings {
     func trouble(for model: ModelChoice) -> Trouble? {
         switch model {
         #if os(macOS)
-        case .claudeCodeAgent, .codexAgent:
+        case .claudeCodeAgent, .codexAgent, .customAgent:
             // An agent is a process six starts when it is asked to; whether it is installed is
             // something only starting it says, and the panel says it then.
             return nil
@@ -249,7 +254,7 @@ final class AssistantSettings {
     func makeSession(instructions: String, tools: [any Tool] = []) throws -> LanguageModelSession {
         switch model {
         #if os(macOS)
-        case .claudeCodeAgent, .codexAgent:
+        case .claudeCodeAgent, .codexAgent, .customAgent:
             throw AssistantError.unavailable("\(model.title) is an agent, not a language model")
         #endif
         case .onDevice:
