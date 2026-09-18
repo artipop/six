@@ -2,6 +2,23 @@
 
 What is planned but not built. Ordered by how much it is missed, not by effort.
 
+## macOS: Enter and Space trigger the system alert sound on pages
+
+Reported on every page in six, but not in Safari: pressing Enter or Space produces the standard
+macOS unhandled-key sound. Reproduce in the full browser, both with the page body focused and in
+editable fields, and trace where the event reaches AppKit's unhandled-key path.
+
+A standalone WebKit probe reproduced unhandled Return, keypad Enter and Space on a short page.
+An attempted `KeyRouter` fix consumed their redelivery from WebKit and replaced the single pending
+event with a weak event table. The probe passed, but the user reported other broken behavior in
+the browser and requested a rollback on 2026-09-18. That fix and its test were removed; the issue
+remains open, and the specific regressions still need to be identified before another attempt.
+
+Acceptance: no spurious alert sound in the browser, with text entry, form submission, button
+activation, Space/Shift-Space scrolling, page key handlers, native fields, menus, rail shortcuts,
+the window switcher and rapid key repeats still working. Verify in six itself as well as any
+isolated probe; a passing probe alone did not establish that the previous change was safe.
+
 ## Help inside the app
 
 six has no Help menu content and no help book: the only account of what a setting does is the
