@@ -121,6 +121,16 @@ request that goes nowhere inside a nested hosting view, so the letters after the
 address bar. Two `@FocusState`s, then one `@FocusState<Half?>`, then a retry loop — none of them
 made the hand-off land. A field that never loses the keyboard has nothing to hand over.
 
+**A model that could not answer is said so before it is asked.** `AssistantSettings.trouble` reads
+the chosen model's own answer — `SystemLanguageModel.availability`, an empty API key, an endpoint
+that is not a URL — and the line puts that sentence where the verbs would be, with **Set Up…** to
+`six://configuration` for the half a person can put right and nothing but the sentence for the half
+they cannot (a model still downloading, a Mac that is not eligible, the SDK/OS mismatch). Return
+over that row opens the same page rather than running a verb that is going to fail. `makeSession`
+throws the same sentences, as `AssistantError.notConfigured` or `.unavailable`, so a failure that
+arrives mid-answer reads like the notice and carries the same button — where it used to read
+`unavailable(FoundationModels.SystemLanguageModel.Availability.UnavailableReason.modelNotReady)`.
+
 **At the bottom there are no chips**, because with nothing pointed at there is one verb and the line
 is for asking. `/` still works everywhere: it lists what applies and narrows by title or id, so
 `/sum` works on any layout, and Return runs the first one left. Return with nothing typed applies the

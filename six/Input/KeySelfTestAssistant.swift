@@ -68,6 +68,43 @@ extension KeySelfTest {
         _ = window.makeFirstResponder(nil)
         browser.closeTab(second.id)
         await fieldVerbs(browser, assistant, focusStore, in: window)
+        // The line with a model that cannot answer: the row of verbs is replaced by what is missing,
+        // so Return over it runs nothing. The choice is put back at once — this is the dev profile's
+        // own setting, and a test that changed it would be a test that moved the furniture.
+        let chosen = assistant.settings.model
+        assistant.settings.model = .claudeSonnet
+        let unconfigured = browser.newTab(url: URL(string: "about:blank"))
+        try? await Task.sleep(for: .milliseconds(1000))
+        _ = try? await unconfigured.page.callJavaScript("""
+            const t = document.createElement('textarea');
+            t.value = 'Dear team';
+            document.body.appendChild(t);
+            t.focus();
+            t.setSelectionRange(9, 9);
+            """)
+        try? await Task.sleep(for: .milliseconds(700))
+        pressAssistantItem()
+        try? await Task.sleep(for: .milliseconds(700))
+        let trouble = assistant.settings.trouble.map { String(localized: $0.message) } ?? "ready"
+        note("assistant: with \(assistant.settings.model.title) unconfigured the line says «\(trouble)»")
+        post(flags: [], code: .returnKey, in: window)
+        try? await Task.sleep(for: .milliseconds(350))
+        note("assistant: ⏎ where the verbs were → \(assistant.answer?.action?.id ?? "nothing ran")")
+        assistant.cancel()
+        assistant.dismiss()
+        post(flags: [], code: .escape, in: window)
+        try? await Task.sleep(for: .milliseconds(300))
+        browser.closeTab(unconfigured.id)
+        assistant.settings.model = chosen
+        note("assistant: the model is back to \(assistant.settings.model.title)")
+
+        // What each model would say if it were asked now. The line says this where the verbs would
+        // be, with a way to `six://configuration` for the half a person can put right.
+        for choice in ModelChoice.allCases {
+            let trouble = assistant.settings.trouble(for: choice)
+            let said = trouble.map { String(localized: $0.message) } ?? "ready"
+            note("assistant: \(choice.title) — \(said)\(trouble?.isConfiguration == true ? " (offers Set Up…)" : "")")
+        }
         note("assistant: done")
     }
 

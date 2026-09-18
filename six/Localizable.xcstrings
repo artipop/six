@@ -41,6 +41,126 @@
         }
       }
     },
+    "%@ is still downloading — it answers when it is here" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ещё скачивается — ответит, когда будет здесь"
+          }
+        }
+      }
+    },
+    "%@ is unavailable" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ недоступна"
+          }
+        }
+      }
+    },
+    "Apple Intelligence is switched off in System Settings" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence выключен в Системных настройках"
+          }
+        }
+      }
+    },
+    "Claude needs an API key" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Claude нужен ключ API"
+          }
+        }
+      }
+    },
+    "Name the model this address should answer with" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Укажите модель, которой отвечает этот адрес"
+          }
+        }
+      }
+    },
+    "Private Cloud Compute is not ready yet — it answers when it is" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Private Cloud Compute ещё не готов — ответит, когда будет"
+          }
+        }
+      }
+    },
+    "Private Cloud Compute is unavailable" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Private Cloud Compute недоступен"
+          }
+        }
+      }
+    },
+    "Set Up…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Настроить…"
+          }
+        }
+      }
+    },
+    "That address is not one six can ask" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "По этому адресу six обратиться не может"
+          }
+        }
+      }
+    },
+    "This Mac cannot run %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Этот Mac не может запустить %@"
+          }
+        }
+      }
+    },
+    "This Mac cannot use Private Cloud Compute" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Этот Mac не может использовать Private Cloud Compute"
+          }
+        }
+      }
+    },
+    "This model needs an address to ask" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Этой модели нужен адрес, куда обращаться"
+          }
+        }
+      }
+    },
     "_The run failed: %@_" : {
       "localizations" : {
         "ru" : {

@@ -127,6 +127,119 @@ final class AssistantSettings {
             ?? ProcessInfo.processInfo.environment["OPENAI_API_KEY"] ?? ""
     }
 
+    /// Whether the chosen model could answer right now, asked before anything is sent — the ⌘E line
+    /// says so where the verbs would be, rather than letting a person press one and read the same
+    /// thing as a failure. Two kinds, because they want different things of the person: something to
+    /// fill in here, or something that is not theirs to fix.
+    enum Trouble: Equatable {
+        /// A key, an endpoint, a model name: `six://configuration` ▸ Assistant.
+        case notConfigured(LocalizedStringResource)
+        /// A model still coming down, a Mac that cannot run it, an SDK that does not match the OS.
+        case unavailable(LocalizedStringResource)
+
+        var message: LocalizedStringResource {
+            switch self {
+            case .notConfigured(let why), .unavailable(let why): why
+            }
+        }
+
+        var isConfiguration: Bool {
+            if case .notConfigured = self { return true }
+            return false
+        }
+    }
+
+    /// Nil when the chosen model is ready. Cheap enough to read in a view body: nothing here builds
+    /// a session or touches the network.
+    var trouble: Trouble? { trouble(for: model) }
+
+    /// Asked about any choice, not only the current one, so a self-test can print the lot without
+    /// setting six's own model as a side effect.
+    func trouble(for model: ModelChoice) -> Trouble? {
+        switch model {
+        #if os(macOS)
+        case .claudeCodeAgent, .codexAgent:
+            // An agent is a process six starts when it is asked to; whether it is installed is
+            // something only starting it says, and the panel says it then.
+            return nil
+        #endif
+        case .onDevice:
+            return Self.trouble(with: SystemLanguageModel.default.availability, called: "On-Device")
+        case .privateCloudCompute:
+            // Its own `Availability`, with its own reasons: the two types have the same shape and no
+            // common protocol, so the switch is written twice rather than made generic over nothing.
+            switch PrivateCloudComputeLanguageModel().availability {
+            case .available: return nil
+            case .unavailable(let reason):
+                switch reason {
+                case .systemNotReady:
+                    return .unavailable("Private Cloud Compute is not ready yet — it answers when it is")
+                case .deviceNotEligible:
+                    return .unavailable("This Mac cannot use Private Cloud Compute")
+                @unknown default:
+                    return .unavailable("Private Cloud Compute is unavailable")
+                }
+            @unknown default: return nil
+            }
+        #if os(macOS)
+        case .claudeSonnet, .claudeOpus:
+            guard FoundationModelsCompatibility.supportsThirdPartyModels else {
+                return .unavailable("\(FoundationModelsCompatibility.mismatchExplanation)")
+            }
+            guard !anthropicAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                return .notConfigured("Claude needs an API key")
+            }
+            return nil
+        case .openAICompatible:
+            guard FoundationModelsCompatibility.supportsThirdPartyModels else {
+                return .unavailable("\(FoundationModelsCompatibility.mismatchExplanation)")
+            }
+            let address = openAIBaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let url = URL(string: address), url.scheme != nil, url.host() != nil else {
+                return .notConfigured(address.isEmpty ? "This model needs an address to ask"
+                                                      : "That address is not one six can ask")
+            }
+            guard !openAIModel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                return .notConfigured("Name the model this address should answer with")
+            }
+            return nil
+        #endif
+        }
+    }
+
+    /// What Foundation Models says, in words about what to do next. The reason matters more than the
+    /// name of it: a model still coming down is a wait, Apple Intelligence switched off is a switch
+    /// in System Settings, and a Mac that cannot run it is a different model in the menu.
+    private static func trouble(with availability: SystemLanguageModel.Availability,
+                                called name: LocalizedStringResource) -> Trouble? {
+        switch availability {
+        case .available:
+            return nil
+        case .unavailable(let reason):
+            switch reason {
+            case .appleIntelligenceNotEnabled:
+                return .unavailable("Apple Intelligence is switched off in System Settings")
+            case .modelNotReady:
+                return .unavailable("\(name) is still downloading — it answers when it is here")
+            case .deviceNotEligible:
+                return .unavailable("This Mac cannot run \(name)")
+            @unknown default:
+                return .unavailable("\(name) is unavailable")
+            }
+        @unknown default:
+            return nil
+        }
+    }
+
+    /// The same question `trouble` answers, as the thing to say before building a session.
+    private func check() throws {
+        switch trouble {
+        case .none: return
+        case .notConfigured(let why): throw AssistantError.notConfigured(why)
+        case .unavailable(let why): throw AssistantError.unavailable(why)
+        }
+    }
+
     /// Builds a session for the selected model. Throws a readable error when the model isn't usable.
     /// `tools` are offered to the model (browser tools for the assistant; none for one-off jobs).
     func makeSession(instructions: String, tools: [any Tool] = []) throws -> LanguageModelSession {
@@ -136,43 +249,27 @@ final class AssistantSettings {
             throw AssistantError.unavailable("\(model.title) is an agent, not a language model")
         #endif
         case .onDevice:
-            let system = SystemLanguageModel.default
-            guard case .available = system.availability else {
-                throw AssistantError.unavailable("On-device model is not available: \(system.availability)")
-            }
-            return LanguageModelSession(model: system, tools: tools, instructions: instructions)
+            try check()
+            return LanguageModelSession(model: SystemLanguageModel.default, tools: tools, instructions: instructions)
         case .privateCloudCompute:
-            let pcc = PrivateCloudComputeLanguageModel()
-            guard case .available = pcc.availability else {
-                throw AssistantError.unavailable("Private Cloud Compute is not available: \(pcc.availability)")
-            }
-            return LanguageModelSession(model: pcc, tools: tools, instructions: instructions)
+            try check()
+            return LanguageModelSession(model: PrivateCloudComputeLanguageModel(), tools: tools, instructions: instructions)
         #if os(macOS)
         case .claudeSonnet, .claudeOpus:
-            guard FoundationModelsCompatibility.supportsThirdPartyModels else {
-                throw AssistantError.unavailable(FoundationModelsCompatibility.mismatchExplanation)
-            }
+            try check()
             let key = anthropicAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !key.isEmpty else { throw AssistantError.missingAPIKey }
             let claude = ClaudeLanguageModel(
                 name: model == .claudeOpus ? .opus5 : .sonnet5,
                 auth: .apiKey(key)
             )
             return LanguageModelSession(model: claude, tools: tools, instructions: instructions)
         case .openAICompatible:
-            guard FoundationModelsCompatibility.supportsThirdPartyModels else {
-                throw AssistantError.unavailable(FoundationModelsCompatibility.mismatchExplanation)
-            }
+            try check()
             let address = openAIBaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
             guard let url = URL(string: address), url.scheme != nil, url.host() != nil else {
-                throw AssistantError.unavailable(
-                    "\(address.isEmpty ? "No" : "Malformed") OpenAI-compatible endpoint. Set one in the model menu, e.g. https://api.openai.com/v1."
-                )
+                throw AssistantError.notConfigured("That address is not one six can ask")
             }
             let name = openAIModel.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !name.isEmpty else {
-                throw AssistantError.unavailable("Name the model the endpoint should answer with in the model menu.")
-            }
             // No key is a real answer — a server on this machine asks for none — so the header
             // goes on only when there is something to put in it.
             let openAIKey = openAIAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -187,15 +284,21 @@ final class AssistantSettings {
     }
 }
 
+/// Why the assistant could not answer, in the words the line shows. `notConfigured` is the half a
+/// person can do something about without leaving six, and the line offers the way there.
 enum AssistantError: LocalizedError {
-    case unavailable(String)
-    case missingAPIKey
+    case unavailable(LocalizedStringResource)
+    case notConfigured(LocalizedStringResource)
 
     var errorDescription: String? {
         switch self {
-        case .unavailable(let reason): reason
-        case .missingAPIKey: "Add an Anthropic API key in the model menu to use Claude."
+        case .unavailable(let reason), .notConfigured(let reason): String(localized: reason)
         }
+    }
+
+    var isConfiguration: Bool {
+        if case .notConfigured = self { return true }
+        return false
     }
 }
 

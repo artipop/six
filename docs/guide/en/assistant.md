@@ -27,6 +27,12 @@ are behind `/` there: type `/`, keep typing to narrow the list (`/sum` leaves
 
 `⏎` sends the question. `⏎` on an empty line applies the answer already there.
 
+If the chosen model cannot answer, the line says so in place of the actions: a
+missing key comes with a **Set Up…** button that opens the settings, and `⏎`
+does the same. When it is not a matter of settings — the model is still
+downloading, Apple Intelligence is off, this Mac cannot run it — there is only
+the sentence.
+
 ## When you select text
 
 Select some text and press `⌘E` — the line stands under the selection with the

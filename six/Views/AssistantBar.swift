@@ -73,7 +73,9 @@ struct AssistantBar: View {
 
     /// The row is up beside a field or a selection until something is typed: the verbs are the
     /// answer nearly every time, and the field under them is for the times they are not.
-    private var showsChips: Bool { chipsFirst && question.isEmpty && assistant.answer == nil }
+    private var showsChips: Bool {
+        chipsFirst && question.isEmpty && assistant.answer == nil && assistant.settings.trouble == nil
+    }
 
     var body: some View {
         VStack(spacing: 8) {
@@ -104,8 +106,14 @@ struct AssistantBar: View {
         .onChange(of: verbs.count) { chosen = min(chosen, max(0, verbs.count - 1)) }
     }
 
+    /// The verbs, or — when the chosen model could not answer if it were asked — what is missing
+    /// and the way to it. Said before anything is pressed: a person who has switched the assistant
+    /// on and set nothing up otherwise learns it by pressing a verb and reading a failure.
     @ViewBuilder private var chipRow: some View {
-        if showsChips, !verbs.isEmpty {
+        if let trouble = assistant.settings.trouble, isShown {
+            TroubleRow(trouble: trouble)
+                .transition(.opacity)
+        } else if showsChips, !verbs.isEmpty {
             ChipRow(verbs: verbs, chosen: chosen) { run($0) }
                 .transition(.opacity)
         }
@@ -231,6 +239,12 @@ struct AssistantBar: View {
     /// Return sends the question. With nothing typed it takes the answer that is already there and
     /// puts it in the page — the one gesture that finishes a rewrite without reaching for the mouse.
     private func submit() {
+        // Nothing to run while the model cannot answer: Return takes the person to the page that
+        // would put it right, which is the only thing the line is offering then.
+        if let trouble = assistant.settings.trouble, question.isEmpty {
+            if trouble.isConfiguration { browser.openBuiltIn(.configuration) }
+            return
+        }
         if showsChips, verbs.indices.contains(chosen) {
             run(verbs[chosen])
             return
@@ -322,6 +336,35 @@ struct AnchoredAssistantLine: View {
             .environment(agentSession)
             .environment(configuration)
             .tint(browser.selectedProfile.color)
+    }
+}
+
+/// What the chosen model is missing, where the verbs would be, with the way to put it right. The
+/// button opens `six://configuration`, which is where the keys and the endpoint live; for the
+/// troubles nobody can fix from here — a model still coming down, a Mac that cannot run it — there
+/// is only the sentence, because a button that leads nowhere is worse than none.
+private struct TroubleRow: View {
+    let trouble: AssistantSettings.Trouble
+
+    @Environment(BrowserState.self) private var browser
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: trouble.isConfiguration ? "slider.horizontal.3" : "clock")
+            Text(trouble.message)
+                .lineLimit(2)
+            if trouble.isConfiguration {
+                Button("Set Up…") { browser.openBuiltIn(.configuration) }
+                    .buttonStyle(.link)
+            }
+            Spacer(minLength: 0)
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(.regularMaterial, in: Capsule())
+        .overlay(Capsule().strokeBorder(.separator, lineWidth: 0.5))
     }
 }
 
@@ -434,6 +477,14 @@ private struct AnswerStrip: View {
                 }
             }
             .frame(maxHeight: 220)
+            if let error = answer.error, answer.offersConfiguration {
+                Button { browser.openBuiltIn(.configuration) } label: {
+                    Label("Set Up…", systemImage: "slider.horizontal.3")
+                }
+                .font(.caption)
+                .controlSize(.small)
+                .help(error)
+            }
             if answer.isApplied {
                 Label("Inserted into the page — ⌘Z to undo", systemImage: "checkmark")
                     .font(.caption)

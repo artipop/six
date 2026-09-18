@@ -47,6 +47,8 @@ final class AssistantStore {
         /// What the agent is doing right now (a tool call), while there is nothing to show yet.
         var activity: String?
         var error: String?
+        /// The error is one the person can put right in `six://configuration` ▸ Assistant.
+        var offersConfiguration = false
         var isRunning = false
         /// Written back into the page already: the buttons become "Undo it yourself, ⌘Z".
         var isApplied = false
@@ -154,7 +156,9 @@ final class AssistantStore {
                 switch update {
                 case .text(let text): self.answer?.text = text; self.answer?.activity = nil
                 case .activity(let title): self.answer?.activity = title
-                case .failure(let message): self.answer?.error = message
+                case .failure(let message, let fixable):
+                    self.answer?.error = message
+                    self.answer?.offersConfiguration = fixable
                 }
             }
             guard let self, self.answer?.id == id else { return }
@@ -163,7 +167,13 @@ final class AssistantStore {
         }
     }
 
-    enum Update { case text(String), activity(String), failure(String) }
+    enum Update {
+        case text(String)
+        case activity(String)
+        /// `fixable` when the way out is `six://configuration` ▸ Assistant — a key, an address, a
+        /// model name — and the answer offers the way there rather than only naming the trouble.
+        case failure(String, fixable: Bool = false)
+    }
 
     private func stream(_ prompt: String, report: @escaping (Update) -> Void) async {
         do {
@@ -174,7 +184,8 @@ final class AssistantStore {
             }
         } catch is CancellationError {
         } catch {
-            report(.failure(error.localizedDescription))
+            report(.failure(error.localizedDescription,
+                            fixable: (error as? AssistantError)?.isConfiguration == true))
         }
     }
 
