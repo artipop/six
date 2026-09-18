@@ -54,7 +54,12 @@ SIX_ACP_TRACE=1 SIX_ACP_SELFTEST="Say hi" ./six.app/Contents/MacOS/six 2>&1 | gr
 
 ## Toolchain
 
-Adapters are npm packages, resolved by `AgentToolchain` in the environment of an interactive login shell (`zsh -l -i`, so `.zshrc` — where nvm usually lives — counts):
+Adapters are npm packages, resolved by `AgentToolchain` in the environment of an interactive login
+shell (`zsh -l -i`, so `.zshrc` — where nvm usually lives — counts). They are **shown and installed on
+`six://configuration` ▸ Assistant ▸ Agents** (`AgentToolchainSection`), not in the panel: installing
+one is a setting, and the panel is where work happens. The panel keeps one line
+(`AgentToolchainHint`) for when something is wrong — the adapter missing, behind, or the CLI not
+found — with **Set Up…** to that page, and says nothing at all when everything is in order:
 
 - adapter on `PATH` (`claude-agent-acp` / `codex-acp`) → used directly, with its version read from
   `<adapter> --version` and compared against `npm view <package> version`; when it is behind, the row

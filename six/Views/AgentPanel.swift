@@ -65,7 +65,7 @@ struct AgentPanel: View {
                 Button("Choose…") { chooseDirectory() }
                     .controlSize(.small)
             }
-            ToolchainStatusView(agent: store.agent)
+            AgentToolchainHint(agent: store.agent)
             // The agent calls them `\(MCPStdioBridge.acpServer.name) <method>` — see `AgentToolName`.
             Label("Browser tools of \(MCPStdioBridge.acpServer.name): \(mcp.server.toolNames.joined(separator: ", "))", systemImage: "wrench.and.screwdriver")
                 .font(.caption)
@@ -177,84 +177,6 @@ struct AgentPanel: View {
 }
 
 /// Shows whether the ACP adapter and its CLI are installed; offers to install the adapter with npm.
-private struct ToolchainStatusView: View {
-    let agent: ACPAgentDefinition
-    @Environment(AgentSessionStore.self) private var store
-    @State private var showLog = false
-
-    private var toolchain: AgentToolchain { store.toolchain }
-    private var report: AgentToolchain.Report { toolchain.report(for: agent) }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 6) {
-                switch report.adapter {
-                case .unknown, .checking:
-                    ProgressView().controlSize(.mini)
-                    Text("Checking \(agent.binaryName)…")
-                case .installed(let path):
-                    if let update = report.update {
-                        Image(systemName: "arrow.up.circle.fill").foregroundStyle(.orange)
-                        Text("\(agent.binaryName) \(update.from) — \(update.to) is out").help(path)
-                        Spacer()
-                        if report.isInstalling {
-                            ProgressView().controlSize(.mini)
-                        } else {
-                            Button("Update") { Task { await toolchain.install(agent) } }
-                        }
-                    } else {
-                        Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-                        Text(report.installedVersion.map { "\(agent.binaryName) \($0)" } ?? agent.binaryName)
-                            .help(path)
-                    }
-                case .installable:
-                    Image(systemName: "arrow.down.circle").foregroundStyle(.orange)
-                    Text("\(agent.binaryName) not installed (runs via npx)")
-                    Spacer()
-                    if report.isInstalling {
-                        ProgressView().controlSize(.mini)
-                    } else {
-                        Button("Install") { Task { await toolchain.install(agent) } }
-                    }
-                case .nodeMissing:
-                    Image(systemName: "xmark.circle.fill").foregroundStyle(.red)
-                    Text("Node.js / npm not found")
-                    Spacer()
-                    Link("Install Node.js", destination: AgentToolchain.nodeInstallURL)
-                }
-                if report.adapter != .checking {
-                    Button { Task { await toolchain.refresh(agent) } } label: { Image(systemName: "arrow.clockwise") }
-                        .buttonStyle(.plain)
-                        .help("Re-check")
-                }
-            }
-            HStack(spacing: 6) {
-                if report.underlyingCLIPath != nil {
-                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-                    Text("\(agent.underlyingCLI) CLI")
-                } else if report.adapter != .unknown, report.adapter != .checking {
-                    Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-                    Text("\(agent.underlyingCLI) CLI not found. \(agent.loginHint)")
-                }
-            }
-            if !report.installLog.isEmpty {
-                DisclosureGroup("Install log", isExpanded: $showLog) {
-                    ScrollView {
-                        Text(report.installLog).font(.caption.monospaced()).textSelection(.enabled)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .frame(maxHeight: 120)
-                }
-            }
-        }
-        .font(.caption)
-        .controlSize(.small)
-        .task(id: agent.id) {
-            if report.adapter == .unknown { await toolchain.refresh(agent) }
-        }
-    }
-}
-
 private struct TranscriptRow: View {
     let item: AgentTranscriptItem
 

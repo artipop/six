@@ -392,6 +392,8 @@ private struct AssistantPane: View {
                     Stepper("Sources: \(research.sourceCount)", value: $research.sourceCount, in: 1...20)
                 }
 
+                AgentToolchainSection()
+
                 AssistantProviderConfiguration()
             }
             // Everything below the switch is about a thing that is not running while it is off.

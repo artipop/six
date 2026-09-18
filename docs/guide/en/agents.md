@@ -10,7 +10,12 @@ browser's tools appear in the agent's hands on their own.
 
 ## What has to be installed
 
-The panel checks your shell's environment and says what is missing:
+The adapters live in **Configuration ▸ Assistant ▸ Agents**, which shows each
+one's version and carries the **Install** and **Update** buttons. The panel says
+nothing while all is well, and one line with a **Set Up…** button when it is
+not.
+
+It checks your shell's environment:
 
 | | |
 |---|---|
