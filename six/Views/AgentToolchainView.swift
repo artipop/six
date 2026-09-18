@@ -153,7 +153,7 @@ struct AgentToolchainHint: View {
         HStack(spacing: 6) {
             Image(systemName: symbol).foregroundStyle(.orange)
             Text(text).lineLimit(2)
-            Button("Set Up…") { browser.openBuiltIn(.configuration) }
+            Button("Set Up…") { browser.openBuiltIn(.configuration, section: "assistant") }
                 .buttonStyle(.link)
             Spacer(minLength: 0)
         }

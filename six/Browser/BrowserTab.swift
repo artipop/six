@@ -48,7 +48,12 @@ nonisolated enum BuiltInPage: String, Codable, Sendable, CaseIterable {
     case welcome
     #endif
 
-    var url: URL { URL(string: "six://\(rawValue)")! }
+    var url: URL { url(section: nil) }
+
+    func url(section: String?) -> URL {
+        guard let section, !section.isEmpty else { return URL(string: "six://\(rawValue)")! }
+        return URL(string: "six://\(rawValue)#\(section)") ?? url
+    }
 
     var title: String {
         switch self {
@@ -151,6 +156,13 @@ final class BrowserTab: Identifiable {
     }
 
     /// One of six's own pages, when this window is one.
+    /// Which part of a built-in page is being looked at, as the fragment of its address:
+    /// `six://configuration#assistant`. Six's own pages have one address each, so a person sent to
+    /// the assistant's settings from the ⌘E line used to land on General and have to find their way
+    /// — and the address bar said `six://configuration` either way, which is an address that cannot
+    /// bring you back to where you were.
+    var section: String?
+
     var builtIn: BuiltInPage? {
         if case .builtIn(let page) = content { return page }
         return nil
@@ -771,7 +783,7 @@ final class BrowserTab: Identifiable {
     var currentURL: URL? {
         // Six's own pages have an address, and it is the one thing about them worth showing: it can
         // be typed, and it says what the window is.
-        if let builtIn { return builtIn.url }
+        if let builtIn { return builtIn.url(section: section) }
         guard isWebPage else { return nil }
         if let pendingURL { return pendingURL }
         return livePage?.url ?? savedURL

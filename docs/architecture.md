@@ -10,7 +10,7 @@ six/Input       KeyBindings + KeyContext (the table and what has the keyboard �
                 docs/hotkeys.md), KeyEvents (NSEvent → those values), KeyRouter (the one key monitor)
 six/Browser     Profile, BrowserTab (WebPage), LivePageCache (the live-page budget), BrowserState, History, SitePermissions + PageDialogs (camera/microphone per site, the page's own dialogs), SearchEngine, SearchSuggestions, WebSearch
 six/Bookmarks   Bookmark (tables), ReadablePage (page → Markdown), Embedder + MLXEmbedder (multilingual-e5 over MLX), BookmarkStore (files, vec0 index, search)
-six/Views       ContentView (top bar), NiriStripView (the rail + overview), ConfigurationPageView (six://configuration), StartPage, AssistantBar, AgentPanel, HistoryView, BookmarksView
+six/Views       ContentView (top bar), NiriStripView (the rail + overview), ConfigurationPageView (six://configuration#<section>), StartPage, AssistantBar, AgentPanel, HistoryView, BookmarksView
 six/Assistant   ModelChoice/AssistantSettings, AssistantStore (streaming), FoundationModelsCompatibility
 six/ACP         ACPJSON, JSONRPCConnection, ACPTypes, ACPAgent (process), ACPClient (actor), AgentSessionStore
 six/Tools       BrowserToolCatalog (the tools, over BrowserState), BrowserModelTool (Foundation Models adapter)

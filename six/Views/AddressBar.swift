@@ -402,7 +402,7 @@ struct AddressBar: View {
             }
             // The page, not a sheet: what is blocked is worth reading beside the site it is
             // blocked on, and a sheet covers exactly that.
-            Button("Filter Lists…") { browser.openBuiltIn(.configuration) }
+            Button("Filter Lists…") { browser.openBuiltIn(.configuration, section: "privacy") }
         } label: {
             Image(systemName: isAllowed ? "shield.slash" : "shield.lefthalf.filled")
                 .font(.system(size: 10))
@@ -485,7 +485,7 @@ struct AddressBar: View {
                 Button("Forget This Site's Choices") {
                     permissions.forget(origin: origin, profileID: tab.profileID)
                 }
-                Button("Site Permissions…") { browser.openBuiltIn(.configuration) }
+                Button("Site Permissions…") { browser.openBuiltIn(.configuration, section: "privacy") }
             } label: {
                 Image(systemName: symbol)
                     .font(.system(size: 10))

@@ -242,7 +242,7 @@ struct AssistantBar: View {
         // Nothing to run while the model cannot answer: Return takes the person to the page that
         // would put it right, which is the only thing the line is offering then.
         if let trouble = assistant.settings.trouble, question.isEmpty {
-            if trouble.isConfiguration { browser.openBuiltIn(.configuration) }
+            if trouble.isConfiguration { browser.openBuiltIn(.configuration, section: "assistant") }
             return
         }
         if showsChips, verbs.indices.contains(chosen) {
@@ -354,7 +354,7 @@ private struct TroubleRow: View {
             Text(trouble.message)
                 .lineLimit(2)
             if trouble.isConfiguration {
-                Button("Set Up…") { browser.openBuiltIn(.configuration) }
+                Button("Set Up…") { browser.openBuiltIn(.configuration, section: "assistant") }
                     .buttonStyle(.link)
             }
             Spacer(minLength: 0)
@@ -478,7 +478,7 @@ private struct AnswerStrip: View {
             }
             .frame(maxHeight: 220)
             if let error = answer.error, answer.offersConfiguration {
-                Button { browser.openBuiltIn(.configuration) } label: {
+                Button { browser.openBuiltIn(.configuration, section: "assistant") } label: {
                     Label("Set Up…", systemImage: "slider.horizontal.3")
                 }
                 .font(.caption)
@@ -555,7 +555,7 @@ private struct ModelMenu: View {
             Divider()
             // The keys and endpoints live on `six://settings` ▸ Assistant, which is one place and
             // not two. This used to open a sheet carrying the same three fields.
-            Button("Configuration…") { browser.openBuiltIn(.configuration) }
+            Button("Configuration…") { browser.openBuiltIn(.configuration, section: "assistant") }
             Button("New Conversation") { assistant.resetConversation() }
         } label: {
             Image(systemName: settings.model.symbol)

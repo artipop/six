@@ -444,7 +444,10 @@ final class BrowserState {
         // A `six://…` window comes back as the page it was, not as a window trying to fetch an address
         // WebKit has never heard of.
         if let url = saved.url, let page = BuiltInPage.page(for: url) {
-            return makeBuiltInTab(id: saved.id, profile: profile, page: page)
+            let tab = makeBuiltInTab(id: saved.id, profile: profile, page: page)
+            // The fragment came back with the address, so the page opens where it was left.
+            tab.section = url.fragment()
+            return tab
         }
         let tab = makeTab(id: saved.id, profile: profile, restoring: saved.url, title: saved.title)
         // The same trail a window handed to another profile is given, from the file instead of from
@@ -647,7 +650,7 @@ final class BrowserState {
         // built as a web one, `onBuiltInAddress` fires on the way to loading it, and the person is
         // left with the page they asked for *and* an empty window beside it.
         if let url, let page = BuiltInPage.page(for: url) {
-            return openBuiltIn(page, in: profileID, activate: activate)
+            return openBuiltIn(page, section: url.fragment(), in: profileID, activate: activate)
         }
         let profile = profiles.first { $0.id == profileID } ?? selectedProfile
         let tab = makeTab(profile: profile)
@@ -845,13 +848,19 @@ final class BrowserState {
     /// Focusing rather than opening a second is the difference between a page and a panel: a person
     /// who asks for the server list twice wants the list, not two of them.
     @discardableResult
-    func openBuiltIn(_ page: BuiltInPage, in profileID: Profile.ID? = nil, activate: Bool = true) -> BrowserTab {
+    /// `section` is the fragment of the address (`six://configuration#assistant`): a page that is
+    /// already open is turned to that part rather than left where it was, which is what a button
+    /// saying "Set Up…" promises.
+    func openBuiltIn(_ page: BuiltInPage, section: String? = nil, in profileID: Profile.ID? = nil,
+                     activate: Bool = true) -> BrowserTab {
         let profile = profiles.first { $0.id == profileID } ?? selectedProfile
         if let existing = tabs(in: profile.id).first(where: { $0.builtIn == page }) {
+            if let section { existing.section = section }
             if activate { selectTab(existing.id) }
             return existing
         }
         let tab = makeBuiltInTab(profile: profile, page: page)
+        tab.section = section
         add(tab)
         if activate, selectedProfileID != profile.id {
             selectedProfileID = profile.id

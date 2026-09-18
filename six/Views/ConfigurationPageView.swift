@@ -62,6 +62,14 @@ struct ConfigurationPageView: View {
             }
         }
         .background(.background)
+        // The address and the sidebar are the same fact. Arriving with `#assistant` turns the page to
+        // it, and turning it by hand rewrites the address — so the window can be copied, typed again
+        // or restored where it stood, which one address for six panes could not do.
+        .onAppear { if let named = tab.section.flatMap(Section.init(rawValue:)) { section = named } }
+        .onChange(of: tab.section) {
+            if let named = tab.section.flatMap(Section.init(rawValue:)), named != section { section = named }
+        }
+        .onChange(of: section) { if tab.section != section.rawValue { tab.section = section.rawValue } }
     }
 
     private var sidebar: some View {
