@@ -5813,6 +5813,72 @@
           }
         }
       }
+    },
+    "Which model should answer?" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Какая модель будет отвечать?"
+          }
+        }
+      }
+    },
+    "On-Device" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "На устройстве"
+          }
+        }
+      }
+    },
+    "Claude Code" : {
+      "shouldTranslate" : false
+    },
+    "Codex" : {
+      "shouldTranslate" : false
+    },
+    "Apple's model. Nothing leaves this Mac." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Модель Apple. Ничего не покидает Mac."
+          }
+        }
+      }
+    },
+    "Your Claude subscription, through the claude CLI." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ваша подписка Claude, через claude CLI."
+          }
+        }
+      }
+    },
+    "Your ChatGPT subscription, through the codex CLI." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ваша подписка ChatGPT, через codex CLI."
+          }
+        }
+      }
+    },
+    "Anthropic or any OpenAI-compatible server." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anthropic или любой OpenAI-совместимый сервер."
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

@@ -89,7 +89,12 @@ Bookmark search and page translation keep working: neither is a model talking to
 you — one is search, the other is a translator.
 
 You are asked once, on the first launch, in a window on the rail —
-`six://welcome`. The answer is never final: the switch is always there.
+`six://welcome`. Answer "Yes, use them" and the next step, in the same window,
+is who answers: On-Device, Claude Code, Codex or API Key (Anthropic or an
+OpenAI-compatible server) — set up on the spot: an agent shows whether its adapter
+is installed, a key shows the key and endpoint fields. "Done" points both the
+`⌘E` line and the agent panel at the choice. The answer is never final: the switch
+is always there.
 
 ## Which model answers
 

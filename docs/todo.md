@@ -152,6 +152,12 @@ missed:
 4. **The phone.** `PageFocus` compiles on iOS and nothing reads it there: the Phone layout has no
    assistant surface at all yet, and a selection bar is a different gesture on a touch screen —
    iOS puts its own menu over a selection.
+5. **Any ACP agent, not two.** The welcome's provider step and `ModelChoice.agents` know exactly
+   Claude Code and Codex (`ACPAgentDefinition.builtIn`). ACP is a protocol, and the right shape is
+   an "ACP" block in Configuration ▸ Assistant where any ACP-speaking binary is added by path and
+   arguments, then offered everywhere the two built-ins are — the welcome included. Every variant
+   `ModelChoice` has should be reachable from the welcome as well, not only the four doors it opens
+   now (Private Cloud Compute is the one left out).
 
 ## Windows: a WebKit that is not Playwright's
 

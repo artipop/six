@@ -20,7 +20,7 @@ struct AgentToolchainSection: View {
 
 /// One adapter, with everything about it said in the order it matters: what six will run, how old it
 /// is, and whether the CLI it drives is there at all.
-private struct AgentToolchainRow: View {
+struct AgentToolchainRow: View {
     let agent: ACPAgentDefinition
 
     @Environment(AgentSessionStore.self) private var store

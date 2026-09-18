@@ -8,15 +8,28 @@ import SwiftUI
 /// it teaches the layout in the act of being read — the first thing a new person does here is close
 /// a column.
 ///
-/// One question for now, because there is only one that cannot be guessed: six is built around
-/// language models, and whether they run at all is not a preference to discover in a settings pane
-/// three days later. Everything else six could ask — the default browser, what to block — either
-/// has a right answer or asks itself at the moment it matters.
+/// One question, and one more if the answer is yes: six is built around language models, and
+/// whether they run at all is not a preference to discover in a settings pane three days later. A
+/// yes that stops there, though, leaves a ⌘E line that can do nothing until somebody finds the key
+/// field — so the second step is which model answers, set up on the spot. Everything else six could
+/// ask — the default browser, what to block — either has a right answer or asks itself at the
+/// moment it matters.
 struct WelcomePage: View {
     let tab: BrowserTab
 
     @Environment(ConfigurationStore.self) private var settings
     @Environment(BrowserState.self) private var browser
+    @Environment(AssistantStore.self) private var assistant
+    @Environment(AgentSessionStore.self) private var agentSession
+
+    private enum Step { case question, provider }
+    @State private var step: Step = .question
+
+    /// The four doors on the second step. "API" is one card over three models, because the choice
+    /// between them is a key a person already has, not a thing to weigh on a welcome page.
+    private enum Provider: CaseIterable { case onDevice, claudeCode, codex, api }
+    @State private var provider: Provider = .onDevice
+    @State private var apiModel: ModelChoice = .claudeSonnet
 
     var body: some View {
         ScrollView {
@@ -32,24 +45,10 @@ struct WelcomePage: View {
 
                 Divider().padding(.vertical, 28)
 
-                Text("Should six use language models?")
-                    .font(.title2.weight(.semibold))
-                Text("The ⌘E line, actions over selected text, the agent panel, deep research and the MCP server.")
-                    .foregroundStyle(.secondary)
-                    .padding(.top, 6)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                HStack(spacing: 12) {
-                    Choice(title: "Yes, use them",
-                           detail: "The on-device model keeps everything on this Mac; others need your own key.",
-                           symbol: "sparkles",
-                           isProminent: true) { answer(true) }
-                    Choice(title: "No, don't use them",
-                           detail: "Nothing is loaded or added to pages. Bookmark search and translation still work.",
-                           symbol: "nosign",
-                           isProminent: false) { answer(false) }
+                switch step {
+                case .question: question
+                case .provider: providerStep
                 }
-                .padding(.top, 20)
 
                 Text("You can change this at any time in Configuration ▸ Assistant.")
                     .font(.caption)
@@ -66,6 +65,144 @@ struct WelcomePage: View {
         .background(.background)
     }
 
+    @ViewBuilder private var question: some View {
+        Text("Should six use language models?")
+            .font(.title2.weight(.semibold))
+        Text("The ⌘E line, actions over selected text, the agent panel, deep research and the MCP server.")
+            .foregroundStyle(.secondary)
+            .padding(.top, 6)
+            .fixedSize(horizontal: false, vertical: true)
+
+        HStack(spacing: 12) {
+            Choice(title: "Yes, use them",
+                   detail: "The on-device model keeps everything on this Mac; others need your own key.",
+                   symbol: "sparkles",
+                   isProminent: true) {
+                // Written now, not on Done: the agent rows below ask the toolchain, which is only
+                // built with the switch on. The welcome itself stays unanswered until Done, so a
+                // quit halfway through asks again.
+                settings.isAIEnabled = true
+                step = .provider
+            }
+            Choice(title: "No, don't use them",
+                   detail: "Nothing is loaded or added to pages. Bookmark search and translation still work.",
+                   symbol: "nosign",
+                   isProminent: false) { answer(false) }
+        }
+        .padding(.top, 20)
+    }
+
+    @ViewBuilder private var providerStep: some View {
+        Text("Which model should answer?")
+            .font(.title2.weight(.semibold))
+
+        HStack(spacing: 12) {
+            ForEach(Provider.allCases, id: \.self) { item in
+                Choice(title: title(item), detail: detail(item), symbol: symbol(item),
+                       isProminent: provider == item, height: 130) { provider = item }
+                    .disabled(item == .api && !FoundationModelsCompatibility.supportsThirdPartyModels)
+            }
+        }
+        .padding(.top, 20)
+
+        setup
+            .padding(.top, 16)
+
+        HStack {
+            Button("Back") { step = .question }
+            Spacer()
+            Button("Done") { finish() }
+                .keyboardShortcut(.defaultAction)
+        }
+        .controlSize(.large)
+        .padding(.top, 20)
+    }
+
+    /// What the chosen door needs, and nothing for the ones not chosen. Nothing here blocks Done: a
+    /// key left empty is said again by the ⌘E line itself (`AssistantSettings.trouble`).
+    @ViewBuilder private var setup: some View {
+        switch provider {
+        case .onDevice:
+            if let trouble = assistant.settings.trouble(for: .onDevice) {
+                Text(trouble.message).font(.caption).foregroundStyle(.orange)
+            }
+        case .claudeCode:
+            AgentToolchainRow(agent: .claudeCode)
+        case .codex:
+            AgentToolchainRow(agent: .codex)
+        case .api:
+            if FoundationModelsCompatibility.supportsThirdPartyModels {
+                @Bindable var settings = assistant.settings
+                Form {
+                    Section {
+                        Picker("Model", selection: $apiModel) {
+                            ForEach([ModelChoice.claudeSonnet, .claudeOpus, .openAICompatible]) { choice in
+                                Text(choice.title).tag(choice)
+                            }
+                        }
+                    }
+                    // The same fields Configuration ▸ Assistant shows, answering to whatever the ⌘E
+                    // line is set to — so the choice is written as it is made, not only on Done.
+                    AssistantProviderConfiguration()
+                }
+                .formStyle(.grouped)
+                .scrollDisabled(true)
+                .frame(minHeight: 220)
+                .onAppear { settings.model = apiModel }
+                .onChange(of: apiModel) { settings.model = apiModel }
+            } else {
+                Text("Remote models unavailable: SDK/OS Foundation Models mismatch")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            }
+        }
+    }
+
+    private func model(for item: Provider) -> ModelChoice {
+        switch item {
+        case .onDevice: .onDevice
+        case .claudeCode: .claudeCodeAgent
+        case .codex: .codexAgent
+        case .api: apiModel
+        }
+    }
+
+    private func title(_ item: Provider) -> LocalizedStringResource {
+        switch item {
+        case .onDevice: "On-Device"
+        case .claudeCode: "Claude Code"
+        case .codex: "Codex"
+        case .api: "API Key"
+        }
+    }
+
+    private func detail(_ item: Provider) -> LocalizedStringResource {
+        switch item {
+        case .onDevice: "Apple's model. Nothing leaves this Mac."
+        case .claudeCode: "Your Claude subscription, through the claude CLI."
+        case .codex: "Your ChatGPT subscription, through the codex CLI."
+        case .api: "Anthropic or any OpenAI-compatible server."
+        }
+    }
+
+    private func symbol(_ item: Provider) -> String {
+        switch item {
+        case .onDevice: "cpu"
+        case .claudeCode, .codex: "terminal"
+        case .api: "key"
+        }
+    }
+
+    /// The ⌘E line and the agent panel are pointed at the same thing: a person who picked Codex
+    /// here and opened the panel to find Claude Code in it would have been asked for nothing.
+    private func finish() {
+        let choice = model(for: provider)
+        assistant.settings.model = choice
+        if let agent = choice.agentDefinition { agentSession.agent = agent }
+        settings.hasAnsweredWelcome = true
+        browser.closeTab(tab.id)
+    }
+
     /// Answering is the whole of it: the switch is written, the question is marked asked, and the
     /// window closes — the rail is left empty rather than holding a page nobody needs twice.
     private func answer(_ enabled: Bool) {
@@ -79,6 +216,7 @@ struct WelcomePage: View {
         let detail: LocalizedStringResource
         let symbol: String
         let isProminent: Bool
+        var height: CGFloat = 170
         let action: () -> Void
 
         @Environment(BrowserState.self) private var browser
@@ -98,7 +236,7 @@ struct WelcomePage: View {
                     Spacer(minLength: 0)
                 }
                 .padding(16)
-                .frame(maxWidth: .infinity, minHeight: 170, alignment: .topLeading)
+                .frame(maxWidth: .infinity, minHeight: height, alignment: .topLeading)
                 .background(hovering ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.quinary),
                             in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .overlay {
