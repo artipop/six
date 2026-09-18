@@ -32,6 +32,9 @@ struct AssistantBar: View {
     @Environment(AssistantStore.self) private var assistant
     @Environment(AgentSessionStore.self) private var agentSession
     @State private var question = ""
+    /// The full research sheet (topic, source count, the preset) — the same one the agent panel
+    /// opens, so the bottom line does not grow a second, thinner way to start a run.
+    @State private var showResearch = false
     /// One switch for both halves of the line, not a flag each: two `@FocusState`s in one view are
     /// one focus between them, and handing it from the row to the field means naming where it goes.
     @FocusState private var where_: Half?
@@ -104,6 +107,7 @@ struct AssistantBar: View {
             if assistant.answer == nil, !hasCaret { assistant.lineLostFocus(at: place) }
         }
         .onChange(of: verbs.count) { chosen = min(chosen, max(0, verbs.count - 1)) }
+        .sheet(isPresented: $showResearch) { ResearchSheet() }
     }
 
     /// The verbs, or — when the chosen model could not answer if it were asked — what is missing
@@ -158,6 +162,14 @@ struct AssistantBar: View {
     private var field: some View {
         HStack(spacing: 8) {
             ModelMenu()
+            // Only at the bottom: over a selection or a field the question is about that text, and
+            // "start a research run" about a paragraph is not a verb that text has.
+            if place == .bottom {
+                Button { showResearch = true } label: { Image(systemName: "text.magnifyingglass") }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+                    .help("Deep Research…")
+            }
             if let badge = contextBadge {
                 Label(badge.text, systemImage: badge.symbol)
                     .font(.caption)

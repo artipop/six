@@ -1967,6 +1967,16 @@
         }
       }
     },
+    "Deep Research…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Глубокое исследование…"
+          }
+        }
+      }
+    },
     "Default Browser" : {
       "localizations" : {
         "ru" : {
