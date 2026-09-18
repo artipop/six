@@ -29,9 +29,49 @@ nonisolated enum PageFocusScript {
         """
 
     /// Reading the page: what is focused, what is selected, and where on screen that is.
+    ///
+    /// It also **remembers the last selection it saw**, in the page and in this world, because the
+    /// selection does not survive the ⌘E line taking the keyboard: a field collapses its own to a
+    /// caret and a selection in prose is dropped outright. Swift keeps the text of it, but only the
+    /// page can keep the nodes, and putting an answer back needs the range and not the words.
     private static let reader = secrets + """
 
         const LIMIT = 8000;
+
+        function remember(state) {
+            const active = document.activeElement;
+            const tag = active ? active.tagName : '';
+            if (state.kind !== 'selection') return state;
+            if (tag === 'INPUT' || tag === 'TEXTAREA') {
+                window.__sixKeep = { field: active, start: state.start, end: state.end, range: null };
+                return state;
+            }
+            const sel = window.getSelection();
+            if (sel && sel.rangeCount > 0) {
+                window.__sixKeep = { field: null, start: 0, end: 0, range: sel.getRangeAt(0).cloneRange() };
+            }
+            return state;
+        }
+
+        /// Put back the selection this world remembers, if it is still the one being asked about —
+        /// the numbers for a field, the text for a range. A stale one is left alone: a caret that
+        /// has moved on is not a selection that was lost.
+        function reselect(text, start, end) {
+            const keep = window.__sixKeep;
+            if (!keep) return 'nothing kept';
+            if (keep.field) {
+                if (!document.contains(keep.field)) return 'the field is gone';
+                if (keep.start !== start || keep.end !== end) return 'the field moved on';
+                keep.field.setSelectionRange(keep.start, keep.end);
+                return 'field ' + keep.start + '-' + keep.end;
+            }
+            if (!keep.range) return 'nothing kept';
+            if (keep.range.toString() !== text) return 'the selection moved on';
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(keep.range);
+            return 'range';
+        }
 
         function nameOf(el) {
             if (!el) return '';
@@ -73,7 +113,7 @@ nonisolated enum PageFocusScript {
                 const value = (active.value || '').slice(0, LIMIT);
                 const start = active.selectionStart || 0;
                 const end = active.selectionEnd || 0;
-                return {
+                return remember({
                     kind: end > start ? 'selection' : 'caret',
                     text: end > start ? value.slice(start, end) : '',
                     field: value,
@@ -83,7 +123,7 @@ nonisolated enum PageFocusScript {
                     multiline: tag === 'TEXTAREA',
                     label: nameOf(active),
                     rect: boxOf(active)
-                };
+                });
             }
 
             const sel = window.getSelection();
@@ -94,7 +134,7 @@ nonisolated enum PageFocusScript {
                 const r = range.getBoundingClientRect();
                 const text = sel.toString();
                 if (!text.trim()) return { kind: 'none' };
-                return {
+                return remember({
                     kind: 'selection',
                     text: text.slice(0, LIMIT),
                     field: host ? (host.innerText || '').slice(0, LIMIT) : '',
@@ -104,7 +144,7 @@ nonisolated enum PageFocusScript {
                     multiline: true,
                     label: host ? nameOf(host) : '',
                     rect: [r.left, r.top, r.width, r.height]
-                };
+                });
             }
 
             if (active && active.isContentEditable) {
@@ -181,29 +221,47 @@ nonisolated enum PageFocusScript {
     /// `execCommand('insertText')` rather than a value assignment, deliberately: it fires the input
     /// events a framework-driven field listens for, and it lands in the page's own undo stack — so
     /// ⌘Z takes it back, which is what makes a wrong rewrite cheap.
-    static let insert = secrets + """
+    /// Called when the line comes up: the page is asked to hold on to what it was showing, so the
+    /// person can still see what the question is about.
+    static let reselect = reader + """
 
-        const active = document.activeElement;
-        const tag = active ? active.tagName : '';
-        if (secret(active)) return false;
+        return reselect(text, start, end);
+        """
+
+    /// Putting an answer back. `text` is the answer, `whole` replaces the field; `subject`,
+    /// `start` and `end` are what the line was about, so the selection can be put back first — by
+    /// the time this runs the page has collapsed it, and inserting over a caret is not replacing.
+    static let insert = reader + """
+
+        const keep = window.__sixKeep;
+        let target = document.activeElement;
+        const editable = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA');
+        if (!editable && keep && keep.field && document.contains(keep.field)) target = keep.field;
+        if (secret(target)) return false;
+        const tag = target ? target.tagName : '';
         if (tag === 'INPUT' || tag === 'TEXTAREA') {
-            active.focus();
-            if (whole) active.setSelectionRange(0, (active.value || '').length);
+            target.focus();
+            if (whole) {
+                target.setSelectionRange(0, (target.value || '').length);
+            } else {
+                reselect(subject, start, end);
+            }
             const ok = document.execCommand('insertText', false, text);
             if (!ok) {
                 // A field that refuses the command — set the value through the native setter and
                 // say so ourselves, which is what a framework's onChange is listening for.
                 const proto = tag === 'INPUT' ? HTMLInputElement.prototype : HTMLTextAreaElement.prototype;
                 const setter = Object.getOwnPropertyDescriptor(proto, 'value').set;
-                const value = active.value || '';
-                const start = whole ? 0 : (active.selectionStart || 0);
-                const end = whole ? value.length : (active.selectionEnd || 0);
-                setter.call(active, value.slice(0, start) + text + value.slice(end));
-                active.dispatchEvent(new Event('input', { bubbles: true }));
-                active.dispatchEvent(new Event('change', { bubbles: true }));
+                const value = target.value || '';
+                const from = whole ? 0 : (target.selectionStart || 0);
+                const to = whole ? value.length : (target.selectionEnd || 0);
+                setter.call(target, value.slice(0, from) + text + value.slice(to));
+                target.dispatchEvent(new Event('input', { bubbles: true }));
+                target.dispatchEvent(new Event('change', { bubbles: true }));
             }
             return true;
         }
+        if (!whole) reselect(subject, start, end);
         const sel = window.getSelection();
         let host = null;
         let node = sel && sel.anchorNode;

@@ -21,12 +21,24 @@ struct AssistantBar: View {
     /// Hung below what it points at, the line comes first and the answer opens under it; at the
     /// bottom of the rail, or above a field near the bottom of the page, the other way round.
     var growsDown = false
+    /// Beside a field or a selection the verbs come up straight away and the field waits behind
+    /// them: what is wanted there is nearly always one of four things, and a row of named verbs says
+    /// what they are, where an empty field asks the person to know. Any letter typed turns the row
+    /// into the field with that letter already in it, so a question of your own costs no gesture.
+    /// At the bottom, with nothing pointed at, there are no verbs to show and it is a field at once.
+    var chipsFirst = false
 
     @Environment(BrowserState.self) private var browser
     @Environment(AssistantStore.self) private var assistant
     @Environment(AgentSessionStore.self) private var agentSession
     @State private var question = ""
-    @FocusState private var focused: Bool
+    /// One switch for both halves of the line, not a flag each: two `@FocusState`s in one view are
+    /// one focus between them, and handing it from the row to the field means naming where it goes.
+    @FocusState private var where_: Half?
+
+    enum Half: Hashable { case field }
+    /// Which chip Return would run. Arrows walk it.
+    @State private var chosen = 0
 
     private var isAgent: Bool { assistant.settings.model.agentDefinition != nil }
 
@@ -59,9 +71,14 @@ struct AssistantBar: View {
         }
     }
 
+    /// The row is up beside a field or a selection until something is typed: the verbs are the
+    /// answer nearly every time, and the field under them is for the times they are not.
+    private var showsChips: Bool { chipsFirst && question.isEmpty && assistant.answer == nil }
+
     var body: some View {
         VStack(spacing: 8) {
             if growsDown {
+                chipRow
                 field
                 verbRow
                 answerStrip
@@ -69,21 +86,52 @@ struct AssistantBar: View {
                 answerStrip
                 verbRow
                 field
+                chipRow
             }
         }
         .opacity(isShown ? 1 : 0)
         .allowsHitTesting(isShown)
         .animation(.snappy, value: assistant.answer)
-        .animation(.easeOut(duration: 0.16), value: focused)
+        .animation(.easeOut(duration: 0.16), value: where_)
         .animation(.easeOut(duration: 0.16), value: isShown)
         .onExitCommand { assistant.closeLine() }
         .onAppear { if assistant.line == place { takeCaret() } }
         .onChange(of: assistant.summons) { if assistant.line == place { takeCaret() } }
-        .onChange(of: focused) { if !focused { assistant.lineLostFocus(at: place) } }
+        .onChange(of: hasCaret) { if !hasCaret { assistant.lineLostFocus(at: place) } }
         .onChange(of: assistant.answer == nil) {
-            if assistant.answer == nil, !focused { assistant.lineLostFocus(at: place) }
+            if assistant.answer == nil, !hasCaret { assistant.lineLostFocus(at: place) }
+        }
+        .onChange(of: verbs.count) { chosen = min(chosen, max(0, verbs.count - 1)) }
+    }
+
+    @ViewBuilder private var chipRow: some View {
+        if showsChips, !verbs.isEmpty {
+            ChipRow(verbs: verbs, chosen: chosen) { run($0) }
+                .transition(.opacity)
         }
     }
+
+    /// The keyboard over the row, taken from the field under it while the field is empty: the
+    /// arrows walk the verbs and Return runs the one they are on. The first character typed makes
+    /// the row go and leaves the field with the question in it, which is why nothing here consumes
+    /// one — the field is focused the whole time and takes it itself.
+    private func chipKey(_ press: KeyPress) -> KeyPress.Result {
+        if ProcessInfo.processInfo.environment["SIX_UI_DEBUG"] != nil {
+            Log.debug(.ui, "chip row saw «\(press.characters)» key \(press.key) mods \(press.modifiers)")
+        }
+        guard showsChips, !verbs.isEmpty, !press.modifiers.contains(.command) else { return .ignored }
+        switch press.key {
+        case .leftArrow, .upArrow: chosen = max(0, chosen - 1)
+        case .rightArrow, .downArrow: chosen = min(verbs.count - 1, chosen + 1)
+        case .return: run(verbs[chosen])
+        default: return .ignored
+        }
+        return .handled
+    }
+
+    /// The row hands the keyboard to the field, with the same retry: the field does not exist until
+    /// the row has gone, and a focus that misses leaves the letters after it going to the address bar.
+
 
     @ViewBuilder private var answerStrip: some View {
         if isShown, let answer = assistant.answer {
@@ -93,7 +141,7 @@ struct AssistantBar: View {
     }
 
     @ViewBuilder private var verbRow: some View {
-        if focused, isCommand, !verbs.isEmpty {
+        if where_ == .field, isCommand, !verbs.isEmpty, !showsChips {
             VerbRow(verbs: verbs) { run($0) }
                 .transition(.opacity)
         }
@@ -111,8 +159,9 @@ struct AssistantBar: View {
             }
             TextField(placeholder, text: $question)
                 .textFieldStyle(.plain)
-                .focused($focused)
+                .focused($where_, equals: .field)
                 .onSubmit(submit)
+                .onKeyPress(phases: .down, action: chipKey)
             if assistant.answer?.isRunning == true {
                 Button { assistant.cancel() } label: { Image(systemName: "stop.circle.fill") }
                     .buttonStyle(.plain)
@@ -132,10 +181,21 @@ struct AssistantBar: View {
         .disabled(!isShown)
     }
 
-    /// On the next pass, not now: the line has only just been enabled (or built), and a focus set in
-    /// the same update lands on a field that cannot take it yet.
+    /// The keyboard is the line's whether the row or the field holds it.
+    private var hasCaret: Bool { where_ != nil }
+
+    /// Not now, and more than once. The line has only just been enabled — or, beside a page, only
+    /// just been built inside a hosting view of its own — and a focus set in the same update lands
+    /// on something that cannot take it yet. Asking again a few times is what makes the second ⌘E
+    /// over the same field work: once, and the keystrokes after it went to the address bar.
     private func takeCaret() {
-        DispatchQueue.main.async { focused = true }
+        chosen = 0
+        Task { @MainActor in
+            for _ in 0..<6 where where_ != .field {
+                where_ = .field
+                try? await Task.sleep(for: .milliseconds(50))
+            }
+        }
     }
 
     /// The verbs wait for a `/`. Offered on every ⌘E they stood over the line whatever it was
@@ -146,6 +206,7 @@ struct AssistantBar: View {
 
     private var verbs: [AssistantAction] {
         let offered = AssistantAction.offered(for: focus)
+        guard !showsChips else { return offered }
         let typed = question.dropFirst().trimmingCharacters(in: .whitespaces)
         guard !typed.isEmpty else { return offered }
         return offered.filter {
@@ -164,11 +225,16 @@ struct AssistantBar: View {
     private func run(_ action: AssistantAction) {
         assistant.run(action, focus: focus, about: subject)
         if isCommand { question = "" }
+
     }
 
     /// Return sends the question. With nothing typed it takes the answer that is already there and
     /// puts it in the page — the one gesture that finishes a rewrite without reaching for the mouse.
     private func submit() {
+        if showsChips, verbs.indices.contains(chosen) {
+            run(verbs[chosen])
+            return
+        }
         if isCommand {
             if let first = verbs.first { run(first) }
             return
@@ -221,6 +287,20 @@ struct AnchoredAssistantLine: View {
             .frame(width: width, height: height)
             .offset(x: x, y: min(max(0, y), max(0, size.height - height)))
         }
+        // What the line is about, put back in the page as well: the field collapsed its selection
+        // to a caret when the keyboard left, and a person looking at a line about "four words" has
+        // to be able to see which four. The page kept the nodes; six only kept the text.
+        .task {
+            let subject = assistant.subject(in: tab.id)
+            guard subject.kind == .selection, !subject.text.isEmpty else { return }
+            try? await Task.sleep(for: .milliseconds(120))
+            let said = try? await tab.runScript(PageFocusScript.reselect,
+                                                arguments: ["text": subject.text,
+                                                            "start": subject.start, "end": subject.end])
+            if ProcessInfo.processInfo.environment["SIX_UI_DEBUG"] != nil {
+                Log.debug(.ui, "the page was asked to keep the selection: \(said ?? "—")")
+            }
+        }
         // The caret goes back to the page when the line is put away with nothing else taking it —
         // Esc or ⌘E over a comment box means "back to writing", not "nowhere".
         .onDisappear {
@@ -231,7 +311,7 @@ struct AnchoredAssistantLine: View {
     }
 
     private func line(growsDown: Bool, width: CGFloat) -> some View {
-        AssistantBar(place: .page(tab.id), tab: tab, growsDown: growsDown)
+        AssistantBar(place: .page(tab.id), tab: tab, growsDown: growsDown, chipsFirst: true)
             .frame(width: width)
             .fixedSize(horizontal: false, vertical: true)
             .shadow(color: .black.opacity(0.18), radius: 8, y: 2)
@@ -242,6 +322,47 @@ struct AnchoredAssistantLine: View {
             .environment(agentSession)
             .environment(configuration)
             .tint(browser.selectedProfile.color)
+    }
+}
+
+/// The verbs at a field or a selection, named, with the one Return would run filled in the profile's
+/// colour. It is the first thing ⌘E shows there, so it reads as an offer rather than as decoration —
+/// the titles are words and not icons, which is what a row of two symbols and an ellipsis failed at
+/// when this was a bar over the selection. Typing in the field under it puts it away.
+private struct ChipRow: View {
+    let verbs: [AssistantAction]
+    let chosen: Int
+    let run: (AssistantAction) -> Void
+
+    @Environment(BrowserState.self) private var browser
+
+    var body: some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: 6) {
+                ForEach(Array(verbs.enumerated()), id: \.element.id) { index, verb in
+                    Button { run(verb) } label: {
+                        Label { Text(verb.title) } icon: { Image(systemName: verb.symbol) }
+                            .font(.caption)
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 5)
+                            .foregroundStyle(index == chosen ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
+                            .background {
+                                if index == chosen {
+                                    Capsule().fill(browser.selectedProfile.color)
+                                } else {
+                                    Capsule().fill(.regularMaterial)
+                                }
+                            }
+                            .overlay(Capsule().strokeBorder(.separator, lineWidth: 0.5))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 2)
+            .padding(.vertical, 1)
+        }
+        .scrollIndicators(.never)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

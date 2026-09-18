@@ -96,17 +96,32 @@ extension KeySelfTest {
         try? await Task.sleep(for: .milliseconds(600))
         note("assistant: menu ⌘E → \(place(assistant, tab)), caret \(caret(window)), page focus still \(focusStore[tab.id].kind)")
         note("assistant: offered at a caret: \(AssistantAction.offered(for: assistant.subject(in: tab.id)).map(\.id))")
-        if let hosted = anchoredHost(in: window) {
-            note("assistant: the line stands at \(hosted)")
-        }
+        note("assistant: the row stands at \(anchoredHost(in: window) ?? "—"), keyboard \(keyboardOwner(window))")
+        // The row, walked and pressed: → moves off Continue Writing onto Draft a Reply, and Return
+        // runs what it is on. Nothing is typed, which is the point of the row.
+        post(flags: [], code: .rightArrow, in: window)
+        try? await Task.sleep(for: .milliseconds(250))
+        post(flags: [], code: .returnKey, in: window)
+        try? await Task.sleep(for: .milliseconds(350))
+        note("assistant: → ⏎ over the row → \(assistant.answer?.action?.id ?? "nothing ran")")
+        assistant.cancel()
+        assistant.dismiss()
+        try? await Task.sleep(for: .milliseconds(200))
+        post(flags: [], code: .escape, in: window)
+        try? await Task.sleep(for: .milliseconds(400))
+
+        // And the other way out of the row: a character turns it into the field, with the character
+        // already in it. `/` then narrows the verbs as it does at the bottom.
+        pressAssistantItem()
+        try? await Task.sleep(for: .milliseconds(600))
+        note("assistant: ⌘E again → \(place(assistant, tab)), keyboard \(keyboardOwner(window))")
         for (code, character) in [(UInt16(44), "/"), (8, "c"), (31, "o"), (45, "n")] {
             post(flags: [], rawCode: code, characters: character, in: window)
-            try? await Task.sleep(for: .milliseconds(120))
+            try? await Task.sleep(for: .milliseconds(150))
         }
-        try? await Task.sleep(for: .milliseconds(300))
-        note("assistant: with /con typed the line stands at \(anchoredHost(in: window) ?? "—")")
+        note("assistant: typed over the row → caret \(caret(window)), the line stands at \(anchoredHost(in: window) ?? "—")")
         post(flags: [], code: .returnKey, in: window)
-        try? await Task.sleep(for: .milliseconds(300))
+        try? await Task.sleep(for: .milliseconds(350))
         note("assistant: /con ⏎ → \(assistant.answer?.action?.id ?? "nothing ran")")
         assistant.cancel()
         assistant.dismiss()
@@ -115,14 +130,28 @@ extension KeySelfTest {
         try? await Task.sleep(for: .milliseconds(400))
         note("assistant: Esc → \(place(assistant, tab)), keyboard \(keyboardOwner(window))")
 
-        // Text selected inside the field: the verbs that write, then the ones that only read.
+        // Text selected inside the field. The line must be about the selection and not about the
+        // field — asking collapses the field's own selection to a caret, which is what the page says
+        // by the time the row is drawn — and the page is asked to put the selection back.
         _ = try? await tab.page.callJavaScript("""
             const t = document.querySelector('textarea');
             t.focus();
             t.setSelectionRange(5, 9);
             """)
         try? await Task.sleep(for: .milliseconds(700))
-        note("assistant: offered at a selection in the field: \(AssistantAction.offered(for: focusStore[tab.id]).map(\.id))")
+        note("assistant: selected «team» in the field → focus \(focusStore[tab.id].kind)")
+        pressAssistantItem()
+        try? await Task.sleep(for: .milliseconds(700))
+        let subject = assistant.subject(in: tab.id)
+        note("assistant: menu ⌘E → the line is about the \(subject.kind) «\(subject.text)»")
+        note("assistant: offered at a selection in the field: \(AssistantAction.offered(for: subject).map(\.id))")
+        let range = (try? await tab.page.callJavaScript("""
+            const t = document.querySelector('textarea');
+            return t.selectionStart + '-' + t.selectionEnd;
+            """)) as? String
+        note("assistant: the page reports \(focusStore[tab.id].kind) and the field holds \(range ?? "?")")
+        post(flags: [], code: .escape, in: window)
+        try? await Task.sleep(for: .milliseconds(400))
 
         _ = try? await tab.page.callJavaScript("""
             document.activeElement.blur();
@@ -140,6 +169,13 @@ extension KeySelfTest {
         note("assistant: menu ⌘E → \(place(assistant, tab)), caret \(caret(window)), the line is about the \(assistant.subject(in: tab.id).kind) «\(assistant.subject(in: tab.id).text.prefix(20))», the page still has «\(kept ?? "?")»")
         note("assistant: the line stands at \(anchoredHost(in: window) ?? "—")")
         note("assistant: offered at a selection: \(AssistantAction.offered(for: assistant.subject(in: tab.id)).map(\.id))")
+        note("assistant: keyboard \(keyboardOwner(window))")
+        post(flags: [], code: .returnKey, in: window)
+        try? await Task.sleep(for: .milliseconds(350))
+        note("assistant: ⏎ over the row at a selection → \(assistant.answer?.action?.id ?? "nothing ran")")
+        assistant.cancel()
+        assistant.dismiss()
+        try? await Task.sleep(for: .milliseconds(200))
         pressAssistantItem()
         try? await Task.sleep(for: .milliseconds(600))
         note("assistant: menu ⌘E again → \(place(assistant, tab)), keyboard \(keyboardOwner(window))")

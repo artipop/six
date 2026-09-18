@@ -107,10 +107,24 @@ scrolling) and with the snapshot once it does not. The question, the verbs offer
 position all read it. Put away by a key, a line that stood on a page gives the keyboard back to that
 page's web view, so Esc over a comment box goes back to writing.
 
-**Verbs behind `/`.** Typing `/` brings the verbs that apply up as chips; what follows narrows them
-(by the localized title or by the id, so `/sum` works on any layout), and Return runs the first one
-left. Without the slash the line is a plain question, and the placeholder says what it will be
-about. Return with nothing typed applies the answer that is already there.
+**The verbs are up already, beside a page.** The anchored line carries a `ChipRow` above (or below)
+its field with every verb that applies, named, one of them filled in the profile's colour: ←/→ walk
+it, Return runs the one they are on, a click runs any of them. The field under it is focused the
+whole time, so the first character typed is the person asking something of their own — the row goes
+and the question is in the field already. The arrows and Return reach the row through an
+`.onKeyPress` on the field that only answers while the field is empty and the row is up; typed into,
+the field keeps its own arrows.
+
+This is the second shape. The first put the row *instead* of the field and moved focus between them,
+and the focus never arrived: a `@FocusState` set while the view that had it is being removed is a
+request that goes nowhere inside a nested hosting view, so the letters after the first went to the
+address bar. Two `@FocusState`s, then one `@FocusState<Half?>`, then a retry loop — none of them
+made the hand-off land. A field that never loses the keyboard has nothing to hand over.
+
+**At the bottom there are no chips**, because with nothing pointed at there is one verb and the line
+is for asking. `/` still works everywhere: it lists what applies and narrows by title or id, so
+`/sum` works on any layout, and Return runs the first one left. Return with nothing typed applies the
+answer that is already there.
 
 **Away means out of the key-view loop.** The bottom line stays mounted while it is away and was
 only transparent, so Tab on a start page landed in it and showed it. Its controls are disabled while

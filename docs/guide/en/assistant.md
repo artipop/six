@@ -16,15 +16,21 @@ up.
 Ask freely, in your own words. The line says what the question will be about —
 the selection, this field, or the whole page.
 
-Ready-made actions are behind `/`: type `/` and the ones that fit what you are
-pointing at appear above the line; keep typing to narrow them — `/sum` leaves
-**Summarize This Page** — and `⏎` runs the first.
+At a field or a selection the ready-made actions are up already, beside the
+line: `←` and `→` walk them, `⏎` runs the chosen one, and a click runs any of
+them. Start typing and the row goes, with the letter already in the line — from
+there you ask in your own words.
+
+At the bottom there is no row, because nothing is pointed at yet. The actions
+are behind `/` there: type `/`, keep typing to narrow the list (`/sum` leaves
+**Summarize This Page**), and `⏎` runs the first.
 
 `⏎` sends the question. `⏎` on an empty line applies the answer already there.
 
 ## When you select text
 
-Select some text and press `⌘E` — the line stands under the selection. After `/`:
+Select some text and press `⌘E` — the line stands under the selection with the
+actions above it:
 
 | | |
 |---|---|
@@ -42,7 +48,7 @@ do not — they are for text you are reading, not for your own draft.
 ## When the caret is in a field
 
 Nothing is sent anywhere while you type. Leave the caret in the field and press
-`⌘E` — the line stands beside the field. After `/`:
+`⌘E` — the line stands beside the field, with the actions next to it:
 
 | | |
 |---|---|

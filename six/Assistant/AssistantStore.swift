@@ -40,6 +40,9 @@ final class AssistantStore {
         var landing: AssistantAction.Landing = .show
         /// The window the answer is about, and the only one it may be written back into.
         var windowID: UUID?
+        /// What was pointed at when it was asked. Kept because the page will not keep it: putting
+        /// the answer back has to put the selection back first.
+        var subject: PageFocus?
         var text = ""
         /// What the agent is doing right now (a tool call), while there is nothing to show yet.
         var activity: String?
@@ -94,7 +97,7 @@ final class AssistantStore {
         let question = question.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !question.isEmpty else { return }
         let focus = tab.map { subject(in: $0.id) } ?? PageFocus()
-        start(Answer(title: question, windowID: tab?.id, isRunning: true)) { [self] report in
+        start(Answer(title: question, windowID: tab?.id, subject: focus, isRunning: true)) { [self] report in
             #if os(macOS)
             // `research: …` starts a deep-research run: a workspace, a document, and the agent at work.
             if let research, let topic = ResearchCoordinator.question(fromCommand: question) {
@@ -123,6 +126,7 @@ final class AssistantStore {
                             action: action,
                             landing: action.landing,
                             windowID: tab?.id,
+                            subject: focus,
                             isRunning: true)
         // An action that would write into a page six cannot write to is an action that only reads.
         if action.landing.writesToPage && !focus.isEditable { answer.landing = .show }
@@ -237,13 +241,17 @@ final class AssistantStore {
     /// subject and the line would lose the rectangle it hangs on.
     private var summonedFocus: (window: UUID, focus: PageFocus)?
 
-    /// The thing the line is about: what the page says now, and what it said when ⌘E was pressed
-    /// once the page has stopped saying anything. A caret survives in its field and keeps moving with
-    /// scrolling; a selection is the snapshot.
+    /// The thing the line is about. While the line is up that is what was pointed at when it was
+    /// asked for, and not what the page says now — asking collapses a field's selection to a caret
+    /// and drops one in prose, so the live answer would turn "four words in this comment" into "this
+    /// comment", verbs and all. Only the rectangle is taken live, and only while the page still says
+    /// the same kind of thing, so a line hung on a field follows it as the page scrolls.
     func subject(in windowID: UUID) -> PageFocus {
         let live = focus?[windowID] ?? PageFocus()
-        guard live.isEmpty, let summonedFocus, summonedFocus.window == windowID else { return live }
-        return summonedFocus.focus
+        guard let summonedFocus, summonedFocus.window == windowID, line != nil else { return live }
+        var kept = summonedFocus.focus
+        if live.kind == kept.kind, live.rect != .zero { kept.rect = live.rect }
+        return kept
     }
 
     /// ⌘E: up if it is away, away if it is up — wherever it is up. Deciding the place again on the
@@ -300,10 +308,14 @@ final class AssistantStore {
         let text = answer.text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
         let whole = answer.landing == .replaceField
+        let subject = answer.subject ?? PageFocus()
         answer.isApplied = true
         self.answer = answer
         Task {
-            _ = try? await tab.runScript(PageFocusScript.insert, arguments: ["text": text, "whole": whole])
+            _ = try? await tab.runScript(PageFocusScript.insert,
+                                         arguments: ["text": text, "whole": whole,
+                                                     "subject": subject.text,
+                                                     "start": subject.start, "end": subject.end])
         }
     }
 
