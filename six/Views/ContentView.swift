@@ -123,7 +123,7 @@ struct ContentView: View {
             if ProcessInfo.processInfo.environment["SIX_KEY_SELFTEST"] == "page" {
                 await KeySelfTest.pageOnly(browser)
             } else if ProcessInfo.processInfo.environment["SIX_KEY_SELFTEST"] == "assistant" {
-                await KeySelfTest.assistantOnly(browser, assistant, pageFocus)
+                await KeySelfTest.assistantOnly(browser, assistant, pageFocus, agentSession)
             } else if ProcessInfo.processInfo.environment["SIX_KEY_SELFTEST"] != nil {
                 KeySelfTest.run()
                 await KeySelfTest.live(browser)

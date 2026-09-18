@@ -35,7 +35,10 @@ nonisolated struct ACPAgentDefinition: Identifiable, Hashable, Codable, Sendable
         id: "claude-code",
         name: "Claude Code",
         command: "npx",
-        arguments: ["-y", "@agentclientprotocol/claude-agent-acp"],
+        // `@latest`, because `npx -y <package>` reuses whatever version its cache happens to hold:
+        // the adapter carries its own copy of the CLI it drives, and a stale one breaks against
+        // today's models while the CLI on the machine is current (see `AgentToolchain.Report`).
+        arguments: ["-y", "@agentclientprotocol/claude-agent-acp@latest"],
         npmPackage: "@agentclientprotocol/claude-agent-acp",
         binaryName: "claude-agent-acp",
         underlyingCLI: "claude",
@@ -47,7 +50,7 @@ nonisolated struct ACPAgentDefinition: Identifiable, Hashable, Codable, Sendable
         id: "codex",
         name: "Codex",
         command: "npx",
-        arguments: ["-y", "@agentclientprotocol/codex-acp"],
+        arguments: ["-y", "@agentclientprotocol/codex-acp@latest"],
         npmPackage: "@agentclientprotocol/codex-acp",
         binaryName: "codex-acp",
         underlyingCLI: "codex",

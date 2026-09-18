@@ -41,6 +41,16 @@
         }
       }
     },
+    "%@ %@ — %@ is out" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@ — вышла %3$@"
+          }
+        }
+      }
+    },
     "%@ is still downloading — it answers when it is here" : {
       "localizations" : {
         "ru" : {
@@ -157,6 +167,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Этой модели нужен адрес, куда обращаться"
+          }
+        }
+      }
+    },
+    "Update" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обновить"
           }
         }
       }

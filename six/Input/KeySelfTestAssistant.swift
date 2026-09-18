@@ -10,7 +10,8 @@ import WebKit
 /// `SIX_KEY_SELFTEST=assistant` runs this alone. It needs the assistant switched on, or there is no
 /// line to walk into and the Tab half passes for the wrong reason — the first line says which.
 extension KeySelfTest {
-    static func assistantOnly(_ browser: BrowserState, _ assistant: AssistantStore, _ focusStore: PageFocusStore) async {
+    static func assistantOnly(_ browser: BrowserState, _ assistant: AssistantStore, _ focusStore: PageFocusStore,
+                              _ agents: AgentSessionStore) async {
         NSApp.activate()
         for _ in 0..<100 where !NSApp.isActive { try? await Task.sleep(for: .milliseconds(300)) }
         try? await Task.sleep(for: .seconds(2))
@@ -104,6 +105,15 @@ extension KeySelfTest {
             let trouble = assistant.settings.trouble(for: choice)
             let said = trouble.map { String(localized: $0.message) } ?? "ready"
             note("assistant: \(choice.title) — \(said)\(trouble?.isConfiguration == true ? " (offers Set Up…)" : "")")
+        }
+        // The adapters, which are not thin shims: each carries its own copy of the CLI it drives,
+        // so an old one answers today's models with "requires a newer version" while the CLI on the
+        // machine is current. The panel says the version and offers Update; this says what it sees.
+        for agent in ACPAgentDefinition.builtIn {
+            await agents.toolchain.refresh(agent)
+            let report = agents.toolchain.report(for: agent)
+            let update = report.update.map { " — \($0.to) is out" } ?? ""
+            note("assistant: \(agent.binaryName) \(report.installedVersion ?? "not installed")\(update)")
         }
         note("assistant: done")
     }

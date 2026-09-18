@@ -193,8 +193,20 @@ private struct ToolchainStatusView: View {
                     ProgressView().controlSize(.mini)
                     Text("Checking \(agent.binaryName)…")
                 case .installed(let path):
-                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-                    Text(agent.binaryName).help(path)
+                    if let update = report.update {
+                        Image(systemName: "arrow.up.circle.fill").foregroundStyle(.orange)
+                        Text("\(agent.binaryName) \(update.from) — \(update.to) is out").help(path)
+                        Spacer()
+                        if report.isInstalling {
+                            ProgressView().controlSize(.mini)
+                        } else {
+                            Button("Update") { Task { await toolchain.install(agent) } }
+                        }
+                    } else {
+                        Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                        Text(report.installedVersion.map { "\(agent.binaryName) \($0)" } ?? agent.binaryName)
+                            .help(path)
+                    }
                 case .installable:
                     Image(systemName: "arrow.down.circle").foregroundStyle(.orange)
                     Text("\(agent.binaryName) not installed (runs via npx)")

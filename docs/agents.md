@@ -56,10 +56,21 @@ SIX_ACP_TRACE=1 SIX_ACP_SELFTEST="Say hi" ./six.app/Contents/MacOS/six 2>&1 | gr
 
 Adapters are npm packages, resolved by `AgentToolchain` in the environment of an interactive login shell (`zsh -l -i`, so `.zshrc` — where nvm usually lives — counts):
 
-- adapter on `PATH` (`claude-agent-acp` / `codex-acp`) → used directly;
-- only `npm` → **Install** runs `npm install -g <adapter>`; until then the agent starts via `npx -y`;
+- adapter on `PATH` (`claude-agent-acp` / `codex-acp`) → used directly, with its version read from
+  `<adapter> --version` and compared against `npm view <package> version`; when it is behind, the row
+  says so and **Update** runs the install again;
+- only `npm` → **Install** runs `npm install -g <adapter>@latest`; until then the agent starts via
+  `npx -y <adapter>@latest`;
 - no Node.js → the panel links to the download page;
 - the underlying CLI (`claude` / `codex`) must be installed and logged in — the panel warns if it isn't.
+
+**An adapter is not a shim, and this cost a session.** It carries its own copy of the CLI it drives:
+`codex-acp` 1.1.14 depends on `@openai/codex` 0.147, so with Codex 0.154 installed and current on the
+machine, six's agent still answered a request for today's model with `The 'gpt-6-astra' model requires
+a newer version of Codex`. Nothing on screen said which of the two was old, and `npx -y <package>`
+does not help: it reuses whatever version its cache holds, which here was a year of releases behind.
+Hence `@latest` in both the npx arguments and the install command, and the version beside the
+adapter's name in the panel.
 
 Manual smoke test:
 

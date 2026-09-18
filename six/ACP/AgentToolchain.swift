@@ -22,6 +22,36 @@ final class AgentToolchain {
         var underlyingCLIPath: String?
         var installLog = ""
         var isInstalling = false
+        /// The adapter's own version and the newest npm has. An adapter is not a thin shim over the
+        /// CLI it is named after: it carries its own copy of it, so an old one goes on talking to
+        /// the service with a year-old client. `codex-acp` 1.1.14 bundles Codex 0.147 and answers a
+        /// request for today's model with "requires a newer version of Codex" — with Codex itself
+        /// updated on the machine and nothing on screen to say which of the two was old.
+        var installedVersion: String?
+        var latestVersion: String?
+
+        var update: (from: String, to: String)? {
+            guard let installedVersion, let latestVersion,
+                  Report.isOlder(installedVersion, than: latestVersion) else { return nil }
+            return (installedVersion, latestVersion)
+        }
+
+        /// Enough of semver for "is there something newer": numbers where both sides have them, and
+        /// a pre-release is older than the release it is named after (1.12.1-preview.1 < 1.12.1).
+        static func isOlder(_ one: String, than other: String) -> Bool {
+            func parts(_ version: String) -> ([Int], Bool) {
+                let release = version.split(separator: "-", maxSplits: 1).first.map(String.init) ?? version
+                return (release.split(separator: ".").map { Int($0) ?? 0 }, version.contains("-"))
+            }
+            let (mine, minePre) = parts(one)
+            let (theirs, theirsPre) = parts(other)
+            for index in 0..<max(mine.count, theirs.count) {
+                let a = index < mine.count ? mine[index] : 0
+                let b = index < theirs.count ? theirs[index] : 0
+                if a != b { return a < b }
+            }
+            return minePre && !theirsPre
+        }
     }
 
     static let nodeInstallURL = URL(string: "https://nodejs.org/en/download")!
@@ -41,7 +71,12 @@ final class AgentToolchain {
     func refresh(_ agent: ACPAgentDefinition) async {
         reports[agent.id, default: Report()].adapter = .checking
         let names = [agent.binaryName, "npm", agent.underlyingCLI]
-        let script = names.map { "command -v \($0) || echo ''" }.joined(separator: "; ")
+        // One shell for all of it: three paths, then the adapter's version and the newest published.
+        // `npm view` goes to the network, which is why this is not asked for on every launch — the
+        // panel asks once, and the button beside the answer asks again.
+        var script = names.map { "command -v \($0) || echo ''" }.joined(separator: "; ")
+        script += "; (\(agent.binaryName) --version 2>/dev/null | tail -1) || echo ''"
+        script += "; (npm view \(agent.npmPackage) version 2>/dev/null) || echo ''"
         let output = (try? await Self.runLoginShell(script))?.output ?? ""
         let lines = output.components(separatedBy: "\n")
         func path(_ index: Int) -> String? {
@@ -58,15 +93,21 @@ final class AgentToolchain {
             report.adapter = .nodeMissing
         }
         report.underlyingCLIPath = path(2)
+        // `codex-acp --version` answers "@agentclientprotocol/codex-acp 1.12.0"; the number is the
+        // last word of whichever line it chose to print.
+        report.installedVersion = path(3)?.split(separator: " ").last.map(String.init)
+        report.latestVersion = path(4)
         reports[agent.id] = report
     }
 
     func install(_ agent: ACPAgentDefinition) async {
         var report = reports[agent.id] ?? Report()
         report.isInstalling = true
-        report.installLog = "$ npm install -g \(agent.npmPackage)\n"
+        // Always `@latest`: this is the update button as well as the install one, and npm asked for
+        // a package it already has at any version does nothing at all.
+        report.installLog = "$ npm install -g \(agent.npmPackage)@latest\n"
         reports[agent.id] = report
-        let result = try? await Self.runLoginShell("npm install -g \(agent.npmPackage) 2>&1")
+        let result = try? await Self.runLoginShell("npm install -g \(agent.npmPackage)@latest 2>&1")
         reports[agent.id]?.installLog += result?.output ?? "npm failed to start"
         reports[agent.id]?.isInstalling = false
         await refresh(agent)

@@ -14,7 +14,8 @@ The panel checks your shell's environment and says what is missing:
 
 | | |
 |---|---|
-| the adapter is on `PATH` | used directly |
+| the adapter is on `PATH` | used directly, with its version beside the name |
+| a newer one is out | the row says so, with an **Update** button |
 | only `npm` is there | **Install** puts the adapter in globally; until then it starts through `npx` |
 | no Node.js | a link to the download page |
 | no `claude` / `codex` itself | the panel warns: *Install Claude Code and run `claude` once to log in* |
