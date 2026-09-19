@@ -11,11 +11,18 @@ struct StartPage: View {
     @Environment(BrowserState.self) private var browser
     @Environment(BookmarkStore.self) private var bookmarks
     @State private var text = ""
+    #if !os(macOS)
+    @State private var textSelection: TextSelection?
+    #endif
     @State private var selection: Int?
     /// History, saved pages and the engine's completions — shared with the address field, whose
     /// comment has the order and the reasons for it.
     @State private var suggestions = AddressSuggestions()
+    #if os(macOS)
+    @State private var fieldFocused = false
+    #else
     @FocusState private var fieldFocused: Bool
+    #endif
     @Environment(ConfigurationStore.self) private var settings
     /// From settings, not a local copy: every other start page redraws when this one switches engines.
     private var engine: SearchEngine { settings.searchEngine }
@@ -79,8 +86,8 @@ struct StartPage: View {
         }
         .background(.background)
         .onChange(of: isActive, initial: true) { _, active in
+            fieldFocused = active
             guard active else { return }
-            fieldFocused = true
             // The rows below the field are answered by a model that takes seconds to load, and a
             // start page taking the keyboard is the earliest honest sign that a question is coming.
             // Not in a private window, which searches nothing of yours anyway (`updatePersonal`).
@@ -99,27 +106,39 @@ struct StartPage: View {
     private var field: some View {
         HStack(spacing: 10) {
             enginePicker
-            TextField("Search or enter address", text: $text)
+            #if os(macOS)
+            SuggestionTextField(text: $text, focused: $fieldFocused, accent: accent,
+                                move: { move($0) == .handled },
+                                complete: selectedCompletion,
+                                submit: submit,
+                                escape: escape)
+                .frame(height: 24)
+            #else
+            TextField("Search or enter address", text: $text, selection: $textSelection)
                 .textFieldStyle(.plain)
                 .font(.title3)
                 .focused($fieldFocused)
-                .onSubmit {
-                    if let selection, rows.indices.contains(selection) { open(rows[selection]) } else { open(text) }
-                }
+                .onSubmit(submit)
                 .onKeyPress(.downArrow) { move(1) }
                 .onKeyPress(.upArrow) { move(-1) }
+                .onKeyPress(keys: [.tab, .rightArrow], phases: .down) { press in
+                    // Modified arrows still edit text, and Shift-Tab still moves focus backward.
+                    guard press.modifiers.intersection([.shift, .control, .option, .command]).isEmpty else {
+                        return .ignored
+                    }
+                    guard let value = selectedCompletion() else { return .ignored }
+                    text = value
+                    textSelection = TextSelection(insertionPoint: text.endIndex)
+                    return .handled
+                }
                 // Esc clears what was typed, and on a field with nothing in it lets go of the caret —
                 // the way an address bar gives up its text and then the focus. `.ignored` would hand
                 // it on to the page's own Esc, and a start page has none.
                 .onKeyPress(.escape) {
-                    guard !text.isEmpty else {
-                        fieldFocused = false
-                        return .handled
-                    }
-                    text = ""
-                    clearSuggestions()
+                    escape()
                     return .handled
                 }
+            #endif
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
@@ -169,6 +188,27 @@ struct StartPage: View {
 
     private func clearSuggestions() {
         suggestions.clear()
+    }
+
+    private func selectedCompletion() -> String? {
+        let rows = rows
+        guard let selection, rows.indices.contains(selection) else { return nil }
+        self.selection = nil
+        return rows[selection].completion
+    }
+
+    private func submit() {
+        let rows = rows
+        if let selection, rows.indices.contains(selection) { open(rows[selection]) } else { open(text) }
+    }
+
+    private func escape() {
+        guard !text.isEmpty else {
+            fieldFocused = false
+            return
+        }
+        text = ""
+        clearSuggestions()
     }
 
     private func open(_ row: AddressSuggestions.Row) {

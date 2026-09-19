@@ -32,8 +32,25 @@ page in history is one you happened to open, a completion is what other people a
 local sources first, and the engine's fill whatever room is left, because a list of sixteen rows under a field is not
 a list any more.
 
-`↑` `↓` walk the rows, `Enter` opens the selected one (or the raw input when nothing is selected), `Esc` clears the
-field, and a click opens a row directly.
+`↑` `↓` walk the rows, `Tab` or `→` fills the field from the highlighted row without opening it: the full address
+for a page, the query for a past search or an engine completion. The caret stays at the end so typing can continue.
+With no row selected, these keys keep their usual behaviour. `Enter` opens the selected row (or the raw input when
+nothing is selected), `Esc` clears the field, and a click opens a row directly.
+
+On macOS the field is `SuggestionTextField`, an `NSTextField` whose delegate handles the field editor's commands.
+SwiftUI's `onKeyPress` did not reliably receive Tab/right while editing, and arrow handling could stop after switching
+applications. Keeping these commands on the native editor also keeps them working when it regains first responder.
+Modified keys and IME composition stay with AppKit. The caret and text selection use the profile's colour; the field
+has no extra AppKit focus ring. The standalone integration test posts keyboard events through an AppKit window,
+exercises completion, caret movement, submission, and deactivation/reactivation, and compares the field's colours and
+font size with the original SwiftUI field in light and dark appearances:
+
+```sh
+xcrun swiftc -swift-version 5 -default-isolation MainActor \
+  six/Views/SuggestionTextField.swift Tests/StartPageKeyboard/main.swift \
+  -o /tmp/six-start-page-keyboard-test
+/tmp/six-start-page-keyboard-test
+```
 
 ## Your own pages first
 

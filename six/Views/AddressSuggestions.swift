@@ -108,6 +108,15 @@ final class AddressSuggestions {
         var note: String? = nil
         let kind: Kind
 
+        /// What can be edited in the field: a page's address, or the query a search row displays.
+        var completion: String {
+            switch kind {
+            case .history(let url): SearchEngine.search(from: url)?.query ?? IDN.displayURL(url)
+            case .saved(let url): IDN.displayURL(url)
+            case .address, .search: text
+            }
+        }
+
         var symbol: String {
             switch kind {
             case .address: "arrow.up.right"

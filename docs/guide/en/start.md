@@ -56,7 +56,10 @@ Saved above visited above guessed: a bookmark is a page you decided to keep,
 history is a page you happened to open, and a completion is what everybody else
 is typing.
 
-`↑` `↓` walk the rows, `↩` opens the selected one, `Esc` clears the field, and on an empty one lets go of the caret — as does a click beside the field.
+`↑` `↓` walk the rows. `Tab` or `→` fills the field from the highlighted row:
+the full address for a page, the query for a past search or an engine suggestion.
+The caret stays at the end so you can keep typing. `↩` opens the selected row,
+`Esc` clears the field, and on an empty one lets go of the caret — as does a click beside the field.
 
 The same completions — bookmarks, history and the engine — drop down under the
 **address field** (`⌘L`) as soon as you start typing in it. `↑` `↓` and `↩` work
