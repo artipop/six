@@ -31,6 +31,9 @@ struct SuggestionTextField: NSViewRepresentable {
         field.maximumNumberOfLines = 1
         field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         field.delegate = context.coordinator
+        field.didFocus = { [weak coordinator = context.coordinator] field in
+            coordinator?.didFocus(field)
+        }
         return field
     }
 
@@ -86,6 +89,20 @@ struct SuggestionTextField: NSViewRepresentable {
 
     final class Field: NSTextField {
         var wantsFocus = false
+        var didFocus: ((Field) -> Void)?
+
+        // NSTextField's didBeginEditing notification waits for a text change. A click or Tab
+        // already gives it a caret, so the binding must follow first-responder acquisition too.
+        override func becomeFirstResponder() -> Bool {
+            let accepted = super.becomeFirstResponder()
+            if accepted { didFocus?(self) }
+            return accepted
+        }
+
+        override func mouseDown(with event: NSEvent) {
+            super.mouseDown(with: event)
+            if currentEditor() != nil { didFocus?(self) }
+        }
 
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
@@ -98,6 +115,7 @@ struct SuggestionTextField: NSViewRepresentable {
                 if currentEditor() == nil { window.makeFirstResponder(self) }
             } else if currentEditor() != nil {
                 window.makeFirstResponder(nil)
+                NSCursor.setHiddenUntilMouseMoves(false)
             }
         }
     }
@@ -108,10 +126,14 @@ struct SuggestionTextField: NSViewRepresentable {
 
         init(_ parent: SuggestionTextField) { self.parent = parent }
 
-        func controlTextDidBeginEditing(_ notification: Notification) {
+        func didFocus(_ field: Field) {
             wantsFocus = true
-            (notification.object as? Field)?.wantsFocus = true
+            field.wantsFocus = true
             parent.focused = true
+        }
+
+        func controlTextDidBeginEditing(_ notification: Notification) {
+            if let field = notification.object as? Field { didFocus(field) }
         }
 
         func controlTextDidEndEditing(_ notification: Notification) {
@@ -145,6 +167,9 @@ struct SuggestionTextField: NSViewRepresentable {
                 return true
             case #selector(NSResponder.cancelOperation(_:)):
                 parent.escape()
+                // AppKit hides the pointer while handling text-field keystrokes. Escape ends
+                // that interaction; restore it after the editor finishes handling the event.
+                DispatchQueue.main.async { NSCursor.setHiddenUntilMouseMoves(false) }
                 return true
             default: return false
             }

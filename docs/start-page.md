@@ -52,6 +52,11 @@ xcrun swiftc -swift-version 5 -default-isolation MainActor \
 /tmp/six-start-page-keyboard-test
 ```
 
+Focus is mirrored when the native field takes the keyboard, including a click or Tab without typing. Waiting for
+`didBeginEditing` misses that case and leaves the caret behind when the background asks the field to let go. Escape
+also restores the mouse pointer that AppKit hides during text-field keystrokes. The integration test covers these
+focus transitions and observes the cursor API to check that Escape cancels hiding until the next mouse movement.
+
 ## Your own pages first
 
 The saved rows are `PersonalSuggestions` (`six/Browser/`) over the bookmark index — the same hybrid search the
