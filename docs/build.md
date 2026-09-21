@@ -60,6 +60,18 @@ prints a line per unconvertible rule on stdout in **Debug** builds only (its own
 lines at first launch and silence in Release. mlx-swift-lm's `MLXHuggingFace` product is deliberately
 *not* linked: it depends on `MLXFoundationModels`, a third-party `LanguageModel` over the executor ABI.
 
+
+**Xcode-beta 27.2 cannot find that SDK by name** (measured 21 September 2026, Xcode 27B5019j): every target
+stops on `SDK lookup failed for canonical name: macosx27.0`. `SDKROOT=macosx` on the command line builds the
+whole scheme against Xcode's own macOS 27.2 SDK without touching the project, with four `switch must be
+exhaustive` warnings in `six/Vendor` as the only difference. Whether that SDK's Foundation Models ABI still
+crashes a third-party `LanguageModel` has not been checked — the override stays until it has.
+
+```sh
+DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer xcodebuild -project six.xcodeproj -scheme six \
+  -configuration Debug -skipMacroValidation -skipPackagePluginValidation SDKROOT=macosx build
+```
+
 ## A DMG to install from
 
 ```sh

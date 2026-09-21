@@ -29,7 +29,7 @@ final class MCPServer {
                 "protocolVersion": .string(version),
                 "capabilities": ["tools": ["listChanged": true]],
                 "serverInfo": Self.serverInfo,
-                "instructions": .string(BrowserToolCatalog.instructions),
+                "instructions": .string(BrowserToolCatalog.instructions + "\n\n" + BrowserToolCatalog.actingInstructions),
             ]
         case "ping":
             return [:]

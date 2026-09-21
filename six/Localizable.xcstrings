@@ -1917,12 +1917,12 @@
         }
       }
     },
-    "\u2318E Line" : {
+    "⌘E Line" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "\u0421\u0442\u0440\u043e\u043a\u0430 \u2318E"
+            "value" : "Строка ⌘E"
           }
         }
       }
@@ -5031,7 +5031,7 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "\u041f\u0435\u0440\u0435\u0447\u0438\u0442\u0430\u0442\u044c"
+            "value" : "Перечитать"
           }
         }
       }
@@ -6998,6 +6998,106 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Разгруппировать"
+          }
+        }
+      }
+    },
+    "Choose Option" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбрать вариант"
+          }
+        }
+      }
+    },
+    "Click" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нажать"
+          }
+        }
+      }
+    },
+    "Fill In" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заполнить поле"
+          }
+        }
+      }
+    },
+    "Page Snapshot" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Снимок страницы"
+          }
+        }
+      }
+    },
+    "Press Key" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нажать клавишу"
+          }
+        }
+      }
+    },
+    "Scroll Page" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Прокрутить страницу"
+          }
+        }
+      }
+    },
+    "Wait for Page" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дождаться страницы"
+          }
+        }
+      }
+    },
+    "A browser with a rail instead of tabs: a page is a full-height window, the windows stand side by side, and the rail scrolls. ⌥← and ⌥→ move along it; ⌥↑ and ⌥↓ move between workspaces." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Браузер с лентой вместо вкладок: страница — это окно во всю высоту, окна стоят рядом, а лента прокручивается вбок. ⌥← и ⌥→ перемещают по ней, ⌥↑ и ⌥↓ — между рабочими столами."
+          }
+        }
+      }
+    },
+    "New Window on the Rail" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Новое окно на ленте"
+          }
+        }
+      }
+    },
+    "The Rail" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Лента"
           }
         }
       }

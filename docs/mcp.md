@@ -68,6 +68,9 @@ same question every named workspace gets, whoever named it
 | `list_console_messages` | what a window's page logged since it last navigated (`level`, `limit`); listed only while `six://configuration` ▸ Assistant ▸ Access to Page Console and Network is on — see [devtools.md](devtools.md) |
 | `list_network_requests` | the requests a page made — method, status, duration, size, kind (`failed_only`, `limit`); same switch |
 | `take_screenshot` | writes a PNG of the whole page under `Application Support/org.deffun.six/Screenshots/` and returns the path |
+| `page_snapshot` | the page as something to act on: every visible interactive element numbered with a ref (`e12`) — role, accessible name, value, state, options for a `select`, the row's text for look-alikes such as five "Select" buttons — and the visible text; `format: json` for programs. Elements off screen are listed after a divider. See [agent-actions.md](agent-actions.md#этап-2-снимок-и-действия-по-dom) |
+| `click` `fill` `select_option` `press_key` `scroll_page` | act on a ref from the snapshot; each returns the page's new snapshot (`snapshot: false` to skip). `click` refuses when something covers the element and names it; `fill` types through the editor, so autocomplete opens; `fill` with `submit` presses Enter |
+| `wait_for` | until `text` is on the page, or until it stops changing |
 | `evaluate_javascript` | run a function body in the page — in the *page's* world, unlike every other tool ([architecture.md](architecture.md#page-side-scripts)); result back as JSON |
 | `create_document` | a document window (Markdown in a column) — `title` or `markdown`, optional `workspace`, `profile`, `activate` → id |
 | `write_document` | `mode`: `replace` the text, `append`, or `section` — replace the body of one `## heading` (added when missing); `document_id` defaults to the run's document in the on-screen workspace |

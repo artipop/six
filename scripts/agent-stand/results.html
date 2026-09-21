@@ -1,0 +1,6 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>SkyFind — results</title><style>body{font:15px system-ui;margin:24px}li{margin:10px 0}</style></head><body>
+<h1 id="h"></h1><ul id="r"></ul><script>
+const p=new URLSearchParams(location.search); document.getElementById('h').textContent=`${p.get('from')} → ${p.get('to')}, ${p.get('d')}, ${p.get('adults')} adult(s), ${p.get('cabin')}${p.get('nonstop')==='true'?', nonstop':''}`;
+const r=document.getElementById('r'); [["08:05","SWISS","1h 45m",212],["12:40","British Airways","1h 50m",189],["18:15","easyJet","1h 55m",97]].forEach(([t,a,dur,price],i)=>{
+ if(p.get('nonstop')==='true'&&i===2) return; const li=document.createElement('li'); li.innerHTML=`<b>${t}</b> ${a} · ${dur} · CHF ${price} <button>Select</button>`; r.appendChild(li);});
+</script></body></html>
