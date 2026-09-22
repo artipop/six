@@ -65,7 +65,7 @@ final class RailListPanel {
         let instance = GetModuleHandleW(nil)
         guard Self.register(instance: instance) else { return false }
 
-        // A share of the browser window, with a floor and a ceiling — CLAUDE.md's "sizes are
+        // A share of the browser window, with a floor and a ceiling — AGENTS.md's "sizes are
         // fractions of the viewport" — and centred across it, a little below the bar.
         var frame = RECT()
         GetWindowRect(owner, &frame)

@@ -5,7 +5,7 @@ import WebKit
 /// `SIX_KEY_SELFTEST=1`: what the table answers, for every chord in it, in every context there is.
 ///
 /// The Mac this is developed on cannot press its own keys — `screencapture` is black and System
-/// Events is refused, so nothing here can be driven from a terminal (see CLAUDE.md). The table
+/// Events is refused, so nothing here can be driven from a terminal (see AGENTS.md). The table
 /// itself can be asked, though, and asking it is most of the question: "does `⌥→` work on a start
 /// page" is `KeyBindings` plus a `KeyContext`, and both are values. What is left over — that a local
 /// monitor beats a focused `WKWebView` to the key — is the one thing that was never in doubt.
@@ -178,7 +178,7 @@ enum KeySelfTest {
         // puts them back on the rail, so this leaves it as it found it — and if it ever does not, the
         // window count on the line after says so.
         // The page is made first responder by hand once, because a click is the only other way to
-        // do it and this machine cannot click (CLAUDE.md). Everything after it is the question: does
+        // do it and this machine cannot click (AGENTS.md). Everything after it is the question: does
         // the keyboard follow the rail's focus, or stay on the page it was given to? The `keys …`
         // half of each line answers, and its **width** says which pane holds them — half a column or
         // a whole one.

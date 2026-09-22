@@ -551,7 +551,7 @@ extension RailWindow {
     }
 
     /// A button's glyph, greyed when the thing it does is not available. The state is drawn, not
-    /// the control disabled — CLAUDE.md's note about a disabled item eating its key equivalent is
+    /// the control disabled — AGENTS.md's note about a disabled item eating its key equivalent is
     /// the Mac's version of the same preference.
     func drawGlyph(_ hdc: HDC, _ glyph: String, in rect: RECT, enabled: Bool) {
         drawText(hdc, glyph, in: rect, font: fonts.glyph,

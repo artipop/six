@@ -131,7 +131,7 @@ final class PageFocusStore {
         focuses[windowID] = focus
         // `SIX_UI_DEBUG=1` prints a line per key press and who took it; a selection is the same kind
         // of fact, and the only way to watch this one from a terminal — the bar it draws is AppKit
-        // over a web view, which no screenshot on this machine can catch (CLAUDE.md).
+        // over a web view, which no screenshot on this machine can catch (AGENTS.md).
         if ProcessInfo.processInfo.environment["SIX_UI_DEBUG"] != nil {
             let where_ = focus.rect.integral
             Log.debug(.ui, "focus \(focus.kind.rawValue) editable=\(focus.isEditable) at \(Int(where_.minX)),\(Int(where_.minY)) label=\"\(focus.label)\" text=\"\(focus.subject.prefix(40))\"")

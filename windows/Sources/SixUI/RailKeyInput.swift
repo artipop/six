@@ -56,7 +56,7 @@ extension RailWindow {
     }
 
     /// Letters go by scan code, not virtual-key code — the physical key, which no layout remaps —
-    /// for the reason CLAUDE.md learned on the Mac: "`⌥W` reports «ц» on the Russian layout."
+    /// for the reason AGENTS.md learned on the Mac: "`⌥W` reports «ц» on the Russian layout."
     private static func railKey(virtualKey: Int32, scanCode: Int32) -> RailKey? {
         switch virtualKey {
         case VK_TAB: return .tab
@@ -87,7 +87,7 @@ extension RailWindow {
 /// ⌘D, ⌘[ and ⌘] — with `Ctrl` in `⌘`'s place, which is where a Windows keyboard keeps them.
 ///
 /// They are matched by **scan code**, like the letter bindings in `railKey` above and for the same
-/// reason CLAUDE.md gives: a letter read from the layout is a shortcut only Latin layouts have.
+/// reason AGENTS.md gives: a letter read from the layout is a shortcut only Latin layouts have.
 extension RailWindow {
     /// `true` means the key was ours. Checked before `KeyBindings`, which answers no `Ctrl`-only
     /// chord, so the two cannot collide.

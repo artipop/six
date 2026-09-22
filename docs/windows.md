@@ -209,7 +209,7 @@ and the system menu all still work, because they were never taken away.
 between shortcuts that work and shortcuts that stop working the moment you click on a page. A
 `WKView` is a child `HWND` that takes the keyboard focus, and a key sent to it never reaches this
 window's procedure at all: every rail binding used to answer only while the chrome had focus. The
-Mac has exactly this, for exactly this reason, and calls it `KeyRouter` (CLAUDE.md: "a local
+Mac has exactly this, for exactly this reason, and calls it `KeyRouter` (AGENTS.md: "a local
 `NSEvent` monitor is exactly what pulls events out of it"). Only what matched is swallowed, so
 `⌥F4`, `⌥Space`, the page's own keys and everything typed into the address field stay somebody
 else's.
@@ -221,7 +221,7 @@ and forward can do anything — and WebKit announces none of them at a moment la
 `didFinishNavigation` fires with the *previous* title still in place (a card labelled DuckDuckGo with
 example.com in it, measured), and pushing onto the back-forward list is not announced at all. A
 400 ms `WM_TIMER` asks (`RailLiveView.refreshLivePageState`) and repaints only on a change — the
-"poll from Swift for anything that must wait" CLAUDE.md settles on for page state, and what the Mac
+"poll from Swift for anything that must wait" AGENTS.md settles on for page state, and what the Mac
 gets from `WebPage`'s observation for free.
 
 ## Profiles
@@ -636,7 +636,7 @@ Two traps for whoever drives this from a script next, since between them they co
   `SIX_UI_DEBUG` key trace says so in as many words, which is what it is for. `keybd_event` with a
   virtual-key code is what a keyboard sends. Related, and now handled in `RailKeyInput.scanCode`:
   synthetic input often carries a zero scan code, and this front matches letters on the scan code
-  (the physical key, the same on every layout — CLAUDE.md's Russian-layout lesson), so a key with
+  (the physical key, the same on every layout — AGENTS.md's Russian-layout lesson), so a key with
   none is asked of the layout instead.
 - **A background process cannot raise a window**, so a synthetic click aimed "at the rail" can land
   on whatever is actually in front — here, another session's terminal. A harness should check

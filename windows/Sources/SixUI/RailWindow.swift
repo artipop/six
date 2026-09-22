@@ -120,7 +120,7 @@ public final class RailWindow {
         let created = Self.className.withCString(encodedAs: UTF16.self) { classNamePtr in
             "six".withCString(encodedAs: UTF16.self) { titlePtr in
                 // `CW_USEDEFAULT` for the size too: a hard-coded 1280x800 is taller than this dev
-                // machine's own display, which is CLAUDE.md's "sizes are fractions of the viewport".
+                // machine's own display, which is AGENTS.md's "sizes are fractions of the viewport".
                 // `WS_CLIPCHILDREN` so the rail's own painting stops at the address field and at the
                 // live page — without it the parent paints over both and they flicker back.
                 CreateWindowExW(
@@ -172,7 +172,7 @@ public final class RailWindow {
     /// ever sees them — which is the only place they can be taken, because the window they are aimed
     /// at is usually WebKit's.
     ///
-    /// This is the Mac's `KeyRouter` in Win32 terms, and it exists for the same reason CLAUDE.md
+    /// This is the Mac's `KeyRouter` in Win32 terms, and it exists for the same reason AGENTS.md
     /// gives there: a page that has been clicked into holds the keyboard, and a shortcut that stops
     /// working the moment you use the page is not a shortcut. Before this, every rail binding worked
     /// only while the chrome had focus — a `WM_KEYDOWN` sent to the `WKView`'s own `HWND` never

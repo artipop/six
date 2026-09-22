@@ -72,7 +72,7 @@ struct FindBar: View {
 
     /// `NSEvent.modifierFlags` rather than a second `onKeyPress`: `onSubmit` already answers plain
     /// ⏎, and the one thing left to ask is which hand pressed it — `deviceIndependentFlagsMask` for
-    /// the reason `KeyBindings` always compares against it (CLAUDE.md: a stray `.capsLock` or
+    /// the reason `KeyBindings` always compares against it (AGENTS.md: a stray `.capsLock` or
     /// `.function` bit must not turn ⇧⏎ into a key this never matches).
     private var shiftHeld: Bool {
         NSEvent.modifierFlags.intersection(.deviceIndependentFlagsMask) == .shift

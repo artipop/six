@@ -64,7 +64,7 @@ command here — see the comment at the top of `Package.swift` for the three rea
 - The strip comes back after a relaunch, out of the `settings` table. `StripState`, the row it is
   written as, and `LivePages`, the budget above, were this front's and are `SixCore`'s now — the
   Windows front runs the same two files (compiled away on Apple). After pulling that change into a
-  warm container, `rm -f /tmp/g/build.db`: it is a root-manifest edit, and CLAUDE.md has why a path
+  warm container, `rm -f /tmp/g/build.db`: it is a root-manifest edit, and AGENTS.md has why a path
   dependency's manifest edit is otherwise a silent no-op.
 - Page translation with Bergamot, shared with the Windows front — see below.
 

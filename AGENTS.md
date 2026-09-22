@@ -1,4 +1,4 @@
-# CLAUDE.md
+# AGENTS.md
 
 Working notes for whoever changes this code. [README.md](README.md) is the pitch, [docs/](docs/) is the reference;
 this file is the part that is neither — how to build it, how to check it, and the things that have cost hours.

@@ -23,7 +23,7 @@ root=$(cd "$(dirname "$0")/.." && pwd)
 image=${SIX_IMAGE:-six-gnome:26.04}
 name=${SIX_CONTAINER:-six-live}
 port=${SIX_PORT:-6080}
-# The scratch paths the build.db rule in CLAUDE.md is about: the front's, and the root package's.
+# The scratch paths the build.db rule in AGENTS.md is about: the front's, and the root package's.
 scratch=/tmp/g
 core_scratch=/tmp/gcore
 

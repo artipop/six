@@ -9,7 +9,7 @@ import Foundation
 /// re-read every launch afterwards.
 ///
 /// `CryptoKit` answers this on Apple and does not exist on Linux or Windows; `swift-crypto` would,
-/// at the cost of a fifth package in a dependency graph that CLAUDE.md spends a chapter on keeping
+/// at the cost of a fifth package in a dependency graph that AGENTS.md spends a chapter on keeping
 /// still. Sixty lines of FIPS 180-4 is the cheaper trade, and it is the rare piece of code where
 /// "does it work" has a published answer: `ChecksumTests` runs the standard vectors.
 nonisolated enum Checksum {

@@ -238,4 +238,4 @@ applied. Nothing on this machine can click the bar, so this is the only way to s
 end; `fix` on «это текст с ашипками» coming back as «это текст с ошибками», `replaceSelection`,
 applicable, is what it looks like when it works. That is the only way to see this from a terminal: the bar is AppKit drawn
 over a web view, `screencapture` writes black on this machine, and `take_screenshot` over MCP
-renders the *page* and not the window (CLAUDE.md).
+renders the *page* and not the window (AGENTS.md).

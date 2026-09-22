@@ -265,4 +265,4 @@ written into the page's DOM.
   is declined still prints.
 - **`SIX_UI_DEBUG=1` prints a line per key** — the chord, the context it landed in, and who took it. **`SIX_KEY_SELFTEST=1`**
   prints the whole matrix at launch: every binding against every context, which is how a binding that goes quiet
-  somewhere is found without pressing anything (`KeySelfTest`; this Mac cannot press its own keys, see CLAUDE.md).
+  somewhere is found without pressing anything (`KeySelfTest`; this Mac cannot press its own keys, see AGENTS.md).

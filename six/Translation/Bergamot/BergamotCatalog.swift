@@ -40,7 +40,7 @@ nonisolated struct BergamotModel: Sendable, Equatable, Codable {
 /// and `translations-models` for the weights, both public, both unauthenticated, both served as
 /// plain attachments. (There are `-v2` collections beside them carrying the same files zstd
 /// compressed; six reads v1 because it has no zstd, and thirty megabytes once per language is not
-/// worth a decompressor in a dependency graph CLAUDE.md spends a chapter on keeping still.)
+/// worth a decompressor in a dependency graph AGENTS.md spends a chapter on keeping still.)
 ///
 /// Nothing here touches the disk or decides anything about a page. It answers one question —
 /// *which files, at which version, for which pair* — and `BergamotStore` fetches what it names.

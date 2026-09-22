@@ -895,7 +895,7 @@ final class RailWebView {
     /// script, or simply late, finishes its navigation with the *previous* title still in place —
     /// which showed up here as a card still labelled DuckDuckGo with example.com in it. `RailWindow`
     /// polls these on a timer for that reason, the same "poll from Swift for anything that must
-    /// wait" CLAUDE.md settles on for page state.
+    /// wait" AGENTS.md settles on for page state.
     /// Both are `Copy` calls and are released once read: with every live column polled four times a
     /// second, the strings they hand back were otherwise a leak at the repaint rate.
     var title: String { Self.takeString(WKPageCopyTitle(page)) }

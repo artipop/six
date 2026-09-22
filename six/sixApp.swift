@@ -125,7 +125,7 @@ struct sixApp: App {
         bookmarks.resumeIndexing()
         // `SIX_EMBED_SWITCH=base` works the model picker from a terminal, three seconds in. It is the
         // one control in Configuration that nothing here can click — screenshots and synthetic clicks both
-        // need permissions this machine does not give (CLAUDE.md) — and the half it drives is the live
+        // need permissions this machine does not give (AGENTS.md) — and the half it drives is the live
         // one: a new table, a re-index, the old vectors left where they are. The setting is not
         // written, so a restart is back to whatever the user chose.
         if let switchTo = ProcessInfo.processInfo.environment["SIX_EMBED_SWITCH"].flatMap(EmbeddingModelChoice.init(rawValue:)) {

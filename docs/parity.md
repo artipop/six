@@ -9,7 +9,7 @@ version of it lived in a conversation and was lost with it.
 **The rule for Linux.** Anything that lands in `SixCore`, or is a callback the engine already has, is nearly free
 on Linux — WebKitGTK has a direct counterpart for every C API the Windows front uses. So a block is written
 shared-first: the model in `SixCore`, proved on Windows, and the Linux wiring written beside it and built in a
-session that is about Linux (the container is on the Mac; CLAUDE.md says why that is not a habit).
+session that is about Linux (the container is on the Mac; AGENTS.md says why that is not a habit).
 
 Sizes are rough: **S** an afternoon, **M** a day or two, **L** a week, **XL** more.
 
@@ -71,7 +71,7 @@ the page, the shield and its per-site allowlist ([blocking.md](blocking.md)).
 - **Linux:** `WebKitUserContentFilterStore`, which takes the same JSON.
 - **Shared:** `FilterListStore`, `RuleConversion` and `AdvancedRules` would move into `SixCore`. **The risk is the
   graph, not the code:** SafariConverterLib would join the root manifest and so the Linux and Windows resolved
-  files — read "Three fronts, one dependency graph" in CLAUDE.md before touching a manifest for this.
+  files — read "Three fronts, one dependency graph" in AGENTS.md before touching a manifest for this.
 
 ### 3. The layout's remaining keys — M, both fronts
 

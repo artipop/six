@@ -11,7 +11,7 @@ page's context menu ([`PageContextMenu.swift`](../six/Views/PageContextMenu.swif
 page, a `six://` page and a document have no address anybody else can open, so the button is greyed out there. It is
 greyed out and not hidden, so the bar does not shift between a page and a start page.
 
-It is deliberately not in the menu bar. A `Commands` body is built once (CLAUDE.md, *a `.disabled` on a SwiftUI
+It is deliberately not in the menu bar. A `Commands` body is built once (AGENTS.md, *a `.disabled` on a SwiftUI
 `Commands` item*), so a File › Share item would go on sharing whatever page was in front when the menu was first
 built.
 
@@ -109,7 +109,7 @@ offering a switch that would do nothing.
 
 ### Checking it without a screen
 
-No clicks can be sent here (CLAUDE.md), so each half is checked on its own:
+No clicks can be sent here (AGENTS.md), so each half is checked on its own:
 
 - **Registration and the rule.** Run `pluginkit -m -p com.apple.share-services | grep six`. A leading `+` means the
   extension is enabled. A fresh build is registered **disabled**, and `pluginkit -e use -i org.deffun.six.dev.share`

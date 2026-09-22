@@ -56,7 +56,7 @@ struct ViewCommands: Commands {
             Divider()
 
             // ⌘F: this page's own find. `WKWebView` carries one as an async completion-handler API
-            // with no menu of its own, and `WebPage` carries none of it at all (CLAUDE.md) — the bar
+            // with no menu of its own, and `WebPage` carries none of it at all (AGENTS.md) — the bar
             // this opens runs the search itself, in the page's own JavaScript. Beside the other page
             // verbs rather than in the system Edit menu, which macOS already fills with cut, copy
             // and paste and has no Find of its own to replace.
