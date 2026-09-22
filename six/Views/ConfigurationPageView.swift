@@ -65,11 +65,41 @@ struct ConfigurationPageView: View {
         // The address and the sidebar are the same fact. Arriving with `#assistant` turns the page to
         // it, and turning it by hand rewrites the address — so the window can be copied, typed again
         // or restored where it stood, which one address for six panes could not do.
-        .onAppear { if let named = tab.section.flatMap(Section.init(rawValue:)) { section = named } }
+        .onAppear { if let named = Self.pane(of: tab.section) { section = named } }
         .onChange(of: tab.section) {
-            if let named = tab.section.flatMap(Section.init(rawValue:)), named != section { section = named }
+            if let named = Self.pane(of: tab.section), named != section { section = named }
         }
-        .onChange(of: section) { if tab.section != section.rawValue { tab.section = section.rawValue } }
+        // Only the first word is this view's to write: a pane that keeps a part of its own owns
+        // everything after the slash, and comparing the whole address would wipe it on every redraw.
+        .onChange(of: section) { if Self.head(of: tab.section) != section.rawValue { tab.section = section.rawValue } }
+    }
+
+    /// The address of a pane is one word, or two with a slash between them: `#privacy/sites` is the
+    /// third row of the sidebar and the second segment inside it. Only Privacy has a second word
+    /// today, and it has one because the shield's menu has two items that used to lead to the same
+    /// place — "Site Permissions…" arrived on the filter lists, which is the fault `#assistant` was
+    /// added to fix, one level further down.
+    private static func head(of address: String?) -> String? {
+        guard let address, !address.isEmpty else { return nil }
+        return String(address.split(separator: "/", maxSplits: 1)[0])
+    }
+
+    private static func tail(of address: String?) -> String? {
+        guard let address, let slash = address.firstIndex(of: "/") else { return nil }
+        let rest = address[address.index(after: slash)...]
+        return rest.isEmpty ? nil : String(rest)
+    }
+
+    private static func pane(of address: String?) -> Section? {
+        head(of: address).flatMap(Section.init(rawValue:))
+    }
+
+    /// The part after the slash, written back under whichever pane is showing.
+    private var part: Binding<String?> {
+        Binding(
+            get: { Self.tail(of: tab.section) },
+            set: { tab.section = $0.map { "\(section.rawValue)/\($0)" } ?? section.rawValue }
+        )
     }
 
     private var sidebar: some View {
@@ -99,7 +129,7 @@ struct ConfigurationPageView: View {
         switch section {
         case .general: GeneralConfiguration()
         case .windows: WindowConfiguration()
-        case .privacy: PrivacyConfiguration()
+        case .privacy: PrivacyConfiguration(part: part)
         case .assistant: AssistantPane()
         case .extensions: ExtensionConfiguration()
         case .develop: DevelopConfiguration()
@@ -299,6 +329,11 @@ private struct LoadedWindows: View {
 /// Blocking, what each site was allowed, and what six trusts — the whole of the old Privacy menu,
 /// which was a menu whose every item opened a window.
 private struct PrivacyConfiguration: View {
+    /// This pane's own half of the address, from `ConfigurationPageView`: `sites` of
+    /// `#privacy/sites`. Held there rather than here because the address belongs to the window and
+    /// outlives this view — the segment is `@State`, and switching panes and back rebuilds it.
+    @Binding var part: String?
+
     @Environment(ContentBlocker.self) private var blocker
     @State private var pane: Pane = .blocking
 
@@ -340,6 +375,9 @@ private struct PrivacyConfiguration: View {
             case .certificates: CertificateConfiguration()
             }
         }
+        .onAppear { if let named = part.flatMap(Pane.init(rawValue:)) { pane = named } }
+        .onChange(of: part) { if let named = part.flatMap(Pane.init(rawValue:)), named != pane { pane = named } }
+        .onChange(of: pane) { if part != pane.rawValue { part = pane.rawValue } }
     }
 }
 
