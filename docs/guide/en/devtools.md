@@ -77,6 +77,14 @@ itself. The agent sees the same tools and can call them.
 
 The switch reaches pages loaded after it: turning it on reloads the open windows.
 
+**What you will be asked.** The first call to a site raises a bar under the
+window's title: may agents use the tools this site offers them? The answer is
+remembered and sits with the camera's — **Configuration ▸ Privacy ▸ Site
+Permissions** — and can be taken back there. After that, every call to a tool
+the page did not mark read-only is confirmed on its own, and the bar shows the
+tool's name and the arguments it is being called with. A private window offers
+no tools at all.
+
 ::: warning Why this is in Develop for now
 A page's tool does whatever the site wrote it to do — on your behalf, in your
 session. There is no per-site permission and no confirmation before a call yet,

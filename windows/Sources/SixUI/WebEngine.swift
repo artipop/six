@@ -100,7 +100,7 @@ enum WebEngine {
             WKPreferencesSetMockCaptureDevicesEnabled(preferences, true)
         }
         WKPageConfigurationSetPreferences(pageConfiguration, preferences)
-        // WebMCP's polyfill and its channel (`RailWebMCP`), when it is on. Without one the page is
+        // WebMCP's polyfill and its channel (`StripWebMCP`), when it is on. Without one the page is
         // configured exactly as it was before WebMCP: no user content controller at all.
         if let userContent { WKPageConfigurationSetUserContentController(pageConfiguration, userContent) }
         return makeView(parent: parent, frame: frame, configuration: pageConfiguration)

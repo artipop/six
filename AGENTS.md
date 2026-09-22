@@ -44,7 +44,7 @@ six/ACP           JSONRPCConnection, ACPClient (actor), ACPAgent (process), Agen
 six/MCP           MCPServer + MCPSocket + MCPStdioBridge (`six --mcp`), Client/ (MCP apps, SEP-1865, OAuth, catalog)
 six/Tools         BrowserTools — one catalog, served to the assistant, to ACP agents and over MCP
 six/WebMCP        pages declaring tools for agents: the polyfill, registry, calls and `WebMCPPage` — the three
-                  things a front owes — in SixCore; WebMCPStore is Apple's bridge, `RailWebMCP` Windows',
+                  things a front owes — in SixCore; WebMCPStore is Apple's bridge, `StripWebMCP` Windows',
                   `PageChannels` + `SixBrowser/WebMCP.swift` Linux's — docs/webmcp.md
 six/Vendor        ClaudeForFoundationModels, FoundationModelsUtilities — compiled into the target, see below
 ```

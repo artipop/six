@@ -10,6 +10,8 @@ nonisolated enum WebMCPError: LocalizedError, Equatable {
     case cancelled
     /// The tool threw, or answered with MCP's `isError`. The page's own message.
     case failed(String)
+    /// The person said no — to this site's tools, or to this call.
+    case refused(String)
     /// The page could not be asked at all: no page, or no polyfill in it.
     case unreachable(String)
 
@@ -27,6 +29,8 @@ nonisolated enum WebMCPError: LocalizedError, Equatable {
             "The call was cancelled."
         case .failed(let message):
             "The page's tool failed: \(message)"
+        case .refused(let message):
+            "Refused: \(message)"
         case .unreachable(let message):
             "The page could not be asked: \(message)"
         }
@@ -37,6 +41,15 @@ nonisolated enum WebMCPError: LocalizedError, Equatable {
         let value = Double(whole) + Double(fraction) / 1e18
         return value == value.rounded() ? "\(Int(value)) s" : String(format: "%.1f s", value)
     }
+}
+
+/// A question the gate is putting to the person. `tool` is `nil` for the one about the site itself,
+/// which is asked once and remembered; otherwise it is this call, with the arguments it was given.
+nonisolated struct WebMCPAsk: Sendable {
+    let windowID: UUID
+    let origin: String
+    let tool: WebMCPTool?
+    let arguments: String
 }
 
 /// WebMCP's shared half: which tools each window's page offers (`WebMCPRegistry`), and the calls
@@ -63,6 +76,20 @@ final class WebMCPHost {
     /// Told when what a window offers changes. SwiftUI observes `registry` and needs nothing; this is
     /// for a front that paints by hand.
     @ObservationIgnored var onChange: ((UUID) -> Void)?
+    /// Which site a window is on. `SixCore` does not know what a window is; each front wires this
+    /// to whatever it calls one.
+    @ObservationIgnored var origin: ((UUID) -> String?)?
+    /// How a question reaches the person, and how the answer comes back.
+    ///
+    /// A closure rather than a `SitePermissions` of its own, because the fronts do not agree on
+    /// where that object lives: on the Mac and on Linux it is in the same module as this, and on
+    /// Windows it is inside `StripModel`, behind a public seam that no internal type may cross.
+    /// What every front does with the question is the same — its own permission bar, the one the
+    /// camera already uses — and `SitePermissions.decidePageTools` / `confirmPageToolCall` are the
+    /// two calls it makes. **Unset means refused**: a browser that cannot ask says no (`gate`).
+    @ObservationIgnored var ask: (@MainActor (WebMCPAsk, @escaping (Bool) -> Void) -> Void)?
+    /// The tool a window is running for an agent right now, so the window can say so while it does.
+    private(set) var activity: [UUID: String] = [:]
     @ObservationIgnored private var pending: [String: Pending] = [:]
 
     private struct Pending {
@@ -135,9 +162,12 @@ final class WebMCPHost {
     func call(_ name: String, arguments: ACPJSON, in windowID: UUID, timeout: Duration = defaultTimeout,
               run: @escaping @MainActor (String) async throws -> Void) async throws -> String {
         let offered = registry.tools(in: windowID)
-        guard offered.contains(where: { $0.name == name }) else {
+        guard let tool = offered.first(where: { $0.name == name }) else {
             throw WebMCPError.noSuchTool(name, available: offered.map(\.name))
         }
+        try await gate(tool, arguments: arguments, in: windowID)
+        activity[windowID] = name
+        defer { if activity[windowID] == name { activity[windowID] = nil } }
         let call = UUID().uuidString.lowercased()
         let document = registry.document(of: windowID)
         let body = WebMCPScript.startBody(call: call, tool: name, arguments: arguments)
@@ -160,6 +190,50 @@ final class WebMCPHost {
         } onCancel: {
             Task { @MainActor [weak self] in self?.abandon(call, because: .cancelled) }
         }
+    }
+
+    /// The two questions between an agent and a page's tool (docs/webmcp.md, stage 3).
+    ///
+    /// **The site, once.** A page's tools run in the session the person is signed into, so the
+    /// first call to a site is a question about the site, remembered per profile like a camera.
+    /// Asked at the first call rather than when the page declares them: a page whose tools nobody
+    /// calls has asked for nothing, and a bar for it would be a browser interrupting to say that a
+    /// page exists.
+    ///
+    /// **The call, every time.** Anything the page did not mark `readOnlyHint` changes something on
+    /// the person's behalf, and `consequentialHint` says so outright — both are confirmed per call,
+    /// and the bar shows the arguments rather than the page's description of what they mean. The
+    /// annotations are the page's word about itself: they can lower the question about a *call*,
+    /// never the one about the site.
+    private func gate(_ tool: WebMCPTool, arguments: ACPJSON, in windowID: UUID) async throws {
+        guard let ask, let origin = origin?(windowID), !origin.isEmpty else {
+            throw WebMCPError.refused("six cannot tell which site this window is on, so it cannot ask about it")
+        }
+        let allowed = await withCheckedContinuation { continuation in
+            ask(WebMCPAsk(windowID: windowID, origin: origin, tool: nil, arguments: "")) {
+                continuation.resume(returning: $0)
+            }
+        }
+        guard allowed else {
+            throw WebMCPError.refused("\(origin) may not offer its tools to agents. The answer is remembered; "
+                + "it can be taken back in Configuration › Privacy › Site Permissions.")
+        }
+        guard !tool.readOnly || tool.consequential else { return }
+        let confirmed = await withCheckedContinuation { continuation in
+            ask(WebMCPAsk(windowID: windowID, origin: origin, tool: tool,
+                          arguments: Self.summary(of: arguments))) {
+                continuation.resume(returning: $0)
+            }
+        }
+        guard confirmed else { throw WebMCPError.refused("the user did not allow this call to \(tool.name)") }
+    }
+
+    /// The arguments as the bar shows them: JSON, short enough to read in one line.
+    static func summary(of arguments: ACPJSON) -> String {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
+        let text = (try? encoder.encode(arguments)).map { String(decoding: $0, as: UTF8.self) } ?? "{}"
+        return text.count > 200 ? String(text.prefix(200)) + "…" : text
     }
 
     private func abandon(_ call: String, because error: WebMCPError) {

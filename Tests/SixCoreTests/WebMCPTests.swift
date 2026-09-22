@@ -182,17 +182,21 @@ final class WebMCPRecorder {
 struct WebMCPHostTests {
     let window = UUID()
 
-    private func host(with tools: [String] = ["add"]) -> WebMCPHost {
+    /// A host with a read-only tool and a gate that says yes — the gate itself is measured in
+    /// `WebMCPGateTests`, and every other test here is about what happens after it.
+    private func host(with tools: [String] = ["add"], readOnly: Bool = true) -> WebMCPHost {
         let host = WebMCPHost()
+        host.origin = { _ in "https://example.com" }
+        host.ask = { _, answer in answer(true) }
         for name in tools {
             host.receive(#"{"kind":"register","doc":"d1","origin":"https://example.com","tool":{"name":""#
-                         + name + #"","description":"x"}}"#, from: window)
+                         + name + #"","description":"x","annotations":{"readOnlyHint":\#(readOnly)}}}"#, from: window)
         }
         return host
     }
 
     /// The call id, out of a start body — `bridge.start("<id>", …)`.
-    private static func callID(in body: String) -> String {
+    static func callID(in body: String) -> String {
         guard let start = body.range(of: "start(\"") else { return "" }
         let rest = body[start.upperBound...]
         return String(rest.prefix { $0 != "\"" })
@@ -307,6 +311,91 @@ struct WebMCPHostTests {
         #expect(answer.contains("not instructions"))
         #expect(answer.contains("third parties"))
         #expect(answer.contains("[cut at 10 of 30 characters"))
+    }
+}
+
+/// The gate in front of a page's tools (docs/webmcp.md, stage 3): the site once, and every call the
+/// page did not mark read-only. What a front does with a question — the bar, the queue, the
+/// remembered answer — is `SitePermissions`; what is here is when one is asked at all.
+@MainActor
+struct WebMCPGateTests {
+    let window = UUID()
+
+    private func host(readOnly: Bool, consequential: Bool = false,
+                      answering: @escaping (WebMCPAsk) -> Bool) -> (WebMCPHost, Asked) {
+        let host = WebMCPHost()
+        let asked = Asked()
+        host.origin = { _ in "https://example.com" }
+        host.ask = { ask, answer in
+            asked.questions.append(ask)
+            answer(answering(ask))
+        }
+        host.receive(#"{"kind":"register","doc":"d1","origin":"https://example.com","tool":{"name":"act","description":"x","annotations":{"readOnlyHint":\#(readOnly),"consequentialHint":\#(consequential)}}}"#,
+                     from: window)
+        return (host, asked)
+    }
+
+    @MainActor final class Asked {
+        var questions: [WebMCPAsk] = []
+    }
+
+    @Test func aReadOnlyToolAsksAboutTheSiteAndNothingElse() async throws {
+        let (host, asked) = host(readOnly: true) { _ in true }
+        _ = try await host.call("act", arguments: [:], in: window) { [window] body in
+            host.receive(#"{"kind":"result","doc":"d1","call":""# + WebMCPHostTests.callID(in: body) + #"","ok":true,"value":"done"}"#, from: window)
+        }
+        #expect(asked.questions.count == 1)
+        #expect(asked.questions.first?.tool == nil, "the one question is about the site")
+    }
+
+    @Test func anythingElseIsConfirmedPerCall() async throws {
+        let (host, asked) = host(readOnly: false) { _ in true }
+        _ = try await host.call("act", arguments: ["a": 1], in: window) { [window] body in
+            host.receive(#"{"kind":"result","doc":"d1","call":""# + WebMCPHostTests.callID(in: body) + #"","ok":true,"value":"done"}"#, from: window)
+        }
+        #expect(asked.questions.count == 2)
+        #expect(asked.questions.last?.tool?.name == "act")
+        #expect(asked.questions.last?.arguments == #"{"a":1}"#)
+    }
+
+    /// A page saying `consequentialHint` is taken at its word even when it also says read-only:
+    /// an annotation may lower the question about a call, never raise a doubt away.
+    @Test func consequentialIsConfirmedEvenWhenReadOnly() async throws {
+        let (host, asked) = host(readOnly: true, consequential: true) { _ in true }
+        _ = try await host.call("act", arguments: [:], in: window) { [window] body in
+            host.receive(#"{"kind":"result","doc":"d1","call":""# + WebMCPHostTests.callID(in: body) + #"","ok":true,"value":"done"}"#, from: window)
+        }
+        #expect(asked.questions.count == 2)
+    }
+
+    @Test func aNoAboutTheSiteStopsTheCallBeforeThePageIsAsked() async {
+        let (host, _) = host(readOnly: true) { $0.tool == nil ? false : true }
+        let recorder = WebMCPRecorder()
+        await #expect(throws: (any Error).self) {
+            try await host.call("act", arguments: [:], in: window) { recorder.bodies.append($0) }
+        }
+        #expect(recorder.bodies.isEmpty, "the page was never asked to run it")
+    }
+
+    @Test func aNoAboutTheCallStopsIt() async {
+        let (host, _) = host(readOnly: false) { $0.tool == nil }
+        let recorder = WebMCPRecorder()
+        await #expect(throws: (any Error).self) {
+            try await host.call("act", arguments: [:], in: window) { recorder.bodies.append($0) }
+        }
+        #expect(recorder.bodies.isEmpty)
+    }
+
+    /// A front that wired nothing cannot ask, and a browser that cannot ask says no.
+    @Test func aHostWithNoWayToAskRefuses() async {
+        let host = WebMCPHost()
+        host.receive(#"{"kind":"register","doc":"d1","origin":"https://example.com","tool":{"name":"act","description":"x"}}"#,
+                     from: window)
+        let recorder = WebMCPRecorder()
+        await #expect(throws: (any Error).self) {
+            try await host.call("act", arguments: [:], in: window) { recorder.bodies.append($0) }
+        }
+        #expect(recorder.bodies.isEmpty)
     }
 }
 

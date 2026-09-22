@@ -36,9 +36,13 @@ public enum PageChannels {
     /// and nothing added later reaches it. Empty installs nothing, which is the page as it always was.
     public static var channels: [Channel] = []
 
+    /// Whether this column may have them at all. `SixBrowser` says no for a private column, where
+    /// WebMCP is off altogether (docs/webmcp.md, stage 3).
+    public static var isAllowed: ((UUID) -> Bool)?
+
     /// Called from `WebView.container`, once per page and before its first load.
     public static func install(_ view: OpaquePointer, tabID: UUID) {
-        guard !channels.isEmpty else { return }
+        guard !channels.isEmpty, isAllowed?(tabID) != false else { return }
         let webView = UnsafeMutableRawPointer(view).assumingMemoryBound(to: WebKitWebView.self)
         // Each view has a manager of its own unless one was handed in at construction, and none is.
         guard let manager = webkit_web_view_get_user_content_manager(webView) else { return }

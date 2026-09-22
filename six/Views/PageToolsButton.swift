@@ -12,18 +12,23 @@ struct PageToolsButton: View {
 
     var body: some View {
         let tools = webMCP.tools(in: tab.id)
+        // What the window is running for an agent right now. A call is a thing happening on the
+        // person's behalf in their session, so it is visible while it happens rather than only in a
+        // log afterwards (docs/webmcp.md, stage 3).
+        let running = webMCP.host.activity[tab.id]
         if !tools.isEmpty {
             Button { showsList.toggle() } label: {
                 HStack(spacing: 3) {
                     Image(systemName: "wrench.and.screwdriver")
-                    Text(verbatim: "\(tools.count)")
+                        .symbolEffect(.pulse, isActive: running != nil)
+                    Text(verbatim: running ?? "\(tools.count)")
                         .monospacedDigit()
                 }
                 .font(.system(size: 12))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(running == nil ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint))
             }
+            .help(running.map { Text("An agent is calling \($0)") } ?? Text("Tools this page offers to agents"))
             .buttonStyle(.borderless)
-            .help("Tools this page offers to agents")
             .popover(isPresented: $showsList, arrowEdge: .bottom) {
                 PageToolsList(tools: tools)
             }

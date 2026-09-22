@@ -7091,6 +7091,46 @@
           }
         }
       }
+    },
+    "tools for agents" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "инструменты для агентов"
+          }
+        }
+      }
+    },
+    "Let agents use the tools %@ offers them?" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешить агентам пользоваться инструментами, которые предлагает %@?"
+          }
+        }
+      }
+    },
+    "Let an agent call %@ on %@ with %@?" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешить агенту вызвать %@ на %@ с аргументами %@?"
+          }
+        }
+      }
+    },
+    "An agent is calling %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Агент вызывает %@"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"
