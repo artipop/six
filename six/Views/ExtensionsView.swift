@@ -63,18 +63,17 @@ struct ExtensionConfiguration: View {
                 }
                 .frame(maxHeight: .infinity)
             } else {
-                List {
-                    Section {
+                // A grouped form, like every other pane: an inset list writes its header a size
+                // smaller and in grey, and this heading stands one sidebar row from "Search" and
+                // "Bookmarks", which are the same kind of thing said the other way.
+                Form {
+                    Section("Installed Extensions") {
                         ForEach(extensions.installed) { record in
                             ExtensionRow(record: record)
                         }
-                    } header: {
-                        // A list's own header is a size smaller than a grouped form's, and the two
-                        // stand one sidebar row apart; said the same way, they read as one page.
-                        Text("Installed Extensions").font(.headline)
                     }
                 }
-                .listStyle(.inset)
+                .formStyle(.grouped)
 
                 // The way in, once the empty view that carried it is gone; nothing else along the
                 // bottom, because the list is the answer to what is installed.

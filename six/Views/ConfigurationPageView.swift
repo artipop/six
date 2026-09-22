@@ -133,6 +133,10 @@ struct ConfigurationPageView: View {
     /// being said once.
     static let tabBarHeight: CGFloat = 40
 
+    /// Air under a tab bar. A pane with no tabs gets this from the form's own top inset; one with
+    /// tabs had its first row sitting on the divider.
+    static let contentInset: CGFloat = 12
+
     /// Every pane on the one column, applied here rather than in each of them: a list of extensions
     /// stretched the whole window while a form beside it was half that, which made the same page
     /// look like two.
@@ -387,23 +391,30 @@ private struct PrivacyConfiguration: View {
                 Spacer()
                 // Nothing beside the tabs. Blocking's switch reaches one of the three tabs, so it
                 // lives in that tab (`BlockingConfiguration`), where it has the width to say what it
-                // switches; the assistant's reaches two of its three and stays in the chrome. Which
-                // is the rule: a switch over the tabs governs more than the one you are on, a switch
-                // in a tab governs that tab.
+                // switches; the assistant's reaches all three of its own and stays in the chrome.
+                // Which is the rule: a switch over the tabs governs more than the one you are on, a
+                // switch in a tab governs that tab.
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .frame(height: ConfigurationPageView.tabBarHeight)
             Divider()
-            switch pane {
-            case .blocking: BlockingConfiguration()
-            case .sites: PermissionConfiguration()
-            case .certificates: CertificateConfiguration()
+            Group {
+                switch pane {
+                case .blocking: BlockingConfiguration()
+                case .sites: PermissionConfiguration()
+                case .certificates: CertificateConfiguration()
+                }
             }
+            .padding(.top, ConfigurationPageView.contentInset)
         }
         .onAppear { if let named = part.flatMap(Pane.init(rawValue:)) { pane = named } }
         .onChange(of: part) { if let named = part.flatMap(Pane.init(rawValue:)), named != pane { pane = named } }
-        .onChange(of: pane) { if part != pane.rawValue { part = pane.rawValue } }
+        // The tab that opens by default has no anchor — see `AssistantPane`.
+        .onChange(of: pane) {
+            let named = pane == Pane.allCases[0] ? nil : pane.rawValue
+            if part != named { part = named }
+        }
     }
 }
 

@@ -161,16 +161,6 @@
         }
       }
     },
-    "Responses" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ответы"
-          }
-        }
-      }
-    },
     "MCP Servers and Apps" : {
       "localizations" : {
         "ru" : {
@@ -271,12 +261,12 @@
         }
       }
     },
-    "Set up Claude Code or Codex, or connect another agent that supports ACP. Choose an agent in Responses to use it with ⌘E." : {
+    "Set up Claude Code or Codex, or connect another agent that supports ACP. Which one answers is chosen in ⌘E Line." : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Настройте Claude Code или Codex либо подключите другого агента с поддержкой ACP. Выберите его во вкладке «Ответы», чтобы использовать через ⌘E."
+            "value" : "Настройте Claude Code или Codex либо подключите другого агента с поддержкой ACP. Кто из них отвечает — выбирается во вкладке «Строка ⌘E»."
           }
         }
       }
@@ -1301,6 +1291,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "• %@"
+          }
+        }
+      }
+    },
+    "\u2318E Line" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\u0421\u0442\u0440\u043e\u043a\u0430 \u2318E"
           }
         }
       }

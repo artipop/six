@@ -8,24 +8,23 @@ struct AssistantPane: View {
     @Binding var part: String?
 
     @Environment(ConfigurationStore.self) private var store
-    @State private var page = Page.responses
+    @State private var page = Page.line
 
     private enum Page: String, CaseIterable, Identifiable {
-        case responses, agents
+        /// Named for the surface it configures rather than for what comes back from it: "Responses"
+        /// said what the answers are, not where they appear, and the ⌘E line is the where.
+        case line
+        case agents
         /// `mcp` on the wire, because that is what the tab is called; `servers` is what it holds.
         case servers = "mcp"
         var id: String { rawValue }
         var title: String {
             switch self {
-            case .responses: String(localized: "Responses")
+            case .line: String(localized: "⌘E Line")
             case .agents: String(localized: "Agents")
             case .servers: "MCP"
             }
         }
-
-        /// Whether the assistant switch reaches this tab. MCP is the one it does not: a server six
-        /// connects to opens windows, which is browsing and not a model answering.
-        var followsAISwitch: Bool { self != .servers }
     }
 
     var body: some View {
@@ -39,28 +38,36 @@ struct AssistantPane: View {
                 .labelsHidden()
                 .fixedSize()
                 Spacer()
-                // Only where it switches something off. A switch in the chrome reads as the master
-                // of everything under it, so one that reaches two of the three tabs must not stand
-                // over the third — the same rule Privacy's blocking switch follows.
-                if page.followsAISwitch {
-                    Toggle("Use Language Models and Agents", isOn: $store.isAIEnabled)
-                        .toggleStyle(.switch)
-                        .lineLimit(1)
-                }
+                // Over all three tabs, because it reaches all three. An MCP server is here to hand
+                // its tools to an agent; with no agent running there is nothing for it to hand them
+                // to, so switching the models off switches it off too and the switch means what it
+                // says — everything, not most of it.
+                Toggle("Use Language Models and Agents", isOn: $store.isAIEnabled)
+                    .toggleStyle(.switch)
+                    .lineLimit(1)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .frame(height: ConfigurationPageView.tabBarHeight)
             Divider()
-            switch page {
-            case .responses: AssistantResponsesConfiguration().disabled(!store.isAIEnabled)
-            case .agents: AgentConfiguration().disabled(!store.isAIEnabled)
-            case .servers: MCPAppsView()
+            Group {
+                switch page {
+                case .line: AssistantResponsesConfiguration()
+                case .agents: AgentConfiguration()
+                case .servers: MCPAppsView()
+                }
             }
+            .disabled(!store.isAIEnabled)
+            .padding(.top, ConfigurationPageView.contentInset)
         }
         .onAppear { if let named = part.flatMap(Page.init(rawValue:)) { page = named } }
         .onChange(of: part) { if let named = part.flatMap(Page.init(rawValue:)), named != page { page = named } }
-        .onChange(of: page) { if part != page.rawValue { part = page.rawValue } }
+        // The tab that opens by default has no anchor: `…/assistant` already means this one, and an
+        // address that names it would be a second spelling of the same place.
+        .onChange(of: page) {
+            let named = page == Page.allCases[0] ? nil : page.rawValue
+            if part != named { part = named }
+        }
     }
 }
 
@@ -72,7 +79,8 @@ private struct AssistantResponsesConfiguration: View {
     var body: some View {
         @Bindable var devTools = devTools
         Form {
-            Section("Responses") {
+            // No header: the tab above is called ⌘E Line and this is what it holds.
+            Section {
                 Picker("Assistant", selection: provider) {
                     ForEach(ModelChoice.languageModels) { choice in
                         Text(choice.title).tag(choice.rawValue)
@@ -188,7 +196,7 @@ private struct AgentConfiguration: View {
     var body: some View {
         Form {
             Section {
-                Text("Set up Claude Code or Codex, or connect another agent that supports ACP. Choose an agent in Responses to use it with ⌘E.")
+                Text("Set up Claude Code or Codex, or connect another agent that supports ACP. Which one answers is chosen in ⌘E Line.")
                     .font(.callout).foregroundStyle(.secondary)
                 Button("Add Agent…") { adding = true }
             }
