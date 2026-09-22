@@ -16,9 +16,9 @@ struct PermissionBar: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: question.permissions.first?.symbol ?? "video")
+            Image(systemName: question.permissions.first?.symbol ?? "wrench.and.screwdriver")
                 .foregroundStyle(.tint)
-            Text("\(question.host) wants to use your \(devices).")
+            sentence
                 .font(.caption)
                 .lineLimit(2)
             Spacer(minLength: 8)
@@ -35,6 +35,22 @@ struct PermissionBar: View {
         // otherwise look like one bar that never went away.
         .id(question.id)
         .transition(.move(edge: .top).combined(with: .opacity))
+    }
+
+    /// Three questions, one bar (`SitePermissions.Ask`). The call names the tool and shows the
+    /// **arguments** rather than the page's description of what they do: a description is the
+    /// page's own words, and this is the one line standing between them and the session the person
+    /// is signed into (docs/webmcp.md).
+    @ViewBuilder private var sentence: some View {
+        switch question.ask {
+        case .devices:
+            Text("\(question.host) wants to use your \(devices).")
+        case .pageTools:
+            Text("Let agents use the tools \(question.host) offers them?")
+        case .pageToolCall(let tool, let arguments):
+            Text("Let an agent call \(tool) on \(question.host) with \(arguments)?")
+                .monospacedDigit()
+        }
     }
 
     /// "camera and microphone" — joined the way the reader's language joins a list.

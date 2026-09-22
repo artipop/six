@@ -22,6 +22,11 @@ final class WebMCPStore {
     private let settings: ConfigurationStore
     @ObservationIgnored private let controllers: PageControllers
     @ObservationIgnored weak var browser: BrowserState?
+    /// Where the gate's questions go: the same queue and the same bar under a window's title that
+    /// the camera uses (`SitePermissions`, docs/webmcp.md stage 3). Wired at launch.
+    @ObservationIgnored weak var permissions: SitePermissions? {
+        didSet { wireGate() }
+    }
     @ObservationIgnored private var handlers: [UUID: WebMCPMessageHandler] = [:]
 
     var isEnabled: Bool {
@@ -44,12 +49,36 @@ final class WebMCPStore {
         }
     }
 
+    /// Which site a window is on, and how a question about it reaches the person.
+    private func wireGate() {
+        host.origin = { [weak self] windowID in
+            SitePermissions.origin(of: self?.browser?.tab(windowID)?.currentURL)
+        }
+        host.ask = { [weak self] ask, answer in
+            guard let self, let permissions,
+                  let profileID = browser?.tab(ask.windowID)?.profileID else { return answer(false) }
+            if let tool = ask.tool {
+                permissions.confirmPageToolCall(tool: tool.name, arguments: ask.arguments,
+                                                origin: ask.origin, in: ask.windowID,
+                                                profileID: profileID, then: answer)
+            } else {
+                permissions.decidePageTools(origin: ask.origin, in: ask.windowID,
+                                            profileID: profileID, then: answer)
+            }
+        }
+    }
+
     private static let scriptName = "webmcp"
 
     private func install(in controller: WKUserContentController, for windowID: UUID) {
         controller.removeScriptMessageHandler(forName: WebMCPScript.handlerName, contentWorld: .page)
         handlers[windowID] = nil
-        guard isEnabled else {
+        // A private window declares nothing and can call nothing: WebMCP is off there whatever the
+        // setting says (docs/webmcp.md, stage 3).
+        let isPrivateWindow = browser.map { browser in
+            browser.tab(windowID).map { browser.isPrivate($0.profileID) } ?? false
+        } ?? false
+        guard isEnabled, !isPrivateWindow else {
             controllers.setUserScripts([], named: Self.scriptName, for: windowID)
             return
         }
@@ -93,9 +122,18 @@ final class WebMCPStore {
     func runSelfTestIfAsked() {
         host.runSelfTestIfAsked { [weak self] in
             guard let tab = self?.browser?.selectedTab else { return nil }
-            return WebMCPSelfTest.Target(windowID: tab.id, page: tab, load: { [weak tab] address in
-                if let url = URL(string: address) { tab?.load(url) }
-            })
+            return WebMCPSelfTest.Target(
+                windowID: tab.id,
+                page: tab,
+                load: { [weak tab] address in
+                    if let url = URL(string: address) { tab?.load(url) }
+                },
+                question: { [weak self] in self?.permissions?.question(for: tab.id)?.prompt },
+                answer: { [weak self] allowed in self?.permissions?.answer(allowed, for: tab.id) },
+                forgetSite: { [weak self, weak tab] in
+                    guard let self, let tab, let origin = SitePermissions.origin(of: tab.currentURL) else { return }
+                    permissions?.forget(.pageTools, forOrigin: origin, profileID: tab.profileID)
+                })
         }
     }
 }

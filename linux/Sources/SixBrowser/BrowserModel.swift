@@ -168,7 +168,7 @@ public final class BrowserModel {
             id: question.id,
             host: question.host,
             // `ListFormatter` is Apple Foundation's, and this list is never longer than two.
-            devices: question.permissions.map(\.label).joined(separator: " and "),
+            prompt: question.prompt,
             wantsCamera: question.permissions.contains(.camera)
         )
     }

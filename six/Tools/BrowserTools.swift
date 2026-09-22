@@ -821,6 +821,28 @@ final class BrowserToolCatalog {
 
     // MARK: Page tools (WebMCP)
 
+    /// The focused window's read-only page tools, as tools of the assistant's own (docs/webmcp.md,
+    /// stage 4). Empty — and so provably inert — while WebMCP is off, which is the default.
+    func pageModelTools() -> [any Tool] {
+        guard let webMCP, webMCP.isEnabled, let tab = browser.selectedTab else { return [] }
+        let taken = Set(all.map(\.name))
+        return webMCP.tools(in: tab.id).compactMap { tool in
+            // A page calling its tool `open_window` does not get to be `open_window`. Dropped rather
+            // than renamed: a renamed tool is one the page's own description no longer describes.
+            guard !taken.contains(tool.name) else { return nil }
+            return WebMCPModelTool(tool, in: tab, store: webMCP)
+        }
+    }
+
+    /// What those tools are, in one string. A session is built once and given its tools then, so it
+    /// has to be built again when the window it was built for offers something else — and this is
+    /// what tells `AssistantStore` that it does. Empty while WebMCP is off.
+    var pageToolsSignature: String {
+        guard let webMCP, webMCP.isEnabled, let tab = browser.selectedTab else { return "" }
+        let names = webMCP.tools(in: tab.id).filter { $0.readOnly && !$0.consequential }.map(\.name)
+        return names.isEmpty ? "" : tab.id.uuidString + ":" + names.joined(separator: ",")
+    }
+
     private func requireWebMCP() throws -> WebMCPStore {
         guard let webMCP else { throw BrowserTool.Failure(message: "Page tools are not available in this build.") }
         guard webMCP.isEnabled else {

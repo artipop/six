@@ -114,6 +114,7 @@ struct sixApp: App {
         blocker.startRefreshSchedule()
         devTools.browser = browser
         webMCP.browser = browser
+        webMCP.permissions = permissions
         browser.webMCP = webMCP
         // Decided once and written down: what this Mac is offered, unless an index is already here
         // (then it is what that index was made with), unless the user has said otherwise (then it is

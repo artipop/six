@@ -65,7 +65,7 @@ public final class RailWindow {
     lazy var embedding = RailEmbedding(model: model)
     /// Pages declaring tools for agents (WebMCP): off unless the setting, `SIX_WEBMCP=1` or a
     /// self-test says otherwise — see `RailWebMCP`. Repaints because the address bar counts them.
-    lazy var webMCP = RailWebMCP { [weak self] in self?.invalidate() }
+    lazy var webMCP = RailWebMCP(model: model) { [weak self] in self?.invalidate() }
     /// What `topChromeHeight` was when the rail's viewport was last computed. The bar grows a second
     /// line while a translation is running, and the rail below it has to be told.
     var lastChromeHeight: Int32 = 0

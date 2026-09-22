@@ -27,12 +27,38 @@ extension BrowserModel {
                 receive: { [weak host] tabID, text in host?.receive(text, from: tabID) }
             )
         ]
+        PageChannels.isAllowed = { [weak self] _ in self?.isPrivate == false }
+        // The gate (docs/webmcp.md, stage 3): the site once, then every call the page did not mark
+        // read-only — through the queue and the bar the camera already uses.
+        host.origin = { [weak self] tabID in self?.siteOrigin(of: tabID) }
+        host.ask = { [weak self] ask, answer in
+            guard let self, let permissions, !isPrivate else { return answer(false) }
+            let profile = layout.activeProfileID
+            if let tool = ask.tool {
+                permissions.confirmPageToolCall(tool: tool.name, arguments: ask.arguments,
+                                                origin: ask.origin, in: ask.windowID,
+                                                profileID: profile, then: answer)
+            } else {
+                permissions.decidePageTools(origin: ask.origin, in: ask.windowID,
+                                            profileID: profile, then: answer)
+            }
+        }
         Log.info(.mcp, "webmcp: on — pages may declare tools for agents")
         host.runSelfTestIfAsked { [weak self] in
-            guard let tabID = self?.focusedTabID, let page = LivePage.focused(tabID) else { return nil }
-            return WebMCPSelfTest.Target(windowID: tabID, page: page, load: { address in
-                webkit_web_view_load_uri(page.view, address)
-            })
+            guard let self, let tabID = focusedTabID, let page = LivePage.focused(tabID) else { return nil }
+            return WebMCPSelfTest.Target(
+                windowID: tabID,
+                page: page,
+                load: { address in webkit_web_view_load_uri(page.view, address) },
+                question: { [weak self] in self?.permissions?.question(for: tabID)?.prompt },
+                answer: { [weak self] allowed in
+                    self?.permissions?.answer(allowed, for: tabID)
+                    self?.onPermissionQuestion?()
+                },
+                forgetSite: { [weak self] in
+                    guard let self, let origin = siteOrigin(of: tabID) else { return }
+                    permissions?.forget(.pageTools, forOrigin: origin, profileID: layout.activeProfileID)
+                })
         }
     }
 
@@ -41,6 +67,11 @@ extension BrowserModel {
     func webMCPPageLoaded(_ tabID: UUID) {
         guard !PageChannels.channels.isEmpty else { return }
         webMCP.pageNavigated(tabID, page: LivePage.focused(tabID))
+    }
+
+    /// The site a column is on, as an answer is filed under.
+    func siteOrigin(of tabID: UUID) -> String? {
+        SitePermissions.origin(of: PageRegistry.url(of: tabID) ?? url(of: tabID))
     }
 
     /// How many tools the page in a column declares — what the Mac and Windows draw as a badge by

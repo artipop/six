@@ -106,6 +106,20 @@ only "playing media" protected them, and only when the page happened to be showi
 The observer hangs on the web view as an associated object, so it lives exactly as long as the view it watches.
 Both SPI calls sit behind `responds(to:)`: a macOS that drops them loses the indicator, not the sharing.
 
+## A fourth question, which is not a device
+
+`SitePermission.pageTools` is the answer to "may agents use the tools this site offers them?" — WebMCP, and
+[webmcp.md](webmcp.md) has the feature. It is filed here rather than anywhere of its own because it is the same
+shape of answer: one site, one decision, remembered per profile, taken back from this panel. What differs is what
+asks. A device is asked for by the page; this is asked for by an **agent**, at its first call — and a second
+question follows it for anything the page did not mark `readOnlyHint`, naming the tool and its arguments. That one
+is never remembered (`SitePermissions.Ask.pageToolCall`).
+
+Two consequences worth knowing. The bar draws a sentence now (`Question.prompt` for Windows and Linux, a localized
+`switch` in `PermissionBar` on the Mac) rather than a list of device names. And a database written by this build is
+one an older build reads badly: `sitePermissions` decodes the list whole, so a row saying `pageTools` makes every
+answer about every site unreadable — the same trap `location` set below.
+
 ## What a `WebPage` browser still cannot ask for
 
 - **Geolocation.** Half of it is public now, and it is the wrong half. macOS 27 added

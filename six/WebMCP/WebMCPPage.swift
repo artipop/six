@@ -73,20 +73,8 @@ extension WebMCPHost {
                 Log.error(.mcp, "webmcp self-test: no window with a page to run in")
                 return
             }
-            let page = found.page
-            let report = await WebMCPSelfTest.run(
-                host: self, windowID: found.windowID, page: address, load: found.load,
-                run: { body in _ = try await page.evaluateInPage(body) })
+            let report = await WebMCPSelfTest.run(host: self, target: found, page: address)
             Log.info(.mcp, "webmcp self-test\n" + report)
         }
-    }
-}
-
-extension WebMCPSelfTest {
-    /// The window a self-test runs in: its id, its page, and how to send it to an address.
-    struct Target {
-        let windowID: UUID
-        let page: any WebMCPPage
-        let load: @MainActor (String) -> Void
     }
 }

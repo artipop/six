@@ -1,5 +1,6 @@
 import CWebKit2
 import Foundation
+import SixBrowser
 @testable import SixCore
 import WinSDK
 
@@ -20,15 +21,31 @@ final class RailWebMCP {
     /// controller it was made for, at +1, until the window goes.
     private var channels: [Foundation.UUID: Channel] = [:]
 
-    init(onChange: @escaping () -> Void) {
+    private weak var model: RailModel?
+
+    init(model: RailModel, onChange: @escaping () -> Void) {
+        self.model = model
         isEnabled = WebMCPHost.isWanted(setting: ConfigurationStore.shared?.webMCP == true)
         host.onChange = { _ in onChange() }
+        // The gate (docs/webmcp.md, stage 3): which site a column is on, and how a question reaches
+        // the person. Both through `RailModel`, where the queue and the bar already are.
+        host.origin = { [weak model] tabID in model?.siteOrigin(of: tabID) }
+        host.ask = { [weak model] ask, answer in
+            guard let model else { return answer(false) }
+            if let tool = ask.tool {
+                model.confirmPageToolCall(tool: tool.name, arguments: ask.arguments,
+                                          origin: ask.origin, tabID: ask.windowID, then: answer)
+            } else {
+                model.askPageTools(origin: ask.origin, tabID: ask.windowID, then: answer)
+            }
+        }
         if isEnabled { Log.info(.mcp, "webmcp: on — pages may declare tools for agents") }
     }
 
-    /// The user content controller a new page is configured with, or `nil` when WebMCP is off.
+    /// The user content controller a new page is configured with — `nil` when WebMCP is off, and
+    /// for a private column, where it is off whatever the setting says.
     func userContent(for tabID: Foundation.UUID) -> WKUserContentControllerRef? {
-        guard isEnabled else { return nil }
+        guard isEnabled, model?.isPrivateColumn(tabID) != true else { return nil }
         if let existing = channels[tabID] { return existing.controller }
         guard let controller = WKUserContentControllerCreate() else { return nil }
         let channel = Channel(tabID: tabID, host: host, controller: controller)
@@ -118,7 +135,13 @@ extension RailWindow {
         let right = pill.right - px(8)
         let top = pill.top + (pill.bottom - pill.top - height) / 2
         let badge = RECT(left: right - width, top: top, right: right, bottom: top + height)
-        roundedRect(hdc, badge, radius: height / 2, fill: Self.chipColor, border: Self.addressBorderColor, borderWidth: 1)
+        // Lit while a call is in flight: a page's tool running for an agent is something happening
+        // in the person's session, and it says so while it happens (docs/webmcp.md, stage 3).
+        let focused = model.columns.first(where: \.isFocused)?.id
+        let running = focused.map { webMCP.host.activity[$0] != nil } ?? false
+        let accent = Self.color(hex: model.activeProfile.colorHex)
+        roundedRect(hdc, badge, radius: height / 2, fill: running ? accent : Self.chipColor,
+                    border: running ? accent : Self.addressBorderColor, borderWidth: 1)
         let middle = badge.left + width / 2
         // E90F is the icon font's "Repair", its wrench — the nearest thing it has to the Mac's
         // `wrench.and.screwdriver`. Outside the range the glyph sheet above was drawn from, so it
@@ -137,9 +160,16 @@ extension RailWindow {
         webMCP.host.runSelfTestIfAsked { [weak self] in
             guard let self, let focused = model.columns.first(where: \.isFocused),
                   let view = webViews[focused.id] else { return nil }
-            return WebMCPSelfTest.Target(windowID: focused.id, page: view, load: { [weak view] address in
-                view?.load(address)
-            })
+            return WebMCPSelfTest.Target(
+                windowID: focused.id,
+                page: view,
+                load: { [weak view] address in view?.load(address) },
+                question: { [weak self] in self?.model.permissionPrompt(for: focused.id) },
+                answer: { [weak self] allowed in
+                    self?.model.answerPermission(allowed, for: focused.id)
+                    self?.invalidate()
+                },
+                forgetSite: { [weak self] in self?.model.forgetPageToolsAnswer(for: focused.id) })
         }
     }
 }

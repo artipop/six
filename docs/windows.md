@@ -609,8 +609,10 @@ confirmed working:
 - **WebMCP** ([webmcp.md](webmcp.md)): `SIX_WEBMCP_SELFTEST=<file URL of Tests/WebMCP/webmcp.html>`
   drives a page's `registerTool` through the polyfill and back — registration, a call, a timeout
   whose `AbortSignal` reaches the tool, unregistering by `abort()`, and a navigation in the middle of
-  a call — and prints 15 checks and `PASS` to the log. Measured on 2026-09-13 in a throwaway
-  `LOCALAPPDATA`. It settled two facts on the way: a `file:` page is a secure context in this WebKit,
+  a call, and the gate in front of all of it: the site asked about once, a read-only call asking
+  nothing more, anything else confirmed per call, and a no stopping the call before the page is
+  asked to run it. 22 checks and `PASS` in the log. Measured on 2026-09-22 in a throwaway
+  `LOCALAPPDATA`; a run forgets its own site answer first, so it repeats. It settled two facts on the way: a `file:` page is a secure context in this WebKit,
   and `WKPageCallAsyncJavaScript` runs in the page's world, which is where the polyfill lives. The
   address bar counts the page's tools in a badge (`RailWebMCP`), with no list behind it yet.
   `SIX_WEBMCP=1` switches WebMCP on without the self-test; so does the Mac's setting, since the
