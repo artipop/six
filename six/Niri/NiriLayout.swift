@@ -222,13 +222,24 @@ nonisolated struct NiriDrop: Equatable, Sendable {
     var joins: UUID?
 }
 
-/// A window being carried across the overview: where it was picked up, how far the pointer has
+/// A column being carried across the overview: where it was picked up, how far the pointer has
 /// travelled, and where it would land if it were let go now.
 ///
+/// **What is in the hand is the column, not the window**, so a split travels as the pair it is:
+/// either half picks both up, they land side by side wherever the drop lands, and the arrangement
+/// survives the trip. Taking a pair apart is ⌥S, and a drag that quietly did it as well would undo
+/// an arrangement it was never asked to touch — with no way back to it inside the same movement.
+///
 /// The strip itself is not touched until the drop. Until then this is what the canvas draws instead:
-/// the carried window taken out of the row it came from, a gap of its size held open where it would
+/// the carried column taken out of the row it came from, a gap of its size held open where it would
 /// land, and the card itself following the pointer above both.
 nonisolated struct NiriColumnDrag: Sendable, Equatable {
+    /// The column in the hand, with both its windows when it has two — and with its own identity,
+    /// which it keeps all the way to the drop, so the view that was drawing it goes on drawing it
+    /// (`NiriColumn.id`).
+    var column: NiriColumn
+    /// The half the pointer took hold of: the window the focus lands on, and the one that joins
+    /// another column when a single window is let go over one.
     var tabID: UUID
     var fromWorkspace: Int
     var fromIndex: Int
@@ -236,25 +247,21 @@ nonisolated struct NiriColumnDrag: Sendable, Equatable {
     var toIndex: Int
     /// The column the carried window would *join*, as its other half, by id — a window let go over
     /// the middle of another rather than in the space beside it. `nil` is the ordinary drop, which
-    /// makes a column of its own. By id and not by index because the row the drop lands in is the
-    /// row without the carried window in it, and every index past where it stood has moved.
+    /// makes a column of its own, and the only answer a carried *pair* can have: two is the ceiling.
+    /// By id and not by index because the row the drop lands in is the row without the carried
+    /// column in it, and every index past where it stood has moved.
     var joins: UUID?
     /// Which side of the window it would join it lands on: the side it is being held over.
     var joinsSide: NiriPlacement = .right
     /// Pointer travel since the card was picked up, in canvas points (the overview's scale is applied
     /// to the whole canvas afterwards, so these are the same units the column frames are in).
     var translation: CGSize = .zero
-    /// The identity the carried window's column has while it is in the air, and keeps when it lands:
-    /// the column it was lifted out of when the whole column is moving, a fresh one when it is a half
-    /// leaving a split and the column it came from stays behind. See `NiriColumn.id` — a placeholder
-    /// whose identity changed at the drop would be a column arriving where one had just left.
-    var placeholder = UUID()
-    /// The column it was lifted out of, so a half carried straight back onto its own column reads as
-    /// having gone nowhere.
-    var fromColumn = UUID()
+
+    /// Everything in the hand, left to right.
+    var tabIDs: [UUID] { column.tabIDs }
 
     var movedSomewhere: Bool {
-        if let joins { return joins != fromColumn }
+        if let joins { return joins != column.id }
         return toWorkspace != fromWorkspace || toIndex != fromIndex
     }
 }
@@ -349,8 +356,9 @@ final class NiriLayout {
     /// (0…1). See `hitWall`.
     private(set) var wall: NiriEdge?
     private(set) var wallGlow: CGFloat = 0
-    /// The window ⌥⇧ just moved, held up off the rail until the move has landed. See `lift`.
-    private(set) var liftedTabID: UUID?
+    /// The windows ⌥⇧ just moved, held up off the rail until the move has landed — two of them when
+    /// what moved was a split, since the pair travels as one thing. See `lift`.
+    private(set) var liftedTabIDs: Set<UUID> = []
     @ObservationIgnored private var peekTask: Task<Void, Never>?
     @ObservationIgnored private var wallTask: Task<Void, Never>?
     @ObservationIgnored private var liftTask: Task<Void, Never>?
@@ -795,19 +803,20 @@ final class NiriLayout {
     /// — off screen, at full width. The overview shows it, because there the window is a card among
     /// cards. This borrows that for the length of the move: the window comes up off the rail a little,
     /// with corners, so the rail can be seen going past behind it, and settles back once it has landed.
-    private func lift(_ tabID: UUID, animated: Bool, holding hold: Int = 340) {
+    private func lift(_ tabIDs: [UUID], animated: Bool, holding hold: Int = 340) {
         guard !isOverview else { return }
         liftTask?.cancel()
+        let lifted = Set(tabIDs)
         if animated {
-            withAnimation(.smooth(duration: 0.2)) { liftedTabID = tabID }
+            withAnimation(.smooth(duration: 0.2)) { liftedTabIDs = lifted }
         } else {
-            liftedTabID = tabID
+            liftedTabIDs = lifted
         }
         liftTask = Task { @MainActor [weak self] in
             // The length of `switchAnimation`: set down once the rail has arrived, not while it moves.
             try? await Task.sleep(for: .milliseconds(hold))
             guard !Task.isCancelled, let self else { return }
-            withAnimation(.smooth(duration: 0.35)) { self.liftedTabID = nil }
+            withAnimation(.smooth(duration: 0.35)) { self.liftedTabIDs = [] }
         }
     }
 
@@ -1065,8 +1074,11 @@ final class NiriLayout {
                       let at = s.workspaces[from].columns.firstIndex(where: { $0.holds(tabID) }) else { return }
                 let target = max(0, target)
                 guard target != from else { return }
-                // The window and not the column it may be sharing: half a split moved to another row
-                // leaves the other half where it stood, filling the column on its own.
+                // The window and not the column it may be sharing — the one place that is still true,
+                // and it is true because an agent names a window: `move_window` is asked for *this
+                // page*, the way ⌘W closes this page, where ⌥⇧↓ moves what is in front of you and
+                // that is a column (`carryColumn`). Half a split moved this way leaves the other half
+                // where it stood, filling the column on its own.
                 var column = s.workspaces[from].columns[at]
                 if column.remove(tabID) {
                     s.workspaces[from].columns[at] = column
@@ -1193,8 +1205,8 @@ final class NiriLayout {
     }
 
     func moveColumn(_ delta: Int) {
-        var moved: UUID?
-        defer { if let moved { lift(moved, animated: true) } }
+        var moved: [UUID] = []
+        defer { if !moved.isEmpty { lift(moved, animated: true) } }
         mutate { s in
             guard s.workspaces.indices.contains(s.focus) else { return }
             var ws = s.workspaces[s.focus]
@@ -1211,14 +1223,15 @@ final class NiriLayout {
                 column.pane += delta
                 ws.columns[ws.focus] = column
                 s.workspaces[s.focus] = ws
-                moved = column.focusedTabID
+                moved = [column.focusedTabID]
                 return
             }
             let target = ws.focus + delta
             guard ws.columns.indices.contains(target) else { return }
             ws.columns.swapAt(ws.focus, target)
             ws.focus = target
-            moved = ws.columns[target].focusedTabID
+            // The whole column changes places, so the whole column comes up off the rail.
+            moved = ws.columns[target].tabIDs
             scrollFocusIntoView(&ws)
             s.workspaces[s.focus] = ws
         }
@@ -1393,39 +1406,37 @@ final class NiriLayout {
         // Over the middle of another window: that column opens its other half, and the half stays
         // empty, because the window that would fill it is in the air. The gap held open where a
         // window would land is how every other part of this gesture answers, and this is that
-        // sentence said inside a column.
-        if let joins, let at = columns.firstIndex(where: { $0.id == joins }), !columns[at].isSplit {
+        // sentence said inside a column. A pair in the hand has no such answer — two is the ceiling —
+        // so it always stands as a column of its own.
+        if let joins, !drag.column.isSplit,
+           let at = columns.firstIndex(where: { $0.id == joins }), !columns[at].isSplit {
             columns[at].insert(drag.tabID, on: drag.joinsSide)
         } else {
-            columns.insert(NiriColumn(id: drag.placeholder, tabID: drag.tabID),
-                           at: min(max(0, drag.toIndex), columns.count))
+            columns.insert(drag.column, at: min(max(0, drag.toIndex), columns.count))
         }
         return columns
     }
 
-    /// The row a drop would land in: the workspace's own columns, less the window in the air — which
-    /// takes its column with it only if it had the column to itself.
+    /// The row a drop would land in: the workspace's own columns, less the one in the air — all of
+    /// it, both halves included, because that is what was picked up.
     private func rowUnderDrag(_ drag: NiriColumnDrag, workspace index: Int) -> [NiriColumn] {
         var columns = workspaces[index].columns
-        guard index == drag.fromWorkspace, let at = columns.firstIndex(where: { $0.holds(drag.tabID) })
+        guard index == drag.fromWorkspace, let at = columns.firstIndex(where: { $0.id == drag.column.id })
         else { return columns }
-        if !columns[at].remove(drag.tabID) { columns.remove(at: at) }
+        columns.remove(at: at)
         return columns
     }
 
     /// The column the carried window would join, if it is over one.
     private var joins: UUID? { columnDrag?.joins }
 
-    /// The frame the picked-up card had before it moved, in its own row's content space — the half
-    /// of a split column, when that is what was picked up.
+    /// The frame the picked-up card had before it moved, in its own row's content space — a whole
+    /// column's worth of it, since a column is what is being carried, split or not.
     private func liftedFrame(_ drag: NiriColumnDrag) -> CGRect? {
         guard workspaces.indices.contains(drag.fromWorkspace) else { return nil }
-        let columns = workspaces[drag.fromWorkspace].columns
-        let frames = columnFrames(columns)
-        guard frames.indices.contains(drag.fromIndex), columns.indices.contains(drag.fromIndex) else { return nil }
-        let panes = paneFrames(columns[drag.fromIndex], in: frames[drag.fromIndex])
-        let pane = columns[drag.fromIndex].paneIndex(of: drag.tabID) ?? 0
-        return panes.indices.contains(pane) ? panes[pane] : frames[drag.fromIndex]
+        let frames = columnFrames(workspaces[drag.fromWorkspace].columns)
+        guard frames.indices.contains(drag.fromIndex) else { return nil }
+        return frames[drag.fromIndex]
     }
 
     /// Where the carried card is on the canvas: where it was lifted from, plus how far the pointer has
@@ -1441,17 +1452,16 @@ final class NiriLayout {
         )
     }
 
+    /// Picks up the column this window is in — the pair, when it is sharing one. Either half takes
+    /// hold of the whole card; which of the two was grabbed is remembered, because it is the window
+    /// the focus lands on.
     func beginColumnDrag(tabID: UUID) {
         guard isOverview, let at = location(of: tabID) else { return }
-        let column = workspaces[at.workspace].columns[at.index]
+        var column = workspaces[at.workspace].columns[at.index]
+        column.pane = column.paneIndex(of: tabID) ?? 0
         columnDrag = NiriColumnDrag(
-            tabID: tabID, fromWorkspace: at.workspace, fromIndex: at.index,
-            toWorkspace: at.workspace, toIndex: at.index,
-            // A whole column moving keeps its identity all the way through, so the view that was
-            // drawing it goes on drawing it; a half leaving a split is a column that does not exist
-            // yet, and needs one that will not change under it at the drop (`NiriColumn.id`).
-            placeholder: column.isSplit ? UUID() : column.id,
-            fromColumn: column.id)
+            column: column, tabID: tabID, fromWorkspace: at.workspace, fromIndex: at.index,
+            toWorkspace: at.workspace, toIndex: at.index)
     }
 
     /// Where the window would land if it were let go now: the row whose middle its own middle is
@@ -1479,17 +1489,18 @@ final class NiriLayout {
         var side: NiriPlacement = .right
         for (position, other) in frames.enumerated() where row.indices.contains(position) {
             let column = row[position]
-            // The column the window is being carried out of, when it is going with it: it is not in
-            // the row the drop lands in, so it is neither a place to count past nor one to join.
-            let leaving = drag.toWorkspace == drag.fromWorkspace && column.holds(drag.tabID) && !column.isSplit
-            if leaving { continue }
+            // The column in the hand is not in the row the drop lands in, so it is neither a place
+            // to count past nor one to join.
+            if drag.toWorkspace == drag.fromWorkspace, column.id == drag.column.id { continue }
             if other.midX < content { index += 1 }
             // Let go over the *middle* of a window and the two join: by then the cards are all but
             // on top of each other, which is what a person means by putting one window on another,
             // and the space between the cards goes on meaning what it always did. Refused where
             // there is no room for a second half, and over the column it came from, which would be a
             // change wearing the look of one.
-            guard !column.isSplit, !column.holds(drag.tabID) else { continue }
+            // A pair in the hand has nowhere to be put *inside* another column, so the middle of a
+            // window means nothing to it: two is the ceiling, and it would be a third and a fourth.
+            guard !drag.column.isSplit, !column.isSplit else { continue }
             // Wider to leave than to enter, and that is not a detail: the two answers here are a
             // *relayout of the whole row* apart — a column opening its other half, or closing it —
             // and a hand resting on the line between them flipped it back and forth with every
@@ -1524,10 +1535,14 @@ final class NiriLayout {
     var dropSlotFrame: CGRect? {
         guard isOverview, let drag = columnDrag else { return nil }
         let places = placements(arrangement(workspaceAt: drag.toWorkspace))
-        guard let place = places.first(where: { $0.tabID == drag.tabID }) else { return nil }
-        return CGRect(x: canvasX(content: place.frame.minX, workspace: drag.toWorkspace),
-                      y: rowY(drag.toWorkspace) + place.frame.minY,
-                      width: place.frame.width, height: place.frame.height)
+            .filter { drag.tabIDs.contains($0.tabID) }
+        guard let first = places.first else { return nil }
+        // Both halves of a carried pair, as one rectangle: what is being put down is the column, and
+        // an outline around each half would draw it as two windows that happen to be adjacent.
+        let frame = places.dropFirst().reduce(first.frame) { $0.union($1.frame) }
+        return CGRect(x: canvasX(content: frame.minX, workspace: drag.toWorkspace),
+                      y: rowY(drag.toWorkspace) + frame.minY,
+                      width: frame.width, height: frame.height)
     }
 
     /// Where the carried window would land, and nothing about where the pointer is.
@@ -1543,7 +1558,7 @@ final class NiriLayout {
         columnDrag = nil
     }
 
-    /// Drops the carried window where the drag left it, and returns whether the strip changed.
+    /// Drops the carried column where the drag left it, and returns whether the strip changed.
     @discardableResult
     func commitColumnDrag() -> Bool {
         guard let drag = columnDrag else { return false }
@@ -1552,17 +1567,13 @@ final class NiriLayout {
         var moved = false
         mutate { s in
             guard s.workspaces.indices.contains(drag.fromWorkspace),
-                  let at = s.workspaces[drag.fromWorkspace].columns.firstIndex(where: { $0.holds(drag.tabID) })
+                  let at = s.workspaces[drag.fromWorkspace].columns.firstIndex(where: { $0.id == drag.column.id })
             else { return }
+            // The column as the strip has it, not as the drag remembers it: a window closed while
+            // the card was in the air is a half the pair no longer has.
             var column = s.workspaces[drag.fromWorkspace].columns[at]
-            if column.remove(drag.tabID) {
-                // Half a split was carried out: the other half stays where it stood, and what lands
-                // is a column that has just come into being.
-                s.workspaces[drag.fromWorkspace].columns[at] = column
-                column = NiriColumn(id: drag.placeholder, tabID: drag.tabID)
-            } else {
-                s.workspaces[drag.fromWorkspace].columns.remove(at: at)
-            }
+            column.pane = column.paneIndex(of: drag.tabID) ?? column.pane
+            s.workspaces[drag.fromWorkspace].columns.remove(at: at)
             s.workspaces[drag.fromWorkspace].focus =
                 min(s.workspaces[drag.fromWorkspace].focus, max(0, s.workspaces[drag.fromWorkspace].columns.count - 1))
             scrollFocusIntoView(&s.workspaces[drag.fromWorkspace])
@@ -1571,7 +1582,8 @@ final class NiriLayout {
             let target = min(max(0, drag.toWorkspace), s.workspaces.count - 1)
             var destination = s.workspaces[target]
             var index = min(max(0, drag.toIndex), destination.columns.count)
-            if let joins = drag.joins, let onto = destination.columns.firstIndex(where: { $0.id == joins }),
+            if let joins = drag.joins, !column.isSplit,
+               let onto = destination.columns.firstIndex(where: { $0.id == joins }),
                !destination.columns[onto].isSplit {
                 destination.columns[onto].insert(drag.tabID, on: drag.joinsSide)
                 // The window that was let go is the window in front of you, which in a column of two
@@ -1659,7 +1671,8 @@ final class NiriLayout {
         }
     }
 
-    /// Moves the focused column to the workspace above/below and follows it.
+    /// Moves the focused column — the pair, when it is a split — to the workspace above/below and
+    /// follows it.
     ///
     /// Two changes and not one, on purpose: the window changes rows without an animation of its own
     /// (`unanimated`, which is where the reason is written down), and the focus follows in a second
@@ -1693,18 +1706,15 @@ final class NiriLayout {
                 guard source.columns.indices.contains(source.focus) else { return }
                 let target = s.focus + delta
                 guard target >= 0 else { return }
-                // What moves is the window in front of you. Half a split leaves the other half where
-                // it stood — ⌥⇧↓ is "take this one down there", and taking its neighbour along
-                // because they happened to be sharing a column is not what was asked.
-                var column = source.columns[source.focus]
-                let moved = column.focusedTabID
-                if column.remove(moved) {
-                    source.columns[source.focus] = column
-                    column = NiriColumn(tabID: moved)
-                } else {
-                    source.columns.remove(at: source.focus)
-                    source.focus = min(source.focus, max(0, source.columns.count - 1))
-                }
+                // What moves is the column in front of you, both halves of it. Two pages put side by
+                // side are one thing a person arranged, and a key that carried one of them off to
+                // another row would take that arrangement apart on the way — with the pair now a
+                // workspace apart, and no way back to it but making it again. ⌥S is how they come
+                // apart, and it leaves them both where they can be seen.
+                let column = source.columns[source.focus]
+                let moved = column.tabIDs
+                source.columns.remove(at: source.focus)
+                source.focus = min(source.focus, max(0, source.columns.count - 1))
                 scrollFocusIntoView(&source)
                 askBeforeRemoving(source, in: activeProfileID)
                 if source.isEmpty { keepsEmptyOnce = source.id }

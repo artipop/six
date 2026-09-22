@@ -173,7 +173,7 @@ dropped onto another.
 | `⌥S` | take the neighbouring window into this column; again to put it back on the rail |
 | `⌥←` `⌥→` | walk the halves exactly as they walk windows: into the near half first, then on to the next column |
 | `⌥⇧←` `⌥⇧→` | inside a pair, swap the two halves |
-| `⌥⇧↑` `⌥⇧↓` | take **the half you are reading**; the other one stays where it stood |
+| `⌥⇧↑` `⌥⇧↓` | take **the pair**: both halves arrive on the new workspace side by side, as they stood |
 
 The column is still exactly one screen's worth of rail: the two halves fill what
 one window filled, so the rail does not get longer and nothing shifts. The gap
@@ -183,6 +183,12 @@ width the pair would read as two neighbouring windows rather than as one.
 The halves are windows in their own right, not panes of one: each has its own
 border, its own ×, its own loading line. Closing one closes one window, and the
 other stays where it stood with the column to itself.
+
+Moving them is where they are one thing. `⌥⇧↑` and `⌥⇧↓` take the whole column,
+and a drag in the overview takes both halves whichever one you picked up by. Two
+pages side by side is something you arranged, and moving them should not take
+that apart on the way. `⌥S` is how they come apart — one key, and both stay where
+you can see them.
 
 The keyboard travels with the focus: after `⌥→` the arrow keys scroll the half
 that is highlighted, and typing goes into it. The one exception is a caret in a
@@ -204,7 +210,8 @@ In the **overview**, a window let go over the *middle* of another joins its
 column; let go at the edge of one, or between two, it stands beside them as
 before. While you hold it over the middle you see two things at once: that column
 opens its other half in advance, and an outline in the profile's colour marks
-**exactly the place** the window will land in. A link can be opened beside
+**exactly the place** the window will land in. A pair in the hand always stands
+beside what you hold it over: there is no room in a column for a third window. A link can be opened beside
 straight away: **Open Link Beside** in the page's context menu.
 :::
 

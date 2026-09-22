@@ -65,8 +65,10 @@ struct NiriStripView: View {
     }
 
     private func carries(_ workspace: NiriWorkspace, layout: NiriLayout) -> Bool {
-        guard let lifted = layout.liftedTabID else { return false }
-        return workspace.columns.contains { $0.tabID == lifted || $0.second == lifted }
+        guard !layout.liftedTabIDs.isEmpty else { return false }
+        return workspace.columns.contains { column in
+            column.tabIDs.contains { layout.liftedTabIDs.contains($0) }
+        }
     }
 
     private func offset(of index: Int, height: CGFloat, layout: NiriLayout) -> CGFloat {
@@ -135,7 +137,9 @@ private struct WorkspaceView: View {
         // window: it has to be that wide, and centred on the same point, or the strip is cut off at the
         // window edges instead of running the full width of the screen.
         let layerWidth = layout.visibleWidth
-        let carried = layout.columnDrag?.tabID
+        // Every window in the hand, which is two when a split was picked up: the card above the
+        // canvas draws them, so the row must not draw them as well.
+        let carried = layout.columnDrag?.tabIDs ?? []
         let focusedTabID = workspace.focusedColumn?.focusedTabID
 
         ZStack(alignment: .topLeading) {
@@ -160,10 +164,10 @@ private struct WorkspaceView: View {
             // one — the trap `NiriWindowPlace` is written up in, and the one this crashed on. Here a
             // window joining or leaving a split is the same view with a new frame.
             ForEach(places) { place in
-                if let tab = browser.tab(place.tabID), place.tabID != carried {
+                if let tab = browser.tab(place.tabID), !carried.contains(place.tabID) {
                     let frame = place.frame
                     let isFocused = isCurrent && place.tabID == focusedTabID
-                    let isLifted = layout.liftedTabID == place.tabID
+                    let isLifted = layout.liftedTabIDs.contains(place.tabID)
                     ColumnView(
                         tab: tab,
                         isFocused: isFocused,
@@ -282,23 +286,40 @@ private struct EmptyWorkspaceHint: View {
 
 // MARK: - Carrying a window across the overview
 
-/// The window in the hand: the card the pointer picked up, drawn above every row at the place it has
+/// The column in the hand: the card the pointer picked up, drawn above every row at the place it has
 /// been carried to and lifted off the canvas a little, so it reads as being in the air rather than in
 /// the strip. The gap it left, and the one it would fill, are the rows' own business
 /// (`NiriLayout.arrangement`).
+///
+/// **A split is carried as the pair it is**, so the card is the two windows side by side, at the
+/// spacing they have on the rail — drawn with one shadow under both, because what is in the hand is
+/// one thing. Picked up as two cards on top of each other, the gesture would be saying that the drop
+/// could put them down apart, and it cannot.
 private struct CarriedColumn: View {
     @Environment(BrowserState.self) private var browser
 
     var body: some View {
         let layout = browser.layout
-        if let drag = layout.columnDrag, let frame = layout.carriedCardFrame, let tab = browser.tab(drag.tabID) {
-            ColumnView(tab: tab, isFocused: true, isCurrentWorkspace: true, side: .whole, isLive: false)
-                .frame(width: frame.width, height: frame.height)
-                .scaleEffect(1.03)
-                .shadow(color: .black.opacity(0.35), radius: 30, y: 14)
-                .offset(x: frame.minX, y: frame.minY)
-                .allowsHitTesting(false)
-                .transition(.identity)
+        if let drag = layout.columnDrag, let frame = layout.carriedCardFrame {
+            let panes = layout.paneFrames(drag.column, in: CGRect(origin: .zero, size: frame.size))
+            ZStack(alignment: .topLeading) {
+                Color.clear
+                ForEach(Array(drag.column.tabIDs.enumerated()), id: \.element) { pane, tabID in
+                    if let tab = browser.tab(tabID), panes.indices.contains(pane) {
+                        ColumnView(tab: tab, isFocused: tabID == drag.tabID, isCurrentWorkspace: true,
+                                   side: drag.column.isSplit ? (pane == 0 ? .left : .right) : .whole,
+                                   isLive: false)
+                            .frame(width: panes[pane].width, height: panes[pane].height)
+                            .offset(x: panes[pane].minX, y: panes[pane].minY)
+                    }
+                }
+            }
+            .frame(width: frame.width, height: frame.height, alignment: .topLeading)
+            .scaleEffect(1.03)
+            .shadow(color: .black.opacity(0.35), radius: 30, y: 14)
+            .offset(x: frame.minX, y: frame.minY)
+            .allowsHitTesting(false)
+            .transition(.identity)
         }
     }
 }
@@ -379,8 +400,9 @@ private struct OverviewPointerLayer: View {
             .gesture(gesture(cards: cards))
     }
 
-    /// Every window on the canvas, in canvas points — a half of a split is a card of its own, so it
-    /// can be picked up on its own and dropped somewhere else.
+    /// Every window on the canvas, in canvas points. A half of a split has a rect of its own here
+    /// because that is where the pointer meets it; what it picks up is the column both halves are in
+    /// (`NiriLayout.beginColumnDrag`).
     ///
     /// The rail as it *stands*, deliberately, and not as it is being drawn mid-drag: this list is
     /// what a press is looked up in, and a press happens before there is a drag. Reading the shuffled

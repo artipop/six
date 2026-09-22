@@ -462,8 +462,17 @@ is the question the rail already answers.
 **The two halves are windows, not panes of one window.** Each has its own border, its own `×`, its own progress
 line; `⌥←` / `⌥→` walk into the near half before stepping to the next column, so every window on the rail is one
 step from its neighbour whether or not it is sharing a column; `⌘W` closes one and leaves the other filling the
-column; `⌥⇧↓` takes the focused half to the next workspace and leaves its neighbour where it stood. `⌥⇧→` inside a
-split swaps the two halves, because one place along, inside a column, is the other side of it.
+column. `⌥⇧→` inside a split swaps the two halves, because one place along, inside a column, is the other side of
+it.
+
+**But the pair moves as one thing.** `⌥⇧↑` / `⌥⇧↓` take the whole column to the next workspace, and a card carried
+across the overview carries both halves whichever one the pointer took hold of — they arrive still side by side,
+with the focus on the half that had it. Both used to take the focused half alone and leave its neighbour standing,
+which is the reading "a half is a window" leads to and the wrong one: two pages put side by side is an arrangement
+somebody made on purpose, and a gesture that said *move this* and quietly meant *and take this pair apart* undid it
+in passing, a workspace away, with no way back but making it again. Taking them apart is `⌥S`, which is one key and
+leaves both where they can be seen. The one place a single window still travels on its own is an agent's
+`move_window` over MCP, because there a window is what was named.
 
 Both halves are *built*, and that is the one thing the live-page budget had to be told
 ([`LivePageCache.setVisible`](../six/Browser/LivePageCache.swift) takes a column and not a window): a split showing
@@ -493,6 +502,11 @@ the space between, it stands beside it as it always did (`NiriLayout.joinFractio
 centred on each other they are all but on top of one another, which is what a person means by putting one window on
 another. It lands on the side it was held over, and a column that is already two is not a target.
 
+A **pair** in the hand has no such answer — two is the ceiling, and a third and a fourth window is what joining
+would make — so it only ever stands beside what it is held over. The card is the two windows drawn side by side at
+the spacing they have on the rail, under one shadow, because a pair drawn as two cards would be promising a drop
+that could put them down apart.
+
 The threshold is **wider to leave than to enter** (`joinRelease`). The two answers are a relayout of the whole row
 apart, so a hand resting on the line between them flipped it back and forth with every tremor: one threshold is a
 switch nobody can hold still.
@@ -513,7 +527,8 @@ one window left in it; a half taken out into a column of its own is a column tha
 has to be able to tell those apart, because a window is a `WebView` over a `WebPage`, of which WebKit allows exactly
 one — identified by the window it held, as it was when it could only hold one, every split and unsplit looked like a
 column leaving and another arriving, which is the trap `unanimated` exists for. It is why splitting is done inside
-it, and why a window carried across the overview keeps its column's id all the way to the drop.
+it, and why a column carried across the overview keeps its id all the way to the drop: `NiriColumnDrag` holds the
+column itself, both halves and identity included, and the row it left simply does not have it until the drop.
 
 A column written before splits existed is a `tabID` and nothing else, so it decodes with the other halves at their
 defaults; a relaunch after an update finds the rail it left.

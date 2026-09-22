@@ -8,9 +8,11 @@ import Testing
 /// The rule the whole feature rests on is that **a column is still one screen's worth of rail**: a
 /// split changes what is inside a column and nothing about where columns are, so every promise the
 /// geometry tests make about the strip has to survive one. The rest is about the two halves being
-/// windows in their own right — walked to, moved, closed and carried one at a time — because the
-/// alternative reading, a split as a single window with two pages in it, is the one that would make
-/// ⌥→ skip a page and ⌘W close two.
+/// windows in their own right — walked to and closed one at a time — because the alternative
+/// reading, a split as a single window with two pages in it, is the one that would make ⌥→ skip a
+/// page and ⌘W close two. Where the pair *is* one thing is in moving it: a split carried across the
+/// overview or sent to another row goes as a pair, because two pages put side by side is an
+/// arrangement somebody made, and ⌥S is the way to take it apart.
 @MainActor
 struct NiriLayoutSplitTests {
 
@@ -160,17 +162,19 @@ struct NiriLayoutSplitTests {
         #expect(layout.focusedTabID == ids[1])
     }
 
-    /// ⌥⇧↓ moves the window in front of you and not the pair it happens to be in: taking its
-    /// neighbour along because they were sharing a column is not what was asked.
-    @Test func onlyTheFocusedHalfGoesToAnotherWorkspace() {
+    /// ⌥⇧↓ moves the column in front of you, and a split is a column: the pair arrives in the other
+    /// row still side by side, with the focus on the half that had it. Sending one half off on its
+    /// own would take an arrangement apart in passing, and leave no way back to it.
+    @Test func thePairGoesToAnotherWorkspaceTogether() {
         let layout = layout()
-        let ids = fill(layout, 2)
-        layout.toggleSplit() // [0 | 1], focus on 1
+        let ids = fill(layout, 3)
+        layout.toggleSplit() // [0] [1 | 2], focus on 2 — a window stays behind, so the row lives on
 
         layout.moveColumnToWorkspace(1)
         #expect(row(layout, workspace: 0) == [[ids[0]]])
-        #expect(row(layout, workspace: 1) == [[ids[1]]])
-        #expect(layout.focusedTabID == ids[1])
+        #expect(row(layout, workspace: 1) == [[ids[1], ids[2]]])
+        #expect(layout.focusedTabID == ids[2])
+        #expect(layout.isSplit)
     }
 
     // MARK: The geometry
@@ -314,19 +318,48 @@ struct NiriLayoutSplitTests {
         #expect(layout.focusedTabID == ids[0]) // and you are looking at the row it went to
     }
 
-    /// Half a split carried out of its column leaves the other half filling it, and lands as a
-    /// window of its own.
-    @Test func halfASplitCanBeCarriedOutOfIt() {
+    /// Either half picks the pair up, and the pair is what lands: the card in the hand is a whole
+    /// column, the row it left has no half standing in it, and the row it arrives in gets both.
+    @Test func aSplitIsCarriedWhole() {
         let layout = layout()
-        let ids = fill(layout, 2)
-        layout.toggleSplit() // [0 | 1]
-        carrying(layout, ids[1])
+        let ids = fill(layout, 3)
+        layout.toggleSplit() // [0] [1 | 2]
+        carrying(layout, ids[2]) // by its right half
+
+        #expect(layout.columnDrag?.tabIDs == [ids[1], ids[2]])
+        // And the card is a column's worth of card, not a half's.
+        #expect(abs((layout.carriedCardFrame?.width ?? 0) - layout.columnWidth) < 1)
 
         layout.updateColumnDrag(translation: CGSize(width: 0, height: layout.viewport.height + 200))
         #expect(layout.columnDrag?.toWorkspace == 1)
+        // The row it came from has no half standing in it: what left, left whole.
+        #expect(layout.arrangement(workspaceAt: 0).map(\.tabIDs) == [[ids[0]]])
+        #expect(layout.arrangement(workspaceAt: 1).map(\.tabIDs) == [[ids[1], ids[2]]])
+
         layout.commitColumnDrag()
         #expect(row(layout, workspace: 0) == [[ids[0]]])
-        #expect(row(layout, workspace: 1) == [[ids[1]]])
+        #expect(row(layout, workspace: 1) == [[ids[1], ids[2]]])
+        #expect(layout.focusedTabID == ids[2]) // the half the hand took hold of
+    }
+
+    /// A pair has nowhere to be put *inside* another column — two is the ceiling — so carrying one
+    /// over the middle of a window means the same as carrying it beside one: it stands next to it.
+    @Test func aCarriedPairNeverJoinsAnotherWindow() {
+        let layout = layout()
+        let ids = fill(layout, 3)
+        layout.focusColumn(-2)
+        layout.toggleSplit() // [0 | 1] [2], focus on 0
+        carrying(layout, ids[0])
+
+        let frames = layout.columnFrames(layout.workspaces[0])
+        // Just past that window's middle, which is as deep into the join zone as a drop can get.
+        layout.updateColumnDrag(translation: CGSize(width: frames[1].midX - frames[0].midX + 2, height: 0))
+        #expect(layout.columnDrag?.joins == nil)
+        // The outline is the whole column it would stand in, drawn around both halves at once.
+        #expect(abs((layout.dropSlotFrame?.width ?? 0) - layout.columnWidth) < 1)
+
+        layout.commitColumnDrag()
+        #expect(row(layout) == [[ids[2]], [ids[0], ids[1]]])
     }
 
     /// The answer is wider to leave than to enter, so a hand resting on the line between "join this
