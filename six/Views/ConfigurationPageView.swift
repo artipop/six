@@ -55,11 +55,10 @@ struct ConfigurationPageView: View {
         HStack(spacing: 0) {
             sidebar
             Divider()
-            VStack(spacing: 0) {
-                header
-                Divider()
-                detail
-            }
+            // No title bar over the detail: the sidebar row is already lit and already says which
+            // pane this is, and a heading that repeats it costs a band of the window on every pane
+            // to tell you what you just clicked.
+            detail
         }
         .background(.background)
         // The address and the sidebar are the same fact. Arriving with `#assistant` turns the page to
@@ -75,10 +74,10 @@ struct ConfigurationPageView: View {
     }
 
     /// The address of a pane is one word, or two with a slash between them: `#privacy/sites` is the
-    /// third row of the sidebar and the second segment inside it. Only Privacy has a second word
-    /// today, and it has one because the shield's menu has two items that used to lead to the same
-    /// place — "Site Permissions…" arrived on the filter lists, which is the fault `#assistant` was
-    /// added to fix, one level further down.
+    /// third row of the sidebar and the second segment inside it, `#assistant/mcp` the fourth row
+    /// and its third tab. The two panes that hold tabs both have one, for the reason the whole
+    /// scheme has one: "Site Permissions…" in the shield's menu used to arrive on the filter lists,
+    /// because a pane was the smallest thing an address could name.
     private static func head(of address: String?) -> String? {
         guard let address, !address.isEmpty else { return nil }
         return String(address.split(separator: "/", maxSplits: 1)[0])
@@ -117,23 +116,48 @@ struct ConfigurationPageView: View {
         max(180, min(280, Platform.screenSize.width * 0.11))
     }
 
-    private var header: some View {
-        HStack(spacing: 8) {
-            AssistantSymbol(systemImage: section.symbol)
-            Text(section.title).font(.headline)
-            Spacer()
-        }
-        .padding(12)
+    /// The one column every pane draws on.
+    ///
+    /// `Form(.formStyle(.grouped))` centres what it holds, while a tab bar above it was flush left —
+    /// so on a wide window the tabs stood at one edge and the settings they switched between began a
+    /// third of the pane further along, with nothing in between. The answer is not to drag the form
+    /// left but to put the chrome on the column the form already uses, so a pane has one left edge.
+    /// A share of the screen, like the sidebar beside it, and near the width a grouped form gives
+    /// itself, so the form fills the column instead of centring a narrower one inside it.
+    static var columnWidth: CGFloat {
+        max(560, min(780, Platform.screenSize.width * 0.46))
     }
 
-    @ViewBuilder private var detail: some View {
-        switch section {
-        case .general: GeneralConfiguration()
-        case .windows: WindowConfiguration()
-        case .privacy: PrivacyConfiguration(part: part)
-        case .assistant: AssistantPane()
-        case .extensions: ExtensionConfiguration()
-        case .develop: DevelopConfiguration()
+    /// The band a pane's tabs and its switch sit in. A control metric, so a constant: it is the
+    /// height of a segmented picker and the padding around it, and it is the same in every pane by
+    /// being said once.
+    static let tabBarHeight: CGFloat = 40
+
+    /// Every pane on the one column, applied here rather than in each of them: a list of extensions
+    /// stretched the whole window while a form beside it was half that, which made the same page
+    /// look like two.
+    private var detail: some View {
+        Group {
+            switch section {
+            case .general: GeneralConfiguration()
+            case .windows: WindowConfiguration()
+            case .privacy: PrivacyConfiguration(part: part)
+            case .assistant: AssistantPane(part: part)
+            case .extensions: ExtensionConfiguration()
+            case .develop: DevelopConfiguration()
+            }
+        }
+        .settingsColumn()
+    }
+}
+
+extension View {
+    /// Puts a pane's chrome or its form on the one column — see `ConfigurationPageView.columnWidth`.
+    func settingsColumn() -> some View {
+        HStack(spacing: 0) {
+            Spacer(minLength: 0)
+            frame(maxWidth: ConfigurationPageView.columnWidth)
+            Spacer(minLength: 0)
         }
     }
 }
@@ -320,7 +344,7 @@ private struct LoadedWindows: View {
         LabeledContent("Pages in Memory") {
             Text("\(browser.pages.liveCount) of \(browser.tabs.count)").foregroundStyle(.secondary)
         }
-        Button("Unload Background Windows Now") { browser.pages.discardBackgroundPages() }
+        Button("Free Memory") { browser.pages.discardBackgroundPages() }
             .controlSize(.small)
     }
 }
@@ -363,12 +387,21 @@ private struct PrivacyConfiguration: View {
                 Spacer()
                 if pane == .blocking {
                     if blocker.isWorking { ProgressView().controlSize(.small) }
+                    // Unlabelled, the way the shield's own sheet draws it: the selected tab beside
+                    // it says "Blocking", and spelled out in full the label ate the row and was
+                    // truncated to "Block Ads and Tr…" anyway.
                     Toggle("Block Ads and Trackers", isOn: $blocker.isEnabled)
                         .toggleStyle(.switch)
+                        .labelsHidden()
+                        .help("Block Ads and Trackers")
                 }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
+            // The same height whatever the switch beside the tabs is called: a label long enough to
+            // wrap pushed this pane's tabs a line below the assistant's, and two panes one sidebar
+            // row apart had their tab bars at different heights.
+            .frame(height: ConfigurationPageView.tabBarHeight)
             Divider()
             switch pane {
             case .blocking: BlockingConfiguration()
@@ -413,11 +446,21 @@ private struct DevelopConfiguration: View {
             SwiftUI.Section("Log") {
                 // The capture above belongs to a window and is gone when it navigates; this is the
                 // browser's own account of itself, kept on disk across launches. Naming the path
-                // here is most of the point — a log nobody can find is a log nobody reads.
-                Text("six writes what it did to \(Log.current.path(percentEncoded: false)), and to the system log under \(Bundle.main.bundleIdentifier ?? "org.deffun.six").")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .textSelection(.enabled)
+                // here is most of the point — a log nobody can find is a log nobody reads. The path
+                // and the subsystem, and no sentence around them: a label is not a place to
+                // explain what the program does with them.
+                LabeledContent("File") {
+                    Text(Log.current.path(percentEncoded: false))
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                        .lineLimit(1)
+                        .truncationMode(.head)
+                }
+                LabeledContent("In the System Log") {
+                    Text(Bundle.main.bundleIdentifier ?? "org.deffun.six")
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                }
                 Button("Reveal in Finder") {
                     NSWorkspace.shared.activateFileViewerSelecting([Log.current])
                 }

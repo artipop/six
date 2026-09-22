@@ -2,11 +2,18 @@
 import SwiftUI
 
 struct AssistantPane: View {
+    /// This pane's half of the address, from `ConfigurationPageView`: `agents` of
+    /// `#assistant/agents`. Held there because the address belongs to the window and outlives this
+    /// view, which is rebuilt every time the sidebar leaves the pane and comes back.
+    @Binding var part: String?
+
     @Environment(ConfigurationStore.self) private var store
     @State private var page = Page.responses
 
     private enum Page: String, CaseIterable, Identifiable {
-        case responses, agents, servers
+        case responses, agents
+        /// `mcp` on the wire, because that is what the tab is called; `servers` is what it holds.
+        case servers = "mcp"
         var id: String { rawValue }
         var title: String {
             switch self {
@@ -15,6 +22,10 @@ struct AssistantPane: View {
             case .servers: "MCP"
             }
         }
+
+        /// Whether the assistant switch reaches this tab. MCP is the one it does not: a server six
+        /// connects to opens windows, which is browsing and not a model answering.
+        var followsAISwitch: Bool { self != .servers }
     }
 
     var body: some View {
@@ -28,11 +39,18 @@ struct AssistantPane: View {
                 .labelsHidden()
                 .fixedSize()
                 Spacer()
-                Toggle("Use Language Models and Agents", isOn: $store.isAIEnabled)
-                    .toggleStyle(.switch)
+                // Only where it switches something off. A switch in the chrome reads as the master
+                // of everything under it, so one that reaches two of the three tabs must not stand
+                // over the third — the same rule Privacy's blocking switch follows.
+                if page.followsAISwitch {
+                    Toggle("Use Language Models and Agents", isOn: $store.isAIEnabled)
+                        .toggleStyle(.switch)
+                        .lineLimit(1)
+                }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
+            .frame(height: ConfigurationPageView.tabBarHeight)
             Divider()
             switch page {
             case .responses: AssistantResponsesConfiguration().disabled(!store.isAIEnabled)
@@ -40,6 +58,9 @@ struct AssistantPane: View {
             case .servers: MCPAppsView()
             }
         }
+        .onAppear { if let named = part.flatMap(Page.init(rawValue:)) { page = named } }
+        .onChange(of: part) { if let named = part.flatMap(Page.init(rawValue:)), named != page { page = named } }
+        .onChange(of: page) { if part != page.rawValue { part = page.rawValue } }
     }
 }
 

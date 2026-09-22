@@ -26,7 +26,7 @@ struct MCPAppsView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                Section("Connected Servers") {
+                Section {
                     if apps.customServers.isEmpty {
                         Label("No Connected Servers", systemImage: "server.rack")
                             .foregroundStyle(.secondary)
@@ -34,6 +34,14 @@ struct MCPAppsView: View {
                     }
                     ForEach(apps.customServers) { server in
                         MCPServerRow(server: server) { editing = server }
+                    }
+                } header: {
+                    // "Agent Access" names the column of switches, once. On the row it was the same
+                    // three words down every server, which is a heading pretending to be a label.
+                    HStack {
+                        Text("Connected Servers")
+                        Spacer()
+                        if !apps.customServers.isEmpty { Text("Agent Access") }
                     }
                 }
             }
@@ -333,7 +341,8 @@ private struct MCPServerRow: View {
                 set: { apps.setShared(server, $0) }))
                 .toggleStyle(.switch)
                 .controlSize(.small)
-                .fixedSize()
+                .labelsHidden()
+                .help("Give this server's tools to the agent")
             Menu {
                 Button("Edit…", action: edit)
                 Button("Check Connection") { Task { await apps.probe(server, force: true, authorize: true) } }

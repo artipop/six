@@ -501,16 +501,6 @@
         }
       }
     },
-    "Adapters" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Адаптеры"
-          }
-        }
-      }
-    },
     "Agents" : {
       "localizations" : {
         "ru" : {
@@ -1341,6 +1331,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Добавить"
+          }
+        }
+      }
+    },
+    "Add a certificate to trust an authority this Mac does not." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавьте сертификат, чтобы доверять центру, которому не доверяет этот Mac."
           }
         }
       }
@@ -2718,6 +2718,16 @@
         }
       }
     },
+    "File" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Файл"
+          }
+        }
+      }
+    },
     "Filter Lists" : {
       "localizations" : {
         "ru" : {
@@ -2918,6 +2928,16 @@
         }
       }
     },
+    "Free Memory" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Освободить память"
+          }
+        }
+      }
+    },
     "Give to the Agent" : {
       "localizations" : {
         "ru" : {
@@ -3088,6 +3108,16 @@
         }
       }
     },
+    "In the System Log" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В системном журнале"
+          }
+        }
+      }
+    },
     "Install" : {
       "localizations" : {
         "ru" : {
@@ -3154,6 +3184,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Установить…"
+          }
+        }
+      }
+    },
+    "Installed Extensions" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Установленные расширения"
           }
         }
       }
@@ -5220,26 +5260,6 @@
         }
       }
     },
-    "six trusts what this Mac trusts. Add a certificate to trust one more." : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "six доверяет тому же, чему доверяет этот Mac. Добавьте сертификат, чтобы доверять ещё одному."
-          }
-        }
-      }
-    },
-    "six writes what it did to %@, and to the system log under %@." : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "six пишет то, что делал, в %1$@ и в системный журнал под именем %2$@."
-          }
-        }
-      }
-    },
     "sk-… (blank for a local server)" : {
       "localizations" : {
         "ru" : {
@@ -5844,16 +5864,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Повторить"
-          }
-        }
-      }
-    },
-    "Unload Background Windows Now" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Выгрузить фоновые окна сейчас"
           }
         }
       }

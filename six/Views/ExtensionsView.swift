@@ -64,8 +64,14 @@ struct ExtensionConfiguration: View {
                 .frame(maxHeight: .infinity)
             } else {
                 List {
-                    ForEach(extensions.installed) { record in
-                        ExtensionRow(record: record)
+                    Section {
+                        ForEach(extensions.installed) { record in
+                            ExtensionRow(record: record)
+                        }
+                    } header: {
+                        // A list's own header is a size smaller than a grouped form's, and the two
+                        // stand one sidebar row apart; said the same way, they read as one page.
+                        Text("Installed Extensions").font(.headline)
                     }
                 }
                 .listStyle(.inset)

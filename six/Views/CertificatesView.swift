@@ -46,7 +46,7 @@ struct CertificateConfiguration: View {
                 ContentUnavailableView {
                     Label("No Extra Authorities", systemImage: "checkmark.seal")
                 } description: {
-                    Text("six trusts what this Mac trusts. Add a certificate to trust one more.")
+                    Text("Add a certificate to trust an authority this Mac does not.")
                 } actions: {
                     Button("Add Certificate…") { importing = true }
                 }
@@ -144,6 +144,7 @@ private struct BundleRow: View {
                     Image(systemName: "ellipsis.circle")
                 }
                 .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
                 .fixedSize()
             }
             if isExpanded {

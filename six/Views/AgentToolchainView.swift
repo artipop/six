@@ -1,29 +1,13 @@
 #if os(macOS)
 import SwiftUI
 
-/// The adapters an agent is reached through: which one is installed, how old it is, and the buttons
-/// that put that right. They live on `six://configuration` ▸ Assistant and not where the agent is
-/// worked with, because installing an adapter is a setting and not a thing you do while working —
-/// the rule the deleted menus left behind (`MacCommands`: a menu item is a verb, everything else is
-/// a setting).
-///
-/// **Adapters**, and the section above it is **Agents**: the row here is a package with a version,
-/// not the agent, and the two were one word until the panel these sat behind stopped being a place
-/// anyone could open.
-struct AgentToolchainSection: View {
-    @Environment(AgentSessionStore.self) private var store
-
-    var body: some View {
-        Section("Adapters") {
-            ForEach(ACPAgentDefinition.builtIn) { agent in
-                AgentToolchainRow(agent: agent)
-            }
-        }
-    }
-}
-
 /// One adapter, with everything about it said in the order it matters: what six will run, how old it
 /// is, and whether the CLI it drives is there at all.
+///
+/// It lives on `six://configuration` ▸ Assistant ▸ Agents, under the name of the agent it belongs
+/// to, and not where the agent is worked with: installing an adapter is a setting and not a thing
+/// you do while working — the rule the deleted menus left behind (`MacCommands`: a menu item is a
+/// verb, everything else is a setting).
 struct AgentToolchainRow: View {
     let agent: ACPAgentDefinition
 

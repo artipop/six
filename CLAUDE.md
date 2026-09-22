@@ -520,6 +520,11 @@ anything added there has to exist on both:
 - **Localization**: everything a person reads goes through the String Catalogs, English and Russian. Everything a
   *model* reads — tool descriptions, the catalog's instructions, presets — stays English, because that is a prompt and
   not an interface. [docs/localization.md](docs/localization.md).
+- **The interface never narrates what six does.** No "six writes what it did to …", no "six trusts what this Mac
+  trusts", no "six reads PEM and DER" — a label names the thing, a caption names a consequence or a missing step, and
+  neither is a place for the program to describe itself in the third person. Name the value and let the row's label
+  say what it is ("File", then the path), rather than wrapping it in a sentence about the browser. six as the *object*
+  of a verb the person performs is fine and stays — "Show six in the Share Menu", "Set six as Default Browser…".
 - **Comments explain why, not what**, and read like the surrounding code — the codebase's register is a short essay at
   the top of a type, and a line of reasoning where a decision looks arbitrary. Match it.
 - Artem writes in Russian; the repo, the docs and the commit messages are in English.
