@@ -19,7 +19,9 @@ is WebKit's own static match against a manifest and never calls this method at a
 "works now" claims below are a prediction from what `webView(for:)` returning correctly implies, not yet a
 measurement with the same rigor as the rest of this page. Whoever re-runs it: confirm `runtime.sendMessage` /
 `tabs.sendMessage` / `scripting.executeScript` / `scripting.insertCSS` and uBlock Origin Lite's per-tab logic again,
-each on its own, before moving this out of "believed fixed."
+each on its own, before moving this out of "believed fixed." What each of those runs would have to show, and the
+one reading that already disagrees with this page — uBOL scoring 96/100 on a request-counting test with six's own
+blocking switched off — are in [unmeasured.md](unmeasured.md).
 
 **Install** from **Extensions › Manage Extensions…**: a folder, a `.zip`, a `.crx` or an `.xpi`. Before anything
 runs, the dialog says what the extension is, what it will be granted, and — from its manifest alone — what will not
