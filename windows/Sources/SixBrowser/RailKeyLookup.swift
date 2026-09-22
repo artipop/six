@@ -79,6 +79,10 @@ public enum RailKeyLookup {
         }) else { return nil }
 
         switch binding.action {
+        // ⌃Tab's window switcher is the Mac's; this front has no overlay to walk, and the arrow
+        // keys inside one must not fall through to the rail's own. Added here because the table is
+        // shared and this switch is exhaustive: without it `SixBrowser` does not compile at all.
+        case .walkSwitcher: return nil
         case .focusColumn(let delta): return .focusColumn(delta)
         case .moveColumn(let delta): return .moveColumn(delta)
         case .focusColumnEdge(let last): return .focusColumnEdge(last: last)

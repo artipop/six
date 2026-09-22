@@ -165,7 +165,8 @@ extension RailWindow {
     private func makeWebView(for tabID: Foundation.UUID, parent: HWND, frame: RECT) -> RailWebView? {
         // The column's own profile rather than the one on screen: the two are the same for anything
         // built here today, and the day they are not, a page in the wrong cookie jar is the bug.
-        guard let created = WebEngine.makeView(parent: parent, frame: frame, profile: model.profile(of: tabID)) else {
+        guard let created = WebEngine.makeView(parent: parent, frame: frame, profile: model.profile(of: tabID),
+                                               userContent: webMCP.userContent(for: tabID)) else {
             return nil
         }
         wire(created, tabID: tabID)
@@ -202,6 +203,7 @@ extension RailWindow {
                 return
             }
             translation.consider(view, tabID: tabID)
+            webMCP.pageLoaded(tabID, view: view)
             model.pageDidFinishLoading(tabID, url: view.url, title: view.title)
             thumbnailDue[tabID] = Date().addingTimeInterval(1.5)
             model.permissionSelfTestIfAsked(tabID)
@@ -271,6 +273,7 @@ extension RailWindow {
             visibleViews.remove(id)
             thumbnailDue[id] = nil
             translation.forget(id)
+            webMCP.forget(id)
         }
         for id in thumbnails.keys where !openIDs.contains(id) { forgetThumbnail(id) }
     }

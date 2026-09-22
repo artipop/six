@@ -61,6 +61,38 @@ count on finding it. Capture is off by default and is meant to be turned on whil
 you are looking into something, not left on.
 :::
 
+## WebMCP
+
+**Configuration ▸ Develop ▸ WebMCP ▸ Let Pages Offer Tools to Agents** is an
+experimental switch, off by default.
+[WebMCP](https://webmachinelearning.github.io/webmcp/) is a W3C draft by which a
+page tells an [agent](/en/agents) what it can do: not "click button number 12"
+but `search_flights(from, to, date)`. The function runs in the page itself, in
+the session you are already signed in to.
+
+When the open page has declared tools, a badge with a wrench and their number
+appears beside the address field. Clicking it lists them: name, description,
+and the **read-only** and **consequential** marks — what the page said about
+itself. The agent sees the same tools and can call them.
+
+The switch reaches pages loaded after it: turning it on reloads the open windows.
+
+**What you will be asked.** The first call to a site raises a bar under the
+window's title: may agents use the tools this site offers them? The answer is
+remembered and sits with the camera's — **Configuration ▸ Privacy ▸ Site
+Permissions** — and can be taken back there. After that, every call to a tool
+the page did not mark read-only is confirmed on its own, and the bar shows the
+tool's name and the arguments it is being called with. A private window offers
+no tools at all.
+
+::: warning Why this is in Develop for now
+A page's tool does whatever the site wrote it to do — on your behalf, in your
+session. There is no per-site permission and no confirmation before a call yet,
+so keep WebMCP off unless you are testing it on purpose. Like console capture,
+it lives in the page's own world: the page can see it and can post to its
+channel itself — but only about its own tools.
+:::
+
 ## The log
 
 The capture above belongs to a window and is gone when the window navigates.

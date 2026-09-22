@@ -63,6 +63,9 @@ public final class RailWindow {
     /// once from `create` — the model wants it before the first bookmark, and an off-screen page
     /// wants a window to exist.
     lazy var embedding = RailEmbedding(model: model)
+    /// Pages declaring tools for agents (WebMCP): off unless the setting, `SIX_WEBMCP=1` or a
+    /// self-test says otherwise — see `RailWebMCP`. Repaints because the address bar counts them.
+    lazy var webMCP = RailWebMCP(model: model) { [weak self] in self?.invalidate() }
     /// What `topChromeHeight` was when the rail's viewport was last computed. The bar grows a second
     /// line while a translation is running, and the rail below it has to be told.
     var lastChromeHeight: Int32 = 0
@@ -147,6 +150,7 @@ public final class RailWindow {
         // for; this is the one place the model reaches back into it.
         model.onPermissionQuestion = { [weak self] in self?.invalidate() }
         SetTimer(created, Self.pageStateTimer, 400, nil)
+        runWebMCPSelfTestIfAsked()
         if ProcessInfo.processInfo.environment["SIX_UI_DEBUG"] == "1" {
             FileHandle.standardError.write(Data("[six] window created, hwnd=\(String(describing: created)) scale=\(scale)\n".utf8))
         }

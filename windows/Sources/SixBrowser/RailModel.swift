@@ -31,8 +31,9 @@ public final class RailModel {
     public struct PermissionQuestion: Equatable {
         /// The site, as people name one: `example.com`.
         public let host: String
-        /// "camera and microphone" — what the bar says it wants.
-        public let devices: String
+        /// The whole sentence the bar says — a device, a site's tools, or one call to one of them
+        /// (`SitePermissions.Question.prompt`).
+        public let prompt: String
         public let wantsCamera: Bool
     }
 
@@ -657,12 +658,53 @@ public final class RailModel {
         permissions.answer(allowed, for: tabID)
     }
 
+    // MARK: Page tools (WebMCP)
+    //
+    // The gate in front of a page's tools asks through the same queue and the same bar the camera
+    // does (`SitePermissions`, docs/webmcp.md). It is wired from `SixUI`, which owns the host, and
+    // `SitePermissions` is `SixCore`'s and internal — so what crosses the module boundary is these
+    // four methods, in types this front's public API can name.
+
+    /// The site a column is on, as an answer is filed under. `nil` while its address is not one.
+    public func siteOrigin(of tabID: UUID) -> String? {
+        SitePermissions.origin(of: URL(string: url(for: tabID)))
+    }
+
+    /// Whether a column browses in the private profile, where WebMCP is off altogether.
+    public func isPrivateColumn(_ tabID: UUID) -> Bool { isPrivate(tabID) }
+
+    /// May agents use this site's tools? Asked once per site, remembered per profile.
+    public func askPageTools(origin: String, tabID: UUID, then answer: @escaping (Bool) -> Void) {
+        guard let profile = profileID(of: tabID) else { return answer(false) }
+        Log.info(.mcp, "webmcp: asking about \(origin)")
+        permissions.decidePageTools(origin: origin, in: tabID, profileID: profile, then: answer)
+    }
+
+    /// This one call, now — never remembered, and asked for everything the page did not mark
+    /// read-only.
+    public func confirmPageToolCall(tool: String, arguments: String, origin: String, tabID: UUID,
+                                    then answer: @escaping (Bool) -> Void) {
+        guard let profile = profileID(of: tabID) else { return answer(false) }
+        permissions.confirmPageToolCall(tool: tool, arguments: arguments, origin: origin,
+                                        in: tabID, profileID: profile, then: answer)
+    }
+
+    /// What a column is asking right now, if anything. The self-test reads it and answers it the
+    /// way a person would — there are no synthetic clicks on this machine (CLAUDE.md).
+    public func permissionPrompt(for tabID: UUID) -> String? { question(for: tabID)?.prompt }
+
+    /// Takes back what this column's site was answered about page tools. The self-test's first
+    /// step: an answer is remembered, so without this a second run measures the first run's yes.
+    public func forgetPageToolsAnswer(for tabID: UUID) {
+        guard let profile = profileID(of: tabID), let origin = siteOrigin(of: tabID) else { return }
+        permissions.forget(.pageTools, forOrigin: origin, profileID: profile)
+    }
+
     private func question(for tabID: UUID) -> PermissionQuestion? {
         guard let question = permissions.question(for: tabID) else { return nil }
         return PermissionQuestion(
             host: question.host,
-            // `ListFormatter` is Apple Foundation's, and this list is never longer than two.
-            devices: question.permissions.map(\.label).joined(separator: " and "),
+            prompt: question.prompt,
             wantsCamera: question.permissions.contains(.camera))
     }
 

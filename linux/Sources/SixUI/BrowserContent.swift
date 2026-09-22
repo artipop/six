@@ -357,7 +357,7 @@ public struct BrowserContent: View {
         HStack {
             Symbol(icon: .default(icon: question.wantsCamera ? .cameraWeb : .audioInputMicrophone))
                 .padding(4)
-            Text("\(question.host) wants to use your \(question.devices).")
+            Text(question.prompt)
                 .ellipsize()
                 .hexpand()
             Button("Block") { model.answerPermission(false, for: tabID); refresh() }

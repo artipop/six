@@ -69,6 +69,8 @@ same question every named workspace gets, whoever named it
 | `list_network_requests` | the requests a page made — method, status, duration, size, kind (`failed_only`, `limit`); same switch |
 | `take_screenshot` | writes a PNG of the whole page under `Application Support/org.deffun.six/Screenshots/` and returns the path |
 | `evaluate_javascript` | run a function body in the page — in the *page's* world, unlike every other tool ([architecture.md](architecture.md#page-side-scripts)); result back as JSON |
+| `list_page_tools` | the tools a window's page declared through WebMCP (`document.modelContext.registerTool`): name, description, `inputSchema`, annotations, origin; needs `six://configuration` ▸ Develop ▸ WebMCP — see [webmcp.md](webmcp.md) |
+| `call_page_tool` | calls one of them (`name`, `arguments` as an object or its JSON text, `timeout` seconds — default 30, `max_chars`); the answer comes back fenced as the page's data. Ends with the page's answer, a timeout (the tool's `AbortSignal` fires in the page), the page navigating away — or a refusal: the first call to a site asks the person about the site, and anything the page did not mark `readOnlyHint` is confirmed per call, with the tool's name and arguments on the bar ([webmcp.md](webmcp.md)) |
 | `create_document` | a document window (Markdown in a column) — `title` or `markdown`, optional `workspace`, `profile`, `activate` → id |
 | `write_document` | `mode`: `replace` the text, `append`, or `section` — replace the body of one `## heading` (added when missing); `document_id` defaults to the run's document in the on-screen workspace |
 | `read_document` | the document's Markdown and its section list |

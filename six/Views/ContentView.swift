@@ -612,6 +612,9 @@ private struct TopBar: View {
             if let tab = browser.selectedTab {
                 AddressBar(tab: tab, addressFocus: addressFocus)
                     .frame(maxWidth: addressWidth)
+                // The page's own tools for agents, when it declares any — about this page, like the
+                // star, so beside it.
+                PageToolsButton(tab: tab)
                 BookmarkButton(tab: tab)
                 ShareButton(tab: tab)
             }

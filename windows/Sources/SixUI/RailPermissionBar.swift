@@ -43,7 +43,7 @@ extension RailWindow {
         fill(hdc, layout.bar, with: Self.barColor)
         fill(hdc, RECT(left: layout.bar.left, top: layout.bar.bottom - 1, right: layout.bar.right, bottom: layout.bar.bottom),
              with: Self.barBorderColor)
-        drawText(hdc, "\(question.host) wants to use your \(question.devices).", in: layout.text,
+        drawText(hdc, question.prompt, in: layout.text,
                  font: fonts.ui, color: Self.textColor,
                  format: DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS)
         roundedRect(hdc, layout.block, radius: px(6), fill: Self.chipColor, border: Self.barBorderColor, borderWidth: 1)
