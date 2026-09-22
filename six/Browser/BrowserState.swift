@@ -443,10 +443,10 @@ final class BrowserState {
         if let app = saved.app { return makePendingAppTab(id: saved.id, profile: profile, saved: app) }
         // A `six://…` window comes back as the page it was, not as a window trying to fetch an address
         // WebKit has never heard of.
-        if let url = saved.url, let page = BuiltInPage.page(for: url) {
-            let tab = makeBuiltInTab(id: saved.id, profile: profile, page: page)
-            // The fragment came back with the address, so the page opens where it was left.
-            tab.section = url.fragment()
+        if let url = saved.url, let parsed = BuiltInPage.parse(url) {
+            let tab = makeBuiltInTab(id: saved.id, profile: profile, page: parsed.page)
+            // The rest of the path came back with the address, so the page opens where it was left.
+            tab.section = parsed.section
             return tab
         }
         let tab = makeTab(id: saved.id, profile: profile, restoring: saved.url, title: saved.title)
@@ -649,8 +649,8 @@ final class BrowserState {
         // over by another app, or asked for by an agent's `open_window`. Without this the window is
         // built as a web one, `onBuiltInAddress` fires on the way to loading it, and the person is
         // left with the page they asked for *and* an empty window beside it.
-        if let url, let page = BuiltInPage.page(for: url) {
-            return openBuiltIn(page, section: url.fragment(), in: profileID, activate: activate)
+        if let url, let parsed = BuiltInPage.parse(url) {
+            return openBuiltIn(parsed.page, section: parsed.section, in: profileID, activate: activate)
         }
         let profile = profiles.first { $0.id == profileID } ?? selectedProfile
         let tab = makeTab(profile: profile)
@@ -848,7 +848,7 @@ final class BrowserState {
     /// Focusing rather than opening a second is the difference between a page and a panel: a person
     /// who asks for the server list twice wants the list, not two of them.
     @discardableResult
-    /// `section` is the fragment of the address (`six://configuration#assistant`): a page that is
+    /// `section` is the path under the page (`six://configuration/assistant`): a page that is
     /// already open is turned to that part rather than left where it was, which is what a button
     /// saying "Set Up…" promises.
     func openBuiltIn(_ page: BuiltInPage, section: String? = nil, in profileID: Profile.ID? = nil,

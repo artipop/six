@@ -124,7 +124,7 @@ made the hand-off land. A field that never loses the keyboard has nothing to han
 **A model that could not answer is said so before it is asked.** `AssistantSettings.trouble` reads
 the chosen model's own answer — `SystemLanguageModel.availability`, an empty API key, an endpoint
 that is not a URL — and the line puts that sentence where the verbs would be, with **Set Up…** to
-`six://configuration#assistant` for the half a person can put right and nothing but the sentence for the half
+`six://configuration/assistant` for the half a person can put right and nothing but the sentence for the half
 they cannot (a model still downloading, a Mac that is not eligible, the SDK/OS mismatch). Return
 over that row opens the same page rather than running a verb that is going to fail. `makeSession`
 throws the same sentences, as `AssistantError.notConfigured` or `.unavailable`, so a failure that

@@ -61,7 +61,7 @@ struct ConfigurationPageView: View {
             detail
         }
         .background(.background)
-        // The address and the sidebar are the same fact. Arriving with `#assistant` turns the page to
+        // The address and the sidebar are the same fact. Arriving at `configuration/assistant` turns the page to
         // it, and turning it by hand rewrites the address — so the window can be copied, typed again
         // or restored where it stood, which one address for six panes could not do.
         .onAppear { if let named = Self.pane(of: tab.section) { section = named } }
@@ -355,7 +355,7 @@ private struct LoadedWindows: View {
 /// which was a menu whose every item opened a window.
 private struct PrivacyConfiguration: View {
     /// This pane's own half of the address, from `ConfigurationPageView`: `sites` of
-    /// `#privacy/sites`. Held there rather than here because the address belongs to the window and
+    /// `configuration/privacy/sites`. Held there rather than here because the address belongs to the window and
     /// outlives this view — the segment is `@State`, and switching panes and back rebuilds it.
     @Binding var part: String?
 

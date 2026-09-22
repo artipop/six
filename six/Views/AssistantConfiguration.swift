@@ -3,7 +3,7 @@ import SwiftUI
 
 struct AssistantPane: View {
     /// This pane's half of the address, from `ConfigurationPageView`: `agents` of
-    /// `#assistant/agents`. Held there because the address belongs to the window and outlives this
+    /// `configuration/assistant/agents`. Held there because the address belongs to the window and outlives this
     /// view, which is rebuilt every time the sidebar leaves the pane and comes back.
     @Binding var part: String?
 

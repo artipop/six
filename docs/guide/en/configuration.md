@@ -2,11 +2,12 @@
 
 `⌘,` — or the address `six://configuration`, typed into the field.
 
-Every section has an address of its own: `six://configuration#assistant`,
-`#privacy`, `#windows`, `#extensions`, `#develop`. Privacy holds three, and a
-slash names which: `#privacy/blocking`, `#privacy/sites`, `#privacy/certificates`
-— so **Site Permissions…** in a window's permission menu arrives at the
-permissions rather than at the filter lists. Buttons like **Set Up…** in the
+Every section has an address of its own: `six://configuration/assistant`,
+`/privacy`, `/windows`, `/extensions`, `/develop`. Privacy and Assistant hold
+tabs inside them, and the next step of the path names which: `/privacy/blocking`,
+`/privacy/sites`, `/privacy/certificates`, `/assistant/responses`,
+`/assistant/agents`, `/assistant/mcp` — so **Site Permissions…** in a window's
+permission menu arrives at the permissions rather than at the filter lists. Buttons like **Set Up…** in the
 `⌘E` line open the section they mean rather than the top of the page, and the
 address follows you as you move between sections.
 
