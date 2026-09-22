@@ -919,6 +919,10 @@ private struct StripEdgeButton: View {
 
     @Environment(BrowserState.self) private var browser
     @State private var hovering = false
+    /// The `+` under this pointer has opened its window: it does nothing more until the hand leaves
+    /// and comes back. Clicking in place is one window, not a row of them, and the curtain closing on
+    /// the one that opened is what says so.
+    @State private var spent = false
     /// When the `+` that arrived under a resting pointer starts taking clicks.
     ///
     /// The strip running out under a hand that never moved is the last click of a run along the
@@ -992,14 +996,23 @@ private struct StripEdgeButton: View {
     private func content(layout: NiriLayout, width: CGFloat) -> some View {
         if let step = step(layout: layout) {
             Button {
-                guard !(step.opens && Date.now < armsAt) else { return }
+                guard !(step.opens && (spent || Date.now < armsAt)) else { return }
                 step.action()
-                // Opening one is the same event as running out: the pointer is still on a `+` it
-                // already used, and a second click there is a second window nobody asked for. Held
-                // right here, in the click, rather than in `onChange(of: step.opens)` a frame later —
-                // and for opening a window too, since `step.opens` will not flip afterwards: the new
-                // window is itself the last column and the button reads `+` before and after.
-                if step.opens || !layout.hasColumn(past: direction) { armsAt = .now + Self.arming }
+                if step.opens {
+                    // One window per visit. The pointer is still on a `+` it has just used, and
+                    // clicking in place again is a row of windows nobody asked for — so the curtain
+                    // closes on the one that opened and the button waits to be hovered again, which
+                    // is the hand saying it came back for another. Held here, in the click, and not
+                    // in `onChange(of: step.opens)`: that will not fire, since the new window is
+                    // itself the last column and the button reads `+` before and after.
+                    spent = true
+                    if browser.peeksAtEdges { peek(layout, false) }
+                } else if !layout.canFocusColumn(direction) {
+                    // The chevron that has just walked the rail to its end: the curtain stays open
+                    // and the promise takes the chevron's place in it, and only the click waits out
+                    // the moment a run of clicks would still be arriving in.
+                    armsAt = .now + Self.arming
+                }
             } label: {
                 // Aligned to the edge the lane grew from, not centred on the curtain: the glyph reads
                 // as standing at the same spot whether the pointer just arrived or has followed the
@@ -1027,7 +1040,9 @@ private struct StripEdgeButton: View {
             .onHover { inside in
                 NiriLayout.trace("edge onHover dir=\(direction) inside=\(inside) width=\(width) anchorX=\(anchorX)")
                 hovering = inside
-                armsAt = .distantPast // the hand moved to get here, so it meant to be here
+                // The hand moved to get here, so it meant to be here.
+                armsAt = .distantPast
+                spent = false
                 if browser.peeksAtEdges { peek(layout, inside) }
             }
             // The strip ran out this way from somewhere else — the last window over there was closed,
@@ -1043,6 +1058,7 @@ private struct StripEdgeButton: View {
             .onDisappear {
                 hovering = false
                 armsAt = .distantPast
+                spent = false
                 peek(layout, false)
             }
             // Switched off with the pointer resting here: the button stops asking for peeks, so it has
@@ -1060,7 +1076,7 @@ private struct StripEdgeButton: View {
     }
 
     private func step(layout: NiriLayout) -> (symbol: String, help: String, opens: Bool, action: () -> Void)? {
-        if layout.hasColumn(past: direction) {
+        if layout.canFocusColumn(direction) {
             return (direction < 0 ? "chevron.left" : "chevron.right",
                     direction < 0 ? String(localized: "Previous window (⌥←)") : String(localized: "Next window (⌥→)"),
                     false,

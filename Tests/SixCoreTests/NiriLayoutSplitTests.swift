@@ -114,10 +114,10 @@ struct NiriLayoutSplitTests {
 
     // MARK: Walking the rail through one
 
-    /// A split column is two stops and not one. Pressing ⌥→ twice from the window before it lands on
-    /// the far half, so every window on the rail is one step from its neighbour whether or not it is
-    /// sharing a column — and coming back the other way walks them in the order they are drawn.
-    @Test func theRailWalksBothHalves() {
+    /// A split column is one stop and not two. ⌥→ from the window before it lands on the pair and
+    /// the next ⌥→ leaves it: the other half is not somewhere the rail leads, it is on screen beside
+    /// the one being read, a click away. Stepping into it moved nothing and the key read as dead.
+    @Test func aSplitIsOneStopOnTheRail() {
         let layout = layout()
         let ids = fill(layout, 3)
         layout.focusColumn(-1)
@@ -127,27 +127,25 @@ struct NiriLayoutSplitTests {
         #expect(layout.focusedTabID == ids[0])
         layout.focusColumn(1)
         #expect(layout.focusedTabID == ids[1])
-        layout.focusColumn(1)
-        #expect(layout.focusedTabID == ids[2])
-        layout.focusColumn(-1)
+        layout.focusColumn(1) // and there is nothing past the pair: its other half is not a stop
         #expect(layout.focusedTabID == ids[1])
         layout.focusColumn(-1)
         #expect(layout.focusedTabID == ids[0])
     }
 
-    /// Arriving at a split from the right lands on its near half, for the same reason: the rail is
-    /// walked in the order it is drawn in.
-    @Test func arrivingFromTheRightLandsOnTheNearHalf() {
+    /// And the column keeps the half it was left on. Which of the two windows is being read is
+    /// something the hand said by clicking; walking away along the rail and back is not a reason for
+    /// the rail to say something else.
+    @Test func aSplitKeepsTheHalfItWasLeftOn() {
         let layout = layout()
         let ids = fill(layout, 3)
         layout.focusColumn(-2)
         layout.toggleSplit() // [0 | 1] [2], focus on 0
-        layout.focusColumn(1)
         layout.focusColumn(1) // out of the pair and onto the last window
 
         #expect(layout.focusedTabID == ids[2])
         layout.focusColumn(-1)
-        #expect(layout.focusedTabID == ids[1]) // the right half of the pair, not its left one
+        #expect(layout.focusedTabID == ids[0]) // the half it was left on
     }
 
     /// ⌥⇧→ inside a split swaps its halves — one place along, and inside a column there is exactly

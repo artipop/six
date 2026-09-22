@@ -401,10 +401,11 @@ enum KeySelfTest {
     /// hand, because a launched window hands the keyboard to the address field and
     /// `WebViewResponder` deliberately never takes it off a text field.
     ///
-    /// `(agrees)` is the whole answer, and it has to survive a step: ⌥→ moves the rail's focus to
-    /// the other half, and the keyboard has to arrive there too. `(DISAGREES)` is the bug this was
-    /// written for — one half highlighted while what you type lands in the other. The two windows
-    /// are closed at the end, so the rail is left as it was found.
+    /// `(agrees)` is the whole answer, and it has to survive the focus moving to the other half —
+    /// which is a *click* on it and not an arrow key any more: a split is one stop on the rail, and
+    /// the halves stand side by side where a click reaches either of them. `(DISAGREES)` is the bug
+    /// this was written for — one half highlighted while what you type lands in the other. The two
+    /// windows are closed at the end, so the rail is left as it was found.
     private static func splitKeyboard(_ browser: BrowserState, in window: NSWindow) async {
         guard let blank = URL(string: "about:blank") else { return }
         let left = browser.newTab(url: blank)
@@ -422,17 +423,18 @@ enum KeySelfTest {
         try? await Task.sleep(for: .milliseconds(150))
         note("keyboard handed to the focused half → \(rail(browser))")
 
-        post(flags: .option, code: .rightArrow, in: window)
+        // What a click on the other half does, which is how the focus crosses a split now.
+        browser.selectTab(right.id)
         try? await Task.sleep(for: .milliseconds(400))
-        note("⌥→ (the other half) → \(rail(browser))")
-        post(flags: .option, code: .leftArrow, in: window)
+        note("focus to the other half → \(rail(browser))")
+        browser.selectTab(left.id)
         try? await Task.sleep(for: .milliseconds(400))
-        note("⌥← (back again) → \(rail(browser))")
+        note("back again → \(rail(browser))")
 
         // **⌃Tab, twice over.** The ring stops at the column everywhere except the column you are
         // standing in, so two answers have to come out of the same key.
         //
-        // Here, having just walked between the halves with the arrows, one ⌃⇥ has to land on the
+        // Here, having just been on both halves, one ⌃⇥ has to land on the
         // other half — the complaint this was written for was that it threw you at the column next
         // door instead. `ring` counts the windows of this column separately and the rest by column,
         // so it comes out one *more* than the number of columns.

@@ -391,24 +391,18 @@ final class NiriLayout {
     var focusedTabID: UUID? { focusedWorkspace?.focusedColumn?.focusedTabID }
     var hasColumns: Bool { strip.workspaces.contains { !$0.isEmpty } }
 
-    /// Is there a window that way? Drives the on-screen edge buttons, and the wall at the ends of
-    /// the rail. A split column is two stops and not one: the step into its other half is a step.
+    /// Is there a window that way? Drives the on-screen edge buttons, the arrow keys, and the wall at
+    /// the ends of the rail.
+    ///
+    /// **A split column is one stop and not two.** ⌥← and ⌥→ used to step into its other half before
+    /// leaving the column, the way a tiling WM walks the windows of a column — but on this rail both
+    /// halves are on screen side by side, so that step moved nothing and the key read as dead. It
+    /// also left the end of a rail whose last column was a split with a chevron on both sides: the
+    /// strip leaned over empty canvas, and the `+` that grows the rail had nowhere to appear. The
+    /// other half is one click away on the window itself, which is the shorter way to it in any case.
     func canFocusColumn(_ delta: Int) -> Bool {
         guard let ws = focusedWorkspace else { return false }
-        if abs(delta) == 1, let column = ws.focusedColumn, column.isSplit,
-           column.pane + delta == 0 || column.pane + delta == 1 { return true }
         return ws.columns.indices.contains(ws.focus + delta)
-    }
-
-    /// Is there a window **over the edge of the rail** that way — a column, and not the other half of
-    /// the one being read? The edge buttons ask this instead of `canFocusColumn`, which counts a
-    /// split's other pane as a step: that step is a real one for the keyboard, but it moves nothing
-    /// on the rail, and both halves are already on screen side by side. A chevron offering it leaned
-    /// the strip over empty canvas and stood where the `+` belongs — a rail whose last column is a
-    /// split had an arrow at both ends and no way to grow.
-    func hasColumn(past direction: Int) -> Bool {
-        guard let ws = focusedWorkspace else { return false }
-        return ws.columns.indices.contains(ws.focus + direction)
     }
 
     func canFocusWorkspace(_ delta: Int) -> Bool {
@@ -956,7 +950,7 @@ final class NiriLayout {
         guard edgeHover != 0, !isOverview else { return 0 }
         // Something has to be over there to be worth showing: the next window, or the room a new one
         // would take. On an empty workspace there is neither, and the strip stays where it is.
-        guard hasColumn(past: edgeHover) || showsNewColumn(at: edgeHover) else { return 0 }
+        guard canFocusColumn(edgeHover) || showsNewColumn(at: edgeHover) else { return 0 }
         let amount = min(columnWidth + gap, peekAmount)
         return edgeHover > 0 ? -amount : amount
     }
@@ -986,7 +980,7 @@ final class NiriLayout {
     /// Whether that place is being promised to anybody: the pointer is on that end's button and the
     /// button is a `+` rather than a chevron, which it only is where there is no window to walk to.
     func showsNewColumn(at side: Int) -> Bool {
-        guard edgeHover == side, !hasColumn(past: side) else { return false }
+        guard edgeHover == side, !canFocusColumn(side) else { return false }
         return newColumnFrame(at: side) != nil
     }
 
@@ -1204,21 +1198,11 @@ final class NiriLayout {
             guard s.workspaces.indices.contains(s.focus) else { return }
             var ws = s.workspaces[s.focus]
             guard !ws.columns.isEmpty, ws.columns.indices.contains(ws.focus) else { return }
-            // Into the other half of a split first, the way a tiling WM steps through the windows of
-            // a column before it steps to the next one: pressing ⌥→ twice from the left half of a
-            // split lands on the window after the pair, and every window on the rail is one step
-            // apart from its neighbour whether or not it is sharing a column.
-            if abs(delta) == 1, ws.columns[ws.focus].isSplit,
-               ws.columns[ws.focus].pane + delta == 0 || ws.columns[ws.focus].pane + delta == 1 {
-                ws.columns[ws.focus].pane += delta
-                s.workspaces[s.focus] = ws
-                return
-            }
             let target = min(max(0, ws.focus + delta), ws.columns.count - 1)
             guard target != ws.focus else { return }
-            // Arriving from the right lands on the near half, so walking back along the rail walks
-            // the windows in the order they are drawn in.
-            ws.columns[target].pane = delta < 0 && ws.columns[target].isSplit ? 1 : 0
+            // The column keeps the half it was left on. The key steps from column to column — a
+            // split is one stop (`canFocusColumn`) — so which of its two windows is being read is
+            // something the hand said by clicking, and nothing the rail should quietly change.
             ws.focus = target
             scrollFocusIntoView(&ws)
             s.workspaces[s.focus] = ws

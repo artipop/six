@@ -321,7 +321,7 @@ window the rail is no longer looking at.
 Measured by `KeySelfTest.splitKeyboard`, which needs a setup of its own and says why: two windows with real pages,
 because a split of two start pages has nothing for a first responder to be, and the first version of the check
 measured exactly that. Each line prints who holds the keys and whether that agrees with the rail —
-`keys WebPageWebView 702pt 8FCCFAD6 (agrees)` — and ⌥→ has to carry it to the other half.
+`keys WebPageWebView 702pt 8FCCFAD6 (agrees)` — and a click on the other half has to carry it there.
 
 **The other half of a split is an unfocused window like any other**, so the rule holds there too: the first click
 lands the focus on it and the second reaches the page. It is the one place the rule can be argued with — both halves
@@ -418,10 +418,11 @@ that is resting there watches it happen rather than having to leave and come bac
 instead, and the curtain shut on exactly the moment it was there to show. Only the **click** waits now
 (`armsAt`, 0.35 s — the tail of a run of clicks, and nothing a hand that meant it would ever notice).
 
-What counts as "the end of the rail" is `hasColumn(past:)` and not `canFocusColumn`. The difference is a **split**: its
-other half is a real step for the keyboard, and `⌥←` takes it, but it moves nothing on the rail and both halves are on
-screen already. Asked the other way, a rail whose last column is a split had a chevron at both ends, leaning the strip
-over empty canvas, and no `+` anywhere to grow from — which is how it was found.
+What counts as "the end of the rail" is `canFocusColumn`, and that question changed with it: **a split is one stop and
+not two.** Stepping into a column's other half was the tiling-WM answer, but on this rail both halves are on screen
+side by side, so the step moved nothing and the key read as dead — and asked at an edge, it left a rail whose last
+column was a split standing with a chevron on both sides, leaning the strip over empty canvas, with no `+` anywhere to
+grow from. The other half is one click away on the window itself, which is the shorter way to it in any case.
 
 What answers the mouse and what gets drawn are two different things. What is drawn is the glyph, and only the glyph —
 no plate, border or shadow under it, because the rail has already leaned aside to answer and anything around the
@@ -481,9 +482,9 @@ reason: three pages at a third of a screen each are three unreadable pages, and 
 is the question the rail already answers.
 
 **The two halves are windows, not panes of one window.** Each has its own border, its own `×`, its own progress
-line; `⌥←` / `⌥→` walk into the near half before stepping to the next column, so every window on the rail is one
-step from its neighbour whether or not it is sharing a column; `⌘W` closes one and leaves the other filling the
-column. `⌥⇧→` inside a split swaps the two halves, because one place along, inside a column, is the other side of
+line; `⌘W` closes one and leaves the other filling the column. But the rail walks columns, not halves: `⌥←` / `⌥→`
+step over the pair as one stop, and the half being read is the one the hand clicked — a column keeps it while the
+focus goes away and comes back. `⌥⇧→` inside a split swaps the two halves, because one place along, inside a column, is the other side of
 it.
 
 **But the pair moves as one thing.** `⌥⇧↑` / `⌥⇧↓` take the whole column to the next workspace, and a card carried

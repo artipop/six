@@ -57,10 +57,9 @@ on the rail: a whole one, or half of one. The halves of a column are drawn next 
 each other and in the order they stand in — so a pair still looks like a pair, but
 it is two cards rather than one with a seam down it.
 
-Which of them is nearer is memory's answer: after walking the halves with `⌥←` /
-`⌥→`, a single `⌃Tab` takes you back to the other one. Come to the split from
-somewhere else and `⌃Tab` goes back there, with the other half further along where
-it belongs.
+Which of them is nearer is memory's answer: after being on the other half, a
+single `⌃Tab` takes you back to it. Come to the split from somewhere else and
+`⌃Tab` goes back there, with the other half further along where it belongs.
 
 A rail with one window on it still opens the ring — with one card in it. The key
 has to answer: a press that gives nothing back cannot be told from an unbound key
@@ -172,7 +171,7 @@ dropped onto another.
 | | |
 |---|---|
 | `⌥S` | take the neighbouring window into this column; again to put it back on the rail |
-| `⌥←` `⌥→` | walk the halves exactly as they walk windows: into the near half first, then on to the next column |
+| `⌥←` `⌥→` | step over the pair as one stop: the halves stand side by side, and the other one is a click away |
 | `⌥⇧←` `⌥⇧→` | inside a pair, swap the two halves |
 | `⌥⇧↑` `⌥⇧↓` | take **the pair**: both halves arrive on the new workspace side by side, as they stood |
 
@@ -191,8 +190,8 @@ pages side by side is something you arranged, and moving them should not take
 that apart on the way. `⌥S` is how they come apart — one key, and both stay where
 you can see them.
 
-The keyboard travels with the focus: after `⌥→` the arrow keys scroll the half
-that is highlighted, and typing goes into it. The one exception is a caret in a
+The keyboard travels with the focus: the arrow keys scroll the half that is
+highlighted, and typing goes into it. The one exception is a caret in a
 field — `⌘L` and the `⌘E` line are left by keystroke, and the rail does not take
 what you are typing away from them.
 
