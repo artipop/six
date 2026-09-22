@@ -94,9 +94,10 @@ final class MCPHost {
         }
     }
 
-    /// Stops listening and drops whoever is connected — what the assistant switch does to it
-    /// (`ConfigurationStore.isAIEnabled`). The socket file goes with the listener, so `six --mcp` fails
-    /// to connect rather than hanging on a door nobody answers.
+    /// Stops listening and drops whoever is connected. The socket file goes with the listener, so
+    /// `six --mcp` fails to connect rather than hanging on a door nobody answers. Nothing in the
+    /// interface calls this: the listener is up for as long as six is, because it is how other
+    /// programs reach this browser and not part of what the assistant switch governs (`sixApp`).
     func stop() {
         listener.stop()
         connections.removeAll()

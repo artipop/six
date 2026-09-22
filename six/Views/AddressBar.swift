@@ -485,7 +485,7 @@ struct AddressBar: View {
                 Button("Forget This Site's Choices") {
                     permissions.forget(origin: origin, profileID: tab.profileID)
                 }
-                Button("Site Permissions…") { browser.openBuiltIn(.configuration, section: "privacy/sites") }
+                Button("Site Permissions…") { browser.openBuiltIn(.configuration, section: "privacy/site-permissions") }
             } label: {
                 Image(systemName: symbol)
                     .font(.system(size: 10))

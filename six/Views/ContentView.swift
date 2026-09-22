@@ -71,11 +71,12 @@ struct ContentView: View {
         .clearHistoryDialog(isPresented: $confirmClearHistory)
         // A named workspace has just run out of windows and wants an answer (`NiriLayout`).
         .workspaceRemovalDialog()
-        // The switch reaches the parts that are not views: the watcher in every page, and the
-        // socket other agents drive six through. Both are off while it is.
+        // The one part the switch reaches that is not a view: the watcher six puts in every page to
+        // know what is selected, which exists for ⌘E. The socket deliberately stays up — see
+        // `sixApp`: it is how other programs drive this browser, not how this browser uses a model.
         .onChange(of: settings.isAIEnabled) { _, enabled in
             browser.pageFocus?.isEnabled = enabled
-            if enabled { mcp.start() } else { mcp.stop(); showAgentPanel = false }
+            if !enabled { showAgentPanel = false }
         }
         // The rail's focus and AppKit's first responder are two different things, and they used to
         // be able to disagree: ⌥→ moved the border and the address field while the keys went on

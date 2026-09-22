@@ -133,9 +133,10 @@ struct ConfigurationPageView: View {
     /// being said once.
     static let tabBarHeight: CGFloat = 40
 
-    /// Air under a tab bar. A pane with no tabs gets this from the form's own top inset; one with
-    /// tabs had its first row sitting on the divider.
-    static let contentInset: CGFloat = 12
+    /// Air over a pane, and again under a tab bar. Every pane began at the very top of the window:
+    /// a form's own inset is a few points and a list has none at all, so the first heading sat on
+    /// the frame and a tabbed pane's first row sat on the divider.
+    static let contentInset: CGFloat = 20
 
     /// Every pane on the one column, applied here rather than in each of them: a list of extensions
     /// stretched the whole window while a form beside it was half that, which made the same page
@@ -151,6 +152,7 @@ struct ConfigurationPageView: View {
             case .develop: DevelopConfiguration()
             }
         }
+        .padding(.top, Self.contentInset)
         .settingsColumn()
     }
 }
@@ -367,7 +369,11 @@ private struct PrivacyConfiguration: View {
     @State private var pane: Pane = .blocking
 
     private enum Pane: String, CaseIterable, Identifiable {
-        case blocking, sites, certificates
+        case blocking
+        /// `site-permissions` in an address, because `sites` alone reads as a list of sites rather
+        /// than as what each of them was allowed.
+        case sites = "site-permissions"
+        case certificates
         var id: String { rawValue }
         var title: String {
             switch self {

@@ -38,10 +38,11 @@ struct AssistantPane: View {
                 .labelsHidden()
                 .fixedSize()
                 Spacer()
-                // Over all three tabs, because it reaches all three. An MCP server is here to hand
-                // its tools to an agent; with no agent running there is nothing for it to hand them
-                // to, so switching the models off switches it off too and the switch means what it
-                // says — everything, not most of it.
+                // Over all three tabs, because it reaches all three. A server on the MCP tab is one
+                // six *connects to*, to hand its tools to an agent; with no agent running there is
+                // nothing to hand them to. six's own server — the socket `six --mcp` relays to — is
+                // the other direction and is not here and not switched: that is somebody else
+                // driving this browser (`sixApp`).
                 Toggle("Use Language Models and Agents", isOn: $store.isAIEnabled)
                     .toggleStyle(.switch)
                     .lineLimit(1)

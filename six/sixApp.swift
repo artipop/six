@@ -173,12 +173,11 @@ struct sixApp: App {
         assistant.agentSession = agentSession
         assistant.research = research
         let mcp = MCPHost(server: MCPServer(catalog: tools))
-        // Nothing is listening while the assistant switch is off: six's MCP server exists to be
-        // driven by an agent, and the switch says there is no agent (`ConfigurationStore.isAIEnabled`).
-        // `stop()` on a listener that never started still unlinks the socket file, so a launch
-        // with the switch off clears the one the previous launch left behind — otherwise the path
-        // sits there looking like a door six is answering.
-        if settings.isAIEnabled { mcp.start() } else { mcp.stop() }
+        // Always listening, whatever the assistant switch says. This is six offering *itself* to
+        // whoever asks — an editor's agent, a script, another Claude — and that is somebody else's
+        // arrangement, not six's own use of a model. The switch turns off the models six runs and
+        // the servers six connects to; a door other programs knock on is neither.
+        mcp.start()
         // The other direction: six as a host for servers that carry interfaces (docs/mcp-apps.md).
         let mcpApps = MCPAppStore()
         mcpApps.browser = browser
