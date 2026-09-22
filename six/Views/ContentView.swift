@@ -28,7 +28,7 @@ struct ContentView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TopBar(showAgentPanel: $showAgentPanel, addressFocus: $addressFocus)
+            TopBar(addressFocus: $addressFocus)
                 // In front of the rail, not behind it. They are siblings in a stack, so the rail is
                 // drawn — and hit-tested — after the bar; anything of the rail's that reaches up into
                 // the bar's band would take the click off its buttons.
@@ -590,7 +590,6 @@ private struct Panels: ViewModifier {
 }
 
 private struct TopBar: View {
-    @Binding var showAgentPanel: Bool
     var addressFocus: FocusState<UUID?>.Binding
     @Environment(BrowserState.self) private var browser
 
@@ -624,11 +623,6 @@ private struct TopBar: View {
             }
             .buttonStyle(.borderless)
             .help("Overview (⌥O)")
-            // Button { showAgentPanel.toggle() } label: {
-            //     Image(systemName: "sparkles")
-            // }
-            // .buttonStyle(.borderless)
-            // .help("Agent panel")
         }
         .padding(.horizontal, 10)
         .frame(height: 40)

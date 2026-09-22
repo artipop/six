@@ -10,7 +10,9 @@ import WebKit
 /// hunting for one has no way to guess which of five menus it filed itself under. Those went to
 /// `six://settings` (⌘,).
 ///
-/// Browser commands extend the standard menus. Agent and MCP configuration lives in settings.
+/// What is left is the shape every browser has — File, Edit, View, History, Bookmarks. The rule for
+/// anything new, and the one the rest of the app cites by name: a menu item is a verb with a key
+/// beside it; everything else is a setting.
 
 /// The window in front, and how the rail is showing it.
 ///
@@ -22,7 +24,6 @@ import WebKit
 struct ViewCommands: Commands {
     let browser: BrowserState
     let assistant: AssistantStore
-    @FocusedValue(\.toggleAgentPanel) private var toggleAgentPanel
     @FocusedValue(\.translatePage) private var translatePage
     @FocusedValue(\.translateSelection) private var translateSelection
     @FocusedValue(\.showFindBar) private var showFindBar
@@ -118,9 +119,6 @@ struct ViewCommands: Commands {
             // then, so nothing is listening (`ContentView`). A `.disabled` here would be decided once.
             Button("Ask Assistant…") { assistant.toggleLine(in: browser.selectedTab) }
                 .keyboardShortcut("e")
-            // Button("Agent Panel") { toggleAgentPanel?.perform() }
-            //     .keyboardShortcut("a", modifiers: [.command, .shift])
-            //     .disabled(toggleAgentPanel == nil)
         }
     }
 }
