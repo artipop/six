@@ -4,12 +4,15 @@ VI can install browser extensions — from a folder, a `.zip`, a `.crx` or an
 `.xpi`. **Configuration ▸ Extensions**
 
 ::: warning Read this before installing
-Extensions here have a **measured boundary**: a content script runs in the page,
-but it cannot message its own extension, and the extension cannot reach it. An
-extension whose content script is self-contained (a stylesheet, a script carrying
-its own data, anything that acts on the page and reports to nobody) works. An
-extension whose content script is a client of its background — which is most of
-them — does not.
+It all comes down to one thing: WebKit could not map a page's frame back to a
+tab, so a content script could neither message its own extension nor hear from
+it. On the Mac that link exists now, but it has not been measured again — so the
+honest word for such extensions here is "should work", not "works". On iPhone and
+iPad there is no link at all.
+
+An extension whose content script is self-contained (a stylesheet, a script
+carrying its own data, anything that acts on the page and reports to nobody)
+works either way.
 
 The install dialog says this about the **particular** extension, before it runs,
 and the verdict stays on its row afterwards.
@@ -28,24 +31,32 @@ and the verdict stays on its row afterwards.
 | the action popup | works; its button lives in the top bar |
 | an extension's settings page and its other pages | open **in a window of their own**, not as a column on the rail |
 
-## What does not
+## What has not been measured again
 
 | | |
 |---|---|
-| `runtime.sendMessage` from a content script | "Tab not found" |
-| `tabs.sendMessage` to a content script | silently delivers nothing |
-| `scripting.executeScript`, `scripting.insertCSS` | do not run |
-| `webRequest` | is not in WebKit at all |
+| `runtime.sendMessage` from a content script | should work on the Mac, not on iPhone or iPad |
+| `tabs.sendMessage` to a content script | the same |
+| `scripting.executeScript`, `scripting.insertCSS` | the same |
 
-Every failure but the last is the same failure, and it is not about VI in general
-but about the way pages are drawn here.
+It is all one failure, and it is not about VI in general but about the way pages
+are drawn here. It was measured once: "Tab not found" from a content script, and
+nothing delivered back. Then WebKit got from VI what it had been missing — and
+these four calls have not been measured since.
+
+## What does not work
+
+| | |
+|---|---|
+| `webRequest` | is not in WebKit at all |
 
 ## uBlock Origin Lite
 
 The interesting case: it is the MV3 ad blocker, and it ships a build meant for
 exactly this API. It installs, enables its rule sets, produces no errors — **and
-blocks nothing**, because its logic decides per tab, and a tab is what it cannot
-see here.
+blocks nothing**, because its logic decides per tab, and a tab is what it could
+not see here. That was measured before the tab-to-frame link existed, and has not
+been repeated since.
 
 That is why [VI's own blocking is native](/en/blocking) and depends on no
 extension. uBOL installs and shows its verdict like any other; it simply does not

@@ -177,65 +177,131 @@ enum ExtensionInstaller {
 
     // MARK: What will and will not work
 
-    /// The verdict, from the manifest alone (see `ExtensionCompatibility`).
-    static func compatibility(of ext: WKWebExtension) -> ExtensionCompatibility {
-        var details: [AttributedString] = []
-        let wantsScripting = ext.requestedPermissions.contains(.scripting)
-            || ext.optionalPermissions.contains(.scripting)
-        let wantsWebRequest = ext.requestedPermissions.contains(.webRequest)
-        let talksToPages = ext.hasInjectedContent && ext.hasBackgroundContent
+    /// What WebKit does with one thing an extension asked for.
+    ///
+    /// The *list* of things comes from the manifest — this is the only half six has to know by
+    /// itself, and the only half that has to be revisited when WebKit gains something.
+    private enum Support {
+        /// Watched working here.
+        case works
+        /// WebKit implements nothing behind it.
+        case missing
+        /// Believed to work and never actually exercised, or exercised on one platform only.
+        case unchecked
+    }
 
-        // Both used to fail for the identical reason — WebKit could not map a frame back to a tab
-        // without the tab's own `WKWebView`, and `WebPage` handed none out. On macOS it now does
-        // (`WebViewResponder`'s tab→`WKWebView` map, built for keyboard focus and reused here); the
-        // phone has no equivalent yet. The messaging line is the less certain of the two: a purpose-
-        // built test confirmed `scripting.insertCSS` reaches the page, but content-script-to-
-        // background messaging through the same fix has not been exercised the same way — see
-        // docs/extensions.md.
+    /// Permissions by what WebKit does with them here. A permission missing from this table is
+    /// **not** listed at all: an unknown name is something six has never looked at, and an extension
+    /// that asks for it deserves silence rather than a guess. `scripting` is the one that differs by
+    /// platform — the phone has no live `WKWebView` to find (`WebViewResponder` is the Mac's).
+    private static let permissionSupport: [WKWebExtension.Permission: Support] = {
+        var table: [WKWebExtension.Permission: Support] = [
+            .activeTab: .works, .alarms: .works, .clipboardWrite: .works, .contextMenus: .works,
+            .cookies: .works, .declarativeNetRequest: .works, .declarativeNetRequestFeedback: .works,
+            .declarativeNetRequestWithHostAccess: .works, .menus: .works, .storage: .works,
+            .tabs: .works, .unlimitedStorage: .works, .webNavigation: .works,
+            .webRequest: .missing,
+            // six hosts no native messaging application, and nothing has been tried against one.
+            .nativeMessaging: .unchecked,
+        ]
+        // On the Mac `WKWebExtensionTab.webView(for:)` answers now, which is what `scripting.*`
+        // and content-script messaging were missing — but the re-test hit a wall one step short of
+        // proving it, so this is "believed fixed" and says so (docs/extensions.md). The phone has
+        // no view-tree walk of its own yet, so there it is simply absent.
+        #if os(macOS)
+        table[.scripting] = .unchecked
+        #else
+        table[.scripting] = .missing
+        #endif
+        return table
+    }()
+
+    /// A thing the manifest asked for, under the name it will be shown by. API names are set as
+    /// code where they are printed; the manifest's own features are words and are not.
+    private struct Named {
+        let text: String
+        let isAPI: Bool
+    }
+
+    /// The verdict, from the manifest alone (see `ExtensionCompatibility`).
+    ///
+    /// The lines used to be a sentence per case, written out by hand, which said the same thing
+    /// twice (once in the summary, once under it) and named APIs the manifest never mentions. Now
+    /// the manifest says what the extension asked for, the table above says what each of those does
+    /// here, and both lines are those names joined — so an extension that asks for something new
+    /// says so without a line being written for it.
+    static func compatibility(of ext: WKWebExtension) -> ExtensionCompatibility {
+        var bySupport: [Support: [Named]] = [:]
+        for permission in ext.requestedPermissions.union(ext.optionalPermissions) {
+            guard let support = permissionSupport[permission] else { continue }
+            bySupport[support, default: []].append(Named(text: permission.rawValue, isAPI: true))
+        }
+        // What the manifest carries rather than asks for. Content scripts reach their extension on
+        // the Mac (the tab→`WKWebView` map keyboard focus needed, reused here) and that has been
+        // watched; messaging end to end has not, on any platform.
         if ext.hasInjectedContent {
-            details.append(AttributedString(localized: "Its content scripts run in pages and should be able to exchange messages with the extension on the Mac; on iPhone and iPad this has not been checked."))
-        }
-        if wantsScripting {
-            details.append(AttributedString(localized: "`scripting.executeScript` and `scripting.insertCSS` work on the Mac, but not yet on iPhone and iPad."))
-        }
-        if wantsWebRequest {
-            details.append(AttributedString(localized: "`webRequest` is not available in WebKit at all."))
-        }
-        if ext.hasContentModificationRules {
-            details.append(AttributedString(localized: "Its declarativeNetRequest blocking rules work."))
+            bySupport[.unchecked, default: []].append(Named(text: String(localized: "content scripts"), isAPI: false))
         }
         if ext.hasBackgroundContent {
-            details.append(AttributedString(localized: "Background, storage, alarms, tabs and its popup work."))
+            bySupport[.works, default: []].append(Named(text: String(localized: "background page"), isAPI: false))
+        }
+        if ext.hasContentModificationRules {
+            bySupport[.works, default: []].append(Named(text: String(localized: "blocking rules"), isAPI: false))
         }
 
-        // Kept apart rather than folded into one switch, because the two things that used to share a
-        // summary no longer share a confidence level: `webRequest` is a wall WebKit never built a door
-        // in, `scripting.*` is a door that opened on macOS and was watched opening (a purpose-built
-        // test, `scripting.insertCSS` actually changing a real page), and messaging is the same door
-        // with nobody yet standing on the other side to confirm it.
+        let works = sorted(bySupport[.works])
+        let missing = sorted(bySupport[.missing])
+        let unchecked = sorted(bySupport[.unchecked])
+
+        var details: [AttributedString] = []
+        if !works.isEmpty { details.append(line("Works here: \(list(works))", naming: works)) }
+        if !missing.isEmpty { details.append(line("Not in WebKit: \(list(missing))", naming: missing)) }
+        if !unchecked.isEmpty { details.append(line("Unchecked here: \(list(unchecked))", naming: unchecked)) }
+
+        // The summary is a verdict and the shortest possible reason, because the names are directly
+        // under it: a summary long enough to wrap breaks mid-name, and `scripting.` at the end of
+        // one line with `executeScript` at the start of the next reads as a different API.
         let verdict: ExtensionCompatibility.Verdict
         let summary: AttributedString
-        if wantsWebRequest {
+        if !missing.isEmpty, works.isEmpty {
+            verdict = .unsupported
+            summary = line("Does not work — WebKit has no \(list(missing))", naming: missing)
+        } else if !missing.isEmpty {
             verdict = .partial
-            summary = AttributedString(localized: "Works partly — `webRequest` is not available in WebKit at all.")
-        } else if wantsScripting {
-            verdict = .full
-            summary = AttributedString(localized: "Works — `scripting.executeScript` and `scripting.insertCSS` work on the Mac.")
-        } else if talksToPages {
+            summary = line("Works partly — WebKit has no \(list(missing))", naming: missing)
+        } else if !unchecked.isEmpty {
             verdict = .partial
-            summary = AttributedString(localized: "Works partly — on the Mac its content scripts should be able to talk to the extension, but this has not been fully checked.")
+            summary = line("Works partly — \(list(unchecked)) unchecked", naming: unchecked)
         } else {
             verdict = .full
-            summary = AttributedString(localized: "Works — nothing it asks for needs access to page content.")
-        }
-
-        // An extension that is *only* content scripts has nothing left when they go deaf.
-        if ext.hasInjectedContent, !ext.hasBackgroundContent, !ext.hasContentModificationRules {
-            return ExtensionCompatibility(
-                verdict: .partial,
-                summary: AttributedString(localized: "Works partly — it is only content scripts: they run, but nothing in the extension can configure or update them."),
-                details: details)
+            summary = AttributedString(localized: "Works")
         }
         return ExtensionCompatibility(verdict: verdict, summary: summary, details: details)
+    }
+
+    private static func sorted(_ names: [Named]?) -> [Named] {
+        (names ?? []).sorted { $0.text.localizedStandardCompare($1.text) == .orderedAscending }
+    }
+
+    private static func list(_ names: [Named]) -> String {
+        names.map(\.text).formatted(.list(type: .and))
+    }
+
+    private static func list(_ names: [String]) -> String {
+        names.formatted(.list(type: .and))
+    }
+
+    /// One line with the API names in it set as code, so a name is told apart from the sentence
+    /// around it without a backtick being shown to anybody.
+    private static func line(_ text: String.LocalizationValue, naming names: [Named]) -> AttributedString {
+        var line = AttributedString(localized: text)
+        for name in names.filter(\.isAPI).map(\.text) where !name.isEmpty {
+            var searched = line.startIndex..<line.endIndex
+            while let found = line[searched].range(of: name) {
+                line[found].inlinePresentationIntent = .code
+                searched = found.upperBound..<line.endIndex
+            }
+        }
+        return line
     }
 }

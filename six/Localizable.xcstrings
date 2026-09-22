@@ -915,26 +915,6 @@
         }
       }
     },
-    "`scripting.executeScript` and `scripting.insertCSS` work on the Mac, but not yet on iPhone and iPad." : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "`scripting.executeScript` и `scripting.insertCSS` работают на Mac, но пока не на iPhone и iPad."
-          }
-        }
-      }
-    },
-    "`webRequest` is not available in WebKit at all." : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "`webRequest` в WebKit нет вообще."
-          }
-        }
-      }
-    },
     "A browser with a rail instead of tabs: a page is a full-height window, the windows stand side by side, and the rail scrolls. ⌥← and ⌥→ move along it; ⌥↑ and ⌥↓ move between workspaces." : {
       "localizations" : {
         "ru" : {
@@ -1371,16 +1351,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Вернуться к черновикам профиля"
-          }
-        }
-      }
-    },
-    "Background, storage, alarms, tabs and its popup work." : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Фоновая страница, storage, alarms, tabs и всплывающее окно работают."
           }
         }
       }
@@ -2854,26 +2824,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Разрешения"
-          }
-        }
-      }
-    },
-    "Its content scripts run in pages and should be able to exchange messages with the extension on the Mac; on iPhone and iPad this has not been checked." : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Его content-скрипты работают на страницах и на Mac должны обмениваться сообщениями с расширением; на iPhone и iPad это не проверено."
-          }
-        }
-      }
-    },
-    "Its declarativeNetRequest blocking rules work." : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Его правила блокировки declarativeNetRequest работают."
           }
         }
       }
@@ -5704,56 +5654,6 @@
         }
       }
     },
-    "Works — `scripting.executeScript` and `scripting.insertCSS` work on the Mac." : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Работает — `scripting.executeScript` и `scripting.insertCSS` на Mac работают."
-          }
-        }
-      }
-    },
-    "Works — nothing it asks for needs access to page content." : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Работает — ничто из запрошенного не требует доступа к содержимому страниц."
-          }
-        }
-      }
-    },
-    "Works partly — `webRequest` is not available in WebKit at all." : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Работает частично — `webRequest` в WebKit просто нет."
-          }
-        }
-      }
-    },
-    "Works partly — it is only content scripts: they run, but nothing in the extension can configure or update them." : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Работает частично — в нём только content-скрипты: они работают, но расширению нечем их настроить или обновить."
-          }
-        }
-      }
-    },
-    "Works partly — on the Mac its content scripts should be able to talk to the extension, but this has not been fully checked." : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Работает частично — на Mac его content-скрипты должны связываться с расширением, но до конца это не проверено."
-          }
-        }
-      }
-    },
     "Workspace %lld" : {
       "localizations" : {
         "ru" : {
@@ -5946,6 +5846,106 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Модель «%@» недоступна"
+          }
+        }
+      }
+    },
+    "Does not work — WebKit has no %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не работает — в WebKit нет %@"
+          }
+        }
+      }
+    },
+    "Not in WebKit: %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В WebKit нет: %@"
+          }
+        }
+      }
+    },
+    "Unchecked here: %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Здесь не проверено: %@"
+          }
+        }
+      }
+    },
+    "Works" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Работает"
+          }
+        }
+      }
+    },
+    "Works here: %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Работает здесь: %@"
+          }
+        }
+      }
+    },
+    "Works partly — %@ unchecked" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Работает частично — не проверено: %@"
+          }
+        }
+      }
+    },
+    "Works partly — WebKit has no %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Работает частично — в WebKit нет %@"
+          }
+        }
+      }
+    },
+    "background page" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "фоновая страница"
+          }
+        }
+      }
+    },
+    "blocking rules" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "правила блокировки"
+          }
+        }
+      }
+    },
+    "content scripts" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "content-скрипты"
           }
         }
       }

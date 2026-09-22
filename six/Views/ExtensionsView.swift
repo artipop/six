@@ -183,65 +183,91 @@ private struct InstallSheet: View {
     let finish: (Bool) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
-                if let icon = install.ext.icon(for: CGSize(width: 32, height: 32)) {
-                    Image(platform: icon).resizable().frame(width: 32, height: 32)
-                } else {
-                    Image(systemName: "puzzlepiece.extension").font(.title)
-                }
-                VStack(alignment: .leading) {
-                    Text(install.ext.displayName ?? "Extension").font(.headline)
-                    Text([install.ext.displayVersion, "manifest v\(Int(install.ext.manifestVersion))"]
-                        .compactMap { $0 }.joined(separator: " · "))
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-            }
-            if let description = install.ext.displayDescription, !description.isEmpty {
-                Text(description).font(.callout)
-            }
-
-            GroupBox {
-                VStack(alignment: .leading, spacing: 6) {
-                    Label { Text(install.compatibility.summary) } icon: { Image(systemName: install.compatibility.symbol) }
-                        .foregroundStyle(install.compatibility.verdict == .full ? AnyShapeStyle(.primary) : AnyShapeStyle(.orange))
-                    ForEach(install.compatibility.details, id: \.self) { detail in
-                        Text("• \(detail)").font(.caption).foregroundStyle(.secondary)
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack(spacing: 10) {
+                        if let icon = install.ext.icon(for: CGSize(width: 32, height: 32)) {
+                            Image(platform: icon).resizable().frame(width: 32, height: 32)
+                        } else {
+                            Image(systemName: "puzzlepiece.extension").font(.title)
+                        }
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(install.ext.displayName ?? "Extension").font(.headline)
+                            Text([install.ext.displayVersion, "manifest v\(Int(install.ext.manifestVersion))"]
+                                .compactMap { $0 }.joined(separator: " · "))
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer(minLength: 0)
                     }
+                    if let description = install.ext.displayDescription, !description.isEmpty {
+                        Text(description).font(.callout).foregroundStyle(.secondary)
+                    }
+
+                    GroupBox {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Label {
+                                Text(install.compatibility.summary).fontWeight(.medium)
+                            } icon: {
+                                Image(systemName: install.compatibility.symbol)
+                            }
+                            .foregroundStyle(install.compatibility.verdict == .full
+                                             ? AnyShapeStyle(.primary) : AnyShapeStyle(.orange))
+                            ForEach(install.compatibility.details, id: \.self) { detail in
+                                bullet(detail)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(4)
+                    }
+
+                    if !permissions.isEmpty { field("Permissions", permissions) }
+                    if !hosts.isEmpty { field("On these sites", hosts) }
+
+                    if let crxSignatureSummary = install.crxSignatureSummary {
+                        Text(crxSignatureSummary.text)
+                            .font(.caption2)
+                            .foregroundStyle(crxSignatureSummary.isWarning ? AnyShapeStyle(.orange) : AnyShapeStyle(.secondary))
+                    }
+                    Text("From \(install.origin). The author is not verified, and an extension can read and change the pages it has access to.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(16)
             }
+            .frame(maxHeight: Platform.screenSize.height * 0.6)
 
-            if !permissions.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Permissions").font(.caption).foregroundStyle(.secondary)
-                    Text(permissions).font(.caption)
-                }
-            }
-            if !hosts.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("On these sites").font(.caption).foregroundStyle(.secondary)
-                    Text(hosts).font(.caption)
-                }
-            }
-
-            if let crxSignatureSummary = install.crxSignatureSummary {
-                Text(crxSignatureSummary.text)
-                    .font(.caption2)
-                    .foregroundStyle(crxSignatureSummary.isWarning ? AnyShapeStyle(.orange) : AnyShapeStyle(.secondary))
-            }
-            Text("From \(install.origin). The author is not verified, and an extension can read and change the pages it has access to.")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-
+            Divider()
             HStack {
                 Spacer()
                 Button("Cancel") { finish(false) }.keyboardShortcut(.cancelAction)
                 Button("Install") { finish(true) }.keyboardShortcut(.defaultAction)
             }
+            .padding(12)
         }
-        .padding(16)
-        .frame(width: 460)
+        // A sheet cannot be wider than the window it is over, and a six window is one column of a
+        // rail: a constant width clipped the buttons off the right in a narrow one. Ideal, not
+        // fixed, and the text rewraps in what is there.
+        .frame(minWidth: 320, idealWidth: 460, maxWidth: .infinity)
+    }
+
+    /// A bullet whose wrapped lines line up under the text rather than under the dot.
+    private func bullet(_ text: AttributedString) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text(verbatim: "•")
+            Text(text).frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+    }
+
+    private func field(_ title: LocalizedStringKey, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title).font(.caption).foregroundStyle(.secondary)
+            Text(value).font(.caption.monospaced()).textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 
     private var permissions: String {
