@@ -180,6 +180,16 @@ extension AssistantAction {
             landing: .show,
             prompt: "Summarize the page: what it is, and what a person who has not read it would "
                 + "need to know. Five sentences at most."),
+        // The one entry here whose `prompt` is never sent: `AssistantBar` catches this id before it
+        // would reach a model and opens the research sheet instead — a run needs a topic, a source
+        // count, a workspace, none of which a canned instruction can stand in for.
+        AssistantAction(
+            id: "research",
+            title: "Deep Research",
+            symbol: "text.magnifyingglass",
+            requirement: .page,
+            landing: .show,
+            prompt: ""),
     ]
 
     /// What the ⌘E line lists after `/`: each verb where its subject is, and nowhere else.

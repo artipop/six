@@ -52,7 +52,11 @@ enum ModelChoice: String, CaseIterable, Identifiable, Codable {
         case .onDevice: "cpu"
         case .privateCloudCompute: "icloud"
         #if os(macOS)
-        case .claudeSonnet, .claudeOpus: nil
+        // Not `nil`: inside a `Picker` row, `AssistantSymbol`'s "Ai" mark is `Text` standing where an
+        // icon goes, and AppKit's menu-item bridging drops the row's own title next to a `Text` icon
+        // — the two Claude rows read as a bare "Ai" with no name beside it. A real SF Symbol here
+        // keeps the icon slot an `Image`, which is the case that bridging is built for.
+        case .claudeSonnet, .claudeOpus: "sparkles"
         case .openAICompatible: "network"
         case .claudeCodeAgent, .codexAgent, .customAgent: "terminal"
         #endif
@@ -97,6 +101,27 @@ final class AssistantSettings {
     var model: ModelChoice {
         get { store.assistantModel }
         set { store.assistantModel = newValue }
+    }
+
+    /// `model` as one flat string a `Picker` can tag every provider with, custom agents included:
+    /// `ModelChoice` alone can name only "some custom agent" (`.customAgent`), because a plain enum
+    /// has no case per agent someone has added, so which one is a second, separate setting
+    /// (`ConfigurationStore.selectedCustomAgent`). This reads and writes both through one tag —
+    /// `"custom:<id>"` for an agent, a `ModelChoice.rawValue` for everything else — so a picker with
+    /// one row per configured agent needs no case of its own to tell them apart.
+    var providerTag: String {
+        get {
+            if model == .customAgent, let selected = store.selectedCustomAgent { return "custom:" + selected.id }
+            return model.rawValue
+        }
+        set {
+            if newValue.hasPrefix("custom:") {
+                store[.selectedCustomAgent] = String(newValue.dropFirst("custom:".count))
+                model = .customAgent
+            } else if let choice = ModelChoice(rawValue: newValue) {
+                model = choice
+            }
+        }
     }
 
     /// Development-only credential, kept out of the database (which may sync one day): `UserDefaults`

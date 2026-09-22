@@ -84,6 +84,14 @@ extension ConfigurationStore {
         models[agent.id] = model
         encode(.agentModels, models)
     }
+
+    /// The model list `AgentModelDiscovery` last managed to ask for, by agent — asking again means a
+    /// process spawned and an ACP handshake run just to read a name off it, so a picker opened twice
+    /// shows the second time from here, not from a second wait.
+    var agentModelCatalogs: [String: AgentModels] {
+        get { decode(.agentModelCatalogs) ?? [:] }
+        set { encode(.agentModelCatalogs, newValue) }
+    }
 }
 
 /// Runs an agent process and exposes its stdio as a JSON-RPC connection.

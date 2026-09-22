@@ -79,10 +79,11 @@ private struct AssistantResponsesConfiguration: View {
 
     var body: some View {
         @Bindable var devTools = devTools
+        @Bindable var settings = assistant.settings
         Form {
             // No header: the tab above is called ⌘E Line and this is what it holds.
             Section {
-                Picker("Assistant", selection: provider) {
+                Picker("Assistant", selection: $settings.providerTag) {
                     ForEach(ModelChoice.languageModels) { choice in
                         Text(choice.title).tag(choice.rawValue)
                             .disabled(choice.isThirdParty && !FoundationModelsCompatibility.supportsThirdPartyModels)
@@ -114,22 +115,6 @@ private struct AssistantResponsesConfiguration: View {
         }
         .formStyle(.grouped)
     }
-
-    private var provider: Binding<String> {
-        Binding(get: {
-            if assistant.settings.model == .customAgent, let selected = store.selectedCustomAgent {
-                return "custom:" + selected.id
-            }
-            return assistant.settings.model.rawValue
-        }, set: { value in
-            if value.hasPrefix("custom:") {
-                store[.selectedCustomAgent] = String(value.dropFirst("custom:".count))
-                assistant.settings.model = .customAgent
-            } else if let choice = ModelChoice(rawValue: value) {
-                assistant.settings.model = choice
-            }
-        })
-    }
 }
 
 struct AgentModelPicker: View {
@@ -148,11 +133,12 @@ struct AgentModelPicker: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 if choices.isEmpty {
-                    LabeledContent("Model") {
-                        Text(discovery.loading.contains(agent.id)
-                             ? LocalizedStringKey("Loading Models…") : LocalizedStringKey("Model List Unavailable"))
-                            .foregroundStyle(.secondary)
-                    }
+                    // Not `LabeledContent`: it lays out fine in a `Form`, but the same row bridged
+                    // into `ModelMenu`'s native `Menu` renders as a blank item — a plain `Text`, like
+                    // every other row here, is what the menu-item bridge actually knows how to draw.
+                    Text(discovery.loading.contains(agent.id)
+                         ? LocalizedStringKey("Loading Models…") : LocalizedStringKey("Model List Unavailable"))
+                        .foregroundStyle(.secondary)
                 } else {
                     Picker("Model", selection: Binding(get: { selected }, set: { session.selectModel($0, for: agent) })) {
                         ForEach(choices) { Text($0.name).tag($0.id) }

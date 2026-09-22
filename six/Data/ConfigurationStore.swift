@@ -31,6 +31,7 @@ final class ConfigurationStore {
         case peeksAtEdges = "layout.peeksAtEdges"
         case agentModel = "agent.model"
         case agentModels = "agents.models"
+        case agentModelCatalogs = "agents.modelCatalogs"
         case customAgents = "agents.custom"
         case selectedCustomAgent = "agents.selectedCustom"
         case bookmarkScope = "bookmarks.scope"

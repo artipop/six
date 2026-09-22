@@ -118,7 +118,7 @@ private struct ProfilePopover: View {
 /// the rows that light up — the pointer gave no sign that they were something to click. `idle` is how
 /// strong the highlight is: a footer item matches a row, and the edit button, which sits *inside* a row
 /// that is already lit, has to be a step stronger or it would not show at all.
-private struct HoverHighlightStyle: ButtonStyle {
+struct HoverHighlightStyle: ButtonStyle {
     var cornerRadius: CGFloat
     var idle: Double
 

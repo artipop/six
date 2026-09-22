@@ -26,6 +26,7 @@ final class AgentSessionStore {
 
     init(snapshot: AgentSnapshot? = nil, settings: ConfigurationStore) {
         self.settings = settings
+        modelDiscovery = AgentModelDiscovery(store: settings)
         guard let snapshot else { return }
         if let saved = (ACPAgentDefinition.builtIn + settings.customAgents).first(where: { $0.id == snapshot.agentID }) { agent = saved }
         chats = Dictionary(snapshot.chats.map { ($0.key, $0) }, uniquingKeysWith: { first, _ in first })
@@ -99,7 +100,7 @@ final class AgentSessionStore {
     private(set) var sessionId: String?
 
     let toolchain = AgentToolchain()
-    let modelDiscovery = AgentModelDiscovery()
+    let modelDiscovery: AgentModelDiscovery
     private var sessionModels: AgentModels?
 
     @ObservationIgnored private var client: ACPClient?

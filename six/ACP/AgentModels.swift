@@ -1,8 +1,8 @@
 import Foundation
 
 /// Model choices returned by ACP session setup. Prefer config options, with support for older adapters.
-nonisolated struct AgentModels: Equatable, Sendable {
-    struct Model: Identifiable, Equatable, Sendable {
+nonisolated struct AgentModels: Equatable, Sendable, Codable {
+    struct Model: Identifiable, Equatable, Sendable, Codable {
         var id: String
         var name: String
     }

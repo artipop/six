@@ -32,9 +32,10 @@ struct AssistantBar: View {
     @Environment(AssistantStore.self) private var assistant
     @Environment(AgentSessionStore.self) private var agentSession
     @State private var question = ""
-    /// The full research sheet (topic, source count, the preset) — the same one the agent panel
-    /// opens, so the bottom line does not grow a second, thinner way to start a run.
-    @State private var showResearch = false
+    /// The verb Tab, a click, or a bare Return with nothing more to add has already picked — it
+    /// stands in the field as a chip, and what is typed after it is its argument, not more of the
+    /// filter that found it.
+    @State private var lockedVerb: AssistantAction?
     /// One switch for both halves of the line, not a flag each: two `@FocusState`s in one view are
     /// one focus between them, and handing it from the row to the field means naming where it goes.
     @FocusState private var where_: Half?
@@ -107,7 +108,6 @@ struct AssistantBar: View {
             if assistant.answer == nil, !hasCaret { assistant.lineLostFocus(at: place) }
         }
         .onChange(of: verbs.count) { chosen = min(chosen, max(0, verbs.count - 1)) }
-        .sheet(isPresented: $showResearch) { ResearchSheet() }
     }
 
     /// The verbs, or — when the chosen model could not answer if it were asked — what is missing
@@ -127,9 +127,24 @@ struct AssistantBar: View {
     /// arrows walk the verbs and Return runs the one they are on. The first character typed makes
     /// the row go and leaves the field with the question in it, which is why nothing here consumes
     /// one — the field is focused the whole time and takes it itself.
+    ///
+    /// Two more things live here that are not about that row at all, because it is the one key
+    /// handler the field already has: Tab locking the `/` row's match into a chip, and ⌘⌫ taking an
+    /// empty one back off. Plain ⌫ is `RowWalking`'s reason and this one's too — in a focused field it
+    /// is a character being deleted and nothing else, claimed by normal text editing before a
+    /// `KeyPress` here ever sees it, so the chip waits for the same ⌘⌫ a mail app clears a line with.
     private func chipKey(_ press: KeyPress) -> KeyPress.Result {
         if ProcessInfo.processInfo.environment["SIX_UI_DEBUG"] != nil {
             Log.debug(.ui, "chip row saw «\(press.characters)» key \(press.key) mods \(press.modifiers)")
+        }
+        if isCommand, lockedVerb == nil, press.key == .tab, !press.modifiers.contains(.command),
+           let match = verbs.first {
+            lock(match)
+            return .handled
+        }
+        if lockedVerb != nil, question.isEmpty, press.key == .delete, press.modifiers.contains(.command) {
+            lockedVerb = nil
+            return .handled
         }
         guard showsChips, !verbs.isEmpty, !press.modifiers.contains(.command) else { return .ignored }
         switch press.key {
@@ -162,22 +177,17 @@ struct AssistantBar: View {
     private var field: some View {
         HStack(spacing: 8) {
             ModelMenu()
-            // Only at the bottom: over a selection or a field the question is about that text, and
-            // "start a research run" about a paragraph is not a verb that text has.
-            if place == .bottom {
-                Button { showResearch = true } label: { Image(systemName: "text.magnifyingglass") }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.secondary)
-                    .help("Deep Research…")
+            if let lockedVerb {
+                VerbChip(action: lockedVerb) { self.lockedVerb = nil; question = "" }
             }
-            if let badge = contextBadge {
+            if let badge = contextBadge, lockedVerb == nil {
                 Label(badge.text, systemImage: badge.symbol)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .layoutPriority(-1)
             }
-            TextField(placeholder, text: $question)
+            TextField(lockedVerb == nil ? placeholder : argumentPlaceholder, text: $question)
                 .textFieldStyle(.plain)
                 .focused($where_, equals: .field)
                 .onSubmit(submit)
@@ -242,15 +252,57 @@ struct AssistantBar: View {
         }
     }
 
-    private func run(_ action: AssistantAction) {
-        assistant.run(action, focus: focus, about: subject)
-        if isCommand { question = "" }
+    /// What the field asks for once a verb is standing beside it as a chip.
+    private var argumentPlaceholder: LocalizedStringKey {
+        lockedVerb?.id == "research" ? "What should it research?" : "Say more, or press Return…"
+    }
 
+    /// Tab, or a click on the row: the verb becomes a chip and the field empties for its argument —
+    /// nothing runs yet, so a word typed after it is never thrown away chasing the filter that found it.
+    private func lock(_ action: AssistantAction) {
+        lockedVerb = action
+        question = ""
+    }
+
+    private func run(_ action: AssistantAction) {
+        // Needs a topic no canned prompt can supply: become a chip and wait for one, same as Tab.
+        if action.id == "research" {
+            lock(action)
+        } else {
+            assistant.run(action, focus: focus, about: subject)
+        }
+        if isCommand { question = "" }
+    }
+
+    /// Return with a verb already a chip: research turns what follows it into the topic the run it
+    /// already knows how to start needs; every other verb folds it into its own instruction, rather
+    /// than send a word Tab picked up along the way to nowhere.
+    private func runLocked(_ verb: AssistantAction) {
+        let argument = question.trimmingCharacters(in: .whitespacesAndNewlines)
+        lockedVerb = nil
+        question = ""
+        if verb.id == "research" {
+            guard !argument.isEmpty else { return }
+            assistant.ask("research: " + argument, about: subject)
+            return
+        }
+        guard !argument.isEmpty else {
+            assistant.run(verb, focus: focus, about: subject)
+            return
+        }
+        let extended = AssistantAction(id: verb.id, title: verb.title, symbol: verb.symbol,
+                                       requirement: verb.requirement, landing: verb.landing,
+                                       prompt: verb.prompt + "\n\n" + argument)
+        assistant.run(extended, focus: focus, about: subject)
     }
 
     /// Return sends the question. With nothing typed it takes the answer that is already there and
     /// puts it in the page — the one gesture that finishes a rewrite without reaching for the mouse.
     private func submit() {
+        if let lockedVerb {
+            runLocked(lockedVerb)
+            return
+        }
         // Nothing to run while the model cannot answer: Return takes the person to the page that
         // would put it right, which is the only thing the line is offering then.
         if let trouble = assistant.settings.trouble, question.isEmpty {
@@ -448,6 +500,25 @@ private struct VerbRow: View {
     }
 }
 
+/// The verb Tab or a click has already picked, standing where its name was typed — the field beside
+/// it holds only the argument now, not the filter that found it.
+private struct VerbChip: View {
+    let action: AssistantAction
+    let remove: () -> Void
+
+    var body: some View {
+        Button(action: remove) {
+            Label { Text(action.title) } icon: { Image(systemName: action.symbol) }
+        }
+        .buttonStyle(.plain)
+        .font(.caption)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(.quaternary, in: Capsule())
+        .help("Remove (⌘⌫)")
+    }
+}
+
 /// One answer: what was asked, what came back, and the two things that can be done with it.
 private struct AnswerStrip: View {
     let answer: AssistantStore.Answer
@@ -541,50 +612,120 @@ private struct AnswerStrip: View {
     }
 }
 
+/// The icon that opens it. A `Menu` used to stand here, and a native one dismisses on any selection —
+/// AppKit's own `NSMenu`, which treats picking an agent the same as picking "Configuration…": an
+/// action that ends the menu. Choosing a model for that agent is the very next thing a person wants
+/// to do with the row they just picked, so this is a `.popover` instead — the pattern `ProfileMenuButton`
+/// already uses for the same reason — and only "Configuration…" and "New Conversation" close it, because
+/// those really are done with it.
 private struct ModelMenu: View {
+    @Environment(AssistantStore.self) private var assistant
+    @State private var showing = false
+
+    var body: some View {
+        Button { showing = true } label: {
+            AssistantSymbol(systemImage: assistant.settings.model.symbol)
+                .foregroundStyle(.secondary)
+        }
+        .buttonStyle(.plain)
+        .help(assistant.settings.model == .openAICompatible ? assistant.settings.openAIModel : assistant.settings.model.title)
+        .popover(isPresented: $showing, arrowEdge: .bottom) { ModelPopover() }
+    }
+}
+
+private struct ModelPopover: View {
     @Environment(AssistantStore.self) private var assistant
     @Environment(ConfigurationStore.self) private var store
     @Environment(BrowserState.self) private var browser
+    @Environment(AgentSessionStore.self) private var session
+    @Environment(\.dismiss) private var dismiss
+
+    private var settings: AssistantSettings { assistant.settings }
 
     var body: some View {
-        @Bindable var settings = assistant.settings
-        @Bindable var store = store
-        Menu {
-            Picker("Model", selection: $settings.model) {
-                ForEach(ModelChoice.languageModels) { choice in
-                    Label { Text(choice.title) } icon: { AssistantSymbol(systemImage: choice.symbol) }
-                        .tag(choice)
-                        .disabled(choice.isThirdParty && !FoundationModelsCompatibility.supportsThirdPartyModels)
+        VStack(alignment: .leading, spacing: 1) {
+            // Every agent `six://configuration` ▸ Assistant ▸ Agents knows about — built in or added
+            // there — and no others: one missing from this row is a reason to open that page, not a
+            // second place to add one from.
+            row(ModelChoice.claudeCodeAgent.title, symbol: "terminal", selected: settings.providerTag == ModelChoice.claudeCodeAgent.rawValue) {
+                settings.providerTag = ModelChoice.claudeCodeAgent.rawValue
+            }
+            row(ModelChoice.codexAgent.title, symbol: "terminal", selected: settings.providerTag == ModelChoice.codexAgent.rawValue) {
+                settings.providerTag = ModelChoice.codexAgent.rawValue
+            }
+            ForEach(store.customAgents) { agent in
+                row(agent.name, symbol: "terminal", selected: settings.providerTag == "custom:" + agent.id) {
+                    settings.providerTag = "custom:" + agent.id
                 }
             }
-            .pickerStyle(.inline)
-            Picker("Agent", selection: $settings.model) {
-                ForEach(ModelChoice.agents) { choice in
-                    Label { Text(choice.title) } icon: { AssistantSymbol(systemImage: choice.symbol) }
-                        .tag(choice)
-                }
+            // The model the chosen agent answers with — its own default until this changes it, for
+            // this chat.
+            if let agent = settings.model.agentDefinition {
+                Divider().padding(.vertical, 4)
+                modelRows(for: agent)
             }
-            .pickerStyle(.inline)
-            if !FoundationModelsCompatibility.supportsThirdPartyModels {
-                Text("Remote models unavailable: SDK/OS Foundation Models mismatch")
+            Divider().padding(.vertical, 4)
+            ForEach(BookmarkScope.allCases) { scope in
+                row(scope.title, selected: store.bookmarkScope == scope) { store.bookmarkScope = scope }
             }
-            Divider()
-            Picker("Bookmarks", selection: $store.bookmarkScope) {
-                ForEach(BookmarkScope.allCases) { Text($0.title).tag($0) }
-            }
-            Divider()
+            Divider().padding(.vertical, 4)
             // The keys and endpoints live on `six://settings` ▸ Assistant, which is one place and
             // not two. This used to open a sheet carrying the same three fields.
-            Button("Configuration…") { browser.openBuiltIn(.configuration, section: "assistant") }
-            Button("New Conversation") { assistant.resetConversation() }
-        } label: {
-            AssistantSymbol(systemImage: settings.model.symbol)
-                .foregroundStyle(.secondary)
+            footer("Configuration…") { browser.openBuiltIn(.configuration, section: "assistant"); dismiss() }
+            footer("New Conversation") { assistant.resetConversation(); dismiss() }
         }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
-        .fixedSize()
-        .help(settings.model == .openAICompatible ? settings.openAIModel : settings.model.title)
+        .padding(8)
+        .frame(width: 260)
+        // Keyed on the agent, like Settings' own picker, so switching agents asks again — and it has
+        // to live here rather than inside a row, because a row exists only while it is drawn and the
+        // popover, unlike a `Menu`'s content, stays open long enough for that to matter.
+        .task(id: settings.model.agentDefinition?.id) {
+            guard let agent = settings.model.agentDefinition,
+                  session.modelDiscovery.catalogs[agent.id] == nil else { return }
+            await session.modelDiscovery.refresh(agent, toolchain: session.toolchain, directory: session.workingDirectory)
+        }
+    }
+
+    @ViewBuilder private func modelRows(for agent: ACPAgentDefinition) -> some View {
+        let choices = session.modelDiscovery.catalogs[agent.id]?.choices ?? []
+        if choices.isEmpty {
+            Text(session.modelDiscovery.loading.contains(agent.id) ? "Loading Models…" : "Model List Unavailable")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 6)
+                .frame(height: 24, alignment: .leading)
+        } else {
+            ForEach(choices) { model in
+                row(model.name, selected: session.selectedModel(for: agent) == model.id) {
+                    session.selectModel(model.id, for: agent)
+                }
+            }
+        }
+    }
+
+    private func row(_ title: String, symbol: String? = nil, selected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                if let symbol { Image(systemName: symbol).frame(width: 14) }
+                Text(title).font(.callout).lineLimit(1)
+                Spacer(minLength: 4)
+                if selected {
+                    Image(systemName: "checkmark").font(.system(size: 10, weight: .bold)).foregroundStyle(.secondary)
+                }
+            }
+            .padding(.horizontal, 6)
+            .frame(height: 24)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(HoverHighlightStyle(cornerRadius: 7, idle: 0.45))
+    }
+
+    private func row(_ title: LocalizedStringResource, symbol: String? = nil, selected: Bool, action: @escaping () -> Void) -> some View {
+        row(String(localized: title), symbol: symbol, selected: selected, action: action)
+    }
+
+    private func footer(_ title: LocalizedStringResource, action: @escaping () -> Void) -> some View {
+        row(title, selected: false, action: action)
     }
 }
 

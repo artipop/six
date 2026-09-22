@@ -3,15 +3,30 @@ import Foundation
 import Observation
 
 /// A separate, prompt-free session discovers models without changing the active conversation.
+///
+/// Asking is a process spawned and a full ACP handshake run just to read a list of names off it, so
+/// `catalogs` starts from whatever `store` last saved rather than empty — a picker opened again, or
+/// six relaunched, shows the answer from before while `refresh` only runs again for an agent that has
+/// never answered at all. `forget` is the one place that throws a saved answer away on purpose.
 @MainActor @Observable
 final class AgentModelDiscovery {
-    private(set) var catalogs: [String: AgentModels] = [:]
+    @ObservationIgnored private let store: ConfigurationStore
+
+    private(set) var catalogs: [String: AgentModels]
     private(set) var loading: Set<String> = []
     private(set) var errors: [String: String] = [:]
+
+    init(store: ConfigurationStore) {
+        self.store = store
+        catalogs = store.agentModelCatalogs
+    }
 
     func forget(_ agent: ACPAgentDefinition) {
         catalogs[agent.id] = nil
         errors[agent.id] = nil
+        var saved = store.agentModelCatalogs
+        saved[agent.id] = nil
+        store.agentModelCatalogs = saved
     }
 
     func refresh(_ agent: ACPAgentDefinition, toolchain: AgentToolchain, directory: URL) async {
@@ -40,6 +55,9 @@ final class AgentModelDiscovery {
                 }
                 await client.shutdown()
                 catalogs[agent.id] = catalog
+                var saved = store.agentModelCatalogs
+                saved[agent.id] = catalog
+                store.agentModelCatalogs = saved
                 if catalog.choices.isEmpty {
                     errors[agent.id] = String(localized: "This agent did not provide a model list. Its default model will be used.")
                 }
