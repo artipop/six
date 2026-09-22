@@ -385,22 +385,14 @@ private struct PrivacyConfiguration: View {
                 .labelsHidden()
                 .fixedSize()
                 Spacer()
-                if pane == .blocking {
-                    if blocker.isWorking { ProgressView().controlSize(.small) }
-                    // Unlabelled, the way the shield's own sheet draws it: the selected tab beside
-                    // it says "Blocking", and spelled out in full the label ate the row and was
-                    // truncated to "Block Ads and Tr…" anyway.
-                    Toggle("Block Ads and Trackers", isOn: $blocker.isEnabled)
-                        .toggleStyle(.switch)
-                        .labelsHidden()
-                        .help("Block Ads and Trackers")
-                }
+                // Nothing beside the tabs. Blocking's switch reaches one of the three tabs, so it
+                // lives in that tab (`BlockingConfiguration`), where it has the width to say what it
+                // switches; the assistant's reaches two of its three and stays in the chrome. Which
+                // is the rule: a switch over the tabs governs more than the one you are on, a switch
+                // in a tab governs that tab.
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            // The same height whatever the switch beside the tabs is called: a label long enough to
-            // wrap pushed this pane's tabs a line below the assistant's, and two panes one sidebar
-            // row apart had their tab bars at different heights.
             .frame(height: ConfigurationPageView.tabBarHeight)
             Divider()
             switch pane {

@@ -15,10 +15,8 @@ struct BlockingView: View {
                 Image(systemName: "shield.lefthalf.filled")
                 Text("Content Blocking").font(.headline)
                 Spacer()
-                if blocker.isWorking { ProgressView().controlSize(.small) }
-                Toggle("Block Ads and Trackers", isOn: $blocker.isEnabled)
-                    .toggleStyle(.switch)
-                    .labelsHidden()
+                // The switch is the first row of the content now, named in full, so the sheet and
+                // the configuration pane show it in the same place and with the same words.
                 Button("Done") { dismiss() }.keyboardShortcut(.cancelAction)
             }
             .padding(12)
@@ -45,6 +43,22 @@ struct BlockingConfiguration: View {
         @Bindable var blocker = blocker
         VStack(spacing: 0) {
             List {
+                // The master switch, in the tab it governs rather than over the tabs beside it:
+                // here it has the width to be named in full, and the rows below it grey out under
+                // the thing that greyed them.
+                Section {
+                    Toggle("Block Ads and Trackers", isOn: $blocker.isEnabled)
+                        .toggleStyle(.switch)
+                    if blocker.isWorking {
+                        HStack(spacing: 6) {
+                            ProgressView().controlSize(.small)
+                            Text("Preparing filter lists…").font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                // Greyed by the switch above, which is not itself — a disabled master switch is one
+                // nobody can switch back on.
+                Group {
                 Section("Filter Lists") {
                     ForEach(blocker.lists) { list in
                         FilterListRow(list: list, status: blocker.status[list.id])
@@ -90,9 +104,10 @@ struct BlockingConfiguration: View {
                         }
                     }
                 }
+                }
+                .disabled(!blocker.isEnabled)
             }
             .listStyle(.inset)
-            .disabled(!blocker.isEnabled)
 
             // Gone entirely while blocking is off, rather than an empty caption beside a greyed
             // button: the count it carries is about lists that are doing nothing, and updating them
