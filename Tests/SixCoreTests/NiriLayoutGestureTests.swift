@@ -80,6 +80,29 @@ struct NiriLayoutGestureTests {
         #expect(abs((near?.maxX ?? 0) - (frames.first!.minX - layout.gap)) < 0.5)
     }
 
+    /// The place exists whether or not anybody is looking at it — that is what lets the promise
+    /// standing in it be laid out at rest and simply revealed by the lean, instead of being inserted
+    /// when the lean starts and arriving at the leaned position a whole spring before the rail does.
+    /// Only `showsNewColumn` asks about the pointer.
+    @Test func thePlaceForANewWindowIsThereBeforeAnybodyLooksAtIt() {
+        let layout = layout()
+        fill(layout, 3) // focus on the last, so the far end is a `+` and the near one a chevron
+
+        #expect(layout.edgeHover == 0)
+        #expect(layout.newColumnFrame(at: 1) != nil)
+        #expect(layout.newColumnFrame(at: -1) != nil)
+        #expect(!layout.showsNewColumn(at: 1))
+        #expect(!layout.showsNewColumn(at: -1))
+
+        layout.edgeHover = 1
+        #expect(layout.showsNewColumn(at: 1))
+        #expect(!layout.showsNewColumn(at: -1)) // a chevron: there is a window to walk to
+
+        layout.edgeHover = -1
+        #expect(!layout.showsNewColumn(at: 1))
+        #expect(!layout.showsNewColumn(at: -1))
+    }
+
     /// And only there. A button with a window to walk to is a chevron, not a `+`, and an outline drawn
     /// on top of that window would be promising one that already exists.
     @Test func thereIsNoOutlineWhereThereIsAlreadyAWindow() {

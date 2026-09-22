@@ -121,8 +121,8 @@ The order worth trying:
    window, a drag moves it, a double-click on a workspace's name renames it.
 5. `⌥W` fills the window, gaps and all. Again to leave.
 6. Sweep the pointer into the gap beside the focused window. The rail leans over
-   to show what is there: `‹` or `›` if it is a window, an outline if there is no
-   window there yet — and a click makes one.
+   to show what is there: `‹` or `›` if it is a window, the edge of the start
+   page that would open there if there is no window yet — and a click makes one.
 
 None of this needs the keyboard:
 [every operation has a mouse equivalent](/en/layout#with-the-mouse-alone).

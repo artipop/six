@@ -301,9 +301,13 @@ final class NiriLayout {
     /// points — with a floor so it stays a glance on a small window.
     static let peekFraction: CGFloat = 0.045
     static let minimumPeek: CGFloat = 56
-    /// Deliberately slower than a layout step: nothing has happened yet. The strip is leaning over to
-    /// show what *would* happen, and at the speed of a step that reads as the thing itself.
-    static let peekAnimation: Animation = .smooth(duration: 0.55)
+    /// A shade slower than a layout step: nothing has happened yet. The strip is leaning over to
+    /// show what *would* happen, and at the speed of a step that reads as the thing itself. Not much
+    /// slower, though — at half a second the lean was still arriving after the hand had stopped, and
+    /// a hover that answers late reads as two answers rather than one late one. Everything the peek
+    /// moves — the lean, the glyph, the promise at the end of the rail — is this one spring, so the
+    /// whole curtain is a single motion.
+    static let peekAnimation: Animation = .smooth(duration: 0.4)
     /// How far a gesture has to push at an end of the rail for the wall to be fully lit — in points,
     /// like the threshold that produces it, because this is a measure of a finger and not of a
     /// screen: it is `NiriScrollMonitor.threshold` (55) through the rubber band's 0.35, the whole
@@ -941,27 +945,45 @@ final class NiriLayout {
         guard edgeHover != 0, !isOverview else { return 0 }
         // Something has to be over there to be worth showing: the next window, or the room a new one
         // would take. On an empty workspace there is neither, and the strip stays where it is.
-        guard canFocusColumn(edgeHover) || newColumnFrame != nil else { return 0 }
+        guard canFocusColumn(edgeHover) || showsNewColumn(at: edgeHover) else { return 0 }
         let amount = min(columnWidth + gap, peekAmount)
         return edgeHover > 0 ? -amount : amount
     }
 
-    /// Where the window that `+` would open is going to stand, in content space, or `nil` when the
-    /// hovered button is not a `+` at all. The `+` only appears at the end of the strip it points at —
-    /// where there is no window to walk to — so the outline goes beyond the last column or before the
-    /// first one.
-    var newColumnFrame: CGRect? {
-        guard edgeHover != 0, !canFocusColumn(edgeHover), !isOverview else { return nil }
-        guard let workspace = focusedWorkspace, !workspace.isEmpty else { return nil }
+    /// Where a window opened at one end of the rail would stand, in content space — **whether or not
+    /// anybody is looking at that end**. The place is a property of the rail, not of the pointer:
+    /// beyond the last column, or one gap before the first, at the width a window actually opens at.
+    ///
+    /// It is asked this way round so the promise standing in it can be drawn at rest and simply
+    /// revealed by the lean, like the neighbour on the other side. Drawn only while the pointer is
+    /// there, it was a view being *inserted*, and an inserted view has no previous geometry to
+    /// interpolate from: it arrived at the leaned position in the frame the pointer landed, a whole
+    /// spring before the rail got there — which is the second peek people were seeing.
+    func newColumnFrame(at side: Int) -> CGRect? {
+        guard !isOverview, let workspace = focusedWorkspace, !workspace.isEmpty else { return nil }
         let frames = columnFrames(workspace.columns)
         let width = columnWidth
         let x: CGFloat
-        if edgeHover > 0 {
+        if side > 0 {
             x = (frames.last?.maxX ?? outerGap) + gap
         } else {
             x = (frames.first?.minX ?? outerGap) - gap - width
         }
         return CGRect(x: x, y: outerGap, width: width, height: columnHeight)
+    }
+
+    /// Whether that place is being promised to anybody: the pointer is on that end's button and the
+    /// button is a `+` rather than a chevron, which it only is where there is no window to walk to.
+    func showsNewColumn(at side: Int) -> Bool {
+        guard edgeHover == side, !canFocusColumn(side) else { return false }
+        return newColumnFrame(at: side) != nil
+    }
+
+    /// Where the window the hovered `+` would open is going to stand, or `nil` when the hovered
+    /// button is not a `+` at all.
+    var newColumnFrame: CGRect? {
+        guard edgeHover != 0, showsNewColumn(at: edgeHover) else { return nil }
+        return newColumnFrame(at: edgeHover)
     }
 
     /// Sets or clears the peek. A button only ever lets go of the side it took, so the pointer moving

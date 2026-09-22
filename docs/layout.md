@@ -404,7 +404,7 @@ button at zero opacity still answers the mouse, which is what makes the sliver i
 
 All of that is the **peek**, and it is a pointer idea: it is asked for by resting somewhere and answered by the rail
 leaning over. A finger has nowhere to rest — it is touching or it is not — so the whole arrangement has a switch,
-`BrowserState.peeksAtEdges` (`six://configuration` ▸ Windows ▸ Peek at the Edges, stored in the settings table). Off, there is no lean and no outline: the
+`BrowserState.peeksAtEdges` (`six://configuration` ▸ Windows ▸ Peek at the Edges, stored in the settings table). Off, there is no lean and no promise: the
 slivers are simply drawn where they stand, at a little under half, and do their job on the way in — which is what the
 rail did before the peek existed, and the only thing that works without a pointer. It defaults on for macOS and off
 everywhere else, and it is chrome rather than geometry, so it lives in `BrowserState` and not in `NiriLayout`: a second
@@ -430,11 +430,24 @@ At either end of the rail the chevron gives way to a button that opens a window,
 *before* the focused one (`NiriPlacement`) — the rail has no other way of growing backwards.
 
 Resting on **either** button leans the whole rail aside (`edgeHover`, `edgeLean`) to show what is over there. For the
-chevron that is the next window itself. For the `+` there is no window yet, so an outline of one stands in the room the
-lean opens up (`newColumnFrame`, drawn only where there is nothing to step to). The lean and the outline carry the
-message between them — *there is something over here*, *it does not exist yet* — and the glyph that fades in with the
-lean, `‹ ›` or `+`, only names which of the two this is, the way the outline's dashed edge used to before it went
-solid.
+chevron that is the next window itself. For the `+` there is no window yet, so what stands in the room the lean opens
+up is a **promise of the page that would be there** (`NewColumnGhost`): the start page's own wash of the profile's
+colour, its wordmark and the field under it, sketched in the band the lean actually reveals and at the height the
+wordmark really rests at. It used to be an outline with **New Window** written up its edge, and the word was the
+problem twice over — it had to be read before it meant anything, and it was a sentence about the browser rather than
+a picture of the page, which is the one thing the rest of the interface is careful not to do. Where the rail peeks,
+the `+` itself is not drawn at all: the curtain is already showing the page, and a mark in the lane on top of that is
+the same answer said twice, smaller and a beat earlier. With peeks off there is no curtain, so the lane draws the `+`
+like any other glyph.
+
+**The promise is laid out at rest.** Both ends of the rail always hold the place a window would open in
+(`newColumnFrame(at:)`, which asks nothing about the pointer), flush against the edge of the screen and invisible,
+and only its opacity answers the hover (`showsNewColumn(at:)`). Mounted when the lean began — which is what it used
+to do — it was a view being *inserted*, and an inserted view has no previous geometry to interpolate from: it arrived
+at the leaned position in the frame the pointer landed, a whole spring before the rail got there. Two motions at two
+times, in a gesture that is supposed to be one: that is the "double peek" it was reported as. Everything the peek
+moves now runs on the one spring — `peekAnimation`, shortened from 0.55 s to 0.4 s, because a lean still arriving
+after the hand has stopped reads as a second event rather than a late first one.
 
 Three decisions hold it together. The lean goes exactly as far as the glance a window opening behind gets
 (`peekAmount`, a fraction of the viewport) — one distance for all of them, because they are the same sentence, *there is

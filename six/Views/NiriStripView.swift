@@ -148,16 +148,26 @@ private struct WorkspaceView: View {
                 EmptyWorkspaceHint(workspaceID: workspace.id)
                     .frame(width: layerWidth, height: size.height)
             }
-            // The window the `+` under the pointer would open, where it would open: the strip has
-            // leaned aside to make room for it, and this is what stands in the room.
-            if isCurrent, let outline = layout.newColumnFrame {
-                NewColumnOutline(filled: layout.fillsViewport,
-                                 leading: layout.edgeHover > 0,
-                                 band: min(layout.columnWidth + layout.gap, layout.peekAmount))
-                    .frame(width: outline.width, height: outline.height)
-                    .modifier(PixelOffset(x: outline.minX - scroll, y: outline.minY))
-                    .allowsHitTesting(false)
-                    .transition(.opacity)
+            // The window a `+` would open, standing at both ends of the rail where it would open —
+            // at rest, flush against the edge of the screen and invisible, exactly like the
+            // neighbour a chevron leans towards. Only its opacity answers the pointer: the place is
+            // always laid out, so the lean carries it in on the same spring that moves the windows,
+            // and there is one motion to see instead of a promise that arrives before the room for
+            // it (`NiriLayout.newColumnFrame(at:)`).
+            if isCurrent {
+                ForEach([-1, 1], id: \.self) { side in
+                    if let place = layout.newColumnFrame(at: side) {
+                        let shown = layout.showsNewColumn(at: side)
+                        NewColumnGhost(filled: layout.fillsViewport,
+                                       leading: side > 0,
+                                       band: min(layout.columnWidth + layout.gap, layout.peekAmount))
+                            .frame(width: place.width, height: place.height)
+                            .opacity(shown ? 1 : 0)
+                            .animation(NiriLayout.peekAnimation, value: shown)
+                            .modifier(PixelOffset(x: place.minX - scroll, y: place.minY))
+                            .allowsHitTesting(false)
+                    }
+                }
             }
             // By window, and never by column. A column with two windows in it drawn as a container
             // with two windows inside would make ⌥S build a `WebView` for a page that already has
@@ -497,14 +507,23 @@ private struct PixelOffset: ViewModifier, Animatable {
     }
 }
 
-/// The window that isn't there yet: the place the `+` under the pointer would fill, drawn as an
-/// outline so it reads as a promise rather than as a window. Most of it is off the edge of the
-/// screen — the strip only leans far enough for a glance — and the part that is on it is the point.
-private struct NewColumnOutline: View {
+/// The window that isn't there yet: the place a `+` would fill, drawn as the page that would fill it.
+///
+/// What opens there is always six's own start page, so the promise is made out of that page's own
+/// things — the wash of the profile's colour it is painted in, the wordmark, the field under it —
+/// rather than out of a sentence saying what the button does. A word had to be read before it meant
+/// anything, and it was a word about the browser rather than about the page: the same thing the rest
+/// of the interface is careful not to do.
+///
+/// Most of the place is off the edge of the screen, since the strip only leans far enough for a
+/// glance, so the sketch stands in the band that *is* on screen rather than in the middle of a page
+/// nobody can see — and at the height the wordmark will really be at, which is where the eye goes
+/// back to once the window opens.
+private struct NewColumnGhost: View {
     /// The window it promises has no corners of its own once it fills the viewport — a rounded promise
     /// of a window that opens square reads as a mismatch the moment it lands.
     let filled: Bool
-    /// The outline stands past the right end of the strip, so its near edge is its leading one.
+    /// The place stands past the right end of the strip, so its near edge is its leading one.
     let leading: Bool
     /// How much of it the lean brings on screen, measured from that near edge.
     let band: CGFloat
@@ -515,21 +534,38 @@ private struct NewColumnOutline: View {
         let accent = browser.selectedProfile.color
         let radius: CGFloat = filled ? 0 : 12
         RoundedRectangle(cornerRadius: radius, style: .continuous)
-            .fill(accent.opacity(0.07))
+            // The start page's own gradient, at the start page's own strengths: the top of a fresh
+            // window is exactly this colour, so the sliver on screen is a sliver of the thing itself.
+            .fill(LinearGradient(colors: [accent.opacity(0.16), accent.opacity(0.02)],
+                                 startPoint: .top, endPoint: .bottom))
             .overlay {
                 RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .strokeBorder(accent.opacity(0.5), lineWidth: 2)
+                    .strokeBorder(accent.opacity(0.45), lineWidth: 2)
             }
-            // The label rides in on the outline rather than waiting at the edge button: drawn there, it
-            // was up at full strength over the page while the strip had barely started to lean.
-            .overlay(alignment: leading ? .leading : .trailing) {
-                Text("New Window")
-                    .font(.system(size: 11, weight: .semibold))
-                    .fixedSize()
-                    .rotationEffect(.degrees(-90))
-                    .foregroundStyle(accent)
-                    .frame(width: band)
+            .overlay(alignment: leading ? .topLeading : .topTrailing) {
+                GeometryReader { geometry in
+                    sketch(accent)
+                        // The share of the height the real wordmark rests at (`StartPage`), so the
+                        // promise and the page agree about where the page begins and the eye does
+                        // not have to find it again once the window opens.
+                        .padding(.top, geometry.size.height * 0.3)
+                }
+                .frame(width: band)
             }
+    }
+
+    /// The page in miniature: the wordmark and the field under it, sized to the band and never past
+    /// it — a glance is a fraction of the screen, and so is everything drawn inside one.
+    private func sketch(_ accent: Color) -> some View {
+        VStack(spacing: band * 0.14) {
+            Text("six")
+                .font(.system(size: min(band * 0.42, 34), weight: .light, design: .rounded))
+                .foregroundStyle(accent)
+            Capsule()
+                .fill(accent.opacity(0.22))
+                .frame(width: band * 0.64, height: max(5, band * 0.1))
+        }
+        .frame(width: band)
     }
 }
 
@@ -1013,8 +1049,12 @@ private struct StripEdgeButton: View {
                 if peeks, hovering { peek(layout, true) }
             }
             .help(step.help)
-            .animation(.easeOut(duration: 0.15), value: hovering)
-            .animation(.easeOut(duration: 0.15), value: disarmed)
+            // The glyph comes up on the same spring as the lean it belongs to, and not on a quicker
+            // one of its own: two speeds in one gesture are two events to watch. With peeks off
+            // there is no lean to keep step with, and a mark appearing under the pointer should be
+            // quick.
+            .animation(browser.peeksAtEdges ? NiriLayout.peekAnimation : .easeOut(duration: 0.15), value: hovering)
+            .animation(browser.peeksAtEdges ? NiriLayout.peekAnimation : .easeOut(duration: 0.15), value: disarmed)
         }
     }
 
@@ -1052,6 +1092,7 @@ private struct StripEdgeButton: View {
     ///
     /// Peeked at, it follows the peek rather than the pointer: a `+` that arrived under a hand that
     /// never moved is disarmed, and drawing it would offer a window the next click would not open.
+    /// The `+` has nothing to draw there at all — the curtain shows the page itself.
     /// Standing, it rests at a little under half and comes up to full under the pointer — quiet enough
     /// to live in every gap, and there is no lean coming to say anything louder.
     ///
@@ -1064,20 +1105,10 @@ private struct StripEdgeButton: View {
         let shown: Double = browser.peeksAtEdges
             ? (hovering && !disarmed ? 1 : 0)
             : (hovering ? 1 : 0.45)
-        if symbol == "plus" {
-            // A word instead of a mark: neither shape of `+` read as anything other than a stray dot in
-            // a sliver this narrow. Turned on its side, the label fits the lane's width with its own
-            // height and uses the lane's height for its length — read bottom to top, the way a spine
-            // reads on a shelf. Where the strip peeks, the outline carries the word (`NewColumnOutline`).
-            if !browser.peeksAtEdges {
-                Text("New Window")
-                    .font(.system(size: 11, weight: .semibold))
-                    .fixedSize()
-                    .rotationEffect(.degrees(-90))
-                    .foregroundStyle(browser.selectedProfile.color)
-                    .opacity(shown)
-            }
-        } else {
+        // The `+` is drawn only where nothing else can say it. Where the strip peeks, the curtain
+        // opens on the page that would be there (`NewColumnGhost`), and a mark in the lane on top of
+        // that is the same answer said twice, smaller and a beat earlier — which is how it read.
+        if symbol != "plus" || !browser.peeksAtEdges {
             Image(systemName: symbol)
                 .font(.system(size: min(11, width), weight: .bold))
                 .foregroundStyle(browser.selectedProfile.color)

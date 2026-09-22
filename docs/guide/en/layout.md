@@ -85,8 +85,9 @@ window, not about what is drawn on it.
 
 **The gaps beside the focused window.** Nothing is drawn there at rest. Sweep the
 pointer in and the rail leans that way to show what is over there: a `‹` or a
-`›` if it is a window, and an **outline of a window that does not exist yet** if
-the rail has run out. A click on that sliver steps to the neighbour or opens a
+`›` if it is a window, and — where the rail has run out — the **edge of the
+start page that would open there**: the profile's colour, the six wordmark and
+the field under it. A click on that sliver steps to the neighbour or opens a
 new window — including one *before* the first, which is the only way the rail
 grows backwards.
 
