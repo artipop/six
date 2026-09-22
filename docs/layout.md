@@ -413,7 +413,15 @@ front end inherits nothing it has to agree with.
 Both jobs are **one button**, which matters for one case: walking the chevron to the end of the rail leaves the
 pointer resting on a button that has just become a `+`. Two views would make that an exit and an entry, and the entry
 would arm the `+` under a hand that never moved — the last click of a run would open a window nobody asked for. One
-view keeps its identity, sees the change (`disarmed`), lets go of the peek and does nothing until it is hovered again.
+view keeps its identity and changes face inside the open curtain: the chevron goes, the promise arrives, and the hand
+that is resting there watches it happen rather than having to leave and come back. It used to let go of the peek
+instead, and the curtain shut on exactly the moment it was there to show. Only the **click** waits now
+(`armsAt`, 0.35 s — the tail of a run of clicks, and nothing a hand that meant it would ever notice).
+
+What counts as "the end of the rail" is `hasColumn(past:)` and not `canFocusColumn`. The difference is a **split**: its
+other half is a real step for the keyboard, and `⌥←` takes it, but it moves nothing on the rail and both halves are on
+screen already. Asked the other way, a rail whose last column is a split had a chevron at both ends, leaning the strip
+over empty canvas, and no `+` anywhere to grow from — which is how it was found.
 
 What answers the mouse and what gets drawn are two different things. What is drawn is the glyph, and only the glyph —
 no plate, border or shadow under it, because the rail has already leaned aside to answer and anything around the

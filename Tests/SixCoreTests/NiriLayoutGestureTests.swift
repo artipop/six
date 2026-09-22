@@ -112,6 +112,27 @@ struct NiriLayoutGestureTests {
         #expect(layout.newColumnFrame == nil)
     }
 
+    /// A split's other half is a step for the keyboard and not a window over the edge of the rail:
+    /// it moves nothing there, and both halves are on screen already. The edge button asks the second
+    /// question, or a rail whose last column is a split stands with a chevron at both ends, leaning
+    /// over empty canvas, and has no `+` anywhere to grow from.
+    @Test func theOtherHalfOfASplitIsNotAWindowOverTheEdge() {
+        let layout = layout()
+        fill(layout, 2)
+        layout.toggleSplit() // the two columns become one, focus on the right half
+
+        #expect(layout.canFocusColumn(-1)) // ⌥← still steps into the left half
+        #expect(!layout.hasColumn(past: -1)) // but there is no window over that edge
+        #expect(!layout.hasColumn(past: 1))
+
+        layout.edgeHover = -1
+        #expect(layout.showsNewColumn(at: -1))
+        #expect(layout.edgeLean > 0) // and something to lean towards after all: the promise
+
+        layout.edgeHover = 1
+        #expect(layout.showsNewColumn(at: 1))
+    }
+
     /// The lean is towards the button and goes exactly as far as the glance a window opening behind
     /// gets — one distance for all of them, because they are the same sentence. Its sign is
     /// `horizontalPreview`'s: the far end is reached by scrolling further along the strip, which the

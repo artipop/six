@@ -400,6 +400,17 @@ final class NiriLayout {
         return ws.columns.indices.contains(ws.focus + delta)
     }
 
+    /// Is there a window **over the edge of the rail** that way — a column, and not the other half of
+    /// the one being read? The edge buttons ask this instead of `canFocusColumn`, which counts a
+    /// split's other pane as a step: that step is a real one for the keyboard, but it moves nothing
+    /// on the rail, and both halves are already on screen side by side. A chevron offering it leaned
+    /// the strip over empty canvas and stood where the `+` belongs — a rail whose last column is a
+    /// split had an arrow at both ends and no way to grow.
+    func hasColumn(past direction: Int) -> Bool {
+        guard let ws = focusedWorkspace else { return false }
+        return ws.columns.indices.contains(ws.focus + direction)
+    }
+
     func canFocusWorkspace(_ delta: Int) -> Bool {
         let s = strip
         return s.workspaces.indices.contains(s.focus + delta)
@@ -945,7 +956,7 @@ final class NiriLayout {
         guard edgeHover != 0, !isOverview else { return 0 }
         // Something has to be over there to be worth showing: the next window, or the room a new one
         // would take. On an empty workspace there is neither, and the strip stays where it is.
-        guard canFocusColumn(edgeHover) || showsNewColumn(at: edgeHover) else { return 0 }
+        guard hasColumn(past: edgeHover) || showsNewColumn(at: edgeHover) else { return 0 }
         let amount = min(columnWidth + gap, peekAmount)
         return edgeHover > 0 ? -amount : amount
     }
@@ -975,7 +986,7 @@ final class NiriLayout {
     /// Whether that place is being promised to anybody: the pointer is on that end's button and the
     /// button is a `+` rather than a chevron, which it only is where there is no window to walk to.
     func showsNewColumn(at side: Int) -> Bool {
-        guard edgeHover == side, !canFocusColumn(side) else { return false }
+        guard edgeHover == side, !hasColumn(past: side) else { return false }
         return newColumnFrame(at: side) != nil
     }
 

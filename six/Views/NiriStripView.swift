@@ -919,9 +919,19 @@ private struct StripEdgeButton: View {
 
     @Environment(BrowserState.self) private var browser
     @State private var hovering = false
-    /// The `+` arrived under a pointer that was already here — the strip ran out of windows while it
-    /// rested — so it does nothing and holds no peek until the pointer comes back of its own accord.
-    @State private var disarmed = false
+    /// When the `+` that arrived under a resting pointer starts taking clicks.
+    ///
+    /// The strip running out under a hand that never moved is the last click of a run along the
+    /// chevron: the button changes face between the press and the release, and a second click there
+    /// would be a window nobody asked for. It used to answer that by letting go of the peek and
+    /// waiting to be hovered again — the curtain shut and had to be reopened to see what was now on
+    /// offer. The curtain stays open now and the promise takes the chevron's place in it, which is
+    /// the change the hand is there to watch; only the *click* waits, and only for as long as a run
+    /// of clicks could still be arriving.
+    @State private var armsAt = Date.distantPast
+    /// Long enough to swallow the tail of a run — a hand clicking as fast as it can is at 6–8 a
+    /// second — and short enough that a hand that meant it never notices.
+    private static let arming: TimeInterval = 0.35
 
     /// The lane tracks the layout, not the screen: it is the gap the layout already leaves between
     /// two windows, floored so it stays clickable and capped so it never becomes a margin.
@@ -976,24 +986,20 @@ private struct StripEdgeButton: View {
 
     /// One button for both jobs, and deliberately one: it is what keeps its identity when the strip
     /// runs out of windows under a resting pointer and the chevron becomes a `+`. Two views would make
-    /// that an exit and an entry, and the entry would arm the `+` under a hand that never moved.
+    /// that an exit and an entry, the curtain would shut and open again around a change that is
+    /// supposed to happen *in* it, and the entry would arm the `+` under a hand that never moved.
     @ViewBuilder
     private func content(layout: NiriLayout, width: CGFloat) -> some View {
         if let step = step(layout: layout) {
             Button {
-                guard !(step.opens && disarmed) else { return }
+                guard !(step.opens && Date.now < armsAt) else { return }
                 step.action()
                 // Opening one is the same event as running out: the pointer is still on a `+` it
-                // already used, and a second click there is a second window nobody asked for. Disarm
-                // right away rather than waiting for `step.opens` to flip — it won't, since the new
+                // already used, and a second click there is a second window nobody asked for. Held
+                // right here, in the click, rather than in `onChange(of: step.opens)` a frame later —
+                // and for opening a window too, since `step.opens` will not flip afterwards: the new
                 // window is itself the last column and the button reads `+` before and after.
-                // And the chevron click that reaches the end is the same event again. Let go here, in
-                // the click, and not in `onChange(of: step.opens)` a frame later: the outline — and the
-                // word on it — would otherwise come up for that frame under a hand that never asked.
-                if step.opens || !layout.canFocusColumn(direction) {
-                    disarmed = true
-                    if browser.peeksAtEdges { peek(layout, false) }
-                }
+                if step.opens || !layout.hasColumn(past: direction) { armsAt = .now + Self.arming }
             } label: {
                 // Aligned to the edge the lane grew from, not centred on the curtain: the glyph reads
                 // as standing at the same spot whether the pointer just arrived or has followed the
@@ -1021,31 +1027,27 @@ private struct StripEdgeButton: View {
             .onHover { inside in
                 NiriLayout.trace("edge onHover dir=\(direction) inside=\(inside) width=\(width) anchorX=\(anchorX)")
                 hovering = inside
-                disarmed = false // the hand moved to get here, so it meant to be here
+                armsAt = .distantPast // the hand moved to get here, so it meant to be here
                 if browser.peeksAtEdges { peek(layout, inside) }
             }
-            // The strip just ran out this way with the pointer still resting in the lane: what is
-            // under the hand is a `+` now, and a hand that has not moved has not asked for a window —
-            // which is exactly what a run of clicks along the chevron ends in. Let go of the peek and
-            // wait to be hovered again. Only where the button is invisible: a `+` you can see turn
-            // into a `+` is one you meant to click, and refusing it would be the surprise.
+            // The strip ran out this way from somewhere else — the last window over there was closed,
+            // or a key moved the focus — with the pointer still resting in the lane. The curtain
+            // stays where it is and the promise takes the chevron's place in it; only the click waits
+            // out the same moment a run of clicks would have ended in.
             .onChange(of: step.opens) { _, opens in
-                guard browser.peeksAtEdges else { return }
-                disarmed = opens && hovering
-                if disarmed { peek(layout, false) }
+                if opens, hovering { armsAt = .now + Self.arming }
             }
             // Gone from under the cursor — the workspace emptied, or the overview opened — and a view
             // that is gone never reports the exit. The flag would stay set and the next button here
             // would come up already lit with the mouse nowhere near it; the strip would stay leaning.
             .onDisappear {
                 hovering = false
-                disarmed = false
+                armsAt = .distantPast
                 peek(layout, false)
             }
             // Switched off with the pointer resting here: the button stops asking for peeks, so it has
             // to hand back the one it is holding. `BrowserState` cannot — it does not know which side.
             .onChange(of: browser.peeksAtEdges) { _, peeks in
-                disarmed = false
                 if peeks, hovering { peek(layout, true) }
             }
             .help(step.help)
@@ -1054,12 +1056,11 @@ private struct StripEdgeButton: View {
             // there is no lean to keep step with, and a mark appearing under the pointer should be
             // quick.
             .animation(browser.peeksAtEdges ? NiriLayout.peekAnimation : .easeOut(duration: 0.15), value: hovering)
-            .animation(browser.peeksAtEdges ? NiriLayout.peekAnimation : .easeOut(duration: 0.15), value: disarmed)
         }
     }
 
     private func step(layout: NiriLayout) -> (symbol: String, help: String, opens: Bool, action: () -> Void)? {
-        if layout.canFocusColumn(direction) {
+        if layout.hasColumn(past: direction) {
             return (direction < 0 ? "chevron.left" : "chevron.right",
                     direction < 0 ? String(localized: "Previous window (⌥←)") : String(localized: "Next window (⌥→)"),
                     false,
@@ -1090,9 +1091,8 @@ private struct StripEdgeButton: View {
     /// smaller answer sitting on top of the real one. Where it stands on the screen it is on its own
     /// against a page, and a plate there would be a permanent one.
     ///
-    /// Peeked at, it follows the peek rather than the pointer: a `+` that arrived under a hand that
-    /// never moved is disarmed, and drawing it would offer a window the next click would not open.
-    /// The `+` has nothing to draw there at all — the curtain shows the page itself.
+    /// Peeked at, it follows the peek rather than the pointer. The `+` has nothing to draw there at
+    /// all — the curtain shows the page itself.
     /// Standing, it rests at a little under half and comes up to full under the pointer — quiet enough
     /// to live in every gap, and there is no lean coming to say anything louder.
     ///
@@ -1102,9 +1102,7 @@ private struct StripEdgeButton: View {
     @ViewBuilder
     private func glyph(_ symbol: String, layout: NiriLayout) -> some View {
         let width = max(11, Self.lane(layout) - 2)
-        let shown: Double = browser.peeksAtEdges
-            ? (hovering && !disarmed ? 1 : 0)
-            : (hovering ? 1 : 0.45)
+        let shown: Double = browser.peeksAtEdges ? (hovering ? 1 : 0) : (hovering ? 1 : 0.45)
         // The `+` is drawn only where nothing else can say it. Where the strip peeks, the curtain
         // opens on the page that would be there (`NewColumnGhost`), and a mark in the lane on top of
         // that is the same answer said twice, smaller and a beat earlier — which is how it read.
