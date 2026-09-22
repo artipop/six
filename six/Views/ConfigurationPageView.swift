@@ -39,12 +39,12 @@ struct ConfigurationPageView: View {
             }
         }
 
-        var symbol: String {
+        var symbol: String? {
             switch self {
             case .general: "gearshape"
             case .windows: "rectangle.split.3x1"
             case .privacy: "hand.raised"
-            case .assistant: "sparkles"
+            case .assistant: nil
             case .extensions: "puzzlepiece.extension"
             case .develop: "hammer"
             }
@@ -104,7 +104,8 @@ struct ConfigurationPageView: View {
 
     private var sidebar: some View {
         List(Section.allCases, selection: $section) { item in
-            Label(item.title, systemImage: item.symbol).tag(item)
+            Label { Text(item.title) } icon: { AssistantSymbol(systemImage: item.symbol) }
+                .tag(item)
         }
         .listStyle(.sidebar)
         // A share of the window, like everything else in the layout: a column is a screen wide on a
@@ -118,7 +119,7 @@ struct ConfigurationPageView: View {
 
     private var header: some View {
         HStack(spacing: 8) {
-            Image(systemName: section.symbol)
+            AssistantSymbol(systemImage: section.symbol)
             Text(section.title).font(.headline)
             Spacer()
         }
