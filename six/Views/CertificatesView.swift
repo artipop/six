@@ -40,26 +40,39 @@ struct CertificateConfiguration: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            List {
-                Section {
-                    ForEach(certificates.bundles) { bundle in
-                        BundleRow(bundle: bundle,
-                                  isExpanded: expanded.contains(bundle.id),
-                                  toggleDetail: { toggle(bundle.id) })
-                    }
-                } header: {
-                    Text("Extra Certificate Authorities")
+            // A header over nothing is not an answer to "what is here": the empty case says what
+            // would be, and carries the one way in, the way the extensions pane does.
+            if certificates.bundles.isEmpty {
+                ContentUnavailableView {
+                    Label("No Extra Authorities", systemImage: "checkmark.seal")
+                } description: {
+                    Text("six trusts what this Mac trusts. Add a certificate to trust one more.")
+                } actions: {
+                    Button("Add Certificate…") { importing = true }
                 }
-            }
-            .listStyle(.inset)
+                .frame(maxHeight: .infinity)
+            } else {
+                List {
+                    Section {
+                        ForEach(certificates.bundles) { bundle in
+                            BundleRow(bundle: bundle,
+                                      isExpanded: expanded.contains(bundle.id),
+                                      toggleDetail: { toggle(bundle.id) })
+                        }
+                    } header: {
+                        Text("Extra Certificate Authorities")
+                    }
+                }
+                .listStyle(.inset)
 
-            Divider()
-            HStack {
-                Spacer()
-                Button("Add Certificate…") { importing = true }
-                    .controlSize(.small)
+                Divider()
+                HStack {
+                    Spacer()
+                    Button("Add Certificate…") { importing = true }
+                        .controlSize(.small)
+                }
+                .padding(10)
             }
-            .padding(10)
         }
         .fileImporter(isPresented: $importing, allowedContentTypes: [.x509Certificate, .data]) { result in
             guard case .success(let url) = result else { return }

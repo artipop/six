@@ -36,7 +36,10 @@ struct PermissionConfiguration: View {
             if permissions.sites.isEmpty {
                 ContentUnavailableView {
                     Label("No Sites Yet", systemImage: "video.slash")
+                } description: {
+                    Text("A site that asks for the camera, the microphone or your location is written down here once you answer it.")
                 }
+                .frame(maxHeight: .infinity)
             } else {
                 List {
                     ForEach(permissions.sites) { site in
@@ -50,9 +53,10 @@ struct PermissionConfiguration: View {
             HStack {
                 Spacer()
                 Button("Forget All", role: .destructive) { confirmForgetAll = true }
+                    .controlSize(.small)
                     .disabled(permissions.sites.isEmpty)
             }
-            .padding(12)
+            .padding(10)
         }
         .confirmationDialog("Forget every site's answer?", isPresented: $confirmForgetAll, titleVisibility: .visible) {
             Button("Forget All", role: .destructive) { permissions.forgetAll() }

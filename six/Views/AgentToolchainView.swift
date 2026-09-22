@@ -1,16 +1,20 @@
 #if os(macOS)
 import SwiftUI
 
-/// The adapters behind the agent panel: which one is installed, how old it is, and the buttons that
-/// put that right. They live on `six://configuration` ▸ Assistant and not in the panel, because
-/// installing an adapter is a setting and not a thing you do while working — the panel says *that*
-/// something is wrong and shows the way here, which is the rule the deleted menus left behind
-/// (`MacCommands`: a menu item is a verb, everything else is a setting).
+/// The adapters an agent is reached through: which one is installed, how old it is, and the buttons
+/// that put that right. They live on `six://configuration` ▸ Assistant and not where the agent is
+/// worked with, because installing an adapter is a setting and not a thing you do while working —
+/// the rule the deleted menus left behind (`MacCommands`: a menu item is a verb, everything else is
+/// a setting).
+///
+/// **Adapters**, and the section above it is **Agents**: the row here is a package with a version,
+/// not the agent, and the two were one word until the panel these sat behind stopped being a place
+/// anyone could open.
 struct AgentToolchainSection: View {
     @Environment(AgentSessionStore.self) private var store
 
     var body: some View {
-        Section("Agents") {
+        Section("Adapters") {
             ForEach(ACPAgentDefinition.builtIn) { agent in
                 AgentToolchainRow(agent: agent)
             }
@@ -58,7 +62,9 @@ struct AgentToolchainRow: View {
                         Text(report.installLog).font(.caption.monospaced()).textSelection(.enabled)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .frame(maxHeight: 120)
+                    // A share of the screen, not a constant: 120 points is six lines on a laptop
+                    // and a hairline on the 5K panel this is read on.
+                    .frame(maxHeight: max(120, Platform.screenSize.height * 0.1))
                 }
                 .font(.caption)
             }

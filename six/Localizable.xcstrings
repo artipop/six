@@ -101,6 +101,16 @@
         }
       }
     },
+    "Adapters" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Адаптеры"
+          }
+        }
+      }
+    },
     "Agents" : {
       "localizations" : {
         "ru" : {
@@ -931,6 +941,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Браузер с лентой вместо вкладок: страница — это окно во всю высоту, окна стоят рядом, а лента прокручивается вбок. ⌥← и ⌥→ перемещают по ней, ⌥↑ и ⌥↓ — между рабочими столами."
+          }
+        }
+      }
+    },
+    "A site that asks for the camera, the microphone or your location is written down here once you answer it." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сайт, который просит камеру, микрофон или ваше местоположение, попадает сюда, как только вы ему ответите."
           }
         }
       }
@@ -3418,6 +3438,16 @@
         }
       }
     },
+    "No Extra Authorities" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дополнительных центров нет"
+          }
+        }
+      }
+    },
     "No History" : {
       "localizations" : {
         "ru" : {
@@ -4836,6 +4866,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "six не смог открыть этот адрес."
+          }
+        }
+      }
+    },
+    "six trusts what this Mac trusts. Add a certificate to trust one more." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "six доверяет тому же, чему доверяет этот Mac. Добавьте сертификат, чтобы доверять ещё одному."
           }
         }
       }

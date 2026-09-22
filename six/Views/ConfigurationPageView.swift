@@ -383,8 +383,8 @@ private struct PrivacyConfiguration: View {
 
 // MARK: - Assistant
 
-/// Which model answers ⌘E, which agent answers the panel, and who each of them is told to call.
-/// Named a pane rather than `AssistantSettings`, which is the model object it edits.
+/// Which model answers ⌘E, what an agent is given when one answers instead, and who each of them is
+/// told to call. Named a pane rather than `AssistantSettings`, which is the model object it edits.
 private struct AssistantPane: View {
     @Environment(AssistantStore.self) private var assistant
     @Environment(AgentSessionStore.self) private var agentSession
@@ -426,7 +426,11 @@ private struct AssistantPane: View {
                     }
                 }
 
-                SwiftUI.Section("Agent Panel") {
+                // Named for the agent and not for the panel it used to be read in: the panel has no
+                // way to be opened at the moment, while both of these are still live — the model an
+                // ACP session runs with is what the ⌘E line uses when it is pointed at one, and the
+                // capture below decides what every agent is offered, over ACP and over `six --mcp`.
+                SwiftUI.Section("Agents") {
                     TextField("Model", text: $agentSession.modelOverride, prompt: Text("the agent's own default"))
                     // Here and not under Develop: a person reads a page's console in Safari's
                     // inspector, and nothing in six shows what this records. It exists for the

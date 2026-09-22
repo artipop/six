@@ -94,22 +94,27 @@ struct BlockingConfiguration: View {
             .listStyle(.inset)
             .disabled(!blocker.isEnabled)
 
-            Divider()
-            HStack {
-                Text(footnote)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Button("Update Now") { Task { await blocker.updateNow() } }
-                    .controlSize(.small)
-                    .disabled(!blocker.isEnabled || blocker.isWorking)
+            // Gone entirely while blocking is off, rather than an empty caption beside a greyed
+            // button: the count it carries is about lists that are doing nothing, and updating them
+            // is the same. The switch above is what says why, and saying it twice was cut once
+            // already (4ace9f6).
+            if blocker.isEnabled {
+                Divider()
+                HStack {
+                    Text(footnote)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Update Now") { Task { await blocker.updateNow() } }
+                        .controlSize(.small)
+                        .disabled(blocker.isWorking)
+                }
+                .padding(10)
             }
-            .padding(10)
         }
     }
 
     private var footnote: String {
-        guard blocker.isEnabled else { return "" }
         let ready = blocker.lists.filter { blocker.status[$0.id]?.isReady == true }
         let rules = ready.reduce(0) { $0 + (blocker.status[$1.id]?.rules ?? 0) }
         guard rules > 0 else { return String(localized: "Preparing filter lists…") }
