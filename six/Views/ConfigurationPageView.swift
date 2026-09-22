@@ -447,19 +447,16 @@ private struct DevelopConfiguration: View {
                 // The capture above belongs to a window and is gone when it navigates; this is the
                 // browser's own account of itself, kept on disk across launches. Naming the path
                 // here is most of the point — a log nobody can find is a log nobody reads. The path
-                // and the subsystem, and no sentence around them: a label is not a place to
-                // explain what the program does with them.
+                // and nothing else. six also writes to the unified log, and that subsystem was
+                // named here until it turned out to be a value with no use attached: it means
+                // something only to someone already typing a `log` predicate or a Console filter,
+                // and that person has docs/logging.md. The file is the one a person opens.
                 LabeledContent("File") {
                     Text(Log.current.path(percentEncoded: false))
                         .foregroundStyle(.secondary)
                         .textSelection(.enabled)
                         .lineLimit(1)
                         .truncationMode(.head)
-                }
-                LabeledContent("In the System Log") {
-                    Text(Bundle.main.bundleIdentifier ?? "org.deffun.six")
-                        .foregroundStyle(.secondary)
-                        .textSelection(.enabled)
                 }
                 Button("Reveal in Finder") {
                     NSWorkspace.shared.activateFileViewerSelecting([Log.current])

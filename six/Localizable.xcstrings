@@ -3108,16 +3108,6 @@
         }
       }
     },
-    "In the System Log" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "В системном журнале"
-          }
-        }
-      }
-    },
     "Install" : {
       "localizations" : {
         "ru" : {
