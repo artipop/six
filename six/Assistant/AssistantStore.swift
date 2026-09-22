@@ -332,7 +332,9 @@ final class AssistantStore {
 
     func copy() {
         #if os(macOS)
-        guard let text = answer?.text, !text.isEmpty else { return }
+        guard let answer else { return }
+        let text = answer.text.isEmpty ? (answer.error ?? "") : answer.text
+        guard !text.isEmpty else { return }
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)
         #endif

@@ -275,9 +275,19 @@ final class AgentSessionStore {
             state = .ready
             return .finished(stop)
         } catch {
-            append(.status(String(localized: "Error: \(error.localizedDescription)")))
+            // An error that carries no sentence of its own is a code on screen; what the CLI last
+            // printed is then the only account of the refusal, and it goes with it.
+            let stderr = await client.recentStderr
+            var message = error.localizedDescription
+            if (error as? JSONRPCError)?.detail == nil {
+                let tail = stderr.split(separator: "\n", omittingEmptySubsequences: true)
+                    .suffix(5).joined(separator: "\n")
+                if !tail.isEmpty, !message.contains(tail) { message += "\n\(tail)" }
+            }
+            Self.trace("prompt failed: \(error) \(stderr)")
+            append(.status(String(localized: "Error: \(message)")))
             state = .ready
-            return .failed(error.localizedDescription)
+            return .failed(message)
         }
     }
 

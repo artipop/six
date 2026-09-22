@@ -42,6 +42,18 @@ included), which replace our copy of the transcript, and the agent remembers the
 sessions or the id is gone, a new session starts and the saved transcript stays above it as a record. ✎ in the panel
 header forgets the current chat and its session.
 
+## When a turn fails
+
+JSON-RPC's `message` is a placeholder in most adapters — the Rust ACP crate the Codex adapter is built on answers
+`Internal error` and puts the sentence a person can act on in `data` — so `JSONRPCError.errorDescription` reads `data`
+first (a bare string, or `details` / `message` / `error` / `description` / `reason`) and falls back to the headline and
+the code. A spent ChatGPT subscription used to read as a bare code on screen while "You've hit your usage limit…" sat in
+`data`, visible only by copying the answer out; now it is the line itself.
+
+When the error carries no sentence of its own, the last five lines the CLI wrote to stderr go with it — that is then
+the only account of the refusal. The ⌘E line shows both halves of a turn that failed halfway: what the agent had
+already said, then the failure under it in red, and Copy takes whichever is there.
+
 ## Debugging
 
 `SIX_ACP_TRACE=1` mirrors the connection steps and every JSON-RPC line to stderr. `SIX_ACP_SELFTEST="hi"` opens the

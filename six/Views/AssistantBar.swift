@@ -480,12 +480,21 @@ private struct AnswerStrip: View {
                     .foregroundStyle(.secondary)
             }
             ScrollView {
-                if let error = answer.error {
-                    Text(error).foregroundStyle(.red).textSelection(.enabled)
-                } else {
-                    Text(LocalizedStringKey(answer.text.isEmpty ? "…" : answer.text))
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                // A turn that failed halfway still said something, and what it said is usually the
+                // half that explains the failure — an agent out of quota answers in prose and then
+                // hands back a code. Both, in the order they arrived.
+                VStack(alignment: .leading, spacing: 6) {
+                    if !answer.text.isEmpty || answer.error == nil {
+                        Text(LocalizedStringKey(answer.text.isEmpty ? "…" : answer.text))
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    if let error = answer.error {
+                        Text(error)
+                            .foregroundStyle(.red)
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }
             }
             .frame(maxHeight: 220)
@@ -501,7 +510,7 @@ private struct AnswerStrip: View {
                 Label("Inserted into the page — ⌘Z to undo", systemImage: "checkmark")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-            } else if !answer.text.isEmpty, !answer.isRunning {
+            } else if !answer.isRunning, !answer.text.isEmpty || answer.error != nil {
                 HStack(spacing: 8) {
                     if answer.isApplicable {
                         Button { assistant.apply(in: tab) } label: {
