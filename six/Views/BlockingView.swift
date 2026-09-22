@@ -120,7 +120,7 @@ struct BlockingConfiguration: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Spacer()
-                    Button("Update Now") { Task { await blocker.updateNow() } }
+                    Button("Update") { Task { await blocker.updateNow() } }
                         .controlSize(.small)
                         .disabled(blocker.isWorking)
                 }

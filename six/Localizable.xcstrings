@@ -4374,12 +4374,12 @@
         }
       }
     },
-    "Re-read Now" : {
+    "Re-read" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Перечитать сейчас"
+            "value" : "\u041f\u0435\u0440\u0435\u0447\u0438\u0442\u0430\u0442\u044c"
           }
         }
       }
@@ -4470,16 +4470,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Обновить закладку"
-          }
-        }
-      }
-    },
-    "Refresh Now" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Обновить сейчас"
           }
         }
       }
@@ -5864,16 +5854,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Без названия"
-          }
-        }
-      }
-    },
-    "Update Now" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Обновить сейчас"
           }
         }
       }

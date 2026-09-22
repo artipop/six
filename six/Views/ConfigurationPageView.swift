@@ -242,7 +242,7 @@ private struct GeneralConfiguration: View {
                     HStack(spacing: 8) {
                         Text("\(bookmarks.count(in: browser.selectedProfile.id)) saved")
                             .foregroundStyle(.secondary)
-                        Button("Re-read Now") { bookmarks.refreshAll(in: browser.selectedProfile.id) }
+                        Button("Re-read") { bookmarks.refreshAll(in: browser.selectedProfile.id) }
                             .controlSize(.small)
                             .disabled(bookmarks.count(in: browser.selectedProfile.id) == 0)
                     }

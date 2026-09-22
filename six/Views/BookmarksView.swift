@@ -59,7 +59,7 @@ struct BookmarksView: View {
                                 Button("Copy Address") {
                                     Platform.copy(hit.bookmark.url.absoluteString)
                                 }
-                                Button("Refresh Now") { Task { await bookmarks.refresh(hit.id) } }
+                                Button("Re-read") { Task { await bookmarks.refresh(hit.id) } }
                                 if let file = bookmarks.fileURL(of: hit.bookmark) {
                                     #if os(macOS)
                                     Button("Show File in Finder") { NSWorkspace.shared.activateFileViewerSelecting([file]) }
