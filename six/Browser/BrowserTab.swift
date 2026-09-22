@@ -52,11 +52,14 @@ nonisolated enum BuiltInPage: String, Codable, Sendable, CaseIterable {
 
     var url: URL { url(section: nil) }
 
-    /// A path, all the way down: `six://configuration/assistant/agents`. It was a fragment for the
-    /// pane and a slash below that, which is two separators for one kind of nesting.
+    /// `six://configuration/assistant#agents` — the pane is a page under this one, and the tab
+    /// inside it is an anchor on that page, which is what a `#` means everywhere else on the web.
     func url(section: String?) -> URL {
         guard let section, !section.isEmpty else { return URL(string: "six://\(rawValue)")! }
-        return URL(string: "six://\(rawValue)/\(section)") ?? url
+        var words = section.split(separator: "/", maxSplits: 1)
+        let pane = words.removeFirst()
+        let anchor = words.first.map { "#\($0)" } ?? ""
+        return URL(string: "six://\(rawValue)/\(pane)\(anchor)") ?? url
     }
 
     var title: String {
@@ -76,9 +79,10 @@ nonisolated enum BuiltInPage: String, Codable, Sendable, CaseIterable {
 
     /// The page an address means and which part of it, when it means one.
     ///
-    /// `six://configuration/assistant` puts the name in the host and the rest in the path;
-    /// `six:configuration/assistant` puts all of it in the path. Both read the same to a person
-    /// typing, so both are taken.
+    /// `six://configuration/assistant` puts the name in the host and the pane in the path;
+    /// `six:configuration/assistant` puts both in the path. Both read the same to a person typing,
+    /// so both are taken. The fragment, when there is one, is the tab inside that pane — and the
+    /// two come back as one string, `assistant/agents`, because that is what the page holds.
     static func parse(_ url: URL) -> (page: BuiltInPage, section: String?)? {
         guard url.scheme?.lowercased() == "six" else { return nil }
         var words = url.path.split(separator: "/").map(String.init)
@@ -90,7 +94,8 @@ nonisolated enum BuiltInPage: String, Codable, Sendable, CaseIterable {
             name = words.removeFirst().lowercased()
         }
         guard let page = BuiltInPage(rawValue: name) else { return nil }
-        return (page, words.isEmpty ? nil : words.joined(separator: "/"))
+        let section = [words.first, url.fragment()].compactMap { $0 }.joined(separator: "/")
+        return (page, section.isEmpty ? nil : section)
     }
 }
 
@@ -176,7 +181,7 @@ final class BrowserTab: Identifiable {
 
     /// One of six's own pages, when this window is one.
     /// Which part of a built-in page is being looked at, as the fragment of its address:
-    /// `six://configuration/assistant`. Six's own pages have one address each, so a person sent to
+    /// `six://configuration/assistant#agents`. Six's own pages have one address each, so a person sent to
     /// the assistant's settings from the ⌘E line used to land on General and have to find their way
     /// — and the address bar said `six://configuration` either way, which is an address that cannot
     /// bring you back to where you were.

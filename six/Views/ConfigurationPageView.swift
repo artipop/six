@@ -73,11 +73,11 @@ struct ConfigurationPageView: View {
         .onChange(of: section) { if Self.head(of: tab.section) != section.rawValue { tab.section = section.rawValue } }
     }
 
-    /// The address of a pane is one word, or two with a slash between them: `#privacy/sites` is the
-    /// third row of the sidebar and the second segment inside it, `#assistant/mcp` the fourth row
-    /// and its third tab. The two panes that hold tabs both have one, for the reason the whole
-    /// scheme has one: "Site Permissions…" in the shield's menu used to arrive on the filter lists,
-    /// because a pane was the smallest thing an address could name.
+    /// A pane and its tab travel as one string with a slash — `privacy/sites` — and are written into
+    /// the address as a path and an anchor: `six://configuration/privacy#sites` (`BuiltInPage.url`).
+    /// The two panes that hold tabs both have one, for the reason the whole scheme has one: "Site
+    /// Permissions…" in the shield's menu used to arrive on the filter lists, because a pane was the
+    /// smallest thing an address could name.
     private static func head(of address: String?) -> String? {
         guard let address, !address.isEmpty else { return nil }
         return String(address.split(separator: "/", maxSplits: 1)[0])
@@ -355,7 +355,7 @@ private struct LoadedWindows: View {
 /// which was a menu whose every item opened a window.
 private struct PrivacyConfiguration: View {
     /// This pane's own half of the address, from `ConfigurationPageView`: `sites` of
-    /// `configuration/privacy/sites`. Held there rather than here because the address belongs to the window and
+    /// `configuration/privacy#sites`. Held there rather than here because the address belongs to the window and
     /// outlives this view — the segment is `@State`, and switching panes and back rebuilds it.
     @Binding var part: String?
 

@@ -848,7 +848,7 @@ final class BrowserState {
     /// Focusing rather than opening a second is the difference between a page and a panel: a person
     /// who asks for the server list twice wants the list, not two of them.
     @discardableResult
-    /// `section` is the path under the page (`six://configuration/assistant`): a page that is
+    /// `section` is the pane and its tab (`six://configuration/assistant#agents`): a page that is
     /// already open is turned to that part rather than left where it was, which is what a button
     /// saying "Set Up…" promises.
     func openBuiltIn(_ page: BuiltInPage, section: String? = nil, in profileID: Profile.ID? = nil,

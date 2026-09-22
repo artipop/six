@@ -4,9 +4,9 @@
 
 У каждого раздела свой адрес: `six://configuration/assistant`,
 `/privacy`, `/windows`, `/extensions`, `/develop`. У приватности и ассистента
-внутри ещё вкладки, и их адрес — следующий кусок пути:
-`/privacy/blocking`, `/privacy/sites`, `/privacy/certificates`,
-`/assistant/responses`, `/assistant/agents`, `/assistant/mcp`. Поэтому
+внутри ещё вкладки, и они — якоря на этой странице, через `#`:
+`/privacy#blocking`, `/privacy#sites`, `/privacy#certificates`,
+`/assistant#responses`, `/assistant#agents`, `/assistant#mcp`. Поэтому
 **Разрешения сайтов…** в меню разрешений окна открывают разрешения, а не списки
 фильтров. Кнопки вроде **Настроить…**
 из строки `⌘E` открывают сразу нужный раздел, а не начало страницы, и адрес в
