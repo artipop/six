@@ -19,6 +19,28 @@ activation, Space/Shift-Space scrolling, page key handlers, native fields, menus
 the window switcher and rapid key repeats still working. Verify in six itself as well as any
 isolated probe; a passing probe alone did not establish that the previous change was safe.
 
+## Two switches in the same corner mean two different sizes of thing
+
+`six://configuration` has two panes that open with a switch, and the switch means something
+different in each. Privacy puts **Block Ads and Trackers** in the pane's own header row, top right
+beside the segmented picker (`ConfigurationPageView.PrivacyConfiguration`) — and it governs one of
+the three segments, leaving Site Permissions and Certificates working. Assistant puts **Use Language
+Models and Agents** in the first row of its Form (`AssistantPane`) — and it governs far more than
+the pane: the ⌘E line, the agent path, the MCP server, the watcher `PageFocusStore` puts in every
+page. So the switch that sits in the chrome, where it reads as the master of everything under it, is
+the narrow one; the switch that sits in the list, where it reads as one setting among many, is the
+broadest in the application.
+
+Neither placement is wrong on its own, and the scopes are real — what is missing is a rule that
+makes the difference visible before it is discovered. Options, none chosen: one place for a pane's
+master switch and a sentence under it saying what it reaches; or the header row reserved for
+switches that reach the whole pane, with the ad-blocking one moving down into Blocking's own list
+where its scope is; or the broad one keeping its own shape, since turning off every model in the
+browser is not the same kind of act as turning off a filter list.
+
+Acceptance: a person who has used one of the two panes can predict, without trying it, how far the
+other's switch reaches.
+
 ## Help inside the app
 
 six has no Help menu content and no help book: the only account of what a setting does is the
