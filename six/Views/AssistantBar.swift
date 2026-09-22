@@ -480,21 +480,19 @@ private struct AnswerStrip: View {
                     .foregroundStyle(.secondary)
             }
             ScrollView {
-                // A turn that failed halfway still said something, and what it said is usually the
-                // half that explains the failure — an agent out of quota answers in prose and then
-                // hands back a code. Both, in the order they arrived.
-                VStack(alignment: .leading, spacing: 6) {
-                    if !answer.text.isEmpty || answer.error == nil {
-                        Text(LocalizedStringKey(answer.text.isEmpty ? "…" : answer.text))
-                            .textSelection(.enabled)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    if let error = answer.error {
-                        Text(error)
-                            .foregroundStyle(.red)
-                            .textSelection(.enabled)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
+                // A turn that failed halfway usually explained itself first — an agent out of quota
+                // says so in one line and then hands back a code with a page of transport under it.
+                // Its own words are the answer when it got that far; the code stays in the panel's
+                // transcript and in the log, where the shape of the failure is the point.
+                if let error = answer.error, answer.text.isEmpty {
+                    Text(error)
+                        .foregroundStyle(.red)
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    Text(LocalizedStringKey(answer.text.isEmpty ? "…" : answer.text))
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
             .frame(maxHeight: 220)

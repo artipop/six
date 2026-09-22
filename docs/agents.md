@@ -50,9 +50,11 @@ first (a bare string, or `details` / `message` / `error` / `description` / `reas
 the code. A spent ChatGPT subscription used to read as a bare code on screen while "You've hit your usage limit…" sat in
 `data`, visible only by copying the answer out; now it is the line itself.
 
-When the error carries no sentence of its own, the last five lines the CLI wrote to stderr go with it — that is then
-the only account of the refusal. The ⌘E line shows both halves of a turn that failed halfway: what the agent had
-already said, then the failure under it in red, and Copy takes whichever is there.
+When the error carries no sentence of its own, and the agent said nothing in the turn, the last five lines the CLI
+wrote to stderr go with it — that is then the only account of the refusal. When the agent did speak, its own words are
+the answer: the ⌘E line shows them and not the failure, because a refusal it explained in one line ("You've hit your
+session limit · resets 7:10pm") arrives with a page of transport under it. The code stays in the panel's transcript and
+in the log. Copy takes whichever line is on screen.
 
 ## Debugging
 

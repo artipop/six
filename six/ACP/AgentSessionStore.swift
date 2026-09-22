@@ -105,6 +105,9 @@ final class AgentSessionStore {
     @ObservationIgnored private var client: ACPClient?
     @ObservationIgnored private var delegateBox: DelegateBox?
     @ObservationIgnored private var openMessageID: String?
+    /// Whether the agent has said anything in the turn that is running. A refusal it explained in
+    /// prose ("You've hit your session limit · resets 7:10pm") needs nothing added to it.
+    @ObservationIgnored private var saidSomething = false
     @ObservationIgnored private var openThoughtID: String?
     @ObservationIgnored private var openUserID: String?
 
@@ -260,6 +263,7 @@ final class AgentSessionStore {
             return .failed(String(localized: "The agent is busy"))
         }
         append(.user(text))
+        saidSomething = false
         openMessageID = nil
         openThoughtID = nil
         openUserID = nil
@@ -276,10 +280,12 @@ final class AgentSessionStore {
             return .finished(stop)
         } catch {
             // An error that carries no sentence of its own is a code on screen; what the CLI last
-            // printed is then the only account of the refusal, and it goes with it.
+            // printed is then the only account of the refusal, and it goes with it. Not when the
+            // agent has already spoken this turn — it said why in its own words, and the stderr
+            // tail underneath it is the noise that made the account unreadable.
             let stderr = await client.recentStderr
             var message = error.localizedDescription
-            if (error as? JSONRPCError)?.detail == nil {
+            if !saidSomething, (error as? JSONRPCError)?.detail == nil {
                 let tail = stderr.split(separator: "\n", omittingEmptySubsequences: true)
                     .suffix(5).joined(separator: "\n")
                 if !tail.isEmpty, !message.contains(tail) { message += "\n\(tail)" }
@@ -315,6 +321,7 @@ final class AgentSessionStore {
         guard notification.sessionId == sessionId else { return }
         switch notification.update {
         case .agentMessageChunk(let block):
+            saidSomething = true
             appendChunk(block.plainText ?? "", to: &openMessageID) { .agent($0) }
             openThoughtID = nil
             openUserID = nil
