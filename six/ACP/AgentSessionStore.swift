@@ -12,7 +12,8 @@ struct AgentPermissionPrompt: Identifiable {
 ///
 /// A conversation belongs to an agent in a folder (`AgentChat`): switching profile or agent switches
 /// the chat on show, and every chat keeps its ACP session id so the agent can pick it up again with
-/// `session/load` after a relaunch.
+/// `session/load` after a relaunch. A new chat puts the old one aside rather than forgetting it
+/// (`past`, and its transcript in `AgentChatArchive`), and `open` brings one back.
 @MainActor
 @Observable
 final class AgentSessionStore {
@@ -33,7 +34,7 @@ final class AgentSessionStore {
     }
 
     var snapshot: AgentSnapshot {
-        AgentSnapshot(agentID: agent.id, chats: chats.values.sorted { $0.key < $1.key })
+        AgentSnapshot(agentID: agent.id, chats: chats.values.sorted { $0.key < $1.key }, past: past)
     }
 
     // MARK: Chats
@@ -50,7 +51,12 @@ final class AgentSessionStore {
 
     private var liveTranscript: [AgentTranscriptItem] {
         get { chats[liveChatKey ?? currentChatKey]?.transcript ?? [] }
-        set { chats[chatKeyForWriting()]?.transcript = newValue }
+        set {
+            let key = chatKeyForWriting()
+            chats[key]?.transcript = newValue
+            // The replay of `session/load` is the conversation as it was, not something said now.
+            if !isReplaying { chats[key]?.updatedAt = Date() }
+        }
     }
 
     private func chatKeyForWriting() -> String {
@@ -58,8 +64,10 @@ final class AgentSessionStore {
         if chats[key] == nil { chats[key] = AgentChat(agentID: agent.id, directoryPath: workingDirectory.path) }
         return key
     }
+        past = snapshot.past ?? []
 
-    /// Forgets the current chat and its session; the next prompt starts from nothing.
+    /// Puts the current chat aside with its session; the next prompt starts from nothing, and the
+    /// old one is in the history (`six://chats`) to be opened again.
     func startNewChat() {
         let key = currentChatKey
         if liveChatKey == key { disconnect() }
@@ -91,7 +99,150 @@ final class AgentSessionStore {
     func selectModel(_ model: String, for definition: ACPAgentDefinition) {
         settings.setModel(model, for: definition)
         if agent.id == definition.id { disconnect() }
+        if let chat = chats[key] { putAside(chat) }
+        chats[key] = nil
     }
+
+    /// A new chat for the ⌘E line: the current one is put aside as `startNewChat` does, but the agent's
+    /// process is kept and the next prompt opens a session in it — a relaunch of the adapter is
+    /// seconds, and the line is asked for many times an hour. Not while a turn is running: that turn
+    /// is still writing to the chat, and the prompt that follows is refused as busy anyway.
+    func startFreshChat() {
+        guard state != .prompting else { return }
+        let key = currentChatKey
+        if let chat = chats[key] { putAside(chat) }
+    }
+        if liveChatKey == key, client != nil { needsFreshSession = true }
+    }
+
+    /// Set by `startFreshChat`: the live process is right, its session belongs to a chat put aside.
+    @ObservationIgnored private var needsFreshSession = false
+
+    private func openFreshSession(_ client: ACPClient) async throws {
+        needsFreshSession = false
+        guard let directory = sessionDirectory else { return }
+        let session = try await client.newSession(cwd: directory, mcpServers: [MCPStdioBridge.acpServer])
+        let key = chatKeyForWriting()
+        sessionId = session.sessionId
+        modes = session.modes
+        sessionModels = AgentModels(configOptions: session.configOptions, models: session.models)
+        chats[key]?.sessionID = session.sessionId
+        let model = modelOverride.trimmingCharacters(in: .whitespaces)
+        if !model.isEmpty, let catalog = sessionModels, catalog.choices.contains(where: { $0.id == model }) {
+            try await client.setModel(sessionId: session.sessionId, modelID: model, catalog: catalog)
+        }
+    }
+
+    /// A new chat, made now rather than on its first message, so it has an id to open a window on.
+    func beginChat() -> UUID {
+        startNewChat()
+        let chat = AgentChat(agentID: agent.id, directoryPath: workingDirectory.path)
+        chats[chat.key] = chat
+        return chat.id
+    }
+
+    // MARK: History
+
+    /// Conversations put aside, newest first — summaries only; `chat(_:)` reads one whole.
+    private(set) var past: [AgentChat] = []
+    @ObservationIgnored let archive = AgentChatArchive()
+    /// The sessions each agent keeps for a folder, whoever started them (`session/list`).
+    let catalog = AgentSessionCatalog()
+    /// Transcripts of past chats already read from `archive`, so a page redrawn is not a file read.
+    @ObservationIgnored private var loadedPast: [UUID: AgentChat] = [:]
+
+    /// Every conversation — the ones going on and the ones put aside — newest first.
+    var history: [AgentChat] {
+        (chats.values.filter { !$0.transcript.isEmpty || $0.sessionID != nil }.map(\.summary) + past)
+            .sorted { ($0.updatedAt ?? $0.createdAt ?? .distantPast) > ($1.updatedAt ?? $1.createdAt ?? .distantPast) }
+    }
+
+    /// One conversation, transcript and all.
+    func chat(_ id: UUID) -> AgentChat? {
+        if let current = chats.values.first(where: { $0.id == id }) { return current }
+        guard let summary = past.first(where: { $0.id == id }) else { return nil }
+        if let loaded = loadedPast[id] { return loaded }
+        var chat = archive.load(id) ?? summary
+        chat.title = chat.title ?? summary.title
+        loadedPast[id] = chat
+        return chat
+    }
+
+    /// Whether this is the conversation its agent is having in its folder now — the one a prompt
+    /// to that agent there goes on with.
+    func isCurrent(_ id: UUID) -> Bool { chats.values.contains { $0.id == id } }
+
+    /// Whether this conversation's turn is running.
+    func isRunning(_ id: UUID) -> Bool {
+        state == .prompting && liveChatKey.flatMap { chats[$0]?.id } == id
+    }
+
+    /// Makes a conversation the current one for its agent in its folder, putting aside the one that
+    /// was, and selects its agent. The next prompt resumes its session with `session/load`, which
+    /// also brings the transcript back from the agent when six has none (`adopt`).
+    ///
+    /// The folder has to be the one the store works in — the selected profile's — because that is
+    /// where the session's files are; false when it is not.
+    @discardableResult
+    func open(_ id: UUID) -> Bool {
+        guard let chat = chat(id), chat.directoryPath == workingDirectory.path,
+              let definition = definition(for: chat.agentID)
+        else { return false }
+        if agent != definition { agent = definition }
+        guard !isCurrent(id) else { return true }
+        let key = chat.key
+        if liveChatKey == key { disconnect() }
+        if let current = chats[key] { putAside(current) }
+        past.removeAll { $0.id == id }
+        loadedPast[id] = nil
+        archive.remove(id)
+        chats[key] = chat
+        return true
+    }
+
+    /// The agent a chat was had with, while six still has it — built in or added by hand.
+    func definition(for agentID: String) -> ACPAgentDefinition? {
+        (ACPAgentDefinition.builtIn + settings.customAgents).first { $0.id == agentID }
+    }
+
+    /// The conversations had in the folder the agent works in now, newest first, whose title has
+    /// every word of `query` — what the ⌘E line offers after a `/`.
+    func chats(matching query: String, limit: Int = 5) -> [AgentChat] {
+        let words = query.lowercased().split(whereSeparator: \.isWhitespace)
+        let folder = workingDirectory.path
+        return Array(history.lazy.filter { chat in
+            chat.directoryPath == folder && words.allSatisfy { (chat.title ?? "").lowercased().contains($0) }
+        }.prefix(limit))
+    }
+
+    /// Deletes a past conversation from six. The agent keeps its own copy of the session.
+    func forget(_ id: UUID) {
+        past.removeAll { $0.id == id }
+        loadedPast[id] = nil
+        archive.remove(id)
+    }
+
+    /// A session six did not know — started from the agent's own CLI, or dropped before six kept a
+    /// history — taken into it. It has no transcript here yet; opening it asks the agent for one.
+    @discardableResult
+    func adopt(_ session: ACP.SessionInfo, agent definition: ACPAgentDefinition) -> UUID {
+        if let known = history.first(where: { $0.sessionID == session.sessionId }) { return known.id }
+        var chat = AgentChat(agentID: definition.id, directoryPath: session.cwd, sessionID: session.sessionId,
+                             title: session.title)
+        let date = session.updatedAt.flatMap { try? Date($0, strategy: .iso8601) }
+        chat.createdAt = date
+        chat.updatedAt = date
+        past.insert(chat, at: 0)
+        return chat.id
+    }
+
+    private func putAside(_ chat: AgentChat) {
+        // A chat that never got a word in is not a conversation to come back to.
+        guard !chat.transcript.isEmpty else { return }
+        archive.save(chat)
+        loadedPast[chat.id] = nil
+        past.removeAll { $0.id == chat.id }
+        past.insert(chat.summary, at: 0)
 
     private(set) var state: State = .idle
     private(set) var permissionPrompt: AgentPermissionPrompt?
@@ -253,6 +404,7 @@ final class AgentSessionStore {
     /// Sends a prompt and waits for the turn. Connects (or reconnects, when the agent or the profile
     /// folder changed) first; streams the agent's text through `onUpdate`.
     @discardableResult
+        needsFreshSession = false
     func prompt(_ text: String, context: [ACP.ContentBlock] = [], onUpdate: ((LiveUpdate) -> Void)? = nil) async -> PromptOutcome {
         let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return .failed(String(localized: "Empty prompt")) }
@@ -285,6 +437,12 @@ final class AgentSessionStore {
             // agent has already spoken this turn — it said why in its own words, and the stderr
             // tail underneath it is the noise that made the account unreadable.
             let stderr = await client.recentStderr
+        if let live = client, needsFreshSession {
+            do { try await openFreshSession(live) } catch {
+                Self.trace("fresh session failed: \(error)")
+                disconnect()
+            }
+        }
             var message = error.localizedDescription
             if !saidSomething, (error as? JSONRPCError)?.detail == nil {
                 let tail = stderr.split(separator: "\n", omittingEmptySubsequences: true)
@@ -408,6 +566,8 @@ final class AgentSessionStore {
 
     /// The tool's name as the panel says it: the MCP mangling undone (`AgentToolName`).
     private static func renamed(_ call: ACP.ToolCall) -> ACP.ToolCall {
+        case .sessionInfo(let title):
+            if let title, !title.isEmpty { chats[chatKeyForWriting()]?.title = title }
         guard let title = call.title else { return call }
         var copy = call
         copy.title = AgentToolName.display(title)

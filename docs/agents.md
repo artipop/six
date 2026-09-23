@@ -39,8 +39,57 @@ switching profile or agent switches the chat on show. Chats are saved with the r
 [architecture](architecture.md)). On the next connect the store asks the agent for `session/load` with the saved id
 when it advertises `loadSession`; the agent replays the conversation as `session/update`s (`user_message_chunk`
 included), which replace our copy of the transcript, and the agent remembers the context. When the agent can't load
-sessions or the id is gone, a new session starts and the saved transcript stays above it as a record. ✎ in the panel
-header forgets the current chat and its session.
+sessions or the id is gone, a new session starts and the saved transcript stays above it as a record.
+
+### History
+
+✎ in the panel header, and **New Chat** on the history page, put the current chat *aside* rather than forgetting it:
+its transcript goes to `Chats/<id>.json` under Application Support (`AgentChatArchive`) and the snapshot keeps only a
+summary in `AgentSnapshot.past` — id, agent, folder, session id, title, dates. Not the transcript: the state file is
+rewritten on every autosave and tool calls carry whole diffs, so a year of history there would be a year rewritten
+every few seconds. `AgentChat.id` is six's own name for a conversation, separate from the session id, which is the
+agent's, may be missing, and changes when a session cannot be resumed.
+
+The history is a page and not a sidebar: `six://chats` (`AgentChatsPage`, ⌘⇧E, the clock in the panel header) lists
+the profile's folder, or every folder, grouped by day; a chat opens as its own column, `six://chat/<id>`
+(`AgentChatPage`) — `BuiltInPage.isPerSection`, so two chats are two windows and the same one asked for twice is
+focused. Typing there calls `AgentSessionStore.open`, which makes that chat the current one for its agent in its
+folder (the one before is put aside) and the next prompt resumes its session with `session/load`. A chat can only be
+continued from the folder it was had in — the agent's files are there — so one from another folder reads but does
+not take a message.
+
+**The ⌘E line starts a chat per summons.** `AssistantStore.summonLine` from nothing (no line, no answer) arms
+`startsAgentChat`; the next agent question calls `startFreshChat`, which puts the current chat aside and, when the
+adapter is already running for that folder, only opens a `session/new` in it on the next prompt
+(`openFreshSession`) — a relaunch is seconds, and the line is called up many times an hour. Follow-ups while the line
+stands go on in the same chat. Before this every ⌘E question about every page ran on in one session that was never
+done, and a new question showed in the history only as a newer time on an old title. Not during a running turn.
+`SIX_LINE_CHATS_SELFTEST="…"` checks it: summons, follow-up, second summons — measured 2 s for the second chat's
+answer on the kept process against 11 s for the first with a launch.
+
+**Finding a chat from the line.** After a `/` the line lists, beside the verbs, the chats of the current folder whose
+title has every typed word (`AgentSessionStore.chats(matching:)`; the five newest for a bare `/`). Picking one —
+click, ↑/↓ then Return, or Return when no verb matches — is `AssistantStore.continueChat`: the chat becomes `continuedChat` for this
+summons, a chip in the field (↗ opens `six://chat/<id>`, click or ⌘⌫ drops it), the answer strip shows its last
+question and answer, and `askAgent` opens it in the session store instead of starting a fresh one — with the chat's
+own agent, whatever the ⌘E model is. `SIX_LINE_CHATS_SELFTEST` ends with that step: found by a title word, the last
+exchange recalled, the question landing in the old chat (6 → 8 items) with the history count unchanged.
+The arrows (`AssistantBar.chatKey`) go into the list from the field's side — ↑ at the bottom of the rail, where the
+line grows up and the list stands above it, ↓ beside a field where it grows down — and walk back out to the field,
+where Return means the verbs again; ← → stay the caret's. `SIX_KEY_SELFTEST=chats` posts `/ ↑ ⏎`, `/ ↑↑ ⏎` and
+`/ ↑↑↓ ⏎` through the real key path and checks the chat picked by id; nothing is asked of the agent.
+
+The title is the agent's when it sends one (`session_info_update`, which claude-agent-acp generates after the first
+exchange), else the first prompt.
+
+**The agents' own lists.** The page also asks every agent — each in a separate process, like model discovery
+(`AgentSessionCatalog`) — for `session/list` in the folder; one that does not advertise `sessionCapabilities.list`, or
+is not installed, adds nothing. **Other sessions** is one list across them, newest first, each row naming its agent —
+there is no agent filter, because a person looks for a conversation and not for one agent's conversations. It holds
+the sessions six does not know: started from the agent's CLI there, or dropped before six kept a history.
+Opening one `adopt`s it (a chat with the session id and no transcript) and **Load from the Agent** replays it with
+`session/load`. Measured with claude-agent-acp 0.79: a chat six had been made to forget came back through the list,
+with the agent's title, and replayed its three items.
 
 ## When a turn fails
 
@@ -65,6 +114,11 @@ with the given model choice — together they exercise the whole path without cl
 ```sh
 SIX_ACP_TRACE=1 SIX_ACP_SELFTEST="Say hi" ./six.app/Contents/MacOS/six 2>&1 | grep '^\[acp'
 ```
+
+`SIX_CHATS_SELFTEST="Reply with the single word: pong"` walks the history against the selected agent
+(`AgentChatSelfTest`): one turn in a new chat, the chat put aside and archived, `session/list`, the chat opened again,
+then forgotten, found in the agent's list and replayed with `session/load`. One line per step in the log, prefixed
+`chats selftest:`.
 
 ## Toolchain
 

@@ -172,12 +172,19 @@ extension ContentView {
         if let query = environment["SIX_PERSONAL_SELFTEST"], !query.isEmpty { await personalSelfTest(query) }
         if let spec = environment["SIX_FIND_SELFTEST"], !spec.isEmpty { await findSelfTest(spec) }
         if environment["SIX_CRX_SELFTEST"] != nil { crxSelfTest() }
+        if let text = environment["SIX_CHATS_SELFTEST"], !text.isEmpty {
+            await agentSession.chatsSelfTest(prompt: text, browser: browser)
+        }
+        if let text = environment["SIX_LINE_CHATS_SELFTEST"], !text.isEmpty {
+            await assistant.lineChatsSelfTest(prompt: text, agents: agentSession, browser: browser)
+        }
     }
 
     private func runKeySelfTest(_ mode: String?) async {
         switch mode {
         case "page": await KeySelfTest.pageOnly(browser)
         case "assistant": await KeySelfTest.assistantOnly(browser, assistant, pageFocus, agentSession)
+        case "chats": await KeySelfTest.chatsOnly(browser, assistant, agentSession)
         case .some:
             KeySelfTest.run()
             await KeySelfTest.live(browser)

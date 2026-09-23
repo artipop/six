@@ -105,7 +105,7 @@ final class AssistantStore {
             if let research, let topic = ResearchCoordinator.question(fromCommand: question) {
                 return await runResearch(research, question: topic, report: report)
             }
-            if let agent = settings.model.agentDefinition {
+            if let agent = lineAgent {
                 return await askAgent(agent, question: question, about: tab, report: report)
             }
             #endif
@@ -137,7 +137,7 @@ final class AssistantStore {
             #if os(macOS)
             // The whole prompt, not a resource link: a verb is about the text in front of the
             // person, and the agent must not have to go and read the page to find it.
-            if let agent = settings.model.agentDefinition {
+            if let agent = lineAgent {
                 return await askAgent(agent, question: prompt, about: tab, report: report)
             }
             #endif
@@ -195,7 +195,15 @@ final class AssistantStore {
     private func askAgent(_ agent: ACPAgentDefinition, question: String, about tab: BrowserTab?,
                           report: @escaping (Update) -> Void) async {
         guard let agentSession else { return report(.failure(String(localized: "Agent session is not available"))) }
-        if agentSession.agent != agent { agentSession.agent = agent }
+        if let chat = continuedChat {
+            agentSession.open(chat.id)
+        } else {
+            if agentSession.agent != agent { agentSession.agent = agent }
+            if startsAgentChat {
+                startsAgentChat = false
+                agentSession.startFreshChat()
+            }
+        }
         var context: [ACP.ContentBlock] = []
         if let tab, !tab.showsStartPage, let url = tab.currentURL {
             context.append(.resourceLink(uri: url.absoluteString, name: tab.title, mimeType: "text/html", title: tab.title))
@@ -209,6 +217,42 @@ final class AssistantStore {
         guard !Task.isCancelled else { return }
         if case .failed(let message) = outcome { report(.failure(message)) }
         AgentSessionStore.trace("assistant/agent outcome: \(outcome)")
+    }
+
+    /// Who answers the line: the agent of the chat it goes on with, else the chosen model's.
+    private var lineAgent: ACPAgentDefinition? {
+        continuedChat.flatMap { agentSession?.definition(for: $0.agentID) } ?? settings.model.agentDefinition
+    }
+
+    /// The chat the line goes on with, picked from its `/` list — for this summons only, the way a
+    /// line called up from nothing is a new chat. The summary: the transcript stays in the store.
+    private(set) var continuedChat: AgentChat?
+
+    /// Goes on with a conversation from the history. The answer strip shows where it stopped — the
+    /// last question and what came back — so the next question has something to follow.
+    func continueChat(_ id: UUID) {
+        guard answer?.isRunning != true, let chat = agentSession?.chat(id) else { return }
+        continuedChat = chat.summary
+        startsAgentChat = false
+        var lastQuestion: String?
+        var lastAnswer: String?
+        for item in chat.transcript.reversed() {
+            switch item.kind {
+            case .agent(let text) where lastAnswer == nil && lastQuestion == nil: lastAnswer = text
+            case .user(let text) where lastQuestion == nil: lastQuestion = text
+            default: break
+            }
+            if lastQuestion != nil { break }
+        }
+        task?.cancel()
+        answer = Answer(title: lastQuestion ?? chat.summary.title ?? "", text: lastAnswer ?? "")
+    }
+
+    /// Back to a chat of its own: the next question starts one.
+    func stopContinuingChat() {
+        continuedChat = nil
+        startsAgentChat = true
+        if answer?.isRunning != true { answer = nil }
     }
 
     private func runResearch(_ research: ResearchCoordinator, question: String,
@@ -241,6 +285,8 @@ final class AssistantStore {
     /// only while something in the scene has focus, so after Esc the item was greyed out, and a
     /// disabled item eats its key.
     private(set) var line: LinePlace?
+    /// The next agent question starts a chat of its own (`summonLine`). True at launch.
+    @ObservationIgnored private var startsAgentChat = true
     /// Bumped on every summons, so a line that is already standing takes the caret again.
     private(set) var summons = 0
     /// Put away by a key (Esc, ⌘E) rather than by the caret leaving for somewhere else. Only then
@@ -276,6 +322,15 @@ final class AssistantStore {
 
     private func summonLine(at place: LinePlace) {
         closedByKey = false
+        // Called up from nothing, the line is a new conversation with the agent; asked again while
+        // it stands, it is a follow-up in the same one. Otherwise every question about every page
+        // ran on in one chat that was never done.
+        if line == nil, answer == nil {
+            startsAgentChat = true
+            #if os(macOS)
+            continuedChat = nil
+            #endif
+        }
         if line == nil { summonedFocus = snapshot(for: place) }
         line = place
         summons += 1
@@ -343,7 +398,7 @@ final class AssistantStore {
     func cancel() {
         task?.cancel()
         #if os(macOS)
-        if settings.model.agentDefinition != nil { agentSession?.cancel() }
+        if lineAgent != nil { agentSession?.cancel() }
         #endif
         answer?.isRunning = false
         answer?.activity = nil

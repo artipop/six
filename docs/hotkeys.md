@@ -141,6 +141,7 @@ One rail's windows only — the workspace on screen — and this run only. `⌥�
 | `⌘F` | find on the page in front of you — searches the page's own JavaScript, since `WebPage` carries no find API of its own and `WKWebView`'s is an async completion-handler with no menu (also View ▸ Find on Page…) |
 | `⌘L` | focus the address field |
 | `⌘E` | the assistant line: up and focused, or put away if it is already up |
+| `⌘⇧E` | chats — `six://chats`, every conversation with an agent, as a column (View ▸ Chats) |
 | `⌘Y` | history of the current profile |
 | `⌘D` | bookmark the focused page (again: remove the bookmark) |
 | `⌘⌥B` | bookmarks, searchable by meaning |

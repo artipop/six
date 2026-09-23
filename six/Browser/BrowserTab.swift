@@ -48,9 +48,25 @@ nonisolated enum BuiltInPage: String, Codable, Sendable, CaseIterable {
     /// The Mac only, like configuration: the phone has no assistant surface for the question to be
     /// about.
     case welcome
+    /// Every conversation with an agent, as a page on the rail rather than a list down the side of
+    /// the window (`AgentChatsPage`). A list of chats is a list of things, and the answer to that
+    /// here is a column: it opens beside what you are doing and leaves when you are done with it.
+    case chats
+    /// One conversation, `six://chat/<id>` — a window of its own, so two can stand side by side
+    /// and one can stay open next to the page it is about (`AgentChatPage`).
+    case chat
     #endif
 
     var url: URL { url(section: nil) }
+
+    /// A page that is one window per section rather than one window turned to a section.
+    var isPerSection: Bool {
+        #if os(macOS)
+        self == .chat
+        #else
+        false
+        #endif
+    }
 
     /// `six://configuration/assistant#agents` — the pane is a page under this one, and the tab
     /// inside it is an anchor on that page, which is what a `#` means everywhere else on the web.
@@ -70,6 +86,8 @@ nonisolated enum BuiltInPage: String, Codable, Sendable, CaseIterable {
         #if os(macOS)
         case .configuration: String(localized: "Configuration")
         case .welcome: String(localized: "Welcome")
+        case .chats: String(localized: "Chats")
+        case .chat: String(localized: "Chat")
         #endif
         }
     }
@@ -189,6 +207,9 @@ final class BrowserTab: Identifiable {
     /// — and the address bar said `six://configuration` either way, which is an address that cannot
     /// bring you back to where you were.
     var section: String?
+    /// What one of six's own pages calls itself when its kind's name is not enough — a chat's title.
+    /// Set by the page.
+    var pageTitle: String?
 
     var builtIn: BuiltInPage? {
         if case .builtIn(let page) = content { return page }
@@ -201,7 +222,7 @@ final class BrowserTab: Identifiable {
     /// browser opens (or focuses) a window for the URL instead. Set by `BrowserState`.
     @ObservationIgnored var onDocumentLink: ((BrowserTab, URL) -> Void)?
     /// `six://…` was typed or followed. Set by `BrowserState`, which shows the page.
-    @ObservationIgnored var onBuiltInAddress: ((BrowserTab, BuiltInPage) -> Void)?
+    @ObservationIgnored var onBuiltInAddress: ((BrowserTab, BuiltInPage, String?) -> Void)?
     /// The page asked for a second window — a ⌘-click, `target=_blank`, `window.open`. Set by
     /// `BrowserState`, which puts a column next to this one.
     @ObservationIgnored var onNewWindow: ((BrowserTab, URLRequest, Bool) -> Void)?
@@ -798,7 +819,7 @@ final class BrowserTab: Identifiable {
     var title: String {
         if let document { return document.title }
         if let app { return app.title }
-        if let builtIn { return builtIn.title }
+        if let builtIn { return pageTitle ?? builtIn.title }
         if let pendingApp { return pendingApp.toolTitle }
         if showsStartPage { return String(localized: "New Window") }
         if let live = livePage, !live.title.isEmpty { return live.title }
@@ -910,8 +931,8 @@ final class BrowserTab: Identifiable {
     func load(_ url: URL) {
         // An address of six's own is not something WebKit can be asked to fetch: it is a page six
         // draws, so it becomes a window rather than a navigation.
-        if let page = BuiltInPage.page(for: url) {
-            onBuiltInAddress?(self, page)
+        if let parsed = BuiltInPage.parse(url) {
+            onBuiltInAddress?(self, parsed.page, parsed.section)
             return
         }
         // A magnet link pasted into the address bar, or handed over by anything else that calls

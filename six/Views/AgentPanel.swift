@@ -38,10 +38,13 @@ struct AgentPanel: View {
                 .labelsHidden()
                 Spacer()
                 stateBadge
+                Button { browser.openBuiltIn(.chats) } label: { Image(systemName: "clock.arrow.circlepath") }
+                    .buttonStyle(.plain)
+                    .help("Chats")
                 Button { store.startNewChat() } label: { Image(systemName: "square.and.pencil") }
                     .buttonStyle(.plain)
                     .disabled(store.transcript.isEmpty || store.state == .prompting)
-                    .help("New chat: forget this conversation and its session")
+                    .help("New chat; this one stays in Chats")
             }
             // The agent works in the profile's scratchpad; that stays out of the way unless the user picked another.
             HStack(spacing: 6) {
@@ -173,7 +176,7 @@ struct AgentPanel: View {
 }
 
 /// Shows whether the ACP adapter and its CLI are installed; offers to install the adapter with npm.
-private struct TranscriptRow: View {
+struct TranscriptRow: View {
     let item: AgentTranscriptItem
 
     var body: some View {

@@ -59,7 +59,27 @@ and on the next launch VI asks the agent to resume the previous one. When it
 cannot, or the session is gone, a new one starts and the old transcript stays
 above it as a record.
 
-✎ in the panel header forgets the current chat and its session.
+✎ in the panel header starts a new chat, and the old one goes to **Chats**.
+
+### Chats
+
+Every conversation — in the panel and on the `⌘E` line — is on the **Chats**
+page (`⌘⇧E`, View ▸ Chats, or the clock in the panel header). It is not a
+sidebar but a column of the rail like any other page: it opens beside what you
+are doing and closes when you have found what you wanted. Chats are grouped by
+day; the search looks through their titles, and **All folders** shows the ones
+from other folders too.
+
+A chat opens as a window of its own to the right, so two can stand side by
+side. Write in it and it becomes its agent's current chat, and VI asks the agent
+to resume the same session. A chat from another folder can be read but not
+continued.
+
+Below, **Other sessions** lists what the agents themselves remember about the
+folder — sessions started from Claude Code's or Codex's own command line, say.
+Each one says which agent it was with. Open one and press
+**Load from the Agent**, and the agent sends its history over. Right-click a
+chat for **Delete**; the agent keeps its session.
 
 **Model** is selected in **Configuration ▸ Assistant ▸ Responses**. The selected agent supplies the list; preferences are saved per agent. No extra default option is inserted: an agent-provided `default` appears once.
 
@@ -83,10 +103,19 @@ The agent sees the console and the network only while **Configuration ▸ Assist
 
 ## The same agent on the ⌘E line
 
-The `⌘E` model menu has **Claude Code (ACP)** and **Codex (ACP)**. That is the
-same session and the same transcript as the panel: permission requests appear
-inside the answer card, and the tool the agent is using is named next to the
-model.
+The `⌘E` model menu has **Claude Code (ACP)** and **Codex (ACP)**. Permission
+requests appear inside the answer card, and the tool the agent is using is named
+next to the model.
+
+Every time the line is called up it starts a new chat; follow-ups asked while it
+stays open go into the same one. The previous chat goes to **Chats**, and the
+agent panel shows the new one.
+
+To go back to an older chat, type `/` and a word of its title into the line:
+matching chats appear under the verbs (a bare `/` shows the five latest). `↑`
+`↓` walk them and `↩` picks one. Pick one and it stands in the line as a chip, the last question and answer above it,
+and the next question continues that chat. ↗ on the chip opens the chat as a
+window; clicking the chip or `⌘⌫` goes back to a new chat.
 
 ## The browser as an MCP server for anything else
 

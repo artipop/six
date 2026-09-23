@@ -650,6 +650,8 @@ struct BuiltInPageView: View {
         #if os(macOS)
         case .configuration: ConfigurationPageView(tab: tab)
         case .welcome: WelcomePage(tab: tab)
+        case .chats: AgentChatsPage(tab: tab)
+        case .chat: AgentChatPage(tab: tab)
         #endif
         }
     }

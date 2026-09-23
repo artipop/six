@@ -43,6 +43,8 @@ struct AssistantBar: View {
     enum Half: Hashable { case field }
     /// Which chip Return would run. Arrows walk it.
     @State private var chosen = 0
+    /// Which chat of the `/` list Return would pick; nil while the caret is only in the field.
+    @State private var chosenChat: Int?
 
     private var isAgent: Bool { assistant.settings.model.agentDefinition != nil }
 
@@ -108,6 +110,7 @@ struct AssistantBar: View {
             if assistant.answer == nil, !hasCaret { assistant.lineLostFocus(at: place) }
         }
         .onChange(of: verbs.count) { chosen = min(chosen, max(0, verbs.count - 1)) }
+        .onChange(of: question) { chosenChat = nil }
     }
 
     /// The verbs, or — when the chosen model could not answer if it were asked — what is missing
@@ -146,6 +149,12 @@ struct AssistantBar: View {
             lockedVerb = nil
             return .handled
         }
+        if lockedVerb == nil, assistant.continuedChat != nil, question.isEmpty, press.key == .delete,
+           press.modifiers.contains(.command) {
+            assistant.stopContinuingChat()
+            return .handled
+        }
+        if let result = chatKey(press) { return result }
         guard showsChips, !verbs.isEmpty, !press.modifiers.contains(.command) else { return .ignored }
         switch press.key {
         case .leftArrow, .upArrow: chosen = max(0, chosen - 1)
@@ -168,10 +177,59 @@ struct AssistantBar: View {
     }
 
     @ViewBuilder private var verbRow: some View {
-        if where_ == .field, isCommand, !verbs.isEmpty, !showsChips {
-            VerbRow(verbs: verbs) { run($0) }
-                .transition(.opacity)
+        if where_ == .field, isCommand, !showsChips, !verbs.isEmpty || !chatMatches.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                if growsDown {
+                    if !verbs.isEmpty { VerbRow(verbs: verbs) { run($0) } }
+                    ChatMatches(chats: chatMatches, chosen: chosenChat) { pick($0) }
+                } else {
+                    ChatMatches(chats: chatMatches, chosen: chosenChat) { pick($0) }
+                    if !verbs.isEmpty { VerbRow(verbs: verbs) { run($0) } }
+                }
+            }
+            .transition(.opacity)
         }
+    }
+
+    /// After a `/` the line finds conversations as well as verbs: the words after it against the
+    /// titles of the chats had in this folder, the five newest with nothing typed. Picked, the line
+    /// goes on with that chat instead of starting one (`AssistantStore.continueChat`).
+    private var chatMatches: [AgentChat] {
+        guard isCommand, lockedVerb == nil else { return [] }
+        return agentSession.chats(matching: String(question.dropFirst()))
+    }
+
+    /// ↑ and ↓ walk the chats a `/` found. The list stands on the side of the field the line grows
+    /// away from, so the arrow that points at it goes in and the other one walks back out to the
+    /// field — nil again, where Return means the verbs as before. ← and → stay the caret's.
+    private func chatKey(_ press: KeyPress) -> KeyPress.Result? {
+        let chats = chatMatches
+        guard !chats.isEmpty, !press.modifiers.contains(.command) else { return nil }
+        let last = chats.count - 1
+        let intoList: KeyEquivalent = growsDown ? .downArrow : .upArrow
+        let outOfList: KeyEquivalent = growsDown ? .upArrow : .downArrow
+        switch press.key {
+        case intoList:
+            // Growing up, the list is above the field and its last row is the one beside it.
+            if let index = chosenChat { chosenChat = growsDown ? min(last, index + 1) : max(0, index - 1) }
+            else { chosenChat = growsDown ? 0 : last }
+        case outOfList:
+            guard let index = chosenChat else { return nil }
+            let next = growsDown ? index - 1 : index + 1
+            chosenChat = (0...last).contains(next) ? next : nil
+        case .return:
+            guard let index = chosenChat, chats.indices.contains(index) else { return nil }
+            pick(chats[index])
+        default:
+            return nil
+        }
+        return .handled
+    }
+
+    private func pick(_ chat: AgentChat) {
+        assistant.continueChat(chat.id)
+        question = ""
+        chosenChat = nil
     }
 
     private var field: some View {
@@ -179,6 +237,12 @@ struct AssistantBar: View {
             ModelMenu()
             if let lockedVerb {
                 VerbChip(action: lockedVerb) { self.lockedVerb = nil; question = "" }
+            } else if let chat = assistant.continuedChat {
+                ChatChip(chat: chat) {
+                    assistant.stopContinuingChat()
+                } open: {
+                    browser.openBuiltIn(.chat, section: chat.id.uuidString)
+                }
             }
             if let badge = contextBadge, lockedVerb == nil {
                 Label(badge.text, systemImage: badge.symbol)
@@ -314,7 +378,7 @@ struct AssistantBar: View {
             return
         }
         if isCommand {
-            if let first = verbs.first { run(first) }
+            if let first = verbs.first { run(first) } else if let chat = chatMatches.first { pick(chat) }
             return
         }
         if question.trimmingCharacters(in: .whitespaces).isEmpty {
@@ -516,6 +580,72 @@ private struct VerbChip: View {
         .padding(.vertical, 4)
         .background(.quaternary, in: Capsule())
         .help("Remove (⌘⌫)")
+    }
+}
+
+/// Conversations the `/` found, one a line: a line reads as a title where a capsule reads as a verb.
+private struct ChatMatches: View {
+    let chats: [AgentChat]
+    /// The row the arrows are on.
+    let chosen: Int?
+    let pick: (AgentChat) -> Void
+
+    var body: some View {
+        if !chats.isEmpty {
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(Array(chats.enumerated()), id: \.element.id) { index, chat in
+                    Button { pick(chat) } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "bubble.left.and.bubble.right").foregroundStyle(.secondary)
+                            Text(chat.title ?? String(localized: "Untitled")).lineLimit(1)
+                            Spacer(minLength: 12)
+                            if let date = chat.updatedAt ?? chat.createdAt {
+                                Text(date, format: .relative(presentation: .named)).foregroundStyle(.secondary)
+                            }
+                        }
+                        .font(.callout)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(index == chosen ? AnyShapeStyle(.tint.opacity(0.18)) : AnyShapeStyle(.clear),
+                                    in: RoundedRectangle(cornerRadius: 6))
+                        .padding(.horizontal, 4)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.vertical, 4)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.separator, lineWidth: 0.5))
+        }
+    }
+}
+
+/// The chat the line is going on with, standing where a verb chip would: removed with a click or
+/// ⌘⌫, and opened as a window of its own with the arrow.
+private struct ChatChip: View {
+    let chat: AgentChat
+    let remove: () -> Void
+    let open: () -> Void
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Button(action: remove) {
+                Label { Text(chat.title ?? String(localized: "Untitled")).lineLimit(1) } icon: {
+                    Image(systemName: "bubble.left.and.bubble.right")
+                }
+            }
+            .help("Remove (⌘⌫)")
+            Button(action: open) { Image(systemName: "arrow.up.right") }
+                .help("Open as a Window")
+        }
+        .buttonStyle(.plain)
+        .font(.caption)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(.quaternary, in: Capsule())
+        .frame(maxWidth: 220, alignment: .leading)
+        .fixedSize(horizontal: false, vertical: true)
     }
 }
 

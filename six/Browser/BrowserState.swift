@@ -684,7 +684,7 @@ final class BrowserState {
         let tab = BrowserTab(id: id, profileID: profile.id, dataStore: dataStore(for: profile), restoring: url, title: title)
         // `six://configuration` typed into any window's address field shows the page rather than asking
         // WebKit to fetch an address it has never heard of.
-        tab.onBuiltInAddress = { [weak self] _, page in self?.openBuiltIn(page) }
+        tab.onBuiltInAddress = { [weak self] _, page, section in self?.openBuiltIn(page, section: section) }
         tab.onNavigation = { [weak self] tab, outcome in
             guard let self, let page = tab.livePage, let url = page.url else { return }
             switch outcome {
@@ -858,7 +858,8 @@ final class BrowserState {
     func openBuiltIn(_ page: BuiltInPage, section: String? = nil, in profileID: Profile.ID? = nil,
                      activate: Bool = true) -> BrowserTab {
         let profile = profiles.first { $0.id == profileID } ?? selectedProfile
-        if let existing = tabs(in: profile.id).first(where: { $0.builtIn == page }) {
+        // A chat is one page per conversation: the one already open is focused, another opens beside.
+        if let existing = tabs(in: profile.id).first(where: { $0.builtIn == page && (!page.isPerSection || $0.section == section) }) {
             if let section { existing.section = section }
             if activate { selectTab(existing.id) }
             return existing
@@ -879,7 +880,7 @@ final class BrowserState {
 
     private func makePendingAppTab(id: UUID, profile: Profile, saved: AppWindowSnapshot) -> BrowserTab {
         let tab = BrowserTab(id: id, profileID: profile.id, pendingApp: saved)
-        tab.onBuiltInAddress = { [weak self] _, page in self?.openBuiltIn(page) }
+        tab.onBuiltInAddress = { [weak self] _, page, section in self?.openBuiltIn(page, section: section) }
         return tab
     }
 
@@ -899,7 +900,7 @@ final class BrowserState {
     private func makeBuiltInTab(id: UUID = UUID(), profile: Profile, page: BuiltInPage) -> BrowserTab {
         let tab = BrowserTab(id: id, profileID: profile.id, builtIn: page)
         tab.onDocumentLink = { [weak self] tab, url in self?.open(url, from: tab) }
-        tab.onBuiltInAddress = { [weak self] _, page in self?.openBuiltIn(page) }
+        tab.onBuiltInAddress = { [weak self] _, page, section in self?.openBuiltIn(page, section: section) }
         return tab
     }
 
@@ -939,7 +940,7 @@ final class BrowserState {
 
     private func makeDocumentTab(id: UUID = UUID(), profile: Profile, document: TextDocument) -> BrowserTab {
         let tab = BrowserTab(id: id, profileID: profile.id, document: document)
-        tab.onBuiltInAddress = { [weak self] _, page in self?.openBuiltIn(page) }
+        tab.onBuiltInAddress = { [weak self] _, page, section in self?.openBuiltIn(page, section: section) }
         if !profile.isPrivate { documents.watch(document) } // private: in memory only, like everything else there
         tab.onDocumentLink = { [weak self] tab, url in self?.open(url, from: tab) }
         return tab

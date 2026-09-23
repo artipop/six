@@ -110,18 +110,75 @@ nonisolated struct StripSnapshot: Codable, Sendable {
 /// The selected agent and every conversation, keyed by agent and folder.
 nonisolated struct AgentSnapshot: Codable, Sendable {
     var agentID: String
+    /// The conversation each agent is having in each folder — one per `AgentChat.key`.
     var chats: [AgentChat]
+    /// Every conversation that was put aside, newest first, *without* its transcript: that is in a
+    /// file of its own under `Chats/` (`AgentChatArchive`), so a year of history is not rewritten on
+    /// every autosave. Absent in files from before chats were kept.
+    var past: [AgentChat]? = nil
 }
 
 /// A conversation with one agent in one folder: the transcript, and the ACP session id so the agent
 /// can pick it up again with `session/load`.
-nonisolated struct AgentChat: Codable, Sendable {
+nonisolated struct AgentChat: Codable, Sendable, Identifiable {
+    /// Six's own name for the conversation — the session id is the agent's, may be missing (a chat
+    /// that never connected) and changes when a session cannot be resumed and a new one takes over.
+    var id = UUID()
     var agentID: String
     var directoryPath: String
     var sessionID: String?
+    /// What the agent called it (`session_info_update`), when it did.
+    var title: String?
+    var createdAt: Date?
+    var updatedAt: Date?
     var transcript: [AgentTranscriptItem] = []
 
     var key: String { AgentChat.key(agentID: agentID, directoryPath: directoryPath) }
 
     static func key(agentID: String, directoryPath: String) -> String { "\(agentID)|\(directoryPath)" }
+
+    init(agentID: String, directoryPath: String, sessionID: String? = nil, title: String? = nil) {
+        self.agentID = agentID
+        self.directoryPath = directoryPath
+        self.sessionID = sessionID
+        self.title = title
+        createdAt = Date()
+    }
+
+    /// The first thing asked, which is what a conversation without a title of its own is about.
+    var firstPrompt: String? {
+        for item in transcript {
+            if case .user(let text) = item.kind {
+                let line = text.split(whereSeparator: \.isNewline).first.map(String.init) ?? text
+                return line.trimmingCharacters(in: .whitespaces)
+            }
+        }
+        return nil
+    }
+
+    /// The same chat with the transcript left out: what the snapshot keeps of a past one. `title`
+    /// takes the first prompt, so the list still has something to say without the file.
+    var summary: AgentChat {
+        var copy = self
+        copy.title = title ?? firstPrompt
+        copy.transcript = []
+        return copy
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, agentID, directoryPath, sessionID, title, createdAt, updatedAt, transcript
+    }
+
+    // Written by hand for `id`: chats saved before they had one get one now.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        agentID = try c.decode(String.self, forKey: .agentID)
+        directoryPath = try c.decode(String.self, forKey: .directoryPath)
+        sessionID = try c.decodeIfPresent(String.self, forKey: .sessionID)
+        title = try c.decodeIfPresent(String.self, forKey: .title)
+        createdAt = try c.decodeIfPresent(Date.self, forKey: .createdAt)
+        updatedAt = try c.decodeIfPresent(Date.self, forKey: .updatedAt)
+        transcript = try c.decodeIfPresent([AgentTranscriptItem].self, forKey: .transcript) ?? []
+    }
 }

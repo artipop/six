@@ -80,6 +80,7 @@ workspaces, not other profiles — and this run only.
 | `⌘F` | find on the page; `↩` / `⇧↩` for the next / previous match, `Esc` to close |
 | `⌘L` | focus the address field |
 | `⌘E` | the assistant line: bring it up, or put it away |
+| `⌘⇧E` | chats with agents, as a column of the rail |
 | `⌘Y` | the profile's history |
 | `⌘D` | bookmark the focused page (again: remove it) |
 | `⌘⌥B` | bookmarks and the search across them |

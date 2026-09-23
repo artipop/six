@@ -93,6 +93,20 @@ actor ACPClient {
         return try? result.decode()
     }
 
+    /// Every session the agent keeps for `cwd`, all pages of them. Capped: a folder somebody has
+    /// worked in for a year is thousands of sessions, and a list that long is not read anyway.
+    func listSessions(cwd: URL?, limit: Int = 500) async throws -> [ACP.SessionInfo] {
+        var sessions: [ACP.SessionInfo] = []
+        var cursor: String?
+        repeat {
+            let request = ACP.ListSessionsRequest(cwd: cwd?.path, cursor: cursor)
+            let page: ACP.ListSessionsResponse = try await connection.request("session/list", params: ACPJSON(encoding: request)).decode()
+            sessions += page.sessions
+            cursor = page.nextCursor
+        } while cursor != nil && sessions.count < limit
+        return sessions
+    }
+
     func setMode(sessionId: String, modeId: String) async throws {
         let request = ACP.SetSessionModeRequest(sessionId: sessionId, modeId: modeId)
         _ = try await connection.request("session/set_mode", params: ACPJSON(encoding: request))

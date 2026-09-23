@@ -35,9 +35,18 @@ nonisolated enum ACP {
             var audio: Bool?
             var embeddedContext: Bool?
         }
+        /// What an agent can do with sessions besides make one. Each is an empty object when
+        /// offered and absent when not, so the presence is the answer.
+        struct SessionCapabilities: Codable, Sendable {
+            var list: ACPJSON?
+            var resume: ACPJSON?
+        }
         var loadSession: Bool?
         var promptCapabilities: PromptCapabilities?
         var mcpCapabilities: ACPJSON?
+        var sessionCapabilities: SessionCapabilities?
+
+        var listsSessions: Bool { sessionCapabilities?.list != nil }
     }
 
     struct AuthMethod: Codable, Sendable, Identifiable {
@@ -99,6 +108,29 @@ nonisolated enum ACP {
         var modes: SessionModeState?
         var models: ACPJSON?
         var configOptions: [ACPJSON]?
+    }
+
+    // MARK: session/list
+
+    struct ListSessionsRequest: Codable, Sendable {
+        var cwd: String?
+        var cursor: String?
+    }
+
+    /// A session the agent keeps, whoever started it — six, the agent's own CLI, another editor.
+    struct SessionInfo: Codable, Sendable, Identifiable {
+        var sessionId: String
+        var cwd: String
+        var title: String?
+        /// ISO 8601, as the agent wrote it.
+        var updatedAt: String?
+
+        var id: String { sessionId }
+    }
+
+    struct ListSessionsResponse: Codable, Sendable {
+        var sessions: [SessionInfo]
+        var nextCursor: String?
     }
 
     struct SetSessionModeRequest: Codable, Sendable {
@@ -287,6 +319,8 @@ nonisolated enum ACP {
         case plan([PlanEntry])
         case availableCommandsUpdate([AvailableCommand])
         case currentModeUpdate(modeId: String)
+        /// The agent named the conversation (a generated summary) or moved its date.
+        case sessionInfo(title: String?)
         case unknown(kind: String, raw: ACPJSON)
 
         init(json: ACPJSON) throws {
@@ -302,6 +336,7 @@ nonisolated enum ACP {
                 self = .availableCommandsUpdate(try (json["availableCommands"] ?? .array([])).decode())
             case "current_mode_update":
                 self = .currentModeUpdate(modeId: json["currentModeId"]?.stringValue ?? json["modeId"]?.stringValue ?? "")
+            case "session_info_update": self = .sessionInfo(title: json["title"]?.stringValue)
             default: self = .unknown(kind: kind, raw: json)
             }
         }

@@ -119,6 +119,10 @@ struct ViewCommands: Commands {
             // then, so nothing is listening (`ContentView`). A `.disabled` here would be decided once.
             Button("Ask Assistant…") { assistant.toggleLine(in: browser.selectedTab) }
                 .keyboardShortcut("e")
+            // ⌘⇧E beside it: the conversations the line and the agent panel have had, as a page
+            // on the rail (`AgentChatsPage`).
+            Button("Chats") { browser.openBuiltIn(.chats) }
+                .keyboardShortcut("e", modifiers: [.command, .shift])
         }
     }
 }
