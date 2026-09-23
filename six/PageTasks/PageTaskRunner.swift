@@ -29,6 +29,8 @@ final class PageTaskRunner {
     private var trustedField = false
     /// The page the last decision was made on, so a navigation can be told from a redraw.
     private var lastURL = ""
+    /// What the fast decider last said when it could not answer at all.
+    private var trouble: String?
     /// System 2 can also be an ACP agent, because that is what the ⌘E line is often set to and it
     /// is the one a person already pays for. A turn there costs seconds rather than milliseconds,
     /// which is exactly the cost the fast decider exists to avoid paying on every step.
@@ -222,8 +224,10 @@ final class PageTaskRunner {
                     return
                 }
             } catch {
+                // A refused key or an endpoint that is not there must be visible: without this the
+                // run simply becomes a model-only run and looks like the classifier decided nothing.
                 Log.info(.app, "page task: system one failed: \(error.localizedDescription)")
-                step.outcome = error.localizedDescription
+                trouble = error.localizedDescription
             }
         }
         if step.operation == "TYPE_TEXT", let ref = step.ref {
@@ -274,11 +278,21 @@ final class PageTaskRunner {
             Do not open, click or type anything yourself; this question only chooses the next step.
 
             """ + prompt
-        var text = ""
+        var streamed = ""
         let outcome = await agentSession.prompt(full) { update in
-            if case .text(let partial) = update { text = partial }
+            if case .text(let partial) = update { streamed = partial }
         }
         if case .failed(let message) = outcome { throw PageTaskFailure(message: message) }
+        // The finished message from the transcript, not the last streamed snapshot: a run once died
+        // on `{"operation": "CLe32", "value": "",ICK", "ref": "` — every character of the answer
+        // present and some of them out of order, which the transcript does not have.
+        var text = streamed
+        for item in agentSession.transcript.reversed() {
+            if case .agent(let message) = item.kind, !message.trimmingCharacters(in: .whitespaces).isEmpty {
+                text = message
+                break
+            }
+        }
         Log.debug(.acp, "page task asked the agent; it answered: \(text.suffix(400))")
         guard let answer = Self.answer(inJSON: text) else {
             throw PageTaskFailure(message: String(localized: "The agent answered without a step: \(text.prefix(120))"))
@@ -291,12 +305,20 @@ final class PageTaskRunner {
 
     /// The last JSON object in the agent's reply — agents wrap answers in prose whatever they are told.
     static func answer(inJSON text: String) -> PageTaskStepAnswer? {
-        guard let start = text.lastIndex(of: "{"), let end = text[start...].lastIndex(of: "}") else { return nil }
-        let data = Data(text[start...end].utf8)
-        guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let operation = object["operation"] as? String else { return nil }
-        return PageTaskStepAnswer(operation: operation, ref: object["ref"] as? String ?? "",
-                                  value: object["value"] as? String ?? "", reason: object["reason"] as? String ?? "")
+        // Every `{`, widest first: an agent wraps its object in prose, and a value inside the object
+        // can hold braces of its own, so the first span that parses *and* names an operation wins.
+        let characters = Array(text)
+        let opens = characters.indices.filter { characters[$0] == "{" }
+        let closes = characters.indices.filter { characters[$0] == "}" }.reversed()
+        for start in opens {
+            for end in closes where end > start {
+                guard let object = try? JSONSerialization.jsonObject(with: Data(String(characters[start...end]).utf8)) as? [String: Any],
+                      let operation = object["operation"] as? String else { continue }
+                return PageTaskStepAnswer(operation: operation, ref: object["ref"] as? String ?? "",
+                                          value: object["value"] as? String ?? "", reason: object["reason"] as? String ?? "")
+            }
+        }
+        return nil
     }
 
     /// System 2 writing one field's value — the one thing System 1 cannot do at all. It is shown the
@@ -333,6 +355,7 @@ final class PageTaskRunner {
             step.decider += " + " + systemTwoName
             step.outcome = answer.reason
             let wanted = "\(step.operation) \(ref)"
+            if !trusted { step.escalated = true }
             guard operation == "TYPE_TEXT", answeredRef.isEmpty || answeredRef == ref else {
                 step.overruled = wanted
                 // Overruled while writing the value: the model saw the page and chose another step.
@@ -388,7 +411,9 @@ final class PageTaskRunner {
     private func header(_ run: PageTaskRun, systemOne: SystemOne?) -> String {
         let deciders = systemOne.map { "\($0.model) at \($0.url.host() ?? $0.url.absoluteString), then \(systemTwoName)" }
             ?? systemTwoName
-        return String(localized: "Doing: \(run.goal)\nDeciders: \(deciders)\n")
+        var text = String(localized: "Doing: \(run.goal)\nDeciders: \(deciders)\n")
+        if let trouble { text += String(localized: "The fast decider is not answering (\(trouble)); every step is the model's.\n") }
+        return text
     }
 
     private func text(of run: PageTaskRun, systemOne: SystemOne?) -> String {

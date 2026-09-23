@@ -165,18 +165,24 @@ final class AssistantSettings {
     }
 
     var systemOneThreshold: Double {
-        get { store.pageTaskThreshold }
+        get { ProcessInfo.processInfo.environment["SIX_PAGETASK_THRESHOLD"].flatMap(Double.init) ?? store.pageTaskThreshold }
         set { store.pageTaskThreshold = newValue }
     }
 
     /// The configured fast decider, or nil — in which case a page task is the assistant's model all
     /// the way down, which works and costs a model call per step.
+    ///
+    /// The environment wins over the settings, so one endpoint can be measured against another by
+    /// launching six twice without anybody editing a preference between the runs:
+    /// `SIX_PAGETASK_ENDPOINT`, `SIX_PAGETASK_KEY`, `SIX_PAGETASK_MODEL`, `SIX_PAGETASK_THRESHOLD`.
     var systemOne: SystemOne? {
-        let address = pageTaskEndpoint.trimmingCharacters(in: .whitespacesAndNewlines)
+        let environment = ProcessInfo.processInfo.environment
+        let address = (environment["SIX_PAGETASK_ENDPOINT"] ?? pageTaskEndpoint).trimmingCharacters(in: .whitespacesAndNewlines)
         guard let url = URL(string: address), url.scheme != nil, url.host() != nil else { return nil }
-        let name = pageTaskModel.trimmingCharacters(in: .whitespacesAndNewlines)
-        return SystemOne(url: url, key: pageTaskKey.trimmingCharacters(in: .whitespacesAndNewlines),
-                         model: name.isEmpty ? "jev-latest" : name)
+        let name = (environment["SIX_PAGETASK_MODEL"] ?? pageTaskModel).trimmingCharacters(in: .whitespacesAndNewlines)
+        let secret = (environment["SIX_PAGETASK_KEY"] ?? environment["TYPESAFE_API_KEY"] ?? pageTaskKey)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return SystemOne(url: url, key: secret, model: name.isEmpty ? "jev-latest" : name)
     }
 
     init(store: ConfigurationStore) {
