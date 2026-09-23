@@ -198,6 +198,14 @@ missed:
    `ModelChoice` has should be reachable from the welcome as well, not only the four doors it opens
    now (Private Cloud Compute is the one left out).
 
+## Dictation: saying it instead of typing it
+
+A microphone in the agent panel's composer and in the ⌘K bar, recognised on the machine: FluidAudio's Parakeet TDT v3
+with Silero in front of it, both Core ML on the Neural Engine, and Apple's `SpeechAnalyzer` for the languages it has —
+which do not include Russian, the reason the platform cannot be the whole answer here. The engine choice, the seam
+that keeps the MLX version a later afternoon rather than a rewrite, and what has to be measured before any of it is
+written are in [speech.md](speech.md). Nothing is ever sent without being read first.
+
 ## Windows: a WebKit that is not Playwright's
 
 The Windows front runs the WebKit that `playwright install webkit` puts on the machine, and takes whatever
