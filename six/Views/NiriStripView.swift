@@ -922,23 +922,25 @@ private struct ColumnPlaceholder: View {
         // many windows are on the rail. An icon and a title that shrank with it would be a
         // different size on every rail; divided by the scale they are the same size to the eye.
         let unit = browser.layout.isOverview ? 1 / max(0.05, browser.layout.overviewScale) : 1
-        VStack(spacing: 0) {
-            header(unit)
-            ZStack {
-                LinearGradient(colors: [accent.opacity(0.16), accent.opacity(0.04)],
-                               startPoint: .topLeading, endPoint: .bottomTrailing)
-                if showsPicture, let image = tab.thumbnail {
-                    Image(platform: image)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                        .clipped()
-                        .allowsHitTesting(false)
-                } else {
-                    card(unit)
-                }
+        // The bar lies *over* the picture rather than above it. Taking a row of the card for itself
+        // made the picture shorter than the card beside it that has no bar to carry — a start page,
+        // one of six's own — and a wall of cards whose pages begin at two different heights reads as
+        // cards of two different sizes.
+        ZStack {
+            LinearGradient(colors: [accent.opacity(0.16), accent.opacity(0.04)],
+                           startPoint: .topLeading, endPoint: .bottomTrailing)
+            if showsPicture, let image = tab.thumbnail {
+                Image(platform: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    .clipped()
+                    .allowsHitTesting(false)
+            } else {
+                card(unit)
             }
         }
+        .overlay(alignment: .top) { header(unit) }
     }
 
     /// The site's own icon, or the glyph that says what kind of window this is when there is none.

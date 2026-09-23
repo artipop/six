@@ -631,8 +631,9 @@ the scale) is what every offset is measured against, so the same clamping code s
 puts the rail back under the focused window.
 
 A web page is a card there (`ColumnPlaceholder`) with its last picture, and one click on any window focuses it and
-leaves the overview. Each card carries a title bar along its **top** — the site's own icon (`SiteIcons`) and the
-window's title — and a × on its top corner (`OverviewCloseButtons`), which is the one way the mouse has of closing a
+leaves the overview. Each card carries a title bar **over** its top — the site's own icon (`SiteIcons`) and the
+window's title, lying on the picture rather than taking a row of the card for itself, so a card that has no bar to
+carry (a start page, one of six's own) is not a card whose page begins at a different height — and a × on its top corner (`OverviewCloseButtons`), which is the one way the mouse has of closing a
 window whatever its fill. Neither shrinks with the rail: the × is drawn outside the scaled canvas like the workspace
 plates, and the title bar divides its own sizes by `overviewScale`, because how far the canvas is scaled depends on
 how many windows are on the rail and an icon that was a different size on every rail would be no mark at all. Every row ends with the place a new window would take (`NewWindowPlace`, `NiriLayout.appendFrame`): ⌘T and
