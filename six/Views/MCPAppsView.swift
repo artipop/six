@@ -415,7 +415,7 @@ private struct MCPAddServerSheet: View {
     @State private var name = ""
     @State private var isRemote = false
     @State private var commandLine = ""
-    @State private var environment = ""
+    @State private var variables: [Variable] = []
     @State private var address = ""
     @State private var token = ""
     @State private var clientID = ""
@@ -441,10 +441,8 @@ private struct MCPAddServerSheet: View {
                 } else {
                     TextField("Command", text: $commandLine,
                               prompt: Text("npx -y @modelcontextprotocol/server-map --stdio"))
-                    TextField("Environment", text: $environment, prompt: Text("API_TOKEN=…"), axis: .vertical)
-                        .font(.body.monospaced())
-                        .lineLimit(2...8)
                 }
+                if !isRemote { environmentSection }
             }
             .formStyle(.grouped)
             HStack {
@@ -458,6 +456,44 @@ private struct MCPAddServerSheet: View {
         .padding(16)
         .frame(width: (Platform.screenSize.width * 0.28).rounded())
         .task { load() }
+    }
+
+    /// A row per variable, the value exactly as typed — nothing is quoted or escaped, because nothing
+    /// goes through a shell. A `NAME=value` line pasted into a name field is split into rows, so a
+    /// README's line or a whole `.env` file still pastes in one go.
+    private var environmentSection: some View {
+        Section("Environment") {
+            ForEach($variables) { $variable in
+                HStack(spacing: 8) {
+                    TextField("Name", text: $variable.name, prompt: Text(verbatim: "API_TOKEN"))
+                        .onChange(of: variable.name) { _, name in expand(variable.id, name) }
+                    TextField("Value", text: $variable.value, prompt: Text("Value"))
+                    Button {
+                        variables.removeAll { $0.id == variable.id }
+                    } label: {
+                        Label("Remove", systemImage: "minus.circle").labelStyle(.iconOnly)
+                    }
+                    .buttonStyle(.borderless)
+                    .help("Remove")
+                }
+                .labelsHidden()
+                .font(.body.monospaced())
+            }
+            Button("Add Variable") { variables.append(Variable()) }
+        }
+    }
+
+    private struct Variable: Identifiable {
+        let id = UUID()
+        var name = ""
+        var value = ""
+    }
+
+    private func expand(_ id: UUID, _ name: String) {
+        guard name.contains("="), let index = variables.firstIndex(where: { $0.id == id }) else { return }
+        let pasted = Self.pairs(in: name).map { Variable(name: $0.name, value: $0.value) }
+        guard !pasted.isEmpty else { return }
+        variables.replaceSubrange(index...index, with: pasted)
     }
 
     /// Shown collapsed: a server that registers its own clients — nearly all of them — needs
@@ -510,9 +546,8 @@ private struct MCPAddServerSheet: View {
         address = editing.url?.absoluteString ?? ""
         token = editing.headers["Authorization"].map { $0.replacingOccurrences(of: "Bearer ", with: "") } ?? ""
         commandLine = editing.shellCommandLine
-        environment = editing.environment.sorted { $0.key < $1.key }
-            .map { "\($0.key)=\($0.value)" }
-            .joined(separator: "\n")
+        variables = editing.environment.sorted { $0.key < $1.key }
+            .map { Variable(name: $0.key, value: $0.value) }
         clientID = editing.oauth?.clientID ?? ""
         scopes = editing.oauth?.scopes.joined(separator: " ") ?? ""
         issuer = editing.oauth?.issuer?.absoluteString ?? ""
@@ -534,7 +569,7 @@ private struct MCPAddServerSheet: View {
             var words = commandLine.split(separator: " ").map(String.init)
             let command = words.isEmpty ? "" : words.removeFirst()
             definition = MCPServerDefinition(id: identifier, name: name, command: command, arguments: words,
-                                             environment: Self.variables(in: environment))
+                                             environment: environment)
         }
         // The secret follows the id, not the definition: an emptied field deletes it.
         MCPTokenStore.setClientSecret(definition.oauth == nil ? "" : clientSecret.trimmingCharacters(in: .whitespaces),
@@ -543,23 +578,47 @@ private struct MCPAddServerSheet: View {
         dismiss()
     }
 
-    /// `NAME=value`, one to a line, the way a `.env` file or a README writes them — so either can be
-    /// pasted as it is: an `export` in front and quotes around the value are dropped, and so is a
-    /// line with no `=` or one that starts with `#`.
-    private static func variables(in text: String) -> [String: String] {
-        var variables: [String: String] = [:]
-        for line in text.split(whereSeparator: \.isNewline) {
-            var line = line.trimmingCharacters(in: .whitespaces)
-            if line.hasPrefix("export ") { line.removeFirst("export ".count) }
-            guard !line.hasPrefix("#"), let equals = line.firstIndex(of: "=") else { continue }
-            let name = line[..<equals].trimmingCharacters(in: .whitespaces)
-            var value = line[line.index(after: equals)...].trimmingCharacters(in: .whitespaces)
-            if value.count >= 2, let first = value.first, first == value.last, first == "\"" || first == "'" {
-                value = String(value.dropFirst().dropLast())
+    /// The rows as the definition keeps them. A row with a name and no value stays: it is a
+    /// variable still to be filled in, and `MCPServerProcess` does not pass it.
+    private var environment: [String: String] {
+        Dictionary(variables.compactMap { variable in
+            let name = variable.name.trimmingCharacters(in: .whitespaces)
+            return name.isEmpty ? nil : (name, variable.value.trimmingCharacters(in: .whitespacesAndNewlines))
+        }, uniquingKeysWith: { $1 })
+    }
+
+    /// What a pasted `NAME=value` line holds, split the way a shell splits it: by whitespace or new lines, with
+    /// quotes keeping a value's spaces — so `A=1 B="two words"` on one line, a `.env` file and a
+    /// README's `export A=1` all paste as they are. A word with no `=` (`export` among them) is
+    /// skipped, and a `#` starting a word comments out the rest of its line.
+    private static func pairs(in text: String) -> [(name: String, value: String)] {
+        var words: [String] = []
+        var word = "", quote: Character?, inWord = false, inComment = false
+        for character in text {
+            if inComment {
+                if character.isNewline { inComment = false }
+            } else if let open = quote {
+                if character == open { quote = nil } else { word.append(character) }
+            } else if character == "\"" || character == "'" {
+                quote = character
+                inWord = true
+            } else if character.isWhitespace {
+                if inWord { words.append(word) }
+                word = ""
+                inWord = false
+            } else if character == "#", !inWord {
+                inComment = true
+            } else {
+                word.append(character)
+                inWord = true
             }
-            if !name.isEmpty { variables[name] = value }
         }
-        return variables
+        if inWord { words.append(word) }
+
+        return words.compactMap { word in
+            guard let equals = word.firstIndex(of: "="), equals != word.startIndex else { return nil }
+            return (String(word[..<equals]), String(word[word.index(after: equals)...]))
+        }
     }
 
     private var oauthClient: MCPOAuthClient? {

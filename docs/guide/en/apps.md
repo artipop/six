@@ -55,9 +55,10 @@ nvm and homebrew work) or an HTTP address. A token, if one is needed, is sent as
 a bearer. To change a server already added, use **Edit…** in the row's context
 menu.
 
-A local server that wants an API key reads it from its environment: put it in the
-**Environment** field, one `NAME=value` per line — `KAITEN_TOKEN=…`, say. A line
-from a `.env` file or a README can be pasted as it is. A server added from the
+A local server that wants an API key reads it from its environment: add it under
+**Environment** with **Add Variable** — `KAITEN_TOKEN` on the left, the token on
+the right, as it is, no quotes. A `NAME=value` line from a `.env` file or a README
+pasted into a name field is split into rows by itself. A server added from the
 catalog whose publisher declared such variables opens this form first, with the
 names already filled in; one left empty is not passed at all, and the server's
 row says **Not set:** and the name.

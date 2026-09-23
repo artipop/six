@@ -1,12 +1,12 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "API_TOKEN=…" : {
+    "Add Variable" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "API_TOKEN=…"
+            "value" : "Добавить переменную"
           }
         }
       }
@@ -737,6 +737,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "запускается через npx"
+          }
+        }
+      }
+    },
+    "Value" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Значение"
           }
         }
       }
