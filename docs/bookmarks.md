@@ -279,8 +279,8 @@ Pages change, and so do our models. Two things keep the index honest:
 
 ## The assistant and the agents
 
-The scope — this profile or all — is one setting (`bookmarks.scope`), set from the Bookmarks menu, the ⌘E model
-menu or the agent panel's header. It is what `list_bookmarks` and `search_bookmarks` return when the caller doesn't
+The scope — this profile or all — is one setting (`bookmarks.scope`), set in Configuration ▸ General ▸ Bookmarks
+(**Search In**) or in the ⌘E line's menu. It is what `list_bookmarks` and `search_bookmarks` return when the caller doesn't
 say; a `profile` argument (a name, or `all`) overrides it per call. Tools:
 
 | tool | |

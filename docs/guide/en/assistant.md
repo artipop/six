@@ -5,8 +5,8 @@ are already pointing: under selected text, beside the field your caret is in,
 and at the bottom of the rail when nothing on the page is pointed at. It never
 comes up by itself.
 
-The only conversation with a history left in six is the [agent](/en/agents) panel
-(currently hidden from the UI), where the transcript is the work.
+Only conversations with [agents](/en/agents) have a history: they are kept, and
+all of them are on the [**Chats**](/en/agents#chats) page.
 
 ## The ⌘E line
 
@@ -26,6 +26,12 @@ are behind `/` there: type `/`, keep typing to narrow the list (`/sum` leaves
 **Summarize This Page**), and `⏎` runs the first.
 
 `⏎` sends the question. `⏎` on an empty line applies the answer already there.
+
+When an agent answers, `/` also finds your earlier conversations with it — see
+[Conversations on the ⌘E line](/en/agents#conversations-on-the-⌘e-line).
+
+Scrolling with the pointer on the line or its answer scrolls what is under them —
+the page or the chat — rather than switching workspaces.
 
 If the chosen model cannot answer, the line says so in place of the actions: a
 missing key comes with a **Set Up…** button that opens the settings, and `⏎`
@@ -77,7 +83,7 @@ if it had been typed, so `⌘Z` takes it back.
 ## Turning all of it off
 
 **Configuration ▸ Assistant ▸ Use Language Models and Agents** is one switch over
-everything: the `⌘E` line, the agent panel, deep
+everything: the `⌘E` line, agents, deep
 research, and six's MCP server.
 
 Off is not a greyed-out button. The line is not there at all, `⌘E` is
@@ -92,8 +98,8 @@ You are asked once, on the first launch, in a window on the rail —
 `six://welcome`. Answer "Yes, use them" and the next step, in the same window,
 is who answers: On-Device, Claude Code, Codex or API Key (Anthropic or an
 OpenAI-compatible server) — set up on the spot: an agent shows whether its adapter
-is installed, a key shows the key and endpoint fields. "Done" points both the
-`⌘E` line and the agent panel at the choice. The answer is never final: the switch
+is installed, a key shows the key and endpoint fields. "Done" points the `⌘E`
+line at the choice. The answer is never final: the switch
 is always there.
 
 ## Which model answers
@@ -104,11 +110,16 @@ is always there.
 | **Private Cloud Compute** | Apple's cloud, with its guarantees |
 | **Claude Sonnet 5 / Opus 5** | with an Anthropic API key |
 | **OpenAI-compatible** | anything speaking the `/chat/completions` format: OpenAI, a gateway, or llama.cpp and Ollama on this very machine |
-| **Claude Code (ACP)**, **Codex (ACP)** | the same line answered by an [agent](/en/agents) — the same session and transcript as the agent panel |
+| **Claude Code (ACP)**, **Codex (ACP)**, an agent you added | the same line answered by an [agent](/en/agents); the conversations with it are kept in **Chats** |
+
+It is chosen in **Configuration ▸ Assistant ▸ ⌘E Line**, the **Assistant**
+list. The menu on the line itself — the icon left of the field — switches agents
+and the model an agent answers with, sets which bookmarks are searched, and
+carries **Configuration…** and **New Conversation**.
 
 **OpenAI-compatible** is one menu entry rather than a list of models because what
-it points at is a setting: `six://configuration` ▸ **Assistant** holds an endpoint, a
-model name and a key. A local server wants no key at all, and an empty field
+it points at is a setting: `six://configuration` ▸ **Assistant** ▸ **⌘E Line** holds an
+endpoint, a model name and a key. A local server wants no key at all, and an empty field
 means no authorization header is sent. The Anthropic key goes in the same place.
 
 The verbs are answered by whatever answers the `⌘E` line, an agent included. One
@@ -127,12 +138,13 @@ a window, navigate, read a page, summarize it, search the web, close or move a
 window, search your bookmarks. So "find flights and open three sites side by
 side" is not a metaphor; it is what happens.
 
-Which bookmarks it looks in is set by **Bookmarks ▸ Search In**, or by
-the same picker in the model menu: this profile only, or all of them.
+Which bookmarks it looks in is set by **Configuration ▸ General ▸ Bookmarks ▸
+Search In**, or by the same choice in the line's menu: **This Profile** or **All
+Profiles**.
 
 ## The research command
 
-`research: …` or `/research …` on the `⌘E` line starts
+`research: …` on the `⌘E` line, or `/research` and the question after it, starts
 [deep research](/en/research): a workspace of sources and a document the agent
 writes into.
 

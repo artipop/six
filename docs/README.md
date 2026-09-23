@@ -40,7 +40,7 @@ from [`six/Localizable.xcstrings`](../six/Localizable.xcstrings) rather than tra
 | [certificates.md](certificates.md) | extra certificate authorities: the Минцифры CA six ships switched off, what a switch actually does, and importing your own |
 | [bookmarks.md](bookmarks.md) | bookmarks: readable Markdown copies per profile, on-device embeddings, search from the assistant and MCP |
 | [assistant.md](assistant.md) | the assistant: verbs at a selection, at a caret and on the ⌘E line, over Foundation Models |
-| [agents.md](agents.md) | the ACP client and the agent panel |
+| [agents.md](agents.md) | the ACP client, agents on the ⌘E line, and the chat history (`six://chats`) |
 | [devtools.md](devtools.md) | Web Inspector on six's pages, and the console/network capture the agent tools read |
 | [logging.md](logging.md) | what six says happened: the unified log, the file under `~/Library/Logs`, and the levels |
 | [mcp.md](mcp.md) | `six --mcp`: the browser as an MCP server, and its tools |

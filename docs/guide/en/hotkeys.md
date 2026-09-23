@@ -120,7 +120,19 @@ workspaces, not other profiles — and this run only.
 | `⌘⌫` | forget the visit |
 | `Esc` | close |
 
-## The agent panel
+## The ⌘E line
+
+| | |
+|---|---|
+| `↩` | ask; on an empty line, apply the answer already there |
+| `←` `→` | at a field or a selection, choose an action |
+| `/` | the actions as a list; with an agent, your earlier conversations too |
+| `↑` `↓` | after `/`, walk the conversations found |
+| `⇥` | after `/`, put the action found into the line as a chip |
+| `⌘⌫` | on an empty line, take the action's or the conversation's chip off |
+| `Esc` | put the line away |
+
+## A chat window
 
 | | |
 |---|---|

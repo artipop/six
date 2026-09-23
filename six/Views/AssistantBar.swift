@@ -45,6 +45,13 @@ struct AssistantBar: View {
     @State private var chosen = 0
     /// Which chat of the `/` list Return would pick; nil while the caret is only in the field.
     @State private var chosenChat: Int?
+    /// Where the line stands in the window, for the scroll monitor (`reportFrame`).
+    @State private var frame: CGRect = .zero
+
+    private func reportFrame() {
+        guard place == .bottom else { return }
+        NiriScrollMonitor.overlays["assistant.line"] = isShown ? frame : nil
+    }
 
     private var isAgent: Bool { assistant.settings.model.agentDefinition != nil }
 
@@ -110,6 +117,11 @@ struct AssistantBar: View {
             if assistant.answer == nil, !hasCaret { assistant.lineLostFocus(at: place) }
         }
         .onChange(of: verbs.count) { chosen = min(chosen, max(0, verbs.count - 1)) }
+        // The scroll monitor cannot tell the line from the strip by its views, so it is told where
+        // the line stands — here at the bottom of the rail; beside a field `AnchoredAssistantLine`
+        // says it, from outside its own hosting view where `.global` is still the window's.
+        .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }) { frame = $0; reportFrame() }
+        .onChange(of: isShown) { reportFrame() }
         .onChange(of: question) { chosenChat = nil }
     }
 
@@ -427,8 +439,13 @@ struct AnchoredAssistantLine: View {
                 line(growsDown: below, width: width)
             }
             .frame(width: width, height: height)
+            // Inside the offset, so the frame is where the line is drawn and not where it was laid out.
+            .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }) {
+                NiriScrollMonitor.overlays["assistant.line.\(tab.id)"] = $0
+            }
             .offset(x: x, y: min(max(0, y), max(0, size.height - height)))
         }
+        .onDisappear { NiriScrollMonitor.overlays["assistant.line.\(tab.id)"] = nil }
         // What the line is about, put back in the page as well: the field collapsed its selection
         // to a caret when the keyboard left, and a person looking at a line about "four words" has
         // to be able to see which four. The page kept the nodes; six only kept the text.

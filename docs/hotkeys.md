@@ -204,15 +204,23 @@ written into the page's DOM.
 
 | | |
 |---|---|
-| `↩` | ask; the answer streams under the line |
-| `↩` in the API-key sheet | done |
+| `↩` | ask; the answer streams under the line. On an empty line, apply the answer |
+| `←` `→` | walk the verb chips beside a field or a selection (`chipKey`, only while the field is empty) |
+| `/` | the verbs as a list, narrowed by what follows; with an agent chosen, matching chats as well (`chatMatches`) |
+| `↑` `↓` | after `/`, walk the chats — into the list from the field's side, out again the other way (`chatKey`) |
+| `⇥` | after `/`, lock the first verb into a chip |
+| `⌘⌫` | on an empty field, take the verb chip, or the chat chip, off |
+| `Esc` | put the line away |
 
-## Agent panel
+## Chat window (`six://chat/<id>`)
 
 | | |
 |---|---|
 | `↩` | send |
 | `⌘↩` | send (also while the field is multi-line) |
+
+The agent panel is not reachable from the interface at the moment (`toggleAgentPanel` is published and nothing reads
+it); its keys were the chat window's.
 
 ## Overview
 

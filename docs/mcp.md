@@ -14,9 +14,9 @@ agent ──stdio──▶ six --mcp ──unix socket──▶ six.app (MCPHost
   `SIX_MCP_SOCKET`). `MCPHost` gives each client its own `JSONRPCConnection` — the same transport the ACP client
   uses — and `MCPServer` answers `initialize`, `ping`, `tools/list`, `tools/call` on the main actor. The tools
   themselves live in `BrowserToolCatalog` (`six/Tools/`), shared with the ⌘E assistant (see [assistant.md](assistant.md)).
-- The agent panel passes the server to every ACP session (`session/new` → `mcpServers: [{name: "six",
+- `AgentSessionStore` passes the server to every ACP session (`session/new` → `mcpServers: [{name: "six",
   command: <this binary>, args: ["--mcp"]}]`), so Claude Code sees the tools as `mcp__six__*` and asks for permission
-  through the panel as for any other tool — the panel says them differently, see [names](#names).
+  in the ⌘E card as for any other tool — six says them differently, see [names](#names).
 
 ## Names
 

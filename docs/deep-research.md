@@ -20,9 +20,11 @@ A native loop over the ⌘E model for machines without an agent is in [todo.md](
 
 ## Starting a run
 
-- **Research…** in the agent panel: the question, how many sources to open, and the preset itself — editable,
-  with a reset; both live in settings.
-- `research: …` or `/research …` on the `⌘E` line.
+- `research: …` on the `⌘E` line, or the `research` verb: `/research` locks it into a chip and what is typed after
+  it is the question (`AssistantBar.runLocked`). The run goes to the line's agent, else the session store's.
+- The preset and the number of sources live in settings (`ResearchPreset`); their editor, **Research…**
+  (`ResearchSheet`), was in the agent panel, which has no way in at the moment ([agents.md](agents.md)) — so today
+  they are whatever was last saved, or the defaults.
 
 `ResearchCoordinator.start` (`six/Research/`) creates a workspace named after the question (unique within the
 profile), a document window in it with the question as its `# ` title and the preview on, and a `ResearchRun` —

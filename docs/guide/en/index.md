@@ -23,7 +23,7 @@ features:
     details: Filter lists are compiled into WebKit's own rules, so a blocked request never leaves and nothing runs in the page.
     link: /en/blocking
   - title: The assistant and the agents
-    details: ⌘E asks a model about the page; the agent panel brings in Claude Code or Codex, and they drive the browser themselves.
+    details: ⌘E asks a model about the page — or Claude Code and Codex, which drive the browser themselves; the conversations with them are kept in Chats.
     link: /en/agents
   - title: Bookmarks found by meaning
     details: A saved page stays a readable copy on disk, is found by what it was about, and comes back on its own under the search field.

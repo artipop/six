@@ -414,6 +414,12 @@ final class AssistantStore {
         session = nil
         sessionModel = nil
         answer = nil
+        // The agent's side of it: the next question is a chat of its own, not the one the line was
+        // going on with.
+        startsAgentChat = true
+        #if os(macOS)
+        continuedChat = nil
+        #endif
     }
 
     // MARK: The prompt

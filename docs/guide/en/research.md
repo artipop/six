@@ -20,9 +20,9 @@ started it knows which.
 
 ## Starting a run
 
-- **Research…** in the agent panel: the question, how many sources to
-  open, and the preset itself — visible and editable, with a **Reset**;
-- `research: …` or `/research …` on the `⌘E` line.
+On the `⌘E` line: `research: …` and the question, or `/research` — the action
+stands in the line as a chip — then the question and `⏎`. The run is carried out
+by the agent chosen for the line.
 
 A workspace named after the question is created, with a document in it carrying
 the question as its heading, and the agent is sent the task.
@@ -35,8 +35,9 @@ A question asked while a research workspace is on screen is a **follow-up** and
 continues the same document.
 
 ::: tip The bounds are words, not numbers in code
-How many sources to open and how deep to go are sentences in a preset you can see
-and rewrite.
+How many sources to open and how deep to go are sentences in the request's
+preset, not numbers in code. The preset cannot be edited from the interface right
+now: it was edited in the agent panel, which is not there for the moment.
 :::
 
 ## Documents

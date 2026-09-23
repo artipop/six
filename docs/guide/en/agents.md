@@ -1,21 +1,34 @@
 # Agents
 
-The agent panel buttons and shortcut are temporarily disabled. An agent here is Claude Code or Codex, running on
+An agent here is Claude Code, Codex or another agent that speaks ACP, running on
 your machine and able to **drive the browser**: open windows into a named
 workspace, read pages, summarize them, move and close windows.
+
+You talk to an agent through the [`⌘E`](/en/assistant) line: choose it instead
+of a language model, and it is the one that answers there. Every conversation
+with an agent is kept, and they are all on the [**Chats**](#chats) page.
 
 The conversation goes over ACP (the Agent Client Protocol), the same protocol
 those agents speak to editors. VI hands the agent itself as an MCP server, so the
 browser's tools appear in the agent's hands on their own.
 
+## Choosing an agent
+
+- **Configuration ▸ Assistant ▸ ⌘E Line**, the **Assistant** list: Claude Code,
+  Codex or an agent you added. Under it, the **Model** the agent answers with;
+  the agent supplies the list, and the choice is kept per agent.
+- Or on the line itself: the icon left of the field opens a menu with the same
+  agents and their models.
+
+On the first launch the same is asked on the **Welcome** page.
+
 ## What has to be installed
 
-The adapters live in **Configuration ▸ Assistant ▸ Adapters**, which shows the
-**adapter's** version and, under it, the version of `claude` or `codex` itself —
-two different numbers, since an adapter carries its own copy of the CLI — and
-carries the **Install** and **Update** buttons. The panel says
-nothing while all is well, and one line with a **Set Up…** button when it is
-not.
+All of it is on the **Configuration ▸ Assistant ▸ Agents** tab. Claude Code and
+Codex each have a section there: the **adapter's** version and, separately, the
+version of `claude` or `codex` itself — two different numbers, since an adapter
+carries its own copy of the CLI. The **Install** and **Update** buttons are there
+too, with how to log in and the **Copy Command** and **Open Terminal** buttons.
 
 It checks your shell's environment:
 
@@ -25,71 +38,76 @@ It checks your shell's environment:
 | a newer one is out | the row says so, with an **Update** button |
 | only `npm` is there | **Install** puts the adapter in globally; until then it starts through `npx` |
 | no Node.js | a link to the download page |
-| no `claude` / `codex` itself | the panel warns: *Install Claude Code and run `claude` once to log in* |
+| no `claude` / `codex` itself | the section warns, and says how to install it and log in |
 
 It checks an interactive login shell, so nvm and homebrew from `.zshrc` count.
+The `⌘E` line checks nothing about an agent in advance: if it fails to start, the
+reason arrives in place of the answer.
+
+**Add Agent…** connects any other ACP agent: a name, an executable and its
+arguments, one per line. **Edit…** and **Remove** are in its section.
 
 ## What it looks like
 
-The panel carries the transcript: messages, plans, tool calls and permission
-requests. A tool call is named readably — `six open_window`: the server, a space,
-the method. A title the agent wrote itself (`Read`, `Bash`, a whole sentence) is
-left alone.
+An agent's answer arrives in the card above the line like any other. While it
+works, the tool it is using is named next to the model — readably: `six
+open_window`, the server, a space, the method. A title the agent wrote itself
+(`Read`, `Bash`, a whole sentence) is left alone.
 
-When the agent asks for permission, buttons appear in the transcript. Until you
-answer, it waits. Under the tool's name are its arguments, one row each: name
-and value. A call without arguments shows none.
+When the agent asks for permission, the buttons appear inside the answer card.
+Until you answer, it waits. Under the tool's name are its arguments, one row
+each: name and value.
 
-An "always" answer (allow or reject) is kept for that agent and that tool —
-across a model switch and a relaunch of VI — and the call is not asked about
-again. **Ask Again** under **Agents → Tool Calls** in the configuration forgets
-all of them at once.
+An "always" answer (allow or reject) is remembered for that agent and that tool —
+across a model switch and a relaunch of VI. That call never asks again. How many
+of them there are is on the **Agents** tab under **Tool Calls**; **Ask Again**
+forgets them all.
 
 ## Where the agent works
 
-By default in the profile's scratchpad (`Profiles/<name>/Scratchpad`), and the
-panel says so: *`<name>` scratchpad*. **Choose…** picks another directory; it is
-stored on the profile, shown in full, and the `×` goes back to the scratchpad.
+In the profile's scratchpad folder (`Profiles/<name>/Scratchpad`): every profile
+has its own, and switching profiles switches the folder — the next question
+reconnects the agent to the new one.
 
 The scratchpad is deliberately **not** the bookmarks folder: a question about a
-saved page should go through the search rather than through the files next door.
+saved page should go through search by meaning, not through a crawl of the
+files next to it.
 
-Switching profiles switches the folder; the next prompt reconnects the agent
-there.
+## Conversations on the ⌘E line
+
+Every time the line is called up it starts a new conversation; follow-ups asked
+while it stays open go into the same one. **New Conversation** in the line's
+menu starts a new one without closing it.
+
+To go back to an older conversation, type `/` and a word of its title into the
+line: matching chats appear under the verbs (a bare `/` shows the five latest).
+`↑` `↓` walk them and `↩` picks one. The chosen chat stands in the line as a
+chip, its last question and answer above it, and the next question continues
+that conversation — with the agent it was had with. ↗ on the chip opens the chat
+as a window; clicking the chip or `⌘⌫` goes back to a new conversation.
+
+The agent remembers a conversation across a relaunch of VI: the session goes on
+where it stopped. When the agent cannot do that, or has lost the session, a new
+one starts and the saved transcript stays above it as a record.
 
 ## Chats
 
-A conversation belongs to an agent in a folder: switch the profile or the agent
-and the chat on show switches too. Chats are saved with the rest of the session,
-and on the next launch VI asks the agent to resume the previous one. When it
-cannot, or the session is gone, a new one starts and the old transcript stays
-above it as a record.
-
-✎ in the panel header starts a new chat, and the old one goes to **Chats**.
-
-### Chats
-
-Every conversation — in the panel and on the `⌘E` line — is on the **Chats**
-page (`⌘⇧E`, View ▸ Chats, or the clock in the panel header). It is not a
-sidebar but a column of the rail like any other page: it opens beside what you
-are doing and closes when you have found what you wanted. Chats are grouped by
-day; the search looks through their titles, and **All folders** shows the ones
-from other folders too.
+Every conversation with an agent is on the **Chats** page (`⌘⇧E`, or View ▸
+Chats). It is not a sidebar but a column of the rail like any other page: it
+opens beside what you are doing and closes when you have found what you wanted.
+Chats are grouped by day; the search looks through their titles, and **All
+folders** shows the ones from other folders too. **New Chat** opens an empty
+one.
 
 A chat opens as a window of its own to the right, so two can stand side by
 side. Write in it and it becomes its agent's current chat, and VI asks the agent
 to resume the same session. A chat from another folder can be read but not
-continued.
+continued. Right-click a chat for **Delete**; the agent keeps its session.
 
 Below, **Other sessions** lists what the agents themselves remember about the
 folder — sessions started from Claude Code's or Codex's own command line, say.
-Each one says which agent it was with. Open one and press
-**Load from the Agent**, and the agent sends its history over. Right-click a
-chat for **Delete**; the agent keeps its session.
-
-**Model** is selected in **Configuration ▸ Assistant ▸ Responses**. The selected agent supplies the list; preferences are saved per agent. No extra default option is inserted: an agent-provided `default` appears once.
-
-**Add Agent…** connects another ACP agent: enter its name, executable and arguments, one per line. Then select the agent in Responses to have it answer through `⌘E`.
+Each one says which agent it was with. Open one and press **Load from the
+Agent**, and the agent sends its history over.
 
 ## What an agent can do in the browser
 
@@ -105,29 +123,13 @@ of a **profile**. Everything defaults to what is on screen.
 | write | create a document, write into it section by section, cite a source, highlight the paragraphs that answer a question |
 | bookmarks | list, search by meaning, read, add, refresh, remove |
 
-The agent sees the console and the network only while **Configuration ▸ Assistant ▸ Access to Page Console and Network** is on — see [developer tools](/en/devtools).
-
-## The same agent on the ⌘E line
-
-The `⌘E` model menu has **Claude Code (ACP)** and **Codex (ACP)**. Permission
-requests appear inside the answer card, and the tool the agent is using is named
-next to the model.
-
-Every time the line is called up it starts a new chat; follow-ups asked while it
-stays open go into the same one. The previous chat goes to **Chats**, and the
-agent panel shows the new one.
-
-To go back to an older chat, type `/` and a word of its title into the line:
-matching chats appear under the verbs (a bare `/` shows the five latest). `↑`
-`↓` walk them and `↩` picks one. Pick one and it stands in the line as a chip, the last question and answer above it,
-and the next question continues that chat. ↗ on the chip opens the chat as a
-window; clicking the chip or `⌘⌫` goes back to a new chat.
+The agent sees the console and the network only while **Configuration ▸ Assistant ▸ ⌘E Line ▸ Access to Page Console and Network** is on — see [developer tools](/en/devtools).
 
 ## The browser as an MCP server for anything else
 
 The same binary run as `six --mcp` is an MCP server over the running
 application. Any MCP client can connect to it and drive the browser the way the
-panel does. For example:
+agent on the `⌘E` line does. For example:
 
 ```sh
 claude mcp add six -- /Applications/six.app/Contents/MacOS/six --mcp

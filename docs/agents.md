@@ -5,17 +5,26 @@ over stdio to an adapter process.
 
 - `JSONRPCConnection` — framing and request/response correlation over the pipes.
 - `ACPAgent` — the adapter process (launch definition, environment, lifecycle).
-- `ACPClient` — an actor speaking `initialize`, `session/new`, `session/prompt`, `session/cancel`, `session/set_mode`;
-  it receives streaming `session/update` notifications and serves `session/request_permission` and
+- `ACPClient` — an actor speaking `initialize`, `session/new`, `session/load`, `session/list`, `session/prompt`,
+  `session/cancel`, `session/set_mode` and `session/set_model` / `session/set_config_option`; it receives streaming `session/update` notifications and serves `session/request_permission` and
   `fs/read_text_file` / `fs/write_text_file` back to the agent, restricted to the session cwd.
 - `AgentSessionStore` — the view model: transcript items, plans, permission prompts, working directory, model override.
   `session/new` also hands the agent the browser itself as an MCP server (`six --mcp`, see [mcp](mcp.md)), so it can
   open windows, read and summarize pages.
+- `AgentChatArchive`, `AgentSessionCatalog` (`AgentChatHistory.swift`) — past chats on disk, and the sessions the
+  agents themselves keep for a folder ([History](#history)).
+
+**Where a person meets it.** The ⌘E line, with an agent chosen for it ([assistant.md](assistant.md)), and the chat
+pages `six://chats` / `six://chat/<id>`. The agent panel (`AgentPanel`, an inspector on `ContentView`) is still in the
+tree but has no way in: `toggleAgentPanel` is published as a focused value and no command reads it, so only
+`SIX_ACP_SELFTEST` presents it. What it owned that nothing else offers is written down where it matters — the working
+directory picker below, and the research preset ([deep-research.md](deep-research.md)). `TranscriptRow` and
+`PermissionView` live in its file and are what the chat page and the ⌘E card draw with.
 
 ## What a tool call is called
 
 An agent namespaces the tools it got from an MCP server: Claude Code hands them to the model — and to us — as
-`mcp__six__open_window`. That prefix is the client's own disambiguation, not the protocol's, so the panel takes it
+`mcp__six__open_window`. That prefix is the client's own disambiguation, not the protocol's, so six takes it
 apart before showing anything: `AgentToolName.display` drops `mcp__` and turns `__` into a space, leaving
 **`six open_window`** — the server, then the method. The rewrite happens once, where the notification lands
 (`AgentSessionStore.handle`, and the permission request beside it), so the transcript, the permission prompt, the
@@ -24,8 +33,7 @@ through untouched. See [mcp.md](mcp.md#names) for the naming on the wire.
 
 ## Permission prompts
 
-`session/request_permission` becomes `AgentPermissionPrompt`, drawn by `PermissionView` in the panel and in the ⌘E
-card. The arguments (`rawInput`) go through `ToolInputView`: a top-level object is rows of key and value, strings as
+`session/request_permission` becomes `AgentPermissionPrompt`, drawn by `PermissionView` in the ⌘E card and on the chat page. The arguments (`rawInput`) go through `ToolInputView`: a top-level object is rows of key and value, strings as
 text, nested values as compact JSON; `{}` and `null` draw nothing. Allow options are `.borderedProminent`, reject
 options `.bordered` with a destructive role — a tinted `.bordered` button was too faint on the material over a page. **Cancel** (outcome `cancelled`, which ends the
 turn — the composer's stop does the same) appears only when the agent offers no reject option.
@@ -44,9 +52,9 @@ in Configuration → Agents clears the setting.
 Each profile has a folder of its own — `~/Library/Application Support/org.deffun.six/Profiles/<name>` — and the agent works in
 its `Scratchpad/` by default, created on first use: a place for whatever a run writes, next to (not inside) the
 profile's `Bookmarks/`, so saved pages are reached through the MCP tools and their search rather than by grepping the
-working directory ([bookmarks.md](bookmarks.md)). The panel only says "*Personal* scratchpad" then; **Choose…** picks
-another directory, which is stored on the profile (`Profile.workingDirectoryPath`), shown in full, and can be dropped
-with ⓧ to go back to the scratchpad. Switching profiles switches the folder; the next prompt reconnects the agent
+working directory ([bookmarks.md](bookmarks.md)). The panel said "*Personal* scratchpad" then, and its **Choose…** picked
+another directory, stored on the profile (`Profile.workingDirectoryPath`) and dropped with ⓧ. With the panel out of
+reach there is no picker in the interface: a folder chosen before stays, and a new one cannot be set. Switching profiles switches the folder; the next prompt reconnects the agent
 with the new `cwd`.
 
 ## Chats and sessions
@@ -60,14 +68,15 @@ sessions or the id is gone, a new session starts and the saved transcript stays 
 
 ### History
 
-✎ in the panel header, and **New Chat** on the history page, put the current chat *aside* rather than forgetting it:
+A new chat — **New Chat** on the history page, the ⌘E line called up again, **New Conversation** in the line's menu —
+puts the current chat *aside* rather than forgetting it:
 its transcript goes to `Chats/<id>.json` under Application Support (`AgentChatArchive`) and the snapshot keeps only a
 summary in `AgentSnapshot.past` — id, agent, folder, session id, title, dates. Not the transcript: the state file is
 rewritten on every autosave and tool calls carry whole diffs, so a year of history there would be a year rewritten
 every few seconds. `AgentChat.id` is six's own name for a conversation, separate from the session id, which is the
 agent's, may be missing, and changes when a session cannot be resumed.
 
-The history is a page and not a sidebar: `six://chats` (`AgentChatsPage`, ⌘⇧E, the clock in the panel header) lists
+The history is a page and not a sidebar: `six://chats` (`AgentChatsPage`, ⌘⇧E, View ▸ Chats) lists
 the profile's folder, or every folder, grouped by day; a chat opens as its own column, `six://chat/<id>`
 (`AgentChatPage`) — `BuiltInPage.isPerSection`, so two chats are two windows and the same one asked for twice is
 focused. Typing there calls `AgentSessionStore.open`, which makes that chat the current one for its agent in its
@@ -119,7 +128,7 @@ the code. A spent ChatGPT subscription used to read as a bare code on screen whi
 When the error carries no sentence of its own, and the agent said nothing in the turn, the last five lines the CLI
 wrote to stderr go with it — that is then the only account of the refusal. When the agent did speak, its own words are
 the answer: the ⌘E line shows them and not the failure, because a refusal it explained in one line ("You've hit your
-session limit · resets 7:10pm") arrives with a page of transport under it. The code stays in the panel's transcript and
+session limit · resets 7:10pm") arrives with a page of transport under it. The code stays in the chat's transcript and
 in the log. Copy takes whichever line is on screen.
 
 ## Debugging
@@ -141,10 +150,10 @@ then forgotten, found in the agent's list and replayed with `session/load`. One 
 
 Adapters are npm packages, resolved by `AgentToolchain` in the environment of an interactive login
 shell (`zsh -l -i`, so `.zshrc` — where nvm usually lives — counts). They are **shown and installed on
-`six://configuration` ▸ Assistant ▸ Adapters** (`AgentToolchainSection`), not in the panel: installing
-one is a setting, and the panel is where work happens. The panel keeps one line
-(`AgentToolchainHint`) for when something is wrong — the adapter missing, behind, or the CLI not
-found — with **Set Up…** to that page, and says nothing at all when everything is in order:
+`six://configuration` ▸ Assistant ▸ Agents** (`AgentToolchainRow`, one section per built-in agent, with the login
+command beside it): installing one is a setting. `AgentToolchainHint` — one line with **Set Up…** for when something
+is wrong — was the panel's; the ⌘E line checks nothing in advance for an agent (`AssistantSettings.trouble` answers
+nil, since only starting it can say) and a failed start arrives as the answer:
 
 - adapter on `PATH` (`claude-agent-acp` / `codex-acp`) → used directly, with its version read from
   `<adapter> --version` and compared against `npm view <package> version`; when it is behind, the row
@@ -156,8 +165,8 @@ found — with **Set Up…** to that page, and says nothing at all when everythi
   beside the name is;
 - only `npm` → **Install** runs `npm install -g <adapter>@latest`; until then the agent starts via
   `npx -y <adapter>@latest`;
-- no Node.js → the panel links to the download page;
-- the underlying CLI (`claude` / `codex`) must be installed and logged in — the panel warns if it isn't.
+- no Node.js → the row links to the download page;
+- the underlying CLI (`claude` / `codex`) must be installed and logged in — the row warns if it isn't.
 
 **An adapter is not a shim, and this cost a session.** It carries its own copy of the CLI it drives:
 `codex-acp` 1.1.14 depends on `@openai/codex` 0.147, so with Codex 0.154 installed and current on the
@@ -165,7 +174,7 @@ machine, six's agent still answered a request for today's model with `The 'gpt-6
 a newer version of Codex`. Nothing on screen said which of the two was old, and `npx -y <package>`
 does not help: it reuses whatever version its cache holds, which here was a year of releases behind.
 Hence `@latest` in both the npx arguments and the install command, and the version beside the
-adapter's name in the panel.
+adapter's name on the Agents tab.
 
 Manual smoke test:
 
@@ -178,7 +187,7 @@ claude-agent-acp   # then paste, one line each:
 ```
 
 Claude Code refuses to run nested inside another Claude Code session, so `CLAUDECODE` is stripped from the agent
-environment. Models are selected in Configuration ▸ Assistant ▸ Responses. The picker shows only options returned by the agent, including its own default option when provided; an unset preference displays the current model from session setup. The list comes from ACP session setup: `configOptions` with category `model`, falling back to the older `models.availableModels` response. Selection is applied with `session/set_config_option` or `session/set_model` before prompting, including resumed sessions. See the [ACP configuration protocol](https://agentclientprotocol.com/protocol/v1/session-config-options).
+environment. Models are selected in Configuration ▸ Assistant ▸ ⌘E Line, and in the line's own menu. The picker shows only options returned by the agent, including its own default option when provided; an unset preference displays the current model from session setup. The list comes from ACP session setup: `configOptions` with category `model`, falling back to the older `models.availableModels` response. Selection is applied with `session/set_config_option` or `session/set_model` before prompting, including resumed sessions. See the [ACP configuration protocol](https://agentclientprotocol.com/protocol/v1/session-config-options).
 
 Model discovery creates a separate session, sends no prompt and exposes no browser tools or filesystem access. It closes the adapter after reading the list, with a 30-second deadline. Preferences are stored per agent in `agents.models`; the old `agent.model` setting is used only for Claude Code.
 

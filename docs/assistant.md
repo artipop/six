@@ -6,8 +6,10 @@ Six's assistant is not a chat. It is a **catalog of verbs** (`AssistantAction`) 
 case is a row in that catalog — a title, what it says to the model, and where the answer lands — so
 adding one adds no interface at all.
 
-The one chat left in six is the ACP agent panel (currently hidden from the UI) ([agents.md](agents.md)), where a
-transcript is the work being done rather than a way to ask a question.
+What keeps a transcript is an agent: with Claude Code, Codex or another ACP agent chosen for the line, what is asked
+there is a conversation, one per summons, kept and findable afterwards — on the line after a `/`, and on the
+`six://chats` page ([agents.md](agents.md#history)). The agent panel that used to carry that transcript has no way in
+at the moment.
 
 ## Why not a chat
 
@@ -133,8 +135,26 @@ arrives mid-answer reads like the notice and carries the same button — where i
 
 **At the bottom there are no chips**, because with nothing pointed at there is one verb and the line
 is for asking. `/` still works everywhere: it lists what applies and narrows by title or id, so
-`/sum` works on any layout, and Return runs the first one left. Return with nothing typed applies the
-answer that is already there.
+`/sum` works on any layout, and Return runs the first one left; Tab locks it into a chip instead, and
+what is typed after it is the verb's argument. Return with nothing typed applies the answer that is
+already there.
+
+**With an agent, `/` finds chats as well.** Under (or over) the verbs, the chats of the current folder whose title
+has every word typed after the slash, five newest for a bare `/` (`AgentSessionStore.chats(matching:)`). ↑/↓ walk
+them from the field's side and Return picks one; a click does too, and Return picks the first when no verb matches.
+The picked chat is `AssistantStore.continuedChat`: a chip in the field (↗ opens `six://chat/<id>`, a click or ⌘⌫
+takes it off), the answer strip shows its last question and answer, and the next question goes on in it with its own
+agent. It lasts for the summons, like the fresh chat a summons starts ([agents.md](agents.md#history)).
+
+**A scroll on the line belongs to what is under it.** The line stands over the strip without being part of it, and
+where it is not a scrolling answer it is neither a page nor a list, so `NiriScrollMonitor` took it for layout chrome
+and switched workspaces — with the pointer on the question, or on the Copy row under an answer. Both of its places
+report their frame to `NiriScrollMonitor.overlays` (the bottom one from `AssistantBar`, the anchored one from outside
+its hosting view, where `.global` is still the window's), and a scroll inside one is handed to the front-most
+`WKWebView` or `NSScrollView` under the pointer, or spent. Only the line: the curtains at the ends of the rail are
+hosted over pages too, and a swipe there is meant for the rail. A synthetic wheel posted into the app's queue did not reach
+the monitor (tried: a `CGEvent` scroll through `NSApp.postEvent`, no trace line), so this one is checked by hand:
+`SIX_UI_DEBUG=1` prints `scroll on the ⌘E line → <view>` for every event handed on.
 
 **Away means out of the key-view loop.** The bottom line stays mounted while it is away and was
 only transparent, so Tab on a start page landed in it and showed it. Its controls are disabled while
@@ -153,11 +173,12 @@ which is the difference between an assistant and a keylogger.
 ## Switching all of it off
 
 `Configuration ▸ Assistant ▸ Use Language Models and Agents` (`ConfigurationStore.isAIEnabled`) is one switch
-over everything in this document, and over the agent panel, deep research and six's own MCP server.
+over everything in this document, and over agents, deep research and six's own MCP server.
 Off is not a greyed-out button:
 
-- `AssistantBar` is not in the view hierarchy, so `focusAssistant` is nil and ⌘E's menu item is
-  disabled with it; the agent inspector is not presented either;
+- `AssistantBar` is not in the view hierarchy, so ⌘E has nothing to raise — the menu item stays enabled and does
+  nothing, because a `.disabled` on a `Commands` item is decided once (AGENTS.md); the agent inspector is not
+  presented either;
 - `PageFocusStore.isEnabled` goes false, which pulls the watcher **out of the pages**: the message
   handler is removed at once and the user script is dropped from every window's controller, so a
   page loaded after that has nothing of six's watching what is selected in it;
@@ -186,10 +207,16 @@ Unchanged, and still the reason everything runs through Foundation Models' `Lang
 | Private Cloud Compute | `PrivateCloudComputeLanguageModel` |
 | Claude Sonnet 5 / Opus 5 | `ClaudeLanguageModel` from [ClaudeForFoundationModels](https://github.com/anthropics/ClaudeForFoundationModels) |
 | OpenAI-compatible | `ChatCompletionsLanguageModel` from Apple's [foundation-models-utilities](https://github.com/apple/foundation-models-utilities) |
+| Claude Code, Codex, a custom agent | an ACP session (`AgentSessionStore.prompt`), not a `LanguageModelSession` |
 
-The ⌘E line can still be answered by an ACP agent (the menu's second section), and `research: …`
-still starts a deep-research run ([deep-research.md](deep-research.md)). Both stream into the same
-one-answer strip; an agent's permission request appears inside it, as it does in the panel.
+The choice is `ModelChoice`, stored as `assistant.model` in the settings table (`AssistantSettings.providerTag`; a
+custom agent is `acp:custom` plus `agents.selectedCustom`). It is made in Configuration ▸ Assistant ▸ ⌘E Line; the
+line's own menu (`ModelPopover`, a popover and not an `NSMenu`, so picking an agent does not close it before its model
+can be picked) offers only the agents, the chosen agent's models, the bookmark scope, **Configuration…** and **New
+Conversation** — which drops the language-model session and, for an agent, makes the next question a chat of its own.
+
+`research: …` starts a deep-research run ([deep-research.md](deep-research.md)). An agent's answer and a run both
+stream into the same one-answer strip, and an agent's permission request appears inside it.
 
 **A verb goes wherever the line goes, the agent included**, and that took three tries to get right.
 Verbs were first hidden whenever the line was set to an agent, on the argument that a verb is a
@@ -220,9 +247,9 @@ the three for a single run.
 
 The provider is Apple's own `ChatCompletionsLanguageModel`, vendored into
 `six/Vendor/FoundationModelsUtilities/` for the reason the Claude bridge is (see
-[build.md](build.md)). `AssistantSettings` persists the model choice in `UserDefaults`; the
-Anthropic key is read from the settings field or `ANTHROPIC_API_KEY` and stored in `UserDefaults` —
-**development only**. `FoundationModelsCompatibility` probes the executor ABI at launch and disables
+[build.md](build.md)). `AssistantSettings` keeps the endpoint and the model name in the settings
+table; the two keys are read from the settings fields or `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` and stored in
+`UserDefaults`, out of the database — **development only**. `FoundationModelsCompatibility` probes the executor ABI at launch and disables
 both remote options with an explanation if the runtime and the SDK diverge.
 
 ## Watching it work

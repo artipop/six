@@ -44,6 +44,11 @@ final class NiriScrollMonitor {
     /// True when the gesture works without holding Mod (the overview has no page to scroll).
     var modifierOptional: () -> Bool = { false }
 
+    /// Where things stand over the strip without being part of it — the ⌘E line at the bottom of the
+    /// rail — in SwiftUI's window coordinates, by name. Written by the views themselves, which is why
+    /// it is static: they are drawn far from the strip that owns the monitor.
+    static var overlays: [String: CGRect] = [:]
+
     private var monitor: Any?
     private var clickMonitor: Any?
     private var accumulated: CGFloat = 0
@@ -103,7 +108,12 @@ final class NiriScrollMonitor {
         // (`NSEvent.ModifierFlags.heldByHand`).
         let flags = event.modifierFlags.intersection(.heldByHand)
         if flags != Self.modifier {
-            guard flags.isEmpty, isOverStrip(event), modifierOptional() || isOverLayoutChrome(event) else { return event }
+            guard flags.isEmpty, isOverStrip(event) else { return event }
+            if !modifierOptional(), let target = scrollTargetBeneathOverlay(event) {
+                target.scrollWheel(with: event)
+                return nil
+            }
+            guard modifierOptional() || isOverLayoutChrome(event) else { return event }
         }
 
         if event.timestamp - lastEventTime > idleReset { resetGesture() }
@@ -195,6 +205,54 @@ final class NiriScrollMonitor {
             view = current.superview
         }
         return true
+    }
+
+    /// A scroll over the ⌘E line belongs to what is under it. The line is not the layout's chrome,
+    /// but where it is not a scrolling answer it is not a page or a list either, so it fell through to
+    /// the workspace switch: the pointer on the question, or on the Copy row under an answer, and the
+    /// rail went to the next workspace. What the line itself scrolls (the answer's text) is an
+    /// `NSScrollView` and never reaches here. Only the line, by the frames it reports: the curtains at
+    /// the ends of the rail are hosted over pages too, and a swipe there is meant for the rail.
+    ///
+    /// Nil when the pointer is not on the line. On it with nothing scrollable beneath, the window's
+    /// content view: the event is spent and nothing moves, which is still better than a workspace
+    /// going by.
+    private func scrollTargetBeneathOverlay(_ event: NSEvent) -> NSView? {
+        guard let content = event.window?.contentView else { return nil }
+        let point = event.locationInWindow
+        let flipped = CGPoint(x: point.x, y: content.bounds.height - point.y)
+        guard Self.overlays.values.contains(where: { $0.contains(flipped) }),
+              let hit = content.hitTest(point), !Self.isScrollable(hit) else { return nil }
+        let target = Self.scrollable(at: point, in: content) ?? content
+        if Self.tracesClicks {
+            NiriLayout.trace("scroll on the ⌘E line → \(String(describing: type(of: target)))")
+        }
+        return target
+    }
+
+    private static func isScrollable(_ view: NSView) -> Bool {
+        var current: NSView? = view
+        while let view = current {
+            if view is WKWebView || view is NSScrollView || view is NSTextView { return true }
+            current = view.superview
+        }
+        return false
+    }
+
+    /// The front-most page or list under `point`. Later subviews are drawn over earlier ones, so the
+    /// walk goes from the back and the last match wins.
+    private static func scrollable(at point: NSPoint, in root: NSView) -> NSView? {
+        var found: NSView?
+        func walk(_ view: NSView) {
+            guard !view.isHidden, view.alphaValue > 0 else { return }
+            if view is WKWebView || view is NSScrollView {
+                if view.convert(view.bounds, to: nil).contains(point) { found = view }
+                return
+            }
+            view.subviews.forEach(walk)
+        }
+        walk(root)
+        return found
     }
 
     /// Discrete wheels have no phase to end a gesture on, so they are throttled by time instead.
