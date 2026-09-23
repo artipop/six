@@ -42,6 +42,10 @@ nonisolated enum MCPRegistry {
         struct Package: Sendable, Hashable {
             var command: String
             var arguments: [String]
+            /// The variables the publisher declared. One with no value is here with an empty string —
+            /// a name the person may have to fill in, not a value to pass. Optional ones too: the
+            /// registry's `isRequired` is often wrong or says "required unless the other one is set".
+            var environment: [String: String] = [:]
         }
     }
 
@@ -135,7 +139,13 @@ nonisolated enum MCPRegistry {
             return nil
         }
         arguments += (json["packageArguments"]?.arrayValue ?? []).flatMap(argument(from:))
-        return Entry.Package(command: command, arguments: arguments)
+        var environment: [String: String] = [:]
+        for variable in json["environmentVariables"]?.arrayValue ?? [] {
+            guard let name = variable["name"]?.stringValue, !name.isEmpty else { continue }
+            let value = variable["value"]?.stringValue ?? variable["default"]?.stringValue
+            environment[name] = value.flatMap { $0.contains("<") ? nil : $0 } ?? ""
+        }
+        return Entry.Package(command: command, arguments: arguments, environment: environment)
     }
 
     /// One declared argument. A value the publisher left for the user to fill in is skipped rather
@@ -170,7 +180,8 @@ nonisolated extension MCPRegistry.Entry {
             return MCPServerDefinition(id: id, name: display, url: url)
         }
         if let package {
-            return MCPServerDefinition(id: id, name: display, command: package.command, arguments: package.arguments)
+            return MCPServerDefinition(id: id, name: display, command: package.command,
+                                       arguments: package.arguments, environment: package.environment)
         }
         if let url = remotes.first {
             return MCPServerDefinition(id: id, name: display, url: url)

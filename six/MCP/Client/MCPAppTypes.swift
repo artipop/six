@@ -96,6 +96,8 @@ nonisolated struct MCPServerDefinition: Identifiable, Hashable, Codable, Sendabl
     var name: String
     var command: String = ""
     var arguments: [String] = []
+    /// Set on top of the login shell's environment — where a local server's API key goes. An empty
+    /// value is a name still waiting to be filled in, and is not passed at all.
     var environment: [String: String] = [:]
     /// A remote server's endpoint. When this is set the command is not used at all.
     var url: URL?
@@ -126,6 +128,8 @@ nonisolated struct MCPServerDefinition: Identifiable, Hashable, Codable, Sendabl
 
     /// A remote server, or a local process.
     var isRemote: Bool { url != nil }
+    /// The variables it was declared to need and has not been given.
+    var missingEnvironment: [String] { environment.filter { $0.value.isEmpty }.keys.sorted() }
     /// What to show for "where this is".
     var location: String { url?.absoluteString ?? shellCommandLine }
 

@@ -26,7 +26,8 @@ nonisolated final class MCPServerProcess: @unchecked Sendable {
     init(definition: MCPServerDefinition, environment: [String: String]) throws {
         self.definition = definition
         var env = environment
-        env.merge(definition.environment) { $1 }
+        // An empty value would blank a variable the shell does set — the name is a reminder, not a value.
+        env.merge(definition.environment.filter { !$0.value.isEmpty }) { $1 }
         guard let executable = Self.resolve(definition.command, in: env) else {
             throw JSONRPCError.internalError("\(definition.command) is not on the PATH")
         }

@@ -248,6 +248,9 @@ private struct MCPCatalogRow: View {
 private struct MCPFoundRow: View {
     @Environment(MCPAppStore.self) private var apps
     let entry: MCPRegistry.Entry
+    /// A package whose publisher declared a variable with no value — an API key, nearly always.
+    /// Added as it is, it would start and fail on the first call, so the form opens on it first.
+    @State private var needsEnvironment: MCPServerDefinition?
 
     var body: some View {
         HStack(spacing: 10) {
@@ -268,13 +271,17 @@ private struct MCPFoundRow: View {
             if isAdded {
                 Text("Added").font(.caption).foregroundStyle(.secondary)
             } else {
-                Button("Add") { if let definition = entry.definition() { apps.add(definition) } }
-                    .controlSize(.small)
-                    .disabled(entry.definition() == nil)
+                Button("Add") {
+                    guard let definition = entry.definition() else { return }
+                    if definition.missingEnvironment.isEmpty { apps.add(definition) } else { needsEnvironment = definition }
+                }
+                .controlSize(.small)
+                .disabled(entry.definition() == nil)
             }
         }
         .padding(.vertical, 3)
         .task { await probeIfCheap() }
+        .sheet(item: $needsEnvironment) { MCPAddServerSheet(editing: $0, isNew: true) }
     }
 
     private var isAdded: Bool {
@@ -333,6 +340,11 @@ private struct MCPServerRow: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
                     .help(server.location)
+                if !server.missingEnvironment.isEmpty {
+                    Label("Not set: \(server.missingEnvironment.joined(separator: ", "))", systemImage: "key")
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                }
                 MCPProbeBadge(probe: apps.probeResult(for: server))
             }
             Spacer(minLength: 12)
@@ -397,10 +409,13 @@ private struct MCPAddServerSheet: View {
     @Environment(\.dismiss) private var dismiss
     /// The server being changed, or nil when this is a new one.
     var editing: MCPServerDefinition?
+    /// `editing` is a registry entry being added, not something already saved.
+    var isNew = false
 
     @State private var name = ""
     @State private var isRemote = false
     @State private var commandLine = ""
+    @State private var environment = ""
     @State private var address = ""
     @State private var token = ""
     @State private var clientID = ""
@@ -411,7 +426,7 @@ private struct MCPAddServerSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(editing == nil ? "Add a Server" : "Edit a Server").font(.headline)
+            Text(editing == nil || isNew ? "Add a Server" : "Edit a Server").font(.headline)
             Form {
                 TextField("Name", text: $name, prompt: Text("weather"))
                 Picker("Kind", selection: $isRemote) {
@@ -426,13 +441,16 @@ private struct MCPAddServerSheet: View {
                 } else {
                     TextField("Command", text: $commandLine,
                               prompt: Text("npx -y @modelcontextprotocol/server-map --stdio"))
+                    TextField("Environment", text: $environment, prompt: Text("API_TOKEN=…"), axis: .vertical)
+                        .font(.body.monospaced())
+                        .lineLimit(2...8)
                 }
             }
             .formStyle(.grouped)
             HStack {
                 Spacer()
                 Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
-                Button(editing == nil ? "Add" : "Save", action: save)
+                Button(editing == nil || isNew ? "Add" : "Save", action: save)
                     .keyboardShortcut(.defaultAction)
                     .disabled(!isComplete)
             }
@@ -492,6 +510,9 @@ private struct MCPAddServerSheet: View {
         address = editing.url?.absoluteString ?? ""
         token = editing.headers["Authorization"].map { $0.replacingOccurrences(of: "Bearer ", with: "") } ?? ""
         commandLine = editing.shellCommandLine
+        environment = editing.environment.sorted { $0.key < $1.key }
+            .map { "\($0.key)=\($0.value)" }
+            .joined(separator: "\n")
         clientID = editing.oauth?.clientID ?? ""
         scopes = editing.oauth?.scopes.joined(separator: " ") ?? ""
         issuer = editing.oauth?.issuer?.absoluteString ?? ""
@@ -512,13 +533,33 @@ private struct MCPAddServerSheet: View {
             // `MCPServerProcess` — so a word with a semicolon in it is an argument, not a command.
             var words = commandLine.split(separator: " ").map(String.init)
             let command = words.isEmpty ? "" : words.removeFirst()
-            definition = MCPServerDefinition(id: identifier, name: name, command: command, arguments: words)
+            definition = MCPServerDefinition(id: identifier, name: name, command: command, arguments: words,
+                                             environment: Self.variables(in: environment))
         }
         // The secret follows the id, not the definition: an emptied field deletes it.
         MCPTokenStore.setClientSecret(definition.oauth == nil ? "" : clientSecret.trimmingCharacters(in: .whitespaces),
                                       for: identifier)
         apps.add(definition)
         dismiss()
+    }
+
+    /// `NAME=value`, one to a line, the way a `.env` file or a README writes them — so either can be
+    /// pasted as it is: an `export` in front and quotes around the value are dropped, and so is a
+    /// line with no `=` or one that starts with `#`.
+    private static func variables(in text: String) -> [String: String] {
+        var variables: [String: String] = [:]
+        for line in text.split(whereSeparator: \.isNewline) {
+            var line = line.trimmingCharacters(in: .whitespaces)
+            if line.hasPrefix("export ") { line.removeFirst("export ".count) }
+            guard !line.hasPrefix("#"), let equals = line.firstIndex(of: "=") else { continue }
+            let name = line[..<equals].trimmingCharacters(in: .whitespaces)
+            var value = line[line.index(after: equals)...].trimmingCharacters(in: .whitespaces)
+            if value.count >= 2, let first = value.first, first == value.last, first == "\"" || first == "'" {
+                value = String(value.dropFirst().dropLast())
+            }
+            if !name.isEmpty { variables[name] = value }
+        }
+        return variables
     }
 
     private var oauthClient: MCPOAuthClient? {
