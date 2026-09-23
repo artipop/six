@@ -21,6 +21,14 @@ final class PageTaskRunner {
     /// One session for the whole run: the field values and the escalated steps share what has
     /// already been established about the goal.
     private var session: LanguageModelSession?
+    /// How much the last question to System 2 weighed. The saving a fast decider buys is this
+    /// number not being spent, so it is measured rather than assumed.
+    private var lastPromptChars = 0
+    /// Was the field this step types into chosen by a System 1 answer sure enough to keep? Then the
+    /// model is only asked for the value.
+    private var trustedField = false
+    /// The page the last decision was made on, so a navigation can be told from a redraw.
+    private var lastURL = ""
     /// System 2 can also be an ACP agent, because that is what the ⌘E line is often set to and it
     /// is the one a person already pays for. A turn there costs seconds rather than milliseconds,
     /// which is exactly the cost the fast decider exists to avoid paying on every step.
@@ -179,7 +187,13 @@ final class PageTaskRunner {
     /// button that would have chosen a flight, having no notion that the goal was already met.
     /// Ending a run is System 2's call.
     private func decide(_ step: inout PageTaskStep, goal: String, snapshot: [String: Any], run: PageTaskRun, systemOne: SystemOne?) async {
-        let distrusted = run.steps.last.map { $0.decider.hasPrefix(settings.pageTaskModel) && $0.outcome == "ok" && $0.changedNothing } ?? false
+        var distrusted = run.steps.last.map { $0.decider.hasPrefix(settings.pageTaskModel) && $0.outcome == "ok" && $0.changedNothing } ?? false
+        // The first step on a page this run has not seen is System 2's, whatever the classifier
+        // says. A new page is where "is this already done?" is decided, and that is the one
+        // question a classifier gets wrong in the expensive direction: on the results page
+        // laya-browser answered 0.98 for the button that picks a flight.
+        let url = snapshot["url"] as? String ?? ""
+        if url != lastURL { distrusted = true; lastURL = url }
         if let systemOne {
             do {
                 let decision = try await systemOne.decide(goal: goal, snapshot: snapshot, history: run.steps)
@@ -190,8 +204,10 @@ final class PageTaskRunner {
                 step.decider = decision.model
                 step.probability = decision.probability
                 step.latencyMs = decision.latencyMs
+                step.systemOneTokens = decision.inputTokens
                 let trusted = decision.probability >= settings.systemOneThreshold && !distrusted
                     && decision.operation != "DONE" && decision.operation != "BLOCKED"
+                trustedField = trusted
                 if trusted, decision.operation != "TYPE_TEXT" { return }
                 // TYPE_TEXT always goes on: System 1 has no words. Anything else below the
                 // threshold is re-decided rather than trusted.
@@ -212,7 +228,7 @@ final class PageTaskRunner {
         }
         if step.operation == "TYPE_TEXT", let ref = step.ref {
             // The element is chosen; only the value is missing.
-            await fieldValue(&step, ref: ref, goal: goal, snapshot: snapshot, run: run)
+            await fieldValue(&step, ref: ref, goal: goal, snapshot: snapshot, run: run, trusted: trustedField)
             return
         }
         await modelStep(&step, goal: goal, snapshot: snapshot, run: run)
@@ -222,6 +238,7 @@ final class PageTaskRunner {
         let started = Date()
         do {
             let answer = try await ask(Self.prompt(goal: goal, snapshot: snapshot, run: run))
+            step.systemTwoChars += lastPromptChars
             step.operation = answer.operation.uppercased().trimmingCharacters(in: .whitespaces)
             let ref = answer.ref.trimmingCharacters(in: .whitespaces)
             step.ref = ref.isEmpty ? nil : ref
@@ -243,6 +260,7 @@ final class PageTaskRunner {
     /// — and told not to touch the page itself, because it has six's own acting tools in its hands
     /// and would otherwise do the step instead of choosing it.
     private func ask(_ prompt: String) async throws -> PageTaskStepAnswer {
+        lastPromptChars = prompt.count
         if let session {
             return try await session.respond(to: prompt, generating: PageTaskStepAnswer.self).content
         }
@@ -285,9 +303,20 @@ final class PageTaskRunner {
     /// whole page while it does, so it is allowed to disagree: an answer naming another step is
     /// taken instead of the classifier's, which costs nothing, since the call was going to be made
     /// anyway. That is where most of the hybrid's accuracy comes from on a page with a cookie wall.
-    private func fieldValue(_ step: inout PageTaskStep, ref: String, goal: String, snapshot: [String: Any], run: PageTaskRun) async {
+    private func fieldValue(_ step: inout PageTaskStep, ref: String, goal: String, snapshot: [String: Any], run: PageTaskRun, trusted: Bool) async {
         let field = Self.name(of: ref, in: snapshot) ?? ref
-        let prompt = Self.prompt(goal: goal, snapshot: snapshot, run: run) + """
+        // Trusted: the element is settled, so the model is asked for a value and nothing else —
+        // a few hundred characters instead of the whole page. That is where the tokens are saved.
+        // Unsure: it gets the page and may answer with a different step entirely.
+        let prompt = trusted ? """
+            Goal: \(goal)
+            Page: \(snapshot["title"] as? String ?? "") — \(snapshot["url"] as? String ?? "")
+            Already done: \(run.steps.isEmpty ? "nothing" : run.steps.suffix(4).map { "\($0.operation) \($0.target ?? "")" }.joined(separator: "; "))
+
+            Answer with TYPE_TEXT, the ref \(ref), and the exact text the field "\(field)" should hold, \
+            taken from the goal. Never invent personal data; if the goal does not give the value, answer \
+            BLOCKED and say what is missing.
+            """ : Self.prompt(goal: goal, snapshot: snapshot, run: run) + """
 
 
             The fast decider chose TYPE_TEXT into \(ref) (\(field)) and cannot write words, so answer \
@@ -297,6 +326,7 @@ final class PageTaskRunner {
         let started = Date()
         do {
             let answer = try await ask(prompt)
+            step.systemTwoChars += lastPromptChars
             let operation = answer.operation.uppercased().trimmingCharacters(in: .whitespaces)
             let answeredRef = answer.ref.trimmingCharacters(in: .whitespaces)
             step.latencyMs += Int(Date().timeIntervalSince(started) * 1000)

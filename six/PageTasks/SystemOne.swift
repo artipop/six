@@ -29,6 +29,8 @@ nonisolated struct SystemOne: Sendable {
         var latencyMs: Int
         /// What the endpoint says answered — `jev-1.13.0`, `laya-browser`. Never what was configured.
         var model: String
+        /// What the step cost the fast decider, as its own endpoint counts it.
+        var inputTokens = 0
     }
 
     struct Failure: LocalizedError {
@@ -53,11 +55,22 @@ nonisolated struct SystemOne: Sendable {
 
     /// The request body, and what each option key means back here. Option keys are plain numbers —
     /// the wire these checkpoints were trained on — while six's own refs (`e12`) stay on this side.
-    static func request(goal: String, snapshot: [String: Any], history: [PageTaskStep], model: String) -> (body: [String: Any], targets: [String: [String: (ref: String, option: String?, label: String)]])? {
+    /// One option a target question offers: what it means back here, and what the checkpoint is
+    /// told about it.
+    struct Target {
+        var ref: String
+        var option: String?
+        var label: String
+        var role: String
+        var value: String
+        var state: [String: String]
+    }
+
+    static func request(goal: String, snapshot: [String: Any], history: [PageTaskStep], model: String) -> (body: [String: Any], targets: [String: [String: Target]])? {
         let elements = (snapshot["elements"] as? [[String: Any]] ?? []).filter { $0["disabled"] as? Bool != true }
         guard !elements.isEmpty else { return nil }
         var wire: [[String: Any]] = []
-        var targets: [String: [String: (ref: String, option: String?, label: String)]] = [:]
+        var targets: [String: [String: Target]] = [:]
         for (offset, element) in elements.enumerated() {
             guard let ref = element["ref"] as? String else { continue }
             let index = String(offset + 1)
@@ -65,25 +78,28 @@ nonisolated struct SystemOne: Sendable {
             var label = "[\(index)] " + ((element["name"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? role)
             if let context = element["context"] as? String, !context.isEmpty { label += " · " + context }
             let value = element["value"] as? String ?? ""
-            var entry: [String: Any] = ["index": index, "label": label, "role": role, "value": value]
+            var state: [String: String] = [:]
             for key in ["checked", "selected", "expanded", "required"] where element[key] != nil {
-                entry[key] = "\(element[key]!)"
+                state[key] = "\(element[key]!)"
             }
+            var entry: [String: Any] = ["index": index, "label": label, "role": role, "value": value]
+            for (key, flag) in state { entry[key] = flag }
             let operations = element["actions"] as? [String] ?? []
             var offered: [String] = []
             if operations.contains("select"), let options = element["options"] as? [String] {
                 offered.append("SELECT")
                 for (n, option) in options.enumerated() {
-                    targets["SELECT", default: [:]]["\(index):\(n + 1)"] = (ref, option, "\(label) → \(option)")
+                    targets["SELECT", default: [:]]["\(index):\(n + 1)"] =
+                        Target(ref: ref, option: option, label: "\(label) → \(option)", role: role, value: value, state: state)
                 }
             }
             if operations.contains("fill") {
                 offered.append("TYPE_TEXT")
-                targets["TYPE_TEXT", default: [:]][index] = (ref, nil, label)
+                targets["TYPE_TEXT", default: [:]][index] = Target(ref: ref, option: nil, label: label, role: role, value: value, state: state)
             }
             if operations.contains("click") {
                 offered.append("CLICK")
-                targets["CLICK", default: [:]][index] = (ref, nil, label)
+                targets["CLICK", default: [:]][index] = Target(ref: ref, option: nil, label: label, role: role, value: value, state: state)
             }
             entry["operations"] = offered
             wire.append(entry)
@@ -115,7 +131,14 @@ nonisolated struct SystemOne: Sendable {
         for (operation, candidates) in targets {
             var criteria: [String: Any] = [:]
             for (key, target) in candidates {
-                criteria[key] = ["element": target.label, "operation": operation]
+                // The shape jev-ultrafast sends and laya's server compacts: element, role, current
+                // value, state. Sending the label alone — which this did at first — leaves the
+                // checkpoint choosing between a dozen bare names, and it answers like it: the same
+                // option over and over, whatever the page.
+                var entry: [String: Any] = ["element": target.label, "role": target.role]
+                entry["current_value"] = target.option ?? target.value
+                for (key, value) in target.state { entry[key] = value }
+                criteria[key] = entry
             }
             questions[operation.lowercased() + "_target"] = [
                 "type": "choice",
@@ -176,16 +199,19 @@ nonisolated struct SystemOne: Sendable {
         let reported = object["model"] as? String ?? model
         let answered = reported.contains("/") ? model : reported
         guard let candidates = targets[operation] else {
-            return Decision(operation: operation, probability: operationProbability, latencyMs: latency, model: answered)
+            return Decision(operation: operation, probability: operationProbability, latencyMs: latency,
+                            model: answered, inputTokens: ((object["usage"] as? [String: Any])?["input_tokens"] as? Int) ?? 0)
         }
         guard let targetAnswer = answers[operation.lowercased() + "_target"] as? [String: Any],
               let key = targetAnswer["choice"] as? String, let target = candidates[key] else {
             throw Failure(message: "\(answered) chose \(operation) without a target six offered")
         }
         let targetProbability = (targetAnswer["probabilities"] as? [String: Double])?[key] ?? 0
+        let inputTokens = ((object["usage"] as? [String: Any])?["input_tokens"] as? Int) ?? 0
         return Decision(operation: operation, ref: target.ref, option: target.option, targetLabel: target.label,
                         // Both heads have to be right for the step to be right, so the step's
                         // confidence is the weaker of the two, not the operation's alone.
-                        probability: min(operationProbability, targetProbability), latencyMs: latency, model: answered)
+                        probability: min(operationProbability, targetProbability), latencyMs: latency,
+                        model: answered, inputTokens: inputTokens)
     }
 }

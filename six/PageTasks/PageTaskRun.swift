@@ -31,6 +31,11 @@ nonisolated struct PageTaskStep: Identifiable, Sendable {
     /// The page looked the same after the step as before it — set by the loop from the next
     /// snapshot, and the reason a decider stops being trusted for the step after.
     var changedNothing = false
+    /// What the step cost each decider to ask: tokens for System 1, which counts them, and prompt
+    /// characters for System 2, which does not — the point being that a step where the classifier
+    /// is trusted sends the page to no language model at all.
+    var systemOneTokens = 0
+    var systemTwoChars = 0
 
     /// The line the person reads: `3. [laya-browser 0.93, 21 ms] CLICK e12 "Search"`.
     var line: String {
@@ -85,6 +90,11 @@ nonisolated struct PageTaskRun: Sendable {
         var text = "\(steps.count) steps in \(seconds) s — " + parts.joined(separator: ", ")
         let escalated = steps.filter(\.escalated).count
         if escalated > 0 { text += "; escalated \(escalated), of which the fast decider was overruled \(overruled) and confirmed \(agreed)" }
+        let calls = steps.filter { $0.systemTwoChars > 0 }.count
+        let chars = steps.reduce(0) { $0 + $1.systemTwoChars }
+        let tokens = steps.reduce(0) { $0 + $1.systemOneTokens }
+        if tokens > 0 { text += "; fast decider \(tokens) input tokens" }
+        text += "; language model called \(calls) × on \(chars / max(1, calls)) chars of prompt (\(chars) in all)"
         return text
     }
 }
