@@ -5,7 +5,35 @@ import Observation
 struct AgentPermissionPrompt: Identifiable {
     let id = UUID()
     let request: ACP.RequestPermissionRequest
+    /// The tool as the agent named it, before `AgentToolName` made it readable: what an "always"
+    /// answer is remembered under.
+    let rawTitle: String?
     let respond: @Sendable (ACP.RequestPermissionOutcome) -> Void
+}
+
+/// "Always" answers, kept by six rather than left to the agent. An agent that offers `allow_always`
+/// may remember it only for the session, or not at all for MCP tools, and every reconnect — a model
+/// switch, a relaunch — starts a new one; the same question then came back each time.
+extension ConfigurationStore {
+    func standingAnswer(agent: String, tool: String) -> ACP.PermissionOptionKind? {
+        let answers: [String: [String: ACP.PermissionOptionKind]] = decode(.agentStandingAnswers) ?? [:]
+        return answers[agent]?[tool]
+    }
+
+    func setStandingAnswer(_ kind: ACP.PermissionOptionKind, agent: String, tool: String) {
+        var answers: [String: [String: ACP.PermissionOptionKind]] = decode(.agentStandingAnswers) ?? [:]
+        answers[agent, default: [:]][tool] = kind
+        encode(.agentStandingAnswers, answers, keepingEmpty: false)
+    }
+
+    func forgetStandingAnswers() {
+        self[.agentStandingAnswers] = nil
+    }
+
+    var standingAnswerCount: Int {
+        let answers: [String: [String: ACP.PermissionOptionKind]] = decode(.agentStandingAnswers) ?? [:]
+        return answers.values.reduce(0) { $0 + $1.count }
+    }
 }
 
 /// View model: owns one `ACPClient` + one session, turns updates into a transcript.
@@ -31,6 +59,7 @@ final class AgentSessionStore {
         guard let snapshot else { return }
         if let saved = (ACPAgentDefinition.builtIn + settings.customAgents).first(where: { $0.id == snapshot.agentID }) { agent = saved }
         chats = Dictionary(snapshot.chats.map { ($0.key, $0) }, uniquingKeysWith: { first, _ in first })
+        past = snapshot.past ?? []
     }
 
     var snapshot: AgentSnapshot {
@@ -64,41 +93,12 @@ final class AgentSessionStore {
         if chats[key] == nil { chats[key] = AgentChat(agentID: agent.id, directoryPath: workingDirectory.path) }
         return key
     }
-        past = snapshot.past ?? []
 
     /// Puts the current chat aside with its session; the next prompt starts from nothing, and the
     /// old one is in the history (`six://chats`) to be opened again.
     func startNewChat() {
         let key = currentChatKey
         if liveChatKey == key { disconnect() }
-        chats[key] = nil
-    }
-    /// Set once at launch; the working directory follows the selected profile.
-    @ObservationIgnored weak var browser: BrowserState?
-
-    /// The selected profile's folder (its own under Application Support unless the user chose one).
-    var workingDirectory: URL {
-        guard let browser else { return FileManager.default.homeDirectoryForCurrentUser }
-        return browser.workingDirectory(for: browser.selectedProfile)
-    }
-    /// Directory the live session was created in; a different `workingDirectory` means reconnecting.
-    @ObservationIgnored private var sessionDirectory: URL?
-    @ObservationIgnored private let settings: ConfigurationStore
-    /// Model preferences belong to each agent, and are applied through ACP before prompting.
-    var modelOverride: String {
-        get { settings.model(for: agent) }
-        set {
-            guard newValue != settings.model(for: agent) else { return }
-            settings.setModel(newValue, for: agent)
-            disconnect()
-        }
-    }
-
-    func selectedModel(for definition: ACPAgentDefinition) -> String { settings.model(for: definition) }
-
-    func selectModel(_ model: String, for definition: ACPAgentDefinition) {
-        settings.setModel(model, for: definition)
-        if agent.id == definition.id { disconnect() }
         if let chat = chats[key] { putAside(chat) }
         chats[key] = nil
     }
@@ -111,7 +111,7 @@ final class AgentSessionStore {
         guard state != .prompting else { return }
         let key = currentChatKey
         if let chat = chats[key] { putAside(chat) }
-    }
+        chats[key] = nil
         if liveChatKey == key, client != nil { needsFreshSession = true }
     }
 
@@ -243,6 +243,34 @@ final class AgentSessionStore {
         loadedPast[chat.id] = nil
         past.removeAll { $0.id == chat.id }
         past.insert(chat.summary, at: 0)
+    }
+    /// Set once at launch; the working directory follows the selected profile.
+    @ObservationIgnored weak var browser: BrowserState?
+
+    /// The selected profile's folder (its own under Application Support unless the user chose one).
+    var workingDirectory: URL {
+        guard let browser else { return FileManager.default.homeDirectoryForCurrentUser }
+        return browser.workingDirectory(for: browser.selectedProfile)
+    }
+    /// Directory the live session was created in; a different `workingDirectory` means reconnecting.
+    @ObservationIgnored private var sessionDirectory: URL?
+    @ObservationIgnored private let settings: ConfigurationStore
+    /// Model preferences belong to each agent, and are applied through ACP before prompting.
+    var modelOverride: String {
+        get { settings.model(for: agent) }
+        set {
+            guard newValue != settings.model(for: agent) else { return }
+            settings.setModel(newValue, for: agent)
+            disconnect()
+        }
+    }
+
+    func selectedModel(for definition: ACPAgentDefinition) -> String { settings.model(for: definition) }
+
+    func selectModel(_ model: String, for definition: ACPAgentDefinition) {
+        settings.setModel(model, for: definition)
+        if agent.id == definition.id { disconnect() }
+    }
 
     private(set) var state: State = .idle
     private(set) var permissionPrompt: AgentPermissionPrompt?
@@ -376,6 +404,7 @@ final class AgentSessionStore {
         modes = nil
         sessionModels = nil
         permissionPrompt = nil
+        needsFreshSession = false
         if !keepState { state = .idle }
     }
 
@@ -404,11 +433,16 @@ final class AgentSessionStore {
     /// Sends a prompt and waits for the turn. Connects (or reconnects, when the agent or the profile
     /// folder changed) first; streams the agent's text through `onUpdate`.
     @discardableResult
-        needsFreshSession = false
     func prompt(_ text: String, context: [ACP.ContentBlock] = [], onUpdate: ((LiveUpdate) -> Void)? = nil) async -> PromptOutcome {
         let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return .failed(String(localized: "Empty prompt")) }
         if client != nil, let sessionDirectory, sessionDirectory != workingDirectory { disconnect() }
+        if let live = client, needsFreshSession {
+            do { try await openFreshSession(live) } catch {
+                Self.trace("fresh session failed: \(error)")
+                disconnect()
+            }
+        }
         if client == nil { await connect() }
         guard let client, let sessionId, state == .ready else {
             Self.trace("send dropped: client=\(self.client != nil) session=\(self.sessionId ?? "nil") state=\(state)")
@@ -437,12 +471,6 @@ final class AgentSessionStore {
             // agent has already spoken this turn — it said why in its own words, and the stderr
             // tail underneath it is the noise that made the account unreadable.
             let stderr = await client.recentStderr
-        if let live = client, needsFreshSession {
-            do { try await openFreshSession(live) } catch {
-                Self.trace("fresh session failed: \(error)")
-                disconnect()
-            }
-        }
             var message = error.localizedDescription
             if !saidSomething, (error as? JSONRPCError)?.detail == nil {
                 let tail = stderr.split(separator: "\n", omittingEmptySubsequences: true)
@@ -472,6 +500,13 @@ final class AgentSessionStore {
     func resolvePermission(_ outcome: ACP.RequestPermissionOutcome) {
         permissionPrompt?.respond(outcome)
         permissionPrompt = nil
+    }
+
+    func resolvePermission(with option: ACP.PermissionOption) {
+        if option.kind == .allowAlways || option.kind == .rejectAlways, let tool = permissionPrompt?.rawTitle {
+            settings.setStandingAnswer(option.kind, agent: agent.id, tool: tool)
+        }
+        resolvePermission(.selected(optionId: option.optionId))
     }
 
     // MARK: Update handling
@@ -531,17 +566,23 @@ final class AgentSessionStore {
             }
         case .currentModeUpdate(let modeId):
             modes?.currentModeId = modeId
+        case .sessionInfo(let title):
+            if let title, !title.isEmpty { chats[chatKeyForWriting()]?.title = title }
         case .availableCommandsUpdate, .unknown:
             break
         }
     }
 
     fileprivate func requestPermission(_ raw: ACP.RequestPermissionRequest) async -> ACP.RequestPermissionOutcome {
+        if let tool = raw.toolCall.title, let kind = settings.standingAnswer(agent: agent.id, tool: tool),
+           let option = raw.options.first(where: { $0.kind == kind }) {
+            return .selected(optionId: option.optionId)
+        }
         var request = raw
         request.toolCall = Self.renamed(raw.toolCall)
         return await withCheckedContinuation { continuation in
             let resumed = LockedFlag()
-            permissionPrompt = AgentPermissionPrompt(request: request) { outcome in
+            permissionPrompt = AgentPermissionPrompt(request: request, rawTitle: raw.toolCall.title) { outcome in
                 guard resumed.trySet() else { return }
                 continuation.resume(returning: outcome)
             }
@@ -566,8 +607,6 @@ final class AgentSessionStore {
 
     /// The tool's name as the panel says it: the MCP mangling undone (`AgentToolName`).
     private static func renamed(_ call: ACP.ToolCall) -> ACP.ToolCall {
-        case .sessionInfo(let title):
-            if let title, !title.isEmpty { chats[chatKeyForWriting()]?.title = title }
         guard let title = call.title else { return call }
         var copy = call
         copy.title = AgentToolName.display(title)

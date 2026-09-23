@@ -31,6 +31,26 @@
         }
       }
     },
+    "Answered “Always”: %lld" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отвечено «Всегда»: %lld"
+          }
+        }
+      }
+    },
+    "Ask Again" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Спрашивать снова"
+          }
+        }
+      }
+    },
     "Chat" : {
       "localizations" : {
         "ru" : {
@@ -817,6 +837,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Этой модели нужен адрес, куда обращаться"
+          }
+        }
+      }
+    },
+    "Tool Calls" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вызовы инструментов"
           }
         }
       }

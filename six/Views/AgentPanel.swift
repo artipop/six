@@ -226,7 +226,7 @@ private struct ToolCallRow: View {
                     }
                 }
                 if let input = call.rawInput, call.content?.isEmpty ?? true {
-                    Text(input.description).font(.caption.monospaced()).lineLimit(10).textSelection(.enabled)
+                    ToolInputView(input: input)
                 }
             }
             .padding(.top, 4)
@@ -270,24 +270,77 @@ struct PermissionView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("Permission requested", systemImage: "hand.raised.fill").font(.headline)
-            Text(prompt.request.toolCall.title ?? prompt.request.toolCall.toolCallId)
-                .font(.callout)
+            Label(prompt.request.toolCall.title ?? prompt.request.toolCall.toolCallId, systemImage: "hand.raised.fill")
+                .font(.headline)
+                .lineLimit(2)
             if let input = prompt.request.toolCall.rawInput {
-                Text(input.description).font(.caption.monospaced()).lineLimit(6).foregroundStyle(.secondary)
+                ToolInputView(input: input, lineLimit: 4)
             }
             HStack {
-                ForEach(prompt.request.options) { option in
-                    Button(option.name) { store.resolvePermission(.selected(optionId: option.optionId)) }
-                        .tint(option.kind == .allowOnce || option.kind == .allowAlways ? .green : .red)
-                }
-                Spacer()
                 Button("Cancel") { store.resolvePermission(.cancelled) }
+                Spacer()
+                ForEach(rejects) { option in
+                    Button(option.name, role: .destructive) { store.resolvePermission(with: option) }
+                        .buttonStyle(.bordered)
+                }
+                ForEach(allows) { option in
+                    Button(option.name) { store.resolvePermission(with: option) }
+                        .buttonStyle(.borderedProminent)
+                }
             }
-            .controlSize(.small)
+            .controlSize(.regular)
         }
         .padding(10)
-        .background(.yellow.opacity(0.1))
+    }
+
+    private var rejects: [ACP.PermissionOption] {
+        prompt.request.options.filter { $0.kind == .rejectOnce || $0.kind == .rejectAlways }
+    }
+
+    /// "Always" before "once", so the answer asked for most often ends the row, where the eye lands.
+    private var allows: [ACP.PermissionOption] {
+        prompt.request.options.filter { $0.kind == .allowAlways } + prompt.request.options.filter { $0.kind == .allowOnce }
+    }
+}
+
+/// A tool call's arguments as rows of name and value. Nothing at all for none: `{}` said only that.
+struct ToolInputView: View {
+    let input: ACPJSON
+    var lineLimit = 10
+
+    var body: some View {
+        switch input {
+        case .null:
+            EmptyView()
+        case .object(let fields) where fields.isEmpty:
+            EmptyView()
+        case .object(let fields):
+            Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 8, verticalSpacing: 3) {
+                ForEach(fields.keys.sorted(), id: \.self) { key in
+                    GridRow {
+                        Text(key).foregroundStyle(.secondary)
+                        value(fields[key] ?? .null)
+                    }
+                }
+            }
+            .font(.caption)
+        default:
+            value(input).font(.caption)
+        }
+    }
+
+    private func value(_ json: ACPJSON) -> some View {
+        Group {
+            switch json {
+            case .string(let text): Text(text)
+            case .number, .bool, .null: Text(json.description).monospaced()
+            default: Text(json.description).monospaced().foregroundStyle(.secondary)
+            }
+        }
+        .lineLimit(lineLimit)
+        .truncationMode(.middle)
+        .textSelection(.enabled)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

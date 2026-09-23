@@ -204,6 +204,15 @@ private struct AgentConfiguration: View {
                     .disabled(session.state == .prompting || session.state == .starting)
                 }
             }
+            if store.standingAnswerCount > 0 {
+                Section("Tool Calls") {
+                    HStack {
+                        Text("Answered “Always”: \(store.standingAnswerCount)")
+                        Spacer()
+                        Button("Ask Again") { store.forgetStandingAnswers() }
+                    }
+                }
+            }
         }
         .formStyle(.grouped)
         .sheet(isPresented: $adding) { AgentEditorSheet() }

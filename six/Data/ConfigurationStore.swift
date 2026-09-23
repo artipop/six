@@ -34,6 +34,8 @@ final class ConfigurationStore {
         case agentModelCatalogs = "agents.modelCatalogs"
         case customAgents = "agents.custom"
         case selectedCustomAgent = "agents.selectedCustom"
+        /// Tool calls answered "always": agent id → tool title → the option kind that answered it.
+        case agentStandingAnswers = "agents.standingAnswers"
         case bookmarkScope = "bookmarks.scope"
         case bookmarkRefreshDays = "bookmarks.refreshDays"
         case embeddingModel = "bookmarks.embeddingModel"
