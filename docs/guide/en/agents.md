@@ -37,7 +37,13 @@ the method. A title the agent wrote itself (`Read`, `Bash`, a whole sentence) is
 left alone.
 
 When the agent asks for permission, buttons appear in the transcript. Until you
-answer, it waits.
+answer, it waits. Under the tool's name are its arguments, one row each: name
+and value. A call without arguments shows none.
+
+An "always" answer (allow or reject) is kept for that agent and that tool —
+across a model switch and a relaunch of VI — and the call is not asked about
+again. **Ask Again** under **Agents → Tool Calls** in the configuration forgets
+all of them at once.
 
 ## Where the agent works
 

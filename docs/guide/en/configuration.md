@@ -79,7 +79,7 @@ Everything starts off. More in [Certificates](/en/certificates).
 Three tabs:
 
 - **Responses** — who answers `⌘E`, the model and API credentials. Agent model lists come from the agent itself. **Access to Page Console and Network** also lives here.
-- **Agents** — install or update Claude Code and Codex, add or edit other ACP agents using their launch command.
+- **Agents** — install or update Claude Code and Codex, add or edit other ACP agents using their launch command. Once a tool call has been answered "always", **Ask Again** lives here too.
 - **MCP** — connected servers with addresses, status and Agent Access switches. Each server’s “…” menu contains editing, connection checks, sign-in, opening apps and removal. Adding a server and browsing the MCP catalogue open separately.
 
 Deep research settings have been removed from this page. More in [The assistant](/en/assistant), [Agents](/en/agents) and [MCP apps](/en/apps).

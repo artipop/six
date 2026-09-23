@@ -277,7 +277,11 @@ struct PermissionView: View {
                 ToolInputView(input: input, lineLimit: 4)
             }
             HStack {
-                Button("Cancel") { store.resolvePermission(.cancelled) }
+                // "Cancelled" ends the whole turn, which the composer's stop already does; only an agent
+                // that offers no way to say no gets it here.
+                if rejects.isEmpty {
+                    Button("Cancel") { store.resolvePermission(.cancelled) }
+                }
                 Spacer()
                 ForEach(rejects) { option in
                     Button(option.name, role: .destructive) { store.resolvePermission(with: option) }

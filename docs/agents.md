@@ -22,6 +22,23 @@ apart before showing anything: `AgentToolName.display` drops `mcp__` and turns `
 ⌘E activity line and the saved chat all agree. Titles an agent wrote itself (`Read`, `Bash`, a whole sentence) pass
 through untouched. See [mcp.md](mcp.md#names) for the naming on the wire.
 
+## Permission prompts
+
+`session/request_permission` becomes `AgentPermissionPrompt`, drawn by `PermissionView` in the panel and in the ⌘E
+card. The arguments (`rawInput`) go through `ToolInputView`: a top-level object is rows of key and value, strings as
+text, nested values as compact JSON; `{}` and `null` draw nothing. Allow options are `.borderedProminent`, reject
+options `.bordered` with a destructive role — a tinted `.bordered` button was too faint on the material over a page. **Cancel** (outcome `cancelled`, which ends the
+turn — the composer's stop does the same) appears only when the agent offers no reject option.
+
+An "always" answer is kept by six, not left to the agent. The agent only honours `allow_always` for its own session
+at best, and every reconnect (a model or agent switch, a relaunch) is a new
+session, so the same call asked again each time. `resolvePermission(with:)` stores `allow_always` / `reject_always`
+under `agents.standingAnswers` (agent id → raw tool title → option kind), and `requestPermission` answers from it
+before a prompt is shown, picking the option of the stored kind from the ones offered; if the agent no longer offers
+that kind, it asks. The key is the title *before* `AgentToolName.display`, so `mcp__six__open_window` — for a
+built-in tool the title carries its argument (a `Bash` command), which makes the answer that narrow. **Ask Again**
+in Configuration → Agents clears the setting.
+
 ## Working directory
 
 Each profile has a folder of its own — `~/Library/Application Support/org.deffun.six/Profiles/<name>` — and the agent works in
