@@ -71,7 +71,7 @@ nonisolated struct NiriColumn: Identifiable, Hashable, Sendable, Codable {
     mutating func insert(_ id: UUID, on side: NiriPlacement) {
         guard second == nil else { return }
         switch side {
-        case .right:
+        case .right, .end:
             second = id
         case .left:
             second = tabID
@@ -162,6 +162,9 @@ nonisolated enum NiriFill: String, Sendable, Codable {
 nonisolated enum NiriPlacement: Equatable, Sendable {
     case left
     case right
+    /// Past the last column of the row, whatever that row's focus is — what the overview's `+`
+    /// promises, standing at the end of a row that may not be the focused one.
+    case end
 }
 
 /// A named workspace that has just lost its last window, and the question that goes with it.
@@ -557,7 +560,7 @@ final class NiriLayout {
     var overviewScale: CGFloat {
         guard isOverview else { return 1 }
         guard let workspace = focusedWorkspace, !workspace.isEmpty else { return Self.overviewBaseScale }
-        let fitting = viewport.width / contentWidth(workspace)
+        let fitting = viewport.width / overviewWidth(workspace)
         return min(Self.overviewBaseScale, max(Self.minimumOverviewScale, fitting))
     }
 
@@ -671,6 +674,28 @@ final class NiriLayout {
         return columnWidth * count + gap * (count - 1) + 2 * outerGap
     }
 
+    /// Where a window opened at the end of a row would stand, in that row's content space — the
+    /// overview's `+`. Not `newColumnFrame(at:)`, which is about the focused rail and the end the
+    /// pointer is leaning at; this one is asked of a row, so an empty one has an answer too.
+    func appendFrame(inWorkspaceAt index: Int) -> CGRect? {
+        guard workspaces.indices.contains(index) else { return nil }
+        return CGRect(x: appendX(workspaces[index]), y: outerGap, width: columnWidth, height: columnHeight)
+    }
+
+    /// An empty row has no rail to stand at the end of: its content is a point at the middle of the
+    /// screen, and a place hung half to each side of that point is a place in the middle.
+    private func appendX(_ workspace: NiriWorkspace) -> CGFloat {
+        guard let last = columnFrames(workspace).last else { return -columnWidth / 2 }
+        return last.maxX + gap
+    }
+
+    /// How wide the overview lays a row out: its windows with a column's worth of slack. Centred in
+    /// that, the windows keep the middle and half of the place a new one would take (`appendFrame`)
+    /// shows past the right edge — the same half-a-window-over-there the rail leans to reveal.
+    func overviewWidth(_ workspace: NiriWorkspace) -> CGFloat {
+        contentWidth(workspace) + columnWidth
+    }
+
     /// Where a workspace's row sits on the canvas: the focused one is at zero, the others a screen
     /// (and a gap) above or below it. The canvas is what the overview scales as a whole, so this is in
     /// the same points the column frames are.
@@ -684,6 +709,25 @@ final class NiriLayout {
     func canvasX(content x: CGFloat, workspace index: Int) -> CGFloat {
         guard workspaces.indices.contains(index) else { return x }
         return x - resolvedOffset(workspaces[index]) - (visibleWidth - viewport.width) / 2
+    }
+
+    /// Every window of every row and where it stands on the canvas. The pointer is looked up in it
+    /// and so is everything drawn on a card, so the two cannot disagree about where a card is. The
+    /// rail as it *stands*, not as it is drawn mid-drag: a press happens before there is a drag.
+    func canvasPlaces() -> [NiriWindowPlace] {
+        var places: [NiriWindowPlace] = []
+        for index in workspaces.indices {
+            let top = rowY(index)
+            for place in placements(workspaces[index].columns) {
+                places.append(NiriWindowPlace(
+                    tabID: place.tabID,
+                    frame: CGRect(x: canvasX(content: place.frame.minX, workspace: index),
+                                  y: top + place.frame.minY,
+                                  width: place.frame.width, height: place.frame.height),
+                    side: place.side))
+            }
+        }
+        return places
     }
 
     func contentX(canvas x: CGFloat, workspace index: Int) -> CGFloat {
@@ -710,7 +754,8 @@ final class NiriLayout {
             let centred = (total - width) / 2 // the whole strip fits: centre it
             return centred...centred
         }
-        return 0...(total - width)
+        // A rail too long to fit scrolls, and the `+` past its last window has to be reachable.
+        return 0...(total - width + (isOverview ? columnWidth / 2 : 0))
     }
 
     private func clampOffset(_ offset: CGFloat, in workspace: NiriWorkspace) -> CGFloat {
@@ -1019,7 +1064,11 @@ final class NiriLayout {
     /// before it. An empty row has only one place either way.
     private func insertionIndex(in workspace: NiriWorkspace, on side: NiriPlacement) -> Int {
         guard !workspace.columns.isEmpty else { return 0 }
-        return side == .right ? workspace.focus + 1 : workspace.focus
+        switch side {
+        case .end: return workspace.columns.count
+        case .right: return workspace.focus + 1
+        case .left: return workspace.focus
+        }
     }
 
     /// Opens a tab in a given workspace of a given profile's strip — what an agent asks for through MCP.

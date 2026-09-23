@@ -631,7 +631,16 @@ the scale) is what every offset is measured against, so the same clamping code s
 puts the rail back under the focused window.
 
 A web page is a card there (`ColumnPlaceholder`) with its last picture, and one click on any window focuses it and
-leaves the overview. Six's own pages — configuration, MCP apps — are cards too, with no
+leaves the overview. Each card carries a title bar along its **top** — the site's own icon (`SiteIcons`) and the
+window's title — and a × on its top corner (`OverviewCloseButtons`), which is the one way the mouse has of closing a
+window whatever its fill. Neither shrinks with the rail: the × is drawn outside the scaled canvas like the workspace
+plates, and the title bar divides its own sizes by `overviewScale`, because how far the canvas is scaled depends on
+how many windows are on the rail and an icon that was a different size on every rail would be no mark at all. Every row ends with the place a new window would take (`NewWindowPlace`, `NiriLayout.appendFrame`): ⌘T and
+the rail's `+` open beside the focus, which in a view of every row at once is somewhere else, so without it the
+pointer had no way to make a window from up here. It is drawn the way the rail's own `+` draws its promise — the
+start page in miniature (`StartPageSketch`) — in the half of the place that is on screen. The row is laid out at
+`overviewWidth`, its windows plus a column's worth of slack, so the windows keep the middle and half the place shows
+past the right edge; an empty row has no rail to stand at the end of, and there the place is centred instead. Six's own pages — configuration, MCP apps — are cards too, with no
 picture, and they stay cards until the zoom back in has finished (`BrowserState.isLeavingOverview`, cleared by the
 exit animation's `.removed` completion). They are SwiftUI, but a form's text fields and steppers are AppKit views,
 and laid out under a scale that is still animating they never settle: each frame of the zoom was a run of SwiftUI's
@@ -650,7 +659,8 @@ already knows, so which one is under the pointer is arithmetic against `columnFr
 attached to a card survives the card being carried out of the row that was drawing it. The layer sits in the rail's
 own coordinate space (`NiriStripView.canvasSpace`, the canvas *before* the overview scales it, which is the space the
 frames are already in), and offers the mouse only the cards themselves (`CardsShape`) — a click between two windows
-still reaches what is under it, the New Window button on an empty workspace included.
+still reaches what is under it, the row's own `+` included. `canvasPlaces()` is where both the pointer and the close
+badges read the cards from, so the two cannot disagree about where a card is.
 
 Nothing on the rail moves until the drop. Until then `arrangement(workspaceAt:)` is what each row draws: the carried
 window out of the row it came from and holding a place open in the row it would land in, with the card itself drawn

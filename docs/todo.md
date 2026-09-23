@@ -501,8 +501,9 @@ Built and measured; see [linux.md](linux.md) for the whole picture. What is left
   FoundationModels is Apple's.
 - **Extensions**, when Igalia exposes `WebExtensionContext` and `WebExtensionController`. The install dialog and the
   compatibility verdict port today, because `WebKitWebExtension` already parses a manifest.
-- **Favicons and find-in-page**, which WebKitGTK gives away (`WebKitFaviconDatabase`, `WebKitFindController`) and six
-  has on no platform.
+- **Find-in-page**, which WebKitGTK gives away (`WebKitFindController`) and six does in the page's own JavaScript.
+  Favicons the Mac now reads through the page itself (`SiteIcons`), which ports as it stands — the script is
+  portable and only the store is per-front — or WebKitGTK's `WebKitFaviconDatabase` does it for nothing.
 
 ## Sharing into six on iOS
 
@@ -542,6 +543,12 @@ this is a target, an entitlement and a queue.
   sent *down* ends up on the top rail — which is right, and reads strangely. On the rail itself rows are not
   visible as rows, so nothing there can show it; the overview draws the whole stack, and there the lower rail could
   fly up into the gap instead of the rows being renumbered in one cut.
+- **Closing a full-width window with the mouse.** The × on a card sits on the corner a page does not want
+  (`ColumnCloseBadge`), which works because a tiled window has a gap beside it; filled (⌥W) there is no gap, the page
+  runs edge to edge, and the badge is not drawn at all — so ⌘W and the context menu are the only ways out. Everything
+  that could stand there covers something: the top bar has no room left beside the address field, and a badge over
+  the page is chrome charged against every page. The overview has a × per card now, which is the one place a window
+  can be closed with the mouse whatever its fill.
 - Forget one site: drop a single host's cookies and storage (`WKWebsiteDataStore.fetchDataRecords` →
   `remove(ofTypes:for:)`). Clearing a whole profile is the only option today, and it takes every login with it.
 - Per-site user-agent overrides through `WebPage.customUserAgent`, for sites that sniff wrongly even at Safari's

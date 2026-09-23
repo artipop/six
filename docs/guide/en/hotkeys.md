@@ -14,7 +14,7 @@ equivalent](/en/layout#with-the-mouse-alone).
 |---|---|
 | `⌥←` `⌥→` | focus the window left / right |
 | `⌥⇧←` `⌥⇧→` | move the window left / right |
-| `⌥Home` `⌥End` | first / last window on the rail |
+| `⌥Home` `⌥End` | first / last window on the rail (also right-click the background) |
 | `⌥↑` `⌥↓` | workspace above / below |
 | `⌥⇧↑` `⌥⇧↓` | move the window to the workspace above / below and follow it; a split column travels as a pair |
 | `⌥W` | full width |

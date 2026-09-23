@@ -65,12 +65,12 @@ The cost is the obvious one: on a page that scrolls, `⌥↑` / `⌥↓` are the
 |---|---|
 | `⌥←` `⌥→` | focus the window left / right |
 | `⌥⇧←` `⌥⇧→` | move the window left / right |
-| `⌥Home` `⌥End` | first / last window on the rail |
+| `⌥Home` `⌥End` | first / last window on the rail (also First Window / Last Window in the strip's own menu) |
 | `⌥↑` `⌥↓` | focus the workspace above / below |
 | `⌥⇧↑` `⌥⇧↓` | move the window to the workspace above / below (and follow it) — the whole column, so a split travels as the pair it is |
 | `⌥W` | full width — the page fills the window under the top bar; again to leave (also View ▸ Full Width, and the button beside the profile) |
 | `⌥S` | split — the window next along comes in beside this one, sharing its column; again to put them back on the rail (also View ▸ Split, and the strip's own menu). Both halves are windows in their own right: `⌥←` `⌥→` walk into one and then out to the next column, and closing one leaves the other filling the column. Moving is where they are one thing — `⌥⇧↑` `⌥⇧↓` and a drag in the overview take the pair, and this key is the way apart ([layout.md](layout.md#two-windows-in-one-column)) |
-| `⌥O` | overview on / off; `Esc` also leaves it (also View ▸ Overview) |
+| `⌥O` | overview on / off; `Esc` also leaves it (also View ▸ Overview, and the button at the right of the top bar). In the overview a click on a card flies to it, a card's × closes it, and the dashed place at the end of a row opens a window there |
 | `⌥C` | centre the focused window (on by default) — off means the rail moves as little as possible. The switch is on `six://configuration` ▸ Windows |
 | `⌥` + vertical scroll | one workspace per gesture |
 | `⌥` + horizontal scroll | a window per push while centring is on — as many as the hand asks for, one per 55 pt of travel; free panning with `⌥C` off |

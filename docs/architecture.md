@@ -167,6 +167,16 @@ back lazily — when the overview opens, for the windows with nothing in memory 
 folder is the strip: `prune(keeping:)` drops the pictures of windows that no longer exist, at launch and as they
 close, so there is one file per open window and no more.
 
+Beside them, one file per **host**: `SiteIcons` keeps the site's own icon under
+`Application Support/org.deffun.six/SiteIcons/<host>.icon`, which is what a card falls back to when there is no
+picture of the page yet. The page fetches it, not six — a `URLSession` asking `https://host/favicon.ico` would be a
+second visit to that site from outside the profile it belongs to, with none of its cookies and none of its blocking,
+and a private window would make it as readily as any other. A script reads the page's own `<link rel="icon">` tags,
+fetches the best of them, draws it into a 64-point canvas (which is what makes an SVG usable, since `NSImage` cannot
+decode one) and leaves a `data:` URL on the window; `callJavaScript` cannot await, so six polls for it. The one thing
+the page cannot draw is a `.ico` — WebKit's `<img>` refuses a `data:` URL that says `image/x-icon`, measured — and
+those bytes go back as they came for ImageIO to decode. A private profile is given no `SiteIcons` at all.
+
 On the tab side (`BrowserTab`): `page` builds the page on demand — everything that *talks* to a page goes through it
 (tools, assistant, highlights, export) — while `title`, `currentURL`, `isLoading`, `canGoBack` and the rest answer
 without one, because chrome is evaluated for every column in the strip and reaching for `page` there would keep the

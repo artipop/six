@@ -120,6 +120,9 @@ final class BrowserTab: Identifiable {
     @ObservationIgnored weak var cache: LivePageCache?
     /// Where the window's picture is kept between launches; set by `BrowserState`.
     @ObservationIgnored weak var thumbnails: PageThumbnails?
+    /// The picture the *site* draws itself with, by host. Nil for a private profile; set by
+    /// `BrowserState`.
+    @ObservationIgnored weak var siteIcons: SiteIcons?
     /// Ad and tracker blocking. The window has a content controller of its own (see
     /// `ContentBlocker`), so what is attached follows the address this window is showing; set by
     /// `BrowserState`.
@@ -780,6 +783,7 @@ final class BrowserTab: Identifiable {
             extensions?.noteChanged(self, [.title, .loading])
             restoreScrollIfNeeded(page)
             onNavigation?(self, .finished)
+            siteIcons?.refresh(page)
             // Only to give a window that has never been drawn something to show. The picture that
             // matters is taken when it leaves the screen; taking one after every load would be the
             // most frequent trigger and the least useful one, since a page that just loaded is a

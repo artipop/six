@@ -23,6 +23,8 @@ final class BrowserState {
     let pages = LivePageCache()
     /// The pictures of the windows, kept as files so the overview is not blank after a relaunch.
     @ObservationIgnored let thumbnails = PageThumbnails()
+    /// The sites' own little pictures, by host.
+    let siteIcons = SiteIcons()
     /// Visits, per profile.
     let history: HistoryStore
     /// Saved pages, per profile; wired at launch. Removing a profile removes its bookmarks.
@@ -623,6 +625,8 @@ final class BrowserState {
     private func connect(_ tab: BrowserTab) {
         tab.cache = pages
         tab.thumbnails = thumbnails
+        // None for a private window: an icon is a file saying a host was visited.
+        tab.siteIcons = isPrivate(tab.profileID) ? nil : siteIcons
         tab.blocker = blocker
         tab.extensions = extensions
         tab.pageControllers = pageControllers

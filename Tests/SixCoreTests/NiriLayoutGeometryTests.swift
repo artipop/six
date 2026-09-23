@@ -26,6 +26,14 @@ struct NiriLayoutGeometryTests {
         return workspace
     }
 
+    /// A strip of `count` windows, left to right, with the last one focused.
+    @discardableResult
+    private func fill(_ layout: NiriLayout, _ count: Int) -> [UUID] {
+        let ids = (0..<count).map { _ in UUID() }
+        for id in ids { layout.insertColumn(tabID: id) }
+        return ids
+    }
+
     // MARK: The load-bearing invariant
 
     /// One window, one screen: a column is the viewport with the outer gaps taken off it, so exactly
@@ -124,6 +132,61 @@ struct NiriLayoutGeometryTests {
 
         #expect(layout.showsFill == .tiled)
         #expect(!layout.fillsViewport)
+    }
+
+    // MARK: The place a new window would take
+
+    /// The `+` at the end of an overview row stands where the window it opens will: one gap past
+    /// the last column, at a column's own size.
+    @Test func theAppendPlaceFollowsTheLastColumn() {
+        let layout = layout()
+        fill(layout, 3)
+        let frames = layout.columnFrames(layout.workspaces[0])
+
+        let place = layout.appendFrame(inWorkspaceAt: 0)
+
+        #expect(place?.minX == frames.last!.maxX + layout.gap)
+        #expect(place?.width == layout.columnWidth)
+        #expect(place?.height == layout.columnHeight)
+    }
+
+    /// An empty row has one too, and it is centred: the row's content is a point in the middle of
+    /// the screen, so the place hangs half to each side of it.
+    @Test func anEmptyRowsPlaceIsCentred() {
+        let layout = layout()
+
+        let place = layout.appendFrame(inWorkspaceAt: 0)
+        #expect(place?.midX == 0)
+        #expect(place?.width == layout.columnWidth)
+        #expect(layout.appendFrame(inWorkspaceAt: 1) == nil)
+    }
+
+    /// The overview lays a row out with a column's worth of slack, so the windows keep the middle
+    /// and half of the place shows past the edge.
+    @Test func theOverviewLeavesHalfThePlaceShowing() {
+        let layout = layout()
+        fill(layout, 3)
+        let row = layout.workspaces[0]
+        let place = layout.appendFrame(inWorkspaceAt: 0)!
+
+        let slack = (layout.overviewWidth(row) - layout.contentWidth(row)) / 2
+        #expect(slack == layout.columnWidth / 2)
+        #expect(abs((layout.contentWidth(row) + slack) - place.midX) < 0.5)
+    }
+
+    /// Every card of every row, in the one space the overview's pointer and its badges both read.
+    @Test func theCanvasHasAPlaceForEveryWindow() {
+        let layout = layout()
+        fill(layout, 2)
+        layout.moveColumnToWorkspace(1) // the last of the two moves down and makes a second row
+        layout.isOverview = true
+
+        let places = layout.canvasPlaces()
+
+        #expect(places.count == 2)
+        #expect(Set(places.map(\.tabID)).count == 2)
+        // The second row is laid out a screen below the first, so no two rows overlap.
+        #expect(places[0].frame.minY < places[1].frame.minY)
     }
 
     // MARK: Floors

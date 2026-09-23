@@ -52,6 +52,7 @@ struct NiriStripView: View {
             .coordinateSpace(.named(Self.canvasSpace))
             .scaleEffect(layout.overviewScale, anchor: .center)
             .overlay { if layout.isOverview { WorkspacePlates(size: proxy.size) } }
+            .overlay { if layout.isOverview { OverviewCloseButtons(size: proxy.size) } }
             .onChange(of: proxy.size, initial: true) { layout.updateViewport(proxy.size) }
             .onChange(of: proxy.frame(in: .global), initial: true) { _, frame in stripFrame = frame }
         }
@@ -144,7 +145,7 @@ private struct WorkspaceView: View {
 
         ZStack(alignment: .topLeading) {
             Color.clear
-            if places.isEmpty {
+            if places.isEmpty, !layout.isOverview {
                 EmptyWorkspaceHint(workspaceID: workspace.id)
                     .frame(width: layerWidth, height: size.height)
             }
@@ -205,6 +206,14 @@ private struct WorkspaceView: View {
                     ))
                 }
             }
+            // Not while a window is in the hand: the dashed place that matters then is the one it
+            // would land in (`DropSlot`).
+            if layout.isOverview, layout.columnDrag == nil, let place = layout.appendFrame(inWorkspaceAt: row) {
+                NewWindowPlace(workspace: row, centred: places.isEmpty)
+                    .frame(width: place.width, height: place.height)
+                    .modifier(PixelOffset(x: place.minX - scroll, y: place.minY))
+                    .transition(.opacity)
+            }
         }
         // The row shuffles to open the gap, and only then: the carried card is a layer of its own and
         // has to keep up with the pointer, so animating every change here would make it swim.
@@ -251,19 +260,17 @@ private struct WorkspaceView: View {
     }
 }
 
-/// What an empty workspace shows: a button for its first window.
+/// What an empty workspace shows on the rail: a button for its first window.
 ///
-/// In the overview the button is not a button. `newTab` opens beside the focus, and the focus is in
-/// whichever row the overview was opened from — so a click on an empty row's button put the window in
-/// *another* row, which is ⌘T with a misleading picture. There the whole row flies to itself instead,
-/// and the button is pressed where it means what it says.
+/// Only on the rail. In the overview it was drawn with the button switched off, because `newTab`
+/// opens beside the focus and the focus is in whichever row the overview was opened from; up there
+/// every row ends with a `NewWindowPlace` instead, which names its own row.
 private struct EmptyWorkspaceHint: View {
     let workspaceID: UUID
 
     @Environment(BrowserState.self) private var browser
 
     var body: some View {
-        let overview = browser.layout.isOverview
         VStack(spacing: 10) {
             Image(systemName: "rectangle.split.3x1")
                 .font(.system(size: 26, weight: .light))
@@ -274,22 +281,65 @@ private struct EmptyWorkspaceHint: View {
             }
             .controlSize(.large)
             .buttonStyle(.borderedProminent)
-            .allowsHitTesting(!overview)
             Text("or ⌘T")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background {
-            if overview {
-                Color.clear.contentShape(Rectangle()).onTapGesture(perform: flyHere)
-            }
+    }
+}
+
+/// The place a window would take at the end of an overview row: the one way the pointer has of
+/// making a window up there, since ⌘T and the rail's `+` both open beside a focus that may be three
+/// rows away. Dashed and washed in the profile's colour, which is this interface's shape for a place
+/// waiting to be filled (`DropSlot`).
+///
+/// What it promises is drawn the way the rail's own `+` promises it — the start page in miniature
+/// (`StartPageSketch`), in the half of the place that is on screen. A `+` centred on a place that is
+/// half off the edge sits on that edge, and a `+` moved off centre to avoid it reads as a mark that
+/// has slipped.
+private struct NewWindowPlace: View {
+    let workspace: Int
+    /// An empty row's place stands in the middle of the screen rather than past the end of a rail
+    /// that is not there, so all of it is on screen and the sketch takes the whole of it.
+    let centred: Bool
+
+    @Environment(BrowserState.self) private var browser
+    @State private var hovering = false
+
+    var body: some View {
+        let accent = browser.selectedProfile.color
+        // The overview scales the canvas down, so everything drawn here is divided by that scale to
+        // land at the size it was meant to be on the screen.
+        let unit = 1 / max(0.05, browser.layout.overviewScale)
+        Button(action: open) {
+            RoundedRectangle(cornerRadius: 12 * unit, style: .continuous)
+                .fill(accent.opacity(hovering ? 0.12 : 0.04))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 12 * unit, style: .continuous)
+                        .strokeBorder(accent.opacity(hovering ? 0.7 : 0.25),
+                                      style: StrokeStyle(lineWidth: 1.5 * unit, lineCap: .round,
+                                                         dash: [7 * unit, 6 * unit]))
+                }
+                .overlay(alignment: .topLeading) {
+                    GeometryReader { proxy in
+                        let band = centred ? proxy.size.width : proxy.size.width / 2
+                        StartPageSketch(accent: accent.opacity(hovering ? 1 : 0.55),
+                                        band: band, cap: 34 * unit)
+                            .padding(.top, proxy.size.height * 0.3)
+                            .frame(width: band)
+                    }
+                }
+                .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .animation(.easeOut(duration: 0.14), value: hovering)
+        .help("New window in this workspace")
     }
 
-    private func flyHere() {
-        guard let row = browser.layout.workspaces.firstIndex(where: { $0.id == workspaceID }) else { return }
-        browser.focusWorkspace(at: row)
+    private func open() {
+        browser.newTab(url: nil, in: nil, workspace: workspace, activate: true, on: .end)
         browser.exitOverview()
     }
 }
@@ -401,34 +451,15 @@ private struct OverviewPointerLayer: View {
 
     var body: some View {
         let layout = browser.layout
-        let cards = cards(layout)
+        // A half of a split has a rect of its own; what it picks up is the column both halves are
+        // in (`NiriLayout.beginColumnDrag`).
+        let cards = layout.canvasPlaces()
         let bounds = bounds(layout)
         Color.clear
             .frame(width: bounds.width, height: bounds.height)
-            .contentShape(CardsShape(rects: cards.map { $0.rect.offsetBy(dx: -bounds.minX, dy: -bounds.minY) }))
+            .contentShape(CardsShape(rects: cards.map { $0.frame.offsetBy(dx: -bounds.minX, dy: -bounds.minY) }))
             .offset(x: bounds.minX, y: bounds.minY)
             .gesture(gesture(cards: cards))
-    }
-
-    /// Every window on the canvas, in canvas points. A half of a split has a rect of its own here
-    /// because that is where the pointer meets it; what it picks up is the column both halves are in
-    /// (`NiriLayout.beginColumnDrag`).
-    ///
-    /// The rail as it *stands*, deliberately, and not as it is being drawn mid-drag: this list is
-    /// what a press is looked up in, and a press happens before there is a drag. Reading the shuffled
-    /// arrangement instead put every card on the canvas back through this on every pointer move, for
-    /// a hit test nobody was going to make until the hand let go.
-    private func cards(_ layout: NiriLayout) -> [(id: UUID, rect: CGRect)] {
-        var cards: [(id: UUID, rect: CGRect)] = []
-        for index in layout.workspaces.indices {
-            let top = layout.rowY(index)
-            for place in layout.placements(layout.workspaces[index].columns) {
-                cards.append((place.tabID, CGRect(x: layout.canvasX(content: place.frame.minX, workspace: index),
-                                                  y: top + place.frame.minY,
-                                                  width: place.frame.width, height: place.frame.height)))
-            }
-        }
-        return cards
     }
 
     /// The whole stack of rows, which reaches well above and below the window itself — the overview is
@@ -442,11 +473,11 @@ private struct OverviewPointerLayer: View {
                       height: step * CGFloat(max(1, layout.workspaces.count)))
     }
 
-    private func card(_ cards: [(id: UUID, rect: CGRect)], at point: CGPoint) -> UUID? {
-        cards.first { $0.rect.contains(point) }?.id
+    private func card(_ cards: [NiriWindowPlace], at point: CGPoint) -> UUID? {
+        cards.first { $0.frame.contains(point) }?.tabID
     }
 
-    private func gesture(cards: [(id: UUID, rect: CGRect)]) -> some Gesture {
+    private func gesture(cards: [NiriWindowPlace]) -> some Gesture {
         DragGesture(minimumDistance: 0, coordinateSpace: .named(NiriStripView.canvasSpace))
             .onChanged { value in
                 if carrying == nil {
@@ -470,6 +501,63 @@ private struct OverviewPointerLayer: View {
                 browser.selectTab(id)
                 browser.exitOverview()
             }
+    }
+}
+
+/// A × on every card in the overview — until now the only way to close a window you could see up
+/// there was to fly into it and press ⌘W.
+///
+/// Outside the scaled canvas, like the workspace plates: a badge that shrank with a dozen cards
+/// would be four points across. A point `p` of the canvas lands at `centre + (p - centre) * scale`.
+/// Always drawn, at a little under half, because the layer that answers the mouse over a card is
+/// the one that carries it — a badge lit from that layer's hover would go out the moment the
+/// pointer reached the badge itself.
+private struct OverviewCloseButtons: View {
+    let size: CGSize
+
+    @Environment(BrowserState.self) private var browser
+
+    var body: some View {
+        let layout = browser.layout
+        let scale = layout.overviewScale
+        let centre = CGPoint(x: size.width / 2, y: size.height / 2)
+        // A share of the card as it is drawn, so a rail of twenty does not get twenty full-size
+        // buttons on it.
+        let side = max(13, min(20, layout.columnWidth * scale * 0.06))
+        ZStack(alignment: .topLeading) {
+            if layout.columnDrag == nil {
+                ForEach(layout.canvasPlaces()) { place in
+                    let corner = CGPoint(x: place.frame.maxX, y: place.frame.minY)
+                    OverviewCloseButton(tabID: place.tabID, side: side)
+                        .position(x: centre.x + (corner.x - centre.x) * scale - side * 0.55,
+                                  y: centre.y + (corner.y - centre.y) * scale + side * 0.55)
+                }
+            }
+        }
+    }
+}
+
+private struct OverviewCloseButton: View {
+    let tabID: UUID
+    let side: CGFloat
+
+    @Environment(BrowserState.self) private var browser
+    @State private var hovering = false
+
+    var body: some View {
+        Button { browser.closeTab(tabID) } label: {
+            Image(systemName: "xmark")
+                .font(.system(size: side * 0.45, weight: .bold))
+                .foregroundStyle(hovering ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
+                .frame(width: side, height: side)
+                .background(.regularMaterial, in: Circle())
+                .overlay { Circle().strokeBorder(.separator, lineWidth: 0.5) }
+        }
+        .buttonStyle(.plain)
+        .opacity(hovering ? 1 : 0.4)
+        .onHover { hovering = $0 }
+        .animation(.easeOut(duration: 0.12), value: hovering)
+        .help("Close Window (⌘W)")
     }
 }
 
@@ -544,7 +632,7 @@ private struct NewColumnGhost: View {
             }
             .overlay(alignment: leading ? .topLeading : .topTrailing) {
                 GeometryReader { geometry in
-                    sketch(accent)
+                    StartPageSketch(accent: accent, band: band)
                         // The share of the height the real wordmark rests at (`StartPage`), so the
                         // promise and the page agree about where the page begins and the eye does
                         // not have to find it again once the window opens.
@@ -554,16 +642,29 @@ private struct NewColumnGhost: View {
             }
     }
 
-    /// The page in miniature: the wordmark and the field under it, sized to the band and never past
-    /// it — a glance is a fraction of the screen, and so is everything drawn inside one.
-    private func sketch(_ accent: Color) -> some View {
-        VStack(spacing: band * 0.14) {
+}
+
+/// The start page in miniature: the wordmark and the field under it, sized to the band it has to
+/// fit in — a glance is a fraction of the screen, and so is everything drawn inside one.
+private struct StartPageSketch: View {
+    let accent: Color
+    let band: CGFloat
+    /// The biggest the wordmark may be. The overview draws this on a canvas it has scaled down, so
+    /// its ceiling is that much higher.
+    var cap: CGFloat = 34
+
+    var body: some View {
+        // Everything is a share of the wordmark rather than of the band, so the field keeps its
+        // proportion to the word when the cap is what decides the size — on a band as wide as a
+        // whole column it was a bar across the middle of the card.
+        let size = min(band * 0.42, cap)
+        VStack(spacing: size * 0.33) {
             Text("six")
-                .font(.system(size: min(band * 0.42, 34), weight: .light, design: .rounded))
+                .font(.system(size: size, weight: .light, design: .rounded))
                 .foregroundStyle(accent)
             Capsule()
                 .fill(accent.opacity(0.22))
-                .frame(width: band * 0.64, height: max(5, band * 0.1))
+                .frame(width: size * 1.52, height: max(5, size * 0.24))
         }
         .frame(width: band)
     }
@@ -803,51 +904,86 @@ private struct ColumnCloseBadge: View {
 /// arrives — and a stale, soft screenshot flashing where a page is about to be is worse than a card
 /// that never pretended to be one. The pictures are for the overview, where every window is a
 /// picture and telling them apart is the whole point.
+///
+/// **The title is a bar along the top, over the picture and not under it.** Along the bottom it
+/// landed on whatever the screenshot happened to end at and read as part of the page rather than as
+/// something six had written about it. It carries the site's own mark (`SiteIcons`), which is what a
+/// card with no screenshot lived without: a globe and a line of text tell a rail of windows apart
+/// badly. With no icon to be had the glyph stands in, as it always did.
 private struct ColumnPlaceholder: View {
     let tab: BrowserTab
     let accent: Color
     let showsPicture: Bool
 
+    @Environment(BrowserState.self) private var browser
+
     var body: some View {
-        ZStack {
-            LinearGradient(colors: [accent.opacity(0.16), accent.opacity(0.04)],
-                           startPoint: .topLeading, endPoint: .bottomTrailing)
-            if showsPicture, let image = tab.thumbnail {
-                Image(platform: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                    .clipped()
-                    .allowsHitTesting(false)
-                    .overlay(alignment: .bottom) {
-                        Text(tab.title)
-                            .font(.caption)
-                            .lineLimit(1)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .frame(maxWidth: .infinity)
-                            .background(.regularMaterial)
-                    }
-            } else {
-                card
+        // The overview draws this on a canvas it has scaled down, and how far down depends on how
+        // many windows are on the rail. An icon and a title that shrank with it would be a
+        // different size on every rail; divided by the scale they are the same size to the eye.
+        let unit = browser.layout.isOverview ? 1 / max(0.05, browser.layout.overviewScale) : 1
+        VStack(spacing: 0) {
+            header(unit)
+            ZStack {
+                LinearGradient(colors: [accent.opacity(0.16), accent.opacity(0.04)],
+                               startPoint: .topLeading, endPoint: .bottomTrailing)
+                if showsPicture, let image = tab.thumbnail {
+                    Image(platform: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                        .clipped()
+                        .allowsHitTesting(false)
+                } else {
+                    card(unit)
+                }
             }
         }
     }
 
-    private var card: some View {
-        VStack(spacing: 8) {
+    /// The site's own icon, or the glyph that says what kind of window this is when there is none.
+    @ViewBuilder
+    private func mark(size: CGFloat) -> some View {
+        if tab.isWebPage, let icon = browser.siteIcons.icon(for: tab.currentURL?.host()) {
+            Image(platform: icon)
+                .resizable()
+                .interpolation(.high)
+                .frame(width: size, height: size)
+        } else {
             Image(systemName: tab.isDocument ? "doc.text" : tab.builtIn != nil ? "gearshape" : "globe")
-                .font(.system(size: 30, weight: .light))
+                .font(.system(size: size * 0.9, weight: .light))
                 .foregroundStyle(accent)
+                .frame(width: size, height: size)
+        }
+    }
+
+    private func header(_ unit: CGFloat) -> some View {
+        HStack(spacing: 7 * unit) {
+            mark(size: 15 * unit)
             Text(tab.title)
-                .font(.headline)
-                .lineLimit(2)
-                .multilineTextAlignment(.center)
+                .font(.system(size: 11 * unit))
+                .lineLimit(1)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 10 * unit)
+        .padding(.vertical, 6 * unit)
+        .frame(maxWidth: .infinity)
+        .background(.regularMaterial)
+    }
+
+    /// No picture to show: the mark again, big, and the address under it. The title is in the bar
+    /// above and is not repeated.
+    private func card(_ unit: CGFloat) -> some View {
+        VStack(spacing: 10 * unit) {
+            mark(size: 34 * unit)
             if let host = tab.currentURL?.host() {
-                Text(host).font(.caption).foregroundStyle(.secondary)
+                Text(host)
+                    .font(.system(size: 13 * unit))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
         }
-        .padding(24)
+        .padding(24 * unit)
     }
 }
 
@@ -1164,6 +1300,12 @@ private struct StripMenu: View {
     var body: some View {
         Button("New Window") { browser.newTab() }
         Button("New Document") { browser.newDocument() }
+        Divider()
+        // ⌥Home / ⌥End, which had no other way in: the edge buttons walk one window at a time.
+        Button("First Window") { browser.focusColumnEdge(last: false) }
+            .disabled(browser.layout.focusedWorkspace?.isEmpty != false)
+        Button("Last Window") { browser.focusColumnEdge(last: true) }
+            .disabled(browser.layout.focusedWorkspace?.isEmpty != false)
         Divider()
         Button("Workspace Above") { browser.focusWorkspace(-1) }
             .disabled(!browser.layout.canFocusWorkspace(-1))

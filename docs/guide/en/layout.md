@@ -120,8 +120,8 @@ not move, because that is exactly what is being said. The light fades on its own
 There is no bounce and no sound: a bounce is the rail moving, and the one thing
 that has to stay true here is that it did not.
 
-**Right-click the background** — a new window, a document, workspaces, the
-overview, full width, configuration. **Right-click a page ▸ This Window** — close,
+**Right-click the background** — a new window, a document, the first and last
+window on the rail, workspaces, the overview, full width, configuration. **Right-click a page ▸ This Window** — close,
 full width, move left/right, move to the workspace above/below.
 
 **The full-width button** on the left of the top bar, beside the profile: one
@@ -254,9 +254,13 @@ In the overview:
 
 - scrolling sideways runs along the rail — it keeps up with your finger, moving as far
   as you moved — and up and down goes through workspaces;
-- a click on a window opens it and closes the overview; a click on an empty
-  workspace — its **New Window** button included — takes you to that workspace
-  and closes the overview, and the window is opened from there;
+- a click on a window opens it and closes the overview;
+- **the dashed place at the end of every rail** opens a window in that workspace
+  — including the empty one at the bottom, which is how a new workspace is made.
+  It is drawn as the start page in miniature: exactly what will open there. `⌘T`
+  and the rail's own `+` open a window beside the focused one, and up here the
+  focused one may be three rows away;
+- **the × on a card's corner** closes that window without going into it;
 - **dragging** carries a window along its rail or onto another workspace —
   including the empty one at the bottom, which is how a new workspace is made.
   The focus goes with the window: a window put in another row while the view
@@ -265,8 +269,10 @@ In the overview:
   clears it.
 
 Nothing loads in the overview: every window there is a card, and a card is the
-last picture of its page. Six's own pages — Configuration, MCP Apps — have no
-picture, and in the overview they are a card with their name.
+last picture of its page, with the site's icon and the window's title along its
+top. With no picture yet — a window just restored, a browser just started — the
+icon and the address are what is left. Six's own pages — Configuration, MCP Apps
+— have no picture, and in the overview they are a card with their name.
 
 ### On Windows and Linux
 

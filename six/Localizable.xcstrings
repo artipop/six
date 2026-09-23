@@ -2768,6 +2768,16 @@
         }
       }
     },
+    "First Window" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Первое окно"
+          }
+        }
+      }
+    },
     "Fix Spelling and Grammar" : {
       "localizations" : {
         "ru" : {
@@ -3348,6 +3358,16 @@
         }
       }
     },
+    "Last Window" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Последнее окно"
+          }
+        }
+      }
+    },
     "Let Agents Read Page Console and Network" : {
       "localizations" : {
         "ru" : {
@@ -3744,6 +3764,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Новое окно (⌘T)"
+          }
+        }
+      }
+    },
+    "New window in this workspace" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Новое окно в этом рабочем столе"
           }
         }
       }
