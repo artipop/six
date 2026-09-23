@@ -171,6 +171,7 @@ struct sixApp: App {
         agentSession.browser = browser
         let research = ResearchCoordinator(browser: browser, agentSession: agentSession, settings: settings)
         assistant.agentSession = agentSession
+        tools.agentSession = agentSession
         assistant.research = research
         let mcp = MCPHost(server: MCPServer(catalog: tools))
         // Always listening, whatever the assistant switch says. This is six offering *itself* to

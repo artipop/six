@@ -148,6 +148,25 @@ Profiles**.
 [deep research](/en/research): a workspace of sources and a document the agent
 writes into.
 
+## The do command
+
+`do: …` or `/do …` on the `⌘E` line hands six the work on the page in front of
+you: it looks at the page and clicks and fills in the fields itself, step by
+step, until the goal is visibly satisfied. It suits anything you can state in a
+sentence with the values it needs — "find a one-way flight Zurich to London on
+16 October for two adults in business" or "fill this form in as…".
+
+The answer is the list of steps: what was clicked, what was typed, **which
+decider chose it** and how long it took. In front of a button that pays, books,
+places an order or deletes, six stops and says what is ready: the last press is
+yours.
+
+Steps can be decided by a fast classifier when its address is set in
+**Configuration ▸ Assistant** — TypeSafe's Jev, or a laya-browser server on this
+machine — and then it takes the obvious steps while the assistant's own model
+writes the text for fields and settles what the classifier is unsure about.
+Without that address every step is the assistant's model.
+
 ## When a model is unavailable
 
 The line says so, with the reason. The remote models can be switched off if the

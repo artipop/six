@@ -149,8 +149,40 @@ final class AssistantSettings {
         set { store.assistantOpenAIModel = newValue }
     }
 
+    /// The key for the System 1 endpoint (TypeSafe's, or none at all for a server on this machine).
+    var pageTaskKey: String {
+        didSet { defaults.set(pageTaskKey, forKey: "six.assistant.pageTaskKey") }
+    }
+
+    var pageTaskEndpoint: String {
+        get { store.pageTaskEndpoint }
+        set { store.pageTaskEndpoint = newValue }
+    }
+
+    var pageTaskModel: String {
+        get { store.pageTaskModel }
+        set { store.pageTaskModel = newValue }
+    }
+
+    var systemOneThreshold: Double {
+        get { store.pageTaskThreshold }
+        set { store.pageTaskThreshold = newValue }
+    }
+
+    /// The configured fast decider, or nil — in which case a page task is the assistant's model all
+    /// the way down, which works and costs a model call per step.
+    var systemOne: SystemOne? {
+        let address = pageTaskEndpoint.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let url = URL(string: address), url.scheme != nil, url.host() != nil else { return nil }
+        let name = pageTaskModel.trimmingCharacters(in: .whitespacesAndNewlines)
+        return SystemOne(url: url, key: pageTaskKey.trimmingCharacters(in: .whitespacesAndNewlines),
+                         model: name.isEmpty ? "jev-latest" : name)
+    }
+
     init(store: ConfigurationStore) {
         self.store = store
+        pageTaskKey = defaults.string(forKey: "six.assistant.pageTaskKey")
+            ?? ProcessInfo.processInfo.environment["TYPESAFE_API_KEY"] ?? ""
         anthropicAPIKey = defaults.string(forKey: "six.assistant.anthropicKey")
             ?? ProcessInfo.processInfo.environment["ANTHROPIC_API_KEY"] ?? ""
         openAIAPIKey = defaults.string(forKey: "six.assistant.openAIKey")

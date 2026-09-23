@@ -34,6 +34,12 @@ final class ConfigurationStore {
         /// The OpenAI-compatible endpoint the assistant talks to, and the model it names there.
         case assistantOpenAIBaseURL = "assistant.openai.baseURL"
         case assistantOpenAIModel = "assistant.openai.model"
+        /// The System 1 decision endpoint for page tasks: TypeSafe's Jev, or a local laya-browser
+        /// server, which answers the same `/v1/systemone` request. Empty means page tasks are
+        /// decided by the assistant's own model alone.
+        case pageTaskEndpoint = "pagetask.endpoint"
+        case pageTaskModel = "pagetask.model"
+        case pageTaskThreshold = "pagetask.threshold"
         case centersFocus = "layout.centersFocus"
         case fill = "layout.fill"
         case peeksAtEdges = "layout.peeksAtEdges"
@@ -150,6 +156,27 @@ final class ConfigurationStore {
     #else
     static let peeksByDefault = false
     #endif
+
+    /// Where the fast decider for page tasks lives, and which model to ask it for. Both are
+    /// addresses rather than secrets, so they live here; the key sits beside the other keys in
+    /// `AssistantSettings`.
+    var pageTaskEndpoint: String {
+        get { self[.pageTaskEndpoint] ?? "" }
+        set { self[.pageTaskEndpoint] = newValue.isEmpty ? nil : newValue }
+    }
+
+    var pageTaskModel: String {
+        get { self[.pageTaskModel] ?? "" }
+        set { self[.pageTaskModel] = newValue.isEmpty ? nil : newValue }
+    }
+
+    /// Below this probability a step is re-decided by the assistant's model instead. 0.9 out of the
+    /// box: laya-browser's own held-out element accuracy is 0.63, so most steps of a hard page
+    /// should go up, and the cheap decider should keep the ones it is sure of.
+    var pageTaskThreshold: Double {
+        get { self[.pageTaskThreshold].flatMap(Double.init) ?? 0.9 }
+        set { self[.pageTaskThreshold] = String(max(0, min(1, newValue))) }
+    }
 
     /// The deep-research preset as edited by the user; empty means the built-in one.
     var researchTemplate: String {

@@ -7101,6 +7101,56 @@
           }
         }
       }
+    },
+    "`do: …` on the ⌘E line carries a goal out on the page. A fast decision model — TypeSafe's Jev, or a laya-browser server of your own — can choose the obvious steps; the assistant's model writes what goes into fields and takes every step the fast one is less sure of than this. Leave the address empty to let the assistant's model decide every step." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "«сделай: …» в строке ⌘E выполняет задачу прямо на странице. Очевидные шаги может выбирать быстрая модель-классификатор — Jev от TypeSafe или свой сервер laya-browser; текст в поля пишет модель ассистента, и она же берёт каждый шаг, в котором быстрая уверена слабее указанного. Пустой адрес — все шаги решает модель ассистента."
+          }
+        }
+      }
+    },
+    "Do It on the Page" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сделать на странице"
+          }
+        }
+      }
+    },
+    "Fast Decider" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Быстрый решатель"
+          }
+        }
+      }
+    },
+    "Page Tasks" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Задачи на странице"
+          }
+        }
+      }
+    },
+    "Trust Above" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доверять выше"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

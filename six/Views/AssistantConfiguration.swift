@@ -106,6 +106,17 @@ private struct AssistantResponsesConfiguration: View {
                 }
             }
             AssistantProviderConfiguration()
+            Section("Page Tasks") {
+                TextField("Fast Decider", text: $settings.pageTaskEndpoint,
+                          prompt: Text(verbatim: "https://api.typesafe.ai/v1/systemone"))
+                TextField("Model", text: $settings.pageTaskModel, prompt: Text(verbatim: "jev-latest"))
+                SecureField("Key", text: $settings.pageTaskKey)
+                // Not a slider: this number is read in the trace of every run (`0.87 → escalated`),
+                // so it is typed and compared, not dragged.
+                TextField("Trust Above", value: $settings.systemOneThreshold, format: .number.precision(.fractionLength(2)))
+                Text("`do: …` on the ⌘E line carries a goal out on the page. A fast decision model — TypeSafe's Jev, or a laya-browser server of your own — can choose the obvious steps; the assistant's model writes what goes into fields and takes every step the fast one is less sure of than this. Leave the address empty to let the assistant's model decide every step.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             Section("Access") {
                 Toggle("Access to Page Console and Network", isOn: $devTools.isCapturing)
                     .toggleStyle(.switch)

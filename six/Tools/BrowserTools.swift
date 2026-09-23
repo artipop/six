@@ -52,6 +52,11 @@ final class BrowserToolCatalog {
     /// Console and network capture. While it is off the two tools that read it are not offered at
     /// all — a tool that can only answer "turn something on first" is a tool the model keeps calling.
     var devTools: DevToolsStore?
+    #if os(macOS)
+    /// The agent session, for `run_page_task` when six's assistant is set to an ACP agent rather
+    /// than a language model — which is the free option and the common one.
+    var agentSession: AgentSessionStore?
+    #endif
 
     private static let captureTools: Set = ["list_console_messages", "list_network_requests"]
 
@@ -659,6 +664,33 @@ final class BrowserToolCatalog {
             surfaces: .mcp,
             run: { [unowned self] args in
                 try await self.act(args, PageActionScript.scroll, ["direction": args["direction"]?.stringValue ?? "down"])
+            }
+        ),
+        BrowserTool(
+            name: "run_page_task",
+            title: String(localized: "Do It on the Page"),
+            description: "Hands one goal on one page to six's own step loop, which looks at the page and acts on it until the "
+                + "goal is visibly satisfied — the mechanical part of filling a form or running a search, without a "
+                + "round trip per click. Steps are decided by the fast decision model configured in six when there is "
+                + "one and by six's assistant model otherwise; the answer is the trace, one line per step, naming which "
+                + "decided it, how sure it was and how long it took. It stops in front of anything that pays, books or "
+                + "deletes. Use it for a goal you can state in a sentence; drive the page yourself when you need to "
+                + "judge what you see at every step.",
+            parameters: [Self.windowID,
+                         .init(name: "goal", description: "What to achieve on this page, in one or two sentences, with every value it needs.", required: true)],
+            surfaces: .mcp,
+            run: { [unowned self] args in
+                let tab = try self.actingTab(args)
+                guard let goal = args["goal"]?.stringValue, !goal.isEmpty else { throw BrowserTool.Failure(message: "goal is required") }
+                await Self.waitForLoad(tab)
+                #if os(macOS)
+                let runner = PageTaskRunner(settings: self.assistant, agentSession: self.agentSession)
+                #else
+                let runner = PageTaskRunner(settings: self.assistant)
+                #endif
+                var trace = ""
+                let run = await runner.run(goal: goal, tab: tab) { trace = $0 }
+                return "\(Self.describe(tab))\n\n\(trace)\n\n\(run.ending.map { _ in "" } ?? "")" + (try await self.snapshotText(tab, args))
             }
         ),
         BrowserTool(
