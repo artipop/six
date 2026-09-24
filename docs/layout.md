@@ -673,3 +673,50 @@ when their middles have crossed, which is a fixed line. Measuring against the sh
 towards the card every time it moves — the window to the right slides into the gap and its middle arrives under the
 pointer at once, and the drop target flips back and forth for a pixel of travel. The focus goes with the window on the
 drop: a window put in another row that left the view behind in the old one is a window you have just lost.
+
+## Tabs instead of the row
+
+`InterfaceStyle.tabs` (Configuration ▸ Windows ▸ Show Windows As, or View ▸ Show Tabs; the key is `interface.style` in
+the settings table) draws the same strip the way every other browser draws a window: a tab bar in the title-bar
+band, a toolbar under it with the address field, and the one page in front filling the rest
+(`six/Views/TabStripView.swift`). **It is a second view of the strip and not a second model**, which is the whole of
+the design and the reason switching loses nothing:
+
+| the row | the tab bar |
+|---|---|
+| a window | a tab |
+| a split column | two tabs side by side; whichever is focused is the page shown |
+| a workspace | a tab group, coloured, labelled with the workspace's name (or "Workspace N") |
+| the focused column | the tab in front |
+| the spare empty row at the bottom | nothing — it is not a group |
+
+A lone unnamed workspace is a plain tab bar with no label, as in any browser before it has a group; from the
+second workspace on, or once one is named, every row gets its label. The colour is read off the workspace's id rather
+than its position, so a group does not change colour when the one before it is closed.
+
+What the row does not have is a group **folded** up to its label. That lives on the workspace
+(`TilingWorkspace.collapsed`, optional so an older session file reads as every group open) and the row ignores it, so a
+group folded here is still folded when the tabs come back. A group cannot fold over the tab in front: the neighbouring
+tab along the row is shown first, and if every other tab is folded away too the group stays open. `⌃Tab` and
+`⌘1…⌘9` skip folded groups.
+
+The verbs are `TilingLayout.placeTab` — one window to a column index in a row, by workspace id, the focus following it;
+half of a split dragged away leaves the other half in its column — `placeTabInNewWorkspace` for "Add Tab to New
+Group", and `setCollapsed`. `BrowserState` wraps them with the rules above, and `closeGroup` clears the name before
+closing the tabs, because closing the group *is* the answer to the question a named row asks when it empties.
+
+**The keys.** `KeyContext.showsTabs` switches off every row whose action is about the row
+(`KeyAction.answersInTabs`), so `⌥←` is word movement again and `⌥W` types «∑»; `⌃Tab` is Chrome's next tab
+instead of the ring. The View menu swaps Full Width / Split / Overview for Show Next / Previous Tab and `⌘1…⌘9`
+through the `tabBar` focused value — a `Commands` body is rebuilt for a focused value and not for model state. With
+nothing focused in the window the menu falls back to its row items, so `toggleSplit`, `toggleFullWindow` and
+`toggleOverview` refuse with the tabs up as well: measured, `⌥W` and `⌥S` reached them through the menu once the
+self-test had cleared the first responder. `SIX_KEY_SELFTEST` prints a `tabs` column.
+
+**The swap is a frame of nothing.** Both faces draw the pages, and a `WebPage` allows exactly one `WebView` — the trap
+`TilingLayout.unanimated` is written up for. `ContentView.swapFace` takes the old face down, waits 32 ms with neither on
+screen, then puts the new one up, so the new `WebView` can never be built while the old one still holds the page.
+
+What the tab bar does **not** have yet: tabs from several profiles side by side (it shows the profile on screen,
+like the row), dragging a tab out into a group of its own (the tab menu's "Add Tab to New Group" does that), and
+group colours chosen by hand.

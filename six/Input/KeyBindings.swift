@@ -279,6 +279,7 @@ struct KeyBinding {
     func matches(code: UInt16, character: Character?, held: KeyModifiers, in context: KeyContext) -> Bool {
         guard key.matches(code: code, character: character) else { return false }
         guard modifiers.matches(held) else { return false }
+        if context.showsTabs, !action.answersInTabs { return false }
         switch scope {
         case .switcher: return context.isSwitching
         case .row: return context.window == .main
@@ -320,6 +321,22 @@ enum KeyAction: Equatable {
     case landSwitcher
     case cancelSwitcher
     case leaveOverview
+}
+
+extension KeyAction {
+    /// Whether the key still means something when the window is a tab bar. The row's walking
+    /// and arranging do not — there is no row on screen — and neither does the ring, whose place
+    /// `⌃Tab` takes as Chrome's next tab. What stays is what is about the page in front of you.
+    var answersInTabs: Bool {
+        switch self {
+        case .translateSelection, .highlightSelection, .pictureInPicture, .copyAddress, .stepSwitcher:
+            return true
+        case .focusColumn, .moveColumn, .focusColumnEdge, .focusWorkspace, .moveColumnToWorkspace,
+             .toggleFullWidth, .toggleSplit, .toggleOverview, .toggleCenterFocus,
+             .walkSwitcher, .landSwitcher, .cancelSwitcher, .leaveOverview:
+            return false
+        }
+    }
 }
 
 /// The modifiers a hand can be on, and nothing else.

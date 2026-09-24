@@ -27,6 +27,7 @@ struct ViewCommands: Commands {
     @FocusedValue(\.translatePage) private var translatePage
     @FocusedValue(\.translateSelection) private var translateSelection
     @FocusedValue(\.showFindBar) private var showFindBar
+    @FocusedValue(\.tabBar) private var tabBar
 
     var body: some Commands {
         CommandGroup(before: .toolbar) {
@@ -66,26 +67,52 @@ struct ViewCommands: Commands {
 
             Divider()
 
-            Toggle("Full Width", isOn: Binding(
-                get: { browser.layout.fill == .window },
-                set: { _ in browser.toggleFullWindow() }
+            // The one switch here that is a setting and not a verb, and the exception is on
+            // purpose: the two faces are tried against each other, and a setting four clicks deep is
+            // not how anything gets tried.
+            Toggle("Show Tabs", isOn: Binding(
+                get: { browser.showsTabs },
+                set: { browser.setInterfaceStyle($0 ? .tabs : .row) }
             ))
-            .keyboardShortcut("w", modifiers: .option)
-            // A toggle and not two items, because it is one key: what ⌥S does depends on what the
-            // window in front of you already is, and the tick says which of the two it is about to
-            // do. Like every other row here it is never greyed out — a `Commands` body is not
-            // rebuilt when the layout changes under it — so in a row with one window it does
-            // nothing, and the row's own end-of-the-line light says so.
-            Toggle("Split", isOn: Binding(
-                get: { browser.layout.isSplit },
-                set: { _ in browser.toggleSplit() }
-            ))
-            .keyboardShortcut("s", modifiers: .option)
-            Toggle("Overview", isOn: Binding(
-                get: { browser.layout.isOverview },
-                set: { _ in browser.toggleOverview() }
-            ))
-            .keyboardShortcut("o", modifiers: .option)
+
+            Divider()
+
+            // The row's own verbs while there is a row, and a tab bar' own keys while there
+            // is one of those. A focused value, so the menu is rebuilt when the face changes —
+            // which a read of `browser.showsTabs` here would not do (see above).
+            if let tabBar {
+                Button("Show Next Tab") { tabBar.step(1) }
+                    .keyboardShortcut("]", modifiers: [.command, .shift])
+                Button("Show Previous Tab") { tabBar.step(-1) }
+                    .keyboardShortcut("[", modifiers: [.command, .shift])
+                ForEach(1..<10) { position in
+                    Button(position == 9 ? String(localized: "Last Tab") : String(localized: "Tab \(position)")) {
+                        tabBar.select(position)
+                    }
+                    .keyboardShortcut(KeyEquivalent(Character("\(position)")))
+                }
+            } else {
+                Toggle("Full Width", isOn: Binding(
+                    get: { browser.layout.fill == .window },
+                    set: { _ in browser.toggleFullWindow() }
+                ))
+                .keyboardShortcut("w", modifiers: .option)
+                // A toggle and not two items, because it is one key: what ⌥S does depends on what the
+                // window in front of you already is, and the tick says which of the two it is about to
+                // do. Like every other row here it is never greyed out — a `Commands` body is not
+                // rebuilt when the layout changes under it — so in a row with one window it does
+                // nothing, and the row's own end-of-the-line light says so.
+                Toggle("Split", isOn: Binding(
+                    get: { browser.layout.isSplit },
+                    set: { _ in browser.toggleSplit() }
+                ))
+                .keyboardShortcut("s", modifiers: .option)
+                Toggle("Overview", isOn: Binding(
+                    get: { browser.layout.isOverview },
+                    set: { _ in browser.toggleOverview() }
+                ))
+                .keyboardShortcut("o", modifiers: .option)
+            }
 
             Divider()
 

@@ -131,7 +131,13 @@ nonisolated struct TilingWorkspace: Identifiable, Sendable, Codable {
     var focus: Int = 0
     /// Scroll position of the strip, in points of content space.
     var viewOffset: CGFloat = 0
+    /// Folded up to its name in the tab bar (`InterfaceStyle.tabs`), as a Chrome tab group folds.
+    /// The row has no use for it and leaves it alone, so a group folded there is still folded when
+    /// the tabs come back. Optional because the session file outlives the build that wrote it: a
+    /// strip saved before this existed decodes with it absent, and absent is open.
+    var collapsed: Bool?
 
+    var isCollapsed: Bool { collapsed == true }
     var isEmpty: Bool { columns.isEmpty }
     var focusedColumn: TilingColumn? { columns.indices.contains(focus) ? columns[focus] : nil }
 }
@@ -1830,6 +1836,70 @@ final class TilingLayout {
             guard s.workspaces.indices.contains(index) else { return }
             s.workspaces[index].name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         }
+    }
+
+    // MARK: Tab groups
+
+    /// Folds a workspace up to its name in the tab bar, or opens it again. By id, like every verb
+    /// the tab bar calls: the row is drawn from a list that `normalize` can reorder between the
+    /// click and the call.
+    func setCollapsed(_ collapsed: Bool, workspace id: UUID) {
+        mutate { s in
+            guard let index = s.workspaces.firstIndex(where: { $0.id == id }) else { return }
+            s.workspaces[index].collapsed = collapsed ? true : nil
+        }
+    }
+
+    /// One window to a place in a row: a tab dragged along the tab bar, or into another group.
+    /// The window, not the column — a tab is one page, so half of a split dragged away leaves the
+    /// other half filling the column on its own, as `moveColumn(tabID:in:toWorkspace:)` does. `index`
+    /// is a column position in the destination row *before* the window left, which is what the row
+    /// of tabs was showing when it was dropped. The focus follows the window.
+    func placeTab(_ tabID: UUID, in profileID: UUID, workspace id: UUID, at index: Int) {
+        unanimated {
+            mutate(profile: profileID) { s in
+                guard let target = s.workspaces.firstIndex(where: { $0.id == id }),
+                      let from = s.workspaces.firstIndex(where: { $0.columns.contains { $0.holds(tabID) } }),
+                      let at = s.workspaces[from].columns.firstIndex(where: { $0.holds(tabID) }) else { return }
+                var index = min(max(0, index), s.workspaces[target].columns.count)
+                var column = s.workspaces[from].columns[at]
+                if column.remove(tabID) {
+                    s.workspaces[from].columns[at] = column
+                    column = TilingColumn(tabID: tabID)
+                } else {
+                    s.workspaces[from].columns.remove(at: at)
+                    if from == target, at < index { index -= 1 }
+                }
+                if from != target {
+                    s.workspaces[from].focus = min(s.workspaces[from].focus, max(0, s.workspaces[from].columns.count - 1))
+                    askBeforeRemoving(s.workspaces[from], in: profileID)
+                }
+                s.workspaces[target].columns.insert(column, at: index)
+                s.workspaces[target].focus = index
+                s.workspaces[target].collapsed = nil
+                s.focus = target
+                scrollFocusIntoView(&s.workspaces[target])
+            }
+        }
+    }
+
+    /// A window into a workspace of its own, just after the one it is in — "Add Tab to New Group".
+    /// Returns the new workspace's id, so the tab bar can ask for its name straight away.
+    @discardableResult
+    func placeTabInNewWorkspace(_ tabID: UUID, in profileID: UUID) -> UUID? {
+        var created: UUID?
+        mutate(profile: profileID) { s in
+            guard let from = s.workspaces.firstIndex(where: { $0.columns.contains { $0.holds(tabID) } }) else { return }
+            let workspace = TilingWorkspace()
+            s.workspaces.insert(workspace, at: from + 1)
+            created = workspace.id
+            // Survives the `normalize` at the end of this mutation, which would otherwise take an
+            // empty unnamed row for the spare one and drop it before the window is in it.
+            keepsEmptyOnce = workspace.id
+        }
+        guard let created else { return nil }
+        placeTab(tabID, in: profileID, workspace: created, at: 0)
+        return created
     }
 
     func removeProfile(_ id: UUID) {

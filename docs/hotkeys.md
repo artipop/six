@@ -149,6 +149,20 @@ One row's windows only — the workspace on screen — and this run only. `⌥�
 | `Esc` | close the overview; otherwise the page's own |
 | `↩` `⌤` | in the overview, fly into the focused window — what a click on its card does. Scoped to the overview (`KeyBinding.Scope.overview`), so outside it the key never reaches the table; a workspace being renamed on its plate keeps it |
 
+## Tabs (`View ▸ Show Tabs`)
+
+With the window drawn as a tab bar ([layout.md](layout.md#tabs-instead-of-the-row)), every key in the row and
+reserved tables above passes through untouched — `⌥←` is word movement again, `⌥W` types «∑» — because there is no
+row on screen to walk (`KeyAction.answersInTabs`, `KeyContext.showsTabs`). What stays six's is what is about the page:
+`⌥⇧T`, `⌥⇧H`, `⌥⇧P`, `⌘⇧C` and the `⌘` keys. The View menu drops Full Width, Split and Overview for these:
+
+| | |
+|---|---|
+| `⌃Tab` `⌃⇧Tab` | next / previous tab along the row, round the end — Chrome's, not the ring. A folded group's tabs are skipped |
+| `⌘⇧]` `⌘⇧[` | the same, from View ▸ Show Next Tab / Show Previous Tab |
+| `⌘1` … `⌘8` | that tab; `⌘9` the last one |
+| `⌘T` `⌘W` `⌘⇧T` | new tab, close tab, reopen closed tab — the File menu's items, named for tabs |
+
 ## Start page (a new window)
 
 | | |

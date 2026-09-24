@@ -1,6 +1,16 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Add Tab to New Group" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавить вкладку в новую группу"
+          }
+        }
+      }
+    },
     "Add Variable" : {
       "localizations" : {
         "ru" : {
@@ -71,6 +81,56 @@
         }
       }
     },
+    "Close Group" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закрыть группу"
+          }
+        }
+      }
+    },
+    "Close Other Tabs" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закрыть другие вкладки"
+          }
+        }
+      }
+    },
+    "Close Tab" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закрыть вкладку"
+          }
+        }
+      }
+    },
+    "Close Tab (⌘W)" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закрыть вкладку (⌘W)"
+          }
+        }
+      }
+    },
+    "Collapse Group" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Свернуть группу"
+          }
+        }
+      }
+    },
     "Current" : {
       "localizations" : {
         "ru" : {
@@ -111,6 +171,16 @@
         }
       }
     },
+    "Expand Group" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Развернуть группу"
+          }
+        }
+      }
+    },
     "Folder" : {
       "localizations" : {
         "ru" : {
@@ -127,6 +197,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "В другой папке"
+          }
+        }
+      }
+    },
+    "Last Tab" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Последняя вкладка"
           }
         }
       }
@@ -151,6 +231,16 @@
         }
       }
     },
+    "Move Tab to Group" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переместить вкладку в группу"
+          }
+        }
+      }
+    },
     "New Chat" : {
       "localizations" : {
         "ru" : {
@@ -167,6 +257,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Новый чат; этот останется в «Чатах»"
+          }
+        }
+      }
+    },
+    "New Tab" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Новая вкладка"
+          }
+        }
+      }
+    },
+    "New Tab (⌘T)" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Новая вкладка (⌘T)"
+          }
+        }
+      }
+    },
+    "New Tab in Group" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Новая вкладка в группе"
+          }
+        }
+      }
+    },
+    "New Tab to the Right" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Новая вкладка справа"
           }
         }
       }
@@ -221,12 +351,102 @@
         }
       }
     },
+    "Row" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Лента"
+          }
+        }
+      }
+    },
     "Remove (⌘⌫)" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Убрать (⌘⌫)"
+          }
+        }
+      }
+    },
+    "Rename Group…" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переименовать группу…"
+          }
+        }
+      }
+    },
+    "Reopen Closed Tab" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть закрытую вкладку"
+          }
+        }
+      }
+    },
+    "Show Next Tab" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Следующая вкладка"
+          }
+        }
+      }
+    },
+    "Show Previous Tab" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Предыдущая вкладка"
+          }
+        }
+      }
+    },
+    "Show Tabs" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать вкладки"
+          }
+        }
+      }
+    },
+    "Show Windows As" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать окна как"
+          }
+        }
+      }
+    },
+    "Tab %lld" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вкладка %lld"
+          }
+        }
+      }
+    },
+    "Tabs" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вкладки"
           }
         }
       }
@@ -967,6 +1187,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Значение"
+          }
+        }
+      }
+    },
+    "Workspaces are tab groups. The row's ⌥ keys are off." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Рабочие столы становятся группами вкладок. Клавиши ленты с ⌥ выключены."
           }
         }
       }

@@ -11,6 +11,14 @@ nonisolated struct Setting: Sendable {
     var value: String
 }
 
+/// The window as a row of full-height windows, or as a tab bar over the one page in front — the
+/// way every other browser draws it. Two views of one strip, never two strips: a tab is a window, a
+/// tab group is a workspace, and its name is the workspace's name.
+nonisolated enum InterfaceStyle: String, Sendable, CaseIterable {
+    case row
+    case tabs
+}
+
 /// Typed access to the settings table, cached in memory. Reads are observable; writes hit the
 /// database at once.
 @MainActor
@@ -29,6 +37,8 @@ final class ConfigurationStore {
         case centersFocus = "layout.centersFocus"
         case fill = "layout.fill"
         case peeksAtEdges = "layout.peeksAtEdges"
+        /// The row, or a tab bar over one page (`InterfaceStyle`).
+        case interfaceStyle = "interface.style"
         case agentModel = "agent.model"
         case agentModels = "agents.models"
         case agentModelCatalogs = "agents.modelCatalogs"
@@ -124,6 +134,13 @@ final class ConfigurationStore {
     var peeksAtEdges: Bool {
         get { self[.peeksAtEdges].map { $0 == "1" } ?? Self.peeksByDefault }
         set { self[.peeksAtEdges] = newValue ? "1" : "0" }
+    }
+
+    /// Which of the two faces the window wears. Nothing in the strip depends on it: the tabs are the
+    /// row's windows and their groups are its workspaces, so switching back and forth loses nothing.
+    var interfaceStyle: InterfaceStyle {
+        get { self[.interfaceStyle].flatMap(InterfaceStyle.init(rawValue:)) ?? .row }
+        set { self[.interfaceStyle] = newValue.rawValue }
     }
 
     #if os(macOS)

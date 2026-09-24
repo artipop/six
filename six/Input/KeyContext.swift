@@ -41,12 +41,18 @@ struct KeyContext: Equatable {
     /// The ⌃Tab ring is held open. While it is, it is on top of everything else in the window.
     var isSwitching: Bool
     var isOverview: Bool
+    /// The window is showing a tab bar instead of the row (`InterfaceStyle.tabs`). There is no
+    /// row on screen to walk, so its keys go back to the page and the field — `⌥←` is word movement
+    /// again, `⌥W` types «∑» — and only the verbs that are about the page stay six's.
+    var showsTabs: Bool
 
-    init(window: Window, field: Field? = nil, isSwitching: Bool = false, isOverview: Bool = false) {
+    init(window: Window, field: Field? = nil, isSwitching: Bool = false, isOverview: Bool = false,
+         showsTabs: Bool = false) {
         self.window = window
         self.field = field
         self.isSwitching = isSwitching
         self.isOverview = isOverview
+        self.showsTabs = showsTabs
     }
 }
 
@@ -55,6 +61,7 @@ extension KeyContext: CustomStringConvertible {
         var parts = [window == .main ? "main" : "elsewhere"]
         if isSwitching { parts.append("switcher") }
         if isOverview { parts.append("overview") }
+        if showsTabs { parts.append("tabs") }
         if let field {
             parts.append("field(\(field.kind == .multiLine ? "multi" : "single")"
                          + "\(field.hasTextBefore ? " ←text" : "")\(field.hasTextAfter ? " text→" : ""))")

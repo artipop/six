@@ -25,17 +25,29 @@ struct ContentView: View {
     @State private var showHistory = false
     @State private var showBookmarks = false
     @State private var confirmClearHistory = false
+    /// The face on screen, which trails `BrowserState.interfaceStyle` by one frame with nothing drawn
+    /// in between (`swapFace`). `nil` until the window first appears, and then it reads the setting.
+    @State private var face: InterfaceStyle?
+    @State private var hasFace = false
 
     var body: some View { contentBody }
 
     private var contentBody: AnyView {
+        let shown = hasFace ? face : browser.interfaceStyle
         let stack = AnyView(VStack(spacing: 0) {
-            TopBar(addressFocus: $addressFocus)
-                // In front of the row, not behind it. They are siblings in a stack, so the row is
-                // drawn — and hit-tested — after the bar; anything of the row's that reaches up into
-                // the bar's band would take the click off its buttons.
-                .zIndex(1)
-            TilingStripView().modifier(AssistantBarOverlay())
+            switch shown {
+            case .row:
+                TopBar(addressFocus: $addressFocus)
+                    // In front of the row, not behind it. They are siblings in a stack, so the row
+                    // is drawn — and hit-tested — after the bar; anything of the row's that reaches
+                    // up into the bar's band would take the click off its buttons.
+                    .zIndex(1)
+                TilingStripView().modifier(AssistantBarOverlay())
+            case .tabs:
+                TabbedWindowView(addressFocus: $addressFocus).modifier(AssistantBarOverlay())
+            case nil:
+                Color(nsColor: .windowBackgroundColor)
+            }
         })
         return AnyView(stack
         .ignoresSafeArea(.container, edges: .top)
@@ -84,6 +96,13 @@ struct ContentView: View {
         // off the edge a moment later — and impossible to miss in a split, where one half is
         // highlighted and your typing lands in the other. `WebViewResponder` has the account.
         .onChange(of: browser.selectedTabID) { _, id in WebViewResponder.shared.focus(id) }
+        .onChange(of: browser.interfaceStyle) { _, style in swapFace(to: style) }
+        .focusedSceneValue(\.tabBar, browser.showsTabs ? TabBarActions(browser: browser) : nil)
+        .onAppear {
+            face = browser.interfaceStyle
+            hasFace = true
+            browser.selectTabIfNone()
+        }
         .onAppear(perform: startKeyRouter)
         .onDisappear { keys.stop() }
         .task {
@@ -140,6 +159,19 @@ private struct WindowSwitcherOverlayModifier: ViewModifier {
 }
 
 extension ContentView {
+    /// One face goes, a frame of nothing, then the other. The two draw the same pages, and a page is
+    /// a `WebPage` WebKit allows exactly one `WebView` over — built for the new face before the old
+    /// one has let go, the second view traps in `makeViewProvider` (`TilingLayout.unanimated` has the
+    /// account). A frame with neither is how that cannot happen.
+    private func swapFace(to style: InterfaceStyle) {
+        face = nil
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(32))
+            guard browser.interfaceStyle == style else { return }
+            face = style
+        }
+    }
+
     private var agentPanelPresentation: Binding<Bool> {
         Binding(
             get: { showAgentPanel && settings.isAIEnabled },
@@ -172,6 +204,7 @@ extension ContentView {
         if let query = environment["SIX_PERSONAL_SELFTEST"], !query.isEmpty { await personalSelfTest(query) }
         if let spec = environment["SIX_FIND_SELFTEST"], !spec.isEmpty { await findSelfTest(spec) }
         if environment["SIX_CRX_SELFTEST"] != nil { crxSelfTest() }
+        if environment["SIX_TABS_SELFTEST"] != nil { await TabsSelfTest.run(browser) }
         if let text = environment["SIX_CHATS_SELFTEST"], !text.isEmpty {
             await agentSession.chatsSelfTest(prompt: text, browser: browser)
         }
@@ -200,6 +233,7 @@ extension ContentView {
     private func startKeyRouter() {
         keys.isSwitching = { browser.switcher.isOpen }
         keys.isOverview = { browser.layout.isOverview }
+        keys.showsTabs = { browser.showsTabs }
         keys.performExtensionCommand = { event in
             guard let extensions = browser.extensions else { return false }
             return extensions.performCommand(for: event, in: browser.selectedProfileID)
@@ -215,6 +249,8 @@ extension ContentView {
             case .toggleSplit: browser.toggleSplit()
             case .toggleOverview: browser.toggleOverview()
             case .toggleCenterFocus: browser.toggleCenterFocus()
+            // ⌃Tab is Chrome's with the tabs up: the next tab along the row, not the ring.
+            case .stepSwitcher(let step) where browser.showsTabs: browser.selectAdjacentTab(step)
             case .stepSwitcher(let step): browser.stepWindowSwitch(step)
             case .walkSwitcher(let step): browser.walkWindowSwitch(step)
             case .landSwitcher: browser.endWindowSwitch()
@@ -666,7 +702,7 @@ private struct TopBar: View {
 /// The star: filled when the page this bar is describing is bookmarked; a click saves it (or forgets
 /// it). It takes that window rather than reading the selection, because it is only ever drawn beside
 /// that window's address — there is no state of this button that means "no window".
-private struct BookmarkButton: View {
+struct BookmarkButton: View {
     let tab: BrowserTab
 
     @Environment(BrowserState.self) private var browser
@@ -697,7 +733,7 @@ private struct BookmarkButton: View {
 /// The system's share picker for the page this bar describes — Mail, Messages, AirDrop, Notes, and
 /// every other app's share extension. Greyed out rather than gone when there is nothing to share, so
 /// the bar does not shift under the pointer between a page and a start page.
-private struct ShareButton: View {
+struct ShareButton: View {
     let tab: BrowserTab
 
     var body: some View {

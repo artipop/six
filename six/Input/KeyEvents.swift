@@ -36,12 +36,13 @@ extension KeyBinding {
 }
 
 extension KeyContext {
-    init(event: NSEvent, isSwitching: Bool, isOverview: Bool) {
+    init(event: NSEvent, isSwitching: Bool, isOverview: Bool, showsTabs: Bool = false) {
         let window = Self.window(of: event)
         self.init(window: window,
                   field: window == .main ? Self.field(in: event.window) : nil,
                   isSwitching: isSwitching,
-                  isOverview: isOverview)
+                  isOverview: isOverview,
+                  showsTabs: showsTabs)
     }
 
     private static func window(of event: NSEvent) -> Window {

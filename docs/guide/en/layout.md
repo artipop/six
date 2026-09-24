@@ -3,6 +3,7 @@
 There are no tabs and no sidebar. There is a **window** — a full-height page — a
 **row**, on which windows stand left to right, and a **workspace**, which is
 one row. Workspaces are stacked vertically; exactly one is on screen.
+Tabs can still be had — see [Tabs instead of the row](tabs.md).
 
 ```
 workspace "Tickets"   [ document ] [ aviasales ] [ tutu.ru ] [ s7.ru ]  →

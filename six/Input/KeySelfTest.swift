@@ -22,7 +22,8 @@ enum KeySelfTest {
             ("sheet", KeyContext(window: .elsewhere)),
             ("ring open", KeyContext(window: .main, isSwitching: true)),
             ("overview", KeyContext(window: .main, isOverview: true)),
-            ("renaming", KeyContext(window: .main, field: .init(kind: .singleLine, hasTextBefore: true, hasTextAfter: false), isOverview: true))
+            ("renaming", KeyContext(window: .main, field: .init(kind: .singleLine, hasTextBefore: true, hasTextAfter: false), isOverview: true)),
+            ("tabs", KeyContext(window: .main, showsTabs: true))
         ]
         let chords: [(String, NSEvent.ModifierFlags, KeyCode, String)] = [
             ("⌥←", .option, .leftArrow, ""),

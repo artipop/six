@@ -42,6 +42,7 @@ const ru = {
                 items: [
                     {text: 'Первый запуск', link: '/start'},
                     {text: 'Лента и рабочие столы', link: '/layout'},
+                    {text: 'Вкладки вместо ленты', link: '/tabs'},
                     {text: 'Окна, ссылки и загрузки', link: '/windows'},
                     {text: 'Конфигурация', link: '/configuration'},
                     {text: 'Горячие клавиши', link: '/hotkeys'},
@@ -130,6 +131,7 @@ const en = {
                 items: [
                     {text: 'First launch', link: '/en/start'},
                     {text: 'The row and workspaces', link: '/en/layout'},
+                    {text: 'Tabs instead of the row', link: '/en/tabs'},
                     {text: 'Windows, links and downloads', link: '/en/windows'},
                     {text: 'Configuration', link: '/en/configuration'},
                     {text: 'Keyboard shortcuts', link: '/en/hotkeys'},

@@ -672,7 +672,9 @@ private struct StartPageSketch: View {
 
 // MARK: - One column (a "window")
 
-private struct ColumnView: View {
+/// One window: its bars and its page. The row draws one per window on the canvas; the tab bar
+/// draws one, for the tab in front, as the whole of the window below the tabs (`chromeless`).
+struct ColumnView: View {
     let tab: BrowserTab
     let isFocused: Bool
     /// Columns of another workspace are off screen entirely (except in the overview): their AppKit
@@ -682,6 +684,9 @@ private struct ColumnView: View {
     let isLive: Bool
     /// Held up out of the row by ⌥⇧ (`TilingLayout.lift`): a filled window gets its corners back for it.
     var isLifted = false
+    /// Drawn as the page under a tab bar rather than as a card in the row: no corners, no
+    /// border, no × of its own — the tab has one.
+    var chromeless = false
 
     @Environment(BrowserState.self) private var browser
     @Environment(SitePermissions.self) private var permissions
@@ -700,7 +705,7 @@ private struct ColumnView: View {
 
     /// A filled window is the page and nothing else: no title bar, no rounded corners, no border to
     /// separate a column from a neighbour that is a whole screen away.
-    private var filled: Bool { browser.layout.fillsViewport }
+    private var filled: Bool { chromeless || browser.layout.fillsViewport }
 
     private func activate() {
         browser.selectTab(tab.id)

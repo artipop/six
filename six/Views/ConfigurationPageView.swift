@@ -314,6 +314,22 @@ private struct WindowConfiguration: View {
     var body: some View {
         Form {
             SwiftUI.Section {
+                Picker("Show Windows As", selection: Binding(
+                    get: { browser.interfaceStyle },
+                    set: { browser.setInterfaceStyle($0) }
+                )) {
+                    Text("Row").tag(InterfaceStyle.row)
+                    Text("Tabs").tag(InterfaceStyle.tabs)
+                }
+                .pickerStyle(.segmented)
+                if browser.showsTabs {
+                    Text("Workspaces are tab groups. The row's ⌥ keys are off.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            SwiftUI.Section {
                 Toggle("Centre the Focused Window", isOn: Binding(
                     get: { browser.layout.centersFocus },
                     set: { _ in browser.toggleCenterFocus() }

@@ -62,6 +62,8 @@ struct sixApp: App {
     /// For File › Open Location… — the caret in the address field belongs to whichever window has
     /// the focus, so the menu reaches it across the scene like every other panel does.
     @FocusedValue(\.focusAddressBar) private var focusAddressBar
+    /// Present while the window is a tab bar: the File menu says "tab" then, not "window".
+    @FocusedValue(\.tabBar) private var tabBar
     #endif
 
     init() {
@@ -330,16 +332,16 @@ struct sixApp: App {
                     .keyboardShortcut(",")
             }
             CommandGroup(replacing: .newItem) {
-                Button("New Window in the Row") { browser.newTab() }
+                Button(tabBar == nil ? "New Window in the Row" : "New Tab") { browser.newTab() }
                     .keyboardShortcut("t")
-                Button("Reopen Closed Window") { browser.reopenClosedWindow() }
+                Button(tabBar == nil ? "Reopen Closed Window" : "Reopen Closed Tab") { browser.reopenClosedWindow() }
                     .keyboardShortcut("t", modifiers: [.command, .shift])
                     .disabled(!browser.canReopenClosedWindow)
                 Button("New Private Window") { browser.newPrivateWindow() }
                     .keyboardShortcut("p", modifiers: [.command, .shift])
                 Button("Close Private Browsing") { browser.closePrivateBrowsing() }
                     .disabled(browser.privateProfile == nil)
-                Button("Close Window") { browser.closeSelectedTab() }
+                Button(tabBar == nil ? "Close Window" : "Close Tab") { browser.closeSelectedTab() }
                     .keyboardShortcut("w")
                 Divider()
                 // Safari's home for it, and the only menu that already means "an address".

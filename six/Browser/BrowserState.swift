@@ -85,6 +85,10 @@ final class BrowserState {
     /// Chrome rather than geometry, so it lives here and not in `TilingLayout`: it changes nothing a
     /// second front end would have to agree with, only whether this one asks for a peek.
     var peeksAtEdges = ConfigurationStore.peeksByDefault
+    /// The row, or a tab bar over one page (`InterfaceStyle`). Here and not in `TilingLayout` for
+    /// the reason `peeksAtEdges` is: it is how this front draws the strip, not a fact about the strip.
+    private(set) var interfaceStyle: InterfaceStyle = .row
+    var showsTabs: Bool { interfaceStyle == .tabs }
     @ObservationIgnored private let settings: ConfigurationStore
     /// Who the profiles are, in the database beside the history and the bookmarks that are keyed by
     /// them. Not the snapshot: see `ProfileStore` for what the snapshot losing them used to cost.
@@ -113,6 +117,7 @@ final class BrowserState {
         layout.centersFocus = settings.centersFocus
         layout.setFill(settings.fill)
         peeksAtEdges = settings.peeksAtEdges
+        interfaceStyle = settings.interfaceStyle
         // Who the profiles are comes from the table; what was open comes from the snapshot. The two
         // used to be one file, and the day it would not decode the profiles were born again with new
         // data stores behind them — every login in every profile, gone (`ProfileStore`).
@@ -1266,7 +1271,13 @@ final class BrowserState {
     /// scrollbar you can see. The fill modes gave up their animation for the same reason
     /// (docs/layout.md). `TilingLayout.toggleSplit` refuses an animation from the inside as well, for
     /// the menu items that carry one of their own.
-    func toggleSplit() { plainLayoutChange { layout.toggleSplit() } }
+    func toggleSplit() {
+        // Not with the tabs up, where a split would be two tabs becoming one page with nothing on
+        // screen to say so. The menu hides the item then, but a menu decides that from the focused
+        // value, and with nothing focused in the window it falls back to the row's items.
+        guard !showsTabs else { return }
+        plainLayoutChange { layout.toggleSplit() }
+    }
 
     /// Two named windows into one column, or the ⌥S toggle when only one is named. What
     /// `split_window` calls; the answer is whether the strip changed.
@@ -1473,6 +1484,8 @@ final class BrowserState {
     /// when they are in — or after `pictureWait`, since a web content process that does not answer
     /// must not be able to hold the overview shut.
     func toggleOverview() {
+        // The overview is a picture of the row, and with the tabs up there is no row to take one of.
+        guard !showsTabs else { return }
         TilingLayout.trace("toggleOverview (was \(layout.isOverview ? "open" : "closed"))")
         if layout.isOverview {
             exitOverview()
@@ -1538,6 +1551,7 @@ final class BrowserState {
 
     /// The page fills the window under the top bar; the layout's own controls stay where they are.
     func toggleFullWindow() {
+        guard !showsTabs else { return } // the tab bar always fills; see `toggleSplit`
         setFill(layout.fill == .window ? .tiled : .window)
     }
 
@@ -1576,9 +1590,134 @@ final class BrowserState {
         syncSelection()
     }
 
+    // MARK: The tab bar
+
+    /// Changes which face the window wears. Nothing about the strip moves: the overview and the ring
+    /// are put away because the tab bar has neither, and a strip left focused on its spare empty
+    /// row is pointed at a tab instead, since a tab bar has no empty place to be standing in.
+    func setInterfaceStyle(_ style: InterfaceStyle) {
+        guard style != interfaceStyle else { return }
+        if style == .tabs {
+            cancelWindowSwitch()
+            if layout.isOverview {
+                layout.cancelColumnDrag()
+                layout.isOverview = false
+                layout.recenterStrips()
+            }
+        }
+        interfaceStyle = style
+        settings.interfaceStyle = style
+        if style == .tabs { selectTabIfNone() }
+    }
+
+    /// The tabs in the order the row draws them: row by row, window by window, a split's two halves
+    /// side by side. `skippingCollapsed` leaves out the tabs of a folded group — the ones ⌃Tab and
+    /// ⌘1…⌘9 cannot see — except the group the selected tab is in, which is never folded away from
+    /// under it.
+    func tabOrder(skippingCollapsed: Bool = false) -> [UUID] {
+        layout.workspaces.flatMap { workspace -> [UUID] in
+            let ids = workspace.columns.flatMap(\.tabIDs)
+            if skippingCollapsed, workspace.isCollapsed, !ids.contains(where: { $0 == selectedTabID }) { return [] }
+            return ids
+        }
+    }
+
+    /// ⌃Tab and ⌃⇧Tab with the tabs up: the next tab along the row, round the end — Chrome's, where
+    /// in the row the same key opens the ring.
+    func selectAdjacentTab(_ step: Int) {
+        let order = tabOrder(skippingCollapsed: true)
+        guard !order.isEmpty else { return }
+        let here = selectedTabID.flatMap { order.firstIndex(of: $0) } ?? (step > 0 ? -1 : 0)
+        let next = ((here + step) % order.count + order.count) % order.count
+        selectTab(order[next])
+    }
+
+    /// ⌘1…⌘8 is that tab, ⌘9 the last one, as in every browser with tabs.
+    func selectTab(atPosition position: Int) {
+        let order = tabOrder(skippingCollapsed: true)
+        guard !order.isEmpty else { return }
+        selectTab(position >= 9 ? order[order.count - 1] : order[min(position, order.count) - 1])
+    }
+
+    /// Folds a group, or opens it. A group holding the tab in front cannot fold over it, so the tab
+    /// next to it along the row is shown first — the one after, or the one before at the end — and
+    /// when every other tab is folded away too the group simply stays open.
+    func toggleGroup(_ id: UUID) {
+        guard let workspace = layout.workspaces.first(where: { $0.id == id }) else { return }
+        let collapsing = !workspace.isCollapsed
+        if collapsing, let selected = selectedTabID, workspace.columns.contains(where: { $0.holds(selected) }) {
+            let inside = Set(workspace.columns.flatMap(\.tabIDs))
+            let order = tabOrder(skippingCollapsed: true)
+            let here = order.firstIndex(of: selected) ?? 0
+            let after = order[here...].first { !inside.contains($0) }
+            let before = order[..<here].last { !inside.contains($0) }
+            guard let other = after ?? before else { return }
+            selectTab(other)
+        }
+        layout.setCollapsed(collapsing, workspace: id)
+    }
+
+    /// A new tab at the end of a group, and the group opened to show it.
+    func newTab(inGroup id: UUID) {
+        guard let index = layout.workspaces.firstIndex(where: { $0.id == id }) else { return }
+        layout.setCollapsed(false, workspace: id)
+        if let last = layout.workspaces[index].columns.last { layout.focus(tabID: last.focusedTabID) }
+        newTab(url: nil, in: selectedProfileID, workspace: index, activate: true)
+    }
+
+    /// Every tab in a group, and the group with them. The name goes first: a named row that runs out
+    /// of windows asks whether to keep its name (`TilingWorkspaceRemoval`), and closing the group *is*
+    /// the answer to that question.
+    func closeGroup(_ id: UUID) {
+        guard let index = layout.workspaces.firstIndex(where: { $0.id == id }) else { return }
+        let ids = layout.workspaces[index].columns.flatMap(\.tabIDs)
+        layout.rename(workspaceAt: index, to: "")
+        for tabID in ids { closeTab(tabID) }
+        selectTabIfNone()
+    }
+
+    /// A tab dropped on a place in the row: `index` is a window position in the group it landed in.
+    func placeTab(_ id: UUID, inGroup group: UUID, at index: Int) {
+        guard let tab = tab(id), tab.profileID == selectedProfileID else { return }
+        layout.placeTab(id, in: tab.profileID, workspace: group, at: index)
+        syncSelection()
+    }
+
+    /// "Add Tab to New Group" — the tab into a row of its own, just after the one it was in.
+    @discardableResult
+    func moveTabToNewGroup(_ id: UUID) -> UUID? {
+        guard let tab = tab(id) else { return nil }
+        let created = layout.placeTabInNewWorkspace(id, in: tab.profileID)
+        syncSelection()
+        return created
+    }
+
+    /// Every other tab in the tab's own group.
+    func closeOtherTabs(besides id: UUID) {
+        guard let workspace = layout.workspaces.first(where: { $0.columns.contains { $0.holds(id) } }) else { return }
+        selectTab(id)
+        for other in workspace.columns.flatMap(\.tabIDs) where other != id { closeTab(other) }
+    }
+
+    /// The tab bar always has one in front while there are any. The row can stand on its spare
+    /// empty row with nothing focused; a tab bar has no such place, and would show nothing.
+    func selectTabIfNone() {
+        guard showsTabs, selectedTab == nil else { return }
+        // The nearest group with a tab in it, looking back first: a group closed at the end of the
+        // row leaves the one before it in front, the way closing the last tab does.
+        let rows = layout.workspaces
+        let here = layout.focusedWorkspaceIndex
+        let nearest = (0...here).reversed().compactMap { rows.indices.contains($0) ? rows[$0] : nil }
+            + rows.dropFirst(here + 1)
+        guard let row = nearest.first(where: { !$0.isEmpty }), let column = row.focusedColumn ?? row.columns.last,
+              tab(column.focusedTabID) != nil else { return }
+        selectTab(column.focusedTabID)
+    }
+
     /// The focused column is the selected tab — everything else (assistant, agent panel, ⌘L) keys off it.
     private func syncSelection() {
         selectedTabID = layout.focusedTabID
+        if showsTabs, selectedTab == nil { selectTabIfNone() }
         // Every way the focus can move ends here, which is why the ⌃Tab order is taken here and not
         // in `selectTab`: a row walked with ⌥→ is a row whose windows have been looked at.
         switcher.note(selectedTabID)

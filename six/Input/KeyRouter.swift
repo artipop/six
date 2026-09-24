@@ -27,6 +27,8 @@ final class KeyRouter {
     var perform: (KeyAction) -> Bool = { _ in false }
     var isSwitching: () -> Bool = { false }
     var isOverview: () -> Bool = { false }
+    /// The tab bar is up instead of the row (`KeyAction.answersInTabs`).
+    var showsTabs: () -> Bool = { false }
     /// A key an installed extension bound to itself — dynamic, so it is asked about only once the
     /// table above has had nothing to say, which every `⌘` chord always does (`KeyBindings` is
     /// `⌥`/`⌃` alone; see `ExtensionStore.performCommand(for:in:)`).
@@ -68,7 +70,8 @@ final class KeyRouter {
     }
 
     private func handle(_ event: NSEvent) -> NSEvent? {
-        let context = KeyContext(event: event, isSwitching: isSwitching(), isOverview: isOverview())
+        let context = KeyContext(event: event, isSwitching: isSwitching(), isOverview: isOverview(),
+                                 showsTabs: showsTabs())
         if let offered = offeredToPage, offered.timestamp == event.timestamp, offered.keyCode == event.keyCode {
             offeredToPage = nil
             return handBack(event, context)
