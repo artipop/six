@@ -48,6 +48,10 @@ built again.
 **Show Windows As** — **Row** or **Tabs**: workspaces become tab groups and the
 row's `⌥` keys are switched off. More in [Tabs instead of the row](tabs.md).
 
+**Group Tabs by Meaning** — a new tab goes into the group it is about by itself,
+and three alike tabs with no group become a group. More in [Groups by
+meaning](tabs.md#groups-by-meaning).
+
 **Centre the focused window** (`⌥C`) — the window you are reading sits in the
 middle and both neighbours peek in by the same amount. Off, the row moves as
 little as it can.

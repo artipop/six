@@ -49,6 +49,8 @@ nonisolated struct TilingColumn: Identifiable, Hashable, Sendable, Codable {
     /// Which half the focus is in: 0 for `tabID`, 1 for `second`. Everything keyed off the selection
     /// — the address field, ⌘W, the assistant, ⌃Tab — points at that one.
     var pane: Int = 0
+    /// Set on a window the tab sorter put between two groups, for its tint (`TabSorter`).
+    var lean: TilingLean?
 
     init(id: UUID = UUID(), tabID: UUID, second: UUID? = nil, pane: Int = 0) {
         self.id = id
@@ -102,7 +104,7 @@ nonisolated struct TilingColumn: Identifiable, Hashable, Sendable, Codable {
     // MARK: Codable
 
     enum CodingKeys: String, CodingKey {
-        case id, tabID, second, pane
+        case id, tabID, second, pane, lean
     }
 
     /// A column on disk was a `tabID` and nothing else until it could hold two, and a session file
@@ -116,7 +118,16 @@ nonisolated struct TilingColumn: Identifiable, Hashable, Sendable, Codable {
         id = try values.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
         second = try values.decodeIfPresent(UUID.self, forKey: .second)
         pane = try values.decodeIfPresent(Int.self, forKey: .pane) ?? 0
+        lean = try values.decodeIfPresent(TilingLean.self, forKey: .lean)
     }
+}
+
+/// A window about two groups at once: it stands in the unnamed row between them, and `weight` is
+/// how far it is from `from` towards `to`.
+nonisolated struct TilingLean: Hashable, Sendable, Codable {
+    var from: UUID
+    var to: UUID
+    var weight: Double
 }
 
 /// A workspace: an infinite horizontal strip of full-height columns.
@@ -542,7 +553,16 @@ final class TilingLayout {
         } else {
             kept.append(TilingWorkspace())
         }
+        let named = Set(kept.filter { !$0.name.isEmpty }.map(\.id))
         for i in kept.indices {
+            // A lean means "between these two groups", which a move, a split or an ungroup ends.
+            for j in kept[i].columns.indices {
+                guard let lean = kept[i].columns[j].lean else { continue }
+                if !kept[i].name.isEmpty || kept[i].columns[j].isSplit
+                    || !named.contains(lean.from) || !named.contains(lean.to) {
+                    kept[i].columns[j].lean = nil
+                }
+            }
             kept[i].focus = min(max(0, kept[i].focus), max(0, kept[i].columns.count - 1))
             kept[i].viewOffset = clampOffset(kept[i].viewOffset, in: kept[i])
         }
@@ -1902,6 +1922,47 @@ final class TilingLayout {
         guard let created else { return nil }
         placeTab(tabID, in: profileID, workspace: created, at: 0)
         return created
+    }
+
+    /// A window into the unnamed row between two groups, made or found, the two moved together
+    /// first if they were not. Returns that row's id.
+    @discardableResult
+    func placeTabBetween(_ tabID: UUID, in profileID: UUID, lean: TilingLean) -> UUID? {
+        var bridge: UUID?
+        mutate(profile: profileID) { s in
+            guard var a = s.workspaces.firstIndex(where: { $0.id == lean.from }) else { return }
+            guard var b = s.workspaces.firstIndex(where: { $0.id == lean.to }) else { return }
+            // Keep whichever group is higher up where it is and bring the other one to it.
+            if b < a { swap(&a, &b) }
+            let between = a + 1
+            if b - a == 2, s.workspaces[between].name.isEmpty {
+                bridge = s.workspaces[between].id
+                return
+            }
+            let lower = s.workspaces.remove(at: b)
+            let row = TilingWorkspace()
+            s.workspaces.insert(row, at: between)
+            s.workspaces.insert(lower, at: between + 1)
+            bridge = row.id
+            keepsEmptyOnce = row.id
+        }
+        guard let bridge else { return nil }
+        let row = strip(for: profileID).workspaces.first { $0.id == bridge }
+        if row?.columns.contains(where: { $0.holds(tabID) }) != true {
+            placeTab(tabID, in: profileID, workspace: bridge, at: row?.columns.count ?? 0)
+        }
+        setLean(lean, of: tabID, in: profileID)
+        return bridge
+    }
+
+    func setLean(_ lean: TilingLean?, of tabID: UUID, in profileID: UUID) {
+        mutate(profile: profileID) { s in
+            for i in s.workspaces.indices {
+                if let j = s.workspaces[i].columns.firstIndex(where: { $0.holds(tabID) && !$0.isSplit }) {
+                    s.workspaces[i].columns[j].lean = lean
+                }
+            }
+        }
     }
 
     func removeProfile(_ id: UUID) {

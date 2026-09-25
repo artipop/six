@@ -53,6 +53,24 @@ on either one takes them apart. It is the same split as `⌥S` on the row.
 
 A folded group stays folded after a relaunch.
 
+### Groups by meaning
+
+With **Configuration ▸ Windows ▸ Group Tabs by Meaning** on, six sorts tabs by what
+the page is about — on this Mac, with no network and without the language model
+features:
+
+- A new tab, once its page has loaded, goes into the group it is about, and the
+  focus goes with it. When it is not sure, the tab stays where it is.
+- A tab about two groups at once stands between them, in no group, and its strip
+  is coloured between the two groups' colours.
+- Three alike tabs with no group become a new group. It is named after the words
+  their titles share; with language models on, the on-device model names it.
+- A tab you moved by hand stays where you put it until it goes to another site. A
+  group you ungrouped is not made again.
+
+The pages are compared by the same model that searches bookmarks; if it is not
+here yet, it is downloaded the first time this is switched on.
+
 ## Keys
 
 With the tabs up the row's `⌥` keys are off: `⌥←` moves by word again, `⌥W`

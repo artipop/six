@@ -516,6 +516,16 @@ on its next activation, or on a Darwin notification while it runs. An App Group 
 machine signs ad hoc. The wire (`ShareRequest`, `ShareTargets`) is already portable Foundation, so once a team exists
 this is a target, an entitlement and a queue.
 
+## Tab groups by meaning: a classifier instead of cosines
+
+`TabSorter` measures e5 cosines and asks for a lead, which leaves a tab whose title says little where it is and keeps
+Russian titles out of English topics. The other shape is a classifier asked the question outright —
+"which of these groups is this tab about, or none" — which is what jev / laya-browser are (a 322M "System 1" that
+answers multiple-choice questions over `/v1/systemone`, tried for page actions on `origin/agent-actions`,
+docs/agent-actions.md there). The options would be the group names plus "none"; the fit to try is whether its
+confidence is calibrated enough to replace `joins` and `tie`, and what 0.35–1.3 s per tab on MPS costs when tabs
+arrive in bursts.
+
 ## Smaller things
 
 - A readable maximum width for the default column on ultra-wide displays: 88 % of a 5K panel is a very long line.

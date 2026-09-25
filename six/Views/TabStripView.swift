@@ -110,7 +110,7 @@ private struct TabStrip: View {
                                     ForEach(group.tabIDs, id: \.self) { id in
                                         if let tab = browser.tab(id) {
                                             TabItem(tab: tab, group: group, width: width,
-                                                    tint: chip ? group.color : nil,
+                                                    tint: chip ? group.color : group.leanTint(of: id),
                                                     rename: { renaming = $0 })
                                                 .id(id)
                                         }
@@ -196,8 +196,16 @@ struct TabGroup: Identifiable {
 
     /// The group's colour, which is the workspace's own and stays put: read off its id rather than
     /// its place, so a group does not change colour when another one is closed before it.
-    var color: Color {
-        Self.palette[Int(id.uuid.0) % Self.palette.count]
+    var color: Color { Self.color(of: id) }
+
+    static func color(of group: UUID) -> Color {
+        palette[Int(group.uuid.0) % palette.count]
+    }
+
+    /// A tab between two groups is tinted between their two colours.
+    func leanTint(of tabID: UUID) -> Color? {
+        guard let lean = columns.first(where: { $0.holds(tabID) })?.lean else { return nil }
+        return Self.color(of: lean.from).mix(with: Self.color(of: lean.to), by: lean.weight)
     }
 
     private static let palette: [Color] = [.blue, .red, .orange, .green, .purple, .pink, .teal, .indigo, .brown]

@@ -37,6 +37,8 @@ final class ConfigurationStore {
         case centersFocus = "layout.centersFocus"
         case fill = "layout.fill"
         case peeksAtEdges = "layout.peeksAtEdges"
+        /// Tabs put into groups by what they are about (`TabSorter`).
+        case sortsTabsByMeaning = "tabs.sortByMeaning"
         /// The row, or a tab bar over one page (`InterfaceStyle`).
         case interfaceStyle = "interface.style"
         case agentModel = "agent.model"
@@ -117,6 +119,12 @@ final class ConfigurationStore {
     var centersFocus: Bool {
         get { self[.centersFocus].map { $0 == "1" } ?? true }
         set { self[.centersFocus] = newValue ? "1" : "0" }
+    }
+
+    /// Off by default: it moves tabs, and it loads the embedding model.
+    var sortsTabsByMeaning: Bool {
+        get { self[.sortsTabsByMeaning] == "1" }
+        set { self[.sortsTabsByMeaning] = newValue ? "1" : "0" }
     }
 
     /// Tiled or full-window, whichever the user last chose — so an empty workspace losing its last

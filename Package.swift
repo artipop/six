@@ -113,6 +113,9 @@ let package = Package(
                 // lives where it can be tested, and a second front inherits the ring rather than
                 // reinventing its order.
                 "Browser/WindowSwitcher.swift",
+                // Which group a tab belongs to by meaning: vectors in, a verdict out. The model and
+                // the moving stay in each front.
+                "Tabs/TabTopics.swift",
                 "Browser/SearchEngine.swift",
                 // A page six owns and nobody sees, for running something that is a program written
                 // for a JavaScript engine rather than a library six could link. Bergamot below is

@@ -3600,6 +3600,26 @@
         }
       }
     },
+    "Group" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Группа"
+          }
+        }
+      }
+    },
+    "Group Tabs by Meaning" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Группировать вкладки по смыслу"
+          }
+        }
+      }
+    },
     "Hide Details" : {
       "localizations" : {
         "ru" : {

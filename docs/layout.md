@@ -755,6 +755,33 @@ another way. `SIX_KEY_SELFTEST` prints a `tabs` column.
 `TilingLayout.unanimated` is written up for. `ContentView.swapFace` takes the old face down, waits 32 ms with neither on
 screen, then puts the new one up, so the new `WebView` can never be built while the old one still holds the page.
 
+**Sorted by meaning** (`TabSorter`, `TabTopics`, `ConfigurationStore.sortsTabsByMeaning`, off by default and
+outside the AI switch). A web tab that finishes loading is embedded — its title with the site's name taken off, plus
+the first sentence of its meta description or first real paragraph, cut to 120 characters — by the bookmark index's
+own e5, with `query:` on both sides. Only a tab opened since the sorter last looked, or one that has gone to another
+site, is placed; a tab restored at launch is only noted. `TabTopics.classify` then asks how far the best group is
+*ahead*: of the second group, of the tab's median similarity to every tab (`background`), and of its nearest
+ungrouped tab (`loose`). Ahead by `joins` (0.035) it goes in, focus following (`placeTab`); two groups within `tie`
+of each other and both `betweenLead` ahead of the rest put it in the unnamed row between them with a `TilingLean`
+on its column, which the tab bar draws as the two colours mixed (`TabGroup.leanTint`). Ungrouped tabs are clustered
+average-linkage over how much closer two are than either usually is to *every* tab, and three or more become a
+group, named by c-TF-IDF over their text, or the host, or — with the AI switch on and the model ready — by the
+on-device language model, if nobody has renamed it by then.
+
+Why a lead and not Firefox's absolute threshold: `SIX_TOPICS_SELFTEST=1` (`grid` for the model and prefix
+comparison) on e5-small puts every title cosine between 0.75 and 0.92, and "Купить билеты на поезд" scores 0.851
+with football where a match report scores 0.834. `query:` separates same-topic from cross-topic pairs 0.91 of the
+time against `passage:`'s 0.77, and e5-base did worse than small on titles (0.73). Two more things were measured in
+the running app: a whole paragraph made a bread article nearer a tech site's blurb than any title did (long texts
+are alike for being long, hence the 120 characters), and a background taken over the loose tabs alone never let
+four recipes cluster, because half the loose tabs were the recipes. What it gets wrong: a Russian title on a mostly
+English topic stays out (e5-small keeps languages apart on short text).
+
+The person wins. The sorter remembers the row it last put or saw each tab in (in memory); a tab found anywhere else
+was moved by hand and is left alone until it goes to another site, a split is never touched, and a group it made
+that was ungrouped marks its tabs the same way. The lean is dropped in `normalize` when the tab leaves the unnamed
+row, joins a split, or either group loses its name.
+
 What the tab bar does **not** have yet: tabs from several profiles side by side (it shows the profile on screen,
 like the row), dragging a tab out into a group of its own (the tab menu's "Add Tab to New Group" does that), and
 group colours chosen by hand.

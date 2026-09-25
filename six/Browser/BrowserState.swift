@@ -73,6 +73,7 @@ final class BrowserState {
     @ObservationIgnored let translation = PageTranslator()
     /// ⌘F, per window. `@Observable` itself, like `translation` above.
     @ObservationIgnored let find = PageFinder()
+    @ObservationIgnored let sorter = TabSorter()
     /// Apple's on-device translator. Held by name as well as behind the protocol, because the
     /// hidden `.translationTask` host needs the concrete one — that is the whole point of it.
     @ObservationIgnored let appleTranslator = AppleTranslator()
@@ -670,6 +671,7 @@ final class BrowserState {
         let profile = profiles.first { $0.id == profileID } ?? selectedProfile
         let tab = makeTab(profile: profile)
         add(tab)
+        sorter.arrived(tab.id)
         if activate, selectedProfileID != profile.id {
             selectedProfileID = profile.id
             layout.activeProfileID = profile.id
@@ -714,6 +716,7 @@ final class BrowserState {
                 guard !profile.isPrivate else { return } // no history, and highlights are not stored for it
                 history.updateTitle(page.title, for: url, in: tab.profileID)
                 highlights?.apply(to: tab)
+                if settings.sortsTabsByMeaning { sorter.pageFinished(tab, in: self) }
             }
         }
         tab.onNewWindow = { [weak self] tab, request, behind in
@@ -1142,6 +1145,7 @@ final class BrowserState {
         guard let index = tabs.firstIndex(where: { $0.id == id }) else { return }
         let closed = tabs.remove(at: index)
         tabsByID[id] = nil
+        sorter.forget(id)
         // Before anything is taken apart: `remember` reads where the column stands and what a
         // document window is holding, and both are gone by the end of this function.
         if remembering { remember(closed) }
@@ -1467,6 +1471,18 @@ final class BrowserState {
     func toggleCenterFocus() {
         animateLayout { layout.setCentersFocus(!layout.centersFocus) }
         settings.centersFocus = layout.centersFocus
+    }
+
+    var isAIEnabled: Bool { settings.isAIEnabled }
+
+    var sortsTabsByMeaning: Bool { settings.sortsTabsByMeaning }
+
+    /// On loads the model now, so the first tab to finish loading is not the one kept waiting for it.
+    func setSortsTabsByMeaning(_ on: Bool) {
+        settings.sortsTabsByMeaning = on
+        guard on, let embedder = bookmarks?.embedder else { return }
+        Task { await embedder.warmUp() }
+        sorter.sortEverything(in: self)
     }
 
     func togglePeeksAtEdges() {

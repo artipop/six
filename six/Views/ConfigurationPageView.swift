@@ -327,6 +327,10 @@ private struct WindowConfiguration: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+                Toggle("Group Tabs by Meaning", isOn: Binding(
+                    get: { browser.sortsTabsByMeaning },
+                    set: { browser.setSortsTabsByMeaning($0) }
+                ))
             }
 
             SwiftUI.Section {
