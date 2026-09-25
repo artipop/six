@@ -697,8 +697,8 @@ than its position, so a group does not change colour when the one before it is c
 What the row does not have is a group **folded** up to its label. That lives on the workspace
 (`TilingWorkspace.collapsed`, optional so an older session file reads as every group open) and the row ignores it, so a
 group folded here is still folded when the tabs come back. A group cannot fold over the tab in front: the neighbouring
-tab along the row is shown first, and if every other tab is folded away too the group stays open. `⌃Tab` and
-`⌘1…⌘9` skip folded groups.
+tab along the row is shown first, and if every other tab is folded away too the group stays open. `⌘⇧[` `⌘⇧]` and
+`⌘1…⌘9` skip folded groups; the ring does not.
 
 The verbs are `TilingLayout.placeTab` — one window to a column index in a row, by workspace id, the focus following it;
 half of a split dragged away leaves the other half in its column — `placeTabInNewWorkspace` for "Add Tab to New
@@ -706,8 +706,9 @@ Group", and `setCollapsed`. `BrowserState` wraps them with the rules above, and 
 closing the tabs, because closing the group *is* the answer to the question a named row asks when it empties.
 
 **The keys.** `KeyContext.showsTabs` switches off every row whose action is about the row
-(`KeyAction.answersInTabs`), so `⌥←` is word movement again and `⌥W` types «∑»; `⌃Tab` is Chrome's next tab
-instead of the ring. The View menu swaps Full Width / Split / Overview for Show Next / Previous Tab and `⌘1…⌘9`
+(`KeyAction.answersInTabs`), so `⌥←` is word movement again and `⌥W` types «∑». The ⌃Tab ring stays, over every
+tab of every group rather than one row's windows — a tab bar has no row to be in front of, and every tab is a click
+away on screen — with a split's two halves as two cards, because the tab bar draws them as two tabs. The View menu swaps Full Width / Split / Overview for Show Next / Previous Tab and `⌘1…⌘9`
 through the `tabBar` focused value — a `Commands` body is rebuilt for a focused value and not for model state. With
 nothing focused in the window the menu falls back to its row items, so `toggleSplit`, `toggleFullWindow` and
 `toggleOverview` refuse with the tabs up as well: measured, `⌥W` and `⌥S` reached them through the menu once the

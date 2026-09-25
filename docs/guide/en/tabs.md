@@ -47,9 +47,9 @@ all the `⌘` ones.
 
 | | |
 |---|---|
-| `⌃Tab` `⌃⇧Tab` | next / previous tab |
-| `⌘⇧]` `⌘⇧[` | the same |
+| `⌃Tab` `⌃⇧Tab` | fly between tabs by memory — the same ring as on the row, over every tab of every group |
+| `⌘⇧]` `⌘⇧[` | next / previous tab |
 | `⌘1` … `⌘8` | that tab, `⌘9` the last one |
 | `⌘T` `⌘W` `⌘⇧T` | new tab, close tab, reopen a closed one |
 
-`⌃Tab` and `⌘1`…`⌘9` skip folded groups.
+`⌘⇧]` `⌘⇧[` and `⌘1`…`⌘9` skip folded groups; `⌃Tab` does not.

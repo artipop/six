@@ -325,15 +325,15 @@ enum KeyAction: Equatable {
 
 extension KeyAction {
     /// Whether the key still means something when the window is a tab bar. The row's walking
-    /// and arranging do not — there is no row on screen — and neither does the ring, whose place
-    /// `⌃Tab` takes as Chrome's next tab. What stays is what is about the page in front of you.
+    /// and arranging do not — there is no row on screen. What stays is what is about the page in
+    /// front of you, and the ⌃Tab ring, which walks every tab there (`BrowserState.rowOrder`).
     var answersInTabs: Bool {
         switch self {
-        case .translateSelection, .highlightSelection, .pictureInPicture, .copyAddress, .stepSwitcher:
+        case .translateSelection, .highlightSelection, .pictureInPicture, .copyAddress,
+             .stepSwitcher, .walkSwitcher, .landSwitcher, .cancelSwitcher:
             return true
         case .focusColumn, .moveColumn, .focusColumnEdge, .focusWorkspace, .moveColumnToWorkspace,
-             .toggleFullWidth, .toggleSplit, .toggleOverview, .toggleCenterFocus,
-             .walkSwitcher, .landSwitcher, .cancelSwitcher, .leaveOverview:
+             .toggleFullWidth, .toggleSplit, .toggleOverview, .toggleCenterFocus, .leaveOverview:
             return false
         }
     }

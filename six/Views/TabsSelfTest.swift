@@ -16,6 +16,9 @@ enum TabsSelfTest {
                 .joined(separator: " ")
         }
         let started = browser.interfaceStyle
+        // Put back at the end: dropping a tab into a group opens it, and these are the dev profile's
+        // own groups, folded by a person.
+        let folded = browser.layout.workspaces.filter(\.isCollapsed).map(\.id)
         let probe = browser.newTab(url: URL(string: "https://example.com/?tabs-selftest"))
         try? await Task.sleep(for: .seconds(2))
 
@@ -43,7 +46,15 @@ enum TabsSelfTest {
         browser.toggleGroup(group)
         say("fold the group in front: \(groups()), selected is probe \(browser.selectedTabID == probe.id)")
         browser.selectAdjacentTab(1)
-        say("⌃Tab: selected \(browser.selectedTab?.title ?? "nil")")
+        say("⌘⇧]: selected \(browser.selectedTab?.title ?? "nil")")
+        // The ring, over every tab: it must hold tabs from more than one group, the folded one too.
+        let before = browser.selectedTabID
+        browser.stepWindowSwitch(1)
+        let ring = browser.switcher.ring
+        let groupsInRing = Set(ring.compactMap { id in browser.layout.workspaces.firstIndex { $0.columns.contains { $0.holds(id) } } })
+        say("⌃Tab ring: \(ring.count) cards of \(browser.tabOrder().count) tabs, from \(groupsInRing.count) groups, holds the folded probe \(ring.contains(probe.id))")
+        browser.endWindowSwitch()
+        say("⌃ up: moved \(browser.selectedTabID != before), selected \(browser.selectedTab?.title ?? "nil")")
         browser.toggleGroup(group)
         say("open it again: \(groups())")
 
@@ -58,6 +69,7 @@ enum TabsSelfTest {
         say("⌘9: selected is the last \(browser.selectedTabID == browser.tabOrder(skippingCollapsed: true).last)")
 
         browser.closeTab(probe.id, remembering: false)
+        for id in folded { browser.layout.setCollapsed(true, workspace: id) }
         browser.setInterfaceStyle(started)
         try? await Task.sleep(for: .milliseconds(300))
         say("cleaned up: \(groups()), back on \(browser.interfaceStyle.rawValue) — survived")

@@ -1358,8 +1358,11 @@ final class BrowserState {
         if !switcher.isOpen {
             var opened = false
             withAnimation(.smooth(duration: 0.18)) {
+                // With the tabs up a tab is a card of its own, split or not: the tab bar draws the two
+                // halves of a column as two tabs, and the ring follows what is on screen.
+                let tabs = showsTabs
                 opened = switcher.open(rowOrder, current: selectedTabID,
-                                       group: { [layout] in layout.columnID(of: $0) ?? $0 })
+                                       group: { [layout] in tabs ? $0 : layout.columnID(of: $0) ?? $0 })
             }
             guard opened else { return }
             // The pictures the cards are drawn from: the window being read is drawn now, while it
@@ -1376,7 +1379,7 @@ final class BrowserState {
     /// The whole of what the ring has to ask about the row, now that a stop is a window and nothing
     /// else: a card is one window, at the width that window has where it stands.
     func ringCardIsHalfWide(_ tabID: UUID) -> Bool {
-        layout.columnMates(of: tabID).count > 1
+        !showsTabs && layout.columnMates(of: tabID).count > 1
     }
 
     /// The arrows, while the ring is up: one card along the row as it is drawn. ⌃Tab's own step is
@@ -1409,11 +1412,16 @@ final class BrowserState {
     /// the window you were just in, which is in the row in front of you; flying out of a workspace
     /// on a key is a bigger move than the key looks, and there are two keys for it already (`⌥↑`,
     /// `⌥↓`) that say where they are going before they go.
+    ///
+    /// With the tabs up it is every tab, every group — folded ones too. A tab bar has no rows to be
+    /// in front of: every tab is one click away on screen, and ⌃Tab reaching fewer of them than the
+    /// pointer can would be the key doing less than the hand.
     private var rowOrder: [UUID] {
+        if showsTabs { return tabOrder() }
         // Every window, both halves of a split included: the ring collapses them to one stop itself
         // (`WindowSwitcher.open`), and it can only pick the half you were last in if it has been
         // handed both.
-        layout.focusedWorkspace?.columns.flatMap(\.tabIDs) ?? []
+        return layout.focusedWorkspace?.columns.flatMap(\.tabIDs) ?? []
     }
 
     // MARK: Carrying a window across the overview
@@ -1592,13 +1600,14 @@ final class BrowserState {
 
     // MARK: The tab bar
 
-    /// Changes which face the window wears. Nothing about the strip moves: the overview and the ring
-    /// are put away because the tab bar has neither, and a strip left focused on its spare empty
-    /// row is pointed at a tab instead, since a tab bar has no empty place to be standing in.
+    /// Changes which face the window wears. Nothing about the strip moves: the overview is put away
+    /// because the tab bar has none, the ring because it was drawn over the old face, and a strip
+    /// left focused on its spare empty row is pointed at a tab instead, since a tab bar has no empty
+    /// place to be standing in.
     func setInterfaceStyle(_ style: InterfaceStyle) {
         guard style != interfaceStyle else { return }
+        cancelWindowSwitch()
         if style == .tabs {
-            cancelWindowSwitch()
             if layout.isOverview {
                 layout.cancelColumnDrag()
                 layout.isOverview = false
@@ -1622,8 +1631,8 @@ final class BrowserState {
         }
     }
 
-    /// ⌃Tab and ⌃⇧Tab with the tabs up: the next tab along the row, round the end — Chrome's, where
-    /// in the row the same key opens the ring.
+    /// ⌘⇧] and ⌘⇧[ with the tabs up: the next tab along the tab bar, round the end. ⌃Tab is the
+    /// ring, over every tab (`rowOrder`); this is the one that goes by where the tabs stand.
     func selectAdjacentTab(_ step: Int) {
         let order = tabOrder(skippingCollapsed: true)
         guard !order.isEmpty else { return }

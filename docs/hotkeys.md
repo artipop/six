@@ -154,12 +154,14 @@ One row's windows only — the workspace on screen — and this run only. `⌥�
 With the window drawn as a tab bar ([layout.md](layout.md#tabs-instead-of-the-row)), every key in the row and
 reserved tables above passes through untouched — `⌥←` is word movement again, `⌥W` types «∑» — because there is no
 row on screen to walk (`KeyAction.answersInTabs`, `KeyContext.showsTabs`). What stays six's is what is about the page:
-`⌥⇧T`, `⌥⇧H`, `⌥⇧P`, `⌘⇧C` and the `⌘` keys. The View menu drops Full Width, Split and Overview for these:
+`⌥⇧T`, `⌥⇧H`, `⌥⇧P`, `⌘⇧C`, the `⌘` keys — and the ring, which walks every tab in every group there, folded ones
+included, a split's halves as two cards (`BrowserState.rowOrder`). The View menu drops Full Width, Split and Overview for
+these:
 
 | | |
 |---|---|
-| `⌃Tab` `⌃⇧Tab` | next / previous tab along the row, round the end — Chrome's, not the ring. A folded group's tabs are skipped |
-| `⌘⇧]` `⌘⇧[` | the same, from View ▸ Show Next Tab / Show Previous Tab |
+| `⌃Tab` `⌃⇧Tab` | the ring, over every tab — in the order they were looked at, as on the row; the arrows, `↩` and `Esc` in it as there |
+| `⌘⇧]` `⌘⇧[` | next / previous tab along the tab bar, round the end (View ▸ Show Next Tab / Show Previous Tab). A folded group's tabs are skipped |
 | `⌘1` … `⌘8` | that tab; `⌘9` the last one |
 | `⌘T` `⌘W` `⌘⇧T` | new tab, close tab, reopen closed tab — the File menu's items, named for tabs |
 

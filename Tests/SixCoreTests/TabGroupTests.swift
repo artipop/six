@@ -134,4 +134,13 @@ struct TabGroupTests {
         #expect(action(KeyChord([.option, .shift], .p), in: tabs) == .pictureInPicture)
         #expect(action(KeyChord(KeyBindings.copyAddressChord, .c), in: tabs) == .copyAddress)
     }
+
+    /// The ring works over the tab bar as it does over the row: once it is open its own keys answer.
+    @Test func theRingKeepsItsKeysWithTheTabsUp() {
+        let ring = KeyContext(window: .main, isSwitching: true, showsTabs: true)
+        #expect(action(KeyChord(.control, .tab), in: ring) == .stepSwitcher(1))
+        #expect(action(KeyChord(.control, .rightArrow), in: ring) == .walkSwitcher(1))
+        #expect(action(KeyChord(.control, .returnKey), in: ring) == .landSwitcher)
+        #expect(action(KeyChord(.control, .escape), in: ring) == .cancelSwitcher)
+    }
 }

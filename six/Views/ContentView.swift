@@ -249,8 +249,6 @@ extension ContentView {
             case .toggleSplit: browser.toggleSplit()
             case .toggleOverview: browser.toggleOverview()
             case .toggleCenterFocus: browser.toggleCenterFocus()
-            // ⌃Tab is Chrome's with the tabs up: the next tab along the row, not the ring.
-            case .stepSwitcher(let step) where browser.showsTabs: browser.selectAdjacentTab(step)
             case .stepSwitcher(let step): browser.stepWindowSwitch(step)
             case .walkSwitcher(let step): browser.walkWindowSwitch(step)
             case .landSwitcher: browser.endWindowSwitch()
