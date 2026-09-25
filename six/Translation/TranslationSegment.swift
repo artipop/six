@@ -98,7 +98,7 @@ protocol PageTranslating: AnyObject {
 ///
 /// On Apple this is `WebPage.six(_:arguments:)` in a line. On Linux it is
 /// `webkit_web_view_call_async_javascript_function` (`LivePage`), on Windows
-/// `WKPageCallAsyncJavaScript` (`RailScript`) — and `ReadablePage` reads a bookmark's text through
+/// `WKPageCallAsyncJavaScript` (`StripScript`) — and `ReadablePage` reads a bookmark's text through
 /// the same seam, so it is not a cost this feature invents.
 @MainActor
 protocol PageScriptRunner: AnyObject {

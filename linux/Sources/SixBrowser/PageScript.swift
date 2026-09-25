@@ -12,7 +12,7 @@ import SixWebKitCore
 /// not expose yet — and will have to for highlights and the readable-page extractor too."* This is
 /// that, and the readable-page extractor gets it for free.
 ///
-/// **JSON in and JSON out**, the same bargain `RailScript` makes on Windows and for the same reason:
+/// **JSON in and JSON out**, the same bargain `StripScript` makes on Windows and for the same reason:
 /// one string is a value shape both engines' bridges agree on, where a `JSCValue` graph on one side
 /// and a `WKDictionary` graph on the other are a hundred lines each that buy nothing.
 ///

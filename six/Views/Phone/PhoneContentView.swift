@@ -32,7 +32,7 @@ struct PhoneContentView: View {
         .sheet(isPresented: $showFilterLists) { BlockingView() }
         .sheet(isPresented: $showSitePermissions) { PermissionsView() }
         .sheet(isPresented: $showCertificates) { CertificatesView() }
-        // The rail's own question, asked here too: the rule that empties a workspace is the layout's
+        // The row's own question, asked here too: the rule that empties a workspace is the layout's
         // and does not know which front is drawing it (`WorkspaceRemovalDialog`).
         .workspaceRemovalDialog()
         .clearHistoryDialog(isPresented: $confirmClearHistory)
@@ -69,7 +69,7 @@ private struct PhoneToolbar: View {
             }
 
             Menu {
-                Button("New Window on the Rail", systemImage: "plus") { browser.newTab() }
+                Button("New Window in the Row", systemImage: "plus") { browser.newTab() }
                 Button("New Private Window", systemImage: "hand.raised") { _ = browser.newPrivateWindow() }
                 Divider()
                 Button("Bookmarks…", systemImage: "book") { showBookmarks = true }

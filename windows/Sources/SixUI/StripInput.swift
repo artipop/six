@@ -1,0 +1,167 @@
+import CStripInterop
+import SixBrowser
+import WinSDK
+
+/// Mouse and wheel input, translated into `StripModel` calls. Keys are `StripKeyInput`'s.
+extension StripWindow {
+    /// What a point in the top bar does, or `nil` for a point that is not on a control. Read by the
+    /// click handler and by `WM_SETCURSOR`, which is the whole reason it is a value rather than a
+    /// branch inside the click: the cursor has to know what a click *would* do.
+    enum ChromeAction {
+        case profileMenu
+        case back, forward, reload
+        case address
+        case bookmark
+        case workspaceUp, workspaceDown
+        case workspace(Int)
+        case fullWidth
+        case translate
+        case downloads
+        case more
+    }
+
+    func chromeAction(x: Int, y: Int) -> ChromeAction? {
+        let layout = chromeLayout()
+        guard layout.bar.contains(x: x, y: y) else { return nil }
+        if layout.profileChip.contains(x: x, y: y) { return .profileMenu }
+        if layout.back.contains(x: x, y: y) { return .back }
+        if layout.forward.contains(x: x, y: y) { return .forward }
+        if layout.reload.contains(x: x, y: y) { return .reload }
+        if layout.addressPill.contains(x: x, y: y) { return .address }
+        // Only when it could do something. A bookmark button that answers the cursor and then does
+        // nothing is worse than one that does not answer at all — `WM_SETCURSOR` reads this same function, so
+        // saying `nil` here is what stops the hand cursor promising a click that is a no-op.
+        if layout.bookmark.contains(x: x, y: y), model.canBookmarkFocusedPage { return .bookmark }
+        if layout.workspaceUp.contains(x: x, y: y) { return .workspaceUp }
+        if layout.workspaceDown.contains(x: x, y: y) { return .workspaceDown }
+        if layout.workspacePips.contains(x: x, y: y) {
+            // The whole strip, not only the capsule: a 6-pixel-tall target is a target nobody hits,
+            // so a pip owns the full height of the bar and the gap to its right.
+            for index in 0..<model.workspaceCount where x < Int(pipRect(index, in: layout.workspacePips).right)
+                + Int(px(Metric.pipGap)) {
+                return .workspace(index)
+            }
+            return .workspace(max(0, model.workspaceCount - 1))
+        }
+        if layout.fullWidth.contains(x: x, y: y) { return .fullWidth }
+        if layout.translate.contains(x: x, y: y) { return .translate }
+        if layout.downloads.contains(x: x, y: y) { return .downloads }
+        if layout.more.contains(x: x, y: y) { return .more }
+        return nil
+    }
+
+    /// Close on the "×", focus on the rest of a card, open on bare background — and the top bar
+    /// first, because it is drawn over the row and has to be hit-tested in the same order.
+    func handleClick(x: Int, y: Int) {
+        if let action = chromeAction(x: x, y: y) {
+            perform(action)
+            return
+        }
+        // Clicking a card is also how you leave the address bar. Without this the hotkeys stop
+        // answering until the row is clicked somewhere that is *not* a column, which reads as the
+        // row hanging rather than as focus being elsewhere.
+        if let hwnd { SetFocus(hwnd) }
+        // The overview: a card is a way back to its window, and anywhere else is a way back to where
+        // the row already stood.
+        if model.isOverview {
+            if let card = overviewCard(atX: x, y: y) { model.focus(card.id) }
+            if y >= Int(topChromeHeight) { model.leaveOverview() }
+            invalidate()
+            return
+        }
+        for column in model.columns {
+            let card = cardRect(for: column.frame)
+            guard card.contains(x: x, y: y) else { continue }
+            if handlePermissionClick(column, card: card, x: x, y: y) { return }
+            if closeBoxRect(for: card).contains(x: x, y: y) {
+                model.closeColumn(column.id)
+            } else {
+                model.focus(column.id)
+            }
+            invalidate()
+            return
+        }
+        // The bar is above the row and a click below the row's cards is still the row's, so
+        // "empty background" means exactly that: not on the bar, not on a card.
+        guard y >= Int(topChromeHeight) else { return }
+        model.openColumn()
+        invalidate()
+    }
+
+    private func perform(_ action: ChromeAction) {
+        switch action {
+        case .profileMenu:
+            showProfileMenu(below: chromeLayout().profileChip)
+        case .back:
+            focusedWebView?.goBack()
+        case .forward:
+            focusedWebView?.goForward()
+        case .reload:
+            // The button draws a cross while the page loads (`drawTopBar`), and does what it draws.
+            if let view = focusedWebView, view.isLoading {
+                view.stopLoading()
+            } else {
+                focusedWebView?.reload()
+            }
+        case .address:
+            focusAddressBar()
+        case .bookmark:
+            bookmarkFocusedPage()
+        case .workspaceUp:
+            model.focusWorkspace(-1)
+        case .workspaceDown:
+            model.focusWorkspace(1)
+        case .workspace(let index):
+            model.focusWorkspace(at: index)
+        case .fullWidth:
+            model.toggleFullWidth()
+        case .translate:
+            translateFocusedPage()
+        case .downloads:
+            showDownloads()
+        case .more:
+            showMoreMenu(below: chromeLayout().more)
+        }
+        invalidate()
+    }
+
+    /// `Alt` is the row's modifier the way `⌥` is the Mac's `TilingScrollMonitor.modifier`, leaving a
+    /// plain wheel to the page. The vertical/horizontal and `Shift` splits match `KeyBindings`' own.
+    ///
+    /// `WHEEL_DELTA` (120) is one physical notch, and a precise wheel or trackpad reports less than
+    /// that per message — hence the accumulator, so the row does not step twice as fast.
+    ///
+    /// The overview needs no `Alt`: there is no page under the pointer to leave the gesture to, which
+    /// is why the Mac's scroll monitor drops its modifier there too (`modifierOptional`).
+    func handleWheel(delta: Int32, horizontal: Bool) {
+        guard model.isOverview || SixStripKeyDown(Int32(VK_MENU)) != 0 else { return }
+        let movesColumn = SixStripKeyDown(Int32(VK_SHIFT)) != 0
+
+        let notchSize = Int32(WHEEL_DELTA)
+        if horizontal {
+            wheelRemainderX += delta
+            while abs(wheelRemainderX) >= notchSize {
+                let notch = wheelRemainderX > 0 ? Int32(1) : Int32(-1)
+                wheelRemainderX -= notch * notchSize
+                let direction = Int(notch) // tilted right steps right, tilted left steps left
+                if movesColumn { model.moveColumn(direction) } else { model.focusColumn(direction) }
+            }
+        } else {
+            wheelRemainderY += delta
+            while abs(wheelRemainderY) >= notchSize {
+                let notch = wheelRemainderY > 0 ? Int32(1) : Int32(-1)
+                wheelRemainderY -= notch * notchSize
+                let direction = -Int(notch) // rolled forward (up) steps to the workspace above
+                if movesColumn { model.moveColumnToWorkspace(direction) } else { model.focusWorkspace(direction) }
+            }
+        }
+        invalidate()
+    }
+}
+
+extension RECT {
+    func contains(x: Int, y: Int) -> Bool {
+        let x = Int32(x), y = Int32(y)
+        return x >= left && x < right && y >= top && y < bottom
+    }
+}

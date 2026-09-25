@@ -3,7 +3,7 @@ import AppKit
 import Foundation
 
 // six's icon, drawn rather than painted: the window you are reading, with its neighbours barely on
-// screen either side. That is what a niri strip looks like from inside it — one column centred, the
+// screen either side. That is what a tiling strip looks like from inside it — one column centred, the
 // rest of the strip continuing past both edges — and it is what no other browser's icon says. At 16 pt
 // the detail goes and the silhouette stays: a bright card between two slivers.
 //

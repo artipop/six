@@ -170,7 +170,7 @@ with the row that flight is for. Nobody clicked — an agent asked, or the point
 window — and there is no flight.
 
 **A ⌘-click leans.** The strip tips to the right far enough to show the edge of what arrived and comes
-back: `NiriLayout.peek`, riding `horizontalPreview`, the same rubber band a scroll gesture borrows. An
+back: `TilingLayout.peek`, riding `horizontalPreview`, the same rubber band a scroll gesture borrows. An
 arc was tried here first and thrown away — it is a symbol standing in for the thing, when the thing
 itself is one column away and can simply be shown. A second ⌘-click restarts the lean rather than
 queueing, so a burst of them settles once, at the end.

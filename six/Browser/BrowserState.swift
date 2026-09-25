@@ -7,7 +7,7 @@ import SwiftUI
 import WebKit
 
 /// App-wide browser model: profiles (each with an isolated data store) and tabs across all profiles,
-/// arranged by `NiriLayout` into per-profile strips of workspaces.
+/// arranged by `TilingLayout` into per-profile strips of workspaces.
 @MainActor
 @Observable
 final class BrowserState {
@@ -16,8 +16,8 @@ final class BrowserState {
     var selectedProfileID: Profile.ID
     var selectedTabID: BrowserTab.ID?
 
-    /// niri-style layout: the focused column here is the selected tab.
-    let layout = NiriLayout()
+    /// Scrollable-tiling layout: the focused column here is the selected tab.
+    let layout = TilingLayout()
     /// The app-wide budget for live `WebPage`s — one queue across every profile and every workspace,
     /// which is what makes stepping out of a workspace and back cheap. See `LivePageCache`.
     let pages = LivePageCache()
@@ -82,7 +82,7 @@ final class BrowserState {
     /// the menu item can go grey the moment the last one is used up.
     private var closedWindows: [ClosedWindow] = []
     /// Whether the strip's edge buttons wait to be found or stand on the screen (`ConfigurationStore`).
-    /// Chrome rather than geometry, so it lives here and not in `NiriLayout`: it changes nothing a
+    /// Chrome rather than geometry, so it lives here and not in `TilingLayout`: it changes nothing a
     /// second front end would have to agree with, only whether this one asks for a peek.
     var peeksAtEdges = ConfigurationStore.peeksByDefault
     @ObservationIgnored private let settings: ConfigurationStore
@@ -134,7 +134,7 @@ final class BrowserState {
         if let snapshot { restore(snapshot) }
         research = (snapshot?.research ?? []).filter { run in tabs.contains { $0.id == run.documentTabID } }
         for i in research.indices { research[i].isRunning = false } // nothing survives a relaunch mid-turn
-        // A browser that has been used before comes back as it was left, an empty rail included: the
+        // A browser that has been used before comes back as it was left, an empty row included: the
         // strip offers "New Window" and waits, the same as it does the moment the last window is
         // closed. Only a browser with nothing to restore opens the first window itself.
         if layout.hasColumns || snapshot != nil { syncSelection() } else { newTab() }
@@ -398,7 +398,7 @@ final class BrowserState {
     private func restore(_ snapshot: BrowserSnapshot) {
         let profileIDs = Set(profiles.map(\.id))
         let saved = Dictionary(snapshot.tabs.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-        var strips: [UUID: NiriStrip] = [:]
+        var strips: [UUID: TilingStrip] = [:]
         var placed = Set<UUID>()
         for entry in snapshot.strips where profileIDs.contains(entry.profileID) {
             var strip = entry.strip
@@ -488,7 +488,7 @@ final class BrowserState {
         return store
     }
 
-    /// A profile whose rail is empty stays empty when it comes up, for the same reason `closeTab`
+    /// A profile whose row is empty stays empty when it comes up, for the same reason `closeTab`
     /// leaves one empty: otherwise stepping away to another profile and back would put the start page
     /// right back where ⌘W had just taken it from.
     func selectProfile(_ id: Profile.ID) {
@@ -640,7 +640,7 @@ final class BrowserState {
     }
 
     @discardableResult
-    func newTab(url: URL? = nil, in profileID: Profile.ID? = nil, on side: NiriPlacement = .right) -> BrowserTab {
+    func newTab(url: URL? = nil, in profileID: Profile.ID? = nil, on side: TilingPlacement = .right) -> BrowserTab {
         newTab(url: url, in: profileID, workspace: nil, activate: true, on: side)
     }
 
@@ -648,7 +648,7 @@ final class BrowserState {
     /// windows in the background) nothing on screen changes — not even the profile.
     @discardableResult
     func newTab(url: URL?, in profileID: Profile.ID?, workspace: Int?, activate: Bool,
-                on side: NiriPlacement = .right) -> BrowserTab {
+                on side: TilingPlacement = .right) -> BrowserTab {
         // One of six's own addresses is one of six's own pages, however it arrives — typed, handed
         // over by another app, or asked for by an agent's `open_window`. Without this the window is
         // built as a web one, `onBuiltInAddress` fires on the way to loading it, and the person is
@@ -663,7 +663,7 @@ final class BrowserState {
             selectedProfileID = profile.id
             layout.activeProfileID = profile.id
         }
-        withAnimation(NiriLayout.switchAnimation) {
+        withAnimation(TilingLayout.switchAnimation) {
             layout.insertColumn(tabID: tab.id, in: profile.id, workspace: workspace, focus: activate, on: side)
         }
         if activate { syncSelection() }
@@ -746,7 +746,7 @@ final class BrowserState {
         // link turns out to be a file. See `closeIfOnlyCarriedALink`.
         opened.openedFrom = tab.id
         // Only for the ones that go behind: a window that comes forward takes the eye with it and
-        // needs no announcing. The one that does not is otherwise invisible — see `NiriLayout.peek`.
+        // needs no announcing. The one that does not is otherwise invisible — see `TilingLayout.peek`.
         if background { layout.peek() }
     }
 
@@ -837,7 +837,7 @@ final class BrowserState {
             selectedProfileID = profile.id
             layout.activeProfileID = profile.id
         }
-        withAnimation(NiriLayout.switchAnimation) {
+        withAnimation(TilingLayout.switchAnimation) {
             layout.insertColumn(tabID: tab.id, in: profile.id, workspace: workspace, focus: activate)
         }
         if activate { syncSelection() }
@@ -871,7 +871,7 @@ final class BrowserState {
             selectedProfileID = profile.id
             layout.activeProfileID = profile.id
         }
-        withAnimation(NiriLayout.switchAnimation) {
+        withAnimation(TilingLayout.switchAnimation) {
             layout.insertColumn(tabID: tab.id, in: profile.id, workspace: nil, focus: activate)
         }
         if activate { syncSelection() }
@@ -918,7 +918,7 @@ final class BrowserState {
             selectedProfileID = profile.id
             layout.activeProfileID = profile.id
         }
-        withAnimation(NiriLayout.switchAnimation) {
+        withAnimation(TilingLayout.switchAnimation) {
             layout.insertColumn(tabID: tab.id, in: profile.id, workspace: workspace, focus: activate)
         }
         if activate { syncSelection() }
@@ -996,7 +996,7 @@ final class BrowserState {
     /// Moves a window to a workspace of its own profile's strip; the focus stays where it is.
     func moveTab(_ id: BrowserTab.ID, toWorkspace index: Int) {
         guard let tab = tab(id) else { return }
-        withAnimation(NiriLayout.switchAnimation) {
+        withAnimation(TilingLayout.switchAnimation) {
             layout.moveColumn(tabID: id, in: tab.profileID, toWorkspace: index)
         }
         syncSelection()
@@ -1021,7 +1021,7 @@ final class BrowserState {
     /// lands, which is what asking for it in a profile that keeps history means.
     ///
     /// The focus follows the window. Every other move leaves something to look at; this one would
-    /// take the column off the rail and leave the person in front of the profile it left, with
+    /// take the column out of the row and leave the person in front of the profile it left, with
     /// nothing on screen to say where it went.
     ///
     /// The one window that will not go is a document about to enter a private profile: its text is a
@@ -1062,7 +1062,7 @@ final class BrowserState {
         if let document = tab.document, !profile.isPrivate { documents.save(document) }
         selectedProfileID = profile.id
         layout.activeProfileID = profile.id
-        // Unanimated, for the reason `NiriLayout.unanimated` gives: the column leaves one strip and
+        // Unanimated, for the reason `TilingLayout.unanimated` gives: the column leaves one strip and
         // joins another in the same update, and a removal transition would leave two `WebView`s over
         // the one `WebPage` this window is about to build — which traps inside WebKit's SwiftUI half.
         withTransaction(Transaction(animation: nil)) {
@@ -1099,7 +1099,7 @@ final class BrowserState {
             selectedProfileID = tab.profileID
             layout.activeProfileID = tab.profileID
         }
-        withAnimation(NiriLayout.switchAnimation) {
+        withAnimation(TilingLayout.switchAnimation) {
             layout.focus(tabID: id)
         }
         pages.touch(id)
@@ -1151,14 +1151,14 @@ final class BrowserState {
             research.removeAll { $0.documentTabID == closed.id }
         }
         let wasActive = closed.profileID == selectedProfileID
-        withAnimation(NiriLayout.switchAnimation) {
+        withAnimation(TilingLayout.switchAnimation) {
             layout.removeColumn(tabID: id)
         }
         // Nothing left to fill the screen with: a filled mode would be a blank wall with no way back.
         if layout.fill != .tiled, layout.focusedWorkspace?.isEmpty != false { layout.setFill(.window) }
         guard wasActive else { return }
         // And nothing is opened in its place, not even when that was the last window of the profile.
-        // An empty rail is a state the strip already draws — the row offers "New Window" in the
+        // An empty row is a state the strip already draws — the row offers "New Window" in the
         // middle of the screen — and the window ⌘W conjured up instead was one nobody had asked for,
         // standing where the one just closed had stood. It also made the first row behave unlike
         // every other: emptying a row further down leaves the windows above it, so the profile is not
@@ -1246,7 +1246,7 @@ final class BrowserState {
                 selectedProfileID = profile.id
                 layout.activeProfileID = profile.id
             }
-            withAnimation(NiriLayout.switchAnimation) {
+            withAnimation(TilingLayout.switchAnimation) {
                 layout.restoreColumn(tabID: tab.id, in: profile.id, workspace: closed.workspace, at: closed.index)
             }
             syncSelection()
@@ -1254,17 +1254,17 @@ final class BrowserState {
         }
     }
 
-    // MARK: niri operations
+    // MARK: layout operations
 
     /// ⌥S. The window next along comes in beside the one being read, or the pair goes back to being
-    /// two windows on the rail (`NiriLayout.toggleSplit`).
+    /// two windows in the row (`TilingLayout.toggleSplit`).
     ///
     /// Deliberately not through `animateLayout`. Every other layout verb moves windows about at a
     /// fixed width; this one *changes* the width of two live pages, and WebKit lays a page out again
     /// at every width an animation passes through — measured at three interim layouts over a third
     /// of a second, each of them a page briefly wider than the box it is in, which is a horizontal
     /// scrollbar you can see. The fill modes gave up their animation for the same reason
-    /// (docs/layout.md). `NiriLayout.toggleSplit` refuses an animation from the inside as well, for
+    /// (docs/layout.md). `TilingLayout.toggleSplit` refuses an animation from the inside as well, for
     /// the menu items that carry one of their own.
     func toggleSplit() { plainLayoutChange { layout.toggleSplit() } }
 
@@ -1279,7 +1279,7 @@ final class BrowserState {
             plainLayoutChange { changed = layout.toggleSplit() }
             return changed
         }
-        // One strip at a time: a column is a place on one profile's rail, and two windows from
+        // One strip at a time: a column is a place on one profile's row, and two windows from
         // different profiles have no column they could share.
         guard second.profileID == window.profileID else { return false }
         var changed = false
@@ -1294,7 +1294,7 @@ final class BrowserState {
     func openBeside(_ url: URL, from tab: BrowserTab) -> BrowserTab? {
         guard let place = layout.location(ofTabID: tab.id, in: tab.profileID) else { return nil }
         // A column that is already two has nowhere to put a third, so the link opens the way a
-        // ⌘-click opens it: a window of its own, behind, with the rail leaning over to show it.
+        // ⌘-click opens it: a window of its own, behind, with the row leaning over to show it.
         let column = layout.strip(for: tab.profileID).workspaces[place.workspace].columns[place.index]
         guard !column.isSplit else {
             openInNewWindow(url, from: tab, background: true)
@@ -1317,7 +1317,7 @@ final class BrowserState {
     func focusWorkspace(_ delta: Int) { animateLayout { layout.focusWorkspace(delta) } }
     func focusWorkspace(at index: Int) { animateLayout { layout.focusWorkspace(at: index) } }
     /// ⌥⇧↑/↓ in the layout's two changes, with the rows drawn once between them: first the window in
-    /// its new row with the rail still where it was, then the slide to it as an update of its own.
+    /// its new row with the row still where it was, then the slide to it as an update of its own.
     func moveColumnToWorkspace(_ delta: Int) {
         layout.verticalPreview = 0
         layout.horizontalPreview = 0
@@ -1334,20 +1334,20 @@ final class BrowserState {
 
     /// One step along the ⌃Tab ring, opening it on the first press.
     ///
-    /// The ring is the windows on the rail in front of you and no others — not the other workspaces
+    /// The ring is the windows in the row in front of you and no others — not the other workspaces
     /// of this profile, and certainly not the other profiles. A profile is a browsing world with a
-    /// rail, a history and a colour of its own, and a workspace is a place you went to on purpose;
+    /// row, a history and a colour of its own, and a workspace is a place you went to on purpose;
     /// a key that flew you out of either would be doing something much bigger than it looks, and
     /// `⌥↑` / `⌥↓` already move between workspaces while saying where they are going.
     ///
     /// Nothing moves while the ring is being walked: the cards are pictures, and the flight happens
     /// once, on the key coming up (`endWindowSwitch`). Walking it live would load a page per window
-    /// passed, and the rail's whole economy is that you get the page where you land.
+    /// passed, and the row's whole economy is that you get the page where you land.
     func stepWindowSwitch(_ delta: Int) {
         if !switcher.isOpen {
             var opened = false
             withAnimation(.smooth(duration: 0.18)) {
-                opened = switcher.open(railOrder, current: selectedTabID,
+                opened = switcher.open(rowOrder, current: selectedTabID,
                                        group: { [layout] in layout.columnID(of: $0) ?? $0 })
             }
             guard opened else { return }
@@ -1362,7 +1362,7 @@ final class BrowserState {
 
     /// Whether that window is half of a column, and so drawn at half a card's width.
     ///
-    /// The whole of what the ring has to ask about the rail, now that a stop is a window and nothing
+    /// The whole of what the ring has to ask about the row, now that a stop is a window and nothing
     /// else: a card is one window, at the width that window has where it stands.
     func ringCardIsHalfWide(_ tabID: UUID) -> Bool {
         layout.columnMates(of: tabID).count > 1
@@ -1370,7 +1370,7 @@ final class BrowserState {
 
     /// The arrows, while the ring is up: one card along the row as it is drawn. ⌃Tab's own step is
     /// through memory (`stepWindowSwitch`), and the two have not been the same thing since the row
-    /// started being drawn along the rail.
+    /// started being drawn along the row.
     func walkWindowSwitch(_ delta: Int) {
         guard switcher.isOpen else { return }
         withAnimation(.smooth(duration: 0.2)) { switcher.walkRow(delta) }
@@ -1385,20 +1385,20 @@ final class BrowserState {
         selectTab(id)
     }
 
-    /// ⎋, or anything else that means the pass is off. The rail never moved, so there is nothing to
+    /// ⎋, or anything else that means the pass is off. The row never moved, so there is nothing to
     /// put back.
     func cancelWindowSwitch() {
         withAnimation(.smooth(duration: 0.16)) { switcher.cancel() }
     }
 
-    /// The windows on the rail you are looking at, left to right — the focused workspace's columns
+    /// The windows in the row you are looking at, left to right — the focused workspace's columns
     /// and nothing else. What the ring falls back on for a window that has never been focused.
     ///
-    /// One rail, not the whole strip. A workspace is a place you went to on purpose, and ⌃Tab is for
-    /// the window you were just in, which is on the rail in front of you; flying out of a workspace
+    /// One row, not the whole strip. A workspace is a place you went to on purpose, and ⌃Tab is for
+    /// the window you were just in, which is in the row in front of you; flying out of a workspace
     /// on a key is a bigger move than the key looks, and there are two keys for it already (`⌥↑`,
     /// `⌥↓`) that say where they are going before they go.
-    private var railOrder: [UUID] {
+    private var rowOrder: [UUID] {
         // Every window, both halves of a split included: the ring collapses them to one stop itself
         // (`WindowSwitcher.open`), and it can only pick the half you were last in if it has been
         // handed both.
@@ -1422,12 +1422,12 @@ final class BrowserState {
     /// another row that left the view behind in the old one would be a window you have just lost.
     func endColumnDrag() {
         var moved = false
-        withAnimation(NiriLayout.switchAnimation) { moved = layout.commitColumnDrag() }
+        withAnimation(TilingLayout.switchAnimation) { moved = layout.commitColumnDrag() }
         if moved { syncSelection() }
     }
 
     func cancelColumnDrag() {
-        withAnimation(NiriLayout.switchAnimation) { layout.cancelColumnDrag() }
+        withAnimation(TilingLayout.switchAnimation) { layout.cancelColumnDrag() }
     }
 
     /// Free strip panning is driven directly by the trackpad, so it is deliberately un-animated.
@@ -1450,7 +1450,7 @@ final class BrowserState {
         settings.peeksAtEdges = peeksAtEdges
         // Turned off with the strip mid-lean — the pointer is resting on a button that is about to
         // stop taking peeks, and nothing would ever tell it to let go.
-        if !peeksAtEdges { withAnimation(NiriLayout.peekAnimation) { layout.edgeHover = 0 } }
+        if !peeksAtEdges { withAnimation(TilingLayout.peekAnimation) { layout.edgeHover = 0 } }
     }
 
     /// The overview has been asked for and is waiting on the pictures of the windows on screen.
@@ -1473,7 +1473,7 @@ final class BrowserState {
     /// when they are in — or after `pictureWait`, since a web content process that does not answer
     /// must not be able to hold the overview shut.
     func toggleOverview() {
-        NiriLayout.trace("toggleOverview (was \(layout.isOverview ? "open" : "closed"))")
+        TilingLayout.trace("toggleOverview (was \(layout.isOverview ? "open" : "closed"))")
         if layout.isOverview {
             exitOverview()
             return
@@ -1500,22 +1500,22 @@ final class BrowserState {
     private func openOverview() {
         guard overviewOpening else { return }
         overviewOpening = false
-        withAnimation(NiriLayout.switchAnimation) {
+        withAnimation(TilingLayout.switchAnimation) {
             layout.isOverview = true
             layout.recenterStrips() // the overview has its own widths, and a filled window's are not them
         }
     }
 
     func exitOverview() {
-        NiriLayout.trace("exitOverview (isOverview \(layout.isOverview))")
+        TilingLayout.trace("exitOverview (isOverview \(layout.isOverview))")
         guard layout.isOverview else { return }
         layout.cancelColumnDrag() // a window in the hand is put back where it was, not carried out
         isLeavingOverview = true
         overviewExits += 1
         let exit = overviewExits
-        withAnimation(NiriLayout.switchAnimation, completionCriteria: .removed) {
+        withAnimation(TilingLayout.switchAnimation, completionCriteria: .removed) {
             layout.isOverview = false
-            // Free overview scrolling leaves the offset anywhere, and a rail going back to a filled
+            // Free overview scrolling leaves the offset anywhere, and a row going back to a filled
             // window changes every width on the way out.
             layout.recenterStrips()
         } completion: { [weak self] in
@@ -1541,7 +1541,7 @@ final class BrowserState {
         setFill(layout.fill == .window ? .tiled : .window)
     }
 
-    private func setFill(_ value: NiriFill) {
+    private func setFill(_ value: TilingFill) {
         guard value != layout.fill else { return }
         // An empty workspace has no page to show edge to edge, and hiding the chrome over nothing only
         // takes away the way back.
@@ -1568,7 +1568,7 @@ final class BrowserState {
     }
 
     private func animateLayout(_ body: () -> Void) {
-        withAnimation(NiriLayout.switchAnimation) {
+        withAnimation(TilingLayout.switchAnimation) {
             layout.verticalPreview = 0
             layout.horizontalPreview = 0
             body()
@@ -1580,7 +1580,7 @@ final class BrowserState {
     private func syncSelection() {
         selectedTabID = layout.focusedTabID
         // Every way the focus can move ends here, which is why the ⌃Tab order is taken here and not
-        // in `selectTab`: a rail walked with ⌥→ is a rail whose windows have been looked at.
+        // in `selectTab`: a row walked with ⌥→ is a row whose windows have been looked at.
         switcher.note(selectedTabID)
     }
 }

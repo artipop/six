@@ -1,6 +1,6 @@
 # Hotkeys
 
-Every key binding in six, in one place. `⌥` stands in for niri's `Mod`; `⌘` bindings are the browser's own. Each
+Every key binding in six, in one place. `⌥` is the layout's modifier; `⌘` bindings are the browser's own. Each
 row is backed by a key monitor, a menu item or a view — the file is named so nothing here can drift from the code:
 **`KeyBindings` in `six/Input/`** for everything a menu cannot keep, `ViewCommands` / `HistoryCommands` /
 `BookmarkCommands` in `six/Views/MacCommands.swift`, the File menu in `six/sixApp.swift`, `FileCommands` in
@@ -9,7 +9,7 @@ row is backed by a key monitor, a menu item or a view — the file is named so n
 **This file is checked against the code.** `KeyBindings` is in `SixCore` — a binding is a key's name, the
 modifiers a hand can hold, where it may answer and what it does, none of which is AppKit's business — and
 `Tests/SixCoreTests/KeyBindingsTests.swift` reads *this* file and asks the table about it in both directions:
-every binding has to be written down here, and every key the rail and ring tables below promise has to resolve
+every binding has to be written down here, and every key the row and ring tables below promise has to resolve
 to one. The line above has been in this file since it was written; it is enforced from `b7dc8da` on. On its
 first run the check found `⌤` bound and undocumented, and a mutation test confirmed it catches the other
 direction — which is the one that would have caught `Esc` in the ring going quiet for a year.
@@ -19,7 +19,7 @@ be pressed, and is where a person looks for it — and **everything else belongs
 one `NSEvent` monitor (`KeyRouter`). A binding is in the table when a menu item cannot deliver it: a first-responder
 `WKWebView` answers a key equivalent before the menu bar is asked, and keeps `⌥←` for word movement.
 
-## The rail (`⌥` — `KeyBindings`, scope `.rail`)
+## The row (`⌥` — `KeyBindings`, scope `.row`)
 
 Not a menu. These used to be a **Layout** menu of eleven items, ten of which were an arrow key, and that menu
 could not make them work anyway: a first-responder `WKWebView` answers a key equivalent before the menu bar sees
@@ -40,8 +40,8 @@ comes back. Measured, by `SIX_KEY_SELFTEST=page` (`KeySelfTestPage.swift`):
 
 | where | `⌥←` | `⌥↓` | `⌥W` |
 |---|---|---|---|
-| a page that does not scroll | rail | rail | rail |
-| a page that scrolls | — | **the page**, by a screen — at its bottom edge too, so holding it never falls through to the next workspace | rail |
+| a page that does not scroll | row | row | row |
+| a page that scrolls | — | **the page**, by a screen — at its bottom edge too, so holding it never falls through to the next workspace | row |
 | a field on the page, with text | **the page** (word) | **the page** | **the page** («∑») |
 | an empty field on the page | **the page** — WebKit keeps it though nothing moves | **the page** | **the page** |
 | a page with its own `keydown` handler for the key | **the page** | **the page** | **the page** |
@@ -51,7 +51,7 @@ decides on the first pass (`KeyBinding.yieldsToCaret(in:)`): **every arrow goes 
 and every `⌥`+letter goes to any field at all, empty included. It used to be per caret — `⌥←` yielded only while
 there was a word behind the caret — and that was a trap: holding `⌥←` walked the caret home and one press later
 changed the *window*. On the empty field a fresh window opens with the arrows move nothing, and there they still
-walk the rail. The `.keyboardShortcut`s the View and File menus show for `⌥W` `⌥S` `⌥O` `⌥⇧T` `⌥⇧H` `⌥⇧P` do not
+walk the row. The `.keyboardShortcut`s the View and File menus show for `⌥W` `⌥S` `⌥O` `⌥⇧T` `⌥⇧H` `⌥⇧P` do not
 take the letter from a field first — measured, the field gets its «∑».
 
 `⌘⇧C` is the exception in the other direction: reserved, although Google Docs binds it for a word count. A `⌘` chord
@@ -65,23 +65,23 @@ The cost is the obvious one: on a page that scrolls, `⌥↑` / `⌥↓` are the
 |---|---|
 | `⌥←` `⌥→` | focus the window left / right |
 | `⌥⇧←` `⌥⇧→` | move the window left / right |
-| `⌥Home` `⌥End` | first / last window on the rail (also First Window / Last Window in the strip's own menu) |
+| `⌥Home` `⌥End` | first / last window in the row (also First Window / Last Window in the strip's own menu) |
 | `⌥↑` `⌥↓` | focus the workspace above / below |
 | `⌥⇧↑` `⌥⇧↓` | move the window to the workspace above / below (and follow it) — the whole column, so a split travels as the pair it is |
 | `⌥W` | full width — the page fills the window under the top bar; again to leave (also View ▸ Full Width, and the button beside the profile) |
-| `⌥S` | split — the window next along comes in beside this one, sharing its column; again to put them back on the rail (also View ▸ Split, and the strip's own menu). Both halves are windows in their own right: `⌥←` `⌥→` walk into one and then out to the next column, and closing one leaves the other filling the column. Moving is where they are one thing — `⌥⇧↑` `⌥⇧↓` and a drag in the overview take the pair, and this key is the way apart ([layout.md](layout.md#two-windows-in-one-column)) |
+| `⌥S` | split — the window next along comes in beside this one, sharing its column; again to put them back in the row (also View ▸ Split, and the strip's own menu). Both halves are windows in their own right: `⌥←` `⌥→` walk into one and then out to the next column, and closing one leaves the other filling the column. Moving is where they are one thing — `⌥⇧↑` `⌥⇧↓` and a drag in the overview take the pair, and this key is the way apart ([layout.md](layout.md#two-windows-in-one-column)) |
 | `⌥O` | overview on / off; `Esc` also leaves it (also View ▸ Overview, and the button at the right of the top bar). In the overview a click on a card flies to it, a card's × closes it, and the dashed place at the end of a row opens a window there |
-| `⌥C` | centre the focused window (on by default) — off means the rail moves as little as possible. The switch is on `six://configuration` ▸ Windows |
+| `⌥C` | centre the focused window (on by default) — off means the row moves as little as possible. The switch is on `six://configuration` ▸ Windows |
 | `⌥` + vertical scroll | one workspace per gesture |
 | `⌥` + horizontal scroll | a window per push while centring is on — as many as the hand asks for, one per 55 pt of travel; free panning with `⌥C` off |
 
-Where the rail runs out, the gesture is answered rather than ignored: the edge pushed into lights up
+Where the row runs out, the gesture is answered rather than ignored: the edge pushed into lights up
 in the profile's colour and the rubber band gives less, and nothing moves, because there is nothing
-that way ([layout.md](layout.md#the-ends-of-the-rail)).
+that way ([layout.md](layout.md#the-ends-of-the-row)).
 
-## Reserved (`⌃⌥` — `KeyBindings.reservedRail`, macOS only)
+## Reserved (`⌃⌥` — `KeyBindings.reservedRow`, macOS only)
 
-The rail's navigation again, taken **before** the page or a field sees it (`Precedence.reserved`). `⌃⌥` is the one
+The row's navigation again, taken **before** the page or a field sees it (`Precedence.reserved`). `⌃⌥` is the one
 pair of modifiers that means nothing to a Mac: `StandardKeyBinding.dict` binds `⌃⌥B`, `⌃⌥F` and `⌃⌥⌫` and no arrow,
 `com.apple.symbolichotkeys` has none of it, and it types no character — so these can be taken first without taking
 anything from anyone. The way off a field with text in it, and out of a page that keeps every key.
@@ -94,7 +94,7 @@ anything from anyone. The way off a field with text in it, and out of a page tha
 | `⌃⌥⇧↑` `⌃⌥⇧↓` | move the window to the workspace above / below |
 | `⌃⌥O` | overview on / off |
 
-The Mac's alone. `RailKeyLookup` reads this table on Windows, where `Ctrl+Alt` is AltGr and types half of a Polish
+The Mac's alone. `StripKeyLookup` reads this table on Windows, where `Ctrl+Alt` is AltGr and types half of a Polish
 keyboard; the Linux front has its own `<Alt>` shortcuts. Both fronts still have the conflict this section exists
 for — `Alt+←` / `Alt+→` are Back and Forward in every browser there — see [todo.md](todo.md).
 VoiceOver's `VO` keys are `⌃⌥` too; with VoiceOver on, these belong to it.
@@ -103,9 +103,9 @@ VoiceOver's `VO` keys are `⌃⌥` too; with VoiceOver on, these belong to it.
 
 | | |
 |---|---|
-| `⌃Tab` | hold `⌃`: the windows on the rail in front of you, as pictures, in the order they were last looked at, the one you would land on in the middle. Each press steps one along the ring; letting `⌃` go flies there |
+| `⌃Tab` | hold `⌃`: the windows in the row in front of you, as pictures, in the order they were last looked at, the one you would land on in the middle. Each press steps one along the ring; letting `⌃` go flies there |
 | `⌃⇧Tab` | the same, the other way |
-| `⌃⇧←` `⌃⇧→` | one card along the row, the way it is drawn — which is not `⌃Tab`'s step, and has not been since the row started being drawn along the rail ([layout.md](layout.md#⌃tab--the-order-the-windows-were-looked-at)). `⌥` instead of `⇧` does the same: the row's arrows are bound for **any** modifiers, and the ⇧ is there to get past macOS |
+| `⌃⇧←` `⌃⇧→` | one card along the row, the way it is drawn — which is not `⌃Tab`'s step, and has not been since the row started being drawn along the row ([layout.md](layout.md#⌃tab--the-order-the-windows-were-looked-at)). `⌥` instead of `⇧` does the same: the row's arrows are bound for **any** modifiers, and the ⇧ is there to get past macOS |
 | `↩` `⌤` | fly now, without waiting for `⌃` to come up |
 | `Esc` | let go of the ring without going anywhere |
 
@@ -115,9 +115,9 @@ field while there is text to walk over, and the open ring is the one thing that 
 (`KeyBinding.yieldsToCaret(in:)`). Without the exception `⌃→` over a ring opened while the address field had the
 caret moved the caret, and read as an arrow that did nothing at all.
 
-The rail's order and this one are different questions: `⌥←` / `⌥→` walk the windows where they stand,
+The row's order and this one are different questions: `⌥←` / `⌥→` walk the windows where they stand,
 `⌃Tab` walks them in the order they were used, so a single press is a toggle between the last two.
-One rail's windows only — the workspace on screen — and this run only. `⌥↑` / `⌥↓` are what move between workspaces, and they say where they are going.
+One row's windows only — the workspace on screen — and this run only. `⌥↑` / `⌥↓` are what move between workspaces, and they say where they are going.
 
 ## Browser (`⌘`)
 
@@ -127,8 +127,8 @@ One rail's windows only — the workspace on screen — and this run only. `⌥�
 | `⌘⇧R` | load it again without believing the cache — everything asked of the network afresh |
 | `⌘.` | stop loading |
 | `⌘[` `⌘]` | back / forward through this window's own history (also the ‹ › buttons) |
-| `⌘,` | settings — `six://configuration`, in a column of the rail like any other address |
-| `⌘T` | new window on the rail, right of the focused one |
+| `⌘,` | settings — `six://configuration`, in a column of the row like any other address |
+| `⌘T` | new window in the row, right of the focused one |
 | `⌘⇧N` | new document — a Markdown column next to the pages (edit / preview in the top bar, where its address would be) |
 | `⌘⇧P` | new private window — in the private profile (created on the first press; in-memory session, nothing recorded); File → Close Private Browsing forgets it |
 | `⌘W` | close the focused window |
@@ -136,7 +136,7 @@ One rail's windows only — the workspace on screen — and this run only. `⌥�
 | `⌘S` | save — a document that has a file goes back to it; otherwise Save As |
 | `⌘⇧S` | save as… — a document as `.md` / `.html` / `.pdf`, a page as `.html` / `.pdf` / `.txt`; the folder is remembered |
 | `⌥⇧H` | highlight the selection on the page; it comes back when the page is opened again (File → Remove Highlights on This Page to clear) |
-| `⌥⇧P` | the focused window's video into the floating picture-in-picture player, and out of it again. WebKit's own player, above every other application, and it keeps playing when the window is scrolled off the rail — the page behind it is never given back for the live-page budget while it is up ([layout.md](layout.md#picture-in-picture)) |
+| `⌥⇧P` | the focused window's video into the floating picture-in-picture player, and out of it again. WebKit's own player, above every other application, and it keeps playing when the window is scrolled out of the row — the page behind it is never given back for the live-page budget while it is up ([layout.md](layout.md#picture-in-picture)) |
 | `⌘⇧C` | copy the address of the window you are reading, whole, as it would be pasted — the field shows a tick (Edit ▸ Copy Address). Arc's Copy URL, and `⌃⇧C` on the fronts with no `⌘` (`KeyBindings.copyAddressChord`). Nothing to copy on a start page, a document or an app window, and there the key is left to whatever else wants it. A **table row** and not just the menu item, unlike every other `⌘` key here: it is pressed with the page focused, and a focused `WKWebView` answers a key equivalent before the menu bar is asked. `⌘C` stays the page's — that one is the selection |
 | `⌘F` | find on the page in front of you — searches the page's own JavaScript, since `WebPage` carries no find API of its own and `WKWebView`'s is an async completion-handler with no menu (also View ▸ Find on Page…) |
 | `⌘L` | focus the address field |
@@ -145,7 +145,7 @@ One rail's windows only — the workspace on screen — and this run only. `⌥�
 | `⌘Y` | history of the current profile |
 | `⌘D` | bookmark the focused page (again: remove the bookmark) |
 | `⌘⌥B` | bookmarks, searchable by meaning |
-| `⌘` + click a link | open it in a new window right of this one, behind — the rail leans right for a moment to show it. `⇧` and `⌘⇧` clicks do nothing at all: WebKit never passes them on, and a middle click arrives indistinguishable from a plain one ([links.md](links.md)) |
+| `⌘` + click a link | open it in a new window right of this one, behind — the row leans right for a moment to show it. `⇧` and `⌘⇧` clicks do nothing at all: WebKit never passes them on, and a middle click arrives indistinguishable from a plain one ([links.md](links.md)) |
 | `Esc` | close the overview; otherwise the page's own |
 | `↩` `⌤` | in the overview, fly into the focused window — what a click on its card does. Scoped to the overview (`KeyBinding.Scope.overview`), so outside it the key never reaches the table; a workspace being renamed on its plate keeps it |
 
@@ -156,7 +156,7 @@ One rail's windows only — the workspace on screen — and this run only. `⌥�
 | typing | completions: an address row when the input looks like one, then pages from the profile's history, then the engine's suggestions |
 | `↑` `↓` | walk the rows |
 | `↩` | open the selected row, or the raw input (address, or a search) |
-| `Esc` | clear the field; on an empty field, let go of the caret — so the `⌥` keys reach the rail again. A click beside the field does the same |
+| `Esc` | clear the field; on an empty field, let go of the caret — so the `⌥` keys reach the row again. A click beside the field does the same |
 
 ## Address field (`⌘L`)
 
@@ -235,7 +235,7 @@ it); its keys were the chat window's.
   not typing in Latin. `KeyBinding.Key.letter` matches either the US key code or the character, so the three work on
   a Cyrillic layout (by position) and on Dvorak (by letter).
 - `⌥W` / `⌥S` / `⌥O` / `⌥C` / `⌥⇧T` / `⌥⇧H` / `⌥⇧P` type their characters in any field, on a page or six's own; they
-  are the rail's everywhere else. `SIX_UI_DEBUG=1` says which: `offered to the page first` and then either nothing
+  are the row's everywhere else. `SIX_UI_DEBUG=1` says which: `offered to the page first` and then either nothing
   (the page kept it) or `…, after the page`.
 - **Nothing in the table answers outside six's own window.** A sheet, a popover and WebKit's full-screen video are
   `KeyContext.Window.elsewhere`, and there `⎋` closes the sheet instead of the overview behind it and `⌥O` does
@@ -254,7 +254,7 @@ it); its keys were the chat window's.
   makes the `WKWebView` first responder by hand and then posts `⌘[` `⌘]` `⌘R`, watching the back list
   and a mark left inside the page. WebKit takes `⌥←` in front of the menu bar; it does not take
   these.
-- **The keyboard follows the rail's focus, and that had to be made to happen.** `⌥→` moves the focus; AppKit's first
+- **The keyboard follows the row's focus, and that had to be made to happen.** `⌥→` moves the focus; AppKit's first
   responder stayed where a click had put it, so the keys went on reaching the window you had walked away from
   ([layout.md](layout.md#the-keyboard-follows-the-focus)). It is never taken off a text field — `⌘L` and `⌘E` are
   left by keystroke — so nothing here eats what you were typing.

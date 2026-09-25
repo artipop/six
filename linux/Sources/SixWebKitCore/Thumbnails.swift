@@ -1,7 +1,7 @@
 import CWebKitGTK
 import Foundation
 
-/// `SIX_UI_DEBUG=1`, the same switch the model and `NiriLayout` use.
+/// `SIX_UI_DEBUG=1`, the same switch the model and `TilingLayout` use.
 ///
 /// A free function rather than a member: the snapshot's completion is a `@convention(c)` function
 /// pointer, and one of those cannot be formed from anything that captures context — which a method

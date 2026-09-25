@@ -145,11 +145,11 @@ data class DocumentSnapshot(
     val showsPreview: Boolean = false,
 )
 
-/** One profile's workspace stack; [NiriStrip] itself is the stored shape. */
+/** One profile's workspace stack; [TilingStrip] itself is the stored shape. */
 @Serializable
 data class StripSnapshot(
     @Serializable(with = UuidSerializer::class)
     @SerialName("profileID")
     val profileId: UUID,
-    val strip: NiriStrip,
+    val strip: TilingStrip,
 )

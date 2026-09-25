@@ -44,7 +44,7 @@ same machine as the person reading it.
 
 ## Tools
 
-Vocabulary is the product's: a *window* (page) in a *workspace* (rail) of a *profile*. Everything defaults to what
+Vocabulary is the product's: a *window* (page) in a *workspace* (row) of a *profile*. Everything defaults to what
 is on screen — the current profile, its focused workspace, its focused window. Workspaces are addressed by name or
 1-based index; a name that doesn't exist is created (the trailing empty workspace gets the name). A workspace created
 this way is not permanent: when its last window closes, six asks the person at the screen whether to delete it — the
@@ -80,9 +80,9 @@ same question every named workspace gets, whoever named it
 Errors that are the caller's (unknown window, bad workspace, no model) come back as MCP tool errors (`isError`),
 not JSON-RPC errors.
 
-The catalog's instructions tell an agent what the rail is for: search first, then open the several pages actually
+The catalog's instructions tell an agent what the row is for: search first, then open the several pages actually
 worth putting side by side — different sites, or the same site on the different options — each on the exact page for
-what was asked. Asking for flights from Novosibirsk to Kazakhstan should leave a rail of route pages open, not one
+what was asked. Asking for flights from Novosibirsk to Kazakhstan should leave a row of route pages open, not one
 front page. Reading a page (`get_page_content`) is for the answer the agent writes; the windows are what the user is
 left with.
 

@@ -100,7 +100,7 @@ summons, a chip in the field (↗ opens `six://chat/<id>`, click or ⌘⌫ drops
 question and answer, and `askAgent` opens it in the session store instead of starting a fresh one — with the chat's
 own agent, whatever the ⌘E model is. `SIX_LINE_CHATS_SELFTEST` ends with that step: found by a title word, the last
 exchange recalled, the question landing in the old chat (6 → 8 items) with the history count unchanged.
-The arrows (`AssistantBar.chatKey`) go into the list from the field's side — ↑ at the bottom of the rail, where the
+The arrows (`AssistantBar.chatKey`) go into the list from the field's side — ↑ at the bottom of the row, where the
 line grows up and the list stands above it, ↓ beside a field where it grows down — and walk back out to the field,
 where Return means the verbs again; ← → stay the caret's. `SIX_KEY_SELFTEST=chats` posts `/ ↑ ⏎`, `/ ↑↑ ⏎` and
 `/ ↑↑↓ ⏎` through the real key path and checks the chat picked by id; nothing is asked of the agent.

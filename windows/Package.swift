@@ -51,7 +51,7 @@ let package = Package(
         .package(url: "https://github.com/pointfreeco/combine-schedulers", exact: "1.2.0")
     ],
     targets: [
-        .target(name: "CRailInterop"),
+        .target(name: "CStripInterop"),
         // The WebKit2 C API's headers, adapted (by whoever built the matching WebKit2.dll) to keep
         // <windows.h> types off the C boundary — they trip a Clang-modules submodule-visibility
         // issue under ClangImporter — in favour of layout-compatible structs and `void *`.
@@ -73,12 +73,12 @@ let package = Package(
             // script, `PageSandbox`. `SixBrowser` keeps its own import `internal` so that the model
             // does not re-export it, which is why naming it again here is not redundant.
             dependencies: [
-                "SixBrowser", "CRailInterop", "CWebKit2",
+                "SixBrowser", "CStripInterop", "CWebKit2",
                 .product(name: "SixCore", package: "six")
             ],
             swiftSettings: [.defaultIsolation(MainActor.self)],
-            // The file picker behind `<input type=file>` (`SixRailOpenFiles`); the Downloads folder
-            // and opening a finished file (`SixRailDownloadsFolder`, `SixRailShellOpen`).
+            // The file picker behind `<input type=file>` (`SixStripOpenFiles`); the Downloads folder
+            // and opening a finished file (`SixStripDownloadsFolder`, `SixStripShellOpen`).
             // …and which app a link to somebody else's scheme would open in (`AssocQueryStringW`).
             linkerSettings: [.linkedLibrary("comdlg32"), .linkedLibrary("shell32"), .linkedLibrary("ole32"),
                              .linkedLibrary("shlwapi")]
@@ -91,7 +91,7 @@ let package = Package(
                 .unsafeFlags(["-L", webKit2LibDirectory, "-lWebKit2"])
             ]
             // `/SUBSYSTEM:WINDOWS` + `/ENTRY:mainCRTStartup` — to drop the console-subsystem
-            // default's console window — made the rail window stop appearing at all, not even in
+            // default's console window — made the row window stop appearing at all, not even in
             // Alt-Tab. Reverted pending a diagnosis; see docs/windows.md.
         )
     ]

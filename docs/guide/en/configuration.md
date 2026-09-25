@@ -13,7 +13,7 @@ than at the filter lists. Buttons like **Set Up…** in the
 address follows you as you move between sections.
 
 Configuration here is a **page**, not a window of its own. It opens as a column
-of the rail, beside the thing it is about: you can look at a site and read what
+of the row, beside the thing it is about: you can look at a site and read what
 that site is allowed at the same time — a configuration window would cover
 exactly what it describes. The column keeps its place across a relaunch, it has
 an address, and it moves and closes like any other window.
@@ -46,10 +46,10 @@ built again.
 ## Windows
 
 **Centre the focused window** (`⌥C`) — the window you are reading sits in the
-middle and both neighbours peek in by the same amount. Off, the rail moves as
+middle and both neighbours peek in by the same amount. Off, the row moves as
 little as it can.
 
-**Show Neighbours When Hovering Beside the Window** — the rail leaning over when the pointer rests in a gap.
+**Show Neighbours When Hovering Beside the Window** — the row leaning over when the pointer rests in a gap.
 That is a pointer idea: it is asked for by resting somewhere. A finger has
 nowhere to rest, so the switch is off on the phone and the arrows are simply
 drawn where they stand.

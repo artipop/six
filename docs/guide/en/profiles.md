@@ -2,7 +2,7 @@
 
 A profile is a separate person behind one browser: its own cookies and sign-ins,
 its own history, its own bookmarks, its own extensions and **its own stack of
-workspaces**. Switching profiles swaps the whole rail.
+workspaces**. Switching profiles swaps the whole row.
 
 The profile button is on the left of the top bar, with its name and colour. A
 click opens the list:
@@ -34,9 +34,9 @@ trusts and blocks, not what the person sitting in it does.
 Right-click the page ▸ **This Window ▸ Move to Profile** ▸ the profile's name. On
 the phone the same item is in the `⋯` menu.
 
-The window goes to the other profile's rail and the rail follows it there: this
+The window goes to the other profile's row and the row follows it there: this
 is the one move that would otherwise leave nothing to look at — the column would
-simply be gone from the rail. It is the same window and not a copy: the same
+simply be gone from the row. It is the same window and not a copy: the same
 address, the same title, the same back and forward history, the same picture in
 the overview. `⌘⇧T` will not offer it back, because nothing was closed.
 

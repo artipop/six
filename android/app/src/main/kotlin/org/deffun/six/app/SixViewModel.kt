@@ -15,7 +15,7 @@ import org.deffun.six.core.AppStateSnapshot
 import org.deffun.six.core.Bookmark
 import org.deffun.six.core.BookmarkScope
 import org.deffun.six.core.buildBrowserSnapshot
-import org.deffun.six.core.NiriLayout
+import org.deffun.six.core.TilingLayout
 import org.deffun.six.core.PageDialogAnswer
 import org.deffun.six.core.PageDialogQueue
 import org.deffun.six.core.PageDialogRequest
@@ -58,7 +58,7 @@ data class PermissionQuestion(
 
 /** Everything the strip draws from, in one value. */
 data class SixState(
-    val layout: NiriLayout = NiriLayout(),
+    val layout: TilingLayout = TilingLayout(),
     val tabs: Map<UUID, TabState> = emptyMap(),
     val profiles: List<Profile> = emptyList(),
     /** The window whose handle has become an address field, if any. Only ever one. */
@@ -84,7 +84,7 @@ data class SixState(
 /**
  * The seam between the pure core and Compose.
  *
- * Everything below this class is a value: [NiriLayout] and its operations are pure functions, and
+ * Everything below this class is a value: [TilingLayout] and its operations are pure functions, and
  * this holds the current one in a [StateFlow] and swaps it for the next. That is the whole of the
  * architecture — no observation, no mutation from the view, and the model stays testable on a JVM
  * because nothing here reaches back into it.
@@ -241,7 +241,7 @@ class SixViewModel(application: Application) : AndroidViewModel(application) {
     /**
      * The viewport, in **dp** rather than pixels.
      *
-     * `NiriLayout`'s floors are 10, 280 and 200 — the Mac's points, which are dp here. Handing it
+     * `TilingLayout`'s floors are 10, 280 and 200 — the Mac's points, which are dp here. Handing it
      * pixels would make the gap a hairline on a 3× screen and the minimum column a third of the one
      * intended, and it would do it silently, because every one of those numbers is still a valid
      * length. The conversion belongs at this boundary and nowhere else.

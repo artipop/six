@@ -19,9 +19,9 @@ class DragTest {
 
     private val viewport = Size(1600.0, 1000.0)
 
-    private fun strip(columns: Int = 5, workspaces: Int = 1): Pair<NiriLayout, List<UUID>> {
+    private fun strip(columns: Int = 5, workspaces: Int = 1): Pair<TilingLayout, List<UUID>> {
         val ids = List(columns) { UUID.randomUUID() }
-        var layout = NiriLayout().updateViewport(viewport)
+        var layout = TilingLayout().updateViewport(viewport)
         for (id in ids) layout = layout.insertColumn(id)
         repeat(workspaces - 1) { layout = layout.moveColumnToWorkspace(1).focusWorkspace(-1) }
         return layout to ids
@@ -157,15 +157,15 @@ class DragTest {
     /** The threshold is the iPhone's 0.12 of the viewport, not a number invented here. */
     @Test
     fun theThresholdIsTheOneThePhoneUses() {
-        assertEquals(0.12, NiriLayout.DRAG_COMMIT_FRACTION)
+        assertEquals(0.12, TilingLayout.DRAG_COMMIT_FRACTION)
     }
 
     /** The threshold scales with the screen, for the same reason the gaps do. */
     @Test
     fun theThresholdIsAFractionOfTheViewport() {
-        val small = NiriLayout().updateViewport(Size(400.0, 300.0))
-        val large = NiriLayout().updateViewport(Size(4000.0, 3000.0))
-        val band = 400.0 * NiriLayout.DRAG_COMMIT_FRACTION + 1
+        val small = TilingLayout().updateViewport(Size(400.0, 300.0))
+        val large = TilingLayout().updateViewport(Size(4000.0, 3000.0))
+        val band = 400.0 * TilingLayout.DRAG_COMMIT_FRACTION + 1
 
         assertEquals(StripStep.PREVIOUS_COLUMN, small.copy(horizontalPreview = band).pendingStep)
         assertEquals(StripStep.NONE, large.copy(horizontalPreview = band).pendingStep)

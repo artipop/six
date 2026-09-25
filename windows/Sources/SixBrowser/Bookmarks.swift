@@ -11,7 +11,7 @@ import GRDB
 /// can read, re-embed and rank. What this file adds is the two things that cannot live there — the
 /// off-screen page the embedder runs in, which only a front can make, and the decision of which
 /// model to run, which comes out of the settings table.
-extension RailModel {
+extension StripModel {
     /// Hands the model an off-screen page to embed in.
     ///
     /// Two closures rather than a protocol, and that is deliberate. `PageSandbox` is `SixCore`'s and
@@ -80,7 +80,7 @@ extension RailModel {
 
     /// The page the bar is describing, as something a bookmark can be made of.
     ///
-    /// `nil` when there is no focused column, or when its address is not one — the rail opens a
+    /// `nil` when there is no focused column, or when its address is not one — the row opens a
     /// column before anything has loaded, and a row keyed by a string that is not a URL is a row
     /// nothing can ever find again.
     private var focusedPage: (url: URL, title: String)? {

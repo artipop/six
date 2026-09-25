@@ -147,12 +147,12 @@ takes it off), the answer strip shows its last question and answer, and the next
 agent. It lasts for the summons, like the fresh chat a summons starts ([agents.md](agents.md#history)).
 
 **A scroll on the line belongs to what is under it.** The line stands over the strip without being part of it, and
-where it is not a scrolling answer it is neither a page nor a list, so `NiriScrollMonitor` took it for layout chrome
+where it is not a scrolling answer it is neither a page nor a list, so `TilingScrollMonitor` took it for layout chrome
 and switched workspaces — with the pointer on the question, or on the Copy row under an answer. Both of its places
-report their frame to `NiriScrollMonitor.overlays` (the bottom one from `AssistantBar`, the anchored one from outside
+report their frame to `TilingScrollMonitor.overlays` (the bottom one from `AssistantBar`, the anchored one from outside
 its hosting view, where `.global` is still the window's), and a scroll inside one is handed to the front-most
-`WKWebView` or `NSScrollView` under the pointer, or spent. Only the line: the curtains at the ends of the rail are
-hosted over pages too, and a swipe there is meant for the rail. A synthetic wheel posted into the app's queue did not reach
+`WKWebView` or `NSScrollView` under the pointer, or spent. Only the line: the curtains at the ends of the row are
+hosted over pages too, and a swipe there is meant for the row. A synthetic wheel posted into the app's queue did not reach
 the monitor (tried: a `CGEvent` scroll through `NSApp.postEvent`, no trace line), so this one is checked by hand:
 `SIX_UI_DEBUG=1` prints `scroll on the ⌘E line → <view>` for every event handed on.
 
@@ -190,7 +190,7 @@ is a model talking to a person — one is how search finds a page you read in an
 other is what every browser has had for a decade — and taking them away with the assistant would
 remove search and the translate button for a reason nobody asked for.
 
-The switch is asked about once, on the first launch, in a window on the rail: `six://welcome`
+The switch is asked about once, on the first launch, in a window in the row: `six://welcome`
 (`WelcomePage`, `BuiltInPage.welcome`). A page rather than a sheet, for the reason written on
 `BuiltInPage` — and answering it closes the window, which is the first thing a new person does with
 a column. `ConfigurationStore.hasAnsweredWelcome` is what keeps it to once; until it is answered the

@@ -1,6 +1,6 @@
 # six
 
-A minimal browser with a [niri](https://github.com/YaLTeR/niri)-style scrollable-tiling layout. macOS first, with an
+A minimal browser with a scrollable-tiling layout. macOS first, with an
 iPhone/iPad target beside it and a Linux front on WebKitGTK over the same storage layer
 ([docs/platforms.md](docs/platforms.md), [docs/linux.md](docs/linux.md)). Everything below describes the Mac, which is
 where the features land first.
@@ -8,7 +8,7 @@ where the features land first.
 It is a playground for three things:
 
 1. **SwiftUI + WebKit on the macOS 26+ APIs** — `WebView` / `WebPage` (no `NSViewRepresentable`), with several profiles
-   in one window. Each profile is an isolated `WKWebsiteDataStore(forIdentifier:)` and has its own rail of workspaces.
+   in one window. Each profile is an isolated `WKWebsiteDataStore(forIdentifier:)` and has its own row of workspaces.
    ⌘T / ⌘W / ⌘L.
 2. **Foundation Models (macOS 27) as the single LLM API** — a Dia-style one-line assistant (⌘E) driven by
    `LanguageModelSession`, switchable between the on-device `SystemLanguageModel`, `PrivateCloudComputeLanguageModel`
@@ -31,7 +31,7 @@ It is a playground for three things:
 Windows, workspaces, profiles and agent chats survive a relaunch: one JSON snapshot under Application Support, autosaved
 on change, ACP sessions resumed with `session/load`. See [docs/architecture.md](docs/architecture.md#persistence).
 
-A window is not a page it holds forever. A `WebPage` is a web content process, so a rail of a hundred windows keeps
+A window is not a page it holds forever. A `WebPage` is a web content process, so a row of a hundred windows keeps
 only as many live as the machine can carry and *discards* the rest, the way Chrome's Memory Saver and Safari's
 suspended tabs do — the window stays where it is, with its address, its history, its scroll offset and a picture of
 itself, and builds the same page again when you come back to it. Coming back is the case it is tuned for: one queue for
@@ -67,18 +67,18 @@ See [docs/localization.md](docs/localization.md).
 
 six registers with macOS as a browser: it claims `http`/`https` and the usual web file types, so it can be picked in
 System Settings › Desktop & Dock › Default web browser (or from **Set six as Default Browser…** in the six menu), and
-links or `.html` files opened from other apps land as windows on the rail.
+links or `.html` files opened from other apps land as windows in the row.
 See [docs/architecture.md](docs/architecture.md#being-a-browser).
 
-## The niri layout
+## The tiling layout
 
 There are no tabs and no sidebar. A page is a **column**: a full-height window that is nothing but the page, laid out
-left to right on an endlessly scrollable **rail**. Nothing is drawn on it — the address, the lock, the shield and the
+left to right on an endlessly scrollable **row**. Nothing is drawn on it — the address, the lock, the shield and the
 title are one row in the top bar, for the window you are reading, with the profile and the layout mode beside them as
 dropdowns; the `×` that closes a window sits on its top right corner and waits for the pointer. A column defaults to almost the full
-width — an ordinary browser window, centred, with the neighbours peeking in at both edges to be scrolled to. A rail is a **workspace**; workspaces are
+width — an ordinary browser window, centred, with the neighbours peeking in at both edges to be scrolled to. A row is a **workspace**; workspaces are
 stacked vertically and exactly one is on screen at a time. The bottom workspace is always empty — move a window into it
-and a fresh empty one appears below (niri's dynamic workspaces); a workspace that runs out of windows disappears,
+and a fresh empty one appears below (dynamic workspaces); a workspace that runs out of windows disappears,
 unless you gave it a name (double-click its plate in the overview).
 
 A new window opens on six's own start page — one field for both queries and addresses, so the first thing a window
@@ -89,29 +89,29 @@ about pilaf you kept), and a question about nothing you saved gets no row at all
 [docs/start-page.md](docs/start-page.md).
 
 Nothing needs the keyboard: click a background window to pull it in, sweep the pointer into the gap beside the focused
-window — the rail leans over to show what is on that side, a `‹` or `›` if it is a window and an outline if it is the
+window — the row leans over to show what is on that side, a `‹` or `›` if it is a window and an outline if it is the
 one a click would open there — use the workspace stepper in the top bar, and a right-click on a title bar or on the
 background for the rest. Scrolling over the
-layout's own chrome (title bars, gaps, background) pans the rail and changes workspace too — over a page, scrolling
+layout's own chrome (title bars, gaps, background) pans the row and changes workspace too — over a page, scrolling
 stays the page's.
 
-`⌥` stands in for niri's `Mod`, and with it held the gestures work anywhere:
+`⌥` is the layout's modifier, and with it held the gestures work anywhere:
 
 | | |
 |---|---|
 | `⌥` + vertical scroll | one workspace up/down per gesture — deltas build up a rubber-band preview, cross the threshold and the switch commits, and the rest of the gesture (trackpad momentum included) is swallowed so a flick never skips two |
-| `⌥` + horizontal scroll | one column per gesture while centring is on, so the rail never rests half-way; free panning with `⌥C` off |
+| `⌥` + horizontal scroll | one column per gesture while centring is on, so the row never rests half-way; free panning with `⌥C` off |
 | `⌥` `←` `→` / `⌥⇧` `←` `→` | focus / move a column |
 | `⌥` `↑` `↓` / `⌥⇧` `↑` `↓` | focus a workspace / move the focused column to it |
 | `⌥W` | full width: the page fills the window, the top bar stays |
-| `⌥C` | centre the focused window (default) or scroll the rail as little as possible |
-| `⌥O`, `Esc` | overview — zoomed out just enough to show the focused rail end to end, scrolling sideways runs along it; no modifier needed there, a click opens a window |
-| `⌘T` / `⌘W` | new window on the rail, right of the focused one / close it |
-| `⌘,` | settings — `six://settings`, a column of the rail like any other address |
+| `⌥C` | centre the focused window (default) or scroll the row as little as possible |
+| `⌥O`, `Esc` | overview — zoomed out just enough to show the focused row end to end, scrolling sideways runs along it; no modifier needed there, a click opens a window |
+| `⌘T` / `⌘W` | new window in the row, right of the focused one / close it |
+| `⌘,` | settings — `six://settings`, a column of the row like any other address |
 | `⌘⇧T` | put the last closed window back where it stood |
 | `⌘Y` | the profile's history — searchable; the History menu lists the last 20 pages |
 
-Only columns near the viewport get a real `WebView`; the rest render as cards, so a long rail stays cheap.
+Only columns near the viewport get a real `WebView`; the rest render as cards, so a long row stays cheap.
 
 User guide (Russian and English, published on the deffun site under `/docs/vi/`): [docs/guide/](docs/guide/).
 
@@ -128,18 +128,18 @@ The phone and the tablet are a second Xcode target over the same folder; what th
 sideways on a phone is [docs/platforms.md](docs/platforms.md).
 
 Linux is a third front end — GTK 4 and WebKitGTK 6.0, built by SwiftPM in a container — over the *same* `six.sqlite`,
-the same schema and the same `NiriLayout`. The rail, workspaces, the overview, history, bookmarks, private profiles,
+the same schema and the same `TilingLayout`. The row, workspaces, the overview, history, bookmarks, private profiles,
 thumbnails, the live-page budget and site permissions are there; extensions, blocking, the assistant and embeddings
 are not yet. [docs/linux.md](docs/linux.md).
 
 ```
-six/Niri        NiriLayout (workspaces, columns, geometry, focus/move ops), NiriScrollMonitor (⌥+scroll gestures)
+six/Tiling       TilingLayout (workspaces, columns, geometry, focus/move ops), TilingScrollMonitor (⌥+scroll gestures)
 six/Browser     Profile, BrowserTab (WebPage), BrowserState, SearchEngine + SearchSuggestions
 six/DevTools    DevToolsStore (Web Inspector + capture), PageInstrumentation (the page-world hooks)
 six/Extensions  ExtensionStore (a controller per profile), ExtensionInstaller (+ the compatibility verdict), adapters
 six/Blocking    ContentBlocker (compiles + attaches rules), FilterList/FilterListStore (the lists), RuleConversion
 six/Browser     CertificateStore + ServerTrust (extra trust anchors), BundledCertificates (the ones six ships)
-six/Views       ContentView (top bar), NiriStripView (the rail + overview), SettingsPageView, StartPage, AssistantBar, AgentPanel
+six/Views       ContentView (top bar), TilingStripView (the row + overview), SettingsPageView, StartPage, AssistantBar, AgentPanel
 six/Assistant   ModelChoice/AssistantSettings (model selection), AssistantStore (streaming), FM compatibility probe
 six/ACP         ACPJSON, JSONRPCConnection, ACPTypes, ACPAgent (process), ACPClient (actor), AgentSessionStore (VM)
 six/Tools       BrowserToolCatalog (the tools, over BrowserState), BrowserModelTool (Foundation Models adapter)

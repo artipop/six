@@ -2,7 +2,7 @@
 import AppKit
 
 /// `SIX_KEY_SELFTEST=chats`: the arrows over the chats a `/` finds in the ⌘E line, pressed for real.
-/// At the bottom of the rail the line grows up, so the list stands above the field: ↑ goes in at the
+/// At the bottom of the row the line grows up, so the list stands above the field: ↑ goes in at the
 /// row nearest the field, the next ↑ one further, ↓ one back. Each run says which chat Return picked
 /// against the one the arrows should have landed on; nothing is asked of the agent.
 extension KeySelfTest {

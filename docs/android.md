@@ -13,7 +13,7 @@ cd android && ./gradlew :app:installDebug   # onto a running emulator or phone
 
 `:core` is a plain JVM module — no Android plugin, no Compose, nothing from the SDK — so everything
 that has to agree with the Mac is tested without a device: the strip's geometry against a table
-compiled out of `NiriLayout.swift`, `state.json` against a file the Mac wrote, the schema against
+compiled out of `TilingLayout.swift`, `state.json` against a file the Mac wrote, the schema against
 `grdb_migrations`, and the extraction script against the Swift literal it was copied from.
 
 Four decisions, taken before any code:
@@ -22,7 +22,7 @@ Four decisions, taken before any code:
 |---|---|
 | language | **Kotlin**, UI in **Compose** — no Swift on the device |
 | engine | **the system WebView** through `androidx.webkit` — not GeckoView |
-| what is shared | **the contract**, not the code: `state.json`, the SQLite schema, `NiriLayout` |
+| what is shared | **the contract**, not the code: `state.json`, the SQLite schema, `TilingLayout` |
 | out of scope | **blocking and extensions** — [why, and what it would take](#later-deliberately) |
 
 ## Why not Swift, when there is now an official SDK
@@ -36,13 +36,13 @@ worth what it costs, and the reason is a measurement rather than a preference.
 | | lines | |
 |---|---|---|
 | no Apple API at all (Foundation / Observation / SQLiteData) | 4 565 | |
-| `NiriLayout` (691) and `FilterListStore` (133) — nominally SwiftUI/CryptoKit, in fact neither | 5 389 | |
+| `TilingLayout` (691) and `FilterListStore` (133) — nominally SwiftUI/CryptoKit, in fact neither | 5 389 | |
 | less what a phone does not get anyway (ACP client, MCP, `ResearchCoordinator`) | **≈ 4 000** | **23 %** |
 | WebKit / SwiftUI / AppKit | **13 010** | **77 %** |
 
 Inside those 4 000, half is mechanical: `HighlightScript` (432) is JavaScript in string literals,
 `Markdown` (360) and `TextDocument` (242) are parsers with no platform in them. What carries real
-design is `NiriLayout` (691, with 167 lines of geometry tests) and the persistence layer.
+design is `TilingLayout` (691, with 167 lines of geometry tests) and the persistence layer.
 
 So a Swift core on Android would save two or three thousand lines, half of it a geometry model that
 ports in a day, and would not touch the 77 % — which is rewritten against WebView and Compose in any
@@ -117,7 +117,7 @@ Three artefacts, all of which already exist:
    `kotlinx.serialization`.
 2. **The SQLite schema** — visits, settings, bookmarks, chunks, vectors. Written by GRDB, opened on
    Android by `androidx.sqlite` directly. Same tables, same column names, same migrations.
-3. **`NiriLayout` and its test vectors.** Port the 167 lines of `NiriLayoutGeometryTests` **first**,
+3. **`TilingLayout` and its test vectors.** Port the 167 lines of `TilingLayoutGeometryTests` **first**,
    then make them pass. It is a pure model with no Android in it, so it runs as a JVM unit test, and
    it is the only guarantee that four front ends lay the strip out identically.
 
@@ -140,7 +140,7 @@ would — a tablet is "large" whichever way it is held. Measure the window, in C
 The phone gesture model is already designed for this and happens to solve Android's hardest problem
 for free. A `WebView` inside a horizontally scrollable container fights over every touch; six never
 asks it to, because the strip is driven from the handle above each window and never from the page.
-Along the handle pans the strip, across it changes workspace, both feeding `NiriLayout`'s
+Along the handle pans the strip, across it changes workspace, both feeding `TilingLayout`'s
 `horizontalPreview` / `verticalPreview`. Inside the page every gesture is the page's.
 
 ## The AI layer — phase two
@@ -321,7 +321,7 @@ machinery. It is worth revisiting there the day `settings` joins the sync list.
 
 Phase one, the browser. Everything below has been run on a device, not only compiled.
 
-- **The strip**, in Compose over `NiriLayout`: columns placed from `columnFrames`, the axis decided
+- **The strip**, in Compose over `TilingLayout`: columns placed from `columnFrames`, the axis decided
   by the viewport's shape, both neighbouring workspaces drawn so the across-drag has something to
   move, a workspace indicator, and the overview's rescale.
 - **Windows**: the handle as title, address field and drag surface; a `×` that backs out of the field
@@ -353,7 +353,7 @@ layer, then the thing.
 0. `android/` beside `linux/`. Gradle, Kotlin, Compose.
 1. The spike. Overtaken: the emulator arrived late, so the questions were answered by building the
    thing and then running it. What that cost is written down under [what running found](#what-running-found).
-2. `NiriLayout` in Kotlin — tests first, model second, no Android dependencies.
+2. `TilingLayout` in Kotlin — tests first, model second, no Android dependencies.
 3. Persistence — the snapshot and the database, against the real schema.
 4. The strip — a column per page, the handle, the drag along and across, the address field.
 5. Chrome and profiles — `ProfileStore`, the toolbar, history, the start page.

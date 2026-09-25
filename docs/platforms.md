@@ -62,7 +62,7 @@ differently ([Platform/](../six/Platform)) or where a thing is genuinely a Mac's
 
 ## The layout, turned
 
-The niri model is one-dimensional: columns follow one another *along* the strip, workspaces stack
+The tiling model is one-dimensional: columns follow one another *along* the strip, workspaces stack
 *across* it. Which screen direction that runs in is the view's business, so the device turns it
 without the model knowing ([layout.md](layout.md)):
 
@@ -75,13 +75,13 @@ The strip wants the screen's long edge to run along it, so the axis is the viewp
 `size.height > size.width` — and nothing else. Size classes would answer a different question: an
 iPad is `.regular` whichever way it is held, which would leave it in the Mac's layout upright.
 
-`StripAxis.stripSpace` hands `NiriLayout.updateViewport` the viewport along-first, so every width,
+`StripAxis.stripSpace` hands `TilingLayout.updateViewport` the viewport along-first, so every width,
 gap and scroll offset it already computes comes back as the extent to draw down the screen. Turning
 the device re-measures and recentres; nothing in the model moves.
 
 The Mac drives the strip with ⌥ + scroll, because over a page a gesture belongs to the page. A phone
 has no modifier to hold, so the strip is driven from its own chrome: the handle above each window
-pans along the strip, and across it switches workspace. The drag feeds `NiriLayout`'s
+pans along the strip, and across it switches workspace. The drag feeds `TilingLayout`'s
 `horizontalPreview` / `verticalPreview` — the same rubber band the Mac's scroll monitor writes — and
 letting go either commits a step or springs back; nothing rests half-way. Inside the page every
 gesture is still the page's.
@@ -90,7 +90,7 @@ The handle is also where the address is typed: a phone has no ⌘L and no room f
 so a tap on the window that already has focus turns its title into the field. A tap on any other
 window just brings it to focus, so walking the strip never opens the keyboard.
 
-An empty rail says the same thing here as on the Mac — the icon, **New Window**, and nothing else:
+An empty row says the same thing here as on the Mac — the icon, **New Window**, and nothing else:
 the `⌘T` the Mac names underneath is not an offer a phone can make, and the `+` in the toolbar is the
 other way to the same window. Since `closeTab` stopped opening a window in place of the last one
 closed, this is the screen a phone lands on after closing everything, and without it that screen

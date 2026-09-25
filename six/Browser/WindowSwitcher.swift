@@ -3,10 +3,10 @@ import Observation
 
 /// The order the windows were last looked at, and the ring ⌃Tab walks along it.
 ///
-/// The rail is where windows *are*; this is where they have *been*. Both questions are worth asking
+/// The row is where windows *are*; this is where they have *been*. Both questions are worth asking
 /// and they have different answers: the window you want next is usually the one you just came from,
-/// and on a rail of a dozen that one can be six windows away in either direction. ⌥← and ⌥→ walk the
-/// rail, ⌃Tab walks the memory — the same division as ⌥Tab and the workspace keys in any tiling
+/// and in a row of a dozen that one can be six windows away in either direction. ⌥← and ⌥→ walk the
+/// row, ⌃Tab walks the memory — the same division as ⌥Tab and the workspace keys in any tiling
 /// window manager, and the same one every browser's ⌃Tab has had since tabs existed.
 ///
 /// The ring is fixed when the switch opens and does not reorder while it is held: a list that
@@ -26,7 +26,7 @@ final class WindowSwitcher {
     ///
     /// Two orders, because the two questions are different. ⌃Tab means *the window I was in before*,
     /// so stepping has to follow memory. But two halves of one column are drawn as two cards, and on
-    /// the rail those two are always left then right — a row that put them in memory order swapped
+    /// the row those two are always left then right — a row that put them in memory order swapped
     /// them from one press to the next, and asked you to read the pair again every time. So the pair
     /// is drawn where it stands and walked when it was used, and the highlight moves to whichever
     /// card that is.
@@ -50,22 +50,22 @@ final class WindowSwitcher {
         walk.removeAll { $0 == id }
         guard let at = ring.firstIndex(of: id) else { return }
         ring.remove(at: at)
-        // A ring of one is a ring: it is what a rail with one window on it opens, and a window
+        // A ring of one is a ring: it is what a row with one window on it opens, and a window
         // closing under an open ring leaves the same thing rather than a reason to close it.
         index = ring.isEmpty ? 0 : min(index, ring.count - 1)
     }
 
-    /// Opens the ring over the windows that are on the rail: the ones already remembered, in the
+    /// Opens the ring over the windows that are in the row: the ones already remembered, in the
     /// order they were last looked at, then the rest — restored from a snapshot, or never focused
-    /// this run — in the order they stand on the rail.
+    /// this run — in the order they stand in the row.
     ///
     /// The window being read is always first, so the first ⌃Tab lands on the one before it.
     ///
-    /// A rail with one window on it opens a ring of one, and that is deliberate: the key has to
+    /// A row with one window on it opens a ring of one, and that is deliberate: the key has to
     /// answer. Pressing it and getting nothing back is indistinguishable from a key that is not
     /// bound, or from a browser that has stopped listening — and this one is held down, so the
     /// nothing lasts as long as the hand does. One card, saying *this is what there is*, is an
-    /// answer. Only an empty rail refuses, and there the screen is already saying so in the middle.
+    /// answer. Only an empty row refuses, and there the screen is already saying so in the middle.
     ///
     /// **A stop is a window**, and there is no other kind.
     ///
@@ -76,11 +76,11 @@ final class WindowSwitcher {
     /// Windows all the way down costs nothing that the exception was buying. The half you used last
     /// comes first because memory says so, and the other one sits wherever it was actually used.
     ///
-    /// `group` is the one thing the rail still has to say: which windows stand in one place on it.
-    /// They are drawn **together and in rail order**, arriving as a group where the first of them
+    /// `group` is the one thing the row still has to say: which windows stand in one place on it.
+    /// They are drawn **together and in row order**, arriving as a group where the first of them
     /// falls in memory — a pair whose halves were used at different times would otherwise take the
     /// two slots memory gave it, and another window would stand between two halves of one column,
-    /// which the rail itself cannot do.
+    /// which the row itself cannot do.
     @discardableResult
     func open(_ ids: [UUID], current: UUID?, group: (UUID) -> UUID) -> Bool {
         guard !ids.isEmpty else { return false }
@@ -106,7 +106,7 @@ final class WindowSwitcher {
     /// One card along the **row**, the way it is drawn, and round the ends of it.
     ///
     /// The arrows, against ⌃Tab's step through memory. Two keys, two questions, and they stopped
-    /// being the same one the moment the row was drawn along the rail: `⌃→` means *the card over
+    /// being the same one the moment the row was drawn along the row: `⌃→` means *the card over
     /// there*, and pointing at a row while it answers by recency is the kind of thing that makes a
     /// person stop trusting a panel.
     func walkRow(_ delta: Int) {
@@ -115,7 +115,7 @@ final class WindowSwitcher {
     }
 
     /// One step along the **memory**, and round the end of it: a ring is a list of what you have, not
-    /// a rail with ends, so there is no wall here to hit.
+    /// a row with ends, so there is no wall here to hit.
     ///
     /// The highlight then moves to wherever that stop is drawn, which for the halves of a split can
     /// be the card on the left — the key means "the one before this", and the pair is drawn where it

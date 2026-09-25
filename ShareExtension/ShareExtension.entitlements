@@ -5,7 +5,7 @@
 	<!-- An app extension on macOS runs sandboxed or not at all. -->
 	<key>com.apple.security.app-sandbox</key>
 	<true/>
-	<!-- The one file outside the container the sheet reads: the rail as six wrote it down, so a
+	<!-- The one file outside the container the sheet reads: the row as six wrote it down, so a
 	     workspace can be offered by name. Read-only, and that one file rather than the folder —
 	     the database and the snapshot beside it are none of the extension's business. A temporary
 	     exception rather than an App Group because a group needs a developer team, and this

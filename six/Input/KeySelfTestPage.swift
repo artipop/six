@@ -2,7 +2,7 @@
 import AppKit
 import WebKit
 
-/// `.pageFirst`, measured: which keys a page keeps and which it hands back to the rail.
+/// `.pageFirst`, measured: which keys a page keeps and which it hands back to the row.
 ///
 /// `SIX_KEY_SELFTEST=page` runs this alone; the full self-test runs it before the menu keys. Every
 /// line says what the page saw and what six did, because the two halves are separate questions and
@@ -10,7 +10,7 @@ import WebKit
 /// a key nobody answered is a dead one.
 ///
 /// One page, rewritten between cases rather than a window per case — the page is the variable and
-/// the rail around it is not. What it lists was the throwaway probe that settled the design: the
+/// the row around it is not. What it lists was the throwaway probe that settled the design: the
 /// redelivery of an unhandled key passes back through the local monitor, a page that can scroll
 /// keeps `⌥↓` even at its bottom edge, and an empty `<input>` keeps `⌥←` although nothing moves.
 extension KeySelfTest {
@@ -45,7 +45,7 @@ extension KeySelfTest {
         let keep = "document.onkeydown = e => { if (e.altKey) { window.__kept = 1; e.preventDefault() } }"
         // "nobody" is the page keeping a key it had nothing to do with — an empty field, a page already
         // at its end. Nothing visible changes, so the evidence is the absence of an "after the page"
-        // line in `SIX_UI_DEBUG`'s trace; a rail that moved would say "six".
+        // line in `SIX_UI_DEBUG`'s trace; a row that moved would say "six".
         typealias Case = (name: String, html: String, setup: String, flags: NSEvent.ModifierFlags, code: UInt16, characters: String, expect: String)
         let cases: [Case] = [
             ("⌥← on a short page", "short", "", .option, KeyCode.leftArrow.rawValue, "\u{F702}", "six"),
@@ -74,7 +74,7 @@ extension KeySelfTest {
             _ = window.makeFirstResponder(web)
             try? await Task.sleep(for: .milliseconds(250))
             let before = (try? await tab.page.callJavaScript(state)) as? String ?? "?"
-            let rail = (browser.selectedTabID, browser.layout.focusedWorkspaceIndex, browser.layout.fill)
+            let row = (browser.selectedTabID, browser.layout.focusedWorkspaceIndex, browser.layout.fill)
 
             // What a keyboard sends: «∑» typed, «w» for the menu bar to match a key equivalent against.
             let ignoring = item.code == KeyCode.w.rawValue ? "w" : item.characters
@@ -82,10 +82,10 @@ extension KeySelfTest {
             try? await Task.sleep(for: .milliseconds(700))
 
             let after = (try? await tab.page.callJavaScript(state)) as? String ?? "?"
-            let sixActed = browser.selectedTabID != rail.0 || browser.layout.focusedWorkspaceIndex != rail.1
-                || browser.layout.fill != rail.2
+            let sixActed = browser.selectedTabID != row.0 || browser.layout.focusedWorkspaceIndex != row.1
+                || browser.layout.fill != row.2
             // A reserved key is never offered, so the page seeing it at all is the failure. What a page
-            // shows afterwards cannot say that on its own: the rail moving the keyboard off it can
+            // shows afterwards cannot say that on its own: the row moving the keyboard off it can
             // leave a caret somewhere else, and did once in two runs.
             let seen = (try? await tab.page.callJavaScript("return window.__seen")) as? Int ?? -1
             let reserved = item.flags.contains(.control)
@@ -94,8 +94,8 @@ extension KeySelfTest {
             let verdict = who == item.expect ? "ok" : "EXPECTED \(item.expect)"
             note("page first: \(item.name) → \(who) [\(verdict)] — page \(before) → \(after)")
 
-            // Put the rail back where the case found it.
-            if browser.layout.focusedWorkspaceIndex != rail.1 { browser.focusWorkspace(rail.1 - browser.layout.focusedWorkspaceIndex) }
+            // Put the row back where the case found it.
+            if browser.layout.focusedWorkspaceIndex != row.1 { browser.focusWorkspace(row.1 - browser.layout.focusedWorkspaceIndex) }
             try? await Task.sleep(for: .milliseconds(300))
         }
 
@@ -145,7 +145,7 @@ extension KeySelfTest {
 
     /// The start page gives the caret up: `Esc` clears the field and then leaves it, and a click beside
     /// the field leaves it too. Measured as who holds the keyboard, since that is the whole point —
-    /// an `⌥` key reaches the rail only once no field does.
+    /// an `⌥` key reaches the row only once no field does.
     private static func lettingGo(of start: BrowserTab, _ browser: BrowserState, in window: NSWindow) async {
         browser.selectTab(start.id)
         try? await Task.sleep(for: .milliseconds(400))

@@ -111,14 +111,14 @@ const en = {
     lang: 'en-US',
     link: '/en/',
     titleTemplate: ':title — the VI guide',
-    description: 'The VI user guide: a rail of windows instead of tabs, blocking, the assistant and the agents.',
+    description: 'The VI user guide: a row of windows instead of tabs, blocking, the assistant and the agents.',
 
     themeConfig: {
         siteTitle: 'VI · Guide',
 
         nav: [
             {text: 'Start', link: '/en/start'},
-            {text: 'The rail', link: '/en/layout'},
+            {text: 'The row', link: '/en/layout'},
             {text: 'Privacy', link: '/en/blocking'},
             {text: 'Agents', link: '/en/agents'},
             {text: 'Keys', link: '/en/hotkeys'},
@@ -129,7 +129,7 @@ const en = {
                 text: 'Getting started',
                 items: [
                     {text: 'First launch', link: '/en/start'},
-                    {text: 'The rail and workspaces', link: '/en/layout'},
+                    {text: 'The row and workspaces', link: '/en/layout'},
                     {text: 'Windows, links and downloads', link: '/en/windows'},
                     {text: 'Configuration', link: '/en/configuration'},
                     {text: 'Keyboard shortcuts', link: '/en/hotkeys'},

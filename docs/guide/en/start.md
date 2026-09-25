@@ -5,16 +5,15 @@ and scroll sideways, and there are as many rows as you have jobs on. Everything
 else is an ordinary browser: an address, history, bookmarks, downloads,
 extensions.
 
-The layout is taken from [niri](https://github.com/YaLTeR/niri), a window
-manager for Linux. Three words describe it, and they are worth learning at once:
+Three words describe it, and they are worth learning at once:
 
 | | |
 |---|---|
 | **window** | one page. Not a tab: a window has no title bar, it *is* the page, edge to edge |
-| **rail** | a row of windows running to the right. Scrolls endlessly |
-| **workspace** | one whole rail. Workspaces stack up; exactly one is on screen |
+| **row** | a row of windows running to the right. Scrolls endlessly |
+| **workspace** | one whole row. Workspaces stack up; exactly one is on screen |
 
-The rail moves sideways, workspaces switch up and down. That is the whole of
+The row moves sideways, workspaces switch up and down. That is the whole of
 the navigation.
 
 ## What is on screen
@@ -22,7 +21,7 @@ the navigation.
 At the top, one row for the whole application, and it is about the window you
 are reading: back and forward, the lock, the blocking shield, the address — and
 right against the field, the bookmark star, because it is about that same page.
-No individual window has a title bar of its own — a dozen windows in a rail do
+No individual window has a title bar of its own — a dozen windows in a row do
 not want a dozen address fields.
 
 On the left of that row: the profile button, with its name and colour, and the
@@ -113,14 +112,14 @@ nothing selected still goes to the search engine.
 
 The order worth trying:
 
-1. `⌘T` three or four times, open something in each. That is a rail.
-2. `⌥←` and `⌥→` walk along it. `⌥` stands in for niri's `Mod`.
+1. `⌘T` three or four times, open something in each. That is a row.
+2. `⌥←` and `⌥→` walk along it. `⌥` is the layout's modifier.
 3. `⌥↓` goes to the workspace below. It is empty; open something of your own
    there.
 4. `⌥O` is the overview: everything at once, workspaces stacked. A click opens a
    window, a drag moves it, a double-click on a workspace's name renames it.
 5. `⌥W` fills the window, gaps and all. Again to leave.
-6. Sweep the pointer into the gap beside the focused window. The rail leans over
+6. Sweep the pointer into the gap beside the focused window. The row leans over
    to show what is there: `‹` or `›` if it is a window, the edge of the start
    page that would open there if there is no window yet — and a click makes one.
 
@@ -145,4 +144,4 @@ their addresses and scroll offsets, and agent chats carry on.
 
 The **six ▸ Set six as Default Browser…** menu item, or System Settings › Desktop
 & Dock › Default web browser. After that, links from other applications and
-`.html` files from the Finder arrive as windows on the rail.
+`.html` files from the Finder arrive as windows in the row.

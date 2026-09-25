@@ -7,7 +7,7 @@ nonisolated struct ResearchRun: Codable, Sendable, Identifiable, Equatable {
     var id: UUID = UUID()
     var question: String
     var profileID: UUID
-    /// `NiriWorkspace.id` — stable across renames and moves, unlike the index.
+    /// `TilingWorkspace.id` — stable across renames and moves, unlike the index.
     var workspaceID: UUID
     /// The document window's tab id.
     var documentTabID: UUID

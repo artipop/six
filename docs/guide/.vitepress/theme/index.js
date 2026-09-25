@@ -1,7 +1,7 @@
 import {h} from 'vue'
 import DefaultTheme from 'vitepress/theme-without-fonts'
 
-import RailFigure from './RailFigure.vue'
+import RowFigure from './RowFigure.vue'
 import './custom.css'
 
 // The default theme, repainted in deffun's palette and given one thing of its
@@ -19,11 +19,11 @@ import './custom.css'
 // not, and a site that only builds when a sibling checkout happens to be there
 // is worse than a duplicated stylesheet. When the tokens change, they change in
 // two places — that is the price of the guide living with the browser it
-// describes. What is *not* a copy is everything under "corners" and "the rail":
+// describes. What is *not* a copy is everything under "corners" and "the row":
 // those are this product's own, and the XCIII guide must not grow them.
 export default {
     extends: DefaultTheme,
     Layout: () => h(DefaultTheme.Layout, null, {
-        'home-hero-after': () => h(RailFigure),
+        'home-hero-after': () => h(RowFigure),
     }),
 }

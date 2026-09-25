@@ -12,7 +12,7 @@ import Testing
 /// indistinguishable from a key you pressed slightly wrong.
 ///
 /// So the doc is read here and asked about, in both directions: every binding has to be written
-/// down somewhere in it, and every key its rail and ring tables promise has to resolve to a binding.
+/// down somewhere in it, and every key its row and ring tables promise has to resolve to a binding.
 /// The third test is about the table's own order, which is load-bearing — first match wins — and
 /// which is how the ring's `⌃⇧Tab` was silently answered by the row above it during the rewrite.
 struct KeyBindingsTests {
@@ -56,11 +56,11 @@ struct KeyBindingsTests {
         }
     }
 
-    @Test func everyKeyTheRailPromisesIsBound() {
+    @Test func everyKeyTheRowPromisesIsBound() {
         let context = KeyContext(window: .main)
-        for chord in chords(in: section("The rail")) {
+        for chord in chords(in: section("The row")) {
             #expect(binding(for: chord, in: context) != nil,
-                    "docs/hotkeys.md promises \(chord.label) on the rail and nothing answers it")
+                    "docs/hotkeys.md promises \(chord.label) in the row and nothing answers it")
         }
     }
 
@@ -80,12 +80,12 @@ struct KeyBindingsTests {
     /// an arrow that did nothing; the doc has promised the ring answers first since it was written.
     @Test func theRingOutranksTheCaret() {
         let typing = KeyContext.Field(kind: .singleLine, hasTextBefore: true, hasTextAfter: true)
-        let onTheRail = KeyContext(window: .main, field: typing)
+        let inTheRow = KeyContext(window: .main, field: typing)
         let inTheRing = KeyContext(window: .main, field: typing, isSwitching: true)
 
-        // The rail's own ⌥→ steps aside for the caret.
-        let rail = binding(for: KeyChord(.option, .rightArrow), in: onTheRail)
-        #expect(rail?.yieldsToCaret(in: onTheRail) == true)
+        // The row's own ⌥→ steps aside for the caret.
+        let row = binding(for: KeyChord(.option, .rightArrow), in: inTheRow)
+        #expect(row?.yieldsToCaret(in: inTheRow) == true)
 
         // The ring's does not, and neither does the plain arrow the ring binds.
         let ring = binding(for: KeyChord([], .rightArrow), in: inTheRing)
@@ -96,8 +96,8 @@ struct KeyBindingsTests {
     /// And with no caret anywhere, nothing yields — the rule is about a field, not about a mood.
     @Test func withNoFieldNothingYields() {
         let context = KeyContext(window: .main)
-        let rail = binding(for: KeyChord(.option, .rightArrow), in: context)
-        #expect(rail?.yieldsToCaret(in: context) == false)
+        let row = binding(for: KeyChord(.option, .rightArrow), in: context)
+        #expect(row?.yieldsToCaret(in: context) == false)
     }
 
     // MARK: The table's own order
@@ -118,7 +118,7 @@ struct KeyBindingsTests {
 
     @Test func aFieldWithTextKeepsEveryArrow() {
         let empty = KeyContext.Field(kind: .singleLine, hasTextBefore: false, hasTextAfter: false)
-        // The caret at the very start of the text: under the old per-caret rule ⌥← went to the rail
+        // The caret at the very start of the text: under the old per-caret rule ⌥← went to the row
         // from here, which is how holding ⌥← walked the caret home and then changed the window.
         let atStart = KeyContext.Field(kind: .singleLine, hasTextBefore: false, hasTextAfter: true)
         // The start page's field is focused the moment a window opens, and it is empty. ⌥← there is
@@ -142,11 +142,11 @@ struct KeyBindingsTests {
 
     // MARK: Who is asked first
 
-    /// The ring, `⌘⇧C` and the `⌃⌥` rail are six's whatever has the focus; everything else is offered to it.
-    @Test func onlyTheRingAndTheControlOptionRailAreReserved() {
+    /// The ring, `⌘⇧C` and the `⌃⌥` row are six's whatever has the focus; everything else is offered to it.
+    @Test func onlyTheRingAndTheControlOptionRowAreReserved() {
         for binding in KeyBindings.all {
             let reserved = binding.scope == .switcher || binding.key.keyCode == .tab
-                || (binding.action == .leaveOverview && binding.scope == .rail) || binding.action == .copyAddress || binding.modifiers == .exactly([.control, .option])
+                || (binding.action == .leaveOverview && binding.scope == .row) || binding.action == .copyAddress || binding.modifiers == .exactly([.control, .option])
                 || binding.modifiers == .exactly([.control, .option, .shift])
             #expect((binding.precedence == .reserved) == reserved,
                     "\(binding.spellings.map(\.label)) → \(binding.action) is \(binding.precedence)")
@@ -160,8 +160,8 @@ struct KeyBindingsTests {
         }
     }
 
-    /// The `⌃⌥` rail is the Mac's: on Windows `Ctrl+Alt` is AltGr, and `RailKeyLookup` reads this table.
-    @Test func theControlOptionRailIsTheMacsAlone() {
+    /// The `⌃⌥` row is the Mac's: on Windows `Ctrl+Alt` is AltGr, and `StripKeyLookup` reads this table.
+    @Test func theControlOptionRowIsTheMacsAlone() {
         let hyper = KeyBindings.all.filter { $0.modifiers == .exactly([.control, .option]) }
         #if os(macOS)
         #expect(hyper.contains { $0.action == .focusColumn(-1) })

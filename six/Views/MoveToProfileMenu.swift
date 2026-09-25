@@ -5,7 +5,7 @@ import SwiftUI
 ///
 /// A file of its own because both fronts carry it and neither owns it: the Mac's is in the window's
 /// menu (`ColumnMenu`, and so the page's right-click), the phone's is in the ⋯ menu, and
-/// `NiriStripView` — where the first one lives — is the Mac's alone.
+/// `TilingStripView` — where the first one lives — is the Mac's alone.
 ///
 /// The profiles this window could go to. Its own is not among them — a move to where it already is
 /// has nothing to do — and the whole menu is left out when there is only one profile, rather than

@@ -6,10 +6,10 @@ import SwiftUI
 /// happens a dozen times a day, and a question every time would be a browser asking permission to
 /// tidy up after itself. A name is the exception, and not because of who typed it — a research run
 /// names a workspace after its question, an agent asks for `workspace: "notes"` — but because a name
-/// is the one thing on a rail that was put there in words, and taking it away without saying so is
+/// is the one thing in a row that was put there in words, and taking it away without saying so is
 /// taking away work.
 ///
-/// So the rule underneath is the same everywhere (`NiriLayout.askBeforeRemoving`) and this is the
+/// So the rule underneath is the same everywhere (`TilingLayout.askBeforeRemoving`) and this is the
 /// whole of the difference: yes and the row goes, no and it stands.
 ///
 /// A dialog rather than an undo, because there is nothing to look at afterwards: the row it is about

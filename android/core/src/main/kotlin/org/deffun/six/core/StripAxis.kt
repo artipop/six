@@ -5,9 +5,9 @@ import kotlin.math.abs
 /**
  * Which way round the strip runs on this screen.
  *
- * The niri model is one-dimensional: columns follow one another *along* the strip, workspaces stack
+ * The tiling model is one-dimensional: columns follow one another *along* the strip, workspaces stack
  * *across* it. Which screen direction that is belongs to the view, not to the model, so
- * [NiriLayout] never learns the answer — it is handed a viewport along-first and gives back extents
+ * [TilingLayout] never learns the answer — it is handed a viewport along-first and gives back extents
  * in the same terms.
  *
  * | | along the strip | across it |
@@ -44,7 +44,7 @@ enum class Along {
  * The mapping between the strip's own coordinates and the screen's.
  *
  * "Strip space" is always along-first: x runs along the strip and y across it, whatever the device
- * is doing. Everything [NiriLayout] computes — widths, gaps, offsets, `columnFrames` — is in that
+ * is doing. Everything [TilingLayout] computes — widths, gaps, offsets, `columnFrames` — is in that
  * space, and this is the only place that knows which way it points.
  */
 data class StripAxis(val along: Along) {
@@ -53,7 +53,7 @@ data class StripAxis(val along: Along) {
         fun of(viewport: Size): StripAxis = StripAxis(Along.of(viewport))
     }
 
-    /** The viewport as [NiriLayout.updateViewport] wants it: the along-extent first. */
+    /** The viewport as [TilingLayout.updateViewport] wants it: the along-extent first. */
     fun stripSpace(viewport: Size): Size = when (along) {
         Along.X -> viewport
         Along.Y -> Size(viewport.height, viewport.width)
@@ -76,7 +76,7 @@ data class StripAxis(val along: Along) {
      *
      * The sign is the reason this is a function rather than a swap. Dragging a finger *down* in
      * portrait walks the strip the way dragging *right* does on the Mac, so both come back as a
-     * positive along-component and `NiriLayout` never has to know which happened.
+     * positive along-component and `TilingLayout` never has to know which happened.
      */
     fun stripDelta(dx: Double, dy: Double): StripDelta = when (along) {
         Along.X -> StripDelta(along = dx, across = dy)
@@ -118,10 +118,10 @@ enum class StripStep {
  * one is ever non-zero by the time this is read; the comparison here is what makes that a rule
  * rather than a convention the view happens to follow.
  */
-val NiriLayout.pendingStep: StripStep
+val TilingLayout.pendingStep: StripStep
     get() {
-        val alongThreshold = viewport.width * NiriLayout.DRAG_COMMIT_FRACTION
-        val acrossThreshold = viewport.height * NiriLayout.DRAG_COMMIT_FRACTION
+        val alongThreshold = viewport.width * TilingLayout.DRAG_COMMIT_FRACTION
+        val acrossThreshold = viewport.height * TilingLayout.DRAG_COMMIT_FRACTION
         val alongWins = abs(horizontalPreview) > abs(verticalPreview)
         return when {
             alongWins && horizontalPreview > alongThreshold -> StripStep.PREVIOUS_COLUMN
@@ -133,7 +133,7 @@ val NiriLayout.pendingStep: StripStep
     }
 
 /** Letting go either commits a step or springs back; nothing rests half-way. */
-fun NiriLayout.releaseDrag(): NiriLayout {
+fun TilingLayout.releaseDrag(): TilingLayout {
     val stepped = when (pendingStep) {
         StripStep.NONE -> this
         StripStep.PREVIOUS_COLUMN -> focusColumn(-1)

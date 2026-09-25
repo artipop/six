@@ -3,7 +3,7 @@ import Foundation
 /// The app's half of the share extension: what the sheet in another app asked for, done.
 ///
 /// The request names a profile and a workspace by id, and either can be gone by the time it lands —
-/// the sheet read a file written a moment ago, and the rail has moved since. Neither is a reason to
+/// the sheet read a file written a moment ago, and the row has moved since. Neither is a reason to
 /// drop what was shared: an unknown profile is the one on screen, an unknown row is the focused one.
 extension BrowserState {
     func receive(_ request: ShareRequest) {
@@ -39,7 +39,7 @@ extension BrowserState {
         }
     }
 
-    /// Where the sheet may send a page: the rail as it stands, minus anything private.
+    /// Where the sheet may send a page: the row as it stands, minus anything private.
     var shareTargets: ShareTargets {
         ShareTargets(profiles: profiles.filter { !$0.isPrivate }.map { profile in
             let strip = layout.strip(for: profile.id)

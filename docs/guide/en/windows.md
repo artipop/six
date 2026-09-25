@@ -13,22 +13,22 @@
 `⌘⇧T` remembers ten windows, and only for this run. A private window is not on
 the list, and neither is one that never showed anything.
 
-The last window can be closed too. The rail is then empty — **New Window** in the
+The last window can be closed too. The row is then empty — **New Window** in the
 middle of the screen with "or ⌘T" under it, exactly what any empty workspace
 shows. VI does not put a start page nobody asked for where the closed window
-stood, and an empty rail survives quitting: close everything and leave, and VI
+stood, and an empty row survives quitting: close everything and leave, and VI
 comes back just as empty.
 
 The `×` sits on the window's own top right corner. It is mostly over the gap, so
 the page keeps its clicks, and it is invisible until the pointer is on it: a
-rail of a dozen windows should not be a row of a dozen crosses.
+row of a dozen windows should not be a row of a dozen crosses.
 
 ## Links
 
 | | |
 |---|---|
 | a plain click | as everywhere |
-| `⌘` + click | a new window to the right, **behind** — the focus stays on the page you are reading, and the rail leans right for a moment to show what arrived |
+| `⌘` + click | a new window to the right, **behind** — the focus stays on the page you are reading, and the row leans right for a moment to show what arrived |
 | right-click ▸ **Open Link in New Window** | the same, and take me there |
 | right-click ▸ **Open Link Behind** | the same as `⌘`-click |
 | right-click ▸ **Download Linked File** | download it without opening |

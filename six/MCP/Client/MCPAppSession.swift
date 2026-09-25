@@ -301,8 +301,8 @@ final class MCPAppSession: Identifiable {
             return [:]
 
         case "ui/request-display-mode":
-            // Only inline for now: a window of the rail is already the whole of a column, and
-            // filling it is the rail's own gesture (⌥W) rather than the app's.
+            // Only inline for now: a window of the row is already the whole of a column, and
+            // filling it is the row's own gesture (⌥W) rather than the app's.
             return ["mode": .string(displayMode)]
 
         default:

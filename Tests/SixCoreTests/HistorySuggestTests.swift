@@ -46,11 +46,11 @@ struct HistorySuggestTests {
     /// The engine rewrites its own address as the results load; that is still one search.
     @Test func oneSearchIsOneRowWhateverTheEngineAddedToIt() throws {
         let history = try store([
-            ("https://duckduckgo.com/?q=niri%20hotkeys", ""),
+            ("https://duckduckgo.com/?q=tiling%20hotkeys", ""),
             ("https://example.com/", "Example"),
-            ("https://duckduckgo.com/?q=niri+hotkeys&ia=web", ""),
+            ("https://duckduckgo.com/?q=tiling+hotkeys&ia=web", ""),
         ])
-        #expect(history.suggest("niri", in: profile, limit: 4).count == 1)
+        #expect(history.suggest("tiling", in: profile, limit: 4).count == 1)
     }
 
     @Test func aChatInAFragmentIsNotAPageOfItsOwn() throws {

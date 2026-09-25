@@ -40,7 +40,7 @@ struct BrowserTool {
     }
 }
 
-/// The tools, speaking the product's language — windows in workspaces on a profile's rail — over the
+/// The tools, speaking the product's language — windows in workspaces on a profile's row — over the
 /// live `BrowserState`. Everything defaults to what is on screen.
 @MainActor
 final class BrowserToolCatalog {
@@ -68,14 +68,14 @@ final class BrowserToolCatalog {
     }
 
     static let instructions = """
-        six is a macOS browser with a niri-style layout. There are no tabs: a page is a *window*, windows sit \
-        left to right in a *workspace* (a scrollable rail), workspaces are stacked vertically inside a \
+        six is a macOS browser with a scrollable-tiling layout. There are no tabs: a page is a *window*, windows sit \
+        left to right in a *workspace* (a scrollable row), workspaces are stacked vertically inside a \
         *profile* (an isolated cookie jar such as "Personal" or "Work"). Exactly one workspace of one profile \
         is on screen; its focused window is what the user is looking at. Tools default to that window, \
         workspace and profile. Window ids come from `list_workspaces`. Workspaces are addressed by name or \
         1-based position; naming one that doesn't exist creates it.
 
-        A rail is meant to be filled. When the user asks you to find, compare or shop for something,         search first (`web_search`), then open the several pages actually worth putting side by side —         different sites, or the same site on the different options — each in its own window, each on the         exact page for what was asked (a route, a product, a date), not a site's front page. Reading a         page yourself (`get_page_content`) is for the answer you write; the windows are what the user is         left with.
+        A row is meant to be filled. When the user asks you to find, compare or shop for something,         search first (`web_search`), then open the several pages actually worth putting side by side —         different sites, or the same site on the different options — each in its own window, each on the         exact page for what was asked (a route, a product, a date), not a site's front page. Reading a         page yourself (`get_page_content`) is for the answer you write; the windows are what the user is         left with.
 
         The user also keeps *bookmarks*: pages saved as readable Markdown files (outside your working directory) and \
         indexed by meaning. `search_bookmarks` finds them by topic (any language), `list_bookmarks` lists them, \
@@ -87,7 +87,7 @@ final class BrowserToolCatalog {
         yourself, the tools return the same text with the search already done.
 
         A *document* is a window that holds Markdown instead of a page — the place to write an answer so it \
-        sits on the rail next to the sources it came from, and stays. `create_document` opens one, \
+        sits in the row next to the sources it came from, and stays. `create_document` opens one, \
         `write_document` writes into it (whole text, appended, or one `## section` by heading — write the \
         outline first and fill sections in as you read, so the user can watch it grow; never overwrite a \
         section the user is editing), `read_document` reads it back, `cite` adds a numbered source line and \
@@ -237,7 +237,7 @@ final class BrowserToolCatalog {
         BrowserTool(
             name: "focus_window",
             title: String(localized: "Focus Window"),
-            description: "Brings a window on screen: switches to its profile and workspace and scrolls the rail to it.",
+            description: "Brings a window on screen: switches to its profile and workspace and scrolls the row to it.",
             parameters: [.init(name: "window_id", description: "Window id from list_workspaces (a prefix is enough).", required: true)],
             run: { [unowned self] args in
                 let tab = try self.tab(args)
@@ -284,13 +284,13 @@ final class BrowserToolCatalog {
         BrowserTool(
             name: "split_window",
             title: String(localized: "Split Window"),
-            description: "Puts two windows side by side in one column of the rail, which is how the user reads one "
+            description: "Puts two windows side by side in one column of the row, which is how the user reads one "
                 + "page against another. With `with`, that window moves in beside `window_id`, which does not move. "
                 + "Without it, the window next along comes in — and if the window is already sharing a column, the "
-                + "two go back to being separate windows on the rail. A column holds at most two.",
+                + "two go back to being separate windows in the row. A column holds at most two.",
             parameters: [
                 .init(name: "window_id", description: "Window id from list_workspaces (a prefix is enough).", required: true),
-                .init(name: "with", description: "The window to bring in beside it. Same profile. Default: the window next along on the rail."),
+                .init(name: "with", description: "The window to bring in beside it. Same profile. Default: the window next along in the row."),
             ],
             run: { [unowned self] args in
                 let tab = try self.tab(args)
@@ -298,7 +298,7 @@ final class BrowserToolCatalog {
                 guard self.browser.split(tab.id, with: other?.id) else {
                     throw BrowserTool.Failure(message: other.map {
                         "\(Self.describe(tab)) and \($0.title) can't share a column: one of them already shares one, or they are in different profiles"
-                    } ?? "\(Self.describe(tab)) has no window next to it on the rail to share a column with")
+                    } ?? "\(Self.describe(tab)) has no window next to it in the row to share a column with")
                 }
                 return other.map { "\(Self.describe(tab)) and \(Self.describe($0)) now share a column" }
                     ?? "Split \(Self.describe(tab))"
@@ -398,7 +398,7 @@ final class BrowserToolCatalog {
         BrowserTool(
             name: "create_document",
             title: String(localized: "New Document"),
-            description: "Opens a document window — Markdown text in a column of the rail, next to the pages. Goes into the "
+            description: "Opens a document window — Markdown text in a column of the row, next to the pages. Goes into the "
                 + "on-screen workspace of the current profile unless `workspace` / `profile` say otherwise. Returns its id.",
             parameters: [
                 .init(name: "title", description: "The document's title (becomes the `# ` heading)."),
@@ -601,7 +601,7 @@ final class BrowserToolCatalog {
         return profile
     }
 
-    /// A name (created when missing) or a 1-based position; nil means the rail's focused workspace.
+    /// A name (created when missing) or a 1-based position; nil means the row's focused workspace.
     private func workspaceIndex(_ value: ACPJSON?, in profileID: Profile.ID) throws -> Int {
         let strip = browser.layout.strip(for: profileID)
         guard let value, !value.isNull else { return strip.focus }

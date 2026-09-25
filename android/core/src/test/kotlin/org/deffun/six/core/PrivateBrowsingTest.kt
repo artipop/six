@@ -31,8 +31,8 @@ class PrivateBrowsingTest {
         selectedProfileId = selected,
         tabs = listOf(tab(work), tab(privateProfile), tab(privateProfile)),
         strips = listOf(
-            StripSnapshot(work.id, NiriStrip()),
-            StripSnapshot(privateProfile.id, NiriStrip()),
+            StripSnapshot(work.id, TilingStrip()),
+            StripSnapshot(privateProfile.id, TilingStrip()),
         ),
     )
 

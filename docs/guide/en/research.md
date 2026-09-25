@@ -1,8 +1,8 @@
 # Deep research
 
-This is what the rail was for. An agent is asked to look into a question; it
+This is what the row was for. An agent is asked to look into a question; it
 opens the sources **side by side**, and writes the answer into a document that
-stands on the same rail as its first column — with links back to the very
+stands on the same row as its first column — with links back to the very
 sentences that earned them.
 
 ```
@@ -50,7 +50,7 @@ Preview**.
 | | |
 |---|---|
 | `⌘⇧N` | a new document |
-| **New Document** in the rail's or a column's context menu | the same |
+| **New Document** in the row's or a column's context menu | the same |
 | `⌘S` / `⌘⇧S` | save / save as `.md`, `.html` or `.pdf` |
 
 Until it is saved explicitly a document lives in the application's own folder and
@@ -76,7 +76,7 @@ It picks the **numbers** of the paragraphs, and the browser anchors them itself.
 
 A highlight survives the page being closed and reopened, and belongs **to the
 page, not to the window**: it comes back next week whether or not that research
-rail still exists. **File ▸ Remove Highlights on This Page** clears one page's.
+row still exists. **File ▸ Remove Highlights on This Page** clears one page's.
 
 If a paragraph cannot be found after a reload, an orange highlighter appears
 beside the address with the reason — and the quote and the link in the document

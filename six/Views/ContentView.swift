@@ -31,16 +31,16 @@ struct ContentView: View {
     private var contentBody: AnyView {
         let stack = AnyView(VStack(spacing: 0) {
             TopBar(addressFocus: $addressFocus)
-                // In front of the rail, not behind it. They are siblings in a stack, so the rail is
-                // drawn — and hit-tested — after the bar; anything of the rail's that reaches up into
+                // In front of the row, not behind it. They are siblings in a stack, so the row is
+                // drawn — and hit-tested — after the bar; anything of the row's that reaches up into
                 // the bar's band would take the click off its buttons.
                 .zIndex(1)
-            NiriStripView().modifier(AssistantBarOverlay())
+            TilingStripView().modifier(AssistantBarOverlay())
         })
         return AnyView(stack
         .ignoresSafeArea(.container, edges: .top)
         .modifier(FlightsOverlayModifier())
-        // Over the top bar as well as over the rail: while ⌃ is held nothing else in the window is
+        // Over the top bar as well as over the row: while ⌃ is held nothing else in the window is
         // being looked at.
         .modifier(WindowSwitcherOverlayModifier())
         // Mounted once, on the root, because six is a `Window` and not a `WindowGroup`. It draws
@@ -69,7 +69,7 @@ struct ContentView: View {
             if let tab = browser.selectedTab { browser.find.show(tab.id) }
         })
         .clearHistoryDialog(isPresented: $confirmClearHistory)
-        // A named workspace has just run out of windows and wants an answer (`NiriLayout`).
+        // A named workspace has just run out of windows and wants an answer (`TilingLayout`).
         .workspaceRemovalDialog()
         // The one part the switch reaches that is not a view: the watcher six puts in every page to
         // know what is selected, which exists for ⌘E. The socket deliberately stays up — see
@@ -78,16 +78,16 @@ struct ContentView: View {
             browser.pageFocus?.isEnabled = enabled
             if !enabled { showAgentPanel = false }
         }
-        // The rail's focus and AppKit's first responder are two different things, and they used to
+        // The row's focus and AppKit's first responder are two different things, and they used to
         // be able to disagree: ⌥→ moved the border and the address field while the keys went on
-        // arriving in the page you had walked away from. Invisible on a rail, where that window is
+        // arriving in the page you had walked away from. Invisible in a row, where that window is
         // off the edge a moment later — and impossible to miss in a split, where one half is
         // highlighted and your typing lands in the other. `WebViewResponder` has the account.
         .onChange(of: browser.selectedTabID) { _, id in WebViewResponder.shared.focus(id) }
         .onAppear(perform: startKeyRouter)
         .onDisappear { keys.stop() }
         .task {
-            // The first launch has one question, and it is asked as a window on the rail rather
+            // The first launch has one question, and it is asked as a window in the row rather
             // than a sheet over it (`WelcomePage`).
             if !settings.hasAnsweredWelcome { browser.openBuiltIn(.welcome) }
         }
@@ -193,7 +193,7 @@ extension ContentView {
     }
 
     /// The table's actions, turned into calls. This is the view that has all of them in one place —
-    /// the rail, the ring, the page being read and the highlights — which is why the router is
+    /// the row, the ring, the page being read and the highlights — which is why the router is
     /// installed here and not down in the strip, where the ⌥ keys used to live: half the table was
     /// out of that view's reach, and that is how `⌥⇧T` and `⌥⇧H` ended up as menu items a focused
     /// page could swallow.
@@ -609,7 +609,7 @@ private struct TopBar: View {
             Color.clear.frame(width: 68, height: 1) // room for the window buttons
             ProfileMenuButton()
             Spacer(minLength: 8)
-            // Against the field, not out with the rail's buttons. The star is about the page whose
+            // Against the field, not out with the row's buttons. The star is about the page whose
             // address is right there — it fills for that page and ⌘D toggles it — and every browser
             // that has one keeps it at the end of the address field for exactly that reason. Out on
             // the right it sat among the things that describe the *strip*, and read as one of them.
@@ -737,7 +737,7 @@ private struct WorkspaceStepper: View {
     }
 }
 
-/// Vertical position in the workspace stack — niri's workspace indicator, laid out horizontally.
+/// Vertical position in the workspace stack — a workspace indicator, laid out horizontally.
 private struct WorkspacePips: View {
     @Environment(BrowserState.self) private var browser
 
@@ -760,7 +760,7 @@ private struct WorkspacePips: View {
                           : "\(layout.title(at: index)) · \(String(localized: "\(workspace.columns.count) windows"))")
             }
         }
-        .animation(NiriLayout.switchAnimation, value: layout.focusedWorkspaceIndex)
+        .animation(TilingLayout.switchAnimation, value: layout.focusedWorkspaceIndex)
     }
 }
 #endif

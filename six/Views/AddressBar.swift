@@ -149,7 +149,7 @@ struct AddressBar: View {
             if isEditing, text != filled { suggestions.update(for: text, context: context) }
         }
         // Under the field and over the page, from the field's own leading edge. The top bar is in
-        // front of the rail (`ContentView`), which is what lets this hang below the bar at all.
+        // front of the row (`ContentView`), which is what lets this hang below the bar at all.
         .overlay(alignment: .topLeading) {
             let rows = rows
             if !rows.isEmpty {

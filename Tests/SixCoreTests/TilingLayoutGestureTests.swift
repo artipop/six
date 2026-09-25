@@ -1,0 +1,457 @@
+import Foundation
+import Testing
+
+@testable import SixCore
+
+/// The three things the mouse does to the strip that are arithmetic rather than drawing: opening a
+/// window at the near end instead of the far one, looking ahead at a window that isn't there yet, and
+/// carrying one across the overview.
+///
+/// Like the geometry tests, these are written against the intent rather than the numbers: a second
+/// front end drawing from `arrangement()`, `newColumnFrame` and `carriedCardFrame` inherits exactly
+/// these promises, and they are the ones that would silently desynchronise the two.
+@MainActor
+struct TilingLayoutGestureTests {
+
+    private func layout(viewport: CGSize = CGSize(width: 1600, height: 1000)) -> TilingLayout {
+        let layout = TilingLayout()
+        layout.updateViewport(viewport)
+        return layout
+    }
+
+    /// A strip of `count` windows, left to right, with the last one focused.
+    @discardableResult
+    private func fill(_ layout: TilingLayout, _ count: Int) -> [UUID] {
+        let ids = (0..<count).map { _ in UUID() }
+        for id in ids { layout.insertColumn(tabID: id) }
+        return ids
+    }
+
+    private func columns(_ layout: TilingLayout, workspace: Int = 0) -> [UUID] {
+        layout.workspaces[workspace].columns.map(\.tabID)
+    }
+
+    // MARK: A window at the near end
+
+    /// The `+` at the near end of the strip opens its window *there*. Right stays
+    /// the default, so both directions are one insertion apart.
+    @Test func newWindowOpensOnTheSideItWasAskedFor() {
+        let layout = layout()
+        let ids = fill(layout, 2) // [0, 1], focus on 1
+
+        let left = UUID()
+        layout.insertColumn(tabID: left, on: .left)
+        #expect(columns(layout) == [ids[0], left, ids[1]])
+        #expect(layout.focusedTabID == left) // the window you asked for is the one you are looking at
+
+        let right = UUID()
+        layout.insertColumn(tabID: right, on: .right)
+        #expect(columns(layout) == [ids[0], left, right, ids[1]])
+        #expect(layout.focusedTabID == right)
+    }
+
+    /// An empty row has one place, whichever side is asked for.
+    @Test func theFirstWindowGoesTheSameWayRoundEitherSide() {
+        let layout = layout()
+        let id = UUID()
+        layout.insertColumn(tabID: id, on: .left)
+        #expect(columns(layout) == [id])
+        #expect(layout.focusedTabID == id)
+    }
+
+    // MARK: Looking ahead
+
+    /// The outline stands where the window would: beyond the last column for the far `+`, before the
+    /// first for the near one, one gap out and at the width a new window actually opens at.
+    @Test func theOutlineStandsWhereTheWindowWould() {
+        let layout = layout()
+        fill(layout, 3) // focus on the last, so the far end is a `+` and the near one a chevron
+        let frames = layout.columnFrames(layout.focusedWorkspace!)
+
+        layout.edgeHover = 1
+        let far = layout.newColumnFrame
+        #expect(far?.width == layout.columnWidth)
+        #expect(abs((far?.minX ?? 0) - (frames.last!.maxX + layout.gap)) < 0.5)
+        #expect(far?.height == layout.columnHeight)
+
+        layout.focusColumn(-2) // to the first, so the near end is the `+` now
+        layout.edgeHover = -1
+        let near = layout.newColumnFrame
+        #expect(abs((near?.maxX ?? 0) - (frames.first!.minX - layout.gap)) < 0.5)
+    }
+
+    /// The place exists whether or not anybody is looking at it — that is what lets the promise
+    /// standing in it be laid out at rest and simply revealed by the lean, instead of being inserted
+    /// when the lean starts and arriving at the leaned position a whole spring before the row does.
+    /// Only `showsNewColumn` asks about the pointer.
+    @Test func thePlaceForANewWindowIsThereBeforeAnybodyLooksAtIt() {
+        let layout = layout()
+        fill(layout, 3) // focus on the last, so the far end is a `+` and the near one a chevron
+
+        #expect(layout.edgeHover == 0)
+        #expect(layout.newColumnFrame(at: 1) != nil)
+        #expect(layout.newColumnFrame(at: -1) != nil)
+        #expect(!layout.showsNewColumn(at: 1))
+        #expect(!layout.showsNewColumn(at: -1))
+
+        layout.edgeHover = 1
+        #expect(layout.showsNewColumn(at: 1))
+        #expect(!layout.showsNewColumn(at: -1)) // a chevron: there is a window to walk to
+
+        layout.edgeHover = -1
+        #expect(!layout.showsNewColumn(at: 1))
+        #expect(!layout.showsNewColumn(at: -1))
+    }
+
+    /// And only there. A button with a window to walk to is a chevron, not a `+`, and an outline drawn
+    /// on top of that window would be promising one that already exists.
+    @Test func thereIsNoOutlineWhereThereIsAlreadyAWindow() {
+        let layout = layout()
+        fill(layout, 3) // focus on the last
+        layout.edgeHover = -1
+        #expect(layout.newColumnFrame == nil)
+    }
+
+    /// A split is one stop in the row and not two: its other half is beside the one being read, on
+    /// screen, a click away — so nothing about the row leads to it. A row whose last column is a
+    /// split used to stand with a chevron at both ends, leaning the strip over empty canvas, with no
+    /// `+` anywhere to grow from.
+    @Test func aSplitIsOneStopAndBothEndsOfItOfferAWindow() {
+        let layout = layout()
+        fill(layout, 2)
+        layout.toggleSplit() // the two columns become one, focus on the right half
+
+        #expect(!layout.canFocusColumn(-1))
+        #expect(!layout.canFocusColumn(1))
+
+        layout.edgeHover = -1
+        #expect(layout.showsNewColumn(at: -1))
+        #expect(layout.edgeLean > 0) // something to lean towards after all: the promise
+
+        layout.edgeHover = 1
+        #expect(layout.showsNewColumn(at: 1))
+    }
+
+    /// The lean is towards the button and goes exactly as far as the glance a window opening behind
+    /// gets — one distance for all of them, because they are the same sentence. Its sign is
+    /// `horizontalPreview`'s: the far end is reached by scrolling further along the strip, which the
+    /// columns are drawn as a *subtraction*.
+    @Test func theLeanIsTowardsTheButtonAndNoFurtherThanAGlance() {
+        let layout = layout(viewport: CGSize(width: 900, height: 700))
+        fill(layout, 2)
+
+        layout.edgeHover = 1
+        #expect(layout.edgeLean < 0)
+        #expect(abs(abs(layout.edgeLean) - layout.peekAmount) < 0.5)
+
+        layout.edgeHover = -1
+        #expect(layout.edgeLean > 0)
+    }
+
+    /// The chevron leans too, and by the same amount: the window it steps to is exactly the thing a
+    /// glance over there is for, and it is a real one rather than an outline.
+    @Test func theArrowLeansTheSameWayAsThePlus() {
+        let layout = layout()
+        fill(layout, 3) // focus on the last, so the near end steps and the far end opens
+
+        layout.edgeHover = -1
+        #expect(layout.newColumnFrame == nil) // a chevron, not a `+`
+        #expect(layout.edgeLean > 0)
+        #expect(abs(abs(layout.edgeLean) - layout.peekAmount) < 0.5)
+
+        layout.edgeHover = 1
+        #expect(layout.newColumnFrame != nil)
+        #expect(abs(abs(layout.edgeLean) - layout.peekAmount) < 0.5)
+    }
+
+    /// An empty workspace has neither a window to step to nor a `+` to open one with — it says that
+    /// in the middle of the screen instead — so there is nothing over there to lean towards.
+    @Test func anEmptyWorkspaceHasNothingToLeanTowards() {
+        let layout = layout()
+        layout.edgeHover = 1
+        #expect(layout.edgeLean == 0)
+        layout.edgeHover = -1
+        #expect(layout.edgeLean == 0)
+    }
+
+    /// And it is a fraction of the viewport, like every other size in the layout — a glance is a
+    /// proportion of the screen, not a count of points.
+    @Test func theGlanceScalesWithTheScreen() {
+        let small = layout(viewport: CGSize(width: 1600, height: 1000))
+        let large = layout(viewport: CGSize(width: 3200, height: 2000))
+        #expect(large.peekAmount == 2 * small.peekAmount)
+        #expect(layout(viewport: CGSize(width: 400, height: 400)).peekAmount == TilingLayout.minimumPeek)
+    }
+
+    /// The peek is let go of by name, so the pointer going straight from one end of the strip to the
+    /// other cannot leave it leaning the wrong way.
+    @Test func onlyTheSideThatTookThePeekLetsGoOfIt() {
+        let layout = layout()
+        fill(layout, 2)
+        layout.hoverStripEdge(1, true)
+        layout.hoverStripEdge(-1, false) // the other button's exit
+        #expect(layout.edgeHover == 1)
+        layout.hoverStripEdge(1, false)
+        #expect(layout.edgeHover == 0)
+    }
+
+    /// The light at the end of the row puts itself out.
+    ///
+    /// Everything that lights it is a gesture, and a gesture releases it by sending a zero — which a
+    /// monitor can fail to send, and did: a pause long enough to reset the accumulator left the edge
+    /// lit with nobody to put it out, in a row that had not even reached its end. A push is a thing
+    /// a hand is doing, so it does not outlive the hand.
+    @Test func theEdgeLightDoesNotOutliveTheHand() async throws {
+        let layout = layout()
+        fill(layout, 1) // one window: both ends of this row are walls
+
+        layout.previewColumn(-0.7)
+        #expect(layout.wallGlow > 0)
+        #expect(layout.wall == .trailing)
+
+        try await Task.sleep(for: .milliseconds(700))
+        #expect(layout.wallGlow == 0)
+    }
+
+    /// And a hand that is still pushing keeps it lit: each push cancels the one before it, so only
+    /// silence ends the light.
+    @Test func aPushThatKeepsComingKeepsItLit() async throws {
+        let layout = layout()
+        fill(layout, 1)
+
+        for _ in 0..<4 {
+            layout.previewColumn(-0.7)
+            try await Task.sleep(for: .milliseconds(120))
+        }
+        #expect(layout.wallGlow > 0)
+    }
+
+    /// A free pan moves the strip **under the finger**, at whatever the canvas is scaled to.
+    ///
+    /// The hand's distance is a distance on the screen; the strip is moved in the canvas's own
+    /// points; and the overview draws that canvas at a fraction of its size. Handed the number
+    /// straight through, a hundred points of finger moved the strip twenty-two — which is what the
+    /// overview scrolling "barely moving" was.
+    @Test func aPanInTheOverviewKeepsUpWithTheFinger() {
+        let layout = layout()
+        fill(layout, 12) // a row long enough to have room to pan in
+        layout.isOverview = true
+        let scale = layout.overviewScale
+        #expect(scale < 1) // the overview is zoomed out, or this proves nothing
+
+        let workspace = layout.focusedWorkspace!
+        let before = layout.resolvedOffset(workspace)
+        layout.panStrip(by: -120)
+        let after = layout.resolvedOffset(layout.focusedWorkspace!)
+
+        // In content points the strip moved further than the finger did, by exactly the zoom — which
+        // is what puts the same distance back on the screen.
+        #expect(abs((before - after) - 120 / scale) < 0.5)
+    }
+
+    /// And outside the overview, where the canvas is drawn at its own size, the number is the number.
+    @Test func aPanOutsideTheOverviewIsTheHandsOwnDistance() {
+        let layout = layout()
+        fill(layout, 12)
+        layout.setCentersFocus(false) // free panning is what ⌥C off is for
+        #expect(layout.overviewScale == 1)
+
+        let before = layout.resolvedOffset(layout.focusedWorkspace!)
+        layout.panStrip(by: -120)
+        #expect(abs((before - layout.resolvedOffset(layout.focusedWorkspace!)) - 120) < 0.5)
+    }
+
+    // MARK: Carrying a window
+
+    @discardableResult
+    private func carrying(_ layout: TilingLayout, _ ids: [UUID], from index: Int) -> UUID {
+        layout.isOverview = true
+        layout.beginColumnDrag(tabID: ids[index])
+        return ids[index]
+    }
+
+    /// One slot to the right: the gap opens where the window would land, the row it came from closes
+    /// up, and the strip itself is not touched until it is let go.
+    @Test func carryingAWindowOpensAGapAndChangesNothingElse() {
+        let layout = layout()
+        let ids = fill(layout, 3)
+        let carried = carrying(layout, ids, from: 0)
+
+        let frames = layout.columnFrames(layout.workspaces[0])
+        // Past the middle of the window to its right, and clear of it: crossing a middle is what makes
+        // one window have gone past another, and the middle itself now means something else — a card
+        // let go there joins that window instead of passing it (`TilingLayout.joinFraction`).
+        layout.updateColumnDrag(translation: CGSize(width: frames[1].midX - frames[0].midX + frames[1].width * 0.3,
+                                                    height: 0))
+
+        #expect(layout.columnDrag?.toIndex == 1)
+        #expect(layout.columnDrag?.toWorkspace == 0)
+        #expect(layout.arrangement(workspaceAt: 0).map(\.tabID) == [ids[1], carried, ids[2]])
+        #expect(columns(layout) == ids) // the strip has not moved yet
+
+        layout.commitColumnDrag()
+        #expect(columns(layout) == [ids[1], carried, ids[2]])
+        #expect(layout.focusedTabID == carried) // the focus went with the hand
+    }
+
+    /// The card stays under the pointer: where it was lifted from, plus how far the pointer has gone.
+    @Test func theCarriedCardFollowsThePointerExactly() {
+        let layout = layout()
+        let ids = fill(layout, 3)
+        carrying(layout, ids, from: 2)
+        let lifted = layout.carriedCardFrame
+
+        let travel = CGSize(width: -240, height: 60)
+        layout.updateColumnDrag(translation: travel)
+        let moved = layout.carriedCardFrame
+
+        #expect(abs((moved?.minX ?? 0) - ((lifted?.minX ?? 0) + travel.width)) < 0.5)
+        #expect(abs((moved?.minY ?? 0) - ((lifted?.minY ?? 0) + travel.height)) < 0.5)
+        #expect(moved?.width == lifted?.width)
+    }
+
+    /// A row down is the workspace below: the rows are a screen and a gap apart, and the one whose
+    /// middle the card's middle is nearest is the one it would land in.
+    @Test func carryingAWindowDownAScreenMovesItToTheNextWorkspace() {
+        let layout = layout()
+        let ids = fill(layout, 3)
+        let carried = carrying(layout, ids, from: 0)
+
+        layout.updateColumnDrag(translation: CGSize(width: 0, height: layout.viewport.height + layout.workspaceSpacing))
+        #expect(layout.columnDrag?.toWorkspace == 1)
+        #expect(layout.columnDrag?.toIndex == 0)
+        #expect(layout.arrangement(workspaceAt: 0).map(\.tabID) == [ids[1], ids[2]])
+        #expect(layout.arrangement(workspaceAt: 1).map(\.tabID) == [carried])
+
+        layout.commitColumnDrag()
+        #expect(columns(layout, workspace: 0) == [ids[1], ids[2]])
+        #expect(columns(layout, workspace: 1) == [carried])
+        #expect(layout.focusedWorkspaceIndex == 1) // you are looking at where you put it
+        #expect(layout.focusedTabID == carried)
+        // And dynamic workspaces still hold: exactly one empty row at the end.
+        #expect(layout.workspaces.count == 3)
+        #expect(layout.workspaces.last?.isEmpty == true)
+    }
+
+    /// Picked up and put back down: nothing moved, and nothing was reported as having moved.
+    @Test func aCarryThatGoesNowhereChangesNothing() {
+        let layout = layout()
+        let ids = fill(layout, 3)
+        carrying(layout, ids, from: 1)
+        layout.updateColumnDrag(translation: CGSize(width: 4, height: 4))
+
+        #expect(layout.commitColumnDrag() == false)
+        #expect(columns(layout) == ids)
+        #expect(layout.columnDrag == nil)
+    }
+
+    /// Let go of the drag, not of the window.
+    @Test func cancellingACarryLeavesTheStripAlone() {
+        let layout = layout()
+        let ids = fill(layout, 3)
+        carrying(layout, ids, from: 0)
+        layout.updateColumnDrag(translation: CGSize(width: 900, height: 0))
+        layout.cancelColumnDrag()
+
+        #expect(layout.columnDrag == nil)
+        #expect(layout.carriedCardFrame == nil)
+        #expect(columns(layout) == ids)
+        #expect(layout.arrangement(workspaceAt: 0).map(\.tabID) == ids)
+    }
+
+    // MARK: The end of the row
+
+    /// A step that had nowhere to go is answered by the edge it was aimed at. The row does not move
+    /// — that is the whole point of the light — and the edge that lights is the one that was pushed.
+    @Test func aStepWithNowhereToGoLightsThatEdge() {
+        let layout = layout()
+        let ids = fill(layout, 3) // focus on the last
+
+        layout.focusColumn(1)
+        #expect(layout.wall == .trailing)
+        #expect(layout.wallGlow == 1)
+        #expect(layout.focusedTabID == ids[2]) // and nothing moved
+
+        layout.focusColumnEdge(last: false)
+        layout.focusColumn(-1)
+        #expect(layout.wall == .leading)
+        #expect(layout.focusedTabID == ids[0])
+    }
+
+    /// A step that lands says nothing. The light is for the gesture that changed nothing, and a row
+    /// that lit up on every step would be a row saying it about all of them.
+    @Test func aStepThatLandsLightsNothing() {
+        let layout = layout()
+        fill(layout, 3)
+        layout.focusColumn(-1)
+        #expect(layout.wallGlow == 0)
+    }
+
+    /// The vertical stack has two ends of its own: nothing above the first workspace, and nothing
+    /// below the empty one kept at the bottom.
+    @Test func theStackHasWallsToo() {
+        let layout = layout()
+        fill(layout, 1)
+        layout.focusWorkspace(-1)
+        #expect(layout.wall == .above)
+        #expect(layout.wallGlow == 1)
+
+        // The one below exists — an empty workspace is kept at the bottom — so that step lands.
+        // (The light from the refused one is still fading; it is a beat of time, not a state, and
+        // nothing that lands has to put it out.)
+        layout.focusWorkspace(1)
+        layout.focusWorkspace(1) // and there is nothing under that one
+        #expect(layout.wall == .below)
+        #expect(layout.wallGlow == 1)
+    }
+
+    /// The rubber band gives less where there is nothing behind it, and the light rises with the
+    /// push — the two halves of the same sentence, so a front end drawing one draws the other.
+    ///
+    /// The push is a **fraction of the way to the next window**, not a distance a hand moved: half
+    /// way there is half a window's worth of row, and the light is half lit.
+    @Test func theBandGivesLessAtTheEndOfTheRow() {
+        let layout = layout()
+        fill(layout, 2) // focus on the last: the far end is a wall, the near end is a window
+        let window = layout.columnWidth + layout.gap
+
+        layout.previewColumn(-0.25) // a quarter of the way towards the far end, where there is nothing
+        #expect(layout.wall == .trailing)
+        #expect(abs(layout.wallGlow - 0.25) < 0.001)
+        #expect(abs(layout.horizontalPreview - -0.25 * window * TilingLayout.wallResistance) < 0.001)
+
+        layout.previewColumn(0.25) // and back towards the window that is there
+        #expect(abs(layout.horizontalPreview - 0.25 * window) < 0.001)
+        #expect(layout.wallGlow == 0)
+
+        layout.previewColumn(-10) // however hard it is pushed, the light is lit and no more
+        #expect(layout.wallGlow == 1)
+
+        layout.previewColumn(0) // the gesture ends: the band and the light both let go
+        #expect(layout.horizontalPreview == 0)
+        #expect(layout.wallGlow == 0)
+    }
+
+    /// And where there *is* a window behind the edge, the band is the whole of the way there: a
+    /// gesture that has gone the full threshold has moved the row exactly one window, so the step
+    /// that follows it changes nothing you can see. That is the difference between a row that
+    /// follows your fingers and one that leans a little and then teleports.
+    @Test func theBandIsAWholeWindowByTheTimeItCommits() {
+        let layout = layout()
+        fill(layout, 3)
+        layout.focusColumn(-1) // a window on each side, so neither edge is a wall
+
+        layout.previewColumn(-1)
+        #expect(abs(layout.horizontalPreview + (layout.columnWidth + layout.gap)) < 0.001)
+        #expect(layout.wallGlow == 0) // nothing was pushed against
+    }
+
+    /// Only in the overview: in the strip a window is a page being read, and a drag on it belongs to
+    /// the page.
+    @Test func aWindowIsOnlyPickedUpInTheOverview() {
+        let layout = layout()
+        let ids = fill(layout, 2)
+        layout.beginColumnDrag(tabID: ids[0])
+        #expect(layout.columnDrag == nil)
+    }
+}

@@ -12,7 +12,7 @@ were never about Apple in the first place.
 | storage | **the same `six.sqlite`**, the same schema, the same migrations |
 | built in | a container ([build.md](build.md#linux)) |
 
-The reason this is worth doing at all is the storage layer. `SixCore` — `NiriLayout`, `AppDatabase`,
+The reason this is worth doing at all is the storage layer. `SixCore` — `TilingLayout`, `AppDatabase`,
 `ConfigurationStore`, `HistoryStore`, `Bookmark`, `AppSupport` — imports Foundation and Observation and
 nothing else, and builds on Linux unchanged. A database written by the Mac opens here, migrates
 forward, and reads back. That was the premise ([storage.md](storage.md)) and it held.
@@ -52,7 +52,7 @@ command here — see the comment at the top of `Package.swift` for the three rea
 
 ## What is built
 
-- The strip: `NiriLayout` shared with the Mac, columns along it and workspaces across, ⌥←/⌥→,
+- The strip: `TilingLayout` shared with the Mac, columns along it and workspaces across, ⌥←/⌥→,
   ⌥↑/⌥↓, ⌥O for the overview.
 - The overview is one `GskTransform` on a `GtkFixed` child, not a second layout — the same idea as
   the Mac's, which is that the overview is a way of *looking* at the strip.

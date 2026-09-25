@@ -3,14 +3,14 @@ import AppKit
 import SwiftUI
 import WebKit
 
-/// Which window's page has the keyboard, as distinct from which window the rail has the focus on.
+/// Which window's page has the keyboard, as distinct from which window the row has the focus on.
 ///
 /// The two used to be able to disagree, and a split is where that stopped being invisible. `⌥→`
-/// moves the rail's focus: the accent border steps to the next window and everything keyed off the
+/// moves the row's focus: the accent border steps to the next window and everything keyed off the
 /// selection — the address field, `⌘W`, the assistant — follows it. What did not follow was AppKit's
 /// **first responder**, which stayed on the `WKWebView` it was last given by a click. So the arrow
 /// keys went on scrolling the window you had just walked away from, and text went on arriving in its
-/// text field. On a rail that was hard to see, because the window you left is off the edge of the
+/// text field. In a row that was hard to see, because the window you left is off the edge of the
 /// screen a moment later; two halves of one column are both in front of you, and one of them is
 /// visibly highlighted while your typing lands in the other.
 ///
@@ -83,7 +83,7 @@ final class WebViewResponder {
     /// it off whatever had it.
     ///
     /// **Not while something is being typed into.** The one first responder that outranks a page is a
-    /// text field: `⌘L` and the `⌘E` line are reached by keystroke and left by keystroke, and a rail
+    /// text field: `⌘L` and the `⌘E` line are reached by keystroke and left by keystroke, and a row
     /// that walked into the page under them would eat the next thing typed. The same test the key
     /// router uses (`KeyContext`), for the same reason.
     func focus(_ tabID: UUID?) {
@@ -92,7 +92,7 @@ final class WebViewResponder {
         guard !(window.firstResponder is NSText) else { return }
         guard let tabID, let view = views[tabID]?.view, view.window === window else {
             // Nothing to give it to. The keys go to the window itself rather than staying with a page
-            // the rail is no longer looking at — a window that answers keys it is not the subject of
+            // the row is no longer looking at — a window that answers keys it is not the subject of
             // is worse than one that answers none.
             if window.firstResponder is WKWebView { window.makeFirstResponder(nil) }
             return
@@ -102,7 +102,7 @@ final class WebViewResponder {
     }
 
     /// Which window's page holds the keyboard, if a page does. The question the split made worth
-    /// asking out loud: the rail's focus and this can disagree, and `KeySelfTest` prints both.
+    /// asking out loud: the row's focus and this can disagree, and `KeySelfTest` prints both.
     func owner(of responder: NSResponder?) -> UUID? {
         guard let view = responder as? NSView else { return nil }
         return views.first { $0.value.view === view }?.key

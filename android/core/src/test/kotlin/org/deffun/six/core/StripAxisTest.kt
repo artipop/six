@@ -10,7 +10,7 @@ import kotlin.test.assertTrue
  * The axis, which is the one piece of the layout that is genuinely the view's business.
  *
  * Worth testing away from the UI precisely because it is a UI concern: getting it wrong produces a
- * strip that works perfectly and runs the wrong way, which no assertion about `NiriLayout` would
+ * strip that works perfectly and runs the wrong way, which no assertion about `TilingLayout` would
  * ever notice.
  */
 class StripAxisTest {
@@ -66,13 +66,13 @@ class StripAxisTest {
      */
     @Test
     fun turningTheDeviceDrawsTheSameStripDownTheScreen() {
-        val workspace = NiriWorkspace(
-            columns = List(3) { NiriColumn(UUID.randomUUID()) },
+        val workspace = TilingWorkspace(
+            columns = List(3) { TilingColumn(UUID.randomUUID()) },
         )
 
-        val landscape = NiriLayout()
+        val landscape = TilingLayout()
             .updateViewport(StripAxis.of(phoneLandscape).stripSpace(phoneLandscape))
-        val portrait = NiriLayout()
+        val portrait = TilingLayout()
             .updateViewport(StripAxis.of(phonePortrait).stripSpace(phonePortrait))
 
         // Same physical screen, turned: the strip's own space is identical, so the frames are too.
@@ -94,9 +94,9 @@ class StripAxisTest {
     fun everyColumnLandsInsideTheViewportItWasMeasuredFor() {
         for (viewport in listOf(phonePortrait, phoneLandscape, tabletPortrait, tabletLandscape)) {
             val axis = StripAxis.of(viewport)
-            val layout = NiriLayout().updateViewport(axis.stripSpace(viewport))
-            val workspace = NiriWorkspace(
-                columns = List(4) { NiriColumn(UUID.randomUUID()) },
+            val layout = TilingLayout().updateViewport(axis.stripSpace(viewport))
+            val workspace = TilingWorkspace(
+                columns = List(4) { TilingColumn(UUID.randomUUID()) },
             )
 
             for (frame in layout.columnFrames(workspace).map { axis.screenRect(it) }) {

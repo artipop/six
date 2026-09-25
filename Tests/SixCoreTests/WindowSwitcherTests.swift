@@ -14,13 +14,13 @@ import Testing
 @MainActor
 struct WindowSwitcherTests {
 
-    /// A rail of plain windows, one per column.
+    /// A row of plain windows, one per column.
     private func windows(_ count: Int) -> [UUID] {
         (0..<count).map { _ in UUID() }
     }
 
-    /// Opens the ring over a rail. `sharing` names two ids that stand in one column, the way a split
-    /// does — the only thing the ring asks the rail about.
+    /// Opens the ring over a row. `sharing` names two ids that stand in one column, the way a split
+    /// does — the only thing the ring asks the row about.
     private func opened(_ switcher: WindowSwitcher, _ ids: [UUID], current: UUID?,
                         sharing pair: [UUID] = []) {
         let column = UUID()
@@ -51,7 +51,7 @@ struct WindowSwitcherTests {
         #expect(switcher.selection == ids[1])
     }
 
-    /// **Every window on the rail is a stop, and there is no other kind.** The exception that used to
+    /// **Every window in the row is a stop, and there is no other kind.** The exception that used to
     /// live here — a column as one stop, unless it was the column under the focus — is what made the
     /// panel incoherent to look at: two kinds of stop have to be drawn two ways, so the same split
     /// was two narrow cards from inside it and one wide card with a seam from anywhere else.
@@ -67,12 +67,12 @@ struct WindowSwitcherTests {
 
     // MARK: The two halves of a column
 
-    /// They are drawn **next to each other**, whatever order they were used in: on the rail those
-    /// two are side by side, and a window standing between them is a thing the rail cannot do.
+    /// They are drawn **next to each other**, whatever order they were used in: in the row those
+    /// two are side by side, and a window standing between them is a thing the row cannot do.
     @Test func theHalvesOfAColumnAreDrawnTogether() {
         let switcher = WindowSwitcher()
         let ids = windows(4)
-        let (left, right) = (ids[0], ids[1]) // one column, left then right along the rail
+        let (left, right) = (ids[0], ids[1]) // one column, left then right along the row
         // Used at different times, with two other windows in between: the case that put a stranger
         // between the halves.
         for id in [right, ids[2], ids[3], left] { switcher.note(id) }
@@ -81,7 +81,7 @@ struct WindowSwitcherTests {
         let places = [switcher.ring.firstIndex(of: left), switcher.ring.firstIndex(of: right)]
         #expect(places.allSatisfy { $0 != nil })
         #expect(abs((places[0] ?? 0) - (places[1] ?? 0)) == 1)
-        // And in the order they stand on the rail, from whichever of them you came.
+        // And in the order they stand in the row, from whichever of them you came.
         #expect((places[0] ?? 0) < (places[1] ?? 0))
     }
 
@@ -121,7 +121,7 @@ struct WindowSwitcherTests {
     /// Stepping follows memory and the highlight goes to wherever that stop is drawn — which for a
     /// pair can be the card on the left. The key names a window; the card for it is where the window
     /// is.
-    @Test func steppingFollowsMemoryAndTheHighlightFollowsTheRail() {
+    @Test func steppingFollowsMemoryAndTheHighlightFollowsTheRow() {
         let switcher = WindowSwitcher()
         let ids = windows(3)
         let (left, right) = (ids[0], ids[1])

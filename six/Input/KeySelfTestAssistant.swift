@@ -129,7 +129,7 @@ extension KeySelfTest {
         let tab = browser.newTab(url: blank)
         try? await Task.sleep(for: .milliseconds(1200))
         _ = try? await tab.page.callJavaScript("""
-            document.body.innerHTML = '<p id="p">The rail is a workspace, and workspaces stack.</p>';
+            document.body.innerHTML = '<p id="p">The row is a workspace, and workspaces stack.</p>';
             const t = document.createElement('textarea');
             t.value = 'Dear team, the release is';
             t.style.cssText = 'width: 500px; height: 120px; margin-top: 40px';

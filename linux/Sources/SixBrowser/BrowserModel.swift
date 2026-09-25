@@ -48,7 +48,7 @@ public final class BrowserModel {
     /// here.
     public static let shared = BrowserModel()
 
-    let layout = NiriLayout()
+    let layout = TilingLayout()
     /// One session per profile. A profile *is* its cookie jar — that is what makes private browsing
     /// private, rather than the app remembering to skip writes.
     private var sessions: [UUID: NetworkSession] = [:]
@@ -200,7 +200,7 @@ public final class BrowserModel {
         guard let settings, let state = StripState.load(from: settings), state.isWorthKeeping else {
             return false
         }
-        var strips: [UUID: NiriStrip] = [:]
+        var strips: [UUID: TilingStrip] = [:]
         for (key, strip) in state.strips { if let id = UUID(uuidString: key) { strips[id] = strip } }
         guard !strips.isEmpty else { return false }
 
@@ -248,8 +248,8 @@ public final class BrowserModel {
         }
 
         // One entry per *window*, which is what `placements` is for: a column holds one window or
-        // two side by side (`NiriColumn`). Nothing on this front makes a split — there is no ⌥S here
-        // yet — but a rail written by the Mac over the same `six.sqlite` can arrive with one, and a
+        // two side by side (`TilingColumn`). Nothing on this front makes a split — there is no ⌥S here
+        // yet — but a row written by the Mac over the same `six.sqlite` can arrive with one, and a
         // half that is not drawn is a window nobody can reach.
         return layout.placements(workspace.columns).map { place in
             Column(
@@ -315,7 +315,7 @@ public final class BrowserModel {
         trace("private profile closed")
     }
 
-    /// Where the strip should be scrolled to: the offset `NiriLayout` computes for the focused
+    /// Where the strip should be scrolled to: the offset `TilingLayout` computes for the focused
     /// column, which is what centres it when `centersFocus` is on. The same number the Mac uses.
     public var scrollOffset: Double {
         guard let workspace = layout.focusedWorkspace else { return 0 }
@@ -326,7 +326,7 @@ public final class BrowserModel {
     /// front can redraw once and then stop.
     ///
     /// The Mac reads this from a `GeometryReader`. GTK has no equivalent, so the front reports the
-    /// widget's own allocation instead; until it does, `NiriLayout`'s default stands, which is why a
+    /// widget's own allocation instead; until it does, `TilingLayout`'s default stands, which is why a
     /// first render is laid out for a window nobody has measured yet. It was a hard-coded size here
     /// for a while, which is worse in the way a plausible wrong number always is: the columns were
     /// laid out for a window that did not exist and nothing looked broken enough to ask.
@@ -395,8 +395,8 @@ public final class BrowserModel {
 
     public func canFocusColumn(_ delta: Int) -> Bool { layout.canFocusColumn(delta) }
 
-    /// Workspaces stack across the strip, the way niri means them: columns follow one another
-    /// *along* it, workspaces are the other axis. `NiriLayout` owns both; this only asks.
+    /// Workspaces stack across the strip, the way the layout means them: columns follow one another
+    /// *along* it, workspaces are the other axis. `TilingLayout` owns both; this only asks.
     public func focusWorkspace(_ delta: Int) {
         guard layout.canFocusWorkspace(delta) else { return trace("focusWorkspace \(delta): nowhere to go") }
         layout.focusWorkspace(delta)
@@ -408,7 +408,7 @@ public final class BrowserModel {
 
     // MARK: Overview
 
-    /// The whole strip at once, scaled down. Not a layout of its own — `NiriLayout` reports the
+    /// The whole strip at once, scaled down. Not a layout of its own — `TilingLayout` reports the
     /// tiled geometry throughout, because the overview is a way of *looking* at the strip rather
     /// than a different arrangement of it.
     public var isOverview: Bool { layout.isOverview }
@@ -498,11 +498,11 @@ public final class BrowserModel {
         Thumbnails.capture(tabID)
     }
 
-    /// `SIX_UI_DEBUG=1`, the same switch `NiriLayout` already uses: what the model was asked to do
+    /// `SIX_UI_DEBUG=1`, the same switch `TilingLayout` already uses: what the model was asked to do
     /// and what it thought it was doing. A front that draws nothing is either not being told or not
     /// listening, and this says which.
     func trace(_ message: @autoclosure () -> String) {
-        guard NiriLayout.tracesUI else { return }
+        guard TilingLayout.tracesUI else { return }
         FileHandle.standardError.write(Data("[six] model: \(message())\n".utf8))
     }
 

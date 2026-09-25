@@ -11,14 +11,14 @@ import kotlin.test.assertTrue
  *
  * On the Mac a `WebPage` is a content process and a strip of a hundred windows keeps only as many
  * as the machine can carry. Android has no process per tab, but a `WebView` is not cheap either, and
- * [NiriLayout.visibleTabIds] is what decides which columns get one — so it stopped being a drawing
+ * [TilingLayout.visibleTabIds] is what decides which columns get one — so it stopped being a drawing
  * detail the moment the strip started discarding.
  */
 class VisibleTabsTest {
 
-    private fun strip(columns: Int, viewport: Size = Size(1600.0, 1000.0)): Pair<NiriLayout, List<UUID>> {
+    private fun strip(columns: Int, viewport: Size = Size(1600.0, 1000.0)): Pair<TilingLayout, List<UUID>> {
         val ids = List(columns) { UUID.randomUUID() }
-        var layout = NiriLayout().updateViewport(viewport)
+        var layout = TilingLayout().updateViewport(viewport)
         for (id in ids) layout = layout.insertColumn(id)
         return layout to ids
     }
@@ -69,7 +69,7 @@ class VisibleTabsTest {
 
     @Test
     fun anEmptyWorkspaceHasNothingLive() {
-        assertEquals(emptySet(), NiriLayout().updateViewport(Size(1600.0, 1000.0)).visibleTabIds)
+        assertEquals(emptySet(), TilingLayout().updateViewport(Size(1600.0, 1000.0)).visibleTabIds)
     }
 
     /**

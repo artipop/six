@@ -222,7 +222,7 @@ import fine, and the wasm is named explicitly beside it because the glue would o
 **The shared half.** `BookmarkIndexer` holds the row, the passages, the queue and the search for these fronts;
 `TextChunker` holds the cutting rules and `indexVersion` (moved out of `BookmarkStore`, so all four fronts cut a page
 the same way); `VectorIndex` holds the `vec0` table, the blob format and the KNN; `ReadablePage` holds the extractor, which is a
-JavaScript function body and runs through `PageScriptRunner` — `LivePage` on Linux, `RailWebView` on Windows.
+JavaScript function body and runs through `PageScriptRunner` — `LivePage` on Linux, `StripWebView` on Windows.
 `BookmarkStore` keeps only the two halves that are Apple's — the off-screen `WKWebView` that re-reads a page, and the
 Markdown copy. A bookmark saved on Windows is a row the Mac reads, re-embeds and ranks.
 
@@ -269,7 +269,7 @@ Pages change, and so do our models. Two things keep the index honest:
 - **The star** in the top bar, against the right edge of the address field (and drawn only when that field is —
   an empty workspace has no focused window, so there is nothing to save): filled as soon as the row exists —
   saved is saved, and the embedding that follows says so in the tooltip rather than by spinning, which would read as
-  "still saving". It sits with the address rather than out among the rail's buttons, because both are about the one
+  "still saving". It sits with the address rather than out among the row's buttons, because both are about the one
   page you are reading.
 - **`⌘⌥B`** (`BookmarksView`): the profile's or everyone's bookmarks, a search field that searches by meaning as you
   type (with the matching passage and a score), ↑ ↓ from the field to walk the rows, double-click to open,

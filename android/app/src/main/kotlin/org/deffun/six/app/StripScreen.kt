@@ -44,7 +44,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.deffun.six.R
 import java.util.UUID
 import org.deffun.six.core.Along
-import org.deffun.six.core.NiriLayout
+import org.deffun.six.core.TilingLayout
 import org.deffun.six.core.PageDialogAnswer
 import org.deffun.six.core.PageDialogRequest
 import org.deffun.six.core.Rect
@@ -55,7 +55,7 @@ import org.deffun.six.core.StripAxis
 /**
  * The strip.
  *
- * Columns are placed absolutely from [NiriLayout.columnFrames] rather than by a Compose list,
+ * Columns are placed absolutely from [TilingLayout.columnFrames] rather than by a Compose list,
  * because the geometry is the shared artefact and a lazy row would quietly own it instead. What this
  * file decides is only which way the frames point ([StripAxis]) and what a finger does to them.
  */
@@ -72,7 +72,7 @@ fun StripScreen(
         val viewportDp = Size(maxWidth.value.toDouble(), maxHeight.value.toDouble())
         val axis = StripAxis.of(viewportDp)
 
-        // Measured in dp, because NiriLayout's floors are the Mac's points. See the view model.
+        // Measured in dp, because TilingLayout's floors are the Mac's points. See the view model.
         LaunchedEffect(viewportDp) { viewModel.onViewportChanged(axis.stripSpace(viewportDp)) }
 
         val layout = state.layout
@@ -206,7 +206,7 @@ fun StripScreen(
  *
  * It sits across the strip — down the right edge when the strip runs sideways, along the bottom when
  * it runs down the screen — because that is the direction it describes. The last workspace is always
- * the empty one niri keeps at the end, so the final pip is a place to put something rather than
+ * the empty one kept at the end, so the final pip is a place to put something rather than
  * somewhere you have been.
  */
 @Composable

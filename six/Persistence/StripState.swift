@@ -13,7 +13,7 @@ import Foundation
 /// for free by using the database that is already open, already migrated, and already the place
 /// every other preference lives.
 ///
-/// What is stored is `NiriStrip` itself — the same `Codable` type the Mac writes, unchanged — plus
+/// What is stored is `TilingStrip` itself — the same `Codable` type the Mac writes, unchanged — plus
 /// the address each column was on. The layout is the shape; the addresses are what makes the shape
 /// mean something after a restart.
 ///
@@ -22,7 +22,7 @@ import Foundation
 /// read — they never share a database, but the day one is copied from a machine to another is not
 /// the day to find out the two `Codable`s had drifted.
 nonisolated struct StripState: Codable {
-    var strips: [String: NiriStrip] = [:]
+    var strips: [String: TilingStrip] = [:]
     var urls: [String: String] = [:]
     var titles: [String: String] = [:]
     /// The profile on screen. Linux keeps it here; Windows reads `profile.selected` instead, because

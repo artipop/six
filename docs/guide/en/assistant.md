@@ -2,7 +2,7 @@
 
 Six's assistant is not a chat. It is one line, `⌘E`, and it comes up where you
 are already pointing: under selected text, beside the field your caret is in,
-and at the bottom of the rail when nothing on the page is pointed at. It never
+and at the bottom of the row when nothing on the page is pointed at. It never
 comes up by itself.
 
 Only conversations with [agents](/en/agents) have a history: they are kept, and
@@ -94,7 +94,7 @@ socket external agents drive the browser through is closed.
 Bookmark search and page translation keep working: neither is a model talking to
 you — one is search, the other is a translator.
 
-You are asked once, on the first launch, in a window on the rail —
+You are asked once, on the first launch, in a window in the row —
 `six://welcome`. Answer "Yes, use them" and the next step, in the same window,
 is who answers: On-Device, Claude Code, Codex or API Key (Anthropic or an
 OpenAI-compatible server) — set up on the spot: an agent shows whether its adapter

@@ -30,7 +30,7 @@ nonisolated struct ShareRequest: Equatable, Sendable {
     /// The title the sharing app gave it, if any — the bookmark's name until the page is read.
     var title: String?
     var profileID: UUID?
-    /// A workspace by id, not by row: the rail can change between the sheet opening and the click.
+    /// A workspace by id, not by row: the row can change between the sheet opening and the click.
     var workspaceID: UUID?
 
     /// The two schemes the handoff arrives on. Two, for the same reason there are two web schemes in
@@ -80,9 +80,9 @@ nonisolated struct ShareRequest: Equatable, Sendable {
     }
 }
 
-/// Where a shared page could go: every profile that keeps anything, and the rows of its rail.
+/// Where a shared page could go: every profile that keeps anything, and the rows of its row.
 ///
-/// Written by the app, read by the extension, never the other way. What is in it is what the rail
+/// Written by the app, read by the extension, never the other way. What is in it is what the row
 /// already shows on screen — names, and the titles of a row's first few windows so that an unnamed
 /// workspace can still be told from the next one — and a private profile is left out of it entirely,
 /// the way it is left out of the snapshot.
@@ -91,7 +91,7 @@ nonisolated struct ShareTargets: Codable, Sendable, Equatable {
 
     nonisolated struct Workspace: Codable, Sendable, Equatable, Identifiable {
         var id: UUID
-        /// Empty for an unnamed one; the sheet says "Workspace N" then, as the rail does.
+        /// Empty for an unnamed one; the sheet says "Workspace N" then, as the row does.
         var name: String
         var windowCount: Int
         /// The first few windows' titles, left to right.
@@ -104,7 +104,7 @@ nonisolated struct ShareTargets: Codable, Sendable, Equatable {
         var name: String
         var colorHex: String
         var isSelected: Bool
-        /// Top to bottom. The last one is the empty row a rail always keeps below the others.
+        /// Top to bottom. The last one is the empty row a row always keeps below the others.
         var workspaces: [Workspace]
     }
 

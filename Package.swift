@@ -56,7 +56,7 @@ let package = Package(
             path: "six",
             sources: [
                 // Geometry: no platform at all, and the piece a second front end reuses whole.
-                "Niri/NiriLayout.swift",
+                "Tiling/TilingLayout.swift",
                 // The keyboard, minus the window system. A binding is a key's name, the modifiers a
                 // hand can hold, where it may answer and what it does — and `KeyBindingsTests` reads
                 // docs/hotkeys.md and checks the table against it in both directions, which is the
@@ -73,7 +73,7 @@ let package = Package(
                 "Data/Log.swift",
                 "Persistence/SnapshotStore.swift",
                 "Persistence/StatePersistence.swift",
-                // The rail as the fronts without a snapshot leave it, in the settings table. It
+                // The row as the fronts without a snapshot leave it, in the settings table. It
                 // was Linux's own until Windows needed the same thing, and two copies of a
                 // `Codable` both fronts write under one key is two chances to disagree about it.
                 "Persistence/StripState.swift",

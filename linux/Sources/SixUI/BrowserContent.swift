@@ -6,7 +6,7 @@ import SixWebKit
 import SixWebKitCore
 
 /// The browser, declaratively. One window, always — what look like tabs are columns in the strip
-/// inside it, which is the whole niri idea and the same constraint the Mac has.
+/// inside it, which is the whole idea of the layout and the same constraint the Mac has.
 public struct BrowserContent: View {
     /// The strip's shape, reassigned from actions and never during a render.
     ///
@@ -243,11 +243,11 @@ public struct BrowserContent: View {
         // The strip follows the focus. Without this a new column is created, laid out past the right
         // edge, and never seen — which is what "the plus button does nothing" actually was.
         //
-        // `NiriLayout.resolvedOffset` is the same number the Mac scrolls to, centring the focused
+        // `TilingLayout.resolvedOffset` is the same number the Mac scrolls to, centring the focused
         // column when `centersFocus` is on. Reaching the adjustment needs the widget, and `inspect`
         // is adwaita's documented way to get at one.
         .inspectOnAppear { storage in
-            // ⌥ + scroll walks the strip, the way the Mac's `NiriScrollMonitor` does it. The
+            // ⌥ + scroll walks the strip, the way the Mac's `TilingScrollMonitor` does it. The
             // modifier is not decoration: over a page an unmodified gesture belongs to the page.
             guard let scrolled = storage.opaquePointer else { return }
             let controller = gtk_event_controller_scroll_new(GTK_EVENT_CONTROLLER_SCROLL_BOTH_AXES)
@@ -261,7 +261,7 @@ public struct BrowserContent: View {
         }
         .inspect { storage, _ in
             guard let scrolled = storage.opaquePointer else { return }
-            // How big the strip actually is. `NiriLayout` needs the viewport to size a column and to
+            // How big the strip actually is. `TilingLayout` needs the viewport to size a column and to
             // decide where the focused one sits, and this widget's allocation *is* the viewport —
             // the window minus the toolbar. Reported from here because GTK has no `GeometryReader`
             // and a widget's allocation is not a property one can watch.
@@ -284,7 +284,7 @@ public struct BrowserContent: View {
         }
     }
 
-    /// Gaps are a fraction of the viewport, never a point constant — the same rule `NiriLayout`
+    /// Gaps are a fraction of the viewport, never a point constant — the same rule `TilingLayout`
     /// keeps, so the strip looks the same on a laptop and on a 5K panel.
     var gap: Double { model.gap }
 

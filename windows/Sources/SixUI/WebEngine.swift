@@ -1,15 +1,15 @@
-import CRailInterop
+import CStripInterop
 import CWebKit2
 import Foundation
 import SixBrowser
 @testable import SixCore
 import WinSDK
 
-/// Starts the real engine once, and hands out one `RailWebView` per live column. The WebKit2 C API
+/// Starts the real engine once, and hands out one `StripWebView` per live column. The WebKit2 C API
 /// this wraps — `WKContext`, `WKPage`, `WKView` — is the same family WebKitGTK's C API descends
 /// from, and this sequence of calls is the one `../sixty`'s MiniBrowserSwift prototype uses.
 ///
-/// Everything about display scale on this front is `RailWebView.installScaleShim` — read that
+/// Everything about display scale on this front is `StripWebView.installScaleShim` — read that
 /// before touching the rect handed to `WKViewCreate` or the window procedure in front of it.
 @MainActor
 enum WebEngine {
@@ -29,7 +29,7 @@ enum WebEngine {
     ///
     /// A private profile gets the non-persistent store, which is the whole of what "private" means
     /// here: it exists in memory, it goes when the process does, and nothing of it is written down.
-    private static func dataStore(for profile: RailModel.ProfileInfo) -> WKWebsiteDataStoreRef? {
+    private static func dataStore(for profile: StripModel.ProfileInfo) -> WKWebsiteDataStoreRef? {
         if let existing = dataStores[profile.id] { return existing }
         let store: WKWebsiteDataStoreRef?
         if profile.isPrivate {
@@ -71,7 +71,7 @@ enum WebEngine {
     /// A new `WKView`, hosted as a child of `parent` at `frame` (client coordinates), browsing in
     /// `profile`'s own data store. `nil` only if WebKit itself refuses — there is nothing more
     /// specific to say without deeper diagnostics.
-    static func makeView(parent: HWND, frame: RECT, profile: RailModel.ProfileInfo) -> RailWebView? {
+    static func makeView(parent: HWND, frame: RECT, profile: StripModel.ProfileInfo) -> StripWebView? {
         ensureStarted()
         guard let context, let websiteDataStore = dataStore(for: profile) else { return nil }
 
@@ -80,7 +80,7 @@ enum WebEngine {
         WKPageConfigurationSetContext(pageConfiguration, context)
         let preferences = WKPreferencesCreate()
         // Software compositing. The accelerated path draws correctly too now that
-        // `RailWebView.installScaleShim` has the scales agreeing, but it put a visible layer seam
+        // `StripWebView.installScaleShim` has the scales agreeing, but it put a visible layer seam
         // through the middle of a search field; worth revisiting, not worth shipping.
         WKPreferencesSetAcceleratedCompositingEnabled(preferences, false)
         // `navigator.mediaDevices`, for an engine that has it. **Playwright's does not**: MediaStream
@@ -88,7 +88,7 @@ enum WebEngine {
         // appear nowhere in `WebCore.dll` while `JSHTMLDivElement` does, and a page reads
         // `MediaStream`, `RTCPeerConnection` and `navigator.mediaDevices` as `undefined` whatever
         // this or the `MediaStreamEnabled` feature key say (both measured). So on today's engine no
-        // page ever asks, and `RailWebView.onMediaRequest` is wiring for the WebKit that is not
+        // page ever asks, and `StripWebView.onMediaRequest` is wiring for the WebKit that is not
         // Playwright's (docs/todo.md) — `SIX_PERMISSION_SELFTEST` exercises everything above it.
         WKPreferencesSetMediaDevicesEnabled(preferences, true)
         // `<a download>`: the page saying a link is a file to keep, not a page to show.
@@ -106,11 +106,11 @@ enum WebEngine {
     /// hands `createNewPage` for a window a page opened. That second one is why this is separate — it
     /// carries the opener, so the new page is related to the one that asked (`window.opener`, a
     /// sign-in popup's way back) and browses in that page's store without being told which.
-    static func makeView(parent: HWND, frame: RECT, configuration pageConfiguration: WKPageConfigurationRef?) -> RailWebView? {
+    static func makeView(parent: HWND, frame: RECT, configuration pageConfiguration: WKPageConfigurationRef?) -> StripWebView? {
         ensureStarted()
 
         // Created at `frame` divided by the display scale, and grown to the real `frame` by the
-        // `setFrame` that follows in `RailLiveView.updateLiveView` — which is what puts the first
+        // `setFrame` that follows in `StripLiveView.updateLiveView` — which is what puts the first
         // `WM_SIZE` through the shim below. See `installScaleShim` for why the view is told a
         // smaller size than the window it lives in.
         let dpi = GetDpiForWindow(parent)
@@ -131,10 +131,10 @@ enum WebEngine {
             FileHandle.standardError.write(Data(message.utf8))
         }
 
-        return RailWebView(view: view, page: page)
+        return StripWebView(view: view, page: page)
     }
 
-    /// The view `RailSandbox` runs six's own programs in: no profile, no persistence, and allowed
+    /// The view `StripSandbox` runs six's own programs in: no profile, no persistence, and allowed
     /// to read the files sitting beside the page it loads.
     ///
     /// The two preferences are the whole difference from a browsing view, and both are about the
@@ -142,7 +142,7 @@ enum WebEngine {
     /// out of the folder it lives in, which the same-origin rules forbid a `file:` document by
     /// default. Nothing but six's own payload is ever loaded here, so the relaxation reaches nothing
     /// a site could take advantage of.
-    static func makeSandboxView(parent: HWND) -> RailWebView? {
+    static func makeSandboxView(parent: HWND) -> StripWebView? {
         ensureStarted()
         guard let context, let websiteDataStore = WKWebsiteDataStoreCreateNonPersistentDataStore() else {
             return nil
@@ -165,7 +165,7 @@ enum WebEngine {
         WKViewSetIsInWindow(view, true)
         WKViewWindowAncestryDidChange(view)
         guard let page = WKViewGetPage(view) else { return nil }
-        let sandbox = RailWebView(view: view, page: page)
+        let sandbox = StripWebView(view: view, page: page)
         // Six's own programs, not somebody's page: a `file:` document that does not load is a
         // failure its driver has to see, not an error page that would look to it like a load.
         sandbox.showsFailures = false
@@ -174,20 +174,20 @@ enum WebEngine {
 }
 
 /// One live column: the `WKView` (a real child `HWND` WebKit owns and draws into) and the `WKPage`
-/// behind it. `RailWindow` positions it over a card's body and shows/hides it as focus moves;
-/// nothing here knows the rail exists.
+/// behind it. `StripWindow` positions it over a card's body and shows/hides it as focus moves;
+/// nothing here knows the row exists.
 @MainActor
-final class RailWebView {
+final class StripWebView {
     let view: WKViewRef
     let page: WKPageRef
-    /// Told the page's title whenever a navigation finishes — `RailWindow` forwards this straight
-    /// into `RailModel`, which is the only thing that knows what a title is *for*.
+    /// Told the page's title whenever a navigation finishes — `StripWindow` forwards this straight
+    /// into `StripModel`, which is the only thing that knows what a title is *for*.
     var onTitleChange: ((String) -> Void)?
     /// Told the page's own URL whenever a navigation finishes — a redirect or an in-page link click
     /// moves this away from whatever `load(_:)` was last called with, and the address bar needs to
     /// track that, not just what it was told to load.
     var onURLChange: ((String) -> Void)?
-    /// Told when a navigation has finished, whatever it was. `RailSandbox` waits on this — it is
+    /// Told when a navigation has finished, whatever it was. `StripSandbox` waits on this — it is
     /// how "the page is loaded and its scripts have run" is spelled through the C API.
     var onFinishNavigation: (() -> Void)?
     /// Told when the page asks for the camera or the microphone. Answer through the request, now or
@@ -237,16 +237,16 @@ final class RailWebView {
     /// configuration WebKit wants it made on and the address it is for. Answer with the view that is
     /// that window, made on that configuration (`WebEngine.makeView(parent:frame:configuration:)`), or
     /// `nil` to refuse; the new page loads its request by itself.
-    var onCreatePage: ((WKPageConfigurationRef, String) -> RailWebView?)?
+    var onCreatePage: ((WKPageConfigurationRef, String) -> StripWebView?)?
 
     /// Told when a navigation has become a download — the page's own `<a download>`, or a response
-    /// that is a file. The transfer is WebKit's, with the page's cookies already on it; what the rail
-    /// owes it is a client (`RailDownloads.adopt`).
+    /// that is a file. The transfer is WebKit's, with the page's cookies already on it; what the row
+    /// owes it is a client (`StripDownloads.adopt`).
     var onDownload: ((WKDownloadRef) -> Void)?
 
     /// Told when the page wants an address that is somebody else's app's (`ExternalScheme`), with
     /// whether a click was behind it. The navigation has already been refused; opening the app is the
-    /// rail's decision, and it asks first.
+    /// row's decision, and it asks first.
     var onExternalLink: ((String, Bool) -> Void)?
 
     /// `true` takes the navigation away from the page: the address is not one a window shows.
@@ -267,7 +267,7 @@ final class RailWebView {
 
     /// The link under the pointer as the page last reported it, `nil` over anything else. What a middle
     /// click or a `Ctrl`-click is read against: WebKit's C API tells a navigation nothing about the
-    /// button or the keys behind it, so the rail catches those clicks on their way in (`route`).
+    /// button or the keys behind it, so the row catches those clicks on their way in (`route`).
     private(set) var hoveredLink: String?
 
     /// Between a navigation starting and it finishing or failing — what the loading line is drawn for.
@@ -335,7 +335,7 @@ final class RailWebView {
     }
 
     /// The struct only needs to be valid for the one call below — WebKit copies it, the way any
-    /// "set a client vtable" C API does, so unlike `RailWindow`'s own `GWLP_USERDATA` dance this
+    /// "set a client vtable" C API does, so unlike `StripWindow`'s own `GWLP_USERDATA` dance this
     /// needs no address of its own to keep stable. `clientInfo` is that same dance in miniature:
     /// the one piece of state the free-function callback needs to find its way back to `self`.
     private func installNavigationClient() {
@@ -347,7 +347,7 @@ final class RailWebView {
         client.base.clientInfo = UnsafeRawPointer(Unmanaged.passUnretained(self).toOpaque())
         client.didFinishNavigation = { _, _, _, clientInfo in
             guard let clientInfo else { return }
-            let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+            let webView = Unmanaged<StripWebView>.fromOpaque(clientInfo).takeUnretainedValue()
             MainActor.assumeIsolated { webView.handleFinishedNavigation() }
         }
         // Navigations are told apart by the address of their `WKNavigationRef`, kept as a number: it
@@ -355,21 +355,21 @@ final class RailWebView {
         client.didStartProvisionalNavigation = { _, navigation, _, clientInfo in
             guard let clientInfo else { return }
             let started = navigation.map { Int(bitPattern: UnsafeRawPointer($0)) }
-            let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+            let webView = Unmanaged<StripWebView>.fromOpaque(clientInfo).takeUnretainedValue()
             MainActor.assumeIsolated { webView.handleStartedNavigation(started) }
         }
         client.didFailProvisionalNavigation = { _, navigation, error, _, clientInfo in
             guard let clientInfo else { return }
             nonisolated(unsafe) let failure = error
             let failed = navigation.map { Int(bitPattern: UnsafeRawPointer($0)) }
-            let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+            let webView = Unmanaged<StripWebView>.fromOpaque(clientInfo).takeUnretainedValue()
             MainActor.assumeIsolated { webView.handleFailedNavigation(failure, navigation: failed, provisional: true) }
         }
         client.didFailNavigation = { _, navigation, error, _, clientInfo in
             guard let clientInfo else { return }
             nonisolated(unsafe) let failure = error
             let failed = navigation.map { Int(bitPattern: UnsafeRawPointer($0)) }
-            let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+            let webView = Unmanaged<StripWebView>.fromOpaque(clientInfo).takeUnretainedValue()
             MainActor.assumeIsolated { webView.handleFailedNavigation(failure, navigation: failed, provisional: false) }
         }
         // A file rather than a page. Left to WebKit's default, both of these answer "show it": a
@@ -382,15 +382,15 @@ final class RailWebView {
             }
             // Somebody else's app — `mailto:`, `magnet:`, whatever an app claimed. Never the page's
             // to load, and never the page's to launch either: it is handed up with whether a click
-            // was behind it, and the rail asks (`offerExternalLink`). A frame's navigation is asked
+            // was behind it, and the row asks (`offerExternalLink`). A frame's navigation is asked
             // here too, which is how an `<iframe src="ms-settings:">` is stopped with the rest.
             nonisolated(unsafe) let asked = action
             let gesture = action.map { WKNavigationActionHasUnconsumedUserGesture($0) } ?? false
             var handedOff = false
             if let clientInfo {
-                let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+                let webView = Unmanaged<StripWebView>.fromOpaque(clientInfo).takeUnretainedValue()
                 MainActor.assumeIsolated {
-                    handedOff = webView.handOff(RailWebView.address(of: asked), gesture: gesture)
+                    handedOff = webView.handOff(StripWebView.address(of: asked), gesture: gesture)
                 }
             }
             if handedOff {
@@ -416,13 +416,13 @@ final class RailWebView {
         client.navigationActionDidBecomeDownload = { _, _, download, clientInfo in
             guard let clientInfo, let download else { return }
             nonisolated(unsafe) let started = download
-            let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+            let webView = Unmanaged<StripWebView>.fromOpaque(clientInfo).takeUnretainedValue()
             MainActor.assumeIsolated { webView.onDownload?(started) }
         }
         client.navigationResponseDidBecomeDownload = { _, _, download, clientInfo in
             guard let clientInfo, let download else { return }
             nonisolated(unsafe) let started = download
-            let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+            let webView = Unmanaged<StripWebView>.fromOpaque(clientInfo).takeUnretainedValue()
             MainActor.assumeIsolated { webView.onDownload?(started) }
         }
         // The context menu's Download Linked File: a download made by the menu, with no navigation
@@ -430,7 +430,7 @@ final class RailWebView {
         client.contextMenuDidCreateDownload = { _, download, clientInfo in
             guard let clientInfo, let download else { return }
             nonisolated(unsafe) let started = download
-            let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+            let webView = Unmanaged<StripWebView>.fromOpaque(clientInfo).takeUnretainedValue()
             MainActor.assumeIsolated { webView.onDownload?(started) }
         }
         WKPageSetPageNavigationClient(page, &client.base)
@@ -454,7 +454,7 @@ final class RailWebView {
             nonisolated(unsafe) let result = hit
             nonisolated(unsafe) var made: WKArrayRef?
             if let clientInfo {
-                let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+                let webView = Unmanaged<StripWebView>.fromOpaque(clientInfo).takeUnretainedValue()
                 MainActor.assumeIsolated { made = webView.menu(from: offered, over: result) }
             } else if let offered {
                 // No client to ask: WebKit's own menu, as it was.
@@ -468,7 +468,7 @@ final class RailWebView {
         client.customContextMenuItemSelected = { _, item, clientInfo in
             guard let clientInfo, let item else { return }
             let tag = WKContextMenuItemGetTag(item)
-            let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+            let webView = Unmanaged<StripWebView>.fromOpaque(clientInfo).takeUnretainedValue()
             MainActor.assumeIsolated { webView.menuItemChosen(tag) }
         }
         WKPageSetPageContextMenuClient(page, &client.base)
@@ -508,7 +508,7 @@ final class RailWebView {
         onOpenLinkBehind?(link)
     }
 
-    /// What a new column can show — the same answer `RailNewWindows.opensInColumn` gives a middle
+    /// What a new column can show — the same answer `StripNewWindows.opensInColumn` gives a middle
     /// click, so the menu does not offer to open behind what a column cannot open.
     private static func opensInColumn(_ link: String) -> Bool {
         guard let scheme = URL(string: link)?.scheme?.lowercased() else { return false }
@@ -643,7 +643,7 @@ final class RailWebView {
             // isolation below assumes; nothing is being smuggled across it.
             nonisolated(unsafe) let asked = request
             nonisolated(unsafe) let site = origin
-            let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+            let webView = Unmanaged<StripWebView>.fromOpaque(clientInfo).takeUnretainedValue()
             MainActor.assumeIsolated { webView.handleMediaRequest(asked, origin: site) }
         }
         // The same thread argument as the media request, for each of these: WebKit calls them on the
@@ -653,7 +653,7 @@ final class RailWebView {
             nonisolated(unsafe) let asked = listener
             nonisolated(unsafe) let said = text
             nonisolated(unsafe) let site = origin
-            let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+            let webView = Unmanaged<StripWebView>.fromOpaque(clientInfo).takeUnretainedValue()
             MainActor.assumeIsolated {
                 webView.presentDialog(.alert, message: said, origin: site, listener: asked) { _ in
                     WKPageRunJavaScriptAlertResultListenerCall(asked)
@@ -665,7 +665,7 @@ final class RailWebView {
             nonisolated(unsafe) let asked = listener
             nonisolated(unsafe) let said = text
             nonisolated(unsafe) let site = origin
-            let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+            let webView = Unmanaged<StripWebView>.fromOpaque(clientInfo).takeUnretainedValue()
             MainActor.assumeIsolated {
                 webView.presentDialog(.confirm, message: said, origin: site, listener: asked) { value in
                     WKPageRunJavaScriptConfirmResultListenerCall(asked, value != nil)
@@ -678,9 +678,9 @@ final class RailWebView {
             nonisolated(unsafe) let said = text
             nonisolated(unsafe) let offered = defaultValue
             nonisolated(unsafe) let site = origin
-            let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+            let webView = Unmanaged<StripWebView>.fromOpaque(clientInfo).takeUnretainedValue()
             MainActor.assumeIsolated {
-                let kind = PageDialog.Kind.prompt(defaultText: RailWebView.string(from: offered))
+                let kind = PageDialog.Kind.prompt(defaultText: StripWebView.string(from: offered))
                 webView.presentDialog(kind, message: said, origin: site, listener: asked) { value in
                     // A nil string is what makes `prompt()` return null, which is what Cancel means.
                     let result = value.flatMap { typed in typed.withCString { WKStringCreateWithUTF8CString($0) } }
@@ -693,7 +693,7 @@ final class RailWebView {
             guard let clientInfo, let listener else { return }
             nonisolated(unsafe) let asked = listener
             nonisolated(unsafe) let wanted = parameters
-            let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+            let webView = Unmanaged<StripWebView>.fromOpaque(clientInfo).takeUnretainedValue()
             MainActor.assumeIsolated { webView.presentFileChoice(wanted, listener: asked) }
         }
         client.createNewPage = { _, configuration, action, _, clientInfo in
@@ -701,10 +701,10 @@ final class RailWebView {
             nonisolated(unsafe) let offered = configuration
             nonisolated(unsafe) let asked = action
             nonisolated(unsafe) var made: WKPageRef?
-            let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+            let webView = Unmanaged<StripWebView>.fromOpaque(clientInfo).takeUnretainedValue()
             let gesture = action.map { WKNavigationActionHasUnconsumedUserGesture($0) } ?? false
             MainActor.assumeIsolated {
-                let address = RailWebView.address(of: asked)
+                let address = StripWebView.address(of: asked)
                 // A `target=_blank` to somebody else's app is not a window: it is the same question a
                 // click on it asks, and no column is made for it.
                 if webView.handOff(address, gesture: gesture) { return }
@@ -718,15 +718,15 @@ final class RailWebView {
         }
         client.close = { _, clientInfo in
             guard let clientInfo else { return }
-            let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+            let webView = Unmanaged<StripWebView>.fromOpaque(clientInfo).takeUnretainedValue()
             MainActor.assumeIsolated { webView.onClose?() }
         }
         client.mouseDidMoveOverElement = { _, hit, _, _, clientInfo in
             guard let clientInfo else { return }
             nonisolated(unsafe) let result = hit
-            let webView = Unmanaged<RailWebView>.fromOpaque(clientInfo).takeUnretainedValue()
+            let webView = Unmanaged<StripWebView>.fromOpaque(clientInfo).takeUnretainedValue()
             MainActor.assumeIsolated {
-                webView.hoveredLink = RailWebView.link(in: result)
+                webView.hoveredLink = StripWebView.link(in: result)
                 // The scheme and nothing more: an address is where somebody was reading.
                 if ProcessInfo.processInfo.environment["SIX_UI_DEBUG"] == "1" {
                     let over = webView.hoveredLink.flatMap { URL(string: $0)?.scheme } ?? "none"
@@ -883,7 +883,7 @@ final class RailWebView {
     }
 
     /// `string(from:)` for a string this side owns — a `Copy` call's result — released once read.
-    /// Not folded into `string(from:)` itself: `RailScript` reads strings WebKit still owns.
+    /// Not folded into `string(from:)` itself: `StripScript` reads strings WebKit still owns.
     static func takeString(_ ref: WKStringRef?) -> String {
         defer { if let ref { WKRelease(UnsafeRawPointer(ref)) } }
         return string(from: ref)
@@ -893,7 +893,7 @@ final class RailWebView {
     ///
     /// `didFinishNavigation` is not the moment a title exists: a page that sets `<title>` from a
     /// script, or simply late, finishes its navigation with the *previous* title still in place —
-    /// which showed up here as a card still labelled DuckDuckGo with example.com in it. `RailWindow`
+    /// which showed up here as a card still labelled DuckDuckGo with example.com in it. `StripWindow`
     /// polls these on a timer for that reason, the same "poll from Swift for anything that must
     /// wait" AGENTS.md settles on for page state.
     /// Both are `Copy` calls and are released once read: with every live column polled four times a
@@ -906,7 +906,7 @@ final class RailWebView {
         return Self.takeString(WKURLCopyString(activeURL))
     }
 
-    /// `RailScript` reads a script's answer with this too, which is why it is not private.
+    /// `StripScript` reads a script's answer with this too, which is why it is not private.
     static func string(from ref: WKStringRef?) -> String {
         guard let ref else { return "" }
         let size = WKStringGetMaximumUTF8CStringSize(ref)
@@ -975,7 +975,7 @@ private var scaleShims: [UInt: WNDPROC] = [:]
 private nonisolated func shimKey(_ hwnd: HWND) -> UInt { UInt(bitPattern: Int(bitPattern: hwnd)) }
 
 /// `nonisolated` for the same reason every other `WNDPROC` here is: a C function pointer carries no
-/// actor isolation. See `RailWebView.installScaleShim` for what it is rewriting and why.
+/// actor isolation. See `StripWebView.installScaleShim` for what it is rewriting and why.
 private nonisolated func webViewScaleProc(
     _ hwnd: HWND?, _ message: UINT, _ wParam: WPARAM, _ lParam: LPARAM
 ) -> LRESULT {
@@ -990,9 +990,9 @@ private nonisolated func webViewScaleProc(
 
     var forwarded = lParam
     if Int32(message) == WM_SIZE {
-        let width = Int32(Double(SixRailLoWord(lParam)) / scale)
-        let height = Int32(Double(SixRailHiWord(lParam)) / scale)
-        forwarded = SixRailPackWords(width, height)
+        let width = Int32(Double(SixStripLoWord(lParam)) / scale)
+        let height = Int32(Double(SixStripHiWord(lParam)) / scale)
+        forwarded = SixStripPackWords(width, height)
     }
     return CallWindowProcW(original, hwnd, message, wParam, forwarded)
 }

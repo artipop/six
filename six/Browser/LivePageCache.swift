@@ -180,7 +180,7 @@ final class LivePageCache {
     }
 
     /// How long the focus has to sit still before the window under it is worth building. One switch
-    /// animation (`NiriLayout.switchAnimation` is 0.34 s), so the work lands after the strip settles.
+    /// animation (`TilingLayout.switchAnimation` is 0.34 s), so the work lands after the strip settles.
     private static let settleDelay = Duration.milliseconds(350)
 
     /// Windows holding a picture of themselves, oldest first.

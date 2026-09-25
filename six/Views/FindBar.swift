@@ -34,7 +34,7 @@ struct FindBar: View {
                 .onChange(of: query) { _, new in
                     Task { await browser.find.search(new, in: tab, id: tab.id) }
                 }
-                // The bar mounts only while it is active (`NiriStripView`), so its one appearance
+                // The bar mounts only while it is active (`TilingStripView`), so its one appearance
                 // is exactly the moment to hand it the keyboard — the same trick a sheet uses,
                 // without threading a `@FocusState` binding down from `ContentView` through three
                 // more layers of the strip for a field nothing else needs to reach.

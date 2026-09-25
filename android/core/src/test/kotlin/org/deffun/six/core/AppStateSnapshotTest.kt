@@ -195,12 +195,12 @@ class AppStateSnapshotTest {
     @Test
     fun aRestoredStripLaysOut() {
         val snapshot = decoded()
-        val restored = NiriLayout()
+        val restored = TilingLayout()
             .updateViewport(Size(1179.0, 2556.0))
             .copy(activeProfileId = snapshot.browser.selectedProfileId)
             .restore(snapshot.browser.strips.associate { it.profileId to it.strip })
 
-        // Three, not two: `normalize` keeps the named-but-empty "Reading" — niri's rule that a name
+        // Three, not two: `normalize` keeps the named-but-empty "Reading" — the rule that a name
         // outlives the last window — and then adds the trailing empty one every strip ends with.
         assertEquals(3, restored.workspaces.size)
         assertTrue(restored.workspaces.last().isEmpty && restored.workspaces.last().name.isEmpty())

@@ -87,10 +87,10 @@ final class KeyRouter {
             offeredToPage = (event.timestamp, event.keyCode)
             return passThrough(event, context, why: "offered to the page first")
         }
-        // A rail key while the ring is up means the pass is over: land first, then do what was asked.
+        // A row key while the ring is up means the pass is over: land first, then do what was asked.
         // Without this a switch could be left standing by anything that took `⌃` away without a
         // `flagsChanged` — the app losing focus mid-press, most of all.
-        if binding.scope == .rail, context.isSwitching { _ = perform(.landSwitcher) }
+        if binding.scope == .row, context.isSwitching { _ = perform(.landSwitcher) }
         guard perform(binding.action) else {
             return passThrough(event, context, why: "\(binding.action) had nothing to do")
         }
@@ -105,7 +105,7 @@ final class KeyRouter {
         guard let binding = KeyBindings.all.first(where: { $0.precedence == .pageFirst && $0.matches(event, in: context) }) else {
             return passThrough(event, context, why: "the page handed it back, and nothing here wants it now")
         }
-        if binding.scope == .rail, context.isSwitching { _ = perform(.landSwitcher) }
+        if binding.scope == .row, context.isSwitching { _ = perform(.landSwitcher) }
         guard perform(binding.action) else {
             return passThrough(event, context, why: "the page handed it back, and \(binding.action) had nothing to do")
         }
@@ -122,7 +122,7 @@ final class KeyRouter {
     }
 
     private func trace(_ event: NSEvent, _ context: KeyContext, _ outcome: String) {
-        NiriLayout.trace("key \(event.chordLabel) [\(context)] → \(outcome)")
+        TilingLayout.trace("key \(event.chordLabel) [\(context)] → \(outcome)")
     }
 }
 #endif

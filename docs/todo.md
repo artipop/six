@@ -15,7 +15,7 @@ the browser and requested a rollback on 2026-09-18. That fix and its test were r
 remains open, and the specific regressions still need to be identified before another attempt.
 
 Acceptance: no spurious alert sound in the browser, with text entry, form submission, button
-activation, Space/Shift-Space scrolling, page key handlers, native fields, menus, rail shortcuts,
+activation, Space/Shift-Space scrolling, page key handlers, native fields, menus, row shortcuts,
 the window switcher and rapid key repeats still working. Verify in six itself as well as any
 isolated probe; a passing probe alone did not establish that the previous change was safe.
 
@@ -67,13 +67,13 @@ wrong for them. Three keys to page a carousel is a bad answer wherever it is wri
 another one has not been found yet: the ring is held open *by* `⌃`, so every key it can answer is a
 `⌃` chord, and the arrows are the only pair that says "the card over there" without being learned.
 
-## Linux and Windows: the rail's `Alt` keys are the browser's own
+## Linux and Windows: the row's `Alt` keys are the browser's own
 
-The Mac offers every `⌥` key to the page first and keeps a `⌃⌥` copy of the rail's navigation that nothing else
+The Mac offers every `⌥` key to the page first and keeps a `⌃⌥` copy of the row's navigation that nothing else
 wants ([hotkeys.md](hotkeys.md)). The other fronts have neither, and
 the conflict is sharper there: `Alt+←` / `Alt+→` are Back and Forward in every browser on both platforms, `Alt+Home`
 is the home page, and `Alt`+letter opens a menu on Windows. The Windows front reads `KeyBindings` through
-`RailKeyLookup`, so it takes them first as the Mac used to; the GTK front binds `<Alt>Left` and friends by hand in
+`StripKeyLookup`, so it takes them first as the Mac used to; the GTK front binds `<Alt>Left` and friends by hand in
 `BrowserContent.swift`. `⌃⌥` is no answer on Windows, where `Ctrl+Alt` is AltGr. What is: the same page-first order
 (WebKitGTK's `key-press-event` return value and WebKit2's unhandled-key callback both say whether the page took a
 key), and a reserved chord of each platform's own — `Super` is the window manager's on both, so it is a real choice
@@ -133,7 +133,7 @@ window rather than one window per profile strip.
 **Extension pages inside six's own interface.** An extension's options page, its dashboard and the pages it opens
 with `tabs.create` open today in a plain `NSWindow` of their own (`ExtensionStore.openExtensionPage`), because a
 column is a `WebPage` and WebKit will not load an extension's page as a main frame into one
-([extensions.md](extensions.md#extension-pages-get-a-window-not-a-column)). Try to fit them into the rail anyway.
+([extensions.md](extensions.md#extension-pages-get-a-window-not-a-column)). Try to fit them into the row anyway.
 The options, cheapest first: a panel six places and sizes over the focused column instead of a free-floating window
 (still a `WKWebView` from `context.webViewConfiguration`); a column kind that hosts that `WKWebView` through
 `NSViewRepresentable` — an exception to the `WebPage`-only rule, to be weighed against everything such a column would
@@ -209,7 +209,7 @@ different build, and they are worth keeping apart:
 - **An unpatched one, and this is now the whole reason** — the `../sixty` session guessed that Playwright's
   patching for headless automation might be causing the bug, and reading the patch confirmed it exactly.
   `browser_patches/webkit/patches/bootstrap.diff` deletes the `/ intrinsicDeviceScaleFactor` from
-  `WebView::onSizeEvent`, which is precisely the division `RailWebView.installScaleShim` puts back from outside.
+  `WebView::onSizeEvent`, which is precisely the division `StripWebView.installScaleShim` puts back from outside.
   So any non-Playwright build — CI or self-built — makes the shim, the divided creation rect and probably the
   compositing preference all unnecessary. A *newer Playwright* build never will; they all carry the patch.
 - **One with MediaStream in it**, found while wiring site permissions: Playwright's WebCore is built without
@@ -376,11 +376,11 @@ Two different features deserve the name, and the first of them is now built.
 
 **Video PiP** — WebKit's own, for `<video>` — is done: `⌥⇧P`, a View menu item, and the button in WebKit's own media
 controls. `WebPage.Configuration` turned out to have no field to allow it in, so it is SPI on the terms above, and the
-floating player survives its window being scrolled off the rail, turned into a placeholder card and left behind for
+floating player survives its window being scrolled out of the row, turned into a placeholder card and left behind for
 another profile. What it took, and what was measured, is in [layout.md](layout.md#picture-in-picture).
 
 **Window PiP** is not. Any six window as a small always-on-top panel: an `NSPanel` at `.floating` level hosting the
-page, which leaves the strip while it floats and returns to its column when closed. This is niri's floating layer, and
+page, which leaves the strip while it floats and returns to its column when closed. This is a floating layer, and
 the same mechanism would later serve a proper floating-window mode. Nothing about the video half helps here — that one
 is not even a window WebKit owns: `PIPAgent` draws it in a process of its own, on a system layer, snapped to a corner
 of the screen, and six can neither parent it to the browser window nor place it
@@ -510,7 +510,7 @@ Built and measured; see [linux.md](linux.md) for the whole picture. What is left
 The Mac takes pages in through a share extension that reads one file and opens one URL ([sharing.md](sharing.md)).
 Neither half is available on iOS. An extension there cannot open its containing app (the responder-chain trick that
 does it is private API, and App Review has refused it), and a sandbox on iOS has no temporary exceptions that would
-let it read the rail from the app's container. Both halves become an **App Group**: the app writes
+let it read the row from the app's container. Both halves become an **App Group**: the app writes
 `share-targets.json` into the group container, and the extension leaves the request there for the app to pick up
 on its next activation, or on a Darwin notification while it runs. An App Group needs a developer team, and this
 machine signs ad hoc. The wire (`ShareRequest`, `ShareTargets`) is already portable Foundation, so once a team exists
@@ -538,10 +538,10 @@ this is a target, an entitlement and a queue.
 - Deep research without an agent: a native loop over the ⌘E model for machines with no Claude Code / Codex, and
   exporting a run as one HTML file with its sources inlined ([deep-research.md](deep-research.md)).
 - A way back to the start page after navigating (a "home" affordance, or `⌘⇧H`).
-- **The rail that moves up, shown moving up — in the overview.** Taking the last window off a rail (⌥⇧↓, or a drag
-  in the overview) empties it, and niri's rule removes it: the rail below takes its place, so the window you just
-  sent *down* ends up on the top rail — which is right, and reads strangely. On the rail itself rows are not
-  visible as rows, so nothing there can show it; the overview draws the whole stack, and there the lower rail could
+- **The row that moves up, shown moving up — in the overview.** Taking the last window out of the row (⌥⇧↓, or a drag
+  in the overview) empties it, and the rule removes it: the row below takes its place, so the window you just
+  sent *down* ends up on the top row — which is right, and reads strangely. In the row itself rows are not
+  visible as rows, so nothing there can show it; the overview draws the whole stack, and there the lower row could
   fly up into the gap instead of the rows being renumbered in one cut.
 - **Closing a full-width window with the mouse.** The × on a card sits on the corner a page does not want
   (`ColumnCloseBadge`), which works because a tiled window has a gap beside it; filled (⌥W) there is no gap, the page

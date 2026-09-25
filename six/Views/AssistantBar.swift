@@ -11,7 +11,7 @@ import SwiftUI
 /// It stands in one of two places (`AssistantStore.LinePlace`), and nowhere until it is asked for.
 /// With a caret in a field or text selected, ⌘E hangs it on that (`AnchoredAssistantLine`): the
 /// question is about the thing, so it is asked next to the thing. With nothing pointed at, it rises
-/// at the bottom of the rail. There used to be bars that came up by themselves — one over every
+/// at the bottom of the row. There used to be bars that came up by themselves — one over every
 /// selection, one beside every comment box — and they were an assistant that would not wait to be
 /// asked, over the page's own selection menus and toolbars. The verbs they carried are behind `/`.
 struct AssistantBar: View {
@@ -19,7 +19,7 @@ struct AssistantBar: View {
     /// The window the question is about. Nil at the bottom, where it is whichever is selected.
     var tab: BrowserTab?
     /// Hung below what it points at, the line comes first and the answer opens under it; at the
-    /// bottom of the rail, or above a field near the bottom of the page, the other way round.
+    /// bottom of the row, or above a field near the bottom of the page, the other way round.
     var growsDown = false
     /// Beside a field or a selection the verbs come up straight away and the field waits behind
     /// them: what is wanted there is nearly always one of four things, and a row of named verbs says
@@ -50,7 +50,7 @@ struct AssistantBar: View {
 
     private func reportFrame() {
         guard place == .bottom else { return }
-        NiriScrollMonitor.overlays["assistant.line"] = isShown ? frame : nil
+        TilingScrollMonitor.overlays["assistant.line"] = isShown ? frame : nil
     }
 
     private var isAgent: Bool { assistant.settings.model.agentDefinition != nil }
@@ -118,7 +118,7 @@ struct AssistantBar: View {
         }
         .onChange(of: verbs.count) { chosen = min(chosen, max(0, verbs.count - 1)) }
         // The scroll monitor cannot tell the line from the strip by its views, so it is told where
-        // the line stands — here at the bottom of the rail; beside a field `AnchoredAssistantLine`
+        // the line stands — here at the bottom of the row; beside a field `AnchoredAssistantLine`
         // says it, from outside its own hosting view where `.global` is still the window's.
         .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }) { frame = $0; reportFrame() }
         .onChange(of: isShown) { reportFrame() }
@@ -441,11 +441,11 @@ struct AnchoredAssistantLine: View {
             .frame(width: width, height: height)
             // Inside the offset, so the frame is where the line is drawn and not where it was laid out.
             .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }) {
-                NiriScrollMonitor.overlays["assistant.line.\(tab.id)"] = $0
+                TilingScrollMonitor.overlays["assistant.line.\(tab.id)"] = $0
             }
             .offset(x: x, y: min(max(0, y), max(0, size.height - height)))
         }
-        .onDisappear { NiriScrollMonitor.overlays["assistant.line.\(tab.id)"] = nil }
+        .onDisappear { TilingScrollMonitor.overlays["assistant.line.\(tab.id)"] = nil }
         // What the line is about, put back in the page as well: the field collapsed its selection
         // to a caret when the keyboard left, and a person looking at a line about "four words" has
         // to be able to see which four. The page kept the nodes; six only kept the text.

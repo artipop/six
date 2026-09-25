@@ -78,7 +78,7 @@ in the address field beside the camera and the microphone, and clicking it pause
 the sharing alone.
 
 A window that is sharing the screen or holding a call is not unloaded from
-memory, even when you scroll the rail away from it.
+memory, even when you scroll the row away from it.
 
 ## What is not there yet
 

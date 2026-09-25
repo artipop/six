@@ -1,20 +1,20 @@
 # Keyboard shortcuts
 
-`⌥` is the rail, `⌘` is the browser. `⌥` already has work to do on a Mac — word
+`⌥` is the row, `⌘` is the browser. `⌥` already has work to do on a Mac — word
 movement, typing «∑» and «ø», scrolling a page, a site's own shortcuts — so a key
-goes first to whatever has the focus, and the rail answers only if nothing there
-wanted it. For when it has to work regardless there is `⌃⌥`: those keys the rail
+goes first to whatever has the focus, and the row answers only if nothing there
+wanted it. For when it has to work regardless there is `⌃⌥`: those keys the row
 always takes. None of it is
 required: [every operation has a mouse
 equivalent](/en/layout#with-the-mouse-alone).
 
-## The rail
+## The row
 
 | | |
 |---|---|
 | `⌥←` `⌥→` | focus the window left / right |
 | `⌥⇧←` `⌥⇧→` | move the window left / right |
-| `⌥Home` `⌥End` | first / last window on the rail (also right-click the background) |
+| `⌥Home` `⌥End` | first / last window in the row (also right-click the background) |
 | `⌥↑` `⌥↓` | workspace above / below |
 | `⌥⇧↑` `⌥⇧↓` | move the window to the workspace above / below and follow it; a split column travels as a pair |
 | `⌥W` | full width |
@@ -24,17 +24,17 @@ equivalent](/en/layout#with-the-mouse-alone).
 | `⌥` + vertical scroll | one workspace per gesture |
 | `⌥` + horizontal scroll | a window per ~55 pt of travel — as far as you push |
 
-Where the rail has run out, the gesture is not lost in silence: the edge you
+Where the row has run out, the gesture is not lost in silence: the edge you
 pushed into lights up in the profile's colour, the rubber band stiffens, and
 nothing moves — because there is nothing that way.
 
-**The page first, then the rail.** While the caret is in a field with text in it —
+**The page first, then the row.** While the caret is in a field with text in it —
 the address bar, the `⌘E` line, a field on the page itself — the `⌥` arrows move the
 caret, and `⌥W`, `⌥S`, `⌥O`, `⌥C` type their characters. On a page that scrolls,
 `⌥↑` and `⌥↓` page through it — all the way to the end, without jumping to the next
 workspace. A shortcut a site took for itself (Google Sheets moves between sheets
 with `⌥↑` / `⌥↓`) stays the site's. On the empty field a new window opens with, and
-on a page that does not scroll, the keys walk the rail.
+on a page that does not scroll, the keys walk the row.
 
 | | |
 |---|---|
@@ -44,22 +44,22 @@ on a page that does not scroll, the keys walk the rail.
 | `⌃⌥⇧↑` `⌃⌥⇧↓` | move the window to the workspace above / below |
 | `⌃⌥O` | overview |
 
-`⌃⌥` means nothing to a Mac, in text or in the system, so the rail takes these first
+`⌃⌥` means nothing to a Mac, in text or in the system, so the row takes these first
 without taking anything from anyone.
 
 ## Flying between windows
 
 | | |
 |---|---|
-| `⌃Tab` | hold `⌃`: the current rail's windows as pictures, in the order you last looked at them, with the one you would land on in the middle. Each press steps one along the ring; letting `⌃` go flies there |
+| `⌃Tab` | hold `⌃`: the current row's windows as pictures, in the order you last looked at them, with the one you would land on in the middle. Each press steps one along the ring; letting `⌃` go flies there |
 | `⌃⇧Tab` | the same, the other way |
 | `⌃⇧←` `⌃⇧→` | the card to the left or the right, along the row. The `⇧` is not decoration: macOS takes plain `⌃←` / `⌃→` for Mission Control's spaces, and they never reach the browser |
 | `↩` | fly now, without waiting for `⌃` to come up |
 | `Esc` | let go of the ring without going anywhere |
 
-`⌥←` `⌥→` walk the rail — where the windows **stand**; `⌃Tab` walks the memory —
+`⌥←` `⌥→` walk the row — where the windows **stand**; `⌃Tab` walks the memory —
 the order they were **looked at** in. Which is why one press of `⌃Tab` is a
-toggle between the last two windows. The current rail's windows only — not other
+toggle between the last two windows. The current row's windows only — not other
 workspaces, not other profiles — and this run only.
 
 ## Browser
@@ -70,8 +70,8 @@ workspaces, not other profiles — and this run only.
 | `⌘⇧R` | load it again from the server, past the cache |
 | `⌘.` | stop loading |
 | `⌘[` `⌘]` | back / forward through this window's own history (so do ‹ ›) |
-| `⌘,` | settings — `six://configuration`, a column of the rail like any other address |
-| `⌘T` | a new window on the rail, right of the focused one |
+| `⌘,` | settings — `six://configuration`, a column of the row like any other address |
+| `⌘T` | a new window in the row, right of the focused one |
 | `⌘W` | close the focused window |
 | `⌘⇧T` | put the last closed window back where it stood |
 | `⌘⇧N` | a new document |
@@ -80,7 +80,7 @@ workspaces, not other profiles — and this run only.
 | `⌘F` | find on the page; `↩` / `⇧↩` for the next / previous match, `Esc` to close |
 | `⌘L` | focus the address field |
 | `⌘E` | the assistant line: bring it up, or put it away |
-| `⌘⇧E` | chats with agents, as a column of the rail |
+| `⌘⇧E` | chats with agents, as a column of the row |
 | `⌘Y` | the profile's history |
 | `⌘D` | bookmark the focused page (again: remove it) |
 | `⌘⌥B` | bookmarks and the search across them |
@@ -100,7 +100,7 @@ workspaces, not other profiles — and this run only.
 | typing | completions: an address, pages from history, the engine's suggestions |
 | `↑` `↓` | walk the rows |
 | `↩` | open the selected row, or what you typed |
-| `Esc` | clear the field; on an empty field, let go of the caret so the `⌥` keys walk the rail again. A click beside the field does the same |
+| `Esc` | clear the field; on an empty field, let go of the caret so the `⌥` keys walk the row again. A click beside the field does the same |
 
 ## Bookmarks (`⌘⌥B`)
 

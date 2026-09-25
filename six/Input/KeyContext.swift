@@ -1,10 +1,10 @@
 /// What the keyboard is pointed at when a key arrives.
 ///
-/// This is the thing six did not have. The rail's keys come through a local key monitor — they have
+/// This is the thing six did not have. The row's keys come through a local key monitor — they have
 /// to, a first-responder `WKWebView` answers a key equivalent before the menu bar sees it — and the
 /// monitor used to decide who should get the key from one line: `firstResponder is NSText`. That
 /// line is wrong in both directions. It said *yes* to the empty field a fresh window opens with, so
-/// `⌥←` on a start page moved a caret across nothing instead of walking the rail; it said yes to
+/// `⌥←` on a start page moved a caret across nothing instead of walking the row; it said yes to
 /// `⌥↑`, which a one-line field has no answer for at all, so the key simply did nothing. And it said
 /// *nothing* about the window the key landed in, so `⌥O` toggled the overview from underneath a
 /// sheet.
@@ -15,9 +15,9 @@
 /// drifts. The window system already knows; it only had to be asked a better question, and asking it
 /// is the one part of this that is platform work (`KeyEvents.swift` on the Mac).
 struct KeyContext: Equatable {
-    /// Which window the key landed in. The rail's keys are six's own window's and nobody else's: a
+    /// Which window the key landed in. The row's keys are six's own window's and nobody else's: a
     /// sheet, a popover and a video playing full screen each have their own idea of what `Esc`
-    /// means, and none of them wants the rail moving behind them.
+    /// means, and none of them wants the row moving behind them.
     enum Window: Equatable { case main, elsewhere }
 
     /// A caret sitting in a text field, and what it could do if the key were handed to it.

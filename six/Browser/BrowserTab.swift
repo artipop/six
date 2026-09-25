@@ -27,7 +27,7 @@ enum TabContent {
 ///
 /// Not a sheet. A sheet belongs to the application and stops everything else; a browser's answer to
 /// "show me a list of things" is a page — it goes in a column, it has an address, it can be left
-/// open next to what it is about, and the rail already knows how to carry it. The start page is the
+/// open next to what it is about, and the row already knows how to carry it. The start page is the
 /// same idea without an address of its own. Configuration is the case that makes the argument: reading
 /// what a site is allowed while looking at the site is the whole point, and a sheet cannot.
 nonisolated enum BuiltInPage: String, Codable, Sendable, CaseIterable {
@@ -48,7 +48,7 @@ nonisolated enum BuiltInPage: String, Codable, Sendable, CaseIterable {
     /// The Mac only, like configuration: the phone has no assistant surface for the question to be
     /// about.
     case welcome
-    /// Every conversation with an agent, as a page on the rail rather than a list down the side of
+    /// Every conversation with an agent, as a page in the row rather than a list down the side of
     /// the window (`AgentChatsPage`). A list of chats is a list of things, and the answer to that
     /// here is a column: it opens beside what you are doing and leaves when you are done with it.
     case chats

@@ -9,7 +9,7 @@ import sys
 
 HEADER = """# Golden strip geometry, produced by the Mac and committed here.
 #
-# Regenerate with android/tools/golden/generate.sh, which compiles six/Niri/NiriLayout.swift
+# Regenerate with android/tools/golden/generate.sh, which compiles six/Tiling/TilingLayout.swift
 # on its own and prints this table. Do not hand-edit: a number that changes here is either
 # a deliberate change to the layout on both sides, or the bug this file exists to catch.
 #

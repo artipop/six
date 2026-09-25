@@ -4,7 +4,7 @@ import SwiftUI
 /// The first window six ever opens, and the one question it has to ask.
 ///
 /// A page and not a sheet, for the reason written on `BuiltInPage`: a browser's answer to "show me
-/// something" is a window on the rail. It can be closed, it can be opened again from the menu, and
+/// something" is a window in the row. It can be closed, it can be opened again from the menu, and
 /// it teaches the layout in the act of being read — the first thing a new person does here is close
 /// a column.
 ///
@@ -37,7 +37,7 @@ struct WelcomePage: View {
                 Text("six")
                     .font(.system(size: 44, weight: .semibold, design: .rounded))
                     .foregroundStyle(browser.selectedProfile.color)
-                Text("A browser with a rail instead of tabs: a page is a full-height window, the windows stand side by side, and the rail scrolls. ⌥← and ⌥→ move along it; ⌥↑ and ⌥↓ move between workspaces.")
+                Text("A browser with a row instead of tabs: a page is a full-height window, the windows stand side by side, and the row scrolls. ⌥← and ⌥→ move along it; ⌥↑ and ⌥↓ move between workspaces.")
                     .font(.title3)
                     .foregroundStyle(.secondary)
                     .padding(.top, 12)
@@ -204,7 +204,7 @@ struct WelcomePage: View {
     }
 
     /// Answering is the whole of it: the switch is written, the question is marked asked, and the
-    /// window closes — the rail is left empty rather than holding a page nobody needs twice.
+    /// window closes — the row is left empty rather than holding a page nobody needs twice.
     private func answer(_ enabled: Bool) {
         settings.isAIEnabled = enabled
         settings.hasAnsweredWelcome = true

@@ -10,7 +10,7 @@ import java.util.UUID
  * A window is not a page it holds forever. On the Mac a `WebPage` is a content process, so a strip
  * of a hundred windows keeps only as many live as the machine can carry and *discards* the rest —
  * the window stays where it is, with its address, its history and its scroll offset, and builds the
- * page again when you come back to it. [NiriLayout.visibleTabIds] decides which those are.
+ * page again when you come back to it. [TilingLayout.visibleTabIds] decides which those are.
  *
  * Android has no process per tab, but a `WebView` is not cheap either, and the platform's answer to
  * "keep this window without keeping its page" is `saveState`/`restoreState` into a `Bundle`.

@@ -103,7 +103,7 @@ final class ConfigurationStore {
 
     // MARK: Typed settings
 
-    /// niri's `center-focused-column`; on by default.
+    /// Centre the focused column; on by default.
     var centersFocus: Bool {
         get { self[.centersFocus].map { $0 == "1" } ?? true }
         set { self[.centersFocus] = newValue ? "1" : "0" }
@@ -112,8 +112,8 @@ final class ConfigurationStore {
     /// Tiled or full-window, whichever the user last chose — so an empty workspace losing its last
     /// window and being rebuilt fresh does not quietly answer this itself. Full window until anyone
     /// has chosen otherwise.
-    var fill: NiriFill {
-        get { self[.fill].flatMap(NiriFill.init(rawValue:)) ?? .window }
+    var fill: TilingFill {
+        get { self[.fill].flatMap(TilingFill.init(rawValue:)) ?? .window }
         set { self[.fill] = newValue.rawValue }
     }
 

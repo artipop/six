@@ -1565,7 +1565,7 @@
         }
       }
     },
-    "A browser with a rail instead of tabs: a page is a full-height window, the windows stand side by side, and the rail scrolls. ⌥← and ⌥→ move along it; ⌥↑ and ⌥↓ move between workspaces." : {
+    "A browser with a row instead of tabs: a page is a full-height window, the windows stand side by side, and the row scrolls. ⌥← and ⌥→ move along it; ⌥↑ and ⌥↓ move between workspaces." : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
@@ -4048,7 +4048,7 @@
         }
       }
     },
-    "New Window on the Rail" : {
+    "New Window in the Row" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
@@ -5810,7 +5810,7 @@
         }
       }
     },
-    "The Rail" : {
+    "Layout" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {

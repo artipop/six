@@ -45,7 +45,7 @@ one for each direction:
   `six-dev-share`), and so is the Application Support folder the extension reads (`SIX_APP_IDENTIFIER`). Both reach
   the extension's `Info.plist` and its entitlements.
 
-Profiles and workspaces travel **by id**, because the rail can change between the sheet opening and the click. An id
+Profiles and workspaces travel **by id**, because the row can change between the sheet opening and the click. An id
 that is gone falls back to the profile and row in front (`ShareInbox.swift`), and the shared page is never dropped.
 The last row of every strip is the empty one `normalize` always keeps, and the sheet calls it **New Workspace**:
 opening into it is how a page gets a row of its own.
@@ -116,7 +116,7 @@ No clicks can be sent here (AGENTS.md), so each half is checked on its own:
   is what the Share menu's own switch does. After that, `NSSharingService.sharingServices(forItems:)` in a ten-line
   Swift script says which items get six: a URL, text, a PDF and a `.txt` did, and a `.zip` did not (measured).
 - **The sheet.** `service.perform(withItems:)` from a script that owns an `NSApplication` puts the sheet up.
-  `log show --predicate 'subsystem == "org.deffun.six.dev.share"'` then shows `sheet for …; rail read`, which means
+  `log show --predicate 'subsystem == "org.deffun.six.dev.share"'` then shows `sheet for …; row read`, which means
   the sandboxed process read `share-targets.json`.
 - **The handoff.** `open "six-dev-share://open?url=…&profile=…&workspace=…"`, then read `share-targets.json` again: the
   window shows up on the named row. `bookmark` and `private` log `shared in: …` in `six.log`, and a saved bookmark

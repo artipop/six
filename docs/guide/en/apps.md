@@ -2,7 +2,7 @@
 
 An MCP server can return not only text but an **interface**: a ready page the
 host shows instead of a tool result and then talks to. In a chat that becomes a
-picture inside the conversation. Here an app is **a window on the rail**, level
+picture inside the conversation. Here an app is **a window in the row**, level
 with a website: it can be moved, carried to another workspace, left open and come
 back to tomorrow.
 
@@ -93,7 +93,7 @@ own.
 
 A shared server's tools reach the agent as **the browser's own**, and then the
 agent opens app windows itself: ask about the weather and get a weather window in
-the rail rather than a paragraph. The agent's tool list is live: share a server
+the row rather than a paragraph. The agent's tool list is live: share a server
 or take it back, and it finds out at once.
 
 App windows are visible to the agent like pages: it can list them, read them and

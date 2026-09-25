@@ -23,7 +23,7 @@ import WebKit
 /// and the window shows its backdrop.
 ///
 /// **So the flip is temporary, and that is the whole design.** Left on, it is a second regression
-/// rather than a fix: SwiftUI goes on laying the rail out with constraints the view no longer
+/// rather than a fix: SwiftUI goes on laying the row out with constraints the view no longer
 /// answers to, and the page flickers black under the pointer — hovering a video is enough, because
 /// the media controls fading in is a layout pass. So the view answers to its frame only while
 /// WebKit has it, from `enteringFullscreen` to the moment the state comes back to

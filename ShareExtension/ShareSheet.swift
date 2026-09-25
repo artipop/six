@@ -48,7 +48,7 @@ final class ShareModel {
         title = item?.attributedTitle?.string ?? item?.attributedContentText?.string ?? ""
         content = await Self.read(items)
         if title.isEmpty, case .file(let url) = content { title = url.lastPathComponent }
-        log.info("sheet for \(String(describing: self.content), privacy: .private); rail \(self.targets == nil ? "unknown" : "read", privacy: .public)")
+        log.info("sheet for \(String(describing: self.content), privacy: .private); row \(self.targets == nil ? "unknown" : "read", privacy: .public)")
     }
 
     func selectProfile(_ id: UUID) {
@@ -343,7 +343,7 @@ private struct WorkspaceRow: View {
         .buttonStyle(.plain)
     }
 
-    /// The rail's own words: the name, or the position — and the empty row below the others, which is
+    /// The row's own words: the name, or the position — and the empty row below the others, which is
     /// where a new workspace comes from, called what it is.
     private var name: String {
         if !workspace.name.isEmpty { return workspace.name }

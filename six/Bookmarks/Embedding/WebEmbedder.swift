@@ -45,7 +45,7 @@ final class WebEmbedder: Embedder {
     /// What is happening with the model — downloading, loading, failed — for whoever asked.
     ///
     /// English, unlike `MLXEmbedder`'s: the two fronts that run this have no String Catalog yet,
-    /// and the rail's own "New Tab" is already in the same boat. When they get one this is three
+    /// and the row's own "New Tab" is already in the same boat. When they get one this is three
     /// `String(localized:)` calls, not a design.
     private var statusHandler: (@Sendable (String) -> Void)?
 

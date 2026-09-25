@@ -22,13 +22,13 @@
 /// cannot know in advance which of those the thing in front of you wants. So a `.pageFirst` row lets
 /// the key reach the page, and answers only if WebKit hands it back unhandled, the way Chrome and
 /// Firefox treat every shortcut they do not reserve. The `.reserved` rows are the ones that stay
-/// six's whatever has the focus: the ring, and a `⌃⌥` copy of the rail's navigation for the page that
+/// six's whatever has the focus: the ring, and a `⌃⌥` copy of the row's navigation for the page that
 /// swallows every key it is given.
 enum KeyBindings {
     /// The ring is listed first because it is on top: while `⌃` holds the cards up, nothing else in
     /// the window is being looked at. Order is meaningful — the first row that matches wins — and
     /// `KeyBindingsTests` checks that no `.any` row is shadowing a narrower one written after it.
-    static let all: [KeyBinding] = table + reservedRail
+    static let all: [KeyBinding] = table + reservedRow
 
     private static let table: [KeyBinding] = [
         // MARK: The ⌃Tab ring, while it is held open
@@ -38,7 +38,7 @@ enum KeyBindings {
         // right; the two keys that mean "left" and "right" used to land it and fall through.
         //
         // They walk the **row** and not the memory ⌃Tab walks. The two were the same thing until the
-        // row started being drawn along the rail — a split's halves keep their places there rather
+        // row started being drawn along the row — a split's halves keep their places there rather
         // than taking the order they were used in — and after that an arrow that answered by recency
         // would move the highlight the other way from the one it points.
         KeyBinding(.code(.rightArrow), .any, .switcher, .walkSwitcher(1)),
@@ -49,41 +49,41 @@ enum KeyBindings {
         // for no modifiers, and the ring is held open by one.
         KeyBinding(.code(.escape), .any, .switcher, .cancelSwitcher),
 
-        // MARK: The rail (⌥)
+        // MARK: The row (⌥)
         // Every one of these is a key macOS or the page may already mean something by, so every one
         // is offered to the page first. `⌥↑` / `⌥↓` show why that is not a formality: WebKit scrolls
         // a page by a screen with them and keeps them for as long as the page *can* scroll — at its
         // bottom edge too, measured — so on an article they are the article's, and on a start page
         // or a short page they come back and step the workspace.
-        KeyBinding(.code(.leftArrow), .exactly(.option), .rail, .focusColumn(-1), .pageFirst),
-        KeyBinding(.code(.rightArrow), .exactly(.option), .rail, .focusColumn(1), .pageFirst),
-        KeyBinding(.code(.leftArrow), .exactly([.option, .shift]), .rail, .moveColumn(-1), .pageFirst),
-        KeyBinding(.code(.rightArrow), .exactly([.option, .shift]), .rail, .moveColumn(1), .pageFirst),
-        KeyBinding(.code(.home), .exactly(.option), .rail, .focusColumnEdge(last: false), .pageFirst),
-        KeyBinding(.code(.end), .exactly(.option), .rail, .focusColumnEdge(last: true), .pageFirst),
-        KeyBinding(.code(.upArrow), .exactly(.option), .rail, .focusWorkspace(-1), .pageFirst),
-        KeyBinding(.code(.downArrow), .exactly(.option), .rail, .focusWorkspace(1), .pageFirst),
-        KeyBinding(.code(.upArrow), .exactly([.option, .shift]), .rail, .moveColumnToWorkspace(-1), .pageFirst),
-        KeyBinding(.code(.downArrow), .exactly([.option, .shift]), .rail, .moveColumnToWorkspace(1), .pageFirst),
-        KeyBinding(.letter("w", .w), .exactly(.option), .rail, .toggleFullWidth, .pageFirst),
+        KeyBinding(.code(.leftArrow), .exactly(.option), .row, .focusColumn(-1), .pageFirst),
+        KeyBinding(.code(.rightArrow), .exactly(.option), .row, .focusColumn(1), .pageFirst),
+        KeyBinding(.code(.leftArrow), .exactly([.option, .shift]), .row, .moveColumn(-1), .pageFirst),
+        KeyBinding(.code(.rightArrow), .exactly([.option, .shift]), .row, .moveColumn(1), .pageFirst),
+        KeyBinding(.code(.home), .exactly(.option), .row, .focusColumnEdge(last: false), .pageFirst),
+        KeyBinding(.code(.end), .exactly(.option), .row, .focusColumnEdge(last: true), .pageFirst),
+        KeyBinding(.code(.upArrow), .exactly(.option), .row, .focusWorkspace(-1), .pageFirst),
+        KeyBinding(.code(.downArrow), .exactly(.option), .row, .focusWorkspace(1), .pageFirst),
+        KeyBinding(.code(.upArrow), .exactly([.option, .shift]), .row, .moveColumnToWorkspace(-1), .pageFirst),
+        KeyBinding(.code(.downArrow), .exactly([.option, .shift]), .row, .moveColumnToWorkspace(1), .pageFirst),
+        KeyBinding(.letter("w", .w), .exactly(.option), .row, .toggleFullWidth, .pageFirst),
         // ⌥S beside ⌥W: the two keys that change what a window is given, one after the other in the
         // hand. Not a ⌘ key, and not only because ⌘S is Save — it is pressed while reading a page,
         // and a focused `WKWebView` answers a key equivalent before the menu bar is asked.
-        KeyBinding(.letter("s", .s), .exactly(.option), .rail, .toggleSplit, .pageFirst),
-        KeyBinding(.letter("o", .o), .exactly(.option), .rail, .toggleOverview, .pageFirst),
-        KeyBinding(.letter("c", .c), .exactly(.option), .rail, .toggleCenterFocus, .pageFirst),
+        KeyBinding(.letter("s", .s), .exactly(.option), .row, .toggleSplit, .pageFirst),
+        KeyBinding(.letter("o", .o), .exactly(.option), .row, .toggleOverview, .pageFirst),
+        KeyBinding(.letter("c", .c), .exactly(.option), .row, .toggleCenterFocus, .pageFirst),
 
         // MARK: Opening the ring
-        KeyBinding(.code(.tab), .exactly(.control), .rail, .stepSwitcher(1)),
-        KeyBinding(.code(.tab), .exactly([.control, .shift]), .rail, .stepSwitcher(-1)),
+        KeyBinding(.code(.tab), .exactly(.control), .row, .stepSwitcher(1)),
+        KeyBinding(.code(.tab), .exactly([.control, .shift]), .row, .stepSwitcher(-1)),
 
         // MARK: The `⌥⇧` verbs the View and File menus show but cannot deliver
-        KeyBinding(.letter("t", .t), .exactly([.option, .shift]), .rail, .translateSelection, .pageFirst),
-        KeyBinding(.letter("h", .h), .exactly([.option, .shift]), .rail, .highlightSelection, .pageFirst),
+        KeyBinding(.letter("t", .t), .exactly([.option, .shift]), .row, .translateSelection, .pageFirst),
+        KeyBinding(.letter("h", .h), .exactly([.option, .shift]), .row, .highlightSelection, .pageFirst),
         // Picture-in-picture is the one of these that is pressed while a video has the focus, which
         // is the case a menu item is worst at: the page is first responder, it is playing, and it
         // would rather have the key.
-        KeyBinding(.letter("p", .p), .exactly([.option, .shift]), .rail, .pictureInPicture, .pageFirst),
+        KeyBinding(.letter("p", .p), .exactly([.option, .shift]), .row, .pictureInPicture, .pageFirst),
 
         // MARK: The address, into the pasteboard
         // **Not** offered to the page first, though Google Docs has ⌘⇧C for a word count: a ⌘ chord
@@ -94,14 +94,14 @@ enum KeyBindings {
         // It is in the table and not only in the menu because the key is pressed while the page has
         // the focus, and a focused `WKWebView` answers a key equivalent before the menu bar is
         // asked. ⌘C is the page's own — the selection — and stays the page's.
-        KeyBinding(.letter("c", .c), .exactly(copyAddressChord), .rail, .copyAddress),
+        KeyBinding(.letter("c", .c), .exactly(copyAddressChord), .row, .copyAddress),
 
         // MARK: ⎋
-        KeyBinding(.code(.escape), .exactly([]), .rail, .leaveOverview),
+        KeyBinding(.code(.escape), .exactly([]), .row, .leaveOverview),
 
         // MARK: ↩, in the overview
         // Into the focused window, which is what a click on its card does. The same action as ⎋ —
-        // leaving puts the rail back under the focused window either way — but ↩ is the key a
+        // leaving puts the row back under the focused window either way — but ↩ is the key a
         // person presses to go *into* something. Scoped to the overview rather than declined outside
         // it, as ⎋ is: a bare ↩ is every page's and every field's, and outside the overview it
         // should not so much as pass through here. And `.pageFirst`, which in the overview asks
@@ -110,7 +110,7 @@ enum KeyBindings {
         KeyBinding(.code(.keypadEnter), .exactly([]), .overview, .leaveOverview, .pageFirst)
     ]
 
-    /// The rail's navigation again, on `⌃⌥`, and **never** offered to anything first.
+    /// The row's navigation again, on `⌃⌥`, and **never** offered to anything first.
     ///
     /// `⌃⌥` is the one pair of modifiers that means nothing to a Mac: `StandardKeyBinding.dict` binds
     /// `⌃⌥B`, `⌃⌥F` and `⌃⌥⌫` and no arrow, `com.apple.symbolichotkeys` has none of it, and it types no
@@ -118,22 +118,22 @@ enum KeyBindings {
     /// what a page that swallows every key needs (a game, a remote desktop, Figma), and what a caret
     /// in a field with text in it needs, since `⌥←` there is word movement and stays that.
     ///
-    /// The Mac's alone. `RailKeyLookup` reads this table on Windows, where `Ctrl+Alt` *is* AltGr and
+    /// The Mac's alone. `StripKeyLookup` reads this table on Windows, where `Ctrl+Alt` *is* AltGr and
     /// types half of a Polish keyboard.
-    static let reservedRail: [KeyBinding] = {
+    static let reservedRow: [KeyBinding] = {
         #if os(macOS)
         let hyper: KeyModifiers = [.control, .option]
         let move: KeyModifiers = [.control, .option, .shift]
         return [
-            KeyBinding(.code(.leftArrow), .exactly(hyper), .rail, .focusColumn(-1)),
-            KeyBinding(.code(.rightArrow), .exactly(hyper), .rail, .focusColumn(1)),
-            KeyBinding(.code(.leftArrow), .exactly(move), .rail, .moveColumn(-1)),
-            KeyBinding(.code(.rightArrow), .exactly(move), .rail, .moveColumn(1)),
-            KeyBinding(.code(.upArrow), .exactly(hyper), .rail, .focusWorkspace(-1)),
-            KeyBinding(.code(.downArrow), .exactly(hyper), .rail, .focusWorkspace(1)),
-            KeyBinding(.code(.upArrow), .exactly(move), .rail, .moveColumnToWorkspace(-1)),
-            KeyBinding(.code(.downArrow), .exactly(move), .rail, .moveColumnToWorkspace(1)),
-            KeyBinding(.letter("o", .o), .exactly(hyper), .rail, .toggleOverview)
+            KeyBinding(.code(.leftArrow), .exactly(hyper), .row, .focusColumn(-1)),
+            KeyBinding(.code(.rightArrow), .exactly(hyper), .row, .focusColumn(1)),
+            KeyBinding(.code(.leftArrow), .exactly(move), .row, .moveColumn(-1)),
+            KeyBinding(.code(.rightArrow), .exactly(move), .row, .moveColumn(1)),
+            KeyBinding(.code(.upArrow), .exactly(hyper), .row, .focusWorkspace(-1)),
+            KeyBinding(.code(.downArrow), .exactly(hyper), .row, .focusWorkspace(1)),
+            KeyBinding(.code(.upArrow), .exactly(move), .row, .moveColumnToWorkspace(-1)),
+            KeyBinding(.code(.downArrow), .exactly(move), .row, .moveColumnToWorkspace(1)),
+            KeyBinding(.letter("o", .o), .exactly(hyper), .row, .toggleOverview)
         ]
         #else
         return []
@@ -142,7 +142,7 @@ enum KeyBindings {
 
     /// ⌘⇧C where there is a ⌘, and ⌃⇧C where there is not — the same chord under the two names the
     /// two keyboards give it, which is how every browser writes this one. The rest of the table is
-    /// spelled the same everywhere because ⌥ is: it stands in for niri's `Mod` and not for a
+    /// spelled the same everywhere because ⌥ is: it is the layout's modifier and not a
     /// platform's habit.
     static let copyAddressChord: KeyModifiers = {
         #if os(macOS) || os(iOS)
@@ -163,7 +163,7 @@ struct KeyBinding {
 
     /// Who is asked about a key first: six, or whatever has the keyboard.
     enum Precedence: Equatable {
-        /// Six answers before anything else sees the key. The ring, and the `⌃⌥` rail.
+        /// Six answers before anything else sees the key. The ring, and the `⌃⌥` row.
         case reserved
         /// The page is asked first, and six answers only what WebKit hands back unhandled. A native
         /// text field cannot hand anything back, so for one of those `yieldsToCaret(in:)` decides.
@@ -178,7 +178,7 @@ struct KeyBinding {
     ///
     /// **A reserved key never yields.** While ⌃Tab holds the ring open nothing else in the window is
     /// being looked at — without that, `⌃→` over a ring opened while the address field had the caret
-    /// walked the *caret*, and read as an arrow that did nothing at all — and the `⌃⌥` rail is
+    /// walked the *caret*, and read as an arrow that did nothing at all — and the `⌃⌥` row is
     /// reserved precisely so that there is a way off a field with text in it.
     func yieldsToCaret(in context: KeyContext) -> Bool {
         guard let field = context.field, precedence == .pageFirst else { return false }
@@ -223,7 +223,7 @@ struct KeyBinding {
             }
         }
 
-        /// Whether a field with a caret in it keeps this arrow instead of the rail.
+        /// Whether a field with a caret in it keeps this arrow instead of the row.
         ///
         /// Per field, and not per caret. It used to be per caret — `⌥←` yielded while there was a
         /// word behind the caret — and that was a trap: hold `⌥←` in the address field and the caret
@@ -267,12 +267,12 @@ struct KeyBinding {
         /// Only while the ⌃Tab ring is open.
         case switcher
         /// In six's own window: not in a sheet, not in a popover, not in a video playing full screen.
-        case rail
-        /// The rail, while the overview is open.
+        case row
+        /// The row, while the overview is open.
         case overview
 
         /// The modifier that holds this scope open, and so the one a person writing the key down is
-        /// already holding. The ring's `←` is written `⌃←`; the rail's is written `←`.
+        /// already holding. The ring's `←` is written `⌃←`; the row's is written `←`.
         var heldOpenBy: KeyModifiers { self == .switcher ? .control : [] }
     }
 
@@ -281,7 +281,7 @@ struct KeyBinding {
         guard modifiers.matches(held) else { return false }
         switch scope {
         case .switcher: return context.isSwitching
-        case .rail: return context.window == .main
+        case .row: return context.window == .main
         case .overview: return context.window == .main && context.isOverview
         }
     }
@@ -300,7 +300,7 @@ struct KeyBinding {
 }
 
 /// Everything the table can ask for. On the Mac `ContentView` is where each one turns into a call,
-/// because that is the view that has the browser, the highlights and the rail all in one place.
+/// because that is the view that has the browser, the highlights and the row all in one place.
 enum KeyAction: Equatable {
     case focusColumn(Int)
     case moveColumn(Int)

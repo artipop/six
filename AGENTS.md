@@ -5,8 +5,8 @@ this file is the part that is neither — how to build it, how to check it, and 
 
 ## What six is
 
-A browser with a [niri](https://github.com/YaLTeR/niri)-style scrollable-tiling layout: no tabs and no sidebar, a page
-is a full-height **window** on a horizontally scrollable **rail**, a rail is a **workspace**, workspaces stack
+A browser with a scrollable-tiling layout: no tabs and no sidebar, a page
+is a full-height **window** on a horizontally scrollable **row**, a row is a **workspace**, workspaces stack
 vertically. Four front ends over one core:
 
 | | | |
@@ -24,11 +24,11 @@ the single LLM API, ACP for agents, and the browser itself as an MCP server. Swi
 ## Where things are
 
 ```
-six/Niri          NiriLayout (workspaces, columns, geometry, focus/move), NiriScrollMonitor (⌥+scroll gestures)
+six/Tiling         TilingLayout (workspaces, columns, geometry, focus/move), TilingScrollMonitor (⌥+scroll gestures)
 six/Input         KeyBindings + KeyContext (the table, in SixCore), KeyEvents (the AppKit half), KeyRouter, KeySelfTest
 six/Browser       BrowserState, BrowserTab (WebPage), Profile/ProfileStore, History, SearchEngine, LivePageCache,
                   SitePermissions, CertificateStore, Downloads, IDN, PersonalSuggestions, PageThumbnails, PageFinder
-six/Views         ContentView (top bar), NiriStripView (rail + overview), StartPage, SettingsPageView, AssistantBar,
+six/Views         ContentView (top bar), TilingStripView (row + overview), StartPage, SettingsPageView, AssistantBar,
                   AgentPanel, MCPApps*, Phone/ (the iOS layout)
 six/Data          AppSupport (the one place that knows the bundle id → folder), AppDatabase, SettingsStore
 six/Persistence   AppStateSnapshot, SnapshotStore (versioned JSON), StatePersistence (debounced autosave)
@@ -46,7 +46,7 @@ six/Tools         BrowserTools — one catalog, served to the assistant, to ACP 
 six/Vendor        ClaudeForFoundationModels, FoundationModelsUtilities — compiled into the target, see below
 ```
 
-`SixCore` (root `Package.swift`) is the slice that must build on **Linux**: `NiriLayout`, the storage layer, the
+`SixCore` (root `Package.swift`) is the slice that must build on **Linux**: `TilingLayout`, the storage layer, the
 profile/bookmark/permission/translation models, the key bindings, and the wire half of ACP/MCP. A file joins it by
 being listed in `sources:` — see the essay at the top of that manifest before editing it.
 
@@ -192,8 +192,8 @@ MCP server instead — that is what it is for:
 
 **Keys can be pressed, though — `NSApp.postEvent` needs no Accessibility.** It is the app's own queue, and a local
 `NSEvent` monitor is exactly what pulls events out of it, so a synthetic `⌥→` goes through the real router and moves
-the real rail. `SIX_KEY_SELFTEST=1` does both halves: it prints what every binding answers in every context, then
-posts the rail's keys one at a time and says where the rail ended up (`six/Input/KeySelfTest.swift`). It does the
+the real row. `SIX_KEY_SELFTEST=1` does both halves: it prints what every binding answers in every context, then
+posts the row's keys one at a time and says where the row ended up (`six/Input/KeySelfTest.swift`). It does the
 `⌘` keys too, which are menu items and not table rows: `menuKeys` makes the focused `WKWebView` first responder by
 hand and then posts `⌘[` `⌘]` `⌘R`, because the interesting case is the one where WebKit is in front of the menu bar.
 Add to it rather than reasoning about the keyboard from the source — the bug it was written to find had survived a
@@ -392,7 +392,7 @@ anything added there has to exist on both:
   never executed, with nothing said. Measured with a standalone probe on Windows before anything was
   built on it. The fix is the seam CoreFoundation uses — `_dispatch_get_main_queue_handle_4CF` for a
   waitable handle, `_dispatch_main_queue_callback_4CF` to drain on the calling thread — wired into
-  the platform's own wait: `RailLoop` on Windows, `MainQueueBridge` + `g_unix_fd_add` on Linux.
+  the platform's own wait: `StripLoop` on Windows, `MainQueueBridge` + `g_unix_fd_add` on Linux.
   `swift_task_enqueueMainExecutor_hook` looks like the answer and is never called any more;
   SE-0463's `ExecutorFactory` is the answer and is not in 6.3.3.
 - **`FileManager.replaceItemAt` is a `fatalError` on Windows, not a thrown error.** The obvious call
@@ -440,7 +440,7 @@ anything added there has to exist on both:
   the program at a throwaway config root.
 - **`event.modifierFlags` carries more than the hand does.** macOS puts `.function` **and** `.numericPad` on every
   arrow key, and `.capsLock` on everything while Caps Lock is down; `deviceIndependentFlagsMask` keeps all three. So
-  `flags == .option` is false for `⌥→` and always was — the rail's arrow keys had never worked from the keyboard, and
+  `flags == .option` is false for `⌥→` and always was — the row's arrow keys had never worked from the keyboard, and
   the report they finally arrived as was "option + arrow doesn't always work". Compare against
   `KeyBinding.Modifiers.held` (⌘⌃⌥⇧) and nothing else.
 - **A `.disabled` on a SwiftUI `Commands` item is decided once, and a disabled item eats its key
@@ -453,7 +453,7 @@ anything added there has to exist on both:
 - **On Windows, how a page is drawn and where its clicks land are one problem, and the fix is a window procedure.**
   Playwright's WebKit deletes the `/ intrinsicDeviceScaleFactor` from `WebView::onSizeEvent` (their public
   bootstrap.diff), so the view size stays physical while rendering still multiplies by the scale — nothing reachable
-  from the C API can undo it, because the damage is done before any of those knobs are read. `RailWebView.installScaleShim` divides `WM_SIZE` by the display scale, which lands the product on the
+  from the C API can undo it, because the damage is done before any of those knobs are read. `StripWebView.installScaleShim` divides `WM_SIZE` by the display scale, which lands the product on the
   window's real pixels. It must **not** touch mouse messages: WebKit already divides those by the device scale, and
   doing it twice put every click 1.5× out. Measure with a page that writes `innerWidth`/`devicePixelRatio` into its
   own title and a labelled grid clicked by hand — reasoning about this produced three confident wrong answers in a
@@ -531,7 +531,7 @@ anything added there has to exist on both:
 
 ## What is built, and what is not
 
-Built: the rail and workspaces with the full gesture set, profiles with isolated data stores, persistence (a SQLite
+Built: the row and workspaces with the full gesture set, profiles with isolated data stores, persistence (a SQLite
 system of record plus a versioned JSON snapshot), history and bookmarks with on-device multilingual embeddings and
 personal search on the start page, ad/tracker blocking down to scriptlets and extended CSS, extra certificate
 authorities, `WKWebExtension` hosting, site permissions, downloads, page translation, find on page (⌘F), picture-in-

@@ -6,7 +6,7 @@ for its tabs and windows through `WKWebExtensionTab` / `WKWebExtensionWindow`.
 
 **`WKWebExtensionTab.webView(for:)`, on macOS, answers now.** It wants the live `WKWebView` behind a tab, and
 `WebPage` hands out none of its own — but `WebViewResponder` already had one on file per tab, for keyboard focus
-(⌥→ moving the rail's selection without AppKit's first responder following it). Found by walking the rendered view
+(⌥→ moving the row's selection without AppKit's first responder following it). Found by walking the rendered view
 tree for `is WKWebView` and matched by frame containment, not by `Mirror`-ing into `WebPage`'s private storage — a
 different and sturdier bet than the one this page used to reject outright, and confirmed on the wire: `webView(for:)`
 is now called repeatedly by WebKit itself and answers with the right tab's `WKWebView`, at the right URL, where it

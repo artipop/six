@@ -14,9 +14,9 @@ import WebKit
 /// anything new, and the one the rest of the app cites by name: a menu item is a verb with a key
 /// beside it; everything else is a setting.
 
-/// The window in front, and how the rail is showing it.
+/// The window in front, and how the row is showing it.
 ///
-/// The ⌥ bindings that walk the rail are deliberately *not* here — they live in `KeyBindings`, which
+/// The ⌥ bindings that walk the row are deliberately *not* here — they live in `KeyBindings`, which
 /// `KeyRouter` walks on a key monitor that sees a key before the focused web view does. A menu item
 /// cannot: WebKit takes `⌥←` and `⌥→` for word movement and the layout key never arrives. The `⌥`
 /// items that *are* here are here for display and for the pointer — the router answers the key first
@@ -74,8 +74,8 @@ struct ViewCommands: Commands {
             // A toggle and not two items, because it is one key: what ⌥S does depends on what the
             // window in front of you already is, and the tick says which of the two it is about to
             // do. Like every other row here it is never greyed out — a `Commands` body is not
-            // rebuilt when the layout changes under it — so on a rail with one window it does
-            // nothing, and the rail's own end-of-the-line light says so.
+            // rebuilt when the layout changes under it — so in a row with one window it does
+            // nothing, and the row's own end-of-the-line light says so.
             Toggle("Split", isOn: Binding(
                 get: { browser.layout.isSplit },
                 set: { _ in browser.toggleSplit() }
@@ -120,7 +120,7 @@ struct ViewCommands: Commands {
             Button("Ask Assistant…") { assistant.toggleLine(in: browser.selectedTab) }
                 .keyboardShortcut("e")
             // ⌘⇧E beside it: the conversations the line and the agent panel have had, as a page
-            // on the rail (`AgentChatsPage`).
+            // in the row (`AgentChatsPage`).
             Button("Chats") { browser.openBuiltIn(.chats) }
                 .keyboardShortcut("e", modifiers: [.command, .shift])
         }

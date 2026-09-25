@@ -11,7 +11,7 @@ flowchart TB
     end
 
     subgraph Core["Portable core — Foundation + Observation, no Apple API"]
-        BS["BrowserState / NiriLayout"]
+        BS["BrowserState / TilingLayout"]
         HS["HistoryStore"]
         AS["AgentSessionStore / ACP / MCP"]
         Snap["AppStateSnapshot · JSON
@@ -138,6 +138,6 @@ graph move first.
 ([sqlite-data#459](https://github.com/pointfreeco/sqlite-data/pull/459) is a separate Linux effort —
 CloudKit gating in its own tests, and its GRDB floor. Orthogonal to this, and not needed for it.)
 
-What did have to move is Apple-only Foundation, twice: `String(localized:)` in `NiriLayout` and in
+What did have to move is Apple-only Foundation, twice: `String(localized:)` in `TilingLayout` and in
 `BookmarkScope.title`. The strings catalog is Apple's too, so on Linux those are the keys and a GTK
 front translates them through gettext.

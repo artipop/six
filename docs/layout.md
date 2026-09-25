@@ -1,35 +1,35 @@
-# The niri layout
+# The tiling layout
 
-Modelled on [niri](https://github.com/YaLTeR/niri). There are no tabs and no sidebar.
+There are no tabs and no sidebar.
 
 - A page is a **column**: a full-height window that is nothing but the page, edge to edge inside a rounded card.
   Everything that used to be drawn on it — the lock, the shield, the address, the title — is in the top bar, for the
-  focused window only, because a rail of a dozen windows does not want a dozen address fields. The `×` is the one
+  focused window only, because a row of a dozen windows does not want a dozen address fields. The `×` is the one
   thing that stayed with the window: it sits on the card's top right corner, invisible until the pointer is on it.
-- Columns sit left to right on an endlessly scrollable **rail**. One rail is a **workspace**.
+- Columns sit left to right on an endlessly scrollable **row**. One row is a **workspace**.
 - Workspaces are stacked **vertically**; exactly one is on screen. Each profile has its own stack.
 - A workspace can be **named** (double-click its plate in the overview). Naming is optional; an unnamed one is just
-  "Workspace N". An unnamed workspace disappears the moment its last window does — same as niri. A named one is
+  "Workspace N". An unnamed workspace disappears the moment its last window does — A named one is
   **asked about** first: *Delete the workspace "X"?*, once, at that moment, and it goes or stands by the answer.
 
-*The interface calls it the rail; the code calls it a strip — `NiriStrip`, `allStrips`, `strip.state`, the
+*The interface calls it the row; the code calls it a strip — `TilingStrip`, `allStrips`, `strip.state`, the
 `StripState` JSON, the Kotlin beside it and the golden geometry those two agree on. That name is a wire format shared
 with the Linux and Android fronts, so it stays where it is and the rename stopped at the words a person reads. Every
-`strip` below is the type, every "rail" the thing on screen.*
+`strip` below is the type, every "row" the thing on screen.*
 
-*`NiriLayout` is the one file two front ends share. It has no platform in it — `CGFloat`, `CGRect`,
+*`TilingLayout` is the one file two front ends share. It has no platform in it — `CGFloat`, `CGRect`,
 `CGSize` and nothing else — so the GTK front computes its columns from the same `columnFrames()` and
 inherits the same promises. Those promises are the repository's first tests
-(`Tests/SixCoreTests/NiriLayoutGeometryTests.swift`), written against the intent stated below rather
+(`Tests/SixCoreTests/TilingLayoutGeometryTests.swift`), written against the intent stated below rather
 than against the numbers it happens to produce, because that is what would silently desynchronise the
 two. See [linux.md](linux.md).*
 
-## Model — `six/Niri/NiriLayout.swift`
+## Model — `six/Tiling/TilingLayout.swift`
 
 ```
-NiriStrip     workspaces: [NiriWorkspace], focus: Int      // one per profile
-NiriWorkspace name: String, columns: [NiriColumn], focus: Int, viewOffset: CGFloat
-NiriColumn    tabID: UUID                                 // points at a BrowserTab
+TilingStrip     workspaces: [TilingWorkspace], focus: Int      // one per profile
+TilingWorkspace name: String, columns: [TilingColumn], focus: Int, viewOffset: CGFloat
+TilingColumn    tabID: UUID                                 // points at a BrowserTab
 ```
 
 Every mutation goes through `mutate { }`, which runs `normalize` afterwards, so the invariants hold by construction:
@@ -38,11 +38,11 @@ Every mutation goes through `mutate { }`, which runs `normalize` afterwards, so 
   they are named. The trailing workspace keeps its identity across the prune, so focus survives it.
 - Column focus stays in range, and `viewOffset` stays clamped.
 
-**An empty rail is a state, not an accident.** Closing the last window of a profile leaves the strip empty and opens
+**An empty row is a state, not an accident.** Closing the last window of a profile leaves the strip empty and opens
 nothing in its place: the workspace draws its own offer — **New Window**, and `or ⌘T` under it — and that is the same
 thing a workspace further down has always shown when it was emptied. The window `⌘W` used to conjure up was one
 nobody had asked for, and it made the first workspace behave unlike every other. The same rule holds for a profile
-switched to with an empty rail (`selectProfile`) and for a relaunch that restores one (`BrowserState.init`); only a
+switched to with an empty row (`selectProfile`) and for a relaunch that restores one (`BrowserState.init`); only a
 browser with nothing to restore opens the first window itself, and so does a profile just created.
 
 ### A row is drawn by identity, never by its number
@@ -54,13 +54,13 @@ that read the strip by that number drew the *next* row's windows — and a windo
 which WebKit allows exactly one, so the second view trapped in `makeViewProvider` (`EXC_BREAKPOINT`) and took the
 browser down. Closing the last window of workspace 1 while workspace 2 still held any was enough, every time.
 
-It is the same trap `NiriLayout.unanimated` was written for, from the other side: there a window changed rows, here a
+It is the same trap `TilingLayout.unanimated` was written for, from the other side: there a window changed rows, here a
 row went out from under a window. Anything that draws a page from a *position* in the strip has to resolve that
 position at the moment it draws, against the strip as it is now.
 
 ### A named workspace that runs out of windows
 
-Naming used to make a row immortal — niri's rule, and fine for as long as naming one was something only a person did.
+Naming used to make a row immortal — the rule, and fine for as long as naming one was something only a person did.
 It isn't: `workspaceIndex(named:createIfMissing:)` is called by every deep-research run (named after the question) and
 by the MCP tools (`open_window(workspace: "notes")`), so a browser that answers questions for a living silts up with
 empty rows carrying last week's questions.
@@ -68,12 +68,12 @@ empty rows carrying last week's questions.
 The rule is now the same for every named row, whoever the name came from, and the difference is a question:
 
 - `askBeforeRemoving` runs wherever a column leaves a row — `removeColumn`, both `moveColumn`s, `commitColumnDrag` —
-  and queues a `NiriWorkspaceRemoval` (workspace id, name, profile) when that row is left empty *and* named. An
+  and queues a `TilingWorkspaceRemoval` (workspace id, name, profile) when that row is left empty *and* named. An
   unnamed row is never queued: it disappears as it always has, silently, a dozen times a day.
 - `workspaceToRemove` is the head of the queue and what the front draws (`WorkspaceRemovalDialog`, on both the Mac's
   `ContentView` and `PhoneContentView`). `removeWorkspace(_:)` is yes, `keepWorkspace(_:)` is no, and dismissing the
   dialog any other way is a no — never an unanswered question read as consent.
-- A **queue** and not one at a time: closing a profile or clearing a rail can empty several rows, and a question that
+- A **queue** and not one at a time: closing a profile or clearing a row can empty several rows, and a question that
   overwrote another would delete a workspace nobody was asked about. `removeProfile` drops the questions belonging to
   a profile being deleted whole, and `prunePendingRemovals` (after every `mutate`) drops any whose row has been filled
   again or has gone — a question is only worth asking while it is still true.
@@ -94,28 +94,28 @@ minimum column) that only matter in a tiny window. Control metrics — title bar
 deliberately stay in points, since text and controls don't scale with the screen either.
 
 **There is one width.** `columnWidth` is the viewport less its outer gaps, so exactly one window fits on the screen and
-the next one starts a screen away. niri's `preset-column-widths` — halves, two thirds, a rail of mixed widths — went,
+the next one starts a screen away. Preset column widths — halves, two thirds, a row of mixed widths — went,
 along with the compact-width toggle that widened one window against the rest: a browser window at two thirds of a
 screen is a page with a hole beside it, and choosing between four fractions of one is a decision nobody asked for.
-What is left is which of two ways a window is shown, and a rail narrower than the viewport is centred instead of
+What is left is which of two ways a window is shown, and a row narrower than the viewport is centred instead of
 pinned left.
 
-The focused column is **centred** by default (niri's `center-focused-column`), so both neighbours peek in by the same
-amount; while centring is on the rail may scroll until the first/last column reaches the middle, which is what lets
+The focused column is **centred** by default , so both neighbours peek in by the same
+amount; while centring is in the row may scroll until the first/last column reaches the middle, which is what lets
 every column get there. `⌥C` turns it off, and focus then moves the view as little as possible — `scrollFocusIntoView`
 scrolls only until the focused column is fully visible. The choice persists in `UserDefaults`.
 
-Offsets are stored per workspace but the geometry that produced them is global, so a rail that was laid out at another
+Offsets are stored per workspace but the geometry that produced them is global, so a row that was laid out at another
 viewport — the other profile's, or one restored from `state.json` — would come back scrolled off centre. `recenterStrips`
-puts every rail back under its focused window whenever the viewport or `⌥C` changes, and switching `activeProfileID`
-does the same for the rail coming on screen.
+puts every row back under its focused window whenever the viewport or `⌥C` changes, and switching `activeProfileID`
+does the same for the row coming on screen.
 
 Only columns of the workspace on screen, within one viewport-width of it, get a real `WebView`; the rest render as
-cards (`ColumnPlaceholder`), so a long rail stays cheap. Whether a column *has* a page to mount at all is a separate
-question and the live-page budget's — see [architecture.md](architecture.md#live-pages): the rail pins what is on
-screen and builds only the focused window, once the focus has settled, so walking the rail loads the window you stop
+cards (`ColumnPlaceholder`), so a long row stays cheap. Whether a column *has* a page to mount at all is a separate
+question and the live-page budget's — see [architecture.md](architecture.md#live-pages): the row pins what is on
+screen and builds only the focused window, once the focus has settled, so walking the row loads the window you stop
 at rather than every window you pass. In the overview nothing is mounted and nothing is built; every window there is a
-card, and a card is its title on the rail and the last picture of the page in the overview.
+card, and a card is its title in the row and the last picture of the page in the overview.
 
 Restricting live views to the *current* workspace is not only about cost: a web view is a real AppKit view, SwiftUI's
 clipping does not reach it, and one parked a screen above still answers the mouse over the top bar — which is how
@@ -126,10 +126,10 @@ The same is true of everything else a workspace off screen contains, which is th
 their shadows reach into the top bar's band too — how far depends on the window's size, since the gaps are fractions of
 the viewport — and that is enough to take a click off a button there, intermittently. So a workspace that is not the
 current one answers nothing at all (`allowsHitTesting`), unless the overview is open and it really is on screen; and
-the top bar is `zIndex`-ed in front of the rail, since they are siblings in a stack and the rail is hit-tested after
+the top bar is `zIndex`-ed in front of the row, since they are siblings in a stack and the row is hit-tested after
 it.
 
-## Gestures — `six/Niri/NiriScrollMonitor.swift`
+## Gestures — `six/Tiling/TilingScrollMonitor.swift`
 
 *This section is AppKit's. The GTK front reaches the same gestures through a
 `GtkEventControllerScroll` in the capture phase, where the boundaries of a gesture are explicit
@@ -141,7 +141,7 @@ open, or — unmodified — when the pointer is over the layout's own chrome. "C
 point: anything inside a `WKWebView`, `NSScrollView` or `NSTextView` keeps its own scrolling, everything else (title
 bars, gaps, background) drives the layout.
 
-Without `⌥` the pointer must also be **inside the rail** (`stripFrame`, published by the view in SwiftUI's window
+Without `⌥` the pointer must also be **inside the row** (`stripFrame`, published by the view in SwiftUI's window
 coordinates and flipped in the monitor, which measures from the bottom of the window). The top bar is chrome too, and
 letting it drive the layout made clicking one of its buttons a gamble: a hair of finger travel on a trackpad switched
 the workspace under the cursor. Held `⌥` still works anywhere — then it is an explicit layout gesture.
@@ -152,24 +152,24 @@ never skips two. Discrete mouse wheels have no gesture phase and are throttled b
 
 **The band is a fraction of the way to the next window, not a distance the hand moved.** It was the
 hand's own points scaled by 0.35, so the whole of a 55 pt push showed as 19 pt of lean and then the
-rail jumped a column — and it read as heavy: you push, almost nothing happens, then it teleports. A
-window is a screen wide, so a gesture half-way to the next one moves the rail half a screen, and the
+row jumped a column — and it read as heavy: you push, almost nothing happens, then it teleports. A
+window is a screen wide, so a gesture half-way to the next one moves the row half a screen, and the
 commit is seamless because the band is already a whole window's worth when the focus moves a whole
 window. `previewColumn` and `previewWorkspace` both take that fraction now, and `pushWall` with them —
 1 is a whole window's worth of push and a fully lit edge.
 
 Horizontal is **a window per push, and as many as the hand asks for**: the band below the threshold,
 and crossing it steps and keeps going, with the overshoot carried into the
-next step rather than thrown away — discarding it made each step longer than the one before, which is felt as the rail
+next step rather than thrown away — discarding it made each step longer than the one before, which is felt as the row
 getting heavier the further you push. It was one window per gesture too, and that was the vertical rule applied to
-something it does not fit: a rail is a row of windows a few inches long, and having to lift your fingers between every
-two of them reads as the rail being stuck rather than as it being careful. Momentum is still swallowed whole, so a
-flick lands where it was aimed. A gesture that has stepped along the rail also stops being able to switch a workspace
+something it does not fit: a row is a row of windows a few inches long, and having to lift your fingers between every
+two of them reads as the row being stuck rather than as it being careful. Momentum is still swallowed whole, so a
+flick lands where it was aimed. A gesture that has stepped along the row also stops being able to switch a workspace
 (`steppedColumns`) — the hand does not stay on the line, and a workspace arriving out of the drift is the one mistake
 here you cannot undo by pushing back.
 
-The rail then has no free resting position — `panStrip` refuses to move it at all, so no gesture
-can leave a window sitting half-way. With centring off (`⌥C`) horizontal scrolling pans the rail freely, and on
+The row then has no free resting position — `panStrip` refuses to move it at all, so no gesture
+can leave a window sitting half-way. With centring off (`⌥C`) horizontal scrolling pans the row freely, and on
 release focus snaps to the column nearest the middle and scrolls it fully into view. The overview
 pans freely too, whatever centring says — there is no focused window being kept anywhere up there.
 
@@ -178,21 +178,21 @@ distance is a distance on the *screen*; the strip is moved in the canvas's own p
 overview draws that canvas at `overviewScale`. Handed through unscaled, a hundred points of finger
 moved the strip twenty-two. And it panned from the **stored** offset rather than the one being drawn:
 those two come apart whenever the range of valid offsets changes under a stored one — entering the
-overview is exactly that, since it shows far more of the rail than the window does — so the first
+overview is exactly that, since it shows far more of the row than the window does — so the first
 push spent itself eating the difference and moved nothing at all. `panStrip` divides by the scale and
-starts from `clampOffset`, and both are measured in `NiriLayoutGestureTests`.
+starts from `clampOffset`, and both are measured in `TilingLayoutGestureTests`.
 
 Tuning lives at the top of the file: `threshold` (55 pt), `minimumCommitInterval` (0.28 s), `idleReset` (0.25 s).
 
-## The ends of the rail
+## The ends of the row
 
-A rail is finite in both directions and a stack of workspaces is finite in one, so every gesture that
+A row is finite in both directions and a stack of workspaces is finite in one, so every gesture that
 walks them has a way of asking for something that is not there. It used to be answered with nothing at
 all: the strip did not move, the key gave nothing back, and the honest reading of that is *the gesture
 was lost*, not *there is nothing that way*.
 
-`NiriLayout` answers instead. The edge that was pushed into lights up — `wall` says which of the four
-it is, `wallGlow` how brightly (0…1) — and the rail still does not move, because that is the thing
+`TilingLayout` answers instead. The edge that was pushed into lights up — `wall` says which of the four
+it is, `wallGlow` how brightly (0…1) — and the row still does not move, because that is the thing
 being said. Two ways in:
 
 - **`hitWall(edge)`** — a step that had nowhere to go (`focusColumn`, `focusWorkspace`). Full
@@ -203,10 +203,10 @@ being said. Two ways in:
   the rubber band's 0.35, which is the whole travel a gesture has before it commits).
 
 **A push does not outlive the hand.** The light is released by a zero arriving from the gesture, and a
-monitor can fail to send one: `NiriScrollMonitor.resetGesture` — the pause long enough to count as a
+monitor can fail to send one: `TilingScrollMonitor.resetGesture` — the pause long enough to count as a
 new gesture, a finger resting mid-scroll — zeroed its accumulator without telling the layout, and
 `endGesture` could not clean up after it because the accumulator it tests was already zero. So the
-edge stayed lit on a rail that had not reached its end, which is what it was reported as. Two answers,
+edge stayed lit in a row that had not reached its end, which is what it was reported as. Two answers,
 both kept: `resetGesture` now releases the band the way `endGesture` does, and `pushWall` arms a
 watchdog — another push cancels it, silence for 400 ms puts the light out. The first is the bug; the
 second is the class of bug, and costs one task.
@@ -216,25 +216,25 @@ a window behind the edge. That is the other half of the sentence, and the half a
 than sees. Both live in the model rather than in the view, so a second front end draws the same
 answer — [linux.md](linux.md).
 
-Deliberately not a bounce and not a sound. A bounce is the rail moving, and the one thing that has to
-stay true here is that it did not. The drawing is `StripWalls` in `NiriStripView`: a band of the
+Deliberately not a bounce and not a sound. A bounce is the row moving, and the one thing that has to
+stay true here is that it did not. The drawing is `StripWalls` in `TilingStripView`: a band of the
 profile's colour along that edge, 5.5 % of the viewport deep, fading out towards both corners so it
 reads as light caught on an edge rather than as a border the window grew.
 
 ## ⌃Tab — the order the windows were looked at
 
-The rail is where windows *are*; `WindowSwitcher` is where they have *been*. The window you want next
-is usually the one you just came from, and on a rail of a dozen that one can be six windows away in
-either direction — so `⌥←` / `⌥→` walk the rail and `⌃Tab` walks the memory, the same division as
+The row is where windows *are*; `WindowSwitcher` is where they have *been*. The window you want next
+is usually the one you just came from, and in a row of a dozen that one can be six windows away in
+either direction — so `⌥←` / `⌥→` walk the row and `⌃Tab` walks the memory, the same division as
 `⌥Tab` and the workspace keys in any tiling WM.
 
-- Recency is taken in `BrowserState.syncSelection`, the one place every focus change ends, so a rail
-  walked with `⌥→` is a rail whose windows have been looked at. This run only, like the list `⌘⇧T`
+- Recency is taken in `BrowserState.syncSelection`, the one place every focus change ends, so a row
+  walked with `⌥→` is a row whose windows have been looked at. This run only, like the list `⌘⇧T`
   reopens from.
 - The ring is fixed when the switch opens and does not reorder while it is held — a list that resorted
   itself under the key would move the window you were aiming at — and it wraps, because a ring has no
-  ends to hit. Windows never focused this run (restored from the snapshot) follow in rail order.
-- **A stop is a window, and there is no other kind.** Every window on the rail is a card, drawn at the
+  ends to hit. Windows never focused this run (restored from the snapshot) follow in row order.
+- **A stop is a window, and there is no other kind.** Every window in the row is a card, drawn at the
   width that window has where it stands: a whole card, or half of one where it is sharing a column.
   Landing on a card focuses that window.
 
@@ -245,18 +245,18 @@ either direction — so `⌥←` / `⌥→` walk the rail and `⌃Tab` walks the
   two ways. The exception was buying one behaviour, and memory gives it for nothing: the half you used
   last comes first because that is what recency means, so ⌃Tab still takes you back to the other half
   when the other half is where you were.
-- **Windows of one column are drawn together and in rail order.** The one thing the ring asks the rail
-  (`group`, `NiriLayout.columnID(of:)`): a column's cards arrive as a group, at the place the first of
+- **Windows of one column are drawn together and in row order.** The one thing the ring asks the row
+  (`group`, `TilingLayout.columnID(of:)`): a column's cards arrive as a group, at the place the first of
   them falls in memory. Keeping their order without keeping them together let a window used between
-  them be *drawn* between them, which the rail itself cannot do. Measured by `KeySelfTest`, which dumps
+  them be *drawn* between them, which the row itself cannot do. Measured by `KeySelfTest`, which dumps
   the ring from each half in turn — `[half: C63D] *[half: 26EB]` and `*[half: C63D] [half: 26EB]`, the
   same order both times with only the `*` moving.
-- **The row is walked by memory and drawn along the rail**, so `WindowSwitcher` keeps two orders:
+- **The row is walked by memory and drawn along the row**, so `WindowSwitcher` keeps two orders:
   `walk` is what ⌃Tab moves through, `ring` is what is drawn. The highlight therefore sometimes moves
   *left* on a forward press, which is right: the key names a window, and the card for it is where the
   window is.
 - **The arrows walk the row; `⌃Tab` walks the memory.** They were one action until the row started
-  being drawn along the rail, and then an arrow answering by recency would have moved the highlight
+  being drawn along the row, and then an arrow answering by recency would have moved the highlight
   the other way from the one it points. `walkRow` against `step`, and `KeyBindings` sends the two keys
   to different actions. The row is laid out by measuring the cards rather than counting equal steps,
   since they are no longer all one width; for a ring of equal widths that is the number it always was.
@@ -267,11 +267,11 @@ either direction — so `⌥←` / `⌥→` walk the rail and `⌃Tab` walks the
   where a launched window puts it, `card 1 → 2 → 1`. The decision lives in `SixCore` rather than in
   `KeyRouter`, because it had been two lines there and a copy of them in `KeySelfTest`, and the
   exception was missing from both.
-- A rail with **one** window on it opens a ring of one. The key has to answer: a press that gives
+- A row with **one** window on it opens a ring of one. The key has to answer: a press that gives
   nothing back cannot be told from a key that is not bound, or from a browser that has stopped
   listening, and this one is held down, so the nothing would last as long as the hand does. Only an
-  empty rail refuses, and there the screen is already saying so in the middle.
-- One **rail's** windows only: the focused workspace's columns, not the whole strip and certainly not
+  empty row refuses, and there the screen is already saying so in the middle.
+- One **row's** windows only: the focused workspace's columns, not the whole strip and certainly not
   another profile. A workspace is a place you went to on purpose and a profile is a browsing world with
   a history and logins of its own; a key that flew you out of either would be doing something much
   bigger than it looks, and `⌥↑` / `⌥↓` already move between workspaces while saying where they go.
@@ -285,7 +285,7 @@ held open by a modifier, and only a `flagsChanged` ever says a modifier was let 
 open the ring's own bindings answer first — `Tab`, `⌃←` / `⌃→`, `↩` to fly now, `⎋` to let go — and
 any other key ends the pass and is passed on, so nothing can leave the switcher standing (the app
 losing focus mid-press, most of all). The panel is `WindowSwitcherOverlay`,
-mounted on `ContentView` over the top bar as well as the rail, and it answers no mouse: it exists only
+mounted on `ContentView` over the top bar as well as the row, and it answers no mouse: it exists only
 while a key is held, and a target that vanishes when you let go of a key is not a target.
 
 ## Clicking
@@ -298,10 +298,10 @@ one click.
 
 ### The keyboard follows the focus
 
-The rail's focus and AppKit's **first responder** are two different things, and they could disagree: `⌥→` moved the
+The row's focus and AppKit's **first responder** are two different things, and they could disagree: `⌥→` moved the
 accent border, the address field and everything else keyed off the selection, while the keys went on arriving in the
 `WKWebView` a click had last given them to. So the arrow keys scrolled the window you had walked away from, and text
-went into its text field. On a rail that is nearly invisible — the window you left is off the edge a moment later —
+went into its text field. In a row that is nearly invisible — the window you left is off the edge a moment later —
 and in a split it is not: one half is visibly highlighted while what you type lands in the other, which is how it was
 reported.
 
@@ -313,14 +313,14 @@ not work: SwiftUI mounts a `.background` in a layer of its own, and the first an
 usually the one that has all of them.
 
 Two things it deliberately does not do. It never takes the keyboard **off a text field** — `⌘L` and the `⌘E` line are
-reached by keystroke and left by keystroke, and a rail that walked into the page under them would eat the next thing
+reached by keystroke and left by keystroke, and a row that walked into the page under them would eat the next thing
 typed (the same test the key router uses). And for a window with no page to give it to — a card, a start page, which
 is SwiftUI and has no web view at all — it takes the keys off whatever had them rather than leaving them with a
-window the rail is no longer looking at.
+window the row is no longer looking at.
 
 Measured by `KeySelfTest.splitKeyboard`, which needs a setup of its own and says why: two windows with real pages,
 because a split of two start pages has nothing for a first responder to be, and the first version of the check
-measured exactly that. Each line prints who holds the keys and whether that agrees with the rail —
+measured exactly that. Each line prints who holds the keys and whether that agrees with the row —
 `keys WebPageWebView 702pt 8FCCFAD6 (agrees)` — and a click on the other half has to carry it there.
 
 **The other half of a split is an unfocused window like any other**, so the rule holds there too: the first click
@@ -336,10 +336,10 @@ Two ways of showing a window, and the whole of what there is to choose:
 
 | | | |
 |---|---|---|
-| — | **the rail** | the ordinary one: a window is the screen less its outer gaps, in a card with corners |
+| — | **the row** | the ordinary one: a window is the screen less its outer gaps, in a card with corners |
 | `⌥W` | **full width** | the page fills the window under the top bar — no gaps, no card, no corners. Also the button in the top bar beside the profile, and View ▸ Full Width |
 
-There were three. The third was a *fullscreen* (`NiriFill.screen`) that took the top bar with it and gave the page
+There were three. The third was a *fullscreen* (`TilingFill.screen`) that took the top bar with it and gave the page
 every edge, with a bar of its own hiding at the top of the screen and `⎋` to leave. It went, and the whole apparatus
 went with it — the mode, `⌥⇧F`, `showsFullscreen`, `FullscreenBar`, `exitFullscreen`. It was a second answer to the
 question full width already answers, the difference between the two being one 40-point bar; it cost the address
@@ -350,7 +350,7 @@ A page's own `requestFullscreen` — the button in a video player — is a third
 WebKit does not do it for you. `WebView.ElementFullscreenBehavior` defaults to `.automatic`, which on macOS means
 *off*: the same default `WKPreferences.isElementFullscreenEnabled` has always had, the one Safari sets for itself.
 Left alone, `video.requestFullscreen()` is rejected and the player's button does nothing at all — no error, no
-window, nothing to see. The rail's `WebView` says `.webViewElementFullscreenBehavior(.enabled)`, and so does the
+window, nothing to see. The row's `WebView` says `.webViewElementFullscreenBehavior(.enabled)`, and so does the
 phone strip's. What WebKit then opens is a window of its own, with its own `⎋`; `KeyEvents` already knows to keep
 its hands off it, by the class name.
 
@@ -363,19 +363,19 @@ moves it into a window of its own and sizes it by frame, where it arrives with n
 nothing, and leaves the backdrop showing. `PageElementFullscreen` swaps the hold for the duration —
 `translatesAutoresizingMaskIntoConstraints` and an autoresizing mask from `enteringFullscreen` until the state
 comes back — and hands the view to Auto Layout again after, because leaving it flipped is its own regression: the
-rail goes on laying out with constraints the view no longer answers to. The write-up and the repro are in
+row goes on laying out with constraints the view no longer answers to. The write-up and the repro are in
 [UPSTREAM.md](../UPSTREAM.md).
 
-Full width is `NiriFill.window` on the layout — a mode, not per-window state. `fillsViewport` is what the geometry
+Full width is `TilingFill.window` on the layout — a mode, not per-window state. `fillsViewport` is what the geometry
 asks, and it is false while the overview is open, so the overview keeps its gaps and title bars and the mode returns
-when it closes. The rail goes on working underneath: `⌥←` `⌥→` walk from window to window and the next one arrives
+when it closes. The row goes on working underneath: `⌥←` `⌥→` walk from window to window and the next one arrives
 filled too, so a workspace reads like a stack of pages.
 
 The geometry is the ordinary one with two overrides: `gap` (and with it `outerGap`) is 0, and `columnWidth` is the
 whole viewport rather than the viewport less those gaps. So the difference between the two is a gap and a corner
 radius, never a fraction of the page. Every column being exactly one screen wide is what makes the alignment fall out
 for free: centred or not, the resolved offset of the focused column lands on a whole multiple of the viewport. Changing
-the mode changes every width, so `setFill` re-centres every rail, as `⌥C` and a resize do.
+the mode changes every width, so `setFill` re-centres every row, as `⌥C` and a resize do.
 
 Switching is deliberately **not** animated, unlike everything else the layout does. Every switch resizes every live
 page, and a web view changing size costs a hitch you can see — around 50 ms with three columns live. Running that
@@ -398,19 +398,19 @@ update passes never settle.
 
 The chevrons stand in the **gap beside the focused window** (`focusedColumnFrame`), not against the edge of the screen
 where the neighbour peeking in is, and they are as narrow as that gap — a button wide enough to read comfortably is a
-button covering the page next to it. Nothing is drawn there at rest, in either mode: the rail is windows and gaps, and
+button covering the page next to it. Nothing is drawn there at rest, in either mode: the row is windows and gaps, and
 a chevron parked in every gap is chrome charged against every window in it. Invisible is not absent: a SwiftUI
 button at zero opacity still answers the mouse, which is what makes the sliver its own hover target.
 
-All of that is the **peek**, and it is a pointer idea: it is asked for by resting somewhere and answered by the rail
+All of that is the **peek**, and it is a pointer idea: it is asked for by resting somewhere and answered by the row
 leaning over. A finger has nowhere to rest — it is touching or it is not — so the whole arrangement has a switch,
 `BrowserState.peeksAtEdges` (`six://configuration` ▸ Windows ▸ Peek at the Edges, stored in the settings table). Off, there is no lean and no promise: the
 slivers are simply drawn where they stand, at a little under half, and do their job on the way in — which is what the
-rail did before the peek existed, and the only thing that works without a pointer. It defaults on for macOS and off
-everywhere else, and it is chrome rather than geometry, so it lives in `BrowserState` and not in `NiriLayout`: a second
+row did before the peek existed, and the only thing that works without a pointer. It defaults on for macOS and off
+everywhere else, and it is chrome rather than geometry, so it lives in `BrowserState` and not in `TilingLayout`: a second
 front end inherits nothing it has to agree with.
 
-Both jobs are **one button**, which matters for one case: walking the chevron to the end of the rail leaves the
+Both jobs are **one button**, which matters for one case: walking the chevron to the end of the row leaves the
 pointer resting on a button that has just become a `+`. Two views would make that an exit and an entry, and the entry
 would arm the `+` under a hand that never moved — the last click of a run would open a window nobody asked for. One
 view keeps its identity and changes face inside the open curtain: the chevron goes, the promise arrives, and the hand
@@ -418,42 +418,42 @@ that is resting there watches it happen rather than having to leave and come bac
 instead, and the curtain shut on exactly the moment it was there to show. Only the **click** waits now
 (`armsAt`, 0.35 s — the tail of a run of clicks, and nothing a hand that meant it would ever notice).
 
-What counts as "the end of the rail" is `canFocusColumn`, and that question changed with it: **a split is one stop and
-not two.** Stepping into a column's other half was the tiling-WM answer, but on this rail both halves are on screen
-side by side, so the step moved nothing and the key read as dead — and asked at an edge, it left a rail whose last
+What counts as "the end of the row" is `canFocusColumn`, and that question changed with it: **a split is one stop and
+not two.** Stepping into a column's other half was the tiling-WM answer, but in this row both halves are on screen
+side by side, so the step moved nothing and the key read as dead — and asked at an edge, it left a row whose last
 column was a split standing with a chevron on both sides, leaning the strip over empty canvas, with no `+` anywhere to
 grow from. The other half is one click away on the window itself, which is the shorter way to it in any case.
 
 What answers the mouse and what gets drawn are two different things. What is drawn is the glyph, and only the glyph —
-no plate, border or shadow under it, because the rail has already leaned aside to answer and anything around the
+no plate, border or shadow under it, because the row has already leaned aside to answer and anything around the
 glyph is a second, smaller answer sitting on top of the real one. It follows the peek rather than the pointer: a `+`
 that arrived under a hand that never moved is disarmed, and drawing it would offer a window the next click would not
 open. The **target** runs the whole height of the window beside it while the
 lane is a gap — background costs nothing, and a target you cannot see
 has to be one you cannot miss along the edge you are sweeping — and shrinks to a band around the middle once the
 window is filled and the lane is over the page. It also reaches the **edge of the viewport exactly**, half a lane and
-not one point more: with the window maximised the rail's edge is the screen's, and throwing the pointer at the wall is
+not one point more: with the window maximised the row's edge is the screen's, and throwing the pointer at the wall is
 how you find a sliver you cannot see. A target starting one point in is a target that wall never hits.
 
-At either end of the rail the chevron gives way to a button that opens a window, and the one at the near end opens it
-*before* the focused one (`NiriPlacement`) — the rail has no other way of growing backwards.
+At either end of the row the chevron gives way to a button that opens a window, and the one at the near end opens it
+*before* the focused one (`TilingPlacement`) — the row has no other way of growing backwards.
 
-Resting on **either** button leans the whole rail aside (`edgeHover`, `edgeLean`) to show what is over there. For the
+Resting on **either** button leans the whole row aside (`edgeHover`, `edgeLean`) to show what is over there. For the
 chevron that is the next window itself. For the `+` there is no window yet, so what stands in the room the lean opens
 up is a **promise of the page that would be there** (`NewColumnGhost`): the start page's own wash of the profile's
 colour, its wordmark and the field under it, sketched in the band the lean actually reveals and at the height the
 wordmark really rests at. It used to be an outline with **New Window** written up its edge, and the word was the
 problem twice over — it had to be read before it meant anything, and it was a sentence about the browser rather than
-a picture of the page, which is the one thing the rest of the interface is careful not to do. Where the rail peeks,
+a picture of the page, which is the one thing the rest of the interface is careful not to do. Where the row peeks,
 the `+` itself is not drawn at all: the curtain is already showing the page, and a mark in the lane on top of that is
 the same answer said twice, smaller and a beat earlier. With peeks off there is no curtain, so the lane draws the `+`
 like any other glyph.
 
-**The promise is laid out at rest.** Both ends of the rail always hold the place a window would open in
+**The promise is laid out at rest.** Both ends of the row always hold the place a window would open in
 (`newColumnFrame(at:)`, which asks nothing about the pointer), flush against the edge of the screen and invisible,
 and only its opacity answers the hover (`showsNewColumn(at:)`). Mounted when the lean began — which is what it used
 to do — it was a view being *inserted*, and an inserted view has no previous geometry to interpolate from: it arrived
-at the leaned position in the frame the pointer landed, a whole spring before the rail got there. Two motions at two
+at the leaned position in the frame the pointer landed, a whole spring before the row got there. Two motions at two
 times, in a gesture that is supposed to be one: that is the "double peek" it was reported as. Everything the peek
 moves now runs on the one spring — `peekAnimation`, shortened from 0.55 s to 0.4 s, because a lean still arriving
 after the hand has stopped reads as a second event rather than a late first one.
@@ -466,23 +466,23 @@ does not slide out from under the pointer holding it.
 
 ## Two windows in one column
 
-`⌥S` takes the window next along into the one you are reading: they share the column, side by side, and the rail is
+`⌥S` takes the window next along into the one you are reading: they share the column, side by side, and the row is
 one column shorter. `⌥S` again puts them back. Also **View ▸ Split**, the strip's context menu, the window's own
 menu, and — in the overview — one window dropped onto another.
 
-The rule everything else follows from is that **a column is still one screen's worth of rail**. A split changes what
+The rule everything else follows from is that **a column is still one screen's worth of row**. A split changes what
 is inside a column and nothing about where columns are: the two halves fill exactly the width one window would have
 had, so the strip is as long as it was, the offsets still land, and every promise `columnFrames()` makes is
 untouched. The gap between the halves (`paneGap`) is deliberately *half* the one between columns — at the same width
 a split would read as two windows standing next to each other, and proximity is the whole of what says otherwise.
 
-niri splits a column the other way: its windows stack vertically. That is right for terminals and wrong for pages —
+A tiling window manager splits a column the other way: its windows stack vertically. That is right for terminals and wrong for pages —
 a web page is tall, and two half-height ones are two pages nobody can read. Two is the ceiling for the same kind of
 reason: three pages at a third of a screen each are three unreadable pages, and wanting more than two things at once
-is the question the rail already answers.
+is the question the row already answers.
 
 **The two halves are windows, not panes of one window.** Each has its own border, its own `×`, its own progress
-line; `⌘W` closes one and leaves the other filling the column. But the rail walks columns, not halves: `⌥←` / `⌥→`
+line; `⌘W` closes one and leaves the other filling the column. But the row walks columns, not halves: `⌥←` / `⌥→`
 step over the pair as one stop, and the half being read is the one the hand clicked — a column keeps it while the
 focus goes away and comes back. `⌥⇧→` inside a split swaps the two halves, because one place along, inside a column, is the other side of
 it.
@@ -509,24 +509,24 @@ scrollbar you can watch appear and go. Un-animated it is one resize, and the sit
 The fill modes gave up their animation for the same reason ([above](#filling-the-window)); `BrowserState`'s
 `plainLayoutChange` is where the split says so.
 
-The animation was not in the layout, and finding that took three wrong fixes. `NiriLayout.unanimated` did nothing,
+The animation was not in the layout, and finding that took three wrong fixes. `TilingLayout.unanimated` did nothing,
 and neither did taking the split out of `animateLayout`: it was **`.animation(.easeOut, value: isFocused)` on the
 card**. A value-scoped animation animates *every* change in the subtree it is attached to when its value changes, and
-⌥S is the only thing in the rail that moves the focus and changes a window's width in the same breath. It lives on
+⌥S is the only thing in the row that moves the focus and changes a window's width in the same breath. It lives on
 the border it was written for now. The frame is pinned against an ambient animation at the call site as well
 (`.animation(nil, value: frame.size)`), for the menu items that carry one; the **offset** keeps its animation,
-because that is the rail scrolling and it is about motion.
+because that is the row scrolling and it is about motion.
 
 ### Making one with the pointer
 
 In the overview, a window let go over the **middle half** of another joins it; over the quarter at either end, or in
-the space between, it stands beside it as it always did (`NiriLayout.joinFraction`). By the time the cards are
+the space between, it stands beside it as it always did (`TilingLayout.joinFraction`). By the time the cards are
 centred on each other they are all but on top of one another, which is what a person means by putting one window on
 another. It lands on the side it was held over, and a column that is already two is not a target.
 
 A **pair** in the hand has no such answer — two is the ceiling, and a third and a fourth window is what joining
 would make — so it only ever stands beside what it is held over. The card is the two windows drawn side by side at
-the spacing they have on the rail, under one shadow, because a pair drawn as two cards would be promising a drop
+the spacing they have in the row, under one shadow, because a pair drawn as two cards would be promising a drop
 that could put them down apart.
 
 The threshold is **wider to leave than to enter** (`joinRelease`). The two answers are a relayout of the whole row
@@ -544,22 +544,22 @@ trust to be there.
 
 ### The identity a column keeps
 
-`NiriColumn` has an `id` of its own, and that is not decoration. A split that loses a half is the same column with
+`TilingColumn` has an `id` of its own, and that is not decoration. A split that loses a half is the same column with
 one window left in it; a half taken out into a column of its own is a column that has just arrived. The view tree
 has to be able to tell those apart, because a window is a `WebView` over a `WebPage`, of which WebKit allows exactly
 one — identified by the window it held, as it was when it could only hold one, every split and unsplit looked like a
 column leaving and another arriving, which is the trap `unanimated` exists for. It is why splitting is done inside
-it, and why a column carried across the overview keeps its id all the way to the drop: `NiriColumnDrag` holds the
+it, and why a column carried across the overview keeps its id all the way to the drop: `TilingColumnDrag` holds the
 column itself, both halves and identity included, and the row it left simply does not have it until the drop.
 
 A column written before splits existed is a `tabID` and nothing else, so it decodes with the other halves at their
-defaults; a relaunch after an update finds the rail it left.
+defaults; a relaunch after an update finds the row it left.
 
 ## Picture-in-picture
 
 `⌥⇧P`, View ▸ Picture in Picture, the same item in a window's own menu, and the button in WebKit's media controls:
 the video leaves the page for a small window floating above every other application, and the page it left goes on
-being an ordinary window on the rail. Scroll away from it, step to the workspace below, switch profiles — the player
+being an ordinary window in the row. Scroll away from it, step to the workspace below, switch profiles — the player
 stays where it was put and keeps playing. That is the whole point of it, and it is why it needs six's help twice.
 
 **Turning it on.** WebKit has the feature and hands the new API no switch for it. The preference is real —
@@ -618,30 +618,30 @@ mini-players because they draw them, and drawing one is not something a browser 
 way to take a `<video>` out of a page and into a window of one's own. So the two asks this produced — that the player
 travel with the browser on ⌘Tab, and that it sit under the top bar rather than over it — are not bugs with a fix here.
 The other feature of the same name is the answer if they matter enough: any six window as a floating always-on-top
-panel, which is niri's floating layer, six's own `NSPanel` and therefore six's to parent and to place. It is not built;
+panel — a floating layer, six's own `NSPanel` and therefore six's to parent and to place. It is not built;
 it is in [todo.md](todo.md).
 
 ## Overview
 
 `⌥O` zooms the whole canvas out and opens the vertical spacing so neighbouring workspaces read as separate screens.
-The scale adapts: enough to show the focused rail end to end, never more than `overviewBaseScale` (0.5 — a short
-rail shouldn't shrink for nothing) and never past `minimumOverviewScale` (0.22), where a long rail starts scrolling
-instead of turning microscopic. Scrolling sideways pans the rail freely there; `visibleWidth` (the viewport divided by
+The scale adapts: enough to show the focused row end to end, never more than `overviewBaseScale` (0.5 — a short
+row shouldn't shrink for nothing) and never past `minimumOverviewScale` (0.22), where a long row starts scrolling
+instead of turning microscopic. Scrolling sideways pans the row freely there; `visibleWidth` (the viewport divided by
 the scale) is what every offset is measured against, so the same clamping code serves both modes. Leaving the overview
-puts the rail back under the focused window.
+puts the row back under the focused window.
 
 A web page is a card there (`ColumnPlaceholder`) with its last picture, and one click on any window focuses it and
 leaves the overview. Each card carries a title bar **over** its top — the site's own icon (`SiteIcons`) and the
 window's title, lying on the picture rather than taking a row of the card for itself, so a card that has no bar to
 carry (a start page, one of six's own) is not a card whose page begins at a different height — and a × on its top corner (`OverviewCloseButtons`), which is the one way the mouse has of closing a
-window whatever its fill. Neither shrinks with the rail: the × is drawn outside the scaled canvas like the workspace
+window whatever its fill. Neither shrinks with the row: the × is drawn outside the scaled canvas like the workspace
 plates, and the title bar divides its own sizes by `overviewScale`, because how far the canvas is scaled depends on
-how many windows are on the rail and an icon that was a different size on every rail would be no mark at all. Every row ends with the place a new window would take (`NewWindowPlace`, `NiriLayout.appendFrame`): ⌘T and
-the rail's `+` open beside the focus, which in a view of every row at once is somewhere else, so without it the
-pointer had no way to make a window from up here. It is drawn the way the rail's own `+` draws its promise — the
+how many windows are in the row and an icon that was a different size in every row would be no mark at all. Every row ends with the place a new window would take (`NewWindowPlace`, `TilingLayout.appendFrame`): ⌘T and
+the row's `+` open beside the focus, which in a view of every row at once is somewhere else, so without it the
+pointer had no way to make a window from up here. It is drawn the way the row's own `+` draws its promise — the
 start page in miniature (`StartPageSketch`) — in the half of the place that is on screen. The row is laid out at
 `overviewWidth`, its windows plus a column's worth of slack, so the windows keep the middle and half the place shows
-past the right edge; an empty row has no rail to stand at the end of, and there the place is centred instead. Six's own pages — configuration, MCP apps — are cards too, with no
+past the right edge; an empty row has no row to stand at the end of, and there the place is centred instead. Six's own pages — configuration, MCP apps — are cards too, with no
 picture, and they stay cards until the zoom back in has finished (`BrowserState.isLeavingOverview`, cleared by the
 exit animation's `.removed` completion). They are SwiftUI, but a form's text fields and steppers are AppKit views,
 and laid out under a scale that is still animating they never settle: each frame of the zoom was a run of SwiftUI's
@@ -654,16 +654,16 @@ scale after it, and a few faults came back each time the page did.
 
 ### Carrying a window
 
-A window can be picked up in the overview and carried along its rail or onto another workspace. The gesture belongs to
+A window can be picked up in the overview and carried along its row or onto another workspace. The gesture belongs to
 the **canvas**, not to the card (`OverviewPointerLayer`): up there every window is a picture at a place the layout
 already knows, so which one is under the pointer is arithmetic against `columnFrames()`, and a gesture that is not
-attached to a card survives the card being carried out of the row that was drawing it. The layer sits in the rail's
-own coordinate space (`NiriStripView.canvasSpace`, the canvas *before* the overview scales it, which is the space the
+attached to a card survives the card being carried out of the row that was drawing it. The layer sits in the row's
+own coordinate space (`TilingStripView.canvasSpace`, the canvas *before* the overview scales it, which is the space the
 frames are already in), and offers the mouse only the cards themselves (`CardsShape`) — a click between two windows
 still reaches what is under it, the row's own `+` included. `canvasPlaces()` is where both the pointer and the close
 badges read the cards from, so the two cannot disagree about where a card is.
 
-Nothing on the rail moves until the drop. Until then `arrangement(workspaceAt:)` is what each row draws: the carried
+Nothing in the row moves until the drop. Until then `arrangement(workspaceAt:)` is what each row draws: the carried
 window out of the row it came from and holding a place open in the row it would land in, with the card itself drawn
 above every row at `carriedCardFrame` — where it was lifted from, plus how far the pointer has gone, so it stays under
 the pointer exactly. Only the shuffle is animated; animating the card would mean it never quite catches up.

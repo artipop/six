@@ -213,7 +213,7 @@ struct sixApp: App {
         }
         persistence.start()
         #if os(macOS)
-        // The rail as the share extension offers it, in a file it is allowed to read (`ShareHandoff`).
+        // The row as the share extension offers it, in a file it is allowed to read (`ShareHandoff`).
         let shareTargets = StatePersistence(store: FileSnapshotStore<ShareTargets>(fileNamed: ShareTargets.fileName)) {
             browser.shareTargets
         }
@@ -330,7 +330,7 @@ struct sixApp: App {
                     .keyboardShortcut(",")
             }
             CommandGroup(replacing: .newItem) {
-                Button("New Window on the Rail") { browser.newTab() }
+                Button("New Window in the Row") { browser.newTab() }
                     .keyboardShortcut("t")
                 Button("Reopen Closed Window") { browser.reopenClosedWindow() }
                     .keyboardShortcut("t", modifiers: [.command, .shift])

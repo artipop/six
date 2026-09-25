@@ -1,8 +1,8 @@
-# The rail and workspaces
+# The row and workspaces
 
 There are no tabs and no sidebar. There is a **window** — a full-height page — a
-**rail**, on which windows stand left to right, and a **workspace**, which is
-one rail. Workspaces are stacked vertically; exactly one is on screen.
+**row**, on which windows stand left to right, and a **workspace**, which is
+one row. Workspaces are stacked vertically; exactly one is on screen.
 
 ```
 workspace "Tickets"   [ document ] [ aviasales ] [ tutu.ru ] [ s7.ru ]  →
@@ -18,25 +18,25 @@ beside it.
 
 ## With the keyboard
 
-`⌥` stands in for niri's `Mod`. There is no **Layout** menu for these any more: the keys are read
+`⌥` is the layout's modifier. There is no **Layout** menu for these any more: the keys are read
 before the page is, so they answer even with the cursor inside a page — which is exactly what a menu
 could not do. `⌥` and an arrow stays word movement while the caret is in a text field.
 
 | | |
 |---|---|
 | `⌥←` `⌥→` | focus the window left / right |
-| `⌥⇧←` `⌥⇧→` | move the window along the rail |
-| `⌥Home` `⌥End` | first / last window on the rail |
+| `⌥⇧←` `⌥⇧→` | move the window along the row |
+| `⌥Home` `⌥End` | first / last window in the row |
 | `⌥↑` `⌥↓` | workspace above / below |
 | `⌥⇧↑` `⌥⇧↓` | move the window to the workspace above / below and follow it |
 | `⌥W` | full width |
 | `⌥O` | overview (`↩` into the focused window, `Esc` to leave) |
-| `⌥C` | centre the focused window; off means the rail moves as little as it can |
+| `⌥C` | centre the focused window; off means the row moves as little as it can |
 
 ### Flying between windows — `⌃Tab`
 
-The arrows walk the rail — where the windows **stand**. `⌃Tab` walks the memory —
-the order you **looked at** them in. On a rail of a dozen, the window you have
+The arrows walk the row — where the windows **stand**. `⌃Tab` walks the memory —
+the order you **looked at** them in. In a row of a dozen, the window you have
 just come from can be six steps away in either direction; in the memory it is
 always the next one.
 
@@ -46,14 +46,14 @@ peeking in at the edges. Under the row are the page's title and its site.
 `⌃⇧Tab` goes the other way, `Esc` lets go of the ring without changing anything.
 `⌃←` and `⌃→` page along the row as it is drawn — the card to the left, the card
 to the right. `⌃Tab` is the other question: it walks memory, not the row.
-Let `⌃` go and the rail flies to the window you chose.
+Let `⌃` go and the row flies to the window you chose.
 
 Nothing loads while the ring is open: the cards are pictures taken of the
 windows, and the page is built where you land. One press of `⌃Tab` is a toggle
 between the last two windows.
 
 **The ring holds windows, one to a card**, and a card is as wide as that window is
-on the rail: a whole one, or half of one. The halves of a column are drawn next to
+in the row: a whole one, or half of one. The halves of a column are drawn next to
 each other and in the order they stand in — so a pair still looks like a pair, but
 it is two cards rather than one with a seam down it.
 
@@ -61,13 +61,13 @@ Which of them is nearer is memory's answer: after being on the other half, a
 single `⌃Tab` takes you back to it. Come to the split from somewhere else and
 `⌃Tab` goes back there, with the other half further along where it belongs.
 
-A rail with one window on it still opens the ring — with one card in it. The key
+A row with one window on it still opens the ring — with one card in it. The key
 has to answer: a press that gives nothing back cannot be told from an unbound key
 or from a browser that has stopped listening, and this one is held, so the
-nothing would last as long as your hand does. Only an empty rail refuses, and
+nothing would last as long as your hand does. Only an empty row refuses, and
 there the screen already says so in the middle.
 
-**The ring holds the windows of the rail you are looking at** — not the other
+**The ring holds the windows of the row you are looking at** — not the other
 workspaces, and certainly not another profile. A workspace is a place you went to
 on purpose and a profile is a world of its own with its own history and logins;
 flying out of either on a keypress is a much bigger move than the key looks, and
@@ -83,11 +83,11 @@ first click on somebody else's window never reaches the page — it is about the
 window, not about what is drawn on it.
 
 **The gaps beside the focused window.** Nothing is drawn there at rest. Sweep the
-pointer in and the rail leans that way to show what is over there: a `‹` or a
-`›` if it is a window, and — where the rail has run out — the **edge of the
+pointer in and the row leans that way to show what is over there: a `‹` or a
+`›` if it is a window, and — where the row has run out — the **edge of the
 start page that would open there**: the profile's colour, the six wordmark and
 the field under it. A click on that sliver steps to the neighbour or opens a
-new window — including one *before* the first, which is the only way the rail
+new window — including one *before* the first, which is the only way the row
 grows backwards.
 
 The sliver is as narrow as the gap it stands in and reaches the very edge of the
@@ -100,7 +100,7 @@ without being hovered. It is on for macOS and always off on a phone.
 :::
 
 **Scrolling** over a gap, over the background or over the layout's own chrome
-drives the rail: sideways by a window, up and down by a workspace. Over the page
+drives the row: sideways by a window, up and down by a workspace. Over the page
 itself, scrolling stays the page's. Over the top bar it does nothing — clicking
 one of its buttons would be a gamble otherwise.
 
@@ -109,19 +109,19 @@ With `⌥` held the gestures work anywhere, the page included:
 | | |
 |---|---|
 | `⌥` + vertical scroll | one workspace per gesture. Below the threshold the next one rubber-bands into view; once the switch commits, the rest of the gesture (trackpad momentum included) is swallowed, so a flick never skips two |
-| `⌥` + horizontal scroll | the rail follows your fingers: ~55 pt of travel is exactly one window, and it keeps going as far as you push; with `⌥C` off, free panning |
+| `⌥` + horizontal scroll | the row follows your fingers: ~55 pt of travel is exactly one window, and it keeps going as far as you push; with `⌥C` off, free panning |
 
-**Pushing into a wall.** The rail is finite in both directions, the stack of
+**Pushing into a wall.** The row is finite in both directions, the stack of
 workspaces at the top and at the bottom. A gesture towards where there is nothing
-used to be answered with nothing at all: the rail did not move, and the honest
+used to be answered with nothing at all: the row did not move, and the honest
 reading of that is *the gesture got lost*. Now the edge you push into lights up
-in the profile's colour and the rubber band stiffens — and the rail still does
+in the profile's colour and the rubber band stiffens — and the row still does
 not move, because that is exactly what is being said. The light fades on its own.
-There is no bounce and no sound: a bounce is the rail moving, and the one thing
+There is no bounce and no sound: a bounce is the row moving, and the one thing
 that has to stay true here is that it did not.
 
 **Right-click the background** — a new window, a document, the first and last
-window on the rail, workspaces, the overview, full width, configuration. **Right-click a page ▸ This Window** — close,
+window in the row, workspaces, the overview, full width, configuration. **Right-click a page ▸ This Window** — close,
 full width, move left/right, move to the workspace above/below.
 
 **The full-width button** on the left of the top bar, beside the profile: one
@@ -136,11 +136,11 @@ click on a pip jumps to it.
 
 | | | |
 |---|---|---|
-| — | **the rail** | the ordinary one: the window is the screen less its outer gaps, in a card with corners |
+| — | **the row** | the ordinary one: the window is the screen less its outer gaps, in a card with corners |
 | `⌥W` | **full width** | the page fills the window under the top bar: no gaps, no card, no corners |
 
 This is a mode of the application, not a property of a window: `⌥←` `⌥→` go on
-walking the rail, and the next window arrives filled as well — a workspace reads
+walking the row, and the next window arrives filled as well — a workspace reads
 like a stack of pages.
 
 Switching is deliberately **not animated**, unlike everything else in the layout:
@@ -163,20 +163,20 @@ now works too — it had been quietly refused before.
 ## Two windows in one column
 
 `⌥S` takes the window next along into the one you are reading: they share a
-column, side by side, and the rail is one column shorter. `⌥S` again and they are
-two separate windows on the rail. So do **View ▸ Split**, the rail's own
+column, side by side, and the row is one column shorter. `⌥S` again and they are
+two separate windows in the row. So do **View ▸ Split**, the row's own
 right-click menu, the **This Window** menu, and — in the overview — one window
 dropped onto another.
 
 | | |
 |---|---|
-| `⌥S` | take the neighbouring window into this column; again to put it back on the rail |
+| `⌥S` | take the neighbouring window into this column; again to put it back in the row |
 | `⌥←` `⌥→` | step over the pair as one stop: the halves stand side by side, and the other one is a click away |
 | `⌥⇧←` `⌥⇧→` | inside a pair, swap the two halves |
 | `⌥⇧↑` `⌥⇧↓` | take **the pair**: both halves arrive on the new workspace side by side, as they stood |
 
-The column is still exactly one screen's worth of rail: the two halves fill what
-one window filled, so the rail does not get longer and nothing shifts. The gap
+The column is still exactly one screen's worth of row: the two halves fill what
+one window filled, so the row does not get longer and nothing shifts. The gap
 between the halves is deliberately half the one between columns — at the same
 width the pair would read as two neighbouring windows rather than as one.
 
@@ -192,7 +192,7 @@ you can see them.
 
 The keyboard travels with the focus: the arrow keys scroll the half that is
 highlighted, and typing goes into it. The one exception is a caret in a
-field — `⌘L` and the `⌘E` line are left by keystroke, and the rail does not take
+field — `⌘L` and the `⌘E` line are left by keystroke, and the row does not take
 what you are typing away from them.
 
 A click on the other half lands the focus on it first, as on any unfocused
@@ -203,7 +203,7 @@ neighbour.
 
 More than two do not fit, and that is a decision rather than a limit: three pages
 at a third of a screen each are three pages nobody can read, and "I want to see
-more than two things at once" is what the rail itself answers.
+more than two things at once" is what the row itself answers.
 
 ::: tip With the mouse
 In the **overview**, a window let go over the *middle* of another joins its
@@ -227,7 +227,7 @@ player's own controls: the video leaves the page for a small window that floats
 above everything — above six, above your editor, above whatever you switch to
 next. The same key puts it back.
 
-The page it came from stays on the rail exactly where it was. Scroll away from
+The page it came from stays in the row exactly where it was. Scroll away from
 it, step to the workspace below, switch to another profile: the little window
 stays where you put it and goes on playing. The page behind it is never unloaded
 to save memory while the video is up, so coming back to it finds it as you left
@@ -246,22 +246,22 @@ application at once; six cannot place it or make it travel with its own window.
 ## The overview
 
 `⌥O` zooms the whole canvas out: workspaces open up and read as separate screens.
-The scale picks itself — just enough to show the focused rail end to end; a short
+The scale picks itself — just enough to show the focused row end to end; a short
 one is not shrunk for nothing, and a very long one starts scrolling rather than
 turning microscopic.
 
 In the overview:
 
-- scrolling sideways runs along the rail — it keeps up with your finger, moving as far
+- scrolling sideways runs along the row — it keeps up with your finger, moving as far
   as you moved — and up and down goes through workspaces;
 - a click on a window opens it and closes the overview;
-- **the dashed place at the end of every rail** opens a window in that workspace
+- **the dashed place at the end of every row** opens a window in that workspace
   — including the empty one at the bottom, which is how a new workspace is made.
   It is drawn as the start page in miniature: exactly what will open there. `⌘T`
-  and the rail's own `+` open a window beside the focused one, and up here the
+  and the row's own `+` open a window beside the focused one, and up here the
   focused one may be three rows away;
 - **the × on a card's corner** closes that window without going into it;
-- **dragging** carries a window along its rail or onto another workspace —
+- **dragging** carries a window along its row or onto another workspace —
   including the empty one at the bottom, which is how a new workspace is made.
   The focus goes with the window: a window put in another row while the view
   stayed in the old one is a window you have just lost;
@@ -281,14 +281,14 @@ workspace of the profile stacked, each card the last picture of its page — and
 also opens from **⋯ ▸ Overview** at the right end of the bar. A click on a card
 opens that window and closes the overview; a click anywhere else, or `Esc`, just
 closes it; the wheel scrolls it without `Alt`. **On Linux** it shows the focused
-rail end to end. Dragging windows and renaming workspaces in the overview are
+row end to end. Dragging windows and renaming workspaces in the overview are
 still the Mac's alone.
 
 Pages are discarded by the rule described below: the ones on screen, and half a
 screen either side, stay live; the rest stay while the budget allows. A discarded
 window keeps its place and its picture.
 
-The rail survives a relaunch there as well: windows, workspaces, addresses and
+The row survives a relaunch there as well: windows, workspaces, addresses and
 titles come back as they were left, in every profile. A private profile does not
 come back.
 
@@ -321,7 +321,7 @@ is gone.
 ## How many pages are actually live
 
 A page is a process of its own: its own memory, its own timers, its own
-rendering. A rail of a hundred windows cannot carry a hundred of them, so VI
+rendering. A row of a hundred windows cannot carry a hundred of them, so VI
 does what Chrome's Memory Saver and Safari's suspended tabs do: it **discards**
 the pages it is unlikely to be asked for and builds them again from the address.
 

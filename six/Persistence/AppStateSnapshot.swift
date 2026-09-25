@@ -3,7 +3,7 @@ import Foundation
 // What six restores on the next launch, as plain `Codable` values. This file, `SnapshotStore` and
 // `StatePersistence` use nothing but Foundation and Observation, so the format and the machinery can
 // move to another platform as they are; only the mapping to and from the live objects (`BrowserState`,
-// `NiriLayout`, `AgentSessionStore`) is macOS-specific.
+// `TilingLayout`, `AgentSessionStore`) is macOS-specific.
 
 nonisolated struct AppStateSnapshot: VersionedSnapshot {
     static let currentVersion = 1
@@ -101,10 +101,10 @@ nonisolated struct DocumentSnapshot: Codable, Sendable {
     var showsPreview: Bool
 }
 
-/// One profile's workspace stack; `NiriStrip` itself is the stored shape.
+/// One profile's workspace stack; `TilingStrip` itself is the stored shape.
 nonisolated struct StripSnapshot: Codable, Sendable {
     var profileID: UUID
-    var strip: NiriStrip
+    var strip: TilingStrip
 }
 
 /// The selected agent and every conversation, keyed by agent and folder.

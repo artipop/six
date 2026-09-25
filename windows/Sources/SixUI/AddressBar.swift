@@ -1,16 +1,16 @@
-import CRailInterop
+import CStripInterop
 import Foundation
 import SixBrowser
 import WinSDK
 
 /// A plain Win32 `EDIT` control showing and editing the focused column's URL, sunk into the pill
-/// `RailChrome` draws behind it. One bar for the whole window rather than one per column — the same
-/// "one live thing" simplification `RailLiveView` makes — retargeted, not rebuilt, as focus moves.
+/// `StripChrome` draws behind it. One bar for the whole window rather than one per column — the same
+/// "one live thing" simplification `StripLiveView` makes — retargeted, not rebuilt, as focus moves.
 ///
 /// The control is borderless and paints in the bar's own colours (`WM_CTLCOLOREDIT`, answered by
-/// `RailWindow.handle`), because the only part of a Win32 `EDIT` that cannot be styled is its
+/// `StripWindow.handle`), because the only part of a Win32 `EDIT` that cannot be styled is its
 /// frame: `WS_EX_CLIENTEDGE` draws a Windows 95 sunken border no message can talk it out of.
-extension RailWindow {
+extension StripWindow {
     private static let editClassName = "EDIT"
 
     /// Created from `create(instance:)`, which is the earliest a parent `HWND` exists to hang it on.
@@ -18,7 +18,7 @@ extension RailWindow {
         guard let hwnd, addressBarHwnd == nil else { return }
 
         let created: HWND? = Self.editClassName.withCString(encodedAs: UTF16.self) { classPtr in
-            RailModel.startURL.withCString(encodedAs: UTF16.self) { textPtr in
+            StripModel.startURL.withCString(encodedAs: UTF16.self) { textPtr in
                 CreateWindowExW(
                     0, classPtr, textPtr,
                     DWORD(WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL),
@@ -29,11 +29,11 @@ extension RailWindow {
         guard let created else { return }
         addressBarHwnd = created
 
-        // The same `GWLP_USERDATA` dance `railWindowProc` uses for the main window, minus the
+        // The same `GWLP_USERDATA` dance `stripWindowProc` uses for the main window, minus the
         // `WM_NCCREATE` step — there is no `CREATESTRUCTW` to pull it from here, so it is set
         // directly, once, right after creation, before any message the subclass proc below cares
         // about can arrive.
-        SixRailSetUserData(created, Unmanaged.passUnretained(self).toOpaque())
+        SixStripSetUserData(created, Unmanaged.passUnretained(self).toOpaque())
 
         // Wrap, don't replace: the subclass proc intercepts Enter and forwards the rest to `EDIT`'s
         // own, the same shape `sixty`'s MiniBrowserSwift address bar uses.
@@ -53,7 +53,7 @@ extension RailWindow {
     /// and not the control's square one.
     ///
     /// Called on `WM_SIZE`, on a DPI change, and from every repaint — the field comes and goes with
-    /// the focused window, and a profile switch onto an empty rail is a repaint and nothing else. It
+    /// the focused window, and a profile switch onto an empty row is a repaint and nothing else. It
     /// compares before it moves anything: `MoveWindow` on every paint would repaint the `EDIT`
     /// underneath the caret sixty times a second.
     func layoutAddressBar() {
@@ -122,7 +122,7 @@ extension RailWindow {
         model.setURL(urlString, for: focusedID)
         addressBarShownText = urlString
         webView.load(urlString)
-        // Back to the rail, so the arrow keys are the rail's again the moment a page starts loading
+        // Back to the row, so the arrow keys are the row's again the moment a page starts loading
         // — the Mac hands focus to the page for the same reason.
         if let hwnd { SetFocus(hwnd) }
         invalidate()
@@ -142,24 +142,24 @@ extension RailWindow {
     }
 }
 
-/// The address bar's own subclass `WNDPROC` — `nonisolated` for the same reason `railWindowProc` is:
+/// The address bar's own subclass `WNDPROC` — `nonisolated` for the same reason `stripWindowProc` is:
 /// a C function pointer carries no actor isolation, only what `MainActor.assumeIsolated` hands back
 /// after recovering it can.
 private nonisolated func addressBarSubclassProc(
     _ hwnd: HWND?, _ message: UINT, _ wParam: WPARAM, _ lParam: LPARAM
 ) -> LRESULT {
-    guard let hwnd, let stored = SixRailGetUserData(hwnd) else {
+    guard let hwnd, let stored = SixStripGetUserData(hwnd) else {
         return DefWindowProcW(hwnd, message, wParam, lParam)
     }
-    let window = Unmanaged<RailWindow>.fromOpaque(stored).takeUnretainedValue()
+    let window = Unmanaged<StripWindow>.fromOpaque(stored).takeUnretainedValue()
 
     switch Int32(message) {
     case WM_KEYDOWN where wParam == WPARAM(VK_RETURN):
         MainActor.assumeIsolated { window.navigateFromAddressBar() }
         return 0
     case WM_KEYDOWN where wParam == WPARAM(VK_ESCAPE):
-        // Give the address back and hand the keyboard to the rail: an address bar you cannot leave
-        // is one that swallows every rail shortcut until something else is clicked.
+        // Give the address back and hand the keyboard to the row: an address bar you cannot leave
+        // is one that swallows every row shortcut until something else is clicked.
         MainActor.assumeIsolated {
             window.addressBarShownTabID = nil
             if let parent = window.hwnd { SetFocus(parent) }

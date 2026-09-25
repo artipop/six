@@ -27,7 +27,7 @@ from [`six/Localizable.xcstrings`](../six/Localizable.xcstrings) rather than tra
 |---|---|
 | [controls.md](controls.md) | every mouse control, and the keyboard in short |
 | [hotkeys.md](hotkeys.md) | every key binding, grouped by where it works |
-| [layout.md](layout.md) | the niri layout: model, geometry, gestures |
+| [layout.md](layout.md) | the tiling layout: model, geometry, gestures |
 | [start-page.md](start-page.md) | the start page, search and suggestions |
 | [architecture.md](architecture.md) | modules and how state flows |
 | [platforms.md](platforms.md) | the macOS and iOS targets, and what differs |

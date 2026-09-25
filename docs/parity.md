@@ -16,15 +16,15 @@ Sizes are rough: **S** an afternoon, **M** a day or two, **L** a week, **XL** mo
 ## 0. The engine — postponed
 
 A WebKit that is not Playwright's, and the DPI shim that goes away with it. Playwright deletes the
-`/ intrinsicDeviceScaleFactor` from `WebView::onSizeEvent`, so `RailWebView.installScaleShim` divides `WM_SIZE` by
+`/ intrinsicDeviceScaleFactor` from `WebView::onSizeEvent`, so `StripWebView.installScaleShim` divides `WM_SIZE` by
 the scale; its WebCore has MediaStream compiled out, so no page can ask for the camera or the microphone however
 finished six's side of that is; and GPU compositing is off. build.webkit.org builds Windows green and hands nobody a
 binary ([todo.md](todo.md#windows-a-webkit-that-is-not-playwrights)). Everything below works on the current engine.
 
 ## Built already, on Windows
 
-The rail and workspaces with the key table, `Alt`+wheel, the overview (looking, not rearranging); live pages,
-discarding and pictures; the rail across a relaunch; profiles with isolated site data and a private one; history
+The row and workspaces with the key table, `Alt`+wheel, the overview (looking, not rearranging); live pages,
+discarding and pictures; the row across a relaunch; profiles with isolated site data and a private one; history
 with its list window; bookmarks with vectors, the page's whole text and the Markdown copy; translation (Bergamot);
 site permissions (wired, engine-blocked — see 0).
 
@@ -32,7 +32,7 @@ site permissions (wired, engine-blocked — see 0).
 
 ### 1. The page's basics — M, both fronts
 
-What makes it a browser rather than a rail of pages: **downloads** (the Mac's `DownloadsView`, resume, the row that
+What makes it a browser rather than a row of pages: **downloads** (the Mac's `DownloadsView`, resume, the row that
 survives a relaunch — [links.md](links.md)); **the page's own dialogs** — `alert`, `confirm`, `prompt`, the file
 picker; **a second window** — `target=_blank`, `window.open`, `⌘`/middle-click opening a column beside; **the
 context menu on a link** (open beside, copy address — six took the Mac's over for exactly this); **a failed load**
@@ -60,7 +60,7 @@ as a page that says so (`PageFailureView`) rather than a blank card; **the load 
   `context-menu` — [todo.md](todo.md#linux-what-the-third-front-still-owes-the-first) calls them one-to-one onto
   `PageDialogQueue` and the navigation decider.
 - **Shared:** the download rows and their persistence are not Apple (`six/Browser/Downloads` carries the model);
-  the "open beside" decision is `NiriLayout`'s already.
+  the "open beside" decision is `TilingLayout`'s already.
 
 ### 2. Blocking — L, both fronts
 
@@ -75,14 +75,14 @@ the page, the shield and its per-site allowlist ([blocking.md](blocking.md)).
 
 ### 3. The layout's remaining keys — M, both fronts
 
-`NiriLayout` has all of it and both fronts return `nil` for the rows: **two windows in one column** (`⌥S`,
+`TilingLayout` has all of it and both fronts return `nil` for the rows: **two windows in one column** (`⌥S`,
 [layout.md](layout.md#two-windows-in-one-column) — Windows already *restores* a split and cannot make one),
 **the `⌃Tab` ring** (`WindowSwitcherOverlay`), **copy address** (`⌃⇧C`, already spelled for off-Apple),
 **picture-in-picture** where the engine allows it.
 
 ### 4. The bookmarks library — S–M
 
-- **Windows:** no window at all; `searchBookmarks` is in the model and nothing shows it. `RailListPanel` (history's
+- **Windows:** no window at all; `searchBookmarks` is in the model and nothing shows it. `StripListPanel` (history's
   window) is the shape.
 - **Linux:** `BookmarksSheet` exists and searches title and address only — its own comment still says the readable
   copy and the embeddings are out of scope, which stopped being true. Give it the vector search the model has.

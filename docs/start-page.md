@@ -131,7 +131,7 @@ The top bar's field (`six/Views/AddressBar.swift`) drops the same list, over the
 `Limits(rows: 8)`. It opens only once the text differs from what six put there (`filled`): ⌘L
 selects the page's address mostly to copy it, and a list falling over the page every time would be in the way of
 that. `↑` `↓` walk, `Enter` opens the selected row or navigates to the text, and `Esc` first puts the address back,
-then lets go of the field. It hangs below the bar because the top bar is drawn in front of the rail (`zIndex(1)` in
+then lets go of the field. It hangs below the bar because the top bar is drawn in front of the row (`zIndex(1)` in
 `ContentView`).
 
 ## Suggestions

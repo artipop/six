@@ -93,7 +93,7 @@ one starts and the saved transcript stays above it as a record.
 ## Chats
 
 Every conversation with an agent is on the **Chats** page (`⌘⇧E`, or View ▸
-Chats). It is not a sidebar but a column of the rail like any other page: it
+Chats). It is not a sidebar but a column of the row like any other page: it
 opens beside what you are doing and closes when you have found what you wanted.
 Chats are grouped by day; the search looks through their titles, and **All
 folders** shows the ones from other folders too. **New Chat** opens an empty
@@ -111,7 +111,7 @@ Agent**, and the agent sends its history over.
 
 ## What an agent can do in the browser
 
-The vocabulary is the product's: a **window** (page) in a **workspace** (rail)
+The vocabulary is the product's: a **window** (page) in a **workspace** (row)
 of a **profile**. Everything defaults to what is on screen.
 
 | | |

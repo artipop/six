@@ -12,10 +12,10 @@ import Foundation
     ]
     var out: [String] = []
     for (name, size) in viewports {
-        let l = NiriLayout()
+        let l = TilingLayout()
         l.updateViewport(size)
-        var ws = NiriWorkspace()
-        ws.columns = (0..<4).map { _ in NiriColumn(tabID: UUID()) }
+        var ws = TilingWorkspace()
+        ws.columns = (0..<4).map { _ in TilingColumn(tabID: UUID()) }
         let frames = l.columnFrames(ws).map {
             String(format: "%.6f,%.6f,%.6f,%.6f", $0.origin.x, $0.origin.y, $0.width, $0.height)
         }

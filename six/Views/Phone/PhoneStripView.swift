@@ -5,7 +5,7 @@ import WebKit
 /// Which way the strip runs. The model is one-dimensional — columns follow one another *along* the
 /// strip, workspaces stack *across* it — so a platform only has to say which screen direction the
 /// strip's own axis points in. Everything else (widths, gaps, the scroll offset, centring) is the
-/// arithmetic `NiriLayout` already does for the Mac.
+/// arithmetic `TilingLayout` already does for the Mac.
 enum StripAxis {
     /// Columns left to right, workspaces above and below: the Mac, and any device on its side.
     case horizontal
@@ -93,7 +93,7 @@ struct PhoneStripView: View {
 
 /// One workspace: its columns laid along the strip at the offsets the layout worked out.
 private struct WorkspaceView: View {
-    let workspace: NiriWorkspace
+    let workspace: TilingWorkspace
     let axis: StripAxis
     let isFocused: Bool
 
@@ -109,11 +109,11 @@ private struct WorkspaceView: View {
                 PhoneEmptyWorkspaceHint()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            // By window, like the Mac's strip and for the same reason (`NiriWindowPlace`). A column
+            // By window, like the Mac's strip and for the same reason (`TilingWindowPlace`). A column
             // split on the Mac arrives here as two windows sharing one screen's worth of strip, and
             // is drawn that way rather than half-hidden: the strip runs down the phone, so the halves
             // are the top and the bottom of the screen. Nothing here makes one — there is no ⌥S on a
-            // phone — but a rail restored from a session that has one must not hold a window nobody
+            // phone — but a row restored from a session that has one must not hold a window nobody
             // can reach.
             ForEach(layout.placements(workspace.columns)) { place in
                 if let tab = browser.tab(place.tabID) {
@@ -128,7 +128,7 @@ private struct WorkspaceView: View {
                 }
             }
         }
-        .animation(NiriLayout.switchAnimation, value: workspace.focus)
+        .animation(TilingLayout.switchAnimation, value: workspace.focus)
     }
 }
 
@@ -262,7 +262,7 @@ private struct PhoneColumn: View {
                 // A finger's worth of travel along the strip, so a tap that slipped moves nothing.
                 // `viewport` is in strip space, so `width` is the along-strip extent either way.
                 let threshold = layout.viewport.width * 0.12
-                withAnimation(NiriLayout.switchAnimation) {
+                withAnimation(TilingLayout.switchAnimation) {
                     layout.horizontalPreview = 0
                     layout.verticalPreview = 0
                 }
@@ -350,7 +350,7 @@ private struct PhoneEdgeButton: View {
             }
             .buttonStyle(.plain)
             .position(point(in: size))
-            .animation(NiriLayout.switchAnimation, value: along)
+            .animation(TilingLayout.switchAnimation, value: along)
         }
     }
 
@@ -367,7 +367,7 @@ private struct PhoneEdgeButton: View {
 
     /// The same two answers the Mac gives, with the arrow turned to face along the strip: upright it
     /// runs down the screen, on its side across it.
-    private func step(layout: NiriLayout) -> (symbol: String, action: () -> Void)? {
+    private func step(layout: TilingLayout) -> (symbol: String, action: () -> Void)? {
         if layout.canFocusColumn(direction) {
             let symbol: String
             switch axis {
@@ -379,7 +379,7 @@ private struct PhoneEdgeButton: View {
         // Nothing that way, so the button offers the only other thing that can be there: a window.
         // An empty workspace is left alone — it says the same thing in the middle of the screen.
         if layout.focusedWorkspace?.isEmpty == false {
-            let side: NiriPlacement = direction < 0 ? .left : .right
+            let side: TilingPlacement = direction < 0 ? .left : .right
             return ("plus", { browser.newTab(on: side) })
         }
         return nil

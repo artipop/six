@@ -1,4 +1,4 @@
-import CRailInterop
+import CStripInterop
 import Foundation
 import SixBrowser
 import WinSDK
@@ -11,7 +11,7 @@ import WinSDK
 /// What it does *not* have is the Mac's editor: renaming, recolouring and deleting a profile are all
 /// text fields and swatches, and this front has no control that can hold either. Adding one names
 /// itself, from the same list of templates the Mac's colours come from.
-extension RailWindow {
+extension StripWindow {
     private static let newProfileCommand: Int32 = 1000
     private static let privateProfileCommand: Int32 = 1001
 
@@ -43,8 +43,8 @@ extension RailWindow {
         var point = POINT(x: chip.left, y: chip.bottom + px(4))
         ClientToScreen(hwnd, &point)
         // `TPM_RETURNCMD` hands the answer back here instead of posting `WM_COMMAND`, which keeps the
-        // whole interaction in one function — see `SixRailTrackPopupMenu` for why the wrapper.
-        let chosen = SixRailTrackPopupMenu(
+        // whole interaction in one function — see `SixStripTrackPopupMenu` for why the wrapper.
+        let chosen = SixStripTrackPopupMenu(
             menu, UINT(TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RETURNCMD | TPM_NONOTIFY),
             point.x, point.y, hwnd
         )

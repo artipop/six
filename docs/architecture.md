@@ -5,12 +5,12 @@ The entry point is `SixMain`, not the `App`: with `--mcp` the process never touc
 `MCPStdioBridge` instead (see [mcp](mcp.md)).
 
 ```
-six/Niri        NiriLayout (workspaces, columns, geometry, focus/move ops), NiriScrollMonitor (scroll gestures)
+six/Tiling       TilingLayout (workspaces, columns, geometry, focus/move ops), TilingScrollMonitor (scroll gestures)
 six/Input       KeyBindings + KeyContext (the table and what has the keyboard — in SixCore, tested against
                 docs/hotkeys.md), KeyEvents (NSEvent → those values), KeyRouter (the one key monitor)
 six/Browser     Profile, BrowserTab (WebPage), LivePageCache (the live-page budget), BrowserState, History, SitePermissions + PageDialogs (camera/microphone per site, the page's own dialogs), SearchEngine, SearchSuggestions, WebSearch
 six/Bookmarks   Bookmark (tables), ReadablePage (page → Markdown), Embedder + MLXEmbedder (multilingual-e5 over MLX), BookmarkStore (files, vec0 index, search)
-six/Views       ContentView (top bar), NiriStripView (the rail + overview), ConfigurationPageView (six://configuration/<pane>#<tab>), StartPage, AssistantBar, AgentPanel, HistoryView, BookmarksView
+six/Views       ContentView (top bar), TilingStripView (the row + overview), ConfigurationPageView (six://configuration/<pane>#<tab>), StartPage, AssistantBar, AgentPanel, HistoryView, BookmarksView
 six/Assistant   ModelChoice/AssistantSettings, AssistantStore (streaming), FoundationModelsCompatibility
 six/ACP         ACPJSON, JSONRPCConnection, ACPTypes, ACPAgent (process), ACPClient (actor), AgentSessionStore
 six/Tools       BrowserToolCatalog (the tools, over BrowserState), BrowserModelTool (Foundation Models adapter)
@@ -28,7 +28,7 @@ The Linux front is a second set of modules over some of the same files, built by
 Xcode. Its module boundaries are enforced rather than agreed — see [linux.md](linux.md):
 
 ```
-Package.swift          SixCore: the files above that are Foundation-only — NiriLayout, Data/, Persistence/,
+Package.swift          SixCore: the files above that are Foundation-only — TilingLayout, Data/, Persistence/,
                        Bookmark, History, SearchEngine, SitePermissions — plus the two the fronts without a
                        snapshot share, StripState and LivePages (compiled away on Apple). Listed, not moved.
 linux/  SixWebKitCore  the WebKitGTK interop, no toolkit: NetworkSession, PageRegistry, Thumbnails,
@@ -40,7 +40,7 @@ linux/  SixWebKitCore  the WebKitGTK interop, no toolkit: NetworkSession, PageRe
 
 ## State
 
-`BrowserState` owns the profiles and the flat list of `BrowserTab`s; `NiriLayout` owns where they sit. A tab's
+`BrowserState` owns the profiles and the flat list of `BrowserTab`s; `TilingLayout` owns where they sit. A tab's
 `content` is `.web` or `.document(TextDocument)` — a document window is a column like any other, with a
 `WebPage` of its own that renders the Markdown preview (and exports it); see [deep-research.md](deep-research.md). The
 `WebPage` is not part of the tab's identity: it comes and goes with the live-page budget (below). A tab exists
@@ -58,7 +58,7 @@ camera?" to `SitePermissions` and suspends the page until the window's own bar i
 `dialogPresenter`, which is what makes `alert()` and `<input type="file">` work at all. See
 [permissions.md](permissions.md).
 
-Views never mutate `NiriLayout` directly; they call `BrowserState`, which wraps the call in the shared animation
+Views never mutate `TilingLayout` directly; they call `BrowserState`, which wraps the call in the shared animation
 (`animateLayout`). Strip panning is the exception — it follows the trackpad and is deliberately un-animated.
 
 A `Profile` is a name, a colour, a `WKWebsiteDataStore(forIdentifier:)` and an optional working directory for agents
@@ -82,9 +82,9 @@ with a fresh one), its captured console, and its highlights. That is the point o
 the other profile sees it.
 
 Two things the move does that a close does not. The column leaves a strip that may not be the one on screen, so it
-goes through `NiriLayout.removeColumn(tabID:from:)` rather than the active-strip one; and that call asks nothing
+goes through `TilingLayout.removeColumn(tabID:from:)` rather than the active-strip one; and that call asks nothing
 when it empties a named row, because the question a closed window puts up would arrive over the profile the window
-went *to*. The focus follows the window: it is the one move where the rail would otherwise just lose a column.
+went *to*. The focus follows the window: it is the one move where the row would otherwise just lose a column.
 
 The one window that will not go is a document heading for a private profile. Its text is a file under `Documents/`,
 watched and written a second after every keystroke, and a private profile is the one written down nowhere — so
@@ -125,7 +125,7 @@ still on them.
   is scheduled one switch animation later (`LivePageCache.settleDelay`, 350 ms) and cancelled if the focus moves
   again: hold ⌥→ across ten windows and exactly one page is built, the one you stopped at. A window that already has
   its page is shown at once, with nothing to wait for.
-- **Pinning and building are different things.** `NiriLayout.visibleTabIDs` — the focused workspace's columns inside
+- **Pinning and building are different things.** `TilingLayout.visibleTabIDs` — the focused workspace's columns inside
   the viewport plus half a screen of margin — is *pinned*: never an eviction candidate, so the neighbours peeking in at
   the edges go on showing whatever pages they still have. Only the **focused** window is *built*. Walking down a
   restored strip loads one page, the one you stopped at, not one per window you passed; and if you were there recently
@@ -242,7 +242,7 @@ written to `~/Library/Application Support/org.deffun.six/state.json` — the fol
 build writes to `org.deffun.six.dev/` and the two never meet (`AppSupport`, and
 [build.md](build.md#two-apps-the-one-you-use-and-the-one-you-build)). The snapshot types, `SnapshotStore` and `StatePersistence`
 use only Foundation and Observation (no SwiftData, no AppKit), so the format and the machinery are portable as they
-are; only the mapping to the live objects (`BrowserState.snapshot` / `init(snapshot:)`, `NiriLayout.allStrips` /
+are; only the mapping to the live objects (`BrowserState.snapshot` / `init(snapshot:)`, `TilingLayout.allStrips` /
 `restore(strips:)`, `AgentSessionStore.snapshot` / `init(snapshot:)`) is app code.
 
 Who the profiles *are* is not in that file. They are two tables in the database, behind `ProfileStore`,
@@ -341,12 +341,12 @@ for the outcome later.
 
 ## Views
 
-`ContentView` is a top bar plus `NiriStripView`, with the assistant line overlaid at the bottom and the agent panel as
+`ContentView` is a top bar plus `TilingStripView`, with the assistant line overlaid at the bottom and the agent panel as
 an `.inspector`. When ⌘E is pressed over a caret or a selection the same line
 hangs on the web view itself instead (`AnchoredAssistantLine`), as a `HostedOverlay` — SwiftUI drawn over a
 `WKWebView` never sees the mouse. The window uses `.hiddenTitleBar` and the top bar reserves 68 pt for the traffic lights.
 
-`NiriStripView` draws every workspace as a full-size layer offset vertically by `index - focusedIndex`, and every
+`TilingStripView` draws every workspace as a full-size layer offset vertically by `index - focusedIndex`, and every
 column inside it at an absolute offset from `columnFrames`. That is why switching workspaces or scrolling the strip is
 a single animated offset change rather than a view rebuild — the web views are never re-created.
 

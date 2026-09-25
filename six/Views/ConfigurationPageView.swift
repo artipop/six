@@ -3,7 +3,7 @@ import SwiftUI
 
 /// six's settings, at `six://settings`.
 ///
-/// A **page**, for the reason `BuiltInPage` gives: it opens in a column of the rail, so the thing a
+/// A **page**, for the reason `BuiltInPage` gives: it opens in a column of the row, so the thing a
 /// setting is about can stay open beside it. Reading what a site is allowed while looking at the
 /// site is the case that settles the argument — a sheet covers the window it is asking about.
 ///
@@ -306,7 +306,7 @@ private struct ShareExtensionRow: View {
 
 // MARK: - Windows
 
-/// How the rail behaves — the two switches that used to be in the Layout menu, and are the only two
+/// How the row behaves — the two switches that used to be in the Layout menu, and are the only two
 /// of it that were settings at all.
 private struct WindowConfiguration: View {
     @Environment(BrowserState.self) private var browser
@@ -319,7 +319,7 @@ private struct WindowConfiguration: View {
                     set: { _ in browser.toggleCenterFocus() }
                 ))
             } header: {
-                Text("The Rail")
+                Text("Layout")
             }
 
             SwiftUI.Section {

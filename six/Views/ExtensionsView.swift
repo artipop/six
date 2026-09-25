@@ -251,7 +251,7 @@ private struct InstallSheet: View {
             .padding(12)
         }
         // A sheet cannot be wider than the window it is over, and a six window is one column of a
-        // rail: a constant width clipped the buttons off the right in a narrow one. Ideal, not
+        // row: a constant width clipped the buttons off the right in a narrow one. Ideal, not
         // fixed, and the text rewraps in what is there.
         .frame(minWidth: 320, idealWidth: 460, maxWidth: .infinity)
     }

@@ -35,7 +35,7 @@ struct ReadablePageTests {
     }
 
     /// Through the seam, the way a front calls it: a runner that answers the way `LivePage` and
-    /// `RailWebView` do, and the script is what it was asked to run.
+    /// `StripWebView` do, and the script is what it was asked to run.
     @Test func extractionRunsTheScriptThroughTheRunner() async throws {
         let runner = Runner(answer(text: "Pilaf is a rice dish."))
         let page = try await ReadablePage.extract(from: runner)

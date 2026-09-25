@@ -2,7 +2,7 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- Where the handoff goes and where the rail is read from. Build settings, so that the
+	<!-- Where the handoff goes and where the row is read from. Build settings, so that the
 	     development build's sheet talks to the development build: six-dev-share and
 	     Application Support/org.deffun.six.dev. -->
 	<key>SixShareScheme</key>

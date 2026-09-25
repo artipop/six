@@ -34,7 +34,7 @@ Its badge count, its per-site disable, and its cosmetic filtering all decide by 
 `webView(for:)` gap took away. The score above says nothing about any of them, and the yellow script-loading rows
 are where they would show.
 
-- Does the badge number change as the rail moves between sites?
+- Does the badge number change as the row moves between sites?
 - Does "disable on this site" in uBOL's own popup survive a reload?
 - Do elements *disappear* rather than merely fail to load —
   `https://testpages.adblockplus.org/en/filters/element-hiding` and its neighbours.
