@@ -264,6 +264,8 @@ private struct TabItem: View {
     @State private var dropSide: Int?
 
     private var isSelected: Bool { browser.selectedTabID == tab.id }
+    /// Picked with ⌘ or ⇧ along with others, and not the one in front (`BrowserState.clickTab`).
+    private var isPicked: Bool { !isSelected && browser.pickedTabs.contains(tab.id) }
 
     var body: some View {
         HStack(spacing: 6) {
@@ -290,7 +292,8 @@ private struct TabItem: View {
         .background {
             UnevenRoundedRectangle(topLeadingRadius: 8, topTrailingRadius: 8, style: .continuous)
                 .fill(isSelected ? AnyShapeStyle(Color(nsColor: .windowBackgroundColor))
-                                 : AnyShapeStyle(Color.primary.opacity(hovering ? 0.07 : 0)))
+                      : isPicked ? AnyShapeStyle(Color.accentColor.opacity(hovering ? 0.26 : 0.18))
+                      : AnyShapeStyle(Color.primary.opacity(hovering ? 0.07 : 0)))
         }
         .overlay(alignment: .bottom) {
             if let tint {
@@ -303,7 +306,12 @@ private struct TabItem: View {
             }
         }
         .contentShape(Rectangle())
-        .onTapGesture { browser.selectTab(tab.id) }
+        // ⌘ picks tabs one by one and ⇧ a run of them, as in Chrome on a Mac. Not ⌃: a ⌃-click on a
+        // Mac is the secondary click, and it opens this tab's menu before any gesture hears it.
+        .onTapGesture {
+            let held = NSEvent.modifierFlags
+            browser.clickTab(tab.id, adding: held.contains(.command), extending: held.contains(.shift))
+        }
         .onHover { hovering = $0 }
         .help(tab.title)
         .contextMenu { TabMenu(tab: tab, group: group, rename: rename) }
@@ -380,6 +388,35 @@ private struct TabMenu: View {
     @Environment(BrowserState.self) private var browser
 
     var body: some View {
+        // Opened on one of several picked tabs, the menu is about all of them — Chrome's rule. On a
+        // tab outside the pick it is about that tab alone.
+        let picked = browser.pickedTabsInOrder
+        if picked.count > 1, picked.contains(tab.id) {
+            many(picked)
+        } else {
+            one
+        }
+    }
+
+    @ViewBuilder
+    private func many(_ ids: [UUID]) -> some View {
+        Button("Add \(ids.count) Tabs to New Group") {
+            if let created = browser.moveTabsToNewGroup(ids) { rename(created) }
+        }
+        let groups = TabGroup.all(in: browser)
+        if groups.count > 1 {
+            Menu("Move \(ids.count) Tabs to Group") {
+                ForEach(groups) { other in
+                    Button(other.title) { browser.moveTabs(ids, toGroup: other.id) }
+                }
+            }
+        }
+        Divider()
+        Button("Close \(ids.count) Tabs") { browser.closeTabs(ids) }
+    }
+
+    @ViewBuilder
+    private var one: some View {
         Button("New Tab to the Right") {
             browser.selectTab(tab.id)
             browser.newTab()

@@ -88,6 +88,12 @@ final class BrowserState {
     /// The row, or a tab bar over one page (`InterfaceStyle`). Here and not in `TilingLayout` for
     /// the reason `peeksAtEdges` is: it is how this front draws the strip, not a fact about the strip.
     private(set) var interfaceStyle: InterfaceStyle = .tabs
+    /// Tabs picked together in the tab bar with ⌘ and ⇧ — what the tab menu acts on when it is
+    /// opened on one of them. The tab in front is always among them; anything that moves it
+    /// elsewhere without a click starts the pick again from there (`syncSelection`).
+    private(set) var pickedTabs: Set<UUID> = []
+    /// Where a ⇧-click's range starts: the tab last clicked without ⇧.
+    @ObservationIgnored private var pickAnchor: UUID?
     var showsTabs: Bool { interfaceStyle == .tabs }
     @ObservationIgnored private let settings: ConfigurationStore
     /// Who the profiles are, in the database beside the history and the bookmarks that are keyed by
@@ -1707,6 +1713,67 @@ final class BrowserState {
         for other in workspace.columns.flatMap(\.tabIDs) where other != id { closeTab(other) }
     }
 
+    /// A click on a tab, and the modifiers it came with — Chrome's rules on a Mac. Plain: that tab,
+    /// alone. ⌘: that tab added to the pick, or taken out of it. ⇧: every tab along the bar from the
+    /// last one clicked without ⇧ to this one. The clicked tab comes to the front in all three,
+    /// except a ⌘-click that takes the tab in front out, which hands the front to another picked one.
+    func clickTab(_ id: UUID, adding: Bool = false, extending: Bool = false) {
+        let order = tabOrder(skippingCollapsed: true)
+        if extending, let anchor = pickAnchor ?? selectedTabID,
+           let from = order.firstIndex(of: anchor), let to = order.firstIndex(of: id) {
+            pickedTabs = Set(order[min(from, to)...max(from, to)])
+            selectTab(id)
+            return
+        }
+        if adding {
+            var picks = pickedTabs.union(selectedTabID.map { [$0] } ?? [])
+            pickAnchor = id
+            if picks.contains(id), picks.count > 1 {
+                picks.remove(id)
+                pickedTabs = picks
+                if selectedTabID == id, let next = order.first(where: picks.contains) { selectTab(next) }
+                return
+            }
+            picks.insert(id)
+            pickedTabs = picks
+            selectTab(id)
+            return
+        }
+        pickedTabs = [id]
+        pickAnchor = id
+        selectTab(id)
+    }
+
+    /// The picked tabs in the order the bar draws them.
+    var pickedTabsInOrder: [UUID] { tabOrder().filter(pickedTabs.contains) }
+
+    /// "Add Tabs to New Group": the tabs, in their order, into one new group just after the first
+    /// one's. The tab in front stays in front.
+    @discardableResult
+    func moveTabsToNewGroup(_ ids: [UUID]) -> UUID? {
+        guard let first = ids.first, let front = selectedTabID else { return nil }
+        guard let created = moveTabToNewGroup(first) else { return nil }
+        for (offset, id) in ids.dropFirst().enumerated() {
+            placeTab(id, inGroup: created, at: offset + 1)
+        }
+        selectTab(front)
+        return created
+    }
+
+    /// The tabs, in their order, to the end of a group.
+    func moveTabs(_ ids: [UUID], toGroup group: UUID) {
+        guard let front = selectedTabID else { return }
+        for id in ids {
+            let count = layout.workspaces.first { $0.id == group }?.columns.count ?? 0
+            placeTab(id, inGroup: group, at: count)
+        }
+        selectTab(front)
+    }
+
+    func closeTabs(_ ids: [UUID]) {
+        for id in ids { closeTab(id) }
+    }
+
     /// The tab bar always has one in front while there are any. The row can stand on its spare
     /// empty row with nothing focused; a tab bar has no such place, and would show nothing.
     func selectTabIfNone() {
@@ -1726,6 +1793,10 @@ final class BrowserState {
     private func syncSelection() {
         selectedTabID = layout.focusedTabID
         if showsTabs, selectedTab == nil { selectTabIfNone() }
+        if let id = selectedTabID, !pickedTabs.contains(id) {
+            pickedTabs = [id]
+            pickAnchor = id
+        }
         // Every way the focus can move ends here, which is why the ⌃Tab order is taken here and not
         // in `selectTab`: a row walked with ⌥→ is a row whose windows have been looked at.
         switcher.note(selectedTabID)

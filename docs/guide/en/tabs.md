@@ -37,6 +37,12 @@ appears in front of its tabs — that is a group.
   to Group**, **Close Other Tabs**.
 - **Drag** a tab along the tab bar, or onto another group's label.
 
+**Several tabs at once.** `⌘`-click adds a tab to the picked ones or takes it out,
+`⇧`-click picks every tab from the last one clicked to this one. The menu of any
+picked tab is about all of them: **Add N Tabs to New Group**, **Move N Tabs to
+Group**, **Close N Tabs** — which is how a group is made from several tabs in one
+go. Not `⌃`: on a Mac a `⌃`-click is the secondary click and opens the menu.
+
 A folded group stays folded after a relaunch.
 
 ## Keys

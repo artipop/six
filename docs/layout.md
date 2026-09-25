@@ -707,6 +707,13 @@ group folded here is still folded when the tabs come back. A group cannot fold o
 tab along the row is shown first, and if every other tab is folded away too the group stays open. `⌘⇧[` `⌘⇧]` and
 `⌘1…⌘9` skip folded groups; the ring does not.
 
+**Picking several tabs** is Chrome's on a Mac: `⌘`-click adds or removes one, `⇧`-click takes the run from the last
+tab clicked without `⇧` (`BrowserState.clickTab`, `pickedTabs`). The tab in front is always among them, and anything
+that moves it without a click — a key, a new tab — starts the pick again from there (`syncSelection`). The tab menu,
+opened on a picked tab, acts on all of them: `moveTabsToNewGroup`, `moveTabs(_:toGroup:)`, `closeTabs`. `⌃` is not
+the modifier because a `⌃`-click on a Mac is the secondary click and opens the menu before any gesture hears it.
+Dragging still carries one tab.
+
 The verbs are `TilingLayout.placeTab` — one window to a column index in a row, by workspace id, the focus following it;
 half of a split dragged away leaves the other half in its column — `placeTabInNewWorkspace` for "Add Tab to New
 Group", and `setCollapsed`. `BrowserState` wraps them with the rules above, and `closeGroup` clears the name before

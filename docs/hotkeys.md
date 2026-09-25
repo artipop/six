@@ -165,6 +165,7 @@ these:
 | `⌘⇧]` `⌘⇧[` | next / previous tab along the tab bar, round the end (View ▸ Show Next Tab / Show Previous Tab). A folded group's tabs are skipped |
 | `⌘1` … `⌘8` | that tab; `⌘9` the last one |
 | `⌘T` `⌘W` `⌘⇧T` | new tab, close tab, reopen closed tab — the File menu's items, named for tabs |
+| `⌘`-click `⇧`-click on a tab | pick tabs one by one / a run of them; the tab menu then acts on all the picked ones |
 
 ## Start page (a new window)
 

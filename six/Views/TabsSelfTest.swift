@@ -88,6 +88,24 @@ enum TabsSelfTest {
         browser.selectTab(atPosition: 9)
         say("⌘9: selected is the last \(browser.selectedTabID == browser.tabOrder(skippingCollapsed: true).last)")
 
+        // Picking: three tabs of its own, side by side — ⇧ takes the run, ⌘ takes one out and puts
+        // it back, and the three go to a group of their own together.
+        let picks = (1...3).map { browser.newTab(url: URL(string: "https://example.com/?pick\($0)")) }
+        browser.clickTab(picks[0].id)
+        browser.clickTab(picks[2].id, extending: true)
+        say("⇧-click: picked \(browser.pickedTabsInOrder == picks.map(\.id)), front is the last \(browser.selectedTabID == picks[2].id)")
+        browser.clickTab(picks[1].id, adding: true)
+        say("⌘-click the middle one: picked \(browser.pickedTabsInOrder.count)")
+        browser.clickTab(picks[1].id, adding: true)
+        say("⌘-click it again: picked \(browser.pickedTabsInOrder.count)")
+        if let made = browser.moveTabsToNewGroup(browser.pickedTabsInOrder) {
+            let row = browser.layout.workspaces.first { $0.id == made }?.columns.flatMap(\.tabIDs) ?? []
+            say("Add 3 Tabs to New Group: the group holds them in order \(row == picks.map(\.id))")
+        }
+        browser.clickTab(picks[0].id)
+        say("plain click: picked \(browser.pickedTabsInOrder.count)")
+        browser.closeTabs(picks.map(\.id))
+
         browser.closeTab(probe.id, remembering: false)
         for id in folded { browser.layout.setCollapsed(true, workspace: id) }
         browser.setInterfaceStyle(started)
