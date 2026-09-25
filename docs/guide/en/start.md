@@ -138,7 +138,8 @@ All of it on your machine, in `~/Library/Application Support/org.deffun.six`:
 | `Blocking/`, `Models/`, `Thumbnails/`, `Screenshots/` | filter lists, the model behind search-by-meaning, window pictures, screenshots |
 
 A session survives a relaunch whole: windows come back where they stood, with
-their addresses and scroll offsets, and agent chats carry on.
+their addresses and scroll offsets, and agent chats carry on. Video and sound in
+restored windows do not start by themselves — not until the first click on the page.
 
 ## Making it the default browser
 

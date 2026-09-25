@@ -252,6 +252,10 @@ final class BrowserTab: Identifiable {
     @ObservationIgnored private var savedForward: [URL] = []
     /// Where the page was scrolled to, put back when a discarded window loads again.
     @ObservationIgnored private var savedScroll: Double = 0
+    /// A resumed load's media waits for a gesture (`MediaHold`) — in that load's document only. Lifted
+    /// when the next navigation starts, once the held one has committed.
+    private enum MediaHoldState { case loading, shown }
+    @ObservationIgnored private var mediaHold: MediaHoldState?
     @ObservationIgnored private var pendingScroll: Double?
     /// The page as it last looked. Stands in for it in the strip and while a rebuilt page loads, so
     /// coming back to a discarded window shows the page rather than a white rectangle.
@@ -787,8 +791,10 @@ final class BrowserTab: Identifiable {
         case .startedProvisionalNavigation:
             // The window is trying again, whatever it was showing before.
             loadFailure = nil
+            if mediaHold == .shown { releaseMediaHold() }
         case .committed:
             loadFailure = nil
+            if mediaHold == .loading { mediaHold = .shown }
             hasCommitted = true
             savedURL = page.url ?? savedURL
             // Redirects and history moves never go through the decider.
@@ -922,6 +928,10 @@ final class BrowserTab: Identifiable {
     func resumeIfNeeded() {
         guard let url = pendingURL else { return }
         pendingURL = nil
+        if isWebPage {
+            pageControllers?.setUserScripts([MediaHold.script], named: MediaHold.scriptName, for: id)
+            mediaHold = .loading
+        }
         let page = materialize()
         pendingScroll = savedScroll > 0 ? savedScroll : nil
         loadStartedAt = Date()
@@ -942,6 +952,7 @@ final class BrowserTab: Identifiable {
             return
         }
         guard isWebPage else { return }
+        releaseMediaHold()
         showsStartPage = false
         pendingURL = nil
         savedTitle = ""
@@ -965,6 +976,12 @@ final class BrowserTab: Identifiable {
         }
         guard let url = URL.fromUserInput(input) else { return }
         load(url)
+    }
+
+    private func releaseMediaHold() {
+        guard mediaHold != nil else { return }
+        mediaHold = nil
+        pageControllers?.setUserScripts([], named: MediaHold.scriptName, for: id)
     }
 
     private func restoreScrollIfNeeded(_ page: WebPage) {
