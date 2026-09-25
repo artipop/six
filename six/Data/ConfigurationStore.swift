@@ -138,8 +138,10 @@ final class ConfigurationStore {
 
     /// Which of the two faces the window wears. Nothing in the strip depends on it: the tabs are the
     /// row's windows and their groups are its workspaces, so switching back and forth loses nothing.
+    /// Tabs until anyone has chosen otherwise: it is the face a person arriving from another browser
+    /// already knows, and the row is one switch away.
     var interfaceStyle: InterfaceStyle {
-        get { self[.interfaceStyle].flatMap(InterfaceStyle.init(rawValue:)) ?? .row }
+        get { self[.interfaceStyle].flatMap(InterfaceStyle.init(rawValue:)) ?? .tabs }
         set { self[.interfaceStyle] = newValue.rawValue }
     }
 

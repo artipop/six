@@ -1,8 +1,8 @@
 # Tabs instead of the row
 
-If the row is not for you, or you want to compare, six can show its window the
-way every other browser does: a tab bar at the top, the address field under
-it, and one page below.
+Out of the box six shows its window the way every other browser does: a tab
+bar at the top, the address field under it, and one page below. The row is the
+same windows laid out another way, and it is one switch away.
 
 Switch it in **Configuration ▸ Windows ▸ Show Windows As**: **Row** or **Tabs**.
 **View ▸ Show Tabs** does the same.

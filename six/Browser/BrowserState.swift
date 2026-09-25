@@ -87,7 +87,7 @@ final class BrowserState {
     var peeksAtEdges = ConfigurationStore.peeksByDefault
     /// The row, or a tab bar over one page (`InterfaceStyle`). Here and not in `TilingLayout` for
     /// the reason `peeksAtEdges` is: it is how this front draws the strip, not a fact about the strip.
-    private(set) var interfaceStyle: InterfaceStyle = .row
+    private(set) var interfaceStyle: InterfaceStyle = .tabs
     var showsTabs: Bool { interfaceStyle == .tabs }
     @ObservationIgnored private let settings: ConfigurationStore
     /// Who the profiles are, in the database beside the history and the bookmarks that are keyed by

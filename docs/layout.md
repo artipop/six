@@ -676,8 +676,8 @@ drop: a window put in another row that left the view behind in the old one is a 
 
 ## Tabs instead of the row
 
-`InterfaceStyle.tabs` (Configuration ▸ Windows ▸ Show Windows As, or View ▸ Show Tabs; the key is `interface.style` in
-the settings table) draws the same strip the way every other browser draws a window: a tab bar in the title-bar
+`InterfaceStyle.tabs` — the default until someone chooses otherwise (Configuration ▸ Windows ▸ Show Windows As, or
+View ▸ Show Tabs; the key is `interface.style` in the settings table) draws the same strip the way every other browser draws a window: a tab bar in the title-bar
 band, a toolbar under it with the address field, and the one page in front filling the rest
 (`six/Views/TabStripView.swift`). **It is a second view of the strip and not a second model**, which is the whole of
 the design and the reason switching loses nothing:
