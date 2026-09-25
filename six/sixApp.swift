@@ -62,8 +62,6 @@ struct sixApp: App {
     /// For File › Open Location… — the caret in the address field belongs to whichever window has
     /// the focus, so the menu reaches it across the scene like every other panel does.
     @FocusedValue(\.focusAddressBar) private var focusAddressBar
-    /// Present while the window is a tab bar: the File menu says "tab" then, not "window".
-    @FocusedValue(\.tabBar) private var tabBar
     #endif
 
     init() {
@@ -332,16 +330,16 @@ struct sixApp: App {
                     .keyboardShortcut(",")
             }
             CommandGroup(replacing: .newItem) {
-                Button(tabBar == nil ? "New Window in the Row" : "New Tab") { browser.newTab() }
+                Button(browser.showsTabs ? "New Tab" : "New Window in the Row") { browser.newTab() }
                     .keyboardShortcut("t")
-                Button(tabBar == nil ? "Reopen Closed Window" : "Reopen Closed Tab") { browser.reopenClosedWindow() }
+                Button(browser.showsTabs ? "Reopen Closed Tab" : "Reopen Closed Window") { browser.reopenClosedWindow() }
                     .keyboardShortcut("t", modifiers: [.command, .shift])
                     .disabled(!browser.canReopenClosedWindow)
                 Button("New Private Window") { browser.newPrivateWindow() }
                     .keyboardShortcut("p", modifiers: [.command, .shift])
                 Button("Close Private Browsing") { browser.closePrivateBrowsing() }
                     .disabled(browser.privateProfile == nil)
-                Button(tabBar == nil ? "Close Window" : "Close Tab") { browser.closeSelectedTab() }
+                Button(browser.showsTabs ? "Close Tab" : "Close Window") { browser.closeSelectedTab() }
                     .keyboardShortcut("w")
                 Divider()
                 // Safari's home for it, and the only menu that already means "an address".
@@ -357,6 +355,14 @@ struct sixApp: App {
                 Button("Copy Address") { browser.copyAddress() }
                     .keyboardShortcut("c", modifiers: [.command, .shift])
             }
+            // The system's own Close (⌘W, `performClose:`) and Close All (⌘⌥W), gone. They close
+            // the one window six has — and six quits after its last window — while ⌘W here means
+            // the window on the row or the tab in front. The two items sat side by side on ⌘W, and
+            // every time SwiftUI filled the File menu in again (as it does when six comes to the
+            // front) the key went back to the system's: ⌘W a moment after switching to six quit
+            // it, twice, with the log showing `performKeyEquivalent:` → `performClick:` →
+            // `terminate:` and no tab closed. The red button still closes the window.
+            CommandGroup(replacing: .saveItem) {}
             FileCommands(browser: browser, highlights: highlights)
             ViewCommands(browser: browser, assistant: assistant)
             HistoryCommands(browser: browser)

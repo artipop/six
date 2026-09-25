@@ -521,11 +521,3 @@ private struct NoTabs: View {
 }
 #endif
 
-#if os(macOS)
-extension TabBarActions {
-    @MainActor
-    init(browser: BrowserState) {
-        self.init(select: { browser.selectTab(atPosition: $0) }, step: { browser.selectAdjacentTab($0) })
-    }
-}
-#endif

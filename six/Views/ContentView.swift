@@ -97,7 +97,6 @@ struct ContentView: View {
         // highlighted and your typing lands in the other. `WebViewResponder` has the account.
         .onChange(of: browser.selectedTabID) { _, id in WebViewResponder.shared.focus(id) }
         .onChange(of: browser.interfaceStyle) { _, style in swapFace(to: style) }
-        .focusedSceneValue(\.tabBar, browser.showsTabs ? TabBarActions(browser: browser) : nil)
         .onAppear {
             face = browser.interfaceStyle
             hasFace = true

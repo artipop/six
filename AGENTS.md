@@ -448,6 +448,13 @@ anything added there has to exist on both:
   `canGoBack` stayed greyed out after a navigation and `⌘[` did nothing at all — measured with a run
   each way. Read the window *inside* the action and let the key be a no-op where it has nothing to
   do; `.disabled` on a `@FocusedValue` is the one form that does get rebuilt.
+- **The system's Close item takes ⌘W back whenever SwiftUI fills the File menu in.** Six's own ⌘W item and AppKit's
+  `performClose:` sat side by side, and a menu read straight after launch showed ours holding the key — but SwiftUI
+  fills its menus in lazily (on opening, and when six comes to the front), and after that the key was the system's:
+  ⌘W a moment after switching to six closed the one window, and six quit after it. The log said
+  `performKeyEquivalent:` → `performClick:` → `terminate:` with no tab closed. `CommandGroup(replacing: .saveItem) {}`
+  removes Close and Close All. A menu dump that means anything calls `menuNeedsUpdate` on every submenu first
+  (`TabsSelfTest.menuForCommandW`); without it you are reading what the menu held last time.
 - **A letter binding read from `charactersIgnoringModifiers` is a binding that only Latin layouts have.** `⌥W` reports
   «ц» on the Russian layout. Match the key code as well (`KeyBinding.Key.letter`), which is what a tiling WM does.
 - **On Windows, how a page is drawn and where its clicks land are one problem, and the fix is a window procedure.**

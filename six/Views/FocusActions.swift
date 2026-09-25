@@ -18,13 +18,5 @@ extension FocusedValues {
     @Entry var translateSelection: FocusAddressBarAction?
     /// ⌘F: bring up the focused window's find bar, or give it the keyboard if it is already up.
     @Entry var showFindBar: FocusAddressBarAction?
-    /// Present only while the window is a tab bar, so the menu bar can carry the keys a row of
-    /// tabs has (⌘1…⌘9, ⌘⇧[ ⌘⇧]) and drop the row's.
-    @Entry var tabBar: TabBarActions?
 }
 
-/// What the menu bar can do to the tab bar.
-struct TabBarActions {
-    let select: (Int) -> Void
-    let step: (Int) -> Void
-}

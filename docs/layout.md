@@ -722,11 +722,13 @@ closing the tabs, because closing the group *is* the answer to the question a na
 **The keys.** `KeyContext.showsTabs` switches off every row whose action is about the row
 (`KeyAction.answersInTabs`), so `⌥←` is word movement again and `⌥W` types «∑». The ⌃Tab ring stays, as on the row:
 `⌃Tab` over every tab of every group, `⌃⇧Tab` over the group in front — with a split's two halves as two cards,
-because the tab bar draws them as two tabs. The View menu swaps Full Width / Split / Overview for Show Next / Previous Tab and `⌘1…⌘9`
-through the `tabBar` focused value — a `Commands` body is rebuilt for a focused value and not for model state. With
-nothing focused in the window the menu falls back to its row items, so `toggleSplit`, `toggleFullWindow` and
-`toggleOverview` refuse with the tabs up as well: measured, `⌥W` and `⌥S` reached them through the menu once the
-self-test had cleared the first responder. `SIX_KEY_SELFTEST` prints a `tabs` column.
+because the tab bar draws them as two tabs. The View menu swaps Full Width / Split / Overview for Show Next / Previous Tab and `⌘1…⌘9`,
+and File says "tab" instead of "window", both read off `browser.showsTabs`. It used to be a focused value, and that was
+worse than it looked: the value changes with every click and every return to six, and each change had SwiftUI fill the
+File menu in again — after which ⌘W belonged to the system's Close and quit six (`sixApp`, AGENTS.md). A menu that
+reads the model is filled in when it is about to be used, which is always after the face has changed.
+`toggleSplit`, `toggleFullWindow` and `toggleOverview` also refuse with the tabs up, for anything that reaches them
+another way. `SIX_KEY_SELFTEST` prints a `tabs` column.
 
 **The swap is a frame of nothing.** Both faces draw the pages, and a `WebPage` allows exactly one `WebView` — the trap
 `TilingLayout.unanimated` is written up for. `ContentView.swapFace` takes the old face down, waits 32 ms with neither on

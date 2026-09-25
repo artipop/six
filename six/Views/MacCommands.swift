@@ -27,7 +27,6 @@ struct ViewCommands: Commands {
     @FocusedValue(\.translatePage) private var translatePage
     @FocusedValue(\.translateSelection) private var translateSelection
     @FocusedValue(\.showFindBar) private var showFindBar
-    @FocusedValue(\.tabBar) private var tabBar
 
     var body: some Commands {
         CommandGroup(before: .toolbar) {
@@ -77,17 +76,19 @@ struct ViewCommands: Commands {
 
             Divider()
 
-            // The row's own verbs while there is a row, and a tab bar' own keys while there
-            // is one of those. A focused value, so the menu is rebuilt when the face changes —
-            // which a read of `browser.showsTabs` here would not do (see above).
-            if let tabBar {
-                Button("Show Next Tab") { tabBar.step(1) }
+            // The row's own verbs while there is a row, and the tab bar's own keys while there is
+            // one of those. Read off the model and not off a focused value: SwiftUI fills a menu
+            // in when it is about to be used, so the face is right whenever it is looked at, and a
+            // focused value changed with every click and every return to six — rebuilding the
+            // File menu under ⌘W at exactly the moment it was pressed (`sixApp`).
+            if browser.showsTabs {
+                Button("Show Next Tab") { browser.selectAdjacentTab(1) }
                     .keyboardShortcut("]", modifiers: [.command, .shift])
-                Button("Show Previous Tab") { tabBar.step(-1) }
+                Button("Show Previous Tab") { browser.selectAdjacentTab(-1) }
                     .keyboardShortcut("[", modifiers: [.command, .shift])
                 ForEach(1..<10) { position in
                     Button(position == 9 ? String(localized: "Last Tab") : String(localized: "Tab \(position)")) {
-                        tabBar.select(position)
+                        browser.selectTab(atPosition: position)
                     }
                     .keyboardShortcut(KeyEquivalent(Character("\(position)")))
                 }
