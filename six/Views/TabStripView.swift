@@ -258,6 +258,10 @@ private struct GroupChip: View {
         .frame(height: 22)
         .background(group.color.opacity(isTargeted ? 0.75 : 1), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
         .frame(maxWidth: 180)
+        // Its own width and no more. The bar's content is as wide as the bar, so the bare end can
+        // move the window, and a label free to grow took the room up to 180 and stood apart from
+        // its own tabs.
+        .fixedSize(horizontal: true, vertical: false)
         .padding(.horizontal, 3)
         .padding(.bottom, 4)
         .help(group.isCollapsed ? String(localized: "Expand Group") : String(localized: "Collapse Group"))
