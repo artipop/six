@@ -228,6 +228,13 @@ is usually the one you just came from, and in a row of a dozen that one can be s
 either direction — so `⌥←` / `⌥→` walk the row and `⌃Tab` walks the memory, the same division as
 `⌥Tab` and the workspace keys in any tiling WM.
 
+**How far it reaches is the opening key's to say.** `⌃Tab` opens the ring over every window of the profile, every
+workspace (`BrowserState.tabOrder`); `⌃⇧Tab` over the row on screen only (`rowOrder`), which with the tabs up is the
+group in front. Once it is open they are forward and back. It used to be the row and nothing else, on the argument that
+flying out of a workspace is a bigger move than a key looks; in use the window you just left is as often in the next
+workspace, and the row-only ring is one modifier away. Opening with `⌃⇧Tab` used to mean "the other way round" — on a
+ring ordered by memory, the window looked at longest ago, which is not a step anyone takes on purpose.
+
 - Recency is taken in `BrowserState.syncSelection`, the one place every focus change ends, so a row
   walked with `⌥→` is a row whose windows have been looked at. This run only, like the list `⌘⇧T`
   reopens from.
@@ -706,9 +713,9 @@ Group", and `setCollapsed`. `BrowserState` wraps them with the rules above, and 
 closing the tabs, because closing the group *is* the answer to the question a named row asks when it empties.
 
 **The keys.** `KeyContext.showsTabs` switches off every row whose action is about the row
-(`KeyAction.answersInTabs`), so `⌥←` is word movement again and `⌥W` types «∑». The ⌃Tab ring stays, over every
-tab of every group rather than one row's windows — a tab bar has no row to be in front of, and every tab is a click
-away on screen — with a split's two halves as two cards, because the tab bar draws them as two tabs. The View menu swaps Full Width / Split / Overview for Show Next / Previous Tab and `⌘1…⌘9`
+(`KeyAction.answersInTabs`), so `⌥←` is word movement again and `⌥W` types «∑». The ⌃Tab ring stays, as on the row:
+`⌃Tab` over every tab of every group, `⌃⇧Tab` over the group in front — with a split's two halves as two cards,
+because the tab bar draws them as two tabs. The View menu swaps Full Width / Split / Overview for Show Next / Previous Tab and `⌘1…⌘9`
 through the `tabBar` focused value — a `Commands` body is rebuilt for a focused value and not for model state. With
 nothing focused in the window the menu falls back to its row items, so `toggleSplit`, `toggleFullWindow` and
 `toggleOverview` refuse with the tabs up as well: measured, `⌥W` and `⌥S` reached them through the menu once the

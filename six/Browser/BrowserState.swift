@@ -1345,23 +1345,29 @@ final class BrowserState {
 
     /// One step along the ⌃Tab ring, opening it on the first press.
     ///
-    /// The ring is the windows in the row in front of you and no others — not the other workspaces
-    /// of this profile, and certainly not the other profiles. A profile is a browsing world with a
-    /// row, a history and a colour of its own, and a workspace is a place you went to on purpose;
-    /// a key that flew you out of either would be doing something much bigger than it looks, and
-    /// `⌥↑` / `⌥↓` already move between workspaces while saying where they are going.
+    /// **How far the ring reaches is decided by the key that opens it.** `⌃Tab` opens it over every
+    /// window of the profile — every workspace, every group — and `⌃⇧Tab` over the row in front of
+    /// you only (with the tabs up, the group the tab in front is in). Once it is open the two keys
+    /// are forward and back, as they always were. It used to be one row and nothing else, on the
+    /// argument that flying out of a workspace is a bigger move than a key looks; in use the window
+    /// you were just in is as often in the next workspace as in this one, and the row-only ring is
+    /// still one key away. Never another profile: that is a browsing world of its own.
+    ///
+    /// Opening with `⌃⇧Tab` used to mean "the other way round the ring", which on a ring ordered by
+    /// memory is the window you looked at longest ago — the one step nobody takes on purpose.
     ///
     /// Nothing moves while the ring is being walked: the cards are pictures, and the flight happens
     /// once, on the key coming up (`endWindowSwitch`). Walking it live would load a page per window
     /// passed, and the row's whole economy is that you get the page where you land.
     func stepWindowSwitch(_ delta: Int) {
-        if !switcher.isOpen {
+        let opening = !switcher.isOpen
+        if opening {
             var opened = false
             withAnimation(.smooth(duration: 0.18)) {
                 // With the tabs up a tab is a card of its own, split or not: the tab bar draws the two
                 // halves of a column as two tabs, and the ring follows what is on screen.
                 let tabs = showsTabs
-                opened = switcher.open(rowOrder, current: selectedTabID,
+                opened = switcher.open(delta > 0 ? tabOrder() : rowOrder, current: selectedTabID,
                                        group: { [layout] in tabs ? $0 : layout.columnID(of: $0) ?? $0 })
             }
             guard opened else { return }
@@ -1371,7 +1377,9 @@ final class BrowserState {
             selectedTab?.rememberViewState(force: true)
             for id in switcher.ring { tabsByID[id]?.loadPictureIfNeeded() }
         }
-        withAnimation(.smooth(duration: 0.2)) { switcher.step(delta) }
+        // The first press always goes to the window before this one: the key that opened the
+        // ring has already said how far it reaches, and that is all it said.
+        withAnimation(.smooth(duration: 0.2)) { switcher.step(opening ? 1 : delta) }
     }
 
     /// Whether that window is half of a column, and so drawn at half a card's width.
@@ -1406,18 +1414,9 @@ final class BrowserState {
     }
 
     /// The windows in the row you are looking at, left to right — the focused workspace's columns
-    /// and nothing else. What the ring falls back on for a window that has never been focused.
-    ///
-    /// One row, not the whole strip. A workspace is a place you went to on purpose, and ⌃Tab is for
-    /// the window you were just in, which is in the row in front of you; flying out of a workspace
-    /// on a key is a bigger move than the key looks, and there are two keys for it already (`⌥↑`,
-    /// `⌥↓`) that say where they are going before they go.
-    ///
-    /// With the tabs up it is every tab, every group — folded ones too. A tab bar has no rows to be
-    /// in front of: every tab is one click away on screen, and ⌃Tab reaching fewer of them than the
-    /// pointer can would be the key doing less than the hand.
+    /// and nothing else; with the tabs up, the same workspace as a group. What `⌃⇧Tab` opens the
+    /// ring over (`stepWindowSwitch`); `⌃Tab` opens it over `tabOrder()`, every row of the strip.
     private var rowOrder: [UUID] {
-        if showsTabs { return tabOrder() }
         // Every window, both halves of a split included: the ring collapses them to one stop itself
         // (`WindowSwitcher.open`), and it can only pick the half you were last in if it has been
         // handed both.

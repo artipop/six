@@ -43,6 +43,21 @@ enum TabsSelfTest {
         browser.layout.rename(workspaceAt: browser.layout.workspaces.firstIndex { $0.id == group } ?? 0, to: "selftest")
         say("new group: \(groups()), selected is probe \(browser.selectedTabID == probe.id)")
 
+        // The ring on the row: ⌃Tab reaches every workspace, ⌃⇧Tab the row on screen.
+        browser.setInterfaceStyle(.row)
+        try? await Task.sleep(for: .milliseconds(300))
+        func rows(_ ids: [UUID]) -> Int {
+            Set(ids.compactMap { id in browser.layout.workspaces.firstIndex { $0.columns.contains { $0.holds(id) } } }).count
+        }
+        browser.stepWindowSwitch(1)
+        say("row ⌃Tab ring: \(browser.switcher.ring.count) cards from \(rows(browser.switcher.ring)) workspaces")
+        browser.cancelWindowSwitch()
+        browser.stepWindowSwitch(-1)
+        say("row ⌃⇧Tab ring: \(browser.switcher.ring.count) cards from \(rows(browser.switcher.ring)) workspaces")
+        browser.cancelWindowSwitch()
+        browser.setInterfaceStyle(.tabs)
+        try? await Task.sleep(for: .milliseconds(300))
+
         browser.toggleGroup(group)
         say("fold the group in front: \(groups()), selected is probe \(browser.selectedTabID == probe.id)")
         browser.selectAdjacentTab(1)
@@ -55,6 +70,11 @@ enum TabsSelfTest {
         say("⌃Tab ring: \(ring.count) cards of \(browser.tabOrder().count) tabs, from \(groupsInRing.count) groups, holds the folded probe \(ring.contains(probe.id))")
         browser.endWindowSwitch()
         say("⌃ up: moved \(browser.selectedTabID != before), selected \(browser.selectedTab?.title ?? "nil")")
+        // ⌃⇧Tab: the group in front and nothing else.
+        browser.stepWindowSwitch(-1)
+        let here = browser.layout.focusedWorkspace.map { Set($0.columns.flatMap(\.tabIDs)) } ?? []
+        say("⌃⇧Tab ring: \(browser.switcher.ring.count) cards, all from the group in front \(browser.switcher.ring.allSatisfy(here.contains))")
+        browser.cancelWindowSwitch()
         browser.toggleGroup(group)
         say("open it again: \(groups())")
 

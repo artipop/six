@@ -51,16 +51,16 @@ without taking anything from anyone.
 
 | | |
 |---|---|
-| `⌃Tab` | hold `⌃`: the current row's windows as pictures, in the order you last looked at them, with the one you would land on in the middle. Each press steps one along the ring; letting `⌃` go flies there |
-| `⌃⇧Tab` | the same, the other way |
+| `⌃Tab` | hold `⌃`: every window of the profile, from every workspace, as pictures, in the order you last looked at them, with the one you would land on in the middle. Each press steps one along the ring; letting `⌃` go flies there |
+| `⌃⇧Tab` | the same ring, over the current row only; once the ring is up, a step back |
 | `⌃⇧←` `⌃⇧→` | the card to the left or the right, along the row. The `⇧` is not decoration: macOS takes plain `⌃←` / `⌃→` for Mission Control's spaces, and they never reach the browser |
 | `↩` | fly now, without waiting for `⌃` to come up |
 | `Esc` | let go of the ring without going anywhere |
 
 `⌥←` `⌥→` walk the row — where the windows **stand**; `⌃Tab` walks the memory —
 the order they were **looked at** in. Which is why one press of `⌃Tab` is a
-toggle between the last two windows. The current row's windows only — not other
-workspaces, not other profiles — and this run only.
+toggle between the last two windows. `⌃Tab` reaches every workspace, `⌃⇧Tab` only
+the current row; never other profiles, and this run only.
 
 ## Browser
 

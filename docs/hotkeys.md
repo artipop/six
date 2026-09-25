@@ -103,8 +103,8 @@ VoiceOver's `VO` keys are `⌃⌥` too; with VoiceOver on, these belong to it.
 
 | | |
 |---|---|
-| `⌃Tab` | hold `⌃`: the windows in the row in front of you, as pictures, in the order they were last looked at, the one you would land on in the middle. Each press steps one along the ring; letting `⌃` go flies there |
-| `⌃⇧Tab` | the same, the other way |
+| `⌃Tab` | hold `⌃`: every window of the profile — every workspace, or with the tabs up every group — as pictures, in the order they were last looked at, the one you would land on in the middle. Each press steps one along the ring; letting `⌃` go flies there |
+| `⌃⇧Tab` | opens the same ring over the row in front of you only (with the tabs up, the group the tab in front is in); once the ring is up, a step the other way |
 | `⌃⇧←` `⌃⇧→` | one card along the row, the way it is drawn — which is not `⌃Tab`'s step, and has not been since the row started being drawn along the row ([layout.md](layout.md#⌃tab--the-order-the-windows-were-looked-at)). `⌥` instead of `⇧` does the same: the row's arrows are bound for **any** modifiers, and the ⇧ is there to get past macOS |
 | `↩` `⌤` | fly now, without waiting for `⌃` to come up |
 | `Esc` | let go of the ring without going anywhere |
@@ -117,7 +117,8 @@ caret moved the caret, and read as an arrow that did nothing at all.
 
 The row's order and this one are different questions: `⌥←` / `⌥→` walk the windows where they stand,
 `⌃Tab` walks them in the order they were used, so a single press is a toggle between the last two.
-One row's windows only — the workspace on screen — and this run only. `⌥↑` / `⌥↓` are what move between workspaces, and they say where they are going.
+How far the ring reaches is decided by the key that opens it — `⌃Tab` the whole profile, `⌃⇧Tab` the row on screen —
+and never another profile; this run only.
 
 ## Browser (`⌘`)
 
@@ -154,13 +155,13 @@ One row's windows only — the workspace on screen — and this run only. `⌥�
 With the window drawn as a tab bar ([layout.md](layout.md#tabs-instead-of-the-row)), every key in the row and
 reserved tables above passes through untouched — `⌥←` is word movement again, `⌥W` types «∑» — because there is no
 row on screen to walk (`KeyAction.answersInTabs`, `KeyContext.showsTabs`). What stays six's is what is about the page:
-`⌥⇧T`, `⌥⇧H`, `⌥⇧P`, `⌘⇧C`, the `⌘` keys — and the ring, which walks every tab in every group there, folded ones
-included, a split's halves as two cards (`BrowserState.rowOrder`). The View menu drops Full Width, Split and Overview for
+`⌥⇧T`, `⌥⇧H`, `⌥⇧P`, `⌘⇧C`, the `⌘` keys — and the ring — `⌃Tab` over every tab in every group, folded ones
+included, `⌃⇧Tab` over the group in front, a split's halves as two cards. The View menu drops Full Width, Split and Overview for
 these:
 
 | | |
 |---|---|
-| `⌃Tab` `⌃⇧Tab` | the ring, over every tab — in the order they were looked at, as on the row; the arrows, `↩` and `Esc` in it as there |
+| `⌃Tab` `⌃⇧Tab` | the ring, as on the row: `⌃Tab` over every tab, `⌃⇧Tab` over the group in front; the arrows, `↩` and `Esc` in it as there |
 | `⌘⇧]` `⌘⇧[` | next / previous tab along the tab bar, round the end (View ▸ Show Next Tab / Show Previous Tab). A folded group's tabs are skipped |
 | `⌘1` … `⌘8` | that tab; `⌘9` the last one |
 | `⌘T` `⌘W` `⌘⇧T` | new tab, close tab, reopen closed tab — the File menu's items, named for tabs |

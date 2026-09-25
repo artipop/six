@@ -44,7 +44,8 @@ always the next one.
 Hold `⌃` and press `Tab`: a row of windows appears in the middle of the screen as
 pictures, the one you would land on in the centre, its neighbours in the ring
 peeking in at the edges. Under the row are the page's title and its site.
-`⌃⇧Tab` goes the other way, `Esc` lets go of the ring without changing anything.
+The ring holds the windows of every workspace; `⌃⇧Tab` opens it over the current
+row only, and once it is up steps back. `Esc` lets go of the ring without changing anything.
 `⌃←` and `⌃→` page along the row as it is drawn — the card to the left, the card
 to the right. `⌃Tab` is the other question: it walks memory, not the row.
 Let `⌃` go and the row flies to the window you chose.
