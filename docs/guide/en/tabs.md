@@ -43,6 +43,11 @@ picked tab is about all of them: **Add N Tabs to New Group**, **Move N Tabs to
 Group**, **Close N Tabs** — which is how a group is made from several tabs in one
 go. Not `⌃`: on a Mac a `⌃`-click is the secondary click and opens the menu.
 
+**Two tabs side by side.** Pick two tabs and choose **Show Side by Side** from the
+menu: both pages stand under the tab bar, and the two tabs get a split mark. The
+half that has the keyboard is underlined at the top. **Stop Showing Side by Side**
+on either one takes them apart. It is the same split as `⌥S` on the row.
+
 A folded group stays folded after a relaunch.
 
 ## Keys

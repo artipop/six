@@ -1770,6 +1770,22 @@ final class BrowserState {
         selectTab(front)
     }
 
+    /// "Show Side by Side": two picked tabs as the two halves of one column — a split, the same
+    /// one ⌥S makes on the row. The second joins the first wherever it was, another group included.
+    func showSideBySide(_ first: UUID, _ second: UUID) {
+        let front = selectedTabID
+        split(first, with: second)
+        selectTab(front.flatMap { [first, second].contains($0) ? $0 : nil } ?? first)
+    }
+
+    /// "Stop Showing Side by Side": the split this tab is half of comes apart, the other half as a
+    /// tab of its own just after it.
+    func separate(_ id: UUID) {
+        guard layout.columnMates(of: id).count > 1 else { return }
+        selectTab(id)
+        plainLayoutChange { _ = layout.toggleSplit() }
+    }
+
     func closeTabs(_ ids: [UUID]) {
         for id in ids { closeTab(id) }
     }

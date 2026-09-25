@@ -21,6 +21,13 @@ struct TabbedWindowView: View {
 
     @Environment(BrowserState.self) private var browser
 
+    /// What is under the tab bar: the tab in front, or the two halves of its split, left first.
+    private var shown: [UUID] {
+        guard let id = browser.selectedTabID else { return [] }
+        let mates = browser.layout.columnMates(of: id)
+        return mates.count > 1 ? mates : [id]
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             TabStrip()
@@ -31,12 +38,27 @@ struct TabbedWindowView: View {
                 .zIndex(1)
             GeometryReader { proxy in
                 Group {
-                    if let tab = browser.selectedTab {
-                        ColumnView(tab: tab, isFocused: true, isCurrentWorkspace: true, side: .whole,
-                                   isLive: true, chromeless: true)
-                            // A tab switched to is another page, and another view over it — never the
-                            // old view handed a new page.
-                            .id(tab.id)
+                    if browser.selectedTab != nil {
+                        // The tab in front, or both halves of the split it is in. One `ForEach` by tab
+                        // either way, so a tab joining or leaving a split keeps its view — the page
+                        // under it is a `WebPage`, and two views over one of those trap in WebKit.
+                        HStack(spacing: 1) {
+                            ForEach(shown, id: \.self) { id in
+                                if let tab = browser.tab(id) {
+                                    let isFocused = id == browser.selectedTabID
+                                    ColumnView(tab: tab, isFocused: isFocused, isCurrentWorkspace: true,
+                                               side: shown.count > 1 ? (id == shown.first ? .left : .right) : .whole,
+                                               isLive: true, chromeless: true)
+                                        // Which half has the keyboard, when there are two.
+                                        .overlay(alignment: .top) {
+                                            if shown.count > 1, isFocused {
+                                                Rectangle().fill(Color.accentColor).frame(height: 2)
+                                            }
+                                        }
+                                }
+                            }
+                        }
+                        .background(Color(nsColor: .separatorColor))
                     } else {
                         NoTabs()
                     }
@@ -95,7 +117,9 @@ private struct TabStrip: View {
                                     }
                                 }
                             }
-                            NewTabButton()
+                            // Not on an empty bar: the window's own "New Tab" is right under it,
+                            // and a lone + in the corner is a second button for the same thing.
+                            if !groups.isEmpty { NewTabButton() }
                         }
                         .padding(.horizontal, 4)
                         .frame(height: proxy.size.height, alignment: .bottom)
@@ -270,6 +294,12 @@ private struct TabItem: View {
     var body: some View {
         HStack(spacing: 6) {
             TabMark(tab: tab)
+            if browser.layout.columnMates(of: tab.id).count > 1 {
+                Image(systemName: "rectangle.split.2x1")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+                    .help("Shown Side by Side")
+            }
             // A start page's title is the row's "New Window"; here it is a tab.
             Text(tab.showsStartPage || tab.title.isEmpty ? String(localized: "New Tab") : tab.title)
                 .font(.system(size: 12))
@@ -400,6 +430,10 @@ private struct TabMenu: View {
 
     @ViewBuilder
     private func many(_ ids: [UUID]) -> some View {
+        if ids.count == 2 {
+            Button("Show Side by Side") { browser.showSideBySide(ids[0], ids[1]) }
+            Divider()
+        }
         Button("Add \(ids.count) Tabs to New Group") {
             if let created = browser.moveTabsToNewGroup(ids) { rename(created) }
         }
@@ -422,6 +456,9 @@ private struct TabMenu: View {
             browser.newTab()
         }
         Button("Reload") { tab.reload() }
+        if browser.layout.columnMates(of: tab.id).count > 1 {
+            Button("Stop Showing Side by Side") { browser.separate(tab.id) }
+        }
         Divider()
         Button("Add Tab to New Group") {
             if let created = browser.moveTabToNewGroup(tab.id) { rename(created) }

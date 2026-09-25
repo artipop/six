@@ -513,6 +513,16 @@
         }
       }
     },
+    "Show Side by Side" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показать рядом"
+          }
+        }
+      }
+    },
     "Show Tabs" : {
       "localizations" : {
         "ru" : {
@@ -529,6 +539,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Показывать окна как"
+          }
+        }
+      }
+    },
+    "Shown Side by Side" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показаны рядом"
+          }
+        }
+      }
+    },
+    "Stop Showing Side by Side" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не показывать рядом"
           }
         }
       }

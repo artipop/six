@@ -712,7 +712,12 @@ tab clicked without `⇧` (`BrowserState.clickTab`, `pickedTabs`). The tab in fr
 that moves it without a click — a key, a new tab — starts the pick again from there (`syncSelection`). The tab menu,
 opened on a picked tab, acts on all of them: `moveTabsToNewGroup`, `moveTabs(_:toGroup:)`, `closeTabs`. `⌃` is not
 the modifier because a `⌃`-click on a Mac is the secondary click and opens the menu before any gesture hears it.
-Dragging still carries one tab.
+Dragging still carries one tab. Two picked tabs can be **shown side by side** — `showSideBySide`, which is
+`split(_:with:)` and so the row's own split, the second tab joining the first's column from wherever it was — and taken
+apart again with `separate`. `TabbedWindowView` draws the column's two halves under the bar in one `ForEach` keyed by
+tab, so a tab joining or leaving a split keeps its view: switching between one `ColumnView` and an `HStack` of two
+would build a second `WebView` over a page that still has one. An empty window has no `+` in the bar; the window's own
+New Tab is under it.
 
 The verbs are `TilingLayout.placeTab` — one window to a column index in a row, by workspace id, the focus following it;
 half of a split dragged away leaves the other half in its column — `placeTabInNewWorkspace` for "Add Tab to New

@@ -186,6 +186,15 @@ enum TabsSelfTest {
         }
         browser.clickTab(picks[0].id)
         say("plain click: picked \(browser.pickedTabsInOrder.count)")
+        // Two picked, side by side: one column, both pages built, then apart again.
+        browser.clickTab(picks[2].id, adding: true)
+        let pair = browser.pickedTabsInOrder
+        browser.showSideBySide(pair[0], pair[1])
+        try? await Task.sleep(for: .seconds(2))
+        say("Show Side by Side: one column \(browser.layout.columnMates(of: picks[0].id) == [picks[0].id, picks[2].id]), front \(browser.selectedTab?.currentURL?.query ?? "-"), live \(picks[0].hasLivePage) \(picks[2].hasLivePage)")
+        browser.separate(picks[2].id)
+        try? await Task.sleep(for: .milliseconds(500))
+        say("Stop Showing Side by Side: apart \(browser.layout.columnMates(of: picks[0].id).count == 1), still open \(browser.tab(picks[2].id) != nil)")
         browser.closeTabs(picks.map(\.id))
 
         browser.closeTab(probe.id, remembering: false)
