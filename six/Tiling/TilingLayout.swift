@@ -138,8 +138,7 @@ nonisolated struct TilingWorkspace: Identifiable, Sendable, Codable {
     var collapsed: Bool?
 
     var isCollapsed: Bool { collapsed == true }
-    /// Folded and a group: only a named row is a group in the tab bar, and tabs with no group have
-    /// no label to fold up to — a group folded and then ungrouped is its tabs again, all of them.
+    /// Only a named row is a group in the tab bar, so only a named row can be folded.
     var isFolded: Bool { isCollapsed && !name.isEmpty }
     var isEmpty: Bool { columns.isEmpty }
     var focusedColumn: TilingColumn? { columns.indices.contains(focus) ? columns[focus] : nil }

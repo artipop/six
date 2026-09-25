@@ -2,18 +2,8 @@
 import AppKit
 import SwiftUI
 
-/// A tab's mouse, handled in AppKit: the click that brings it to the front and the drag that moves it.
-///
-/// SwiftUI's `.draggable` cannot do the second one here. The tab bar is drawn in the band the hidden
-/// title bar still owns, and a mouse-down there is asked `mouseDownCanMoveWindow` of the view under
-/// it — which, for the hosting view SwiftUI draws everything into, is yes. So a tab pulled sideways
-/// moved the whole window, and `.draggable` never heard of it. A view of our own that answers no
-/// gets the drag, and starts the session itself; the pasteboard carries the tab's id as plain text,
-/// which is what the drop targets in the tab bar were already reading.
-///
-/// It takes the left button and nothing else. The right button and ⌃-click fall through to the
-/// SwiftUI under it, where the tab's menu is, and so does the scroll wheel, which the bar scrolls
-/// on; the trailing `passThrough` points are the tab's ×, which is a SwiftUI button.
+/// A tab's click and drag, in AppKit: in the title bar's band a SwiftUI drag moves the window.
+/// Only the left button is taken; the rest, and the × (`passThrough`), fall through to SwiftUI.
 struct TabDragSource: NSViewRepresentable {
     let tabID: UUID
     let title: String
@@ -81,7 +71,6 @@ struct TabDragSource: NSViewRepresentable {
             item.setString(tabID.uuidString, forType: .string)
             let dragged = NSDraggingItem(pasteboardWriter: item)
             let image = preview() ?? NSImage(size: bounds.size)
-            // Where the tab stood, so it lifts off the bar rather than jumping to the pointer.
             dragged.setDraggingFrame(NSRect(origin: .zero, size: image.size), contents: image)
             beginDraggingSession(with: [dragged], event: event, source: self)
         }
@@ -104,13 +93,8 @@ struct TabDragSource: NSViewRepresentable {
     }
 }
 
-/// The window, held still while the tabs are up, and moved by hand from the tab bar's empty space.
-///
-/// Answering no to `mouseDownCanMoveWindow` on the tab was not enough: the drag that moved the window
-/// is decided above any view of ours, for the whole band the hidden title bar keeps. So the window
-/// is not movable at all while the tab bar is on screen (and is again the moment the row is back),
-/// and this view, behind the bar's tabs and labels, moves it itself — a drag on bare bar moves the
-/// window and a double-click zooms it, which is all the title bar was doing there.
+/// While the tab bar is up the window is not movable (or tabs could not be dragged), and the
+/// bar's empty space moves it instead.
 struct WindowMover: NSViewRepresentable {
     func makeNSView(context: Context) -> MoverView { MoverView() }
     func updateNSView(_ view: MoverView, context: Context) {}
@@ -138,7 +122,6 @@ struct WindowMover: NSViewRepresentable {
 
         override func mouseDown(with event: NSEvent) {
             if event.clickCount == 2 {
-                // The title bar's own double-click, as System Settings has it set.
                 switch UserDefaults.standard.string(forKey: "AppleActionOnDoubleClick") {
                 case "Minimize": window?.performMiniaturize(nil)
                 case "None": break

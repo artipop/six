@@ -160,8 +160,6 @@ enum TabsSelfTest {
         browser.toggleGroup(group)
         say("open it again: \(groups())")
 
-        // A group is a named row: the last tab out of one takes the name with it, and ⌘T lands at
-        // the very end, outside every group.
         func grouped(_ id: UUID?) -> Bool { TabGroup.all(in: browser).contains { $0.isGroup && id.map($0.tabIDs.contains) == true } }
         browser.removeFromGroup(probe.id)
         say("remove the group's only tab: probe still grouped \(grouped(probe.id))")

@@ -920,8 +920,6 @@ private struct ColumnPlaceholder: View {
     let tab: BrowserTab
     let accent: Color
     let showsPicture: Bool
-    /// The title bar over the card. Not under a tab bar, where the tab already carries the title
-    /// and the icon an inch above it.
     var showsHeader = true
 
     @Environment(BrowserState.self) private var browser

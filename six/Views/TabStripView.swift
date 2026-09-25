@@ -6,10 +6,8 @@ import UniformTypeIdentifiers
 /// the one page in front filling the rest.
 ///
 /// It is a second way of looking at the same strip, and nothing more — that is the whole of the
-/// design. A tab is a window in the row, a tab group is a *named* workspace, and the tab in front
-/// is the focused column. A workspace with no name is tabs with no group, as a browser has before
-/// anybody groups anything — so naming a row makes it a group, and a group with its name taken
-/// away is its tabs again. So switching between the two faces
+/// design. A tab is a window in the row, a tab group is a named workspace (an unnamed one is
+/// ungrouped tabs), and the tab in front is the focused column. So switching between the two faces
 /// loses nothing and converts nothing: the row comes back exactly as it was left, with whatever
 /// was opened, closed, dragged or renamed in the meantime already in it. The one thing the row of
 /// tabs has that the row does not is a group folded up to its name, and that is kept on the
@@ -125,7 +123,6 @@ private struct TabStrip: View {
                         }
                         .padding(.horizontal, 4)
                         .frame(height: proxy.size.height, alignment: .bottom)
-                        // The bare bar is where the window is moved from, as a title bar is.
                         .frame(minWidth: proxy.size.width, alignment: .leading)
                         .background { WindowMover() }
                     }
@@ -143,8 +140,7 @@ private struct TabStrip: View {
                 WindowMover()
             }
         }
-        // A tab dropped anywhere on the bar that is not a tab or a label leaves its group, for the
-        // end of the bar — Chrome's drag out of a group.
+        // Dropped on the bare bar: out of its group, to the end.
         .dropDestination(for: String.self) { items, _ in
             guard let id = items.first.flatMap(UUID.init(uuidString:)) else { return false }
             browser.moveTabToEnd(id)
@@ -186,7 +182,6 @@ struct TabGroup: Identifiable {
         }
     }
 
-    /// A row with a name is a group with a label; one without is tabs with no group.
     var isGroup: Bool { !name.isEmpty }
 
     @MainActor
@@ -258,9 +253,6 @@ private struct GroupChip: View {
         .frame(height: 22)
         .background(group.color.opacity(isTargeted ? 0.75 : 1), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
         .frame(maxWidth: 180)
-        // Its own width and no more. The bar's content is as wide as the bar, so the bare end can
-        // move the window, and a label free to grow took the room up to 180 and stood apart from
-        // its own tabs.
         .fixedSize(horizontal: true, vertical: false)
         .padding(.horizontal, 3)
         .padding(.bottom, 4)
@@ -284,9 +276,7 @@ private struct GroupChip: View {
         Button("Close Group", role: .destructive) { browser.closeGroup(group.id) }
     }
 
-    /// A group left without a name would be its tabs again the moment the field closes, so one
-    /// made and not named keeps the row's own "Workspace 3" — the name the row gives it anyway.
-    /// Emptying a name that was there is taken at its word: that is ungrouping.
+    /// A new group left unnamed keeps "Workspace N", or it would stop being a group.
     private func commit() {
         guard renaming == group.id else { return }
         let typed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -316,8 +306,6 @@ private struct TabItem: View {
     private var isPicked: Bool { !isSelected && browser.pickedTabs.contains(tab.id) }
     private var showsClose: Bool { (hovering || isSelected) && width > 80 }
 
-    /// The tab as it lifts off the bar: its icon and title on a plate. Rendered rather than drawn
-    /// live, so no spinner — a loading tab is carried by its site's icon, or the globe.
     private func dragPreview() -> NSImage? {
         let icon = tab.isWebPage ? browser.siteIcons.icon(for: tab.currentURL?.host()) : nil
         let plate = HStack(spacing: 6) {
@@ -385,10 +373,7 @@ private struct TabItem: View {
             }
         }
         .contentShape(Rectangle())
-        // The click and the drag are AppKit's (`TabDragSource`), because the bar is in the title
-        // bar's band and a SwiftUI drag there moves the window. ⌘ picks tabs one by one and ⇧ a run
-        // of them, as in Chrome on a Mac. Not ⌃: a ⌃-click on a Mac is the secondary click, and it
-        // falls through to this tab's menu.
+        // ⌘ picks one tab, ⇧ a run. Not ⌃: that is the secondary click.
         .overlay {
             TabDragSource(tabID: tab.id, title: tab.title, passThrough: showsClose ? 28 : 0,
                           preview: dragPreview,
