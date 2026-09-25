@@ -693,18 +693,26 @@ the design and the reason switching loses nothing:
 |---|---|
 | a window | a tab |
 | a split column | two tabs side by side; whichever is focused is the page shown |
-| a workspace | a tab group, coloured, labelled with the workspace's name (or "Workspace N") |
+| a named workspace | a tab group, coloured, labelled with the workspace's name |
+| an unnamed workspace | tabs with no group |
 | the focused column | the tab in front |
 | the spare empty row at the bottom | nothing — it is not a group |
 
-A lone unnamed workspace is a plain tab bar with no label, as in any browser before it has a group; from the
-second workspace on, or once one is named, every row gets its label. The colour is read off the workspace's id rather
+A group is a *named* workspace (`TabGroup.isGroup`); an unnamed one is tabs with no group, as in any browser before
+anybody groups anything, so two unnamed rows side by side read as one run of plain tabs. "Add Tab to New Group" opens
+the name field straight away, and a new group closed with the field empty keeps "Workspace N" as its name, or it would
+stop being a group the moment it was made; emptying a name that was there is "Ungroup". `⌘T` and the bar's + are
+`newTabAtEnd` — the last row when that has no name, the spare row otherwise — and a tab dropped on the bare bar goes
+the same place (`moveTabToEnd`). "Remove from Group" puts the tab at the front of the ungrouped row just after the
+group, or in a new row of its own; the last tab of a group ungroups it instead, so no named row is left to ask about.
+Folding is only for groups: `TilingWorkspace.isFolded` is `isCollapsed` and named. The colour is read off the workspace's id rather
 than its position, so a group does not change colour when the one before it is closed.
 
 What the row does not have is a group **folded** up to its label. That lives on the workspace
 (`TilingWorkspace.collapsed`, optional so an older session file reads as every group open) and the row ignores it, so a
 group folded here is still folded when the tabs come back. A group cannot fold over the tab in front: the neighbouring
-tab along the row is shown first, and if every other tab is folded away too the group stays open. `⌘⇧[` `⌘⇧]` and
+tab along the row is shown first, and if every other tab is folded away too a new tab is opened in the spare row at
+the bottom — a tab with no group — which is Chrome's answer to the same question. `⌘⇧[` `⌘⇧]` and
 `⌘1…⌘9` skip folded groups; the ring does not.
 
 **Picking several tabs** is Chrome's on a Mac: `⌘`-click adds or removes one, `⇧`-click takes the run from the last
@@ -712,7 +720,15 @@ tab clicked without `⇧` (`BrowserState.clickTab`, `pickedTabs`). The tab in fr
 that moves it without a click — a key, a new tab — starts the pick again from there (`syncSelection`). The tab menu,
 opened on a picked tab, acts on all of them: `moveTabsToNewGroup`, `moveTabs(_:toGroup:)`, `closeTabs`. `⌃` is not
 the modifier because a `⌃`-click on a Mac is the secondary click and opens the menu before any gesture hears it.
-Dragging still carries one tab. Two picked tabs can be **shown side by side** — `showSideBySide`, which is
+Dragging still carries one tab, and it is AppKit's
+(`TabDragSource`, in `TabBarMouse.swift`): the tab bar lies in the band the hidden title bar still owns, and a drag
+there moved the whole window, so SwiftUI's `.draggable` never started. The view takes the left button's click and drag,
+starts the session with the tab's id as plain text, and lets the right button, `⌃`-click, the scroll wheel and the
+tab's × fall through to SwiftUI. Answering no to `mouseDownCanMoveWindow` on it was not enough by itself, so while the
+tab bar is on screen the window is not movable at all (`WindowMover` sets `isMovable` and puts it back when the bar
+goes), and the bar's bare background moves it by hand and zooms it on a double-click, honouring
+`AppleActionOnDoubleClick`. The page under the tab bar has no title strip while it loads —
+the tab above it already says the same thing. Two picked tabs can be **shown side by side** — `showSideBySide`, which is
 `split(_:with:)` and so the row's own split, the second tab joining the first's column from wherever it was — and taken
 apart again with `separate`. `TabbedWindowView` draws the column's two halves under the bar in one `ForEach` keyed by
 tab, so a tab joining or leaving a split keeps its view: switching between one `ColumnView` and an `HStack` of two

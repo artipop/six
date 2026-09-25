@@ -6,8 +6,10 @@ import UniformTypeIdentifiers
 /// the one page in front filling the rest.
 ///
 /// It is a second way of looking at the same strip, and nothing more — that is the whole of the
-/// design. A tab is a window in the row, a tab group is a workspace, a group's name is the
-/// workspace's name, and the tab in front is the focused column. So switching between the two faces
+/// design. A tab is a window in the row, a tab group is a *named* workspace, and the tab in front
+/// is the focused column. A workspace with no name is tabs with no group, as a browser has before
+/// anybody groups anything — so naming a row makes it a group, and a group with its name taken
+/// away is its tabs again. So switching between the two faces
 /// loses nothing and converts nothing: the row comes back exactly as it was left, with whatever
 /// was opened, closed, dragged or renamed in the meantime already in it. The one thing the row of
 /// tabs has that the row does not is a group folded up to its name, and that is kept on the
@@ -93,16 +95,16 @@ private struct TabStrip: View {
 
     var body: some View {
         let groups = TabGroup.all(in: browser)
-        let chips = TabGroup.showsChips(groups)
         HStack(spacing: 0) {
             Color.clear.frame(width: 78, height: 1) // room for the window buttons
             GeometryReader { proxy in
-                let width = tabWidth(groups, chips: chips, available: proxy.size.width - 36)
+                let width = tabWidth(groups, available: proxy.size.width - 36)
                 ScrollViewReader { scroller in
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 2) {
                             ForEach(groups) { group in
-                                if chips {
+                                let chip = group.isGroup || renaming == group.id
+                                if chip {
                                     GroupChip(group: group, renaming: $renaming)
                                         .id(group.id)
                                 }
@@ -110,7 +112,7 @@ private struct TabStrip: View {
                                     ForEach(group.tabIDs, id: \.self) { id in
                                         if let tab = browser.tab(id) {
                                             TabItem(tab: tab, group: group, width: width,
-                                                    tint: chips ? group.color : nil,
+                                                    tint: chip ? group.color : nil,
                                                     rename: { renaming = $0 })
                                                 .id(id)
                                         }
@@ -123,6 +125,9 @@ private struct TabStrip: View {
                         }
                         .padding(.horizontal, 4)
                         .frame(height: proxy.size.height, alignment: .bottom)
+                        // The bare bar is where the window is moved from, as a title bar is.
+                        .frame(minWidth: proxy.size.width, alignment: .leading)
+                        .background { WindowMover() }
                     }
                     .onChange(of: browser.selectedTabID, initial: true) { _, id in
                         guard let id else { return }
@@ -132,14 +137,26 @@ private struct TabStrip: View {
             }
         }
         .frame(height: Self.height)
-        .background(Color(nsColor: .underPageBackgroundColor))
+        .background {
+            ZStack {
+                Color(nsColor: .underPageBackgroundColor)
+                WindowMover()
+            }
+        }
+        // A tab dropped anywhere on the bar that is not a tab or a label leaves its group, for the
+        // end of the bar — Chrome's drag out of a group.
+        .dropDestination(for: String.self) { items, _ in
+            guard let id = items.first.flatMap(UUID.init(uuidString:)) else { return false }
+            browser.moveTabToEnd(id)
+            return true
+        }
         .animation(.easeOut(duration: 0.15), value: groups.map(\.isCollapsed))
     }
 
-    private func tabWidth(_ groups: [TabGroup], chips: Bool, available: CGFloat) -> CGFloat {
+    private func tabWidth(_ groups: [TabGroup], available: CGFloat) -> CGFloat {
         let shown = groups.filter { !$0.isCollapsed || $0.holdsSelection(browser) }
         let count = CGFloat(max(1, shown.reduce(0) { $0 + $1.tabIDs.count }))
-        let labels = chips ? CGFloat(groups.count) * Self.chipAllowance : 0
+        let labels = CGFloat(groups.filter(\.isGroup).count) * Self.chipAllowance
         let share = ((available - labels) / count).rounded(.down)
         return min(Self.tabRange.upperBound, max(Self.tabRange.lowerBound, share))
     }
@@ -165,15 +182,12 @@ struct TabGroup: Identifiable {
             guard !workspace.isEmpty else { return nil }
             return TabGroup(id: workspace.id, index: index, name: workspace.name,
                             title: layout.title(at: index), tabIDs: workspace.columns.flatMap(\.tabIDs),
-                            columns: workspace.columns, isCollapsed: workspace.isCollapsed)
+                            columns: workspace.columns, isCollapsed: workspace.isFolded)
         }
     }
 
-    /// One row of windows with no name is a plain tab bar, as in any browser before it has a
-    /// group. From the second row on, or once one has a name, every row is a group with a label.
-    static func showsChips(_ groups: [TabGroup]) -> Bool {
-        groups.count > 1 || groups.contains { !$0.name.isEmpty }
-    }
+    /// A row with a name is a group with a label; one without is tabs with no group.
+    var isGroup: Bool { !name.isEmpty }
 
     @MainActor
     func holdsSelection(_ browser: BrowserState) -> Bool {
@@ -261,13 +275,19 @@ private struct GroupChip: View {
         Button("New Tab in Group") { browser.newTab(inGroup: group.id) }
         Button("Rename Group…") { renaming = group.id }
         Button(group.isCollapsed ? "Expand Group" : "Collapse Group") { browser.toggleGroup(group.id) }
+        Button("Ungroup") { browser.ungroup(group.id) }
         Divider()
         Button("Close Group", role: .destructive) { browser.closeGroup(group.id) }
     }
 
+    /// A group left without a name would be its tabs again the moment the field closes, so one
+    /// made and not named keeps the row's own "Workspace 3" — the name the row gives it anyway.
+    /// Emptying a name that was there is taken at its word: that is ungrouping.
     private func commit() {
         guard renaming == group.id else { return }
-        browser.layout.rename(workspaceAt: group.index, to: draft)
+        let typed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        browser.layout.rename(workspaceAt: group.index,
+                              to: typed.isEmpty && group.name.isEmpty ? group.title : typed)
         renaming = nil
     }
 }
@@ -290,6 +310,31 @@ private struct TabItem: View {
     private var isSelected: Bool { browser.selectedTabID == tab.id }
     /// Picked with ⌘ or ⇧ along with others, and not the one in front (`BrowserState.clickTab`).
     private var isPicked: Bool { !isSelected && browser.pickedTabs.contains(tab.id) }
+    private var showsClose: Bool { (hovering || isSelected) && width > 80 }
+
+    /// The tab as it lifts off the bar: its icon and title on a plate. Rendered rather than drawn
+    /// live, so no spinner — a loading tab is carried by its site's icon, or the globe.
+    private func dragPreview() -> NSImage? {
+        let icon = tab.isWebPage ? browser.siteIcons.icon(for: tab.currentURL?.host()) : nil
+        let plate = HStack(spacing: 6) {
+            if let icon {
+                Image(platform: icon).resizable().interpolation(.high).frame(width: 14, height: 14)
+            } else {
+                Image(systemName: "globe").font(.system(size: 11)).foregroundStyle(.secondary)
+            }
+            Text(tab.showsStartPage || tab.title.isEmpty ? String(localized: "New Tab") : tab.title)
+                .font(.system(size: 12))
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 9)
+        .frame(width: width, height: 30, alignment: .leading)
+        .background(Color(nsColor: .windowBackgroundColor),
+                    in: UnevenRoundedRectangle(topLeadingRadius: 8, topTrailingRadius: 8, style: .continuous))
+        .opacity(0.9)
+        let renderer = ImageRenderer(content: plate)
+        renderer.scale = NSApp.keyWindow?.backingScaleFactor ?? 2
+        return renderer.nsImage
+    }
 
     var body: some View {
         HStack(spacing: 6) {
@@ -306,7 +351,7 @@ private struct TabItem: View {
                 .lineLimit(1)
                 .foregroundStyle(isSelected ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
             Spacer(minLength: 0)
-            if hovering || isSelected, width > 80 {
+            if showsClose {
                 Button { browser.closeTab(tab.id) } label: {
                     Image(systemName: "xmark")
                         .font(.system(size: 9, weight: .bold))
@@ -336,23 +381,19 @@ private struct TabItem: View {
             }
         }
         .contentShape(Rectangle())
-        // ⌘ picks tabs one by one and ⇧ a run of them, as in Chrome on a Mac. Not ⌃: a ⌃-click on a
-        // Mac is the secondary click, and it opens this tab's menu before any gesture hears it.
-        .onTapGesture {
-            let held = NSEvent.modifierFlags
-            browser.clickTab(tab.id, adding: held.contains(.command), extending: held.contains(.shift))
+        // The click and the drag are AppKit's (`TabDragSource`), because the bar is in the title
+        // bar's band and a SwiftUI drag there moves the window. ⌘ picks tabs one by one and ⇧ a run
+        // of them, as in Chrome on a Mac. Not ⌃: a ⌃-click on a Mac is the secondary click, and it
+        // falls through to this tab's menu.
+        .overlay {
+            TabDragSource(tabID: tab.id, title: tab.title, passThrough: showsClose ? 28 : 0,
+                          preview: dragPreview,
+                          click: { held in
+                              browser.clickTab(tab.id, adding: held.contains(.command), extending: held.contains(.shift))
+                          },
+                          hover: { hovering = $0 })
         }
-        .onHover { hovering = $0 }
-        .help(tab.title)
         .contextMenu { TabMenu(tab: tab, group: group, rename: rename) }
-        .draggable(tab.id.uuidString) {
-            HStack(spacing: 6) {
-                TabMark(tab: tab)
-                Text(tab.title).font(.system(size: 12)).lineLimit(1)
-            }
-            .padding(8)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
-        }
         .onDrop(of: [.plainText], delegate: TabDrop(width: width, side: $dropSide) { id, side in
             guard id != tab.id, let here = group.columnIndex(of: tab.id) else { return }
             browser.placeTab(id, inGroup: group.id, at: side < 0 ? here : here + 1)
@@ -437,8 +478,8 @@ private struct TabMenu: View {
         Button("Add \(ids.count) Tabs to New Group") {
             if let created = browser.moveTabsToNewGroup(ids) { rename(created) }
         }
-        let groups = TabGroup.all(in: browser)
-        if groups.count > 1 {
+        let groups = TabGroup.all(in: browser).filter(\.isGroup)
+        if !groups.isEmpty {
             Menu("Move \(ids.count) Tabs to Group") {
                 ForEach(groups) { other in
                     Button(other.title) { browser.moveTabs(ids, toGroup: other.id) }
@@ -463,13 +504,16 @@ private struct TabMenu: View {
         Button("Add Tab to New Group") {
             if let created = browser.moveTabToNewGroup(tab.id) { rename(created) }
         }
-        let others = TabGroup.all(in: browser).filter { $0.id != group.id }
+        let others = TabGroup.all(in: browser).filter { $0.isGroup && $0.id != group.id }
         if !others.isEmpty {
             Menu("Move Tab to Group") {
                 ForEach(others) { other in
                     Button(other.title) { browser.placeTab(tab.id, inGroup: other.id, at: other.columns.count) }
                 }
             }
+        }
+        if group.isGroup {
+            Button("Remove from Group") { browser.removeFromGroup(tab.id) }
         }
         if browser.profiles.count > 1 {
             Menu("Move to Profile") { MoveToProfileItems(tab: tab) }
@@ -485,7 +529,7 @@ private struct NewTabButton: View {
     @Environment(BrowserState.self) private var browser
 
     var body: some View {
-        Button { browser.newTab() } label: {
+        Button { browser.newTabAtEnd() } label: {
             Image(systemName: "plus")
                 .font(.system(size: 12, weight: .medium))
                 .frame(width: 26, height: 26)

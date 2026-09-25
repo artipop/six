@@ -6981,6 +6981,26 @@
           }
         }
       }
+    },
+    "Remove from Group" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Убрать из группы"
+          }
+        }
+      }
+    },
+    "Ungroup" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разгруппировать"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

@@ -330,7 +330,9 @@ struct sixApp: App {
                     .keyboardShortcut(",")
             }
             CommandGroup(replacing: .newItem) {
-                Button(browser.showsTabs ? "New Tab" : "New Window in the Row") { browser.newTab() }
+                Button(browser.showsTabs ? "New Tab" : "New Window in the Row") {
+                    if browser.showsTabs { browser.newTabAtEnd() } else { browser.newTab() }
+                }
                     .keyboardShortcut("t")
                 Button(browser.showsTabs ? "Reopen Closed Tab" : "Reopen Closed Window") { browser.reopenClosedWindow() }
                     .keyboardShortcut("t", modifiers: [.command, .shift])

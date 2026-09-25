@@ -820,7 +820,8 @@ struct ColumnView: View {
                     // where it is a zero-size view that answers nothing.
                     .background { WebViewResponder.Handle(tabID: tab.id) }
             } else {
-                ColumnPlaceholder(tab: tab, accent: accent, showsPicture: browser.layout.isOverview)
+                ColumnPlaceholder(tab: tab, accent: accent, showsPicture: browser.layout.isOverview,
+                                  showsHeader: !chromeless)
                     .contentShape(Rectangle())
                     .onTapGesture { if capturesClicks { activate() } }
             }
@@ -919,6 +920,9 @@ private struct ColumnPlaceholder: View {
     let tab: BrowserTab
     let accent: Color
     let showsPicture: Bool
+    /// The title bar over the card. Not under a tab bar, where the tab already carries the title
+    /// and the icon an inch above it.
+    var showsHeader = true
 
     @Environment(BrowserState.self) private var browser
 
@@ -945,7 +949,7 @@ private struct ColumnPlaceholder: View {
                 card(unit)
             }
         }
-        .overlay(alignment: .top) { header(unit) }
+        .overlay(alignment: .top) { if showsHeader { header(unit) } }
     }
 
     /// The site's own icon, or the glyph that says what kind of window this is when there is none.

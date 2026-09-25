@@ -160,6 +160,17 @@ enum TabsSelfTest {
         browser.toggleGroup(group)
         say("open it again: \(groups())")
 
+        // A group is a named row: the last tab out of one takes the name with it, and ⌘T lands at
+        // the very end, outside every group.
+        func grouped(_ id: UUID?) -> Bool { TabGroup.all(in: browser).contains { $0.isGroup && id.map($0.tabIDs.contains) == true } }
+        browser.removeFromGroup(probe.id)
+        say("remove the group's only tab: probe still grouped \(grouped(probe.id))")
+        browser.newTabAtEnd()
+        let end = browser.selectedTabID
+        say("⌘T: at the very end \(browser.tabOrder().last == end), grouped \(grouped(end))")
+        if let end { browser.closeTab(end, remembering: false) }
+        browser.selectTab(probe.id)
+
         // Nameless again before it empties, or the row would stay behind asking whether to keep it.
         browser.layout.rename(workspaceAt: browser.layout.workspaces.firstIndex { $0.id == group } ?? 0, to: "")
         let order = browser.tabOrder()

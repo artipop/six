@@ -24,18 +24,21 @@ when you go back to it.
 
 ## Groups
 
-While there is one workspace and it has no name, the tabs simply stand side by side.
-Once there are two workspaces, or one has a name, a coloured label with the name
-appears in front of its tabs — that is a group.
+A workspace with a name is a group: a coloured label with the name stands in front
+of its tabs. A workspace without one is simply tabs, with no group. A new group
+asks for its name straight away; left empty, it keeps the workspace's own name.
 
 - **Click the label** to fold the group up to it, and again to open it. A folded
   group shows how many tabs it holds. If the tab in front is in the group, the
-  tab next to it is shown first.
+  tab next to it is shown first, or a new tab if there is no other.
 - **The label's menu**: **New Tab in Group**, **Rename Group…**, **Collapse
-  Group** / **Expand Group**, **Close Group**.
+  Group** / **Expand Group**, **Ungroup**, **Close Group**.
 - **A tab's menu**: **New Tab to the Right**, **Add Tab to New Group**, **Move Tab
-  to Group**, **Close Other Tabs**.
-- **Drag** a tab along the tab bar, or onto another group's label.
+  to Group**, **Remove from Group**, **Close Other Tabs**.
+- **Drag** a tab along the tab bar, onto another group's label, or onto the empty
+  end of the bar to take it out of its group.
+- **New Tab** (`⌘T`, or the + in the bar) opens at the very end, outside every group.
+- The empty part of the tab bar moves the window, and a double-click on it zooms it.
 
 **Several tabs at once.** `⌘`-click adds a tab to the picked ones or takes it out,
 `⇧`-click picks every tab from the last one clicked to this one. The menu of any

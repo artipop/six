@@ -1631,7 +1631,7 @@ final class BrowserState {
     func tabOrder(skippingCollapsed: Bool = false) -> [UUID] {
         layout.workspaces.flatMap { workspace -> [UUID] in
             let ids = workspace.columns.flatMap(\.tabIDs)
-            if skippingCollapsed, workspace.isCollapsed, !ids.contains(where: { $0 == selectedTabID }) { return [] }
+            if skippingCollapsed, workspace.isFolded, !ids.contains(where: { $0 == selectedTabID }) { return [] }
             return ids
         }
     }
@@ -1655,7 +1655,9 @@ final class BrowserState {
 
     /// Folds a group, or opens it. A group holding the tab in front cannot fold over it, so the tab
     /// next to it along the row is shown first — the one after, or the one before at the end — and
-    /// when every other tab is folded away too the group simply stays open.
+    /// when every other tab is folded away too, a new tab is opened outside the group to be in
+    /// front instead, as Chrome does. It goes in the spare row at the bottom, which is a tab with
+    /// no group.
     func toggleGroup(_ id: UUID) {
         guard let workspace = layout.workspaces.first(where: { $0.id == id }) else { return }
         let collapsing = !workspace.isCollapsed
@@ -1665,10 +1667,60 @@ final class BrowserState {
             let here = order.firstIndex(of: selected) ?? 0
             let after = order[here...].first { !inside.contains($0) }
             let before = order[..<here].last { !inside.contains($0) }
-            guard let other = after ?? before else { return }
-            selectTab(other)
+            if let other = after ?? before {
+                selectTab(other)
+            } else if let spare = layout.workspaces.indices.last, layout.workspaces[spare].isEmpty {
+                newTab(url: nil, in: selectedProfileID, workspace: spare, activate: true)
+            } else {
+                return
+            }
         }
         layout.setCollapsed(collapsing, workspace: id)
+    }
+
+    /// ⌘T and the bar's + with the tabs up: a tab at the very end, outside every group, as Chrome
+    /// opens one. The end is the last row when that is tabs with no group, or the spare row at the
+    /// bottom when the last is a group.
+    func newTabAtEnd() {
+        guard let index = ungroupedEnd() else { newTab(); return }
+        if let last = layout.workspaces[index].columns.last { layout.focus(tabID: last.focusedTabID) }
+        newTab(url: nil, in: selectedProfileID, workspace: index, activate: true)
+    }
+
+    /// A tab dragged off onto the bare tab bar: to the end, out of its group.
+    func moveTabToEnd(_ id: UUID) {
+        guard let index = ungroupedEnd() else { return }
+        placeTab(id, inGroup: layout.workspaces[index].id, at: layout.workspaces[index].columns.count)
+    }
+
+    /// The row a tab with no group goes to at the end of the bar.
+    private func ungroupedEnd() -> Int? {
+        let rows = layout.workspaces
+        if let last = rows.lastIndex(where: { !$0.isEmpty }), rows[last].name.isEmpty { return last }
+        return rows.indices.last.flatMap { rows[$0].isEmpty ? $0 : nil }
+    }
+
+    /// "Remove from Group": the tab just after its group, among the tabs with no group there if
+    /// there are some, or in a row of its own if not. The last tab of a group takes the group's
+    /// name with it rather than leaving a named row behind to ask about.
+    func removeFromGroup(_ id: UUID) {
+        let rows = layout.workspaces
+        guard let index = rows.firstIndex(where: { $0.columns.contains { $0.holds(id) } }),
+              !rows[index].name.isEmpty else { return }
+        if rows[index].columns.flatMap(\.tabIDs).count == 1 { return ungroup(rows[index].id) }
+        let next = index + 1
+        if rows.indices.contains(next), !rows[next].isEmpty, rows[next].name.isEmpty {
+            placeTab(id, inGroup: rows[next].id, at: 0)
+        } else {
+            moveTabToNewGroup(id)
+        }
+    }
+
+    /// "Ungroup": the group's tabs stay where they are, as tabs with no group.
+    func ungroup(_ id: UUID) {
+        guard let index = layout.workspaces.firstIndex(where: { $0.id == id }) else { return }
+        layout.setCollapsed(false, workspace: id)
+        layout.rename(workspaceAt: index, to: "")
     }
 
     /// A new tab at the end of a group, and the group opened to show it.
