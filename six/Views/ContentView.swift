@@ -215,6 +215,9 @@ extension ContentView {
 
     private func runKeySelfTest(_ mode: String?) async {
         switch mode {
+#if DEBUG
+        case "alert": await KeySelfTest.alertOnly(browser)
+#endif
         case "page": await KeySelfTest.pageOnly(browser)
         case "assistant": await KeySelfTest.assistantOnly(browser, assistant, pageFocus, agentSession)
         case "chats": await KeySelfTest.chatsOnly(browser, assistant, agentSession)

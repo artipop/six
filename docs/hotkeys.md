@@ -19,6 +19,29 @@ be pressed, and is where a person looks for it — and **everything else belongs
 one `NSEvent` monitor (`KeyRouter`). A binding is in the table when a menu item cannot deliver it: a first-responder
 `WKWebView` answers a key equivalent before the menu bar is asked, and keeps `⌥←` for word movement.
 
+## Page keys on macOS
+
+Return, keypad Enter, Space, Esc, the arrows, Home, End, Page Up and Page Down, alone or with Shift,
+belong to the page: typing, submitting a form, activating a button, moving the caret, scrolling or a
+site's key handler. With nothing to do they stay quiet.
+
+WebKit sends an unhandled key back through AppKit (`WebViewImpl::doneWithKeyEvent`), and its second
+`keyDown` forwards it to the responder chain. That reached `NSResponder.noResponder(for:)` and rang
+the system alert on a short page. `PageKeyFallback`, installed by `WebViewResponder`, stands **after
+the host window** in that chain. It accepts only these unhandled keys, without Command, Control or
+Option, while a `WKWebView` is the first responder. The DOM and the window's default button have
+already had their turns; native fields, sheets and menu shortcuts keep their normal paths. There
+is one fallback per host window, and `KeyRouter`'s page-first bookkeeping is unchanged.
+
+`SIX_KEY_SELFTEST=alert` in a Debug build checks both the tab and row interfaces in the actual browser.
+It observes AppKit's unhandled-key endpoint, posts key-down/up events and verifies the DOM's counts
+and effects: each of those keys on a short page, scrolling pages, fields, forms, buttons, cancelled
+events and held-key repeats.
+It also checks the address field, the window's default button, native sheet fields, the switcher and
+row/caret shortcuts. Synthetic events enter the app's queue, so this does not test WindowServer's
+own shortcuts. The detector is exchanged back afterwards, the test pages close, and the original
+interface and selection are restored.
+
 ## The row (`⌥` — `KeyBindings`, scope `.row`)
 
 Not a menu. These used to be a **Layout** menu of eleven items, ten of which were an arrow key, and that menu
