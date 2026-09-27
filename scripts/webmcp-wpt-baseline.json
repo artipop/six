@@ -1,6 +1,6 @@
 {
  "wpt": "a9871a2",
- "passed": 84,
+ "passed": 89,
  "total": 166,
  "results": {
   "webmcp/declarative/document-domain-enabled.sub.https.html": {
@@ -344,112 +344,112 @@
     {
      "status": "Pass",
      "name": "idl_test setup",
-     "message": "Asserts runNo asserts ran"
+     "message": ""
     },
     {
      "status": "Pass",
      "name": "idl_test validation",
-     "message": "Asserts runNo asserts ran"
+     "message": ""
     },
     {
      "status": "Pass",
      "name": "Partial interface Document: original interface defined",
-     "message": "Asserts runPassassert_true(true, \"Original interface should be defined\")"
+     "message": ""
     },
     {
      "status": "Pass",
      "name": "Partial interface Document: member names are unique",
-     "message": "Asserts runPassassert_true(true, \"member undefined is unique\")"
+     "message": ""
     },
     {
      "status": "Pass",
      "name": "Partial interface Document[2]: member names are unique",
-     "message": "Asserts runPassassert_true(true, \"member undefined is unique\")"
+     "message": ""
     },
     {
      "status": "Pass",
      "name": "Partial interface Document[3]: member names are unique",
-     "message": "Asserts runPassassert_true(true, \"member undefined is unique\")"
+     "message": ""
     },
     {
      "status": "Pass",
      "name": "Document includes GlobalEventHandlers: member names are unique",
-     "message": "Asserts runPassassert_true(true, \"member onabort is unique\")"
+     "message": ""
     },
     {
      "status": "Pass",
      "name": "Document includes NonElementParentNode: member names are unique",
-     "message": "Asserts runPassassert_true(true, \"member getElementById is unique\")"
+     "message": ""
     },
     {
      "status": "Pass",
      "name": "Document includes DocumentOrShadowRoot: member names are unique",
-     "message": "Asserts runPassassert_true(true, \"member customElementRegistry is unique\")"
+     "message": ""
     },
     {
      "status": "Pass",
      "name": "Document includes ParentNode: member names are unique",
-     "message": "Asserts runPassassert_true(true, \"member children is unique\")"
+     "message": ""
     },
     {
      "status": "Pass",
      "name": "Document includes XPathEvaluatorBase: member names are unique",
-     "message": "Asserts runPassassert_true(true, \"member createExpression is unique\")"
+     "message": ""
     },
     {
      "status": "Pass",
      "name": "ModelContext interface: existence and properties of interface object",
-     "message": "Asserts runPassassert_own_property(object \"[object Window]\", \"ModelContext\", \"self does not have own property \\\"ModelContext\\\"\")"
+     "message": ""
     },
     {
      "status": "Pass",
      "name": "ModelContext interface object length",
-     "message": "Asserts runPassassert_own_property(object \"[object Window]\", \"ModelContext\", \"self does not have own property \\\"ModelContext\\\"\")"
+     "message": ""
     },
     {
      "status": "Pass",
      "name": "ModelContext interface object name",
-     "message": "Asserts runPassassert_own_property(object \"[object Window]\", \"ModelContext\", \"self does not have own property \\\"ModelContext\\\"\")"
+     "message": ""
     },
     {
      "status": "Pass",
      "name": "ModelContext interface: existence and properties of interface prototype object",
-     "message": "Asserts runPassassert_own_property(object \"[object Window]\", \"ModelContext\", \"self does not have own property \\\"ModelContext\\\"\")"
+     "message": ""
     },
     {
      "status": "Pass",
      "name": "ModelContext interface: existence and properties of interface prototype object's \"constructor\" property",
-     "message": "Asserts runPassassert_own_property(object \"[object Window]\", \"ModelContext\", \"self does not have own property \\\"ModelContext\\\"\")"
+     "message": ""
     },
     {
      "status": "Pass",
      "name": "ModelContext interface: existence and properties of interface prototype object's @@unscopables property",
-     "message": "Asserts runPassassert_own_property(object \"[object Window]\", \"ModelContext\", \"self does not have own property \\\"ModelContext\\\"\")"
+     "message": ""
     },
     {
-     "status": "Fail",
+     "status": "Pass",
      "name": "ModelContext interface: operation registerTool(ModelContextTool, optional ModelContextRegisterToolOptions)",
-     "message": "assert_true: property should be enumerable expected true got false@https://six.localhost:8443/resources/idlharness.js:2362:16"
+     "message": ""
     },
     {
-     "status": "Fail",
+     "status": "Pass",
      "name": "ModelContext interface: operation getTools(optional ModelContextGetToolOptions)",
-     "message": "assert_true: property should be enumerable expected true got false@https://six.localhost:8443/resources/idlharness.js:2362:16"
+     "message": ""
     },
     {
-     "status": "Fail",
+     "status": "Pass",
      "name": "ModelContext interface: operation executeTool(RegisteredTool, optional any, optional ModelContextExecuteToolOptions)",
-     "message": "assert_true: property should be enumerable expected true got false@https://six.localhost:8443/resources/idlharness.js:2362:16"
+     "message": ""
     },
     {
-     "status": "Fail",
+     "status": "Pass",
      "name": "ModelContext interface: attribute ontoolchange",
-     "message": "assert_throws_js: getting property on prototype object must throw TypeError function \"function () {"
+     "message": ""
     },
     {
-     "status": "Fail",
+     "status": "Pass",
      "name": "Document interface: attribute modelContext",
-     "message": "assert_true: The prototype object must have a property \"modelContext\" expected true got false@https://six.localhost:8443/resources/idlharness.js:2227:24"
+     "message": ""
     }
    ]
   },

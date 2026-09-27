@@ -74,6 +74,8 @@ nonisolated enum WebMCPScript {
             const channel = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.\#(handlerName);
             if (!channel) { return; }
             // Taken now, before any of the page's own scripts has run and could replace them.
+            const { Promise, Map, Array, Object, String, Symbol, URL, Event, EventTarget, Document, DOMException,
+                    AbortController, TypeError, Error, setTimeout, queueMicrotask } = window;
             const stringify = JSON.stringify;
             const parse = JSON.parse;
             const doc = Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -289,12 +291,20 @@ nonisolated enum WebMCPScript {
             let token = null;
 
             class ModelContext extends EventTarget {
+                #branded = true;
+
                 constructor() {
                     if (token !== constructing) { throw new TypeError('Illegal constructor'); }
                     super();
                 }
 
-                registerTool(tool, options) {
+                // WebIDL's brand check: an operation called on anything but a ModelContext rejects,
+                // an attribute read that way throws.
+                static #is(target) { return target !== null && typeof target === 'object' && #branded in target; }
+                static #illegal() { return new TypeError('Illegal invocation'); }
+
+                registerTool(tool, options = undefined) {
+                    if (!ModelContext.#is(this)) { return Promise.reject(ModelContext.#illegal()); }
                     const refused = (error) => withUnregister(Promise.reject(error), () => {});
                     let entry;
                     try { entry = validate(tool); } catch (error) { return refused(error); }
@@ -324,7 +334,8 @@ nonisolated enum WebMCPScript {
                     return withUnregister(done, unregister);
                 }
 
-                getTools(options) {
+                getTools(options = undefined) {
+                    if (!ModelContext.#is(this)) { return Promise.reject(ModelContext.#illegal()); }
                     const from = options && Array.isArray(options.fromOrigins) ? options.fromOrigins : null;
                     if (from && !from.includes(origin)) { return Promise.resolve([]); }
                     const list = Array.from(tools.values(), registered);
@@ -332,7 +343,8 @@ nonisolated enum WebMCPScript {
                     return Promise.resolve(list);
                 }
 
-                executeTool(tool, input, options) {
+                executeTool(tool, input = undefined, options = undefined) {
+                    if (!ModelContext.#is(this)) { return Promise.reject(ModelContext.#illegal()); }
                     if (!tool || typeof tool !== 'object' || typeof tool.name !== 'string') {
                         return Promise.reject(new TypeError('executeTool: pass a tool from getTools()'));
                     }
@@ -358,9 +370,15 @@ nonisolated enum WebMCPScript {
                     });
                 }
 
-                get ontoolchange() { return handlers.toolchange; }
+                get ontoolchange() {
+                    if (!ModelContext.#is(this)) { throw ModelContext.#illegal(); }
+                    return handlers.toolchange;
+                }
                 set ontoolchange(handler) { this.#handle('toolchange', handler); }
-                get ontoolactivated() { return handlers.toolactivated; }
+                get ontoolactivated() {
+                    if (!ModelContext.#is(this)) { throw ModelContext.#illegal(); }
+                    return handlers.toolactivated;
+                }
                 set ontoolactivated(handler) { this.#handle('toolactivated', handler); }
 
                 #handle(type, handler) {
@@ -391,6 +409,16 @@ nonisolated enum WebMCPScript {
                 }
             }
 
+            // Operations and attributes are enumerable on an IDL prototype; a class's are not.
+            for (const prototype of [ModelContext.prototype, ToolActivatedEvent.prototype]) {
+                for (const key of Object.getOwnPropertyNames(prototype)) {
+                    if (key === 'constructor') { continue; }
+                    Object.defineProperty(prototype, key, Object.assign(Object.getOwnPropertyDescriptor(prototype, key), { enumerable: true }));
+                }
+            }
+            Object.defineProperty(ModelContext.prototype, Symbol.toStringTag, { value: 'ModelContext', configurable: true });
+            Object.defineProperty(ToolActivatedEvent.prototype, Symbol.toStringTag, { value: 'ToolActivatedEvent', configurable: true });
+
             token = constructing;
             const context = new ModelContext();
             token = null;
@@ -398,11 +426,18 @@ nonisolated enum WebMCPScript {
                 Object.defineProperty(window, 'ModelContext', { value: ModelContext, configurable: true, writable: true });
                 Object.defineProperty(window, 'ToolActivatedEvent', { value: ToolActivatedEvent, configurable: true, writable: true });
             } catch (e) {}
-            for (const target of [document, navigator]) {
-                try {
-                    Object.defineProperty(target, 'modelContext', { value: context, configurable: true, enumerable: true });
-                } catch (e) {}
-            }
+            // `[SameObject] readonly attribute ModelContext modelContext` on Document. The first
+            // trial's `navigator.modelContext` is not in the IDL and stays a plain property.
+            try {
+                const getter = Object.getOwnPropertyDescriptor({
+                    get modelContext() {
+                        if (!(this instanceof Document)) { throw new TypeError('Illegal invocation'); }
+                        return this === document ? context : null;
+                    }
+                }, 'modelContext').get;
+                Object.defineProperty(Document.prototype, 'modelContext', { get: getter, configurable: true, enumerable: true });
+                Object.defineProperty(navigator, 'modelContext', { value: context, configurable: true, enumerable: true });
+            } catch (e) {}
 
             Object.defineProperty(window, '\#(bridgeKey)', {
                 value: Object.freeze({

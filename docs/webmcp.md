@@ -160,9 +160,8 @@ in [permissions.md](permissions.md).
   before the spec settles.
 - **iframes and `exposedTo`.** Main frame only, `exposedTo` ignored, no `tools` permissions policy — so `fromOrigins`
   in `getTools` filters nothing useful.
-- **Not real IDL.** `modelContext` is a property of the `document` object, not of `Document.prototype`. The globals
-  `ModelContext` and `ToolActivatedEvent` exist so `instanceof` works, but the events six dispatches are the page's own
-  and `isTrusted` is false. The page sees the polyfill and can replace it — with an engine that opposes WebMCP there
+- **Not native.** The IDL is followed as far as `idlharness` checks it, but the events six dispatches are the page's
+  own and `isTrusted` is false. The page sees the polyfill and can replace it — with an engine that opposes WebMCP there
   is no other way.
 - **Input is not checked against `inputSchema`** before a call.
 - **`exposedTo` is validated and then ignored**: a non-trustworthy origin is a `SecurityError`, as the draft says,
@@ -198,8 +197,8 @@ open -na <Debug six.app> --env SIX_WEBMCP=1
 ./scripts/webmcp-wpt.py --write-baseline      # after a change that should move the numbers
 ```
 
-The baseline is `scripts/webmcp-wpt-baseline.json`. At wpt `a9871a2`: **84 of 166** — imperative 60 of 97,
-`idlharness` 17 of 22, `tool-activated-event` 4 of 4, declarative 3 of 43. Every imperative test that fails involves a
+The baseline is `scripts/webmcp-wpt-baseline.json`. At wpt `a9871a2`: **89 of 166** — imperative 60 of 97,
+`idlharness` 22 of 22, `tool-activated-event` 4 of 4, declarative 3 of 43. Every imperative test that fails involves a
 frame — an iframe, a detached frame, a second origin, `window.open` — which six does not build (main frame only),
 plus `isTrusted` on `toolactivated`, which no polyfill can pass. The declarative ones fail because declarative forms
 are not built. What the suite taught the polyfill, and it now does: `getTools()` sorted by name and carrying
@@ -208,7 +207,11 @@ are not built. What the suite taught the polyfill, and it now does: `getTools()`
 `executeTool` input through JSON and required to be an object, `UnknownError` for a missing tool or a failed call,
 `NotSupportedError` for an opaque origin, a default `AbortSignal`, the caller's abort rejecting at once and reaching
 the tool a task later; `toolactivated` on the window and the context (with `ontoolactivated`) and `toolcancel` on the
-window; titles made well-formed; nothing at all on a non-secure page.
+window; titles made well-formed; nothing at all on a non-secure page. And, for `idlharness`: `modelContext` a getter
+on `Document.prototype`, `ModelContext` and `ToolActivatedEvent` as globals whose operations and attributes are
+enumerable, have WebIDL's lengths and brand-check `this`. The polyfill takes `Promise`, `Map`, `URL` and the rest
+from `window` before the page runs, so a page replacing one of them does not break it; a page patching their
+prototypes still can.
 
 ## What has been checked
 
