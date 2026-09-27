@@ -188,6 +188,7 @@ struct sixApp: App {
             if agentSession.toolchain.report(for: agent).adapter == .unknown { await agentSession.toolchain.refresh(agent) }
             return try await errands.ask(question, agent: agentSession.toolchain.launchDefinition(for: agent))
         }
+        tools.agentSession = agentSession
         assistant.research = research
         let mcp = MCPHost(server: MCPServer(catalog: tools))
         // Always listening, whatever the assistant switch says. This is six offering *itself* to

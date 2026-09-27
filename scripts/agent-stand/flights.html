@@ -1,0 +1,73 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>SkyFind — flights</title>
+<style>
+body{font:15px system-ui;margin:0;background:#f4f6fb}header{background:#1b3a6b;color:#fff;padding:14px 24px;font-weight:600}
+main{max-width:860px;margin:24px auto;background:#fff;padding:24px;border-radius:12px}
+.row{display:flex;gap:12px;margin:12px 0;align-items:center;flex-wrap:wrap}.field{position:relative}
+input[type=text]{padding:10px;width:220px;border:1px solid #aab;border-radius:8px}
+[role=listbox]{position:absolute;top:44px;left:0;background:#fff;border:1px solid #aab;border-radius:8px;min-width:260px;z-index:5;padding:4px 0;margin:0;list-style:none}
+[role=option]{padding:8px 12px;cursor:pointer}[role=option]:hover{background:#eef}
+.btn{padding:10px 18px;border-radius:8px;border:0;background:#1b3a6b;color:#fff;cursor:pointer}
+#cal{position:absolute;top:44px;left:0;background:#fff;border:1px solid #aab;border-radius:8px;padding:10px;z-index:6}
+#cal .grid{display:grid;grid-template-columns:repeat(7,36px);gap:2px}#cal .day{padding:6px 0;text-align:center;cursor:pointer;border-radius:6px}
+#cal .day[aria-selected=true]{background:#1b3a6b;color:#fff}
+.cookie{position:fixed;inset:auto 0 0 0;height:100vh;background:rgba(0,0,0,.35);display:flex;align-items:flex-end;z-index:50}
+.cookie>div{background:#fff;padding:20px;width:100%}
+.pax span{display:inline-block;width:24px;text-align:center}
+</style></head><body>
+<header>SkyFind</header>
+<div class="cookie" id="cookie"><div><p>We use cookies to make SkyFind work.</p><button class="btn" id="accept">Accept all</button> <button class="btn" id="reject">Reject</button></div></div>
+<main>
+<h1>Search flights</h1>
+<div class="row" role="radiogroup" aria-label="Trip type">
+ <label><input type="radio" name="trip" value="round" checked> Round trip</label>
+ <label><input type="radio" name="trip" value="oneway"> One way</label>
+</div>
+<div class="row">
+ <div class="field"><input type="text" id="from" role="combobox" aria-label="Where from?" aria-autocomplete="list" aria-expanded="false" aria-controls="from-list" autocomplete="off"><ul role="listbox" id="from-list" hidden></ul></div>
+ <div class="field"><input type="text" id="to" role="combobox" aria-label="Where to?" aria-autocomplete="list" aria-expanded="false" aria-controls="to-list" autocomplete="off"><ul role="listbox" id="to-list" hidden></ul></div>
+</div>
+<div class="row">
+ <div class="field"><button class="btn" id="depart" aria-haspopup="dialog" style="background:#fff;color:#1b3a6b;border:1px solid #aab">Departure date</button>
+  <div id="cal" role="dialog" aria-label="Choose departure date" hidden><div style="display:flex;justify-content:space-between;align-items:center"><button id="prev" aria-label="Previous month">‹</button><strong id="month"></strong><button id="next" aria-label="Next month">›</button></div><div class="grid" id="grid" role="grid"></div><button class="btn" id="done" style="margin-top:8px">Done</button></div></div>
+ <div class="pax">Adults <button aria-label="Remove adult" id="minus">−</button><span id="adults" aria-live="polite">1</span><button aria-label="Add adult" id="plus">+</button></div>
+ <label>Cabin <select id="cabin"><option>Economy</option><option>Premium economy</option><option>Business</option><option>First</option></select></label>
+ <label><input type="checkbox" id="nonstop"> Nonstop only</label>
+</div>
+<div class="row"><button class="btn" id="search">Search</button> <span id="err" role="alert" style="color:#b00"></span></div>
+</main>
+<script>
+const AIRPORTS=[["ZRH","Zurich","Switzerland"],["LHR","London Heathrow","United Kingdom"],["LGW","London Gatwick","United Kingdom"],["LCY","London City","United Kingdom"],["BER","Berlin Brandenburg","Germany"],["CDG","Paris Charles de Gaulle","France"],["ORY","Paris Orly","France"],["IST","Istanbul","Türkiye"],["TBS","Tbilisi","Georgia"],["BKK","Bangkok Suvarnabhumi","Thailand"],["HKT","Phuket","Thailand"],["DXB","Dubai","United Arab Emirates"]];
+const picked={from:null,to:null}; let date=null;
+document.getElementById('accept').onclick=document.getElementById('reject').onclick=()=>document.getElementById('cookie').remove();
+for (const id of ['from','to']) {
+  const input=document.getElementById(id), list=document.getElementById(id+'-list');
+  input.addEventListener('input',()=>{ picked[id]=null; const q=input.value.trim().toLowerCase();
+    setTimeout(()=>{ list.innerHTML=''; if(!q){list.hidden=true;input.setAttribute('aria-expanded','false');return;}
+      for (const [code,city,country] of AIRPORTS.filter(a=>(a[0]+' '+a[1]+' '+a[2]).toLowerCase().includes(q))) {
+        const li=document.createElement('li'); li.setAttribute('role','option'); li.textContent=city+' ('+code+'), '+country;
+        li.addEventListener('mousedown',e=>e.preventDefault());
+        li.addEventListener('click',()=>{picked[id]=code; input.value=city+' ('+code+')'; list.hidden=true; input.setAttribute('aria-expanded','false');});
+        list.appendChild(li); }
+      list.hidden=!list.children.length; input.setAttribute('aria-expanded',String(!list.hidden)); },180); });
+  input.addEventListener('blur',()=>setTimeout(()=>{list.hidden=true;input.setAttribute('aria-expanded','false');},150));
+}
+let shown=new Date(2026,9,1); const cal=document.getElementById('cal');
+function render(){ const g=document.getElementById('grid'); g.innerHTML=''; document.getElementById('month').textContent=shown.toLocaleString('en',{month:'long',year:'numeric'});
+  const days=new Date(shown.getFullYear(),shown.getMonth()+1,0).getDate(); const lead=(new Date(shown.getFullYear(),shown.getMonth(),1).getDay()+6)%7;
+  for(let i=0;i<lead;i++) g.appendChild(document.createElement('span'));
+  for(let d=1;d<=days;d++){ const c=document.createElement('div'); const dt=new Date(shown.getFullYear(),shown.getMonth(),d);
+    c.className='day'; c.setAttribute('role','gridcell'); c.tabIndex=0; c.textContent=d; c.setAttribute('aria-label',dt.toLocaleDateString('en',{weekday:'long',month:'long',day:'numeric',year:'numeric'}));
+    c.setAttribute('aria-selected', String(!!date && dt.getTime()===date.getTime()));
+    c.onclick=()=>{date=dt; render();}; g.appendChild(c);} }
+document.getElementById('depart').onclick=()=>{cal.hidden=!cal.hidden; render();};
+document.getElementById('prev').onclick=()=>{shown=new Date(shown.getFullYear(),shown.getMonth()-1,1);render();};
+document.getElementById('next').onclick=()=>{shown=new Date(shown.getFullYear(),shown.getMonth()+1,1);render();};
+document.getElementById('done').onclick=()=>{cal.hidden=true; if(date) document.getElementById('depart').textContent='Departure: '+date.toLocaleDateString('en',{weekday:'short',month:'short',day:'numeric'});};
+const adults=document.getElementById('adults');
+document.getElementById('plus').onclick=()=>adults.textContent=Math.min(9,+adults.textContent+1);
+document.getElementById('minus').onclick=()=>adults.textContent=Math.max(1,+adults.textContent-1);
+document.getElementById('search').onclick=()=>{ const err=document.getElementById('err');
+  if(!picked.from||!picked.to){err.textContent='Choose airports from the list';return;} if(!date){err.textContent='Choose a departure date';return;}
+  const p=new URLSearchParams({from:picked.from,to:picked.to,d:[date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-'),adults:adults.textContent,cabin:document.getElementById('cabin').value,nonstop:document.getElementById('nonstop').checked,trip:document.querySelector('[name=trip]:checked').value});
+  fetch('/log',{method:'POST',body:JSON.stringify({task:'flights',...Object.fromEntries(p)})}).then(()=>location.href='/results.html?'+p);};
+</script></body></html>

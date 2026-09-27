@@ -100,6 +100,11 @@ final class AssistantStore {
         guard !question.isEmpty else { return }
         let focus = tab.map { subject(in: $0.id) } ?? PageFocus()
         start(Answer(title: question, windowID: tab?.id, subject: focus, isRunning: true)) { [self] report in
+            // `do: …` carries the goal out on the page in front of the person, step by step, with
+            // the fast decider taking the obvious steps and the model the rest (`PageTaskRunner`).
+            if let goal = PageTaskRunner.goal(fromCommand: question) {
+                return await runPageTask(goal, on: tab, report: report)
+            }
             #if os(macOS)
             // `research: …` starts a deep-research run: a workspace, a document, and the agent at work.
             if let research, let topic = ResearchCoordinator.question(fromCommand: question) {
@@ -173,6 +178,21 @@ final class AssistantStore {
         /// `fixable` when the way out is `six://configuration` ▸ Assistant — a key, an address, a
         /// model name — and the answer offers the way there rather than only naming the trouble.
         case failure(String, fixable: Bool = false)
+    }
+
+    /// A task carried out on the page, rather than an answer about it. The trace is the answer:
+    /// every step names the decider that chose it, how sure it was and how long it took, because
+    /// with two deciders "the agent did it" is not an account of anything.
+    private func runPageTask(_ goal: String, on tab: BrowserTab?, report: @escaping (Update) -> Void) async {
+        guard let tab, !tab.showsStartPage, !tab.isDocument else {
+            return report(.failure(String(localized: "Open the page to work on first")))
+        }
+        #if os(macOS)
+        let runner = PageTaskRunner(settings: settings, agentSession: agentSession)
+        #else
+        let runner = PageTaskRunner(settings: settings)
+        #endif
+        _ = await runner.run(goal: goal, tab: tab) { text in report(.text(text)) }
     }
 
     private func stream(_ prompt: String, report: @escaping (Update) -> Void) async {

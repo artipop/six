@@ -119,11 +119,24 @@ of a **profile**. Everything defaults to what is on screen.
 | look | list workspaces and windows, read a page's text, its links, summarize it |
 | open | search the web; open a window by address or by query — including **behind**, so nothing on screen moves; open a private window |
 | move | focus a window, move it to another workspace, close it |
+| act | a snapshot of the page with its buttons and fields numbered, click, fill a field, choose an option in a list, press a key, scroll, wait for a result — this is how an agent fills in forms and searches for flights by itself |
 | debug | what a page logged, what it requested, a screenshot, run code in the page |
 | write | create a document, write into it section by section, cite a source, highlight the paragraphs that answer a question |
 | bookmarks | list, search by meaning, read, add, refresh, remove |
 
 The agent sees the console and the network only while **Configuration ▸ Assistant ▸ ⌘E Line ▸ Access to Page Console and Network** is on — see [developer tools](/en/devtools).
+
+An agent acts in a real window and in your profile — where you are already signed in
+to the sites. Every action shows in the panel, and the agent asks before each one. It is
+told not to press anything that pays, books, sends or deletes: it stops, says what is
+ready, and leaves the last button to you. The ⌘E line gets no actions at all.
+
+## The same agent on the ⌘E line
+
+The `⌘E` model menu has **Claude Code (ACP)** and **Codex (ACP)**. That is the
+same session and the same transcript as the panel: permission requests appear
+inside the answer card, and the tool the agent is using is named next to the
+model.
 
 ## The browser as an MCP server for anything else
 

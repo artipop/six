@@ -153,8 +153,46 @@ final class AssistantSettings {
         set { store.assistantOpenAIModel = newValue }
     }
 
+    /// The key for the System 1 endpoint (TypeSafe's, or none at all for a server on this machine).
+    var pageTaskKey: String {
+        didSet { defaults.set(pageTaskKey, forKey: "six.assistant.pageTaskKey") }
+    }
+
+    var pageTaskEndpoint: String {
+        get { store.pageTaskEndpoint }
+        set { store.pageTaskEndpoint = newValue }
+    }
+
+    var pageTaskModel: String {
+        get { store.pageTaskModel }
+        set { store.pageTaskModel = newValue }
+    }
+
+    var systemOneThreshold: Double {
+        get { ProcessInfo.processInfo.environment["SIX_PAGETASK_THRESHOLD"].flatMap(Double.init) ?? store.pageTaskThreshold }
+        set { store.pageTaskThreshold = newValue }
+    }
+
+    /// The configured fast decider, or nil — in which case a page task is the assistant's model all
+    /// the way down, which works and costs a model call per step.
+    ///
+    /// The environment wins over the settings, so one endpoint can be measured against another by
+    /// launching six twice without anybody editing a preference between the runs:
+    /// `SIX_PAGETASK_ENDPOINT`, `SIX_PAGETASK_KEY`, `SIX_PAGETASK_MODEL`, `SIX_PAGETASK_THRESHOLD`.
+    var systemOne: SystemOne? {
+        let environment = ProcessInfo.processInfo.environment
+        let address = (environment["SIX_PAGETASK_ENDPOINT"] ?? pageTaskEndpoint).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let url = URL(string: address), url.scheme != nil, url.host() != nil else { return nil }
+        let name = (environment["SIX_PAGETASK_MODEL"] ?? pageTaskModel).trimmingCharacters(in: .whitespacesAndNewlines)
+        let secret = (environment["SIX_PAGETASK_KEY"] ?? environment["TYPESAFE_API_KEY"] ?? pageTaskKey)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return SystemOne(url: url, key: secret, model: name.isEmpty ? "jev-latest" : name)
+    }
+
     init(store: ConfigurationStore) {
         self.store = store
+        pageTaskKey = defaults.string(forKey: "six.assistant.pageTaskKey")
+            ?? ProcessInfo.processInfo.environment["TYPESAFE_API_KEY"] ?? ""
         anthropicAPIKey = defaults.string(forKey: "six.assistant.anthropicKey")
             ?? ProcessInfo.processInfo.environment["ANTHROPIC_API_KEY"] ?? ""
         openAIAPIKey = defaults.string(forKey: "six.assistant.openAIKey")
