@@ -72,7 +72,9 @@ WebKit, а не из собственного обхода: роли и имен
 Обход DOM ниже остаётся как вариант без разрешения и для Linux, Windows и iOS; действия по номеру (`click(ref)`
 и соседи) могут идти через `AXUIElementPerformAction` / `AXUIElementSetAttributeValue` — это нажатие так, как его
 делает VoiceOver, — или через DOM, и это решение этапа, а не этого абзаца. Если страница сама объявила
-инструменты, всё это не нужно вовсе — [webmcp.md](webmcp.md).
+инструменты, всё это не нужно вовсе — [webmcp.md](webmcp.md). Как из дерева (а потом из DOM и VLM) получать
+инструменты того же вида, что объявляет WebMCP, —
+[accessibility.md](accessibility.md#toward-page-tools-derived-from-the-tree).
 
 `page_snapshot(window_id?, max_elements?)` — обход интерактивных узлов (`a[href]`, `button`, `input`, `select`,
 `textarea`, `[role]`, `[contenteditable]`, обработчики клика), только видимых (`checkVisibility`), с доступным

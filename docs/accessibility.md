@@ -3,9 +3,8 @@
 View ▸ Accessibility Overlay (`⌥⌘A`) draws WebKit's accessibility tree over the focused window's page, and
 `get_accessibility_tree` hands the same read to an agent as numbered lines. Mac only.
 
-**None of it can be used yet.** Measured on the Mac, the read deadlocks the browser the first time it is allowed to
-happen — "What the Mac answered" below has the two stacks and what follows from them. The branch is kept for the
-walk, the placing and the outline, which are all still right; what has to change is who asks for the tree.
+The tree is read by a second process, `six --ax-read <pid>`, which six starts itself: six asking *itself* through
+`AXUIElement` deadlocks the browser the moment the permission is given ("Why a second process" below).
 
 The user-facing account is
 [guide/accessibility.md](guide/accessibility.md); the plan for acting on what is seen is
@@ -13,7 +12,9 @@ The user-facing account is
 
 | file | what it does |
 |---|---|
-| `six/Accessibility/PageAccessibilityReader.swift` | the walk: `AXUIElement` calls on a serial queue → `AXPageSnapshot`, plain values |
+| `six/Accessibility/PageAccessibilityReader.swift` | `six --ax-read`: the walk, `AXUIElement` calls → `AXPageSnapshot`, plain `Codable` values |
+| `six/Accessibility/AXReadProcess.swift` | the browser's side: starts the reader, one JSON line each way over a pipe, the watchdog, the idle stop |
+| `six/sixApp.swift` | `SixMain` hands `--ax-read` to the reader before AppKit is touched, as it does `--mcp` |
 | `six/Accessibility/AccessibilityOverlay.swift` | the model (`AccessibilityOverlay.shared`), placing the snapshot over the web view, the outline for a model, and the SwiftUI layer |
 | `six/Input/WebViewResponder.swift` | `webView(for:)` — the pane's `WKWebView`, which is the only way to know where on screen a `WebPage` is |
 | `six/Views/TilingStripView.swift` | mounts `AccessibilityOverlayView` over the focused pane |
@@ -49,41 +50,48 @@ Checked in WebKit's source (`Source/WebKit/UIProcess/mac/WebViewImpl.mm`, Septem
   WebKit keeps an accessibility tree up to date for the pages it serves — a cost the pages did not pay before the
   overlay was first turned on, and one worth measuring on the 8 GB Mac.
 
-**The one thing still open is the second point**, and `AccessibilityOverlay.probe` exists to settle it: once per
-launch it logs what the web view's in-process child answers for `AXRole` and `AXChildren`, through the old
-`accessibilityAttributeValue:`. If the remote element does answer in-process — if AppKit forwards it without the
-client API's trust check — the tree can be walked without the permission, and the reader should move to that. It
-does not: with the permission not yet granted the line read `trusted false; the web view's own children in process:
-[]`, so the in-process side really does stop at the token and the client API really is the only way in. Read it in
-the log:
-
-```sh
-grep "accessibility probe" ~/Library/Logs/org.deffun.six.dev/six.log
-```
+**The second point is measured, not only read.** A build logged what the web view's in-process child answers for
+`AXRole` and `AXChildren` through the old `accessibilityAttributeValue:`: `[]`. The in-process side really does stop
+at the token, and the client API really is the only way in; the probe is gone now that it has answered.
 
 ## The read
 
-`PageAccessibilityReader.snapshot(at:visible:limit:)`, off the main thread — the path from the app's element down to
-the web view is answered by this app's own main thread, and a main thread blocked waiting for its own answer times
-out instead.
+The browser owns the request and nothing else. `AccessibilityOverlay.read` works out the middle of the pane's visible
+part and that visible part itself, both in accessibility coordinates, and hands them with a limit to
+`AXReadProcess`, which writes them as one JSON line (`AXReadRequest`) to the child's stdin and reads one
+`AXPageSnapshot` line back from its stdout.
 
-1. `AXUIElementCopyElementAtPosition` on `AXUIElementCreateApplication(getpid())` at the middle of the pane's visible
-   part.
-2. Up the `AXParent`s to the **outermost** `AXWebArea` — an iframe is a web area of its own. If there is none above
-   (the hit test stopped at the web view's own group), a short breadth-first search down from where it stopped.
-3. Depth-first from there, children pushed in reverse so the numbers come out in document order. Per element, one
+- **Started on demand**, from `Bundle.main.executableURL` with `--ax-read <six's pid>`, on the first read.
+- **Kept while reads keep coming** — the overlay reads every few seconds — and stopped after 30 s without one.
+  Closing its stdin is enough: the child's loop ends on end of file, which is also what happens when six quits.
+- **A watchdog of 8 s** per answer. The child cuts its own walk at 5 s and says it was truncated, so a child past 8 s
+  is stuck; it is killed, the read answers "did not answer in time", and the next read starts a new one.
+- **A child that answers "not trusted" is replaced once.** A process keeps the answer to `AXIsProcessTrusted` it was
+  started with, so the child the overlay's first press launched stays refused after the person switches six on —
+  measured. A fresh one is asked before the refusal is believed.
+
+In the child, `PageAccessibilityReader.read(pid:at:visible:limit:)`:
+
+1. `AXUIElementCopyElementAtPosition` on `AXUIElementCreateApplication(pid)` at the middle of the visible part.
+2. Up the `AXParent`s to the **outermost** `AXWebArea` — an iframe is a web area of its own — or, when the hit test
+   stopped at the web view's own group, a short breadth-first search down from where it stopped.
+3. If that found nothing, or a web area that misses the visible part, **every web area of the app, and the one
+   covering most of the visible part**. The rail keeps off-screen columns as web areas too, so "the first web area"
+   is a lottery — the probe once walked the neighbouring column's page — and a split puts two on screen at once.
+4. Depth-first from there, children pushed in reverse so the numbers come out in document order. Per element, one
    `AXUIElementCopyMultipleAttributeValues` for role, subrole, role description, title, description, value,
    placeholder, `AXDOMIdentifier`, position, size, enabled, focused and children; `AXUIElementCopyActionNames`; and,
    for the roles that can have one, whether `AXValue` is settable.
-4. A subtree whose box has a size and misses the visible part (plus 40 pt) is not walked; a zero-size box is walked,
+5. A subtree whose box has a size and misses the visible part (plus 40 pt) is not walked; a zero-size box is walked,
    because WebKit gives some containers none while their children are on screen. `AXStaticText` is not descended
-   into. The walk stops at 2 500 elements.
-5. An element with no title or description takes its name from the text inside it, the way a screen reader reads a
+   into. The walk stops at 2 500 elements or 5 s.
+6. An element with no title or description takes its name from the text inside it, the way a screen reader reads a
    link.
 
-A messaging timeout of 1.5 s is set on the system-wide element, so a busy web process costs a missing subtree
-instead of a frozen overlay. If the first read comes back with fewer than three elements, it is read once more
-400 ms later: WebKit builds its tree when first asked.
+A messaging timeout of 1.5 s is set on the system-wide element and on the application's, so a busy web process costs
+a missing subtree instead of a stalled read. **If the first read finds no web area, or fewer than three elements, it
+is read once more 400 ms later**: WebKit builds a page's tree when first asked for one. Measured on Wikipedia right
+after the column was focused: the first ask answered "no web area", the second 265 elements.
 
 **Kinds**, for colour and for the outline: *control* (buttons, links, checkboxes, pop-ups, sliders… and anything
 answering `AXPress`/`AXIncrement`/`AXPick`/`AXConfirm`), *field* (text fields, text areas, combo boxes, search
@@ -128,18 +136,12 @@ given.
 The window must be on screen: the tree is read from what is displayed, and the tool says `focus_window` rather than
 reading a pane that is off the edge of the rail.
 
-## What the Mac answered
+## Why a second process
 
-Built and run on the Mac (macOS 27, Debug, 16 September 2026). Three of the questions below are answered, and the
-fourth answer stops the feature.
-
-- **Both Apple schemes build**, with no warning from any of the new files, and `SixCore`'s 201 tests pass.
-- **Without the permission the tool refuses politely** — "six is not allowed to use macOS accessibility… the user has
-  to switch six on in System Settings ▸ Privacy & Security ▸ Accessibility" — and `AccessibilityOverlay.probe`
-  answered `trusted false; the web view's own children in process: []` (above).
-- **With the permission granted, the first read deadlocks the browser.** Reproduced twice: once by turning the
-  overlay on with `⌥⌘A`, once by calling `get_accessibility_tree` over `six --mcp` with no window and no menu
-  involved. The app stays alive at 0% CPU and answers nothing — no MCP, no clicks — and only a kill ends it.
+The first build read the tree from inside six (16 September 2026). Without the permission it refused politely; **with
+the permission granted, the first read deadlocked the browser.** Reproduced twice: once by turning the overlay on
+with `⌥⌘A`, once by calling `get_accessibility_tree` over `six --mcp` with no window and no menu involved. The app
+stayed alive at 0% CPU and answered nothing — no MCP, no clicks — and only a kill ended it.
 
 `sample` says the same thing both times. The thread that serves accessibility questions *inside six* suspends
 another thread of six to answer, and that thread is holding SwiftUI's update lock:
@@ -153,10 +155,6 @@ So the lock is never given back and the main thread waits for it forever. Nothin
 wrong in itself — the read is already off the main thread, with a 1.5 s messaging timeout — because the suspension
 is done by the system, at a point of its choosing, in a process that is asking *itself*. That is the part that has
 to change: the question has to come from outside six.
-
-Until it does, **leave six switched off in Privacy & Security ▸ Accessibility**. Untrusted, the API answers
-`kAXErrorAPIDisabled` at once and the feature is merely absent; trusted, the overlay and the tool are each one
-keystroke away from taking the browser down.
 
 ### Asked from outside instead — measured, and it works
 
@@ -187,13 +185,7 @@ with this branch's build: 400 elements in 0.17–0.40 s, closed shadow root incl
 six answered over MCP immediately after each read and went on working. A Wikipedia article came back as
 1 889 elements in 0.65 s. Nothing suspended, nothing hung.
 
-Two things the probe learned that six will need if it goes this way:
-
-- **"The first web area" is a lottery.** six's rail keeps off-screen columns as web areas too, so one run walked
-  the neighbouring column's `example.com` instead of the page on screen. Take the widest web area that overlaps
-  a screen.
-- **A rebuild costs the grant.** The bundle is ad-hoc signed, so re-signing it makes macOS ask again — the same
-  trap the Debug app has.
+What the probe learned about finding the page and asking twice is in "The read" above.
 
 **Whose permission is it?** Five shapes, measured against a running build with six allowed in
 Privacy & Security ▸ Accessibility and nothing else granted:
@@ -223,37 +215,98 @@ probe already makes against six, so nothing else is expected to differ; it has n
 So there are two workable shapes rather than one: an XPC service, or six spawning its own executable with a flag
 the way `--mcp` already does. Both are one checkbox, both are a second process, which is all the deadlock needs.
 
-**One more thing the probe found: ask twice.** WebKit builds a page's accessibility tree when it is first asked
-for one, so the first read after launch can come back with no web area at all — three passes over a fresh six
-counted 0, then 1, then 1, and a child that asked once reported "no web area … after 331 elements" while the
-probe asking a moment later walked the whole article. `PageAccessibilityReader` already re-reads after 400 ms for
-this reason; whatever does the asking has to keep that.
-
 **Signing, since the probe lost its grant twice.** That is ad-hoc signing, not something helpers do: with no Team
 ID, TCC has only the code directory hash to key the grant to, and every rebuild produces a new one. Signed with a
 Developer ID identity, the grant is keyed to the designated requirement — team plus bundle id — and survives
 updates. six is ad-hoc signed today, Debug *and* the Release in `/Applications`, so this is a thing to fix before
-any of it ships, whichever way the read goes.
+any of it ships.
 
 The other half is already right: **App Sandbox is off** (`six/six.entitlements` says why — the ACP layer spawns
 the user's own toolchain), and it has to be, because a sandboxed process cannot be an accessibility client at all.
 
-What this does not answer: what it costs to keep a second process alive — when to start it, when to let it go,
-and how the two halves talk (a pipe, XPC, a file). Nor does it make the tree free: the read is
-still a permission the user grants, and the fallback for the fronts that are not the Mac is still the DOM walk
-above, with its four blind spots.
+### Why `six --ax-read`, and not the XPC service
+
+Both shapes are one checkbox; the choice is about what else each one brings.
+
+- **It already has a pattern here.** `six --mcp` is the same binary in a second role, switched in `SixMain` before
+  AppKit is touched. `--ax-read` is one more line there, and the reader is the file it always was.
+- **One bundle, one signature, one target.** An XPC service is a target of its own in `project.pbxproj`, a bundle of
+  its own under `Contents/XPCServices`, signed separately, and an `Info.plist` of its own — for macOS only, with an
+  iOS exclusion to keep it out of the other scheme. The grant is keyed to a code hash under ad-hoc signing, and
+  every bundle is another one to keep in step.
+- **Nothing XPC gives is needed.** The exchange is one request and one answer of plain values, which a pipe and
+  `JSONEncoder` carry; `launchd`'s lifecycle management is replaced by thirty lines that start, watch and stop one
+  `Process`. And the XPC service's measurement went only as far as `trusted: true` — `--ax-read` has now read pages
+  end to end.
+
+What `--ax-read` costs instead: the child is a whole six executable in memory (it never touches AppKit, so it stays
+small, but it maps everything), and it is only six in macOS's eyes when six launches it — the same executable run from
+a shell is refused, which is also why it cannot be tested from a terminal with the permission on.
+
+## What was checked, as built
+
+Debug, macOS 27, 27 September 2026, one build throughout (a rebuild costs the grant):
+
+- **Without the permission** the tool answers "six is not allowed to use macOS accessibility…" in 0.16–0.35 s, the
+  child is reused between calls, and six goes on answering over MCP.
+- **With the permission**, over `six --mcp`: example.com, 8 elements in 279 ms; Wikipedia's *Accessibility*, 265
+  elements in 84 ms on the visible part, after the "no web area" first ask above; the stand, 32 elements in 55 ms,
+  the closed shadow root's button and field and the slotted "Slotted label" among them. Every call answered in
+  0.16–0.6 s, and `list_workspaces` straight after each.
+- **`⌥⌘A` three times** on the stand, on, off, on, with a scroll: six alive, the boxes on the elements (by eye),
+  and MCP answering with the overlay on.
+- A child started before the grant stayed refused after it — which is what the "replaced once" rule is for. That
+  rule and the second retry for "no web area" were added after this run and have been built, not yet run with
+  the permission.
 
 ## Still not measured
 
-- the boxes sitting on the elements: full width, a split, a window half off the rail, page zoom, after a scroll —
-  all of it waits on a read six can actually perform;
+- the boxes in a split, a window half off the rail, page zoom;
+- the memory of the idle child on the 8 GB Mac;
 - whether the overlay's own prompt and the legend's button reach the right Settings pane.
+
+## Toward page tools derived from the tree
+
+[webmcp.md](webmcp.md) is a page declaring tools for agents; this tree is the page as the engine understood it,
+whether or not it declared anything. The two meet in the middle, and the aim is that everything built for WebMCP —
+`list_page_tools` / `call_page_tool`, the ⌘K assistant's tools, the gate, the mark in the address field — carries
+derived tools too, without a second catalog.
+
+**The accessibility tree is the first source, not the only one.** A DOM walk (the fallback in
+[agent-actions.md](agent-actions.md), and the only route on Linux, Windows and iOS today) and a vision model reading a
+screenshot are the next ones. So the seam is a snapshot of *page elements* — role, name, value, box, verbs, and which
+source said so — that the overlay, the outline and any derived tool read, with `AXPageNode` as the first thing that
+fills it. Today the overlay and `outline` read `AXPageNode` directly; generalising that is the first step, and
+nothing in the overlay's drawing depends on where a node came from.
+
+**What a derived tool would be.** The shapes are already on main: `WebMCPForms` turns a `<form toolname>` into a tool
+whose inputs are its fields. The same, derived rather than declared:
+
+- a form or a `form` / `search` landmark with fields → one tool, its input schema from the fields (name from the
+  accessible name, `string` / `boolean` / `number` from the role), its call filling them and pressing the one
+  submit control;
+- a named control standing alone → a `press` tool, and a settable value → `set`;
+- registered in `WebMCPRegistry` beside the page's own, marked as derived and by which source, and never
+  `readOnlyHint` — six cannot know what a press does, so every call is asked about, as an unannotated page tool is.
+- **A page's own tools win.** Where a page declares tools, derived ones step back or are listed after them: the page
+  knows what its buttons mean, and the tree only knows what they are called.
+
+Acting needs hands per source: for this one, `AXUIElementPerformAction` and setting `AXValue`, asked of the same
+child over the same pipe — which is why `AXReadRequest` is a request type and not a bare rectangle.
+
+**The mark.** A variant of `PageToolsButton` — the same place, a different glyph (a wrench with a spark, say) —
+for "this page declared nothing, but six could make tools of it". Shown only when the reading is *good*, and what good
+means is the open question. Candidates, all readable from a snapshot: the share of controls and fields with a name
+(the red boxes, inverted), fields that have a label, a form that has a submit, and the read finishing within its
+budget. The stand and a handful of real sites would set the threshold before any of it is drawn.
 
 ## Not built
 
-- **Acting.** `AXUIElementPerformAction(AXPress)` and setting `AXValue` are the obvious hands for these eyes, and
-  they press the way VoiceOver does — but acting is the next stage of [agent-actions.md](agent-actions.md), with the
-  permission boundaries that plan puts first.
+- **Acting**, and the derived tools above. `AXUIElementPerformAction(AXPress)` and setting `AXValue` press the way
+  VoiceOver does — but acting is the next stage of [agent-actions.md](agent-actions.md), with the permission
+  boundaries that plan puts first.
+- **Developer ID signing.** Under ad-hoc signing every build is a new code hash and loses the grant ("Signing"
+  above); the Release in `/Applications` included.
 - **Other fronts.** WebKitGTK exposes the same tree over AT-SPI (D-Bus), so Linux could have this without a
   permission prompt. Windows' WebKit and iOS have no route.
 - **Cross-origin iframes** in separate processes (site isolation) appear as remote frames inside the tree; not tested.

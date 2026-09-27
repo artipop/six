@@ -44,7 +44,9 @@ paragraph would cover everything else.
 The overlay shows **only the part of the page on screen**, and only in the
 **focused window**: the tree is read from what is displayed. While you scroll,
 the boxes fade; once the page stops, it is read again. A page that changed
-without scrolling is read again within a few seconds, or press ⟳.
+without scrolling is read again within a few seconds, or press ⟳. If the page
+is busy and does not answer, the panel says "The page did not answer in time" —
+press ⟳ again.
 
 ## The permission
 
@@ -57,6 +59,13 @@ The page lives in a process of its own, and macOS lets one application read
 another's interface only with this permission — even when the "other" is its
 own page. VI uses it for nothing but this overlay and an agent's questions about
 the page.
+
+The tree is read not by the browser window itself but by a second VI process,
+started while the overlay or an agent is using it and closed after half a
+minute of quiet. The two share one permission. Switching VI on in the list after
+the overlay first asked needs no restart.
 :::
+
+After VI is updated, macOS may ask for the permission again.
 
 The overlay is Mac-only for now.
