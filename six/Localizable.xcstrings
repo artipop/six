@@ -7132,6 +7132,16 @@
         }
       }
     },
+    "Tools this page offers to agents: %lld" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Инструменты для агентов на этой странице: %lld"
+          }
+        }
+      }
+    },
     "Declared by the page through WebMCP. Agents reach them with list_page_tools and call_page_tool." : {
       "localizations" : {
         "ru" : {

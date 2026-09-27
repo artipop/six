@@ -389,7 +389,7 @@ final class BrowserTab: Identifiable {
             switch permission {
             case .camera: await page.setCameraCaptureState(.none)
             case .microphone: await page.setMicrophoneCaptureState(.none)
-            case .motion: break
+            case .motion, .pageTools: break
             }
         }
     }

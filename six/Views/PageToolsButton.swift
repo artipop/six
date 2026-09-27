@@ -1,9 +1,7 @@
 import SwiftUI
 
-/// The address field's note that the page offers tools to agents (WebMCP) — what Chrome shows on
-/// its side, and the quickest way to see that a page's `registerTool` reached six at all. Nothing
-/// when WebMCP is off or the page declares nothing, so it costs the bar no room on the pages that
-/// don't, which is nearly all of them.
+/// A glyph at the trailing end of the address field, beside translation's, when the page declares
+/// tools for agents (WebMCP); nothing when WebMCP is off or the page declares none.
 struct PageToolsButton: View {
     let tab: BrowserTab
 
@@ -18,16 +16,12 @@ struct PageToolsButton: View {
         let running = webMCP.host.activity[tab.id]
         if !tools.isEmpty {
             Button { showsList.toggle() } label: {
-                HStack(spacing: 3) {
-                    Image(systemName: "wrench.and.screwdriver")
-                        .symbolEffect(.pulse, isActive: running != nil)
-                    Text(verbatim: running ?? "\(tools.count)")
-                        .monospacedDigit()
-                }
-                .font(.system(size: 12))
-                .foregroundStyle(running == nil ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint))
+                Image(systemName: "wrench.and.screwdriver")
+                    .font(.system(size: 10))
+                    .symbolEffect(.pulse, isActive: running != nil)
             }
-            .help(running.map { Text("An agent is calling \($0)") } ?? Text("Tools this page offers to agents"))
+            .foregroundStyle(running == nil ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint))
+            .help(running.map { Text("An agent is calling \($0)") } ?? Text("Tools this page offers to agents: \(tools.count)"))
             .buttonStyle(.borderless)
             .popover(isPresented: $showsList, arrowEdge: .bottom) {
                 PageToolsList(tools: tools)

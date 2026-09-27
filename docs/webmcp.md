@@ -1,19 +1,19 @@
-# WebMCP в six — план
+# WebMCP
 
-Продолжение [agent-actions.md](agent-actions.md) и [accessibility.md](accessibility.md). Там агент смотрит на страницу
-снаружи — текст, дерево доступности, клики. WebMCP — это когда страница **сама** говорит агенту, что она умеет, и даёт
-для этого функции. Написано по-русски, как соседние планы, потому что это ещё не описание кода, а решение о том,
-какой код писать. Исследование — сентябрь 2026.
+A page can offer agents tools of its own, and six can call them. This follows
+[agent-actions.md](agent-actions.md) and [accessibility.md](accessibility.md), where an agent looks at a page from
+outside — its text, its accessibility tree, clicks. WebMCP is the page saying **itself** what it can do and handing
+over the functions for it.
 
-## Что это такое
+## What it is
 
-[WebMCP](https://webmachinelearning.github.io/webmcp/) — черновик W3C Community Group (Web Machine Learning CG;
-Google и Microsoft), последняя редакция — 10 сентября 2026. Страница регистрирует **инструменты**: имя, описание,
-JSON Schema входа и JavaScript-функцию, которая их выполняет. Браузерный агент видит эти инструменты и вызывает их
-вместо того, чтобы кликать по интерфейсу. По форме это MCP-сервер, только живёт он внутри вкладки и работает в
-сессии, в которой человек уже залогинен.
+[WebMCP](https://webmachinelearning.github.io/webmcp/) is a W3C Community Group draft (Web Machine Learning CG; Google
+and Microsoft), last revised 10 September 2026. A page registers **tools** — a name, a description, a JSON Schema for
+the input and a JavaScript function that runs them — and a browser agent calls those instead of clicking through the
+interface. In shape it is an MCP server that lives inside the tab and works in the session the person is already
+signed in to.
 
-Интерфейс, как он стоит в черновике сейчас:
+The interface as the draft has it now:
 
 ```webidl
 [Exposed=Window, SecureContext]
@@ -26,314 +26,252 @@ interface ModelContext : EventTarget {
 };
 ```
 
-- доступ — `document.modelContext` (у каждого документа свой);
-- `ModelContextTool`: `name` (1–128 символов, `[A-Za-z0-9_.-]`), `description`, `inputSchema`, `execute(input,
-  {signal})`, `annotations`;
-- `annotations`: `readOnlyHint`, `untrustedContentHint`, `consequentialHint` — все по умолчанию `false`;
-- `registerTool(tool, {signal, exposedTo})`: снятие регистрации — через `AbortSignal`; `exposedTo` — список
-  origin'ов, которым инструмент виден кроме своего;
-- `getTools` / `executeTool` — для агентов, которые сами живут в странице (или в iframe), с фильтром `fromOrigins`;
-- только secure context; в iframe — через permissions policy `tools` (по умолчанию `'self'`, cross-origin — только
-  с `allow="tools"`);
-- декларативный вариант — атрибуты на `<form>` (`toolname`, `tooldescription`, `toolparamdescription`), из которых
-  браузер сам синтезирует инструмент. В спецификации этот раздел пока **TODO**, живёт в отдельном explainer'е.
+- reached as `document.modelContext`, one per document;
+- `ModelContextTool`: `name` (1–128 characters, `[A-Za-z0-9_.-]`), `description`, `inputSchema`,
+  `execute(input, {signal})`, `annotations`;
+- `annotations`: `readOnlyHint`, `untrustedContentHint`, `consequentialHint`, all `false` by default;
+- `registerTool(tool, {signal, exposedTo})`: an `AbortSignal` unregisters; `exposedTo` lists other origins that may
+  see the tool;
+- `getTools` / `executeTool` are for agents living in the page (or an iframe), filtered by `fromOrigins`;
+- secure contexts only; in an iframe through the `tools` permissions policy (`'self'` by default, cross-origin only
+  with `allow="tools"`);
+- a declarative form — attributes on `<form>` (`toolname`, `tooldescription`, `toolparamdescription`) from which the
+  browser synthesises a tool. That section of the spec is still **TODO** and lives in a separate explainer.
 
-## Где это сейчас
+## Where it stands
 
-- **Chrome** — origin trial с 149 по 156. `navigator.modelContext` работал с 146 и объявлен устаревшим в 150: API
-  переехал на `document.modelContext` в редакции от 21 июля 2026. Сайты эпохи первого trial'а зовут
-  `navigator.modelContext.registerTool`, новые — `document.modelContext`.
-- **Edge** — за флагом с 147.
-- **WebKit — против** ([WebKit/standards-positions#670](https://github.com/WebKit/standards-positions/issues/670)):
-  дизайн API, дублирование существующей платформы, приватность, безопасность, неясные сценарии. **Mozilla** — в
-  обсуждении, без реализации.
-- **Полифилл** — пакеты `@mcp-b/global` и соседи (наследники прототипа MCP-B): ставят `modelContext` на страницу и
-  дают транспорт до MCP-клиента.
-- **Кто пробует**: на Google I/O 2026 назвали участников trial'а — Expedia, Booking.com, Shopify, Credit Karma,
-  TurboTax, Redfin, Etsy, Instacart, Target. Кто из них действительно выкатил — не подтверждено.
+- **Chrome**: origin trial from 149 to 156. `navigator.modelContext` shipped in 146 and was deprecated in 150, when
+  the 21 July 2026 revision moved the API to `document.modelContext`. First-trial sites call
+  `navigator.modelContext.registerTool`, newer ones `document.modelContext`.
+- **Edge**: behind a flag since 147.
+- **WebKit is opposed** ([WebKit/standards-positions#670](https://github.com/WebKit/standards-positions/issues/670)):
+  API design, duplication of the existing platform, privacy, security, unclear use cases. **Mozilla** is discussing
+  it and has no implementation.
+- **Polyfills**: `@mcp-b/global` and its neighbours (descendants of the MCP-B prototype) put `modelContext` on the
+  page and carry it to an MCP client.
+- **Who is trying it**: Google I/O 2026 named trial participants — Expedia, Booking.com, Shopify, Credit Karma,
+  TurboTax, Redfin, Etsy, Instacart, Target. Who has actually shipped is unconfirmed.
 
-Для six из этого следует главное: **родного WebMCP в движке не будет** — ни в WebKit на Mac, ни в WebKitGTK на
-Linux, ни в WebKit на Windows, пока WebKit против. Всё, что six предложит, — это его собственный полифилл и его
-собственная сторона агента. Зато это одна и та же реализация на всех фронтах, и она не ждёт ничьего релиза.
+The consequence for six: **there will be no native WebMCP in the engine** — not in WebKit on the Mac, WebKitGTK on
+Linux or WebKit on Windows — while WebKit is opposed. What six offers is its own polyfill and its own agent side. In
+return it is one implementation on every front, and it waits for nobody's release.
 
-## Зачем six это нужно
+## Why six wants it
 
-У агента в six три способа понять страницу, и WebMCP — лучший из них, когда он есть:
+An agent in six has four ways to understand a page, and WebMCP is the best of them where it exists:
 
-1. **MCP-сервер самого сервиса**, подключённый в Apps (`<server>__<tool>`). Лучше всего, но только для тех, у кого
-   сервер есть и кто его подключил.
-2. **WebMCP-инструменты страницы.** Та же сессия, те же куки, никакого OAuth — и при этом функции, которые сайт
-   написал для агента сам: `search_flights(from, to, date)` вместо двадцати кликов по календарю. Переживают
-   редизайн, возвращают структуру, а не пиксели.
-3. **Дерево доступности и действия по нему** ([accessibility.md](accessibility.md)) — для всех остальных сайтов.
-   Работает везде, но это всё ещё «нажми кнопку номер 12».
-4. `evaluate_javascript` — последний выход.
+1. **The service's own MCP server**, connected in Apps (`<server>__<tool>`). Best of all, but only where a server
+   exists and has been connected.
+2. **The page's WebMCP tools.** The same session and cookies, no OAuth, and functions the site wrote for agents:
+   `search_flights(from, to, date)` instead of twenty clicks through a calendar. They survive a redesign and answer
+   with structure rather than pixels.
+3. **The page's controls, read and acted on** ([agent-actions.md](agent-actions.md)) — every other site. Works
+   anywhere, but it is still "press button 12".
+4. `evaluate_javascript`, the last resort.
 
-Решение, принятое в [agent-actions.md](agent-actions.md#этап-0-тот-случай-ради-которого-это-писалось), — «через
-собственный API или DOM страницы, а не через модель, которая смотрит на пиксели», — WebMCP реализует буквально:
-это и есть собственный API страницы, объявленный для агента.
+"Through the page's own API or DOM, not a model looking at pixels" is the rule agent-actions.md settled on, and WebMCP
+is that rule taken literally: the page's own API, declared for the agent.
 
-## Этап 1. Полифилл и реестр — страница может объявить инструменты
+## How it is built
 
-**Скрипт в мире страницы**, в начале загрузки документа (`WKUserScript`, `.atDocumentStart`, пока — только главный
-фрейм). В мире страницы, а не в мире six, по той же причине, по которой там живёт перехват консоли
-([devtools.md](devtools.md)): страница должна дотянуться до `document.modelContext`, иначе объявлять нечего. Это
-второе намеренное исключение из правила «всё своё — в мире six».
+**Only three things are owed by a front** (`WebMCPPage.swift`): install `WebMCPScript.source` as a user script in the
+page's world, route the channel's messages into `WebMCPHost.receive`, and run a function body in the page's world.
+Everything else — whether WebMCP is on, settling the document after a navigation, the call, the gate, finding the
+self-test's window — is shared.
 
-Что он делает:
+- `six/WebMCP/`, in `SixCore` and so on every front: `WebMCPScript` (the polyfill and the call bodies),
+  `WebMCPRegistry` (the channel's messages and the window → tools registry), `WebMCPHost` (calls in flight, the gate,
+  the "an agent is calling" mark), `WebMCPPage`, `WebMCPSelfTest`.
+- The bridges: `six/WebMCP/WebMCPStore.swift` (Apple), `windows/Sources/SixUI/StripWebMCP.swift` (Windows),
+  `linux/Sources/SixWebKitCore/PageChannels.swift` with `linux/Sources/SixBrowser/WebMCP.swift` (Linux).
+- Agents get `list_page_tools` and `call_page_tool` in the catalog, over MCP. The ⌘K assistant gets the focused
+  window's `readOnlyHint` tools as tools of its own (`WebMCPModelTool`), with their JSON Schema translated into a
+  `DynamicGenerationSchema`, and its session is rebuilt when that set changes.
+- The mark: on the Mac, `PageToolsButton` — a wrench at the trailing end of the address field beside translation's
+  button, its tooltip counting the tools, pulsing while a call runs, and the list behind it on a click. On Windows a
+  badge with the count, lit while a call runs.
 
-- определяет `document.modelContext` — **и** `navigator.modelContext` как тот же объект, потому что сайты первого
-  trial'а зовут именно его. Только если его ещё нет: полифилл, пришедший вместе со страницей (`@mcp-b/global`),
-  должен найти «родной» API и не ставить свой — это надо проверить на живой странице с MCP-B, а не вывести;
-- `registerTool` проверяет имя и схему, как это делает черновик (иначе — `TypeError`/`InvalidStateError`), держит
-  `execute` у себя и отправляет в Swift **только описание**: `name`, `title`, `description`, `inputSchema`,
-  `annotations`, `origin`;
-- `AbortSignal` из опций снимает регистрацию и сообщает об этом; `toolchange` стреляет на странице, как в спеке;
-- `getTools` / `executeTool` для агентов внутри страницы — тривиально поверх того же реестра.
+Off by default, behind `six://configuration` ▸ Develop ▸ WebMCP.
 
-**Канал** — `WKScriptMessageHandler` в мире страницы, с именем, случайным на каждый запуск, как у перехвата
-консоли. Страница может писать в него сама и подделать регистрацию — но только **своего** инструмента, и это ничего
-ей не даёт: инструменты и так её.
+### The polyfill
 
-**Реестр** — `WebMCPRegistry`: окно → список инструментов. Очищается на каждом коммите навигации (инструменты
-принадлежат документу, и новый документ объявит свои). Сама модель — чистые значения без WebKit, так что её место в
-`SixCore`, как у `TranslationScript`: Linux и Windows получают её даром, а у каждого фронта остаётся только мост —
-`WKUserContentController` на Apple, `WebKitUserContentManager` на Linux, `WKUserContentControllerRef` на Windows.
+A user script in the **page's** world at document start, main frame only. In the page's world rather than six's for
+the reason console capture lives there ([devtools.md](devtools.md)): the page has to reach `document.modelContext`,
+or there is nothing to declare. It is the second deliberate exception to "everything of six's in six's world".
 
-**В интерфейсе**: у поля адреса значок «страница предлагает N инструментов» — то, что Chrome показывает на своей
-стороне. Нажатие — список с описаниями. Это же — самый простой способ убедиться, что этап работает.
+- It defines `document.modelContext`, and `navigator.modelContext` as the same object for first-trial sites — only
+  when neither exists yet, so a polyfill the page brought (`@mcp-b/global`) keeps its own.
+- `registerTool` validates the name and schema as the draft does (`TypeError` / `InvalidStateError`), keeps `execute`
+  and sends Swift **only the description**: `name`, `title`, `description`, `inputSchema`, `annotations`, `origin`.
+  `register` answers with an object carrying `unregister()`, as the first trial did.
+- An `AbortSignal` unregisters and says so; `toolchange` fires on the page as the spec says; `getTools` and
+  `executeTool` work over the same registry for agents inside the page.
 
-**Проверка:** локальная страница с двумя `registerTool` (один `readOnlyHint`, один нет) — значок показывает 2;
-`abort()` одного — 1; переход — 0.
+**The channel** is a `WKScriptMessageHandler` in the page's world with a name that is new on every launch, as console
+capture's is. A page can post into it and forge a registration — of its **own** tool, which gains it nothing.
 
-## Этап 2. Агент видит и вызывает
+**The registry is not cleared when a navigation commits.** On the Mac that news arrives through an async sequence and
+can land after the new document has already declared its tools. Every message carries its document's token instead,
+and a navigation only asks the page for its current one (`settle`).
 
-**Два инструмента в каталоге**, а не по инструменту на каждый инструмент страницы:
+### Calls
 
-- `list_page_tools(window_id?)` — имя, описание, схема, аннотации, origin;
-- `call_page_tool(window_id?, name, arguments)` — вызов, ответ — строка, которую вернула страница.
+Two stable tools in the catalog rather than one per page tool: `list_page_tools(window_id?)` and
+`call_page_tool(window_id?, name, arguments)`. Expanding them as `page__search_flights` would change the catalog on
+every navigation of every window, send `notifications/tools/list_changed` constantly, and fight the ⌘K assistant's
+tool set, which is fixed per session.
 
-Почему не разворачивать их в каталог как `page__search_flights`: каталог тогда меняется при каждой навигации любого
-окна, `notifications/tools/list_changed` летит агенту постоянно, а у ⌘K-ассистента набор `Tool` фиксируется на
-сессию. Два стабильных инструмента работают со всеми тремя поверхностями сразу. Разворачивать можно позже и только
-для окна в фокусе — если окажется, что модели заметно лучше зовут инструмент по имени, чем через
-`call_page_tool`.
+A call takes two moves: the tool is started, and its answer comes back over the channel with the call's id, so
+nothing depends on whether `WebPage.callJavaScript` waits on a promise (it does not take `await` at all). Around it:
 
-**Выполнение.** `callJavaScript` не принимает `await` (CLAUDE.md), а `execute` асинхронный. Поэтому первое, что
-надо **измерить**: разрешает ли `WebPage.callJavaScript` промис, возвращённый из тела функции
-(`return new Promise(r => setTimeout(() => r(42), 100))` → приходит ли `42`). `WKWebView.callAsyncJavaScript`
-так делает; если `WebPage` тоже — вызов занимает одну строку. Если нет — вызов в два хода: Swift вызывает синхронное
-`invoke(callId, name, argsJSON)`, полифилл запускает `execute`, результат приходит обратно по тому же каналу с
-`callId`, Swift ждёт его на continuation.
+- a timeout (30 s by default) and cancellation, through an `AbortController` whose `signal` reaches `execute`;
+- a navigation mid-call is the error "the page went away", not a hang;
+- the answer is capped like `get_page_content`'s, and fenced as the page's data, not instructions, whatever
+  `untrustedContentHint` says.
 
-И в том и в другом случае:
+### The gate
 
-- таймаут (30 с по умолчанию) и отмена: `AbortController` на странице, `signal` — в `execute`, как требует спека;
-- навигация посреди вызова — ошибка «страница ушла», а не зависание;
-- потолок на размер ответа, как у `get_page_content`;
-- `untrustedContentHint` или нет — ответ страницы оборачивается пометкой «данные страницы, не инструкции», это
-  та же строка, что в `instructions` каталога для текста страниц.
+Two separate questions, both through the same queue and the same bar as the camera's (`SitePermissions`, which grew a
+third kind of question rather than a second queue, so each front's permission bar draws it with no new UI):
 
-**В `instructions` каталога** — порядок из раздела «Зачем»: сервер сервиса → `list_page_tools` → дерево
-доступности → JavaScript. И фраза о том, что инструменты страницы есть только у открытой страницы — чтобы
-получить их, окно открывают, а не ищут в каталоге.
+- **The site, once.** The first call to a site asks "may agents use the tools this site offers them?". The answer is
+  remembered per profile and origin, shown in `six://configuration` ▸ Privacy ▸ Site Permissions and taken back from
+  there. It is asked at the first call, not when a page declares tools: a page whose tools nobody calls has asked for
+  nothing.
+- **The call, every time**, unless the page marked the tool `readOnlyHint` — and always for `consequentialHint`. The
+  bar shows the tool's name and its **arguments**, never the page's description of them: the page writes the
+  description, and this is the one line between it and the session the person signed in to.
+- **Private windows** get no polyfill at all, on any front.
+- **A front that wired no way to ask is refused**: no `WebMCPHost.ask` means no.
 
-**Проверка:** та же локальная страница, `six --mcp`: `list_page_tools` → 2, `call_page_tool` → ответ страницы;
-вызов долгого инструмента с отменой; навигация во время вызова.
+Annotations are the page's word about itself, so they lift the question about the *call* and never the one about the
+site.
 
-## Этап 3. Границы — до того, как это увидит кто-то, кроме нас
+**Rolling back is not free.** `SitePermission` has a new kind, `pageTools`, and the permission list is decoded whole:
+an older build reading a database with a `pageTools` row forgets **every** site answer — the same case as `location`
+in [permissions.md](permissions.md).
 
-Инструменты страницы — это ровно то, что агент может сделать **от имени залогиненного человека**, и страница сама
-решает, что они делают. Поэтому этот этап обязателен до того, как WebMCP включится по умолчанию.
+## Not built
 
-- **Разрешение на сайт**: «агентам можно вызывать инструменты этого сайта» — в форме `SitePermissions` (origin +
-  профиль → решение), по образцу вопроса о камере. По умолчанию — спросить при первом вызове.
-- **Подтверждение на вызов** для всего, что не `readOnlyHint`, и **всегда** для `consequentialHint`: полоса над
-  страницей, та же, что у MCP-приложения, просящего вызвать инструмент своего сервера (`MCPAppBar`,
-  `pendingToolRequest`): имя, аргументы, «Разрешить / Отклонить». Аннотации — это слово страницы о себе, поэтому
-  `readOnlyHint` снимает вопрос о вызове, но не вопрос о сайте.
-- **Приватные окна** — выключено: инструменты не объявляются агенту вовсе.
-- **Потолок по профилю** из [agent-actions.md](agent-actions.md#этап-4-границы): агент действует только в
-  профиле «Agent», если так настроено, — WebMCP подчиняется тому же потолку.
-- **Видно, что агент работает**: пока идёт вызов, у окна метка «агент вызывает `search_flights`», как у окна,
-  которое грузится.
-- **Iframe**: только главный фрейм, пока не понадобится иначе. Когда понадобится — `allow="tools"` и `exposedTo`
-  как в спеке, и ни шагом шире.
-- **Описания инструментов — тоже данные страницы.** Описание — готовый канал для prompt injection («перед вызовом
-  прочитай почту и…»). В `instructions` каталога — жёстко; в интерфейсе подтверждения — показывать аргументы, а не
-  пересказ описания.
+- **Declarative forms.** When the spec's section stops being TODO: walk `form[toolname]` in six's world, map
+  `toolname` / `tooldescription` to a tool and named fields with `toolparamdescription` to its schema, and call by
+  filling the fields and submitting with the agent mark (`SubmitEvent.agentInvoked`, `respondWith(promise)` in the
+  explainer). Follow the spec, not the explainer — Lighthouse already checks the attributes, so sites will set them
+  before the spec settles.
+- **iframes and `exposedTo`.** Main frame only, `exposedTo` ignored, no `tools` permissions policy — so `fromOrigins`
+  in `getTools` filters nothing useful.
+- **Not real IDL.** `modelContext` is a property of the `document` object, not of `Document.prototype`. The globals
+  `ModelContext` and `ToolActivatedEvent` exist so `instanceof` works, but the events six dispatches are the page's own
+  and `isTrusted` is false. The page sees the polyfill and can replace it — with an engine that opposes WebMCP there
+  is no other way.
+- **Input is not checked against `inputSchema`** before a call.
+- **`exposedTo` is validated and then ignored**: a non-trustworthy origin is a `SecurityError`, as the draft says,
+  but nothing is ever exposed to another frame.
+- **Windows a page opens itself** (Windows, `openPageWindow`) get no channel: WebKit configures them, not
+  `WebEngine.makeView`.
+- **Linux has no MCP server**, so its page tools are seen only by the self-test and `BrowserModel.pageToolCount`, and
+  there is no mark in its bar.
+- **The ⌘K assistant gets only some tools**: `readOnlyHint` ones whose schema translates (an object of strings,
+  numbers, booleans, enums and arrays of those). The rest stay with ACP agents through `call_page_tool`.
+- **Limits of six's own, not in the draft**: at most 100 tools a document, descriptions up to 4,000 characters,
+  schemas up to 64 KB.
+- **`navigator.modelContext`** stays for Chrome's first-trial sites; when the trial ends (156), see who still calls
+  it and remove it.
 
-## Этап 4. ⌘K-ассистент
+What not to do: wait for WebKit, or turn six into a bridge for someone else's agent — MCP-B's page → extension →
+external client path is not needed when six **is** the MCP server (`six --mcp`), and page tools leave through
+`call_page_tool` with the rest of the catalog and its permissions, not around them.
 
-Ассистент на Foundation Models получает инструменты окна в фокусе как динамические `Tool`: у `BrowserModelTool`
-уже есть `DynamicGenerationSchema` для параметров каталога — нужен перевод из JSON Schema в неё, для
-подмножества, которое реально встречается (объект, строки, числа, булевы, enum, массивы простых типов). Схему,
-которую перевести нельзя, — не отдавать ассистенту, а оставить ACP-агентам через `call_page_tool`. Правило из
-[agent-actions.md](agent-actions.md#этап-2-снимок-и-действия-по-dom) остаётся: действия, которые что-то меняют,
-⌘K-ассистенту не отдаются — значит, ему достаются только `readOnlyHint`.
+## Compatibility: web-platform-tests
 
-## Этап 5. Декларативные формы
+wpt has the suite Chromium moved its own tests into, [`webmcp/`](https://github.com/web-platform-tests/wpt/tree/master/webmcp),
+and `scripts/webmcp-wpt.py` runs it in a running dev six over `six --mcp`: it fetches the suite once into
+`~/Library/Caches/six-wpt`, serves it from 127.0.0.1 (a secure context, `.headers` files included), opens every file in
+one window and reads testharness's own report off the page.
 
-Когда раздел спецификации перестанет быть TODO. Обход `form[toolname]` в мире six (как снимок в
-[accessibility.md](accessibility.md)): `toolname` / `tooldescription` → инструмент, поля с `name` и
-`toolparamdescription` → схема. Вызов — заполнить поля нативным сеттером, отправить форму с пометкой, что это агент
-(в explainer'е — `SubmitEvent.agentInvoked` и `respondWith(promise)` для ответа). Делать по спеке, а не по
-explainer'у: этот раздел ещё будет меняться, и Lighthouse уже проверяет атрибуты — значит, сайты начнут их
-ставить раньше, чем спецификация устоится.
+```sh
+open -na <Debug six.app> --env SIX_WEBMCP=1
+./scripts/webmcp-wpt.py                       # everything; --update pulls the suite again
+./scripts/webmcp-wpt.py imperative/getTools   # only paths containing an argument
+```
 
-## Чего не делать
+At wpt `a9871a2`: **64 of 141**. Imperative 57 of 94, `tool-activated-event` 4 of 4, declarative 3 of 43. Every
+imperative test that fails involves a frame — an iframe, a detached frame, a second origin, `window.open` — which six
+does not build (main frame only), plus two that no polyfill can pass: `isTrusted` on `toolactivated`, and
+`non-secure.html`, which needs a page served from an origin that is not localhost. The declarative ones fail because
+declarative forms are not built. What the suite taught the polyfill, and it now does: `getTools()` sorted by name and
+carrying `window`; annotations absent when none were given, with `debugging`; `InvalidStateError` for a bad name;
+`AbortError`/the signal's reason from `registerTool` when its signal aborts; `SecurityError` for `exposedTo`;
+`executeTool` input through JSON and required to be an object, `UnknownError` for a missing tool or a failed call,
+`NotSupportedError` for an opaque origin, a default `AbortSignal`, the caller's abort rejecting at once and reaching
+the tool a task later; `toolactivated` on the window and the context (with `ontoolactivated`) and `toolcancel` on the
+window; titles made well-formed.
 
-- **Не ждать WebKit.** Позиция — «против», и даже если она изменится, до WebKitGTK и до WebKit на Windows это
-  дойдёт через годы.
-- **Не делать из six мост для чужого агента.** Путь MCP-B «страница → расширение → внешний MCP-клиент» в six не
-  нужен: six **сам** и есть MCP-сервер (`six --mcp`), и инструменты страниц едут наружу через `call_page_tool` вместе
-  со всем остальным каталогом — с его разрешениями, а не мимо них.
-- **Не держать `navigator.modelContext` вечно.** Когда trial Chrome закончится (156), посмотреть, кто ещё его зовёт,
-  и убрать.
+The server here has one origin and no `.sub.` substitution, so a test that needs `get-host-info`'s remote origin
+fails whatever six does. Running wpt's own `wpt serve` would lift that, and is worth doing once frames are built.
 
-## Порядок и объём
+## What has been checked
 
-1 → 2 → 3 → 4, пятый — когда созреет спека. Первые два — примерно неделя: полифилл, реестр, мост, два инструмента,
-значок. Третий — ещё столько же, и он обязателен до включения по умолчанию; до него WebMCP — переключатель в
-`six://configuration` ▸ Разработка, выключенный.
+- **Mac.** Both schemes build. `SIX_WEBMCP_SELFTEST` against `Tests/WebMCP/webmcp.html`: 22 checks, `PASS`.
+  `WebMCPTests` pass with the rest of `SixCore`'s tests. wpt as above.
+- **Windows, real WebKit.** The same self-test, 22 checks, `PASS`; the badge seen in a `PrintWindow` capture. `file:`
+  is a secure context in that WebKit, and `WKPageCallAsyncJavaScript` runs in the page's world.
+- The self-test covers: a declaration with annotations and schema, `add(2,3)` → `5`,
+  `document.modelContext === navigator.modelContext`, `getTools()` inside the page, the site asked about at the first
+  call and not again, a changing call confirmed, a no stopping the call **before** the page runs it, a timeout through
+  `AbortSignal`, unregistering through `abort()`, a new document with its own tools, the site's answer outliving a
+  navigation, a navigation mid-call, an empty registry on `about:blank`. It forgets its own site answer first, so it
+  can be run back to back.
 
-Что помнить по ходу:
+### Not checked
 
-- полифилл — в мире страницы, всё остальное — в мире six, и граница между ними — канал с одноразовым именем;
-- реестр — в `SixCore`, мост — у каждого фронта свой;
-- сначала **измерить** промис из `callJavaScript` — от ответа зависит, один ход у вызова или два;
-- `title` инструментов локализуется, `description` и `instructions` — английские;
-- готово — когда написаны [mcp.md](mcp.md), [agents.md](agents.md) и гид в [guide/](guide/) на обоих языках.
+- **Linux has never been built.** Its first container build has to answer whether `WebKitUserContentManager` and
+  `JSCValue` import as `OpaquePointer`, whether `webkit_user_content_manager_register_script_message_handler` takes
+  the world as its third argument, whether `script-message-received` is (`manager`, `JSCValue*`, `gpointer`), and
+  whether `webkit_web_view_get_user_content_manager` gives each view its own manager.
+- **The ⌘K schema translation (`WebMCPModelTool`)** has not been exercised with a model.
+- A polyfill that arrived with the page (`@mcp-b/global`), on a live page: whether it and six's leave each other alone.
 
-## Состояние
+### How to check it
 
-Сентябрь 2026: **этапы 1–4 сделаны**, за переключателем `six://configuration` ▸ Разработка ▸ WebMCP, выключенным
-по умолчанию. Этап 5 (декларативные формы) не начат — в спецификации этот раздел всё ещё TODO.
+**Mac:**
 
-### Где что
+1. `six://configuration` ▸ Develop ▸ WebMCP on;
+2. open `file:///…/Tests/WebMCP/webmcp.html`: a wrench in the address field, its tooltip saying 4, a click listing
+   them with the read-only and consequential marks;
+3. `six --mcp` → `list_page_tools`, then `call_page_tool` with `name: add`, `arguments: {"a":2,"b":3}` — the bar asks
+   about the site, and `5` comes back after the answer;
+4. `call_page_tool` with `name: forget_slow` — a bar with the tool's name and arguments, on every call;
+5. ⌘K: ask for something that needs `add` — the assistant has it as its own tool and does not have `slow`, which is
+   not read-only;
+6. the same in a private window: no tools at all;
+7. `SIX_WEBMCP_SELFTEST=file:///…/webmcp.html` on launching the dev build — the report goes to
+   `~/Library/Logs/org.deffun.six.dev/six.log`.
 
-- `six/WebMCP/` — в `SixCore`, общее для всех фронтов: `WebMCPScript` (полифилл и тела вызовов),
-  `WebMCPRegistry` (сообщения канала и реестр окно → инструменты), `WebMCPHost` (вызовы в полёте, заслон,
-  отметка «агент работает»), `WebMCPPage` (три вещи, которые должен фронт), `WebMCPSelfTest`.
-- **Фронт должен ровно три вещи** (`WebMCPPage.swift`): поставить `WebMCPScript.source` user-скриптом в мир
-  страницы, провести сообщения канала в `WebMCPHost.receive` и уметь выполнить тело функции в мире страницы.
-  Всё остальное — включён ли WebMCP, сверка документа после навигации, вызов, заслон, поиск окна для
-  самопроверки — общее.
-- Мосты: `six/WebMCP/WebMCPStore.swift` (Apple), `windows/Sources/SixUI/StripWebMCP.swift` (Windows),
-  `linux/Sources/SixWebKitCore/PageChannels.swift` + `linux/Sources/SixBrowser/WebMCP.swift` (Linux).
-- Агентам: `list_page_tools` и `call_page_tool` в каталоге, поверхность MCP. ⌘K-ассистенту: инструменты
-  страницы с `readOnlyHint` как его собственные (`WebMCPModelTool`), схема переводится из JSON Schema в
-  `DynamicGenerationSchema`, а сессия пересобирается, когда набор сменился.
-- Значок: Mac — `PageToolsButton` у поля адреса, по нажатию список; Windows — значок с числом, подсвеченный,
-  пока идёт вызов. На Mac у значка в это время стоит имя вызываемого инструмента.
-
-### Заслон (этап 3)
-
-Две разные вещи, обе через ту же очередь и ту же полосу, что вопрос про камеру (`SitePermissions`):
-
-- **Сайт — один раз.** Первый вызов к сайту спрашивает «разрешить агентам пользоваться инструментами этого
-  сайта?». Ответ запоминается по паре «профиль + origin», виден в `six://configuration` ▸ Privacy ▸ Site
-  Permissions и оттуда же забирается назад. Спрашиваем при первом вызове, а не когда страница объявила
-  инструменты: страница, чьи инструменты никто не зовёт, ни о чём не просила.
-- **Вызов — каждый раз**, если страница не пометила инструмент `readOnlyHint`, и всегда при
-  `consequentialHint`. В полосе — имя инструмента и **аргументы**, а не пересказ описания: описание пишет
-  страница, а это единственная строка между ней и сессией, в которую человек вошёл.
-- **Приватные окна:** полифилл там не ставится вовсе, ни на одном фронте.
-- **Фронт, который не умеет спрашивать, получает отказ:** не подключён `WebMCPHost.ask` — значит, нет.
-
-Аннотации — это слово страницы о себе. Поэтому они снимают вопрос о *вызове* и никогда — вопрос о сайте.
-
-### Что не сделано
-
-- **Декларативные формы (этап 5)** — раздел спецификации ещё TODO.
-- **iframe и `exposedTo`.** Полифилл ставится только в главный фрейм, `exposedTo` игнорируется, permissions
-  policy `tools` не реализована. Поэтому `fromOrigins` в `getTools` ничего полезного не фильтрует.
-- **Это не настоящий IDL.** `modelContext` — свойство объекта `document`, а не `Document.prototype`; глобальных
-  `ModelContext` и `RegisteredTool` нет, `instanceof` не сработает. Страница видит полифилл и может его
-  подменить — при движке, который против WebMCP, иначе никак.
-- **Ввод не проверяется по `inputSchema`** до вызова: что пришло, то инструмент и получит.
-- **Окна, которые открывает сама страница** (Windows, `openPageWindow`), канала не получают: их конфигурацию
-  делает WebKit, а не `WebEngine.makeView`.
-- **На Linux нет MCP-сервера**, поэтому инструменты страниц там видны только самопроверке и
-  `BrowserModel.pageToolCount`; значка в баре тоже нет.
-- **⌘K-ассистент получает не все инструменты:** только `readOnlyHint` и только те, чью схему удалось перевести
-  (объект из строк, чисел, булевых, enum и массивов из них). Остальные остаются агентам через `call_page_tool`.
-- **Своих ограничений нет в черновике:** не больше 100 инструментов на документ, описание до 4000 символов,
-  схема до 64 КБ.
-- **`navigator.modelContext`** оставлен для сайтов первого origin trial Chrome; когда trial кончится (156),
-  посмотреть, кто его ещё зовёт, и убрать.
-
-### Что проверено, и чем
-
-- **Windows, настоящий WebKit.** `SIX_WEBMCP_SELFTEST` — 22 проверки, `PASS`: объявление с аннотациями и схемой,
-  `add(2,3)` → `5`, `document.modelContext === navigator.modelContext`, `getTools()` внутри страницы, вопрос о
-  сайте при первом вызове и молчание при следующем, подтверждение изменяющего вызова, отказ («нет» останавливает
-  вызов **до** страницы), таймаут с `AbortSignal`, снятие регистрации через `abort()`, новый документ со своими
-  инструментами, ответ о сайте, переживающий переход, переход посреди вызова, пустой реестр на `about:blank`.
-  Измерено заодно: `file:` в этом WebKit — secure context, `WKPageCallAsyncJavaScript` работает в мире страницы.
-- Значок на Windows — снимок через `PrintWindow`.
-- Весь `SixCore` собирается на Windows; Mac и Linux — только `swiftc -parse`.
-
-### Не проверено
-
-- **Mac не собирался вовсе.** Что делать там первым делом — ниже, в «Как это проверять».
-- **Linux не собирался.** Первая сборка в контейнере должна ответить: импортируются ли
-  `WebKitUserContentManager` и `JSCValue` как `OpaquePointer`; принимает ли
-  `webkit_user_content_manager_register_script_message_handler` мир третьим аргументом; та ли сигнатура у
-  `script-message-received` (`manager`, `JSCValue*`, `gpointer`); даёт ли
-  `webkit_web_view_get_user_content_manager` каждой вьюхе свой менеджер.
-- **Unit-тесты `WebMCPTests` не запускались**: корневой пакет на Windows холодно не резолвится (его
-  `Package.resolved` — в форме Linux), а отдельный тестовый пакет требует холодной сборки всего графа, и её
-  остановила нехватка памяти на машине с 8 ГБ.
-- **Перевод схемы для ⌘K (`WebMCPModelTool`) не исполнялся ни разу** — Foundation Models на Windows нет,
-  инициализаторы `DynamicGenerationSchema` написаны по документации.
-- Полифилл, пришедший со страницей (`@mcp-b/global`), на живой странице: уступает ли он нашему.
-
-### Как это проверять
-
-**Windows** (здесь всё и измерялось):
+**Windows:**
 
 ```powershell
-./scripts/six-windows.ps1 build      # внимание: остановит все запущенные six-windows, в том числе чужие
-$env:SIX_WEBMCP_SELFTEST = "file:///C:/Users/Artem/sources/six-webmcp/Tests/WebMCP/webmcp.html"
+./scripts/six-windows.ps1 build      # stops every running six-windows, other sessions' included
+$env:SIX_WEBMCP_SELFTEST = "file:///C:/Users/Artem/sources/six/Tests/WebMCP/webmcp.html"
 .\windows\.build\x86_64-unknown-windows-msvc\debug\six-windows.exe
 ```
 
-Отчёт — в `%LOCALAPPDATA%\six\Logs\six.log`, строка `webmcp self-test`, в конце `PASS`. Самопроверка сама
-забывает ответ о сайте перед началом, поэтому её можно гонять подряд. Руками: `SIX_WEBMCP=1` вместо
-`SIX_WEBMCP_SELFTEST`, открыть ту же страницу — в поле адреса значок «4», а первый вызов поднимет полосу
-с вопросом.
+The report is in `%LOCALAPPDATA%\six\Logs\six.log`, the line `webmcp self-test`, ending in `PASS`. By hand:
+`SIX_WEBMCP=1` instead, and the same page shows a 4 in the address bar.
 
-**Mac** (ничего из этого ещё не делалось):
-
-1. собрать обе схемы (`-scheme six` и `-scheme six-iOS`) и убедиться, что сборка молчит;
-2. `six://configuration` ▸ Разработка ▸ WebMCP — включить;
-3. открыть `file:///…/Tests/WebMCP/webmcp.html`: значок «4» у поля адреса, по нажатию список с пометками
-   «только чтение» и «с последствиями»;
-4. `six --mcp` → `list_page_tools`, затем `call_page_tool` с `name: add` и `arguments: {"a":2,"b":3}` — должна
-   подняться полоса с вопросом о сайте, а после ответа прийти `5`;
-5. `call_page_tool` с `name: forget_slow` — полоса с именем инструмента и аргументами, и так на каждый вызов;
-6. ⌘K: попросить что-нибудь, для чего нужен `add` — ассистент должен увидеть его своим инструментом и не
-   увидеть `slow`, который не read-only;
-7. то же в приватном окне: инструментов нет совсем;
-8. `SIX_WEBMCP_SELFTEST=file:///…/webmcp.html` при запуске dev-сборки — отчёт в
-   `~/Library/Logs/org.deffun.six.dev/six.log`.
-
-**Linux** (в контейнере, [linux.md](linux.md)):
+**Linux** (in the container, [linux.md](linux.md)):
 
 ```sh
 ./scripts/six-linux.sh build
 SIX_WEBMCP_SELFTEST=file:///work/Tests/WebMCP/webmcp.html ./scripts/six-linux.sh up
 ```
 
-**Unit-тесты** (на Mac): `swift test --disable-automatic-resolution`. `WebMCPTests` покрывает разбор сообщений,
-реестр, вызовы, заслон и то, что читает агент.
+**wpt**: `./scripts/webmcp-wpt.py`, above.
 
-**Осторожно с откатом.** `SitePermission` получил новый вид, `pageTools`, а список разрешений декодируется
-целиком: старая сборка, прочитав базу, где есть строка `pageTools`, забудет **все** ответы о сайтах — тот же
-случай, что с `location` в [permissions.md](permissions.md).
+**Unit tests**: `swift test --disable-automatic-resolution`. `WebMCPTests` covers message parsing, the registry,
+calls, the gate and what the agent reads.
 
-Источники: [черновик спецификации](https://webmachinelearning.github.io/webmcp/),
-[репозиторий и explainer](https://github.com/webmachinelearning/webmcp),
-[позиция WebKit](https://github.com/WebKit/standards-positions/issues/670),
-[состояние на июль 2026](https://www.spronta.com/blog/state-of-webmcp-july-2026/).
+Sources: [the draft](https://webmachinelearning.github.io/webmcp/),
+[repository and explainer](https://github.com/webmachinelearning/webmcp),
+[WebKit's position](https://github.com/WebKit/standards-positions/issues/670),
+[state of WebMCP, July 2026](https://www.spronta.com/blog/state-of-webmcp-july-2026/).

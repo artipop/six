@@ -70,8 +70,9 @@ page tells an [agent](/en/agents) what it can do: not "click button number 12"
 but `search_flights(from, to, date)`. The function runs in the page itself, in
 the session you are already signed in to.
 
-When the open page has declared tools, a badge with a wrench and their number
-appears beside the address field. Clicking it lists them: name, description,
+When the open page has declared tools, a wrench appears at the end of the
+address field, beside the translation button; its tooltip gives their number, and
+it pulses while an agent is calling one. Clicking it lists them: name, description,
 and the **read-only** and **consequential** marks — what the page said about
 itself. The agent sees the same tools and can call them.
 
@@ -87,8 +88,9 @@ no tools at all.
 
 ::: warning Why this is in Develop for now
 A page's tool does whatever the site wrote it to do — on your behalf, in your
-session. There is no per-site permission and no confirmation before a call yet,
-so keep WebMCP off unless you are testing it on purpose. Like console capture,
+session. The question about the site and the confirmation of each call limit
+that, but they lean on marks the page puts on itself, so keep WebMCP off unless
+you are testing it on purpose. Like console capture,
 it lives in the page's own world: the page can see it and can post to its
 channel itself — but only about its own tools.
 :::

@@ -101,6 +101,7 @@ struct AddressBar: View {
                     }
                     return .handled
                 }
+            PageToolsButton(tab: tab)
             translate
             // ⌘⇧C leaves nothing on screen; this is the whole of what it says. Two rectangles
             // rather than a tick, because the answer is "the address is on the pasteboard" and not
