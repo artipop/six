@@ -3,36 +3,16 @@ import AppKit
 import ApplicationServices
 
 /// A page as macOS accessibility sees it: WebKit's own accessibility tree, read the way VoiceOver
-/// reads it.
+/// reads it, through `AXUIElement` — the tree lives in the web content process and only the client
+/// API crosses to it ([accessibility.md](../../docs/accessibility.md)).
 ///
-/// **Why this and not the DOM.** An agent that reads `querySelectorAll('button, a, input')` sees what
-/// the markup says; the accessibility tree is what the engine *concluded* from it — ARIA roles and
-/// names applied, `aria-hidden` subtrees gone, a `div` with a click handler turned into something
-/// pressable, a label resolved from wherever it came from — plus the list of things each element
-/// actually answers (`AXPress`, `AXIncrement`, a settable value). That is the vocabulary a person
-/// with a screen reader drives the page in, and the one a well-made site has already been tested
-/// against. It is also computed out of the page's reach: the page cannot redefine a getter to show
-/// the agent a button a person does not see.
-///
-/// **Why through `AXUIElement`, and why that needs a permission.** WebKit keeps the tree in the web
-/// content process. The `WKWebView` in this process only holds a remote token for it
-/// (`NSAccessibilityRemoteUIElement`), which the accessibility runtime resolves on the *client*
-/// side — so the NSAccessibility protocol, asked in-process, stops at that token, and there is no
-/// `WebPage` API for it either. The client API crosses the boundary, and macOS lets a process use
-/// it only once the person has allowed it under Privacy & Security ▸ Accessibility — even when the
-/// process being asked is itself. An untrusted call answers `kAXErrorAPIDisabled`.
-/// `_retrieveAccessibilityTreeData:` exists on `WKWebView`, but it is WebKit's test SPI and returns a
-/// text dump without geometry.
-///
-/// **Off the main thread, always.** The walk starts at this app's own element, and the part of the
-/// path above the web view is answered by this app's main thread; a main thread blocked waiting on
-/// its own answer times out instead. A serial queue asks, the main actor awaits.
-///
-/// **How the page is found.** A hit test at the middle of the window's visible part, then up the
-/// parents to the outermost `AXWebArea` — an iframe is a web area of its own inside it. Walking down
-/// from the application instead would cross SwiftUI's whole hierarchy to get there.
+/// This half runs in `six --ax-read <pid>`, never in the browser: six asking itself deadlocks, because
+/// the accessibility server inside six suspends the thread holding SwiftUI's update lock.
+/// `AXReadProcess` launches it, which is also what makes it six in macOS's eyes.
 nonisolated enum PageAccessibilityReader {
-    private static let queue = DispatchQueue(label: "org.deffun.six.accessibility", qos: .userInitiated)
+    static let flag = "--ax-read"
+
+    static var isRequested: Bool { CommandLine.arguments.dropFirst().contains(flag) }
 
     static var isTrusted: Bool { AXIsProcessTrusted() }
 
@@ -42,13 +22,29 @@ nonisolated enum PageAccessibilityReader {
         AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
     }
 
-    /// The tree under the point, in accessibility coordinates (top-left of the primary screen, y down).
-    /// `visible` is the window's visible part in the same coordinates: subtrees wholly outside it are
-    /// not walked, which is what keeps a long page from costing a round trip per element of it.
-    static func snapshot(at point: CGPoint, visible: CGRect, limit: Int) async -> AXPageSnapshot {
-        await withCheckedContinuation { continuation in
-            queue.async { continuation.resume(returning: read(at: point, visible: visible, limit: limit)) }
+    /// The child: one `AXReadRequest` per line on stdin, one `AXPageSnapshot` per line on stdout, until
+    /// the browser closes the pipe.
+    static func runChild() -> Never {
+        signal(SIGPIPE, SIG_IGN)
+        let arguments = CommandLine.arguments
+        guard let index = arguments.firstIndex(of: flag), index + 1 < arguments.count,
+              let pid = pid_t(arguments[index + 1]) else {
+            FileHandle.standardError.write(Data("six --ax-read: needs the pid of the browser\n".utf8))
+            exit(2)
         }
+        // Global for this process, which asks nothing else: a busy web content process costs a
+        // missing subtree, not a stalled read.
+        AXUIElementSetMessagingTimeout(AXUIElementCreateSystemWide(), 1.5)
+        let decoder = JSONDecoder()
+        let encoder = JSONEncoder()
+        while let line = readLine() {
+            guard let request = try? decoder.decode(AXReadRequest.self, from: Data(line.utf8)) else { continue }
+            let snapshot = read(pid: pid, at: request.point, visible: request.visible, limit: request.limit)
+            guard var data = try? encoder.encode(snapshot) else { continue }
+            data.append(0x0A)
+            FileHandle.standardOutput.write(data)
+        }
+        exit(0)
     }
 
     // MARK: The walk
@@ -59,7 +55,13 @@ nonisolated enum PageAccessibilityReader {
         "AXPlaceholderValue", "AXDOMIdentifier", "AXPosition", "AXSize", "AXEnabled", "AXFocused", "AXChildren",
     ]
 
-    private static func read(at point: CGPoint, visible: CGRect, limit: Int) -> AXPageSnapshot {
+    /// The walk stops here even with elements left, and says it was truncated.
+    private static let budget: Duration = .seconds(5)
+
+    /// `point` and `visible` are in accessibility coordinates (top-left of the primary screen, y down):
+    /// subtrees wholly outside `visible` are not walked, which keeps a long page from costing a round
+    /// trip per element of it.
+    static func read(pid: pid_t, at point: CGPoint, visible: CGRect, limit: Int) -> AXPageSnapshot {
         let clock = ContinuousClock()
         let start = clock.now
         var snapshot = AXPageSnapshot()
@@ -67,18 +69,17 @@ nonisolated enum PageAccessibilityReader {
             snapshot.failure = .notTrusted
             return snapshot
         }
-        // Global for this process, and nothing else here asks accessibility anything: a web content
-        // process that is busy should cost a missing subtree, not a frozen overlay.
-        AXUIElementSetMessagingTimeout(AXUIElementCreateSystemWide(), 1.5)
-
-        let app = AXUIElementCreateApplication(getpid())
+        let app = AXUIElementCreateApplication(pid)
+        AXUIElementSetMessagingTimeout(app, 1.5)
         var hit: AXUIElement?
         let error = AXUIElementCopyElementAtPosition(app, Float(point.x), Float(point.y), &hit)
-        guard error == .success, let hit else {
-            snapshot.failure = error == .apiDisabled ? .notTrusted : .noWebArea
+        if error == .apiDisabled {
+            snapshot.failure = .notTrusted
             return snapshot
         }
-        guard let area = outermostWebArea(above: hit) ?? webArea(below: hit) else {
+        let hitArea = hit.flatMap { outermostWebArea(above: $0) ?? webArea(below: $0) }
+        guard let area = hitArea.flatMap({ overlap(of: $0, with: visible) > 0 ? $0 : nil })
+                ?? widestWebArea(in: app, over: visible) else {
             snapshot.failure = .noWebArea
             return snapshot
         }
@@ -89,7 +90,7 @@ nonisolated enum PageAccessibilityReader {
         var nodes: [AXPageNode] = []
         while let next = stack.popLast() {
             let (element, depth, parent) = next
-            guard nodes.count < limit else {
+            guard nodes.count < limit, clock.now - start < budget else {
                 snapshot.truncated = true
                 break
             }
@@ -158,6 +159,31 @@ nonisolated enum PageAccessibilityReader {
             here = (parent as! AXUIElement)
         }
         return found
+    }
+
+    /// Every web area of the app, the page wanted being the one covering most of the pane: the rail
+    /// keeps off-screen columns as web areas too, so the first one found is a lottery.
+    private static func widestWebArea(in app: AXUIElement, over visible: CGRect) -> AXUIElement? {
+        var queue = [app]
+        var best: (element: AXUIElement, overlap: CGFloat)?
+        var seen = 0
+        while !queue.isEmpty, seen < 6000 {
+            let element = queue.removeFirst()
+            seen += 1
+            if copy(element, "AXRole") as? String == "AXWebArea" {
+                let area = overlap(of: element, with: visible)
+                if area > (best?.overlap ?? 0) { best = (element, area) }
+                continue
+            }
+            queue += copy(element, "AXChildren") as? [AXUIElement] ?? []
+        }
+        return best?.element
+    }
+
+    private static func overlap(of element: AXUIElement, with visible: CGRect) -> CGFloat {
+        guard let origin = point(copy(element, "AXPosition")), let size = size(copy(element, "AXSize")) else { return 0 }
+        let common = CGRect(origin: origin, size: size).intersection(visible)
+        return common.isNull ? 0 : common.width * common.height
     }
 
     /// The hit test can stop at the web view itself. `WKWebView` answers `accessibilityHitTest:` with
@@ -247,9 +273,9 @@ nonisolated enum PageAccessibilityReader {
 
 /// One element of the tree, as values: nothing here holds on to the `AXUIElement` it came from, so a
 /// snapshot can cross to the main actor and outlive the page.
-nonisolated struct AXPageNode: Sendable, Identifiable {
+nonisolated struct AXPageNode: Sendable, Identifiable, Codable {
     /// What the overlay colours it as, and what the outline keeps.
-    nonisolated enum Kind: String, Sendable, CaseIterable {
+    nonisolated enum Kind: String, Sendable, CaseIterable, Codable {
         case control, field, landmark, heading, image, text, other
 
         /// The kinds whose name is the whole point of them: an unnamed button is a question an agent
@@ -374,12 +400,14 @@ nonisolated struct AXPageNode: Sendable, Identifiable {
     }
 }
 
-nonisolated struct AXPageSnapshot: Sendable {
-    nonisolated enum Failure: Sendable, Equatable {
+nonisolated struct AXPageSnapshot: Sendable, Codable {
+    nonisolated enum Failure: Sendable, Equatable, Codable {
         /// Privacy & Security ▸ Accessibility has not allowed six.
         case notTrusted
         /// The middle of the window is not over web content — a start page, a document, an app.
         case noWebArea
+        /// The reader process could not be started, or did not answer in time.
+        case noAnswer
     }
 
     var nodes: [AXPageNode] = []
@@ -388,5 +416,12 @@ nonisolated struct AXPageSnapshot: Sendable {
     var truncated = false
     var elapsed: Duration = .zero
     var failure: Failure?
+}
+
+/// What the browser asks `six --ax-read` for, one per line.
+nonisolated struct AXReadRequest: Codable, Sendable {
+    let point: CGPoint
+    let visible: CGRect
+    let limit: Int
 }
 #endif

@@ -14,8 +14,8 @@ import WebKit
 /// can find and cannot tell what it does.
 ///
 /// **One switch, following the focused window.** The tree is read from what is displayed — a hit
-/// test at the middle of the window, then the part of the page on screen (`PageAccessibilityReader`)
-/// — so a window off the edge of the rail has nothing to read. The overlay rides on the focused
+/// test at the middle of the window, then the part of the page on screen, by `six --ax-read`
+/// (`AXReadProcess`) — so a window off the edge of the rail has nothing to read. The overlay rides on the focused
 /// pane and starts over when the focus moves.
 ///
 /// **A picture of a moment.** Accessibility frames are screen coordinates taken when the tree was
@@ -43,7 +43,6 @@ final class AccessibilityOverlay {
     private(set) var isStale = false
 
     private var readings: [UUID: AXPlacedSnapshot] = [:]
-    @ObservationIgnored private var probed = false
 
     func placed(for tabID: UUID) -> AXPlacedSnapshot? { readings[tabID] }
 
@@ -53,7 +52,6 @@ final class AccessibilityOverlay {
               let primary = NSScreen.screens.first else { throw AXReadProblem.notOnScreen }
         let visible = view.visibleRect
         guard visible.width > 40, visible.height > 40 else { throw AXReadProblem.notOnScreen }
-        probe(view)
 
         // Accessibility counts from the top-left of the primary screen, y down; AppKit from its
         // bottom-left, y up.
@@ -65,15 +63,18 @@ final class AccessibilityOverlay {
 
         isReading = true
         defer { isReading = false }
-        var snapshot = await PageAccessibilityReader.snapshot(at: middle, visible: area, limit: limit)
+        var snapshot = await AXReadProcess.shared.snapshot(at: middle, visible: area, limit: limit)
         // WebKit builds its tree when it is first asked for one, and the first answer can be the web
-        // area with nothing under it yet.
-        if snapshot.failure == nil, snapshot.nodes.count < 3 {
+        // area with nothing under it yet, or no web area at all.
+        if snapshot.failure == .noWebArea || (snapshot.failure == nil && snapshot.nodes.count < 3) {
             try? await Task.sleep(for: .milliseconds(400))
-            snapshot = await PageAccessibilityReader.snapshot(at: middle, visible: area, limit: limit)
+            snapshot = await AXReadProcess.shared.snapshot(at: middle, visible: area, limit: limit)
         }
-        if let failure = snapshot.failure {
-            throw failure == .notTrusted ? AXReadProblem.notTrusted : AXReadProblem.noWebArea
+        switch snapshot.failure {
+        case .notTrusted?: throw AXReadProblem.notTrusted
+        case .noWebArea?: throw AXReadProblem.noWebArea
+        case .noAnswer?: throw AXReadProblem.noAnswer
+        case nil: break
         }
 
         // Back to this web view's own points, top-left — which are the overlay's, since the overlay
@@ -131,38 +132,12 @@ final class AccessibilityOverlay {
         let inPage = (try? await tab.livePage?.six(script)) as? String ?? ""
         return "\(tab.currentURL?.absoluteString ?? "") \(inPage)"
     }
-
-    /// Once per launch, the measurement `docs/accessibility.md` asks for: what the web view answers
-    /// for its children *in process*, and whether the remote element it hands back answers for its
-    /// own children in turn. If it does, the tree can be walked without the permission.
-    ///
-    /// Through the old `accessibilityAttributeValue:` and by selector: that is the half of the
-    /// protocol `NSAccessibilityRemoteUIElement` is known to implement, and the typed one would be a
-    /// deprecation warning for the sake of a log line.
-    private func probe(_ view: NSView) {
-        guard !probed else { return }
-        probed = true
-        func ask(_ object: Any, _ attribute: String) -> Any? {
-            guard let object = object as? NSObject else { return nil }
-            let selector = NSSelectorFromString("accessibilityAttributeValue:")
-            guard object.responds(to: selector) else { return nil }
-            return object.perform(selector, with: attribute)?.takeUnretainedValue()
-        }
-        func describe(_ element: Any) -> String {
-            let children = ask(element, "AXChildren") as? [Any] ?? []
-            let roles = children.prefix(4).map { "\(type(of: $0)):\(ask($0, "AXRole") as? String ?? "?")" }
-            return "\(type(of: element)):\(ask(element, "AXRole") as? String ?? "?") with \(children.count) children \(roles)"
-        }
-        let children = view.accessibilityChildren() ?? []
-        Log.info(.pages, "accessibility probe: trusted \(PageAccessibilityReader.isTrusted); "
-            + "the web view's own children in process: \(children.map(describe))")
-    }
 }
 
 /// Why a window's tree could not be read. The descriptions are for a model — English, and saying what
 /// to do next; the legend says the same things to a person in its own words.
 nonisolated enum AXReadProblem: LocalizedError, Equatable {
-    case notTrusted, notOnScreen, noWebArea
+    case notTrusted, notOnScreen, noWebArea, noAnswer
 
     var errorDescription: String? {
         switch self {
@@ -173,6 +148,8 @@ nonisolated enum AXReadProblem: LocalizedError, Equatable {
             "This window is not on screen, and the accessibility tree is read from what is displayed. Call focus_window first."
         case .noWebArea:
             "There is no web content in this window to read."
+        case .noAnswer:
+            "The accessibility read did not answer in time. The page may be busy; try again."
         }
     }
 }
@@ -449,6 +426,8 @@ private struct AccessibilityLegend: View {
             Text("The window is not on screen.").font(.callout)
         case .noWebArea:
             Text("There is no web page under this window to read.").font(.callout)
+        case .noAnswer:
+            Text("The page did not answer in time.").font(.callout)
         }
     }
 }

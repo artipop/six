@@ -8335,6 +8335,16 @@
           }
         }
       }
+    },
+    "The page did not answer in time." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Страница не ответила вовремя."
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

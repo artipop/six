@@ -8,7 +8,8 @@ import UIKit
 /// On the Mac the binary is three things: the browser; with `--mcp`, a stdio MCP server that relays
 /// to the running browser (see `MCPStdioBridge`); and with `--mcp-probe`, a client that connects to
 /// *someone else's* MCP server and says what it carries (`MCPProbe`, see
-/// [mcp-apps.md](../docs/mcp-apps.md)). Both switches happen before AppKit is touched.
+/// [mcp-apps.md](../docs/mcp-apps.md)); and with `--ax-read <pid>`, the reader of the browser's
+/// accessibility tree (`PageAccessibilityReader`). All of them happen before AppKit is touched.
 /// A phone has no second mode: there is no stdio to serve and no agent process to serve it to.
 @main
 enum SixMain {
@@ -17,6 +18,7 @@ enum SixMain {
         if MCPStdioBridge.isRequested { MCPStdioBridge.run() }
         if MCPProbe.isRequested { MCPProbe.run() }
         if MCPProbe.isCatalogRequested { MCPProbe.runCatalog() }
+        if PageAccessibilityReader.isRequested { PageAccessibilityReader.runChild() }
         signal(SIGPIPE, SIG_IGN) // a vanished MCP client or agent must not kill the app
         #endif
         MainActor.assumeIsolated { sixApp.main() }
