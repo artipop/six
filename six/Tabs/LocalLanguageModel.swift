@@ -25,9 +25,13 @@ actor LocalLanguageModel {
         let container = try await loaded(model.repository)
         let session = ChatSession(container, history: Self.namingHistory,
                                   generateParameters: GenerateParameters(maxTokens: 12, temperature: 0))
-        let answer = try await session.respond(to: Self.prompt(titles))
+        var answer = try await session.respond(to: Self.prompt(titles))
+        var name = Self.clean(answer, titles: titles)
+        if name.isEmpty, !answer.isEmpty {
+            answer = try await session.respond(to: "In \(Self.language), please.")
+            name = Self.clean(answer, titles: titles)
+        }
         scheduleUnload()
-        let name = Self.clean(answer, titles: titles)
         Log.debug(.browser, "group name: \(model.name) answered \"\(answer)\" → \"\(name)\"")
         return name
     }
@@ -64,7 +68,14 @@ actor LocalLanguageModel {
         return container
     }
 
+    /// MLX keeps freed buffers for reuse, and on 8 GB that cache pushed six past 2.5 GB.
+    nonisolated static func trimMemory() {
+        Memory.cacheLimit = 64 * 1024 * 1024
+        Memory.clearCache()
+    }
+
     private func scheduleUnload() {
+        Self.trimMemory()
         unload = Task {
             try? await Task.sleep(for: Self.idleUnload)
             guard !Task.isCancelled else { return }

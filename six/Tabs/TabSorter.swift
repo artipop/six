@@ -136,6 +136,7 @@ final class TabSorter {
             Log.error(.embed, "tab sorting: \(error.localizedDescription)")
             return
         }
+        LocalLanguageModel.trimMemory()
         guard browser.selectedProfileID == profileID, browser.sortsTabsByMeaning else { return }
         let front = browser.selectedTabID
         var moved = false
