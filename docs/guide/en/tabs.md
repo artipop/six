@@ -63,13 +63,21 @@ features:
   focus goes with it. When it is not sure, the tab stays where it is.
 - A tab about two groups at once stands between them, in no group, and its strip
   is coloured between the two groups' colours.
-- Three alike tabs with no group become a new group. It is named after the words
-  their titles share; with language models on, the on-device model names it.
+- Three alike tabs with no group become a new group. At first it is named after
+  the words their titles share; a moment later a name by meaning replaces it
+  ("Cooking", "Football"). The assistant's model gives it when language models are
+  on, the **Local Model** on this Mac otherwise. A name you typed in the meantime
+  stays.
 - A tab you moved by hand stays where you put it until it goes to another site. A
   group you ungrouped is not made again.
 
-The pages are compared by the same model that searches bookmarks; if it is not
-here yet, it is downloaded the first time this is switched on.
+**Sort By**: **Embeddings** — the model that searches bookmarks, fast and light on
+memory — or **Local Model**, which reads the titles and picks the group itself. That
+works best with **Gemma 4 E2B**, at 3.6 GB and a few seconds a tab.
+
+**Local Model** — Gemma 3 1B (770 MB), Qwen 2.5 1.5B (870 MB) or Gemma 4 E2B
+(3.6 GB). Downloaded the first time it is needed, and held in memory only while it
+answers.
 
 ## Keys
 

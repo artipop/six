@@ -9,12 +9,14 @@
 /* Begin PBXBuildFile section */
 		5CD2470091CF7AE5F73D25A5 /* Tokenizers in Frameworks */ = {isa = PBXBuildFile; productRef = E4D3C02313C636C3B360B52A /* Tokenizers */; };
 		6129C17CC7CD1BD468139EF8 /* MLXEmbedders in Frameworks */ = {isa = PBXBuildFile; productRef = ABD000B7AE7299C48D5CC4DD /* MLXEmbedders */; };
+		5A11C0DE0000000000000A01 /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = 5A11C0DE0000000000000A02 /* MLXLLM */; };
 		A271466D26DE9D05E6A5B285 /* HuggingFace in Frameworks */ = {isa = PBXBuildFile; productRef = FF7BC8AD7FB5289836E41C75 /* HuggingFace */; };
 		AC11A8513040444B007E3F9B /* ContentBlockerConverter in Frameworks */ = {isa = PBXBuildFile; productRef = AD01B10D4E2F7A6390D5C442 /* ContentBlockerConverter */; };
 		AC8977A0303CEC22008426C2 /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = AC89779F303CEC22008426C2 /* SQLiteData */; };
 		AC9001010000000000000020 /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = AC9001010000000000000010 /* SQLiteData */; };
 		AC9001010000000000000021 /* SQLiteVecData in Frameworks */ = {isa = PBXBuildFile; productRef = AC9001010000000000000011 /* SQLiteVecData */; };
 		AC9001010000000000000022 /* MLXEmbedders in Frameworks */ = {isa = PBXBuildFile; productRef = AC9001010000000000000012 /* MLXEmbedders */; };
+		5A11C0DE0000000000000A03 /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = 5A11C0DE0000000000000A04 /* MLXLLM */; };
 		AC9001010000000000000023 /* HuggingFace in Frameworks */ = {isa = PBXBuildFile; productRef = AC9001010000000000000013 /* HuggingFace */; };
 		AC9001010000000000000024 /* Tokenizers in Frameworks */ = {isa = PBXBuildFile; productRef = AC9001010000000000000014 /* Tokenizers */; };
 		AC9001010000000000000025 /* ContentBlockerConverter in Frameworks */ = {isa = PBXBuildFile; productRef = AC9001010000000000000015 /* ContentBlockerConverter */; };
@@ -160,6 +162,7 @@
 				AC8977A0303CEC22008426C2 /* SQLiteData in Frameworks */,
 				C4E57E1CA358AD438C0F5731 /* SQLiteVecData in Frameworks */,
 				6129C17CC7CD1BD468139EF8 /* MLXEmbedders in Frameworks */,
+				5A11C0DE0000000000000A01 /* MLXLLM in Frameworks */,
 				A271466D26DE9D05E6A5B285 /* HuggingFace in Frameworks */,
 				5CD2470091CF7AE5F73D25A5 /* Tokenizers in Frameworks */,
 			);
@@ -170,6 +173,7 @@
 				AC9001010000000000000020 /* SQLiteData in Frameworks */,
 				AC9001010000000000000021 /* SQLiteVecData in Frameworks */,
 				AC9001010000000000000022 /* MLXEmbedders in Frameworks */,
+				5A11C0DE0000000000000A03 /* MLXLLM in Frameworks */,
 				AC9001010000000000000023 /* HuggingFace in Frameworks */,
 				AC9001010000000000000024 /* Tokenizers in Frameworks */,
 				AC9001010000000000000025 /* ContentBlockerConverter in Frameworks */,
@@ -227,6 +231,7 @@
 				AC89779F303CEC22008426C2 /* SQLiteData */,
 				82F43A23555A3254647ADAE5 /* SQLiteVecData */,
 				ABD000B7AE7299C48D5CC4DD /* MLXEmbedders */,
+				5A11C0DE0000000000000A02 /* MLXLLM */,
 				FF7BC8AD7FB5289836E41C75 /* HuggingFace */,
 				E4D3C02313C636C3B360B52A /* Tokenizers */,
 				AD01B10D4E2F7A6390D5C442 /* ContentBlockerConverter */,
@@ -253,6 +258,7 @@
 				AC9001010000000000000010 /* SQLiteData */,
 				AC9001010000000000000011 /* SQLiteVecData */,
 				AC9001010000000000000012 /* MLXEmbedders */,
+				5A11C0DE0000000000000A04 /* MLXLLM */,
 				AC9001010000000000000013 /* HuggingFace */,
 				AC9001010000000000000014 /* Tokenizers */,
 				AC9001010000000000000015 /* ContentBlockerConverter */,
@@ -835,6 +841,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 0491713B9D1CDF6B8B095255 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
 			productName = MLXEmbedders;
+		};
+		5A11C0DE0000000000000A02 /* MLXLLM */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0491713B9D1CDF6B8B095255 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
+			productName = MLXLLM;
+		};
+		5A11C0DE0000000000000A04 /* MLXLLM */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0491713B9D1CDF6B8B095255 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
+			productName = MLXLLM;
 		};
 		AC9001010000000000000013 /* HuggingFace */ = {
 			isa = XCSwiftPackageProductDependency;

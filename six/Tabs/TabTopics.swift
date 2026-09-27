@@ -1,15 +1,8 @@
 import Foundation
 
-/// Which group a tab belongs to by what it is about: the arithmetic half of `TabSorter`, with no
-/// model and no window in it, so every front can share it and a test can hand it vectors.
-///
-/// Firefox (`SmartTabGrouping.sys.mjs`) scores a tab against a group's recent tabs, its name and its
-/// domain, and Opera groups a tab with the one it was opened from; both signals are here. What is
-/// not is Firefox's absolute threshold. Measured on e5-small with titles (`TabTopicsSelfTest`),
-/// every cosine sits between 0.75 and 0.92, and a stray page can score higher with a group than a
-/// page that belongs in it — "Купить билеты на поезд" 0.851 with football, a match report 0.834. What
-/// does separate them is the lead: how far the best group is ahead of the next one and of the tab's
-/// similarity to everything else.
+/// Which group a tab belongs to, from vectors alone, so every front can share it.
+/// Decided by the lead over the alternatives, not an absolute threshold: e5 cosines are too
+/// compressed for one (docs/layout.md).
 nonisolated enum TabTopics {
     struct Weights: Sendable, Equatable {
         /// Added to a group's score when one of its tabs is on the same site.
@@ -72,8 +65,7 @@ nonisolated enum TabTopics {
         return norm > 0 ? dot / norm : 0
     }
 
-    /// The tab's closest match in the group — a tab or the group's name — plus the site and opener
-    /// bonuses; nil for a group with nothing to compare against. The tab is never its own anchor.
+    /// Nil for a group with nothing to compare against; the tab is never its own anchor.
     static func score(_ tab: Tab, in group: Group, weights: Weights = .standard) -> Float? {
         let anchors = group.anchors.filter { $0.id != tab.id }
         let nearest = (anchors.map { cosine(tab.vector, $0.vector) } + [group.name.map { cosine(tab.vector, $0) }].compactMap { $0 }).max()
@@ -83,15 +75,13 @@ nonisolated enum TabTopics {
         return score
     }
 
-    /// The tab's usual similarity to other tabs: the median cosine to `others`. What a group has to
-    /// beat when there is no second group to beat.
+    /// The median cosine to `others`: what a lone group has to beat.
     static func background(of tab: Tab, among others: [Tab]) -> Float {
         let cosines = others.filter { $0.id != tab.id }.map { cosine(tab.vector, $0.vector) }.sorted()
         return cosines.isEmpty ? 0 : cosines[cosines.count / 2]
     }
 
-    /// `loose` is the tab's closest ungrouped tab: a group has to beat that too, or the tab is more
-    /// likely the start of a group of its own.
+    /// `loose` is the closest ungrouped tab: nearer than the group, the tab may start a group of its own.
     static func classify(_ tab: Tab, among groups: [Group], background: Float, loose: Float = -.infinity,
                          weights: Weights = .standard, thresholds: Thresholds = .standard) -> Verdict {
         let scored = groups.compactMap { group in score(tab, in: group, weights: weights).map { (group.id, $0) } }
@@ -109,9 +99,8 @@ nonisolated enum TabTopics {
 
     // MARK: New groups
 
-    /// Average-linkage clustering over how much closer two tabs are than either usually is to
-    /// anything in `context` — every tab, not only the loose ones, or a topic that is half the loose
-    /// tabs sets its own bar. Only clusters of `clusterSize` or more come back, largest first.
+    /// Average linkage. `context` is every tab: measured against the loose ones only, a topic that
+    /// is half of them sets its own bar.
     static func clusters(_ tabs: [Tab], context: [Tab]? = nil, weights: Weights = .standard,
                          thresholds: Thresholds = .standard) -> [[UUID]] {
         let n = tabs.count
@@ -149,8 +138,7 @@ nonisolated enum TabTopics {
 
     // MARK: Names
 
-    /// A name for a cluster without a language model: the words frequent in these titles and rare in
-    /// the rest (c-TF-IDF, as Firefox feeds its namer), or the host when they all share one.
+    /// c-TF-IDF over the titles, else the shared host: the name until a model gives a better one.
     static func label(for cluster: [Tab], among all: [Tab]) -> String {
         let inside = Set(cluster.map(\.id))
         let rest = all.filter { !inside.contains($0.id) }
@@ -182,8 +170,7 @@ nonisolated enum TabTopics {
         return ""
     }
 
-    /// The title without the site's name on its end. Firefox's rule — only when what is left is
-    /// still a title, 20 characters or more — plus any tail the host spells: "Borscht - Wikipedia".
+    /// Drops the site's name off the end when what is left is still a title (Firefox's rule).
     static func cleanTitle(_ title: String, host: String = "") -> String {
         var title = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let site = host.lowercased().replacingOccurrences(of: "-", with: "")

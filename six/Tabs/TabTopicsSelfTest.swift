@@ -1,10 +1,6 @@
 import Foundation
 
-/// `SIX_TOPICS_SELFTEST=1` — the real embedder on a fixed set of titles, and what `TabTopics` makes
-/// of them: how far apart e5 puts pages on one topic and on different ones, where held-out and
-/// in-between titles land, and the groups and names clustering finds. Titles only, so nothing is
-/// opened and the strip is not touched. `SIX_TOPICS_SELFTEST=grid` also tries e5-base and the other
-/// prefix, which is how `query:` on e5-small was chosen.
+/// `SIX_TOPICS_SELFTEST=1`: the real models on fixed titles; `=grid` also compares e5 sizes and prefixes.
 enum TabTopicsSelfTest {
     private static let topics: [(String, [String], [String])] = [
         ("swift", [
@@ -32,9 +28,13 @@ enum TabTopicsSelfTest {
     ]
     private static let strays = ["Weather forecast for Berlin", "Купить билеты на поезд"]
 
-    static func run(_ browser: BrowserState, grid: Bool) async {
+    static func run(_ browser: BrowserState, grid: Bool, compare: Bool = false) async {
         func say(_ line: String) { Log.info(.browser, "topics selftest: \(line)") }
         guard let embedder = browser.bookmarks?.embedder else { return say("no embedder") }
+        if compare {
+            await self.compare(embedder, say)
+            return say("done")
+        }
         if grid {
             let models = AppDatabase.url.deletingLastPathComponent().appending(path: "Models", directoryHint: .isDirectory)
             for choice in EmbeddingModelChoice.allCases {
@@ -45,7 +45,107 @@ enum TabTopicsSelfTest {
             }
         }
         await measure(embedder, role: TabSorter.role, verbose: true, say)
+        await name(say)
         say("done")
+    }
+
+    private static func name(_ say: (String) -> Void) async {
+        let groups = [
+            ["Chocolate lava cake recipe", "Как испечь брауни", "Panna cotta with berries"],
+            ["Tesla Model 3 review", "Зарядные станции для электромобилей", "BYD Seal: first drive"],
+            ["Borscht. Borscht is a sour soup common in Eastern Europe",
+             "Sourdough. Sourdough is a type of bread made by fermenting dough",
+             "Pilaf. Pilaf is a rice dish cooked in a seasoned broth"],
+            ["Swift Concurrency: updating an app to use strict concurrency",
+             "Actors in Swift: how to use them and prevent data races",
+             "Structured concurrency with async let and task groups"],
+            ["Премьер-лига: результаты тура и таблица", "Champions League draw: full fixtures",
+             "Трансферные новости Реал Мадрида"],
+        ]
+        let models = AppDatabase.url.deletingLastPathComponent().appending(path: "Models", directoryHint: .isDirectory)
+        let namer = LocalLanguageModel(modelsDirectory: models)
+        let chosen = ProcessInfo.processInfo.environment["SIX_LOCAL_MODEL"].flatMap(LocalModelChoice.init(rawValue:)) ?? .standard
+        for titles in groups {
+            let started = Date()
+            do {
+                let name = try await namer.name(for: titles, with: chosen)
+                say("\(chosen.name) name \"\(name)\" in \(Int(Date().timeIntervalSince(started) * 1000)) ms for \(titles.first ?? "")")
+            } catch {
+                say("name failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    // MARK: Embeddings against each local model, on every tab
+
+    private static let named = [("swift", "Swift"), ("food", "Еда"), ("football", "Футбол")]
+    private static let moreHeldOut = [
+        ("swift", "Как устроены макросы в Swift 5.9"), ("swift", "Xcode 26 release notes"),
+        ("food", "Лучший рецепт шарлотки"), ("food", "How long to boil an egg"),
+        ("football", "Зенит — Спартак: обзор матча"), ("football", "World Cup 2026 qualifiers schedule"),
+    ]
+    private static let moreStrays = ["Курс доллара на сегодня", "iPhone 18 rumors", "Как оформить загранпаспорт"]
+
+    private static func compare(_ embedder: any Embedder, _ say: (String) -> Void) async {
+        let anchors = topics.flatMap { topic in topic.1.map { (topic.0, $0) } }
+        let cases = topics.flatMap { topic in topic.2.map { (topic.0, $0) } } + moreHeldOut
+            + between.map { ("between", $0) } + (strays + moreStrays).map { ("none", $0) }
+        let texts = anchors.map(\.1) + cases.map(\.1)
+        guard let vectors = try? await embedder.embed(texts, as: TabSorter.role),
+              let names = try? await embedder.embed(named.map(\.1), as: TabSorter.role) else { return say("embed failed") }
+        let tabs = zip(texts, vectors).map { TabTopics.Tab(id: UUID(), vector: $1.vector, host: "", title: $0) }
+        let groups = named.enumerated().map { index, pair in
+            TabTopics.Group(id: UUID(), name: names[index].vector,
+                            members: tabs.prefix(anchors.count).filter { tab in anchors.contains { $0.0 == pair.0 && $0.1 == tab.title } })
+        }
+        let topicOf = Dictionary(uniqueKeysWithValues: zip(groups.map(\.id), named.map(\.0)))
+        let tested = Array(tabs.suffix(cases.count))
+
+        func score(_ label: String, _ verdicts: [TabTopics.Verdict], ms: Int) {
+            var right = 0, strayKept = 0, bridged = 0, halfBridged = 0
+            var wrong: [String] = []
+            for (verdict, (expected, title)) in zip(verdicts, cases) {
+                switch (expected, verdict) {
+                case ("none", .none): strayKept += 1
+                case ("between", .between(let a, let b, _)) where Set([topicOf[a], topicOf[b]]) == ["food", "football"]: bridged += 1
+                case ("between", .group(let id)) where ["food", "football"].contains(topicOf[id] ?? ""): halfBridged += 1
+                case (let topic, .group(let id)) where topicOf[id] == topic: right += 1
+                default: wrong.append("\(title.prefix(30))→\(describe(verdict, topicOf))")
+                }
+            }
+            let held = cases.filter { !["none", "between"].contains($0.0) }.count
+            say("\(label): held-out \(right)/\(held), strays kept \(strayKept)/\(strays.count + moreStrays.count), "
+                + "between \(bridged)/\(between.count) (+\(halfBridged) in one), \(ms) ms/tab; wrong: \(wrong.joined(separator: " | "))")
+        }
+
+        let background = tested.map { TabTopics.background(of: $0, among: tabs) }
+        score("e5", zip(tested, background).map { TabTopics.classify($0, among: groups, background: $1) }, ms: 0)
+
+        let models = AppDatabase.url.deletingLastPathComponent().appending(path: "Models", directoryHint: .isDirectory)
+        let model = LocalLanguageModel(modelsDirectory: models)
+        let listed = named.map { pair in (name: pair.1, titles: anchors.filter { $0.0 == pair.0 }.map(\.1)) }
+        for choice in LocalModelChoice.allCases {
+            _ = try? await model.name(for: ["warm up"], with: choice)
+            var verdicts: [TabTopics.Verdict] = []
+            let started = Date()
+            for tab in tested {
+                let picked = (try? await model.choose(for: tab.title, among: listed, with: choice)) ?? []
+                switch picked.count {
+                case 0: verdicts.append(.none)
+                case 1: verdicts.append(.group(groups[picked[0]].id))
+                default: verdicts.append(.between(from: groups[picked[0]].id, to: groups[picked[1]].id, weight: 0.5))
+                }
+            }
+            score(choice.name, verdicts, ms: Int(Date().timeIntervalSince(started) * 1000) / tested.count)
+        }
+    }
+
+    private static func describe(_ verdict: TabTopics.Verdict, _ topicOf: [UUID: String]) -> String {
+        switch verdict {
+        case .none: "none"
+        case .group(let id): topicOf[id] ?? "?"
+        case .between(let a, let b, _): "\(topicOf[a] ?? "?")+\(topicOf[b] ?? "?")"
+        }
     }
 
     private static func measure(_ embedder: any Embedder, role: EmbeddingRole, verbose: Bool,

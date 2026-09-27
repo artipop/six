@@ -39,6 +39,8 @@ final class ConfigurationStore {
         case peeksAtEdges = "layout.peeksAtEdges"
         /// Tabs put into groups by what they are about (`TabSorter`).
         case sortsTabsByMeaning = "tabs.sortByMeaning"
+        case localModel = "local.model"
+        case tabSorting = "tabs.sortMethod"
         /// The row, or a tab bar over one page (`InterfaceStyle`).
         case interfaceStyle = "interface.style"
         case agentModel = "agent.model"

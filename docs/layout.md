@@ -765,8 +765,34 @@ ungrouped tab (`loose`). Ahead by `joins` (0.035) it goes in, focus following (`
 of each other and both `betweenLead` ahead of the rest put it in the unnamed row between them with a `TilingLean`
 on its column, which the tab bar draws as the two colours mixed (`TabGroup.leanTint`). Ungrouped tabs are clustered
 average-linkage over how much closer two are than either usually is to *every* tab, and three or more become a
-group, named by c-TF-IDF over their text, or the host, or — with the AI switch on and the model ready — by the
-on-device language model, if nobody has renamed it by then.
+group.
+
+**Names and the local model.** A new group is named at once by c-TF-IDF over its tabs' text (or the host), then
+renamed in the background, unless the person has renamed it meanwhile: by the assistant's language model when the
+AI switch is on and one is chosen (`AssistantSettings.namingSession`; never an ACP agent, whose one session is the
+person's chat), else by the **local model** (`LocalLanguageModel`, `LocalModelChoice`, Configuration ▸ Windows):
+Gemma 3 1B by default, Qwen 2.5 1.5B, or Gemma 4 E2B, through MLXLLM from the `mlx-swift-lm` package the embedder
+already uses. It is loaded for the question and let go a minute after the last one. The answer has to be in the
+interface's script (a title's own words excepted), or the c-TF-IDF name stays. The examples are earlier chat turns,
+not text in the question: asked for Russian, the small models answered in English and once in Chinese; shown an
+answer inside the question, they copied it onto every group.
+
+**Sort By** (`TabSortingMethod`) picks what places a tab: the embeddings above (the default), or the local model
+asked outright, "which of these numbered groups, 0 for none, two numbers for both" (`LocalLanguageModel.choose`).
+New groups are always found by the embeddings.
+
+Measured with `SIX_TOPICS_SELFTEST` on this 8 GB M2 (`=compare` for placing, `SIX_LOCAL_MODEL=<case>` for naming):
+
+| | naming, 5 groups (ru UI) | placing: own topic / strays left / between | per tab |
+|---|---|---|---|
+| e5 embeddings | — | 8/12 · 5/5 · 1/2 | ~0 |
+| Gemma 3 1B (770 MB) | 4/5 | 4/12 · 0/5 · 0/2 — nearly all to the last group | 2.3 s |
+| Qwen 2.5 1.5B (870 MB) | 4/5 | 8/12 · 3/5 · 0/2 | 0.6 s |
+| Gemma 4 E2B (3.6 GB) | 5/5 | 11/12 · 5/5 · 0/2, both into one of the two | 5.6 s |
+
+Qwen 2.5 0.5B and Gemma 3 270M were tried and are not offered: the first answered «Конcurrency» and «Делимаки», the
+second copied the example. Gemma 3 1B is the default for naming because it is the smallest that names well; for
+placing, only Gemma 4 beat the embeddings, at a cost this Mac feels.
 
 Why a lead and not Firefox's absolute threshold: `SIX_TOPICS_SELFTEST=1` (`grid` for the model and prefix
 comparison) on e5-small puts every title cosine between 0.75 and 0.92, and "Купить билеты на поезд" scores 0.851

@@ -204,7 +204,7 @@ extension ContentView {
         if let spec = environment["SIX_FIND_SELFTEST"], !spec.isEmpty { await findSelfTest(spec) }
         if environment["SIX_CRX_SELFTEST"] != nil { crxSelfTest() }
         if environment["SIX_TABS_SELFTEST"] != nil { await TabsSelfTest.run(browser) }
-        if let mode = environment["SIX_TOPICS_SELFTEST"] { await TabTopicsSelfTest.run(browser, grid: mode == "grid") }
+        if let mode = environment["SIX_TOPICS_SELFTEST"] { await TabTopicsSelfTest.run(browser, grid: mode == "grid", compare: mode == "compare") }
         if let text = environment["SIX_CHATS_SELFTEST"], !text.isEmpty {
             await agentSession.chatsSelfTest(prompt: text, browser: browser)
         }

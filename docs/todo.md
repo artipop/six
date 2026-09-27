@@ -507,7 +507,10 @@ Russian titles out of English topics. The other shape is a classifier asked the 
 answers multiple-choice questions over `/v1/systemone`, tried for page actions on `origin/agent-actions`,
 docs/agent-actions.md there). The options would be the group names plus "none"; the fit to try is whether its
 confidence is calibrated enough to replace `joins` and `tie`, and what 0.35–1.3 s per tab on MPS costs when tabs
-arrive in bursts.
+arrive in bursts. The same question asked of a local instruct model is built (**Sort By ▸ Local Model**,
+docs/layout.md): Gemma 4 E2B places tabs better than the embeddings but at 5.6 s and 3.6 GB a tab on 8 GB, and
+never answered "between". An ACP agent is not asked to name groups because its one session is the person's chat;
+a headless session of its own would be the way.
 
 ## Smaller things
 

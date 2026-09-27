@@ -229,6 +229,16 @@
         }
       }
     },
+    "Embeddings" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Эмбеддинги"
+          }
+        }
+      }
+    },
     "Environment" : {
       "localizations" : {
         "ru" : {
@@ -553,6 +563,16 @@
         }
       }
     },
+    "Sort By" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Распределять"
+          }
+        }
+      }
+    },
     "Stop Showing Side by Side" : {
       "localizations" : {
         "ru" : {
@@ -629,6 +649,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Откройте терминал и выполните `claude`, чтобы войти в Claude Code."
+          }
+        }
+      }
+    },
+    "Local Model" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Локальная модель"
           }
         }
       }
@@ -1365,6 +1395,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ — поиск %@"
+          }
+        }
+      }
+    },
+    "%@ — 3.6 GB" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ — 3,6 ГБ"
+          }
+        }
+      }
+    },
+    "%@ — 770 MB" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ — 770 МБ"
+          }
+        }
+      }
+    },
+    "%@ — 870 MB" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ — 870 МБ"
           }
         }
       }

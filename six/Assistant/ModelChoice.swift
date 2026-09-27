@@ -274,6 +274,11 @@ final class AssistantSettings {
         }
     }
 
+    /// Nil for an agent: its one session is the person's chat.
+    func namingSession(instructions: String) throws -> LanguageModelSession? {
+        model.isAgent ? nil : try makeSession(instructions: instructions)
+    }
+
     /// Builds a session for the selected model. Throws a readable error when the model isn't usable.
     /// `tools` are offered to the model (browser tools for the assistant; none for one-off jobs).
     func makeSession(instructions: String, tools: [any Tool] = []) throws -> LanguageModelSession {

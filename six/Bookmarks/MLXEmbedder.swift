@@ -186,7 +186,7 @@ actor MLXEmbedder: Embedder {
 // main-actor tokenizer would parse tokenizer.json and encode every chunk on the UI thread.
 
 /// `HubClient` as mlx-swift-lm's `Downloader`: a snapshot of the repo into the cache directory.
-nonisolated private struct HubDownloader: Downloader {
+nonisolated struct HubDownloader: Downloader {
     let hub: HubClient
 
     init(_ hub: HubClient) { self.hub = hub }
@@ -204,14 +204,15 @@ nonisolated private struct HubDownloader: Downloader {
 }
 
 /// swift-transformers' `AutoTokenizer` as mlx-swift-lm's `TokenizerLoader`.
-nonisolated private struct TransformersTokenizerLoader: TokenizerLoader {
+nonisolated struct TransformersTokenizerLoader: TokenizerLoader {
     func load(from directory: URL) async throws -> any MLXLMCommon.Tokenizer {
         TransformersTokenizer(try await AutoTokenizer.from(modelFolder: directory))
     }
 }
 
-/// The few calls the embedder makes, mapped one to one; chat templates are not a thing here.
-nonisolated private struct TransformersTokenizer: MLXLMCommon.Tokenizer {
+/// The calls mlx-swift-lm makes, mapped one to one — the embedder's, and the chat template the
+/// tab-group namer's language model needs.
+nonisolated struct TransformersTokenizer: MLXLMCommon.Tokenizer {
     let upstream: any Tokenizers.Tokenizer
 
     init(_ upstream: any Tokenizers.Tokenizer) { self.upstream = upstream }
@@ -225,6 +226,6 @@ nonisolated private struct TransformersTokenizer: MLXLMCommon.Tokenizer {
     var unknownToken: String? { upstream.unknownToken }
 
     func applyChatTemplate(messages: [[String: any Sendable]], tools: [[String: any Sendable]]?, additionalContext: [String: any Sendable]?) throws -> [Int] {
-        throw EmbedderError.unavailable("Chat templates are not supported by the embedding tokenizer")
+        try upstream.applyChatTemplate(messages: messages, tools: tools, additionalContext: additionalContext)
     }
 }

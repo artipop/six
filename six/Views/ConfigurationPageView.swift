@@ -331,6 +331,27 @@ private struct WindowConfiguration: View {
                     get: { browser.sortsTabsByMeaning },
                     set: { browser.setSortsTabsByMeaning($0) }
                 ))
+                if browser.sortsTabsByMeaning {
+                    Picker("Sort By", selection: Binding(
+                        get: { browser.tabSorting },
+                        set: { browser.tabSorting = $0 }
+                    )) {
+                        ForEach(TabSortingMethod.allCases) { Text($0.title).tag($0) }
+                    }
+                    LabeledContent("Local Model") {
+                        Menu(browser.localModel.name) {
+                            Picker("Local Model", selection: Binding(
+                                get: { browser.localModel },
+                                set: { browser.localModel = $0 }
+                            )) {
+                                ForEach(LocalModelChoice.allCases) { Text($0.title).tag($0) }
+                            }
+                            .pickerStyle(.inline)
+                            .labelsHidden()
+                        }
+                        .fixedSize()
+                    }
+                }
             }
 
             SwiftUI.Section {

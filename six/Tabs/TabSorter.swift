@@ -1,22 +1,14 @@
 import Foundation
 import WebKit
-#if canImport(FoundationModels)
 import FoundationModels
-#endif
 
-/// Puts a tab into the group it is about once its page has loaded, stands it between two groups
-/// when it is about both, and makes a group out of three ungrouped tabs that belong together.
-/// The deciding is `TabTopics`; this is the memory and the moving.
-///
-/// Only a tab that is new, or has gone to another site, is moved. One the person has moved since six
-/// last placed it is left alone until it goes to another site, and a group six made and the person
-/// ungrouped is not made again.
+/// Moves tabs into groups by meaning; `TabTopics` decides. Only new tabs and tabs that changed site
+/// move, and what the person placed by hand stays.
 @MainActor
 final class TabSorter {
     private struct Seen {
         var host: String
-        /// The row the tab stood in when it was last placed or looked at; any other row is the
-        /// person's doing.
+        /// Where the sorter last saw it; anywhere else means the person moved it.
         var row: UUID
         var byHand = false
     }
@@ -30,15 +22,15 @@ final class TabSorter {
     private var vectors: [UUID: Vector] = [:]
     private var descriptions: [UUID: String] = [:]
     private var nameVectors: [String: [Float]] = [:]
-    /// Tabs opened since the sorter last looked; only these are placed on their first load.
     private var arrivals: Set<UUID> = []
     private var pending: Set<UUID> = []
-    /// Groups the sorter made, so an ungroup of one is taken as an answer.
+    /// An ungroup of one of these is taken as an answer.
     private var made: Set<UUID> = []
     private var pass: Task<Void, Never>?
+    private let model = LocalLanguageModel(modelsDirectory: AppDatabase.url.deletingLastPathComponent()
+        .appending(path: "Models", directoryHint: .isDirectory))
 
-    /// E5 asks for `query:` on both sides of a symmetric comparison, and on titles it separates
-    /// topics better than `passage:` (0.91 against 0.77, `TabTopicsSelfTest`).
+    /// E5's prefix for symmetric comparison; it also measured better on titles.
     static let role = EmbeddingRole.query
 
     var weights = TabTopics.Weights.standard
@@ -53,8 +45,7 @@ final class TabSorter {
         arrivals.remove(id)
     }
 
-    /// The switch just went on: the ungrouped tabs are sorted as if they had just opened, and the
-    /// ones already in a group are only noted — someone put them there.
+    /// Tabs already in a group are only noted: someone put them there.
     func sortEverything(in browser: BrowserState) {
         for row in browser.layout.strip(for: browser.selectedProfileID).workspaces {
             let ids = row.columns.flatMap(\.tabIDs)
@@ -64,14 +55,11 @@ final class TabSorter {
         schedule(browser)
     }
 
-    /// A page finished loading. Its description is read now, while the page is at hand; the rest
-    /// waits a moment so that a burst of loads is sorted in one pass.
     func pageFinished(_ tab: BrowserTab, in browser: BrowserState) {
         guard let page = tab.livePage else { return }
         let id = tab.id
         Task {
-            // The description when the page has one; Wikipedia and many articles do not, and their
-            // first real paragraph says the same thing.
+            // Wikipedia and many articles have no description; the first paragraph stands in.
             let script = """
             const m = document.querySelector('meta[name="description"], meta[property="og:description"]');
             if (m && m.content && m.content.trim().length >= 40) return m.content;
@@ -99,9 +87,7 @@ final class TabSorter {
 
     // MARK: The pass
 
-    /// The title and the first sentence of the description, cut short. e5 finds two long texts alike
-    /// for being long: a whole paragraph put a bread recipe nearer a tech news site's blurb than any
-    /// title did.
+    /// Cut short: e5 finds long texts alike for being long.
     private func text(of tab: BrowserTab) -> String {
         let title = TabTopics.cleanTitle(tab.title, host: host(of: tab))
         let description = descriptions[tab.id] ?? ""
@@ -128,8 +114,6 @@ final class TabSorter {
         let due = pending
         pending = []
 
-        // Every web tab in the profile gets a vector: the ones in groups are what the others are
-        // measured against. A tab restored and never loaded is its saved title.
         let rows = browser.layout.strip(for: profileID).workspaces
         let tabs = rows.flatMap { $0.columns.flatMap(\.tabIDs) }.compactMap(browser.tab).filter(isSortable)
         let stale = tabs.filter { vectors[$0.id]?.text != text(of: $0) }
@@ -152,7 +136,6 @@ final class TabSorter {
             Log.error(.embed, "tab sorting: \(error.localizedDescription)")
             return
         }
-        // The layout may have moved while the model worked.
         guard browser.selectedProfileID == profileID, browser.sortsTabsByMeaning else { return }
         let front = browser.selectedTabID
         var moved = false
@@ -181,23 +164,29 @@ final class TabSorter {
             let ungrouped = Set(strip.filter(\.name.isEmpty).flatMap { $0.columns.flatMap(\.tabIDs) })
             let loose = everyone.filter { $0.id != id && ungrouped.contains($0.id) }
                 .map { TabTopics.cosine(features.vector, $0.vector) }.max() ?? -.infinity
-            let verdict = TabTopics.classify(features, among: groups, background: background, loose: loose,
+            var verdict = TabTopics.classify(features, among: groups, background: background, loose: loose,
                                              weights: weights, thresholds: thresholds)
+            if browser.tabSorting == .languageModel, !groups.isEmpty {
+                verdict = await chosen(for: features, among: strip.filter { !$0.name.isEmpty }, in: browser) ?? verdict
+            }
             Log.debug(.browser, String(format: "sort %@: usual %.3f, loose %.3f, ", host, background, loose)
                 + groups.map { group in
                     String(format: "%@ %.3f", strip.first { $0.id == group.id }?.name ?? "", TabTopics.score(features, in: group) ?? 0)
                 }
                     .joined(separator: ", ") + " → \(verdict)")
+            // The strip can have changed while the model answered.
+            let latest = browser.layout.strip(for: profileID).workspaces
+            guard let here = latest.first(where: { $0.columns.contains { $0.holds(id) } }), here.id == row.id else { continue }
             switch verdict {
-            case .group(let target) where target != row.id:
-                let end = strip.first { $0.id == target }?.columns.count ?? 0
+            case .group(let target) where target != here.id:
+                let end = latest.first { $0.id == target }?.columns.count ?? 0
                 browser.layout.placeTab(id, in: profileID, workspace: target, at: end)
                 seen[id]?.row = target
                 moved = true
-                Log.info(.browser, "sorted \(host) into \(strip.first { $0.id == target }?.name ?? "?")")
+                Log.info(.browser, "sorted \(host) into \(latest.first { $0.id == target }?.name ?? "?")")
             case .between(let from, let to, let weight):
                 let lean = TilingLean(from: from, to: to, weight: weight)
-                if row.columns.first(where: { $0.holds(id) })?.lean == lean { continue }
+                if here.columns.first(where: { $0.holds(id) })?.lean == lean { continue }
                 if let bridge = browser.layout.placeTabBetween(id, in: profileID, lean: lean) {
                     seen[id]?.row = bridge
                     moved = true
@@ -212,10 +201,28 @@ final class TabSorter {
         if moved, let front { browser.selectTab(front) }
     }
 
+    /// Nil when the model could not answer, and the embeddings' verdict stands.
+    private func chosen(for tab: TabTopics.Tab, among rows: [TilingWorkspace], in browser: BrowserState) async -> TabTopics.Verdict? {
+        let groups = rows.map { row in
+            (name: row.name, titles: row.columns.flatMap(\.tabIDs).filter { $0 != tab.id }
+                .compactMap { vectors[$0]?.text })
+        }
+        do {
+            let picked = try await model.choose(for: tab.title, among: groups, with: browser.localModel)
+            switch picked.count {
+            case 0: return TabTopics.Verdict.none
+            case 1: return .group(rows[picked[0]].id)
+            default: return .between(from: rows[picked[0]].id, to: rows[picked[1]].id, weight: 0.5)
+            }
+        } catch {
+            Log.error(.browser, "group choice: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
     private func features(of tab: BrowserTab) -> TabTopics.Tab? {
         guard let vector = vectors[tab.id] else { return nil }
-        // The embedded text as the title, so a name can come from the description when the titles
-        // share no word ("Borscht", "Pilaf", "Sourdough" — all three are dishes).
+        // The embedded text, so a name can come from the description when titles share no word.
         return TabTopics.Tab(id: tab.id, vector: vector.values, host: host(of: tab), title: vector.text,
                              opener: tab.openedFrom)
     }
@@ -227,8 +234,6 @@ final class TabSorter {
 
     // MARK: New groups
 
-    /// Ungrouped tabs the sorter has seen and nobody placed by hand, clustered; each cluster becomes
-    /// a group just after the row its first tab was in.
     private func makeGroups(_ browser: BrowserState, profileID: UUID) -> Bool {
         var strip = browser.layout.strip(for: profileID).workspaces
         for row in strip where made.contains(row.id) && row.name.isEmpty {
@@ -259,39 +264,38 @@ final class TabSorter {
             for id in cluster { seen[id]?.row = created }
             made.insert(created)
             Log.info(.browser, "made a group of \(cluster.count): \(label)")
-            if browser.isAIEnabled { rename(created, from: name, titles: members.map(\.title), in: browser) }
+            rename(created, from: name, titles: members.map(\.title), in: browser)
         }
         return true
     }
 
-    /// A better name from the on-device model, when there is one and the person uses language models.
+    /// The assistant's model when AI is on, else the small one. Not an ACP agent: its one session is
+    /// the person's chat. A name typed in the meantime wins.
     private func rename(_ group: UUID, from label: String, titles: [String], in browser: BrowserState) {
-        #if canImport(FoundationModels)
-        guard SystemLanguageModel.default.availability == .available else {
-            return Log.debug(.browser, "group name: on-device model \(SystemLanguageModel.default.availability)")
-        }
-        Task { [weak browser] in
-            let session = LanguageModelSession(instructions: """
-                Name a browser tab group. Answer with one to three words in the language of the \
-                titles, no punctuation, no quotes.
-                """)
-            let prompt = titles.prefix(6).map { "- \($0)" }.joined(separator: "\n")
-            let answer: String
-            do {
-                answer = try await session.respond(to: prompt).content
-            } catch {
-                return Log.error(.browser, "group name: \(error.localizedDescription)")
+        let session = browser.isAIEnabled ? try? browser.assistantSettings.namingSession(instructions: LocalLanguageModel.instructions) : nil
+        let choice = browser.localModel
+        Task { [weak browser, model] in
+            var name = ""
+            if let session {
+                do {
+                    name = LocalLanguageModel.clean(try await session.respond(to: LocalLanguageModel.prompt(titles)).content, titles: titles)
+                } catch {
+                    Log.info(.browser, "group name: assistant model: \(error.localizedDescription)")
+                }
             }
-            guard let browser else { return }
-            let name = answer.trimmingCharacters(in: .whitespacesAndNewlines.union(.punctuationCharacters))
-            // Only while the group is still in front and still has the name six gave it.
-            guard !name.isEmpty, name.count <= 40,
+            if name.isEmpty {
+                do {
+                    name = try await model.name(for: titles, with: choice)
+                } catch {
+                    return Log.error(.browser, "group name: \(error.localizedDescription)")
+                }
+            }
+            guard let browser, !name.isEmpty,
                   let index = browser.layout.workspaces.firstIndex(where: { $0.id == group }),
                   browser.layout.workspaces[index].name == label
             else { return }
             browser.layout.rename(workspaceAt: index, to: name)
             Log.info(.browser, "renamed group \(label) to \(name)")
         }
-        #endif
     }
 }

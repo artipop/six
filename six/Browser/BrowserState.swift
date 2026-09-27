@@ -1475,7 +1475,19 @@ final class BrowserState {
 
     var isAIEnabled: Bool { settings.isAIEnabled }
 
+    var assistantSettings: AssistantSettings { AssistantSettings(store: settings) }
+
     var sortsTabsByMeaning: Bool { settings.sortsTabsByMeaning }
+
+    var localModel: LocalModelChoice {
+        get { settings.localModel }
+        set { settings.localModel = newValue }
+    }
+
+    var tabSorting: TabSortingMethod {
+        get { settings.tabSorting }
+        set { settings.tabSorting = newValue }
+    }
 
     /// On loads the model now, so the first tab to finish loading is not the one kept waiting for it.
     func setSortsTabsByMeaning(_ on: Bool) {
