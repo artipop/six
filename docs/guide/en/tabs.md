@@ -61,8 +61,13 @@ features:
 
 - A new tab, once its page has loaded, goes into the group it is about, and the
   focus goes with it. When it is not sure, the tab stays where it is.
-- A tab about two groups at once stands between them, in no group, and its strip
-  is coloured between the two groups' colours.
+- A tab about two groups at once goes into a group between them, coloured between
+  their colours: orange between yellow and red. A tab almost about a group, but not
+  surely, goes into a pale group right after it. Until such a group has a name of
+  its own it is called after its neighbours ("Dinner · Sport", "≈ Dinner"). Tabs can
+  be dragged in and out; the colour is the group's. Its menu has **Merge into …**
+  and **Make Separate Group**; if a neighbouring group goes away, it stays next to
+  the other.
 - Three alike tabs with no group become a new group. At first it is named after
   the words their titles share; a moment later a name by meaning replaces it
   ("Cooking", "Football"). The assistant's model or agent gives it when language

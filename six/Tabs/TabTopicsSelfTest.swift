@@ -1,6 +1,8 @@
 import Foundation
 
-/// `SIX_TOPICS_SELFTEST=1`: the real models on fixed titles; `=grid` also compares e5 sizes and prefixes.
+/// `SIX_TOPICS_SELFTEST=1`: the real models on fixed titles; `=grid` also compares e5 sizes and prefixes;
+/// `=batch` is a second batch of one topic arriving together, before and after `near`; `=live` does
+/// the same with real pages in a new profile, through the sorter itself.
 enum TabTopicsSelfTest {
     private static let topics: [(String, [String], [String])] = [
         ("swift", [
@@ -33,6 +35,14 @@ enum TabTopicsSelfTest {
         guard let embedder = browser.bookmarks?.embedder else { return say("no embedder") }
         if compare {
             await self.compare(embedder, say)
+            return say("done")
+        }
+        if ProcessInfo.processInfo.environment["SIX_TOPICS_SELFTEST"] == "live" {
+            await live(browser, say)
+            return say("done")
+        }
+        if ProcessInfo.processInfo.environment["SIX_TOPICS_SELFTEST"] == "batch" {
+            await batch(say)
             return say("done")
         }
         if ProcessInfo.processInfo.environment["SIX_TOPICS_SELFTEST"] == "agent" {
@@ -121,7 +131,7 @@ enum TabTopicsSelfTest {
         let tested = Array(tabs.suffix(cases.count))
 
         func score(_ label: String, _ verdicts: [TabTopics.Verdict], ms: Int) {
-            var right = 0, strayKept = 0, bridged = 0, halfBridged = 0
+            var right = 0, nearly = 0, strayKept = 0, bridged = 0, halfBridged = 0
             var wrong: [String] = []
             for (verdict, (expected, title)) in zip(verdicts, cases) {
                 switch (expected, verdict) {
@@ -129,11 +139,12 @@ enum TabTopicsSelfTest {
                 case ("between", .between(let a, let b, _)) where Set([topicOf[a], topicOf[b]]) == ["food", "football"]: bridged += 1
                 case ("between", .group(let id)) where ["food", "football"].contains(topicOf[id] ?? ""): halfBridged += 1
                 case (let topic, .group(let id)) where topicOf[id] == topic: right += 1
+                case (let topic, .near(let id, _)) where topicOf[id] == topic: nearly += 1
                 default: wrong.append("\(title.prefix(30))→\(describe(verdict, topicOf))")
                 }
             }
             let held = cases.filter { !["none", "between"].contains($0.0) }.count
-            say("\(label): held-out \(right)/\(held), strays kept \(strayKept)/\(strays.count + moreStrays.count), "
+            say("\(label): held-out \(right)/\(held) (+\(nearly) next to it), strays kept \(strayKept)/\(strays.count + moreStrays.count), "
                 + "between \(bridged)/\(between.count) (+\(halfBridged) in one), \(ms) ms/tab; wrong: \(wrong.joined(separator: " | "))")
         }
 
@@ -159,11 +170,133 @@ enum TabTopicsSelfTest {
         }
     }
 
+    // MARK: Real pages in a clean profile
+
+    private static func wiki(_ titles: [String]) -> [URL] {
+        titles.compactMap { URL(string: "https://en.wikipedia.org/wiki/\($0)") }
+    }
+
+    private static func live(_ browser: BrowserState, _ say: (String) -> Void) async {
+        let wasOn = browser.sortsTabsByMeaning
+        let method = browser.tabSorting
+        let name = "Topics \(Date().formatted(.dateTime.hour().minute().second()))"
+        browser.addProfile(name: name, colorHex: "#888888")
+        guard let profile = browser.profiles.last, profile.name == name else { return say("no profile") }
+        browser.tabSorting = .embeddings
+        browser.setSortsTabsByMeaning(true)
+        let first = wiki(["Borscht", "Sourdough", "Carbonara", "Chocolate_chip_cookie",
+                          "Swift_(programming_language)", "Actor_model", "Async/await", "SwiftUI",
+                          "Premier_League", "UEFA_Champions_League", "Real_Madrid_CF", "Arsenal_F.C."])
+        let second = wiki(["Pilaf", "Chicken_curry", "Solyanka", "Ramen", "Sports_nutrition",
+                           "Weather_forecasting", "Rail_transport"])
+        for (label, urls) in [("first", first), ("second", second)] {
+            for url in urls { browser.newTab(url: url, in: profile.id, workspace: nil, activate: false) }
+            await settle(browser, profile.id)
+            say("\(label): " + rows(browser, profile.id))
+        }
+        browser.setSortsTabsByMeaning(wasOn)
+        browser.tabSorting = method
+        say("profile \(name) left in place")
+    }
+
+    /// Until every page has loaded and the sorter has had a quiet stretch to finish its pass and names.
+    private static func settle(_ browser: BrowserState, _ profile: UUID) async {
+        let started = Date()
+        while Date().timeIntervalSince(started) < 90 {
+            try? await Task.sleep(for: .seconds(2))
+            if Date().timeIntervalSince(started) > 10, !browser.tabs(in: profile).contains(where: \.isLoading) { break }
+        }
+        try? await Task.sleep(for: .seconds(20))
+    }
+
+    private static func rows(_ browser: BrowserState, _ profile: UUID) -> String {
+        let strip = browser.layout.strip(for: profile).workspaces
+        return strip.enumerated().filter { !$0.element.isEmpty }.map { index, row in
+            var head = row.name.isEmpty ? "·" : "«\(row.name)»"
+            if let blend = row.blend {
+                let parents = blend.parents.map { id in strip.first { $0.id == id }?.name ?? "?" }
+                head += String(format: " [between %@ %.2f]", parents.joined(separator: "+"), blend.weight)
+            }
+            if browser.layout.activeProfileID == profile, let color = browser.layout.groupColor(of: row.id) {
+                let c = color.srgb
+                head += String(format: " #%02X%02X%02X", Int(c.red * 255), Int(c.green * 255), Int(c.blue * 255))
+            }
+            let titles = row.columns.flatMap(\.tabIDs).compactMap { browser.tab($0)?.title.prefix(22) }
+            return head + ": " + titles.joined(separator: ", ")
+        }.joined(separator: " || ")
+    }
+
+    // MARK: A second batch arriving together
+
+    private static let secondBatch = [
+        "Как приготовить плов в казане", "Easy weeknight chicken curry",
+        "Рецепт солянки сборной мясной", "Homemade ramen from scratch",
+    ]
+
+    /// What `TabSorter.sort` does with tabs that arrive together: one at a time, each measured against
+    /// the ones still loose, then the rest clustered.
+    private static func batch(_ say: (String) -> Void) async {
+        let anchors = topics.flatMap { topic in topic.1.map { (topic.0, $0) } }
+        let arriving = secondBatch.map { ("food", $0) } + between.map { ("between", $0) } + strays.map { ("none", $0) }
+        let names = [("swift", "Swift"), ("food", "Ужин"), ("football", "Футбол")]
+        let models = AppDatabase.url.deletingLastPathComponent().appending(path: "Models", directoryHint: .isDirectory)
+        for choice in EmbeddingModelChoice.allCases {
+            let embedder = MLXEmbedder(choice: choice, modelsDirectory: models)
+            let texts = (anchors + arriving).map(\.1)
+            guard let vectors = try? await embedder.embed(texts, as: TabSorter.role),
+                  let named = try? await embedder.embed(names.map(\.1), as: TabSorter.role) else { return say("embed failed") }
+            let tabs = zip(texts, vectors).map { TabTopics.Tab(id: UUID(), vector: $1.vector, host: "", title: $0) }
+            let groups = names.enumerated().map { index, pair in
+                TabTopics.Group(id: UUID(), name: named[index].vector,
+                                members: Array(tabs.prefix(anchors.count)).enumerated()
+                                    .filter { anchors[$0.offset].0 == pair.0 }.map(\.element))
+            }
+            let topicOf = Dictionary(uniqueKeysWithValues: zip(groups.map(\.id), names.map(\.0)))
+            let incoming = Array(tabs.suffix(arriving.count))
+            for (label, near) in [("before", Float.infinity), ("now", TabTopics.Thresholds.standard.near)] {
+                var thresholds = TabTopics.Thresholds.standard
+                thresholds.near = near
+                var loose = incoming
+                var lines: [String] = []
+                for (tab, (expected, title)) in zip(incoming, arriving) {
+                    let background = TabTopics.background(of: tab, among: tabs)
+                    let nearest = loose.filter { $0.id != tab.id }.map { TabTopics.cosine(tab.vector, $0.vector) }.max() ?? -.infinity
+                    let verdict = TabTopics.classify(tab, among: groups, background: background, loose: nearest, thresholds: thresholds)
+                    if verdict != .none { loose.removeAll { $0.id == tab.id } }
+                    let scores = groups.map { String(format: "%@ %.3f", topicOf[$0.id] ?? "", TabTopics.score(tab, in: $0) ?? 0) }
+                    lines.append("[\(expected)] \(title.prefix(28)) → \(describe(verdict, topicOf))"
+                                 + String(format: " (usual %.3f, loose %.3f, ", background, nearest) + scores.joined(separator: " ") + ")")
+                }
+                let clusters = TabTopics.clusters(loose, context: tabs, thresholds: thresholds).map { cluster in
+                    let members = tabs.filter { cluster.contains($0.id) }
+                    return "«\(TabTopics.label(for: members, among: tabs))» ×\(members.count)"
+                }
+                say("\(choice.rawValue) \(label): " + lines.joined(separator: " | ")
+                    + " || new groups: " + (clusters.isEmpty ? "none" : clusters.joined(separator: ", ")))
+            }
+        }
+
+        guard ProcessInfo.processInfo.environment["SIX_TOPICS_SELFTEST_LLM"] != "0" else { return }
+        let local = LocalLanguageModel(modelsDirectory: models)
+        let listed = names.map { pair in (name: pair.1, titles: anchors.filter { $0.0 == pair.0 }.map(\.1)) }
+        for choice in LocalModelChoice.allCases {
+            _ = try? await local.name(for: ["warm up"], with: choice)
+            var lines: [String] = []
+            let started = Date()
+            for (expected, title) in arriving {
+                let picked = (try? await local.choose(for: title, among: listed, with: choice)) ?? []
+                lines.append("[\(expected)] \(title.prefix(28)) → \(picked.isEmpty ? "none" : picked.map { names[$0].0 }.joined(separator: "+"))")
+            }
+            say("\(choice.name) (\(Int(Date().timeIntervalSince(started) * 1000) / arriving.count) ms/tab): " + lines.joined(separator: " | "))
+        }
+    }
+
     private static func describe(_ verdict: TabTopics.Verdict, _ topicOf: [UUID: String]) -> String {
         switch verdict {
         case .none: "none"
         case .group(let id): topicOf[id] ?? "?"
         case .between(let a, let b, _): "\(topicOf[a] ?? "?")+\(topicOf[b] ?? "?")"
+        case .near(let id, let weight): String(format: "≈%@ %.2f", topicOf[id] ?? "?", weight)
         }
     }
 
@@ -215,6 +348,7 @@ enum TabTopicsSelfTest {
             case .group(let id): verdict = "→ \(groupName[id] ?? "")"
             case .between(let from, let to, let weight):
                 verdict = String(format: "between %@ and %@ %.2f", groupName[from] ?? "", groupName[to] ?? "", weight)
+            case .near(let id, let weight): verdict = String(format: "next to %@ %.2f", groupName[id] ?? "", weight)
             case .none: verdict = "stays"
             }
             say("[\(topicOf[tab.id] ?? "")] \(tab.title): \(verdict) (\(scores.joined(separator: ", ")))")

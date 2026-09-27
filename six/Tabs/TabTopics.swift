@@ -19,6 +19,9 @@ nonisolated enum TabTopics {
         /// Two groups closer than this, both well ahead of the rest, have the tab between them.
         var tie: Float = 0.02
         var betweenLead: Float = 0.04
+        /// Ahead of the other groups and the tab's usual by this, kept out only by a loose tab: next to
+        /// the group. Lower, and e5-small puts a weather forecast next to football.
+        var near: Float = 0.035
         /// Ungrouped tabs this far above their usual similarity to everything make a group.
         var cluster: Float = 0.04
         var clusterSize = 3
@@ -48,6 +51,8 @@ nonisolated enum TabTopics {
         case group(UUID)
         /// `weight` is how far along from `from` towards `to`: 0.5 is exactly halfway.
         case between(from: UUID, to: UUID, weight: Double)
+        /// About the group, not clearly enough to join it; `weight` 0 would have joined.
+        case near(UUID, weight: Double)
         case none
     }
 
@@ -94,7 +99,13 @@ nonisolated enum TabTopics {
             let weight = 0.5 - 0.25 * Double((first.1 - second) / thresholds.tie)
             return .between(from: first.0, to: scored[1].0, weight: weight)
         }
-        return first.1 - max(second, floor) >= thresholds.joins ? .group(first.0) : .none
+        let lead = first.1 - max(second, floor)
+        if lead >= thresholds.joins { return .group(first.0) }
+        // A loose tab about as near is often the same topic arriving alongside; much nearer, a new one.
+        let otherGroups = scored.count > 1 ? scored[1].1 : -.infinity
+        guard first.1 - max(otherGroups, background) >= thresholds.near,
+              loose - first.1 < thresholds.betweenLead else { return .none }
+        return .near(first.0, weight: 0.5 * (1 - Double(max(0, lead) / thresholds.joins)))
     }
 
     // MARK: New groups

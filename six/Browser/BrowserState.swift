@@ -1720,7 +1720,7 @@ final class BrowserState {
 
     private func ungroupedEnd() -> Int? {
         let rows = layout.workspaces
-        if let last = rows.lastIndex(where: { !$0.isEmpty }), rows[last].name.isEmpty { return last }
+        if let last = rows.lastIndex(where: { !$0.isEmpty }), !rows[last].isGroup { return last }
         return rows.indices.last.flatMap { rows[$0].isEmpty ? $0 : nil }
     }
 
@@ -1728,10 +1728,10 @@ final class BrowserState {
     func removeFromGroup(_ id: UUID) {
         let rows = layout.workspaces
         guard let index = rows.firstIndex(where: { $0.columns.contains { $0.holds(id) } }),
-              !rows[index].name.isEmpty else { return }
+              rows[index].isGroup else { return }
         if rows[index].columns.flatMap(\.tabIDs).count == 1 { return ungroup(rows[index].id) }
         let next = index + 1
-        if rows.indices.contains(next), !rows[next].isEmpty, rows[next].name.isEmpty {
+        if rows.indices.contains(next), !rows[next].isEmpty, !rows[next].isGroup {
             placeTab(id, inGroup: rows[next].id, at: 0)
         } else {
             moveTabToNewGroup(id)
@@ -1741,7 +1741,26 @@ final class BrowserState {
     func ungroup(_ id: UUID) {
         guard let index = layout.workspaces.firstIndex(where: { $0.id == id }) else { return }
         layout.setCollapsed(false, workspace: id)
+        layout.setBlend(nil, workspace: id)
         layout.rename(workspaceAt: index, to: "")
+    }
+
+    /// A row between groups poured into one of them; its name goes first so it is not asked about.
+    func mergeGroup(_ id: UUID, into parent: UUID) {
+        guard let row = layout.workspaces.first(where: { $0.id == id }),
+              let target = layout.workspaces.first(where: { $0.id == parent }) else { return }
+        ungroup(id)
+        for (offset, tabID) in row.columns.map(\.tabID).enumerated() {
+            layout.placeTab(tabID, in: selectedProfileID, workspace: parent, at: target.columns.count + offset)
+        }
+        syncSelection()
+    }
+
+    /// A row between groups becomes a group of its own, keeping the title it had.
+    func separateGroup(_ id: UUID) {
+        guard let index = layout.workspaces.firstIndex(where: { $0.id == id }) else { return }
+        if layout.workspaces[index].name.isEmpty { layout.rename(workspaceAt: index, to: layout.title(at: index)) }
+        layout.setBlend(nil, workspace: id)
     }
 
     /// A new tab at the end of a group, and the group opened to show it.

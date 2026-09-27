@@ -42,6 +42,24 @@ struct TabTopicsTests {
         #expect(TabTopics.classify(soup, among: [tech], background: 0, loose: 0.9) == .none)
     }
 
+    /// A little ahead of the rest with nothing loose nearby is noise at e5's spread, and stays put.
+    @Test func aTabOnlyALittleAheadStaysWhereItIs() {
+        let dinner = group([tab([1, 0, 0])])
+        #expect(TabTopics.classify(tab([0.9, 0.44, 0]), among: [dinner], background: 0.87) == .none)
+    }
+
+    /// Another dish arriving alongside, about as near as the group, no longer makes a second group of them.
+    @Test func aLooseTabAsNearAsTheGroupDoesNotPullItAway() {
+        let dinner = group([tab([1, 0, 0])])
+        let dish = tab([0.9, 0.44, 0])
+        guard case .near(let id, let weight) = TabTopics.classify(dish, among: [dinner], background: 0.5, loose: 0.91) else {
+            Issue.record("expected near")
+            return
+        }
+        #expect(id == dinner.id)
+        #expect(weight == 0.5)
+    }
+
     @Test func aTabHalfwayStandsBetweenTheTwo() {
         let sport = group([tab([1, 0, 0])])
         let food = group([tab([0, 1, 0])])

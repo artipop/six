@@ -762,10 +762,46 @@ own e5, with `query:` on both sides. Only a tab opened since the sorter last loo
 site, is placed; a tab restored at launch is only noted. `TabTopics.classify` then asks how far the best group is
 *ahead*: of the second group, of the tab's median similarity to every tab (`background`), and of its nearest
 ungrouped tab (`loose`). Ahead by `joins` (0.035) it goes in, focus following (`placeTab`); two groups within `tie`
-of each other and both `betweenLead` ahead of the rest put it in the unnamed row between them with a `TilingLean`
-on its column, which the tab bar draws as the two colours mixed (`TabGroup.leanTint`). Ungrouped tabs are clustered
-average-linkage over how much closer two are than either usually is to *every* tab, and three or more become a
-group.
+of each other and both `betweenLead` ahead of the rest put it in the row between them. Ahead of the other groups and
+its `background` by `near` (0.035, the same as `joins`) and kept out only by a loose tab no more than `betweenLead`
+nearer, it goes into a row right after the group (`.near`). Ungrouped tabs are clustered average-linkage over how much closer two are than
+either usually is to *every* tab, and three or more become a group.
+
+**Rows between groups** (`TilingWorkspace.blend`, `TilingBlend`). The near verdict exists because of `loose`: four
+recipes joined «Ужин», the next four arrived together, each was nearer the others than the group, and they became a
+second group, «Кулинария», beside it. `near` ignores a loose tab about as close as the group, so they now stand next
+to «Ужин» instead. `near` is not lower because e5-small cannot tell a near miss from a stray: a curry recipe led
+the other groups by 0.029, a weather forecast led them (football) by 0.028; at 0.02 both went next to a group. What
+tells them apart is a loose tab about as near, which the recipes have and the strays do not.
+
+`SIX_TOPICS_SELFTEST=batch` (four recipes arriving together after a food group, two tabs about food and football,
+two strays) and `=live` (the same with Wikipedia pages in a new profile, through `TabSorter` itself):
+
+| | recipes | between | strays |
+|---|---|---|---|
+| e5-small, before `near` | 0/4, all loose | 0/2 | 2/2 kept |
+| e5-small, `near` at 0.02 | 1 in, 3 next to it | 0/2 | 0/2 — both next to football |
+| e5-small, `near` at 0.035 | 3 next to it, 1 loose | 0/2 | 2/2 kept |
+| e5-base, `near` at 0.035 | 0/4 | 0/2 | 1 next to football |
+| live, e5-small | Solyanka in; pilaf, curry, ramen next to it, named «Азиатская кухня» | 0/1 | 2/2 kept |
+| Gemma 4 E2B as the chooser | 4/4 in | 0/2, both to football | 2/2 kept |
+| Qwen 2.5 1.5B | 2/4 | 0/2 | 2/2 |
+| Gemma 3 1B | 0/4, everything to football | — | 0/2 |
+
+`=compare` with `near` at 0.035: held-out 8/12, strays 5/5, between 1/2 — as before it. A blend row is a group in the tab bar whether or not it is named: its title is its parents'
+names («Ужин · Спорт», «≈ Ужин») until the namer answers, which it is asked once the row has two tabs. The blend
+belongs to the row, not the tab, so a tab dragged in takes its colour and one dragged out loses it. Its menu merges
+it into a parent or makes it a group of its own. In `normalize`, a blend whose parent stops being a group (ungrouped,
+closed) stands next to the other parent; with neither left it is ungrouped tabs, or a group of its own if the person
+named it. A session saved with the old per-column `lean` has it moved to the row.
+
+**Colours** (`GroupColor`). OKLCH, mixed with lightness and chroma linear and the hue the short way round, then the
+chroma cut back into sRGB: red and yellow give orange, blue and yellow green, where an RGB mix goes through grey.
+The palette starts with blue, red and yellow so the first three groups' mixes are the secondaries. A group is given
+the first palette entry no other group has, kept on the row (`TilingWorkspace.color`), so closing one does not
+recolour the rest; a row next to one group is that colour faded towards a pale neutral by its weight. Groups saved
+before this had a colour taken from their id and are given one from the palette on the next change. The row itself
+does not show group colours yet.
 
 **Names and the local model.** A new group is named at once by c-TF-IDF over its tabs' text (or the host), then
 renamed in the background, unless the person has renamed it meanwhile. With the AI switch on, the assistant's own
@@ -816,8 +852,7 @@ English topic stays out (e5-small keeps languages apart on short text).
 
 The person wins. The sorter remembers the row it last put or saw each tab in (in memory); a tab found anywhere else
 was moved by hand and is left alone until it goes to another site, a split is never touched, and a group it made
-that was ungrouped marks its tabs the same way. The lean is dropped in `normalize` when the tab leaves the unnamed
-row, joins a split, or either group loses its name.
+that was ungrouped marks its tabs the same way.
 
 What the tab bar does **not** have yet: tabs from several profiles side by side (it shows the profile on screen,
 like the row), dragging a tab out into a group of its own (the tab menu's "Add Tab to New Group" does that), and

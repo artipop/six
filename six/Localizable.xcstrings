@@ -299,6 +299,26 @@
         }
       }
     },
+    "Make Separate Group" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сделать отдельной группой"
+          }
+        }
+      }
+    },
+    "Merge into %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Объединить с «%@»"
+          }
+        }
+      }
+    },
     "Message…" : {
       "localizations" : {
         "ru" : {

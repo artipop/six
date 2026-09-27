@@ -26,6 +26,8 @@ final class TabSorter {
     private var pending: Set<UUID> = []
     /// An ungroup of one of these is taken as an answer.
     private var made: Set<UUID> = []
+    /// Rows between groups already sent for a name.
+    private var named: Set<UUID> = []
     private var pass: Task<Void, Never>?
     private let model = LocalLanguageModel(modelsDirectory: AppDatabase.url.deletingLastPathComponent()
         .appending(path: "Models", directoryHint: .isDirectory))
@@ -49,7 +51,7 @@ final class TabSorter {
     func sortEverything(in browser: BrowserState) {
         for row in browser.layout.strip(for: browser.selectedProfileID).workspaces {
             let ids = row.columns.flatMap(\.tabIDs)
-            if row.name.isEmpty { arrivals.formUnion(ids) }
+            if !row.isGroup { arrivals.formUnion(ids) }
             pending.formUnion(ids)
         }
         schedule(browser)
@@ -160,15 +162,16 @@ final class TabSorter {
                   row.columns.first(where: { $0.holds(id) })?.isSplit == false,
                   let features = features(of: tab) else { continue }
 
-            let groups = strip.filter { !$0.name.isEmpty }.map { group($0, in: browser) }
+            let parents = strip.filter { !$0.name.isEmpty && $0.blend == nil }
+            let groups = parents.map { group($0, in: browser) }
             let background = TabTopics.background(of: features, among: everyone)
-            let ungrouped = Set(strip.filter(\.name.isEmpty).flatMap { $0.columns.flatMap(\.tabIDs) })
+            let ungrouped = Set(strip.filter { !$0.isGroup }.flatMap { $0.columns.flatMap(\.tabIDs) })
             let loose = everyone.filter { $0.id != id && ungrouped.contains($0.id) }
                 .map { TabTopics.cosine(features.vector, $0.vector) }.max() ?? -.infinity
             var verdict = TabTopics.classify(features, among: groups, background: background, loose: loose,
                                              weights: weights, thresholds: thresholds)
             if browser.tabSorting == .languageModel, !groups.isEmpty {
-                verdict = await chosen(for: features, among: strip.filter { !$0.name.isEmpty }, in: browser) ?? verdict
+                verdict = await chosen(for: features, among: parents, in: browser) ?? verdict
             }
             Log.debug(.browser, "sort \(host): usual \(background), loose \(loose) → \(verdict)")
             // The strip can have changed while the model answered.
@@ -182,13 +185,9 @@ final class TabSorter {
                 moved = true
                 Log.info(.browser, "sorted \(host) into \(latest.first { $0.id == target }?.name ?? "?")")
             case .between(let from, let to, let weight):
-                let lean = TilingLean(from: from, to: to, weight: weight)
-                if here.columns.first(where: { $0.holds(id) })?.lean == lean { continue }
-                if let bridge = browser.layout.placeTabBetween(id, in: profileID, lean: lean) {
-                    seen[id]?.row = bridge
-                    moved = true
-                    Log.info(.browser, "sorted \(host) between two groups, \(String(format: "%.2f", weight))")
-                }
+                if place(id, TilingBlend(from: from, to: to, weight: weight), from: here, in: browser) { moved = true }
+            case .near(let group, let weight):
+                if place(id, TilingBlend(from: group, to: nil, weight: weight), from: here, in: browser) { moved = true }
             default:
                 break
             }
@@ -196,6 +195,24 @@ final class TabSorter {
 
         if makeGroups(browser, profileID: profileID) { moved = true }
         if moved, let front { browser.selectTab(front) }
+    }
+
+    /// Into the row between groups; one with two tabs is sent for a name of its own.
+    private func place(_ id: UUID, _ blend: TilingBlend, from here: TilingWorkspace, in browser: BrowserState) -> Bool {
+        let profileID = browser.selectedProfileID
+        guard here.blend?.joins(blend) != true,
+              let row = browser.layout.placeTab(id, in: profileID, blend: blend) else { return false }
+        seen[id]?.row = row
+        Log.info(.browser, "sorted a tab \(blend.to == nil ? "next to" : "between") groups, \(String(format: "%.2f", blend.weight))")
+        let strip = browser.layout.strip(for: profileID).workspaces
+        if let found = strip.first(where: { $0.id == row }), found.name.isEmpty, !named.contains(row) {
+            let titles = found.columns.flatMap(\.tabIDs).compactMap { vectors[$0]?.text }
+            if titles.count >= 2 {
+                named.insert(row)
+                rename(row, from: "", titles: titles, in: browser)
+            }
+        }
+        return true
     }
 
     /// Nil when the model could not answer, and the embeddings' verdict stands.
@@ -233,12 +250,12 @@ final class TabSorter {
 
     private func makeGroups(_ browser: BrowserState, profileID: UUID) -> Bool {
         var strip = browser.layout.strip(for: profileID).workspaces
-        for row in strip where made.contains(row.id) && row.name.isEmpty {
+        for row in strip where made.contains(row.id) && !row.isGroup {
             made.remove(row.id)
             for id in row.columns.flatMap(\.tabIDs) { seen[id]?.byHand = true }
         }
-        let loose = strip.filter(\.name.isEmpty).flatMap(\.columns)
-            .filter { !$0.isSplit && $0.lean == nil }
+        let loose = strip.filter { !$0.isGroup }.flatMap(\.columns)
+            .filter { !$0.isSplit }
             .map(\.tabID)
             .filter { seen[$0].map { !$0.byHand } == true }
             .compactMap(browser.tab).compactMap(features(of:))

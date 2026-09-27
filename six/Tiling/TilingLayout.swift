@@ -49,8 +49,8 @@ nonisolated struct TilingColumn: Identifiable, Hashable, Sendable, Codable {
     /// Which half the focus is in: 0 for `tabID`, 1 for `second`. Everything keyed off the selection
     /// — the address field, ⌘W, the assistant, ⌃Tab — points at that one.
     var pane: Int = 0
-    /// Set on a window the tab sorter put between two groups, for its tint (`TabSorter`).
-    var lean: TilingLean?
+    /// Read from sessions saved when the tint was a window's and not its row's; `normalize` moves it.
+    var lean: TilingBlend?
 
     init(id: UUID = UUID(), tabID: UUID, second: UUID? = nil, pane: Int = 0) {
         self.id = id
@@ -118,16 +118,20 @@ nonisolated struct TilingColumn: Identifiable, Hashable, Sendable, Codable {
         id = try values.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
         second = try values.decodeIfPresent(UUID.self, forKey: .second)
         pane = try values.decodeIfPresent(Int.self, forKey: .pane) ?? 0
-        lean = try values.decodeIfPresent(TilingLean.self, forKey: .lean)
+        lean = try values.decodeIfPresent(TilingBlend.self, forKey: .lean)
     }
 }
 
-/// A window about two groups at once: it stands in the unnamed row between them, and `weight` is
-/// how far it is from `from` towards `to`.
-nonisolated struct TilingLean: Hashable, Sendable, Codable {
+/// A row between two groups, or next to one it almost belongs to (`to` nil); `weight` is how far it
+/// is from `from` towards the other. Its colour is the two mixed (`GroupColor`).
+nonisolated struct TilingBlend: Hashable, Sendable, Codable {
     var from: UUID
-    var to: UUID
+    var to: UUID?
     var weight: Double
+
+    var parents: [UUID] { [from] + (to.map { [$0] } ?? []) }
+
+    func joins(_ other: TilingBlend) -> Bool { Set(parents) == Set(other.parents) }
 }
 
 /// A workspace: an infinite horizontal strip of full-height columns.
@@ -147,10 +151,15 @@ nonisolated struct TilingWorkspace: Identifiable, Sendable, Codable {
     /// the tabs come back. Optional because the session file outlives the build that wrote it: a
     /// strip saved before this existed decodes with it absent, and absent is open.
     var collapsed: Bool?
+    /// Set on a row that stands between groups; such a row is a group whether or not it is named.
+    var blend: TilingBlend?
+    /// An index into `GroupColor.palette`, given when the row first becomes a group.
+    var color: Int?
 
     var isCollapsed: Bool { collapsed == true }
-    /// Only a named row is a group in the tab bar, so only a named row can be folded.
-    var isFolded: Bool { isCollapsed && !name.isEmpty }
+    var isGroup: Bool { !name.isEmpty || blend != nil }
+    /// Only a group in the tab bar can be folded.
+    var isFolded: Bool { isCollapsed && isGroup }
     var isEmpty: Bool { columns.isEmpty }
     var focusedColumn: TilingColumn? { columns.indices.contains(focus) ? columns[focus] : nil }
 }
@@ -549,20 +558,39 @@ final class TilingLayout {
         let focusedID = s.workspaces.indices.contains(s.focus) ? s.workspaces[s.focus].id : nil
         var kept = s.workspaces.filter { !$0.isEmpty || !$0.name.isEmpty || $0.id == keepsEmptyOnce }
         if let trailing = s.workspaces.last, trailing.isEmpty, trailing.name.isEmpty, trailing.id != keepsEmptyOnce {
-            kept.append(trailing) // reuse its identity so focus survives the prune
+            var spare = trailing // reuse its identity so focus survives the prune
+            spare.blend = nil
+            kept.append(spare)
         } else {
             kept.append(TilingWorkspace())
         }
-        let named = Set(kept.filter { !$0.name.isEmpty }.map(\.id))
         for i in kept.indices {
-            // A lean means "between these two groups", which a move, a split or an ungroup ends.
             for j in kept[i].columns.indices {
                 guard let lean = kept[i].columns[j].lean else { continue }
-                if !kept[i].name.isEmpty || kept[i].columns[j].isSplit
-                    || !named.contains(lean.from) || !named.contains(lean.to) {
-                    kept[i].columns[j].lean = nil
-                }
+                if kept[i].name.isEmpty, kept[i].blend == nil { kept[i].blend = lean }
+                kept[i].columns[j].lean = nil
             }
+        }
+        // A parent that stops being a group leaves the row next to the other, or ungrouped.
+        let parents = Set(kept.filter { !$0.name.isEmpty && $0.blend == nil }.map(\.id))
+        for i in kept.indices {
+            guard let blend = kept[i].blend else { continue }
+            let to = blend.to.flatMap { parents.contains($0) ? $0 : nil }
+            if parents.contains(blend.from) {
+                if to == nil, blend.to != nil { kept[i].blend?.to = nil }
+            } else if let to {
+                kept[i].blend = TilingBlend(from: to, to: nil, weight: 1 - blend.weight)
+            } else {
+                kept[i].blend = nil
+            }
+        }
+        var used = kept.compactMap { $0.isGroup ? $0.color : nil }
+        for i in kept.indices {
+            if kept[i].isGroup, kept[i].blend == nil, kept[i].color == nil {
+                kept[i].color = GroupColor.free(among: used)
+                used.append(kept[i].color!)
+            }
+            if !kept[i].isGroup { kept[i].color = nil }
             kept[i].focus = min(max(0, kept[i].focus), max(0, kept[i].columns.count - 1))
             kept[i].viewOffset = clampOffset(kept[i].viewOffset, in: kept[i])
         }
@@ -1841,8 +1869,12 @@ final class TilingLayout {
         }
     }
 
-    /// The name, or the position when there is none.
+    /// The name; for an unnamed row between groups, theirs; else the position.
     func title(at index: Int) -> String {
+        if workspaces.indices.contains(index), workspaces[index].name.isEmpty, let blend = workspaces[index].blend {
+            let names = blend.parents.compactMap { id in workspaces.first { $0.id == id }?.name }
+            return names.count == 2 ? names.joined(separator: " · ") : "≈ " + (names.first ?? "")
+        }
         guard workspaces.indices.contains(index), !workspaces[index].name.isEmpty else {
             #if os(Linux) || os(Windows)
             return "Workspace \(index + 1)"
@@ -1924,45 +1956,60 @@ final class TilingLayout {
         return created
     }
 
-    /// A window into the unnamed row between two groups, made or found, the two moved together
-    /// first if they were not. Returns that row's id.
+    /// A window into the row between two groups, or next to the one it almost belongs to, made or
+    /// found; two groups are moved together first if they were not. Returns that row's id.
     @discardableResult
-    func placeTabBetween(_ tabID: UUID, in profileID: UUID, lean: TilingLean) -> UUID? {
-        var bridge: UUID?
+    func placeTab(_ tabID: UUID, in profileID: UUID, blend: TilingBlend) -> UUID? {
+        var row: UUID?
         mutate(profile: profileID) { s in
-            guard var a = s.workspaces.firstIndex(where: { $0.id == lean.from }) else { return }
-            guard var b = s.workspaces.firstIndex(where: { $0.id == lean.to }) else { return }
-            // Keep whichever group is higher up where it is and bring the other one to it.
-            if b < a { swap(&a, &b) }
-            let between = a + 1
-            if b - a == 2, s.workspaces[between].name.isEmpty {
-                bridge = s.workspaces[between].id
+            if let found = s.workspaces.first(where: { $0.blend?.joins(blend) == true }) {
+                row = found.id
                 return
             }
+            guard var a = s.workspaces.firstIndex(where: { $0.id == blend.from }) else { return }
+            var made = TilingWorkspace()
+            made.blend = blend
+            row = made.id
+            keepsEmptyOnce = made.id
+            guard let to = blend.to else {
+                s.workspaces.insert(made, at: a + 1)
+                return
+            }
+            guard var b = s.workspaces.firstIndex(where: { $0.id == to }) else { return }
+            // Keep whichever group is higher up where it is and bring the other one to it.
+            if b < a { swap(&a, &b) }
             let lower = s.workspaces.remove(at: b)
-            let row = TilingWorkspace()
-            s.workspaces.insert(row, at: between)
-            s.workspaces.insert(lower, at: between + 1)
-            bridge = row.id
-            keepsEmptyOnce = row.id
+            s.workspaces.insert(made, at: a + 1)
+            s.workspaces.insert(lower, at: a + 2)
         }
-        guard let bridge else { return nil }
-        let row = strip(for: profileID).workspaces.first { $0.id == bridge }
-        if row?.columns.contains(where: { $0.holds(tabID) }) != true {
-            placeTab(tabID, in: profileID, workspace: bridge, at: row?.columns.count ?? 0)
+        guard let row else { return nil }
+        let columns = strip(for: profileID).workspaces.first { $0.id == row }?.columns ?? []
+        if !columns.contains(where: { $0.holds(tabID) }) {
+            placeTab(tabID, in: profileID, workspace: row, at: columns.count)
         }
-        setLean(lean, of: tabID, in: profileID)
-        return bridge
+        return row
     }
 
-    func setLean(_ lean: TilingLean?, of tabID: UUID, in profileID: UUID) {
-        mutate(profile: profileID) { s in
-            for i in s.workspaces.indices {
-                if let j = s.workspaces[i].columns.firstIndex(where: { $0.holds(tabID) && !$0.isSplit }) {
-                    s.workspaces[i].columns[j].lean = lean
-                }
-            }
+    /// Nil makes the row an ordinary one: a group of its own if it is named, else ungrouped tabs.
+    func setBlend(_ blend: TilingBlend?, workspace id: UUID) {
+        mutate { s in
+            guard let index = s.workspaces.firstIndex(where: { $0.id == id }) else { return }
+            s.workspaces[index].blend = blend
         }
+    }
+
+    /// A group's colour: its own, or its parents' mixed; nil for ungrouped tabs.
+    func groupColor(of id: UUID) -> GroupColor? {
+        guard let row = workspaces.first(where: { $0.id == id }), row.isGroup else { return nil }
+        func own(_ row: TilingWorkspace) -> GroupColor {
+            GroupColor.palette[(row.color ?? Int(row.id.uuid.0)) % GroupColor.palette.count]
+        }
+        guard let blend = row.blend else { return own(row) }
+        guard let from = workspaces.first(where: { $0.id == blend.from }) else { return own(row) }
+        guard let to = blend.to.flatMap({ id in workspaces.first { $0.id == id } }) else {
+            return own(from).faded(by: blend.weight)
+        }
+        return own(from).mixed(with: own(to), by: blend.weight)
     }
 
     func removeProfile(_ id: UUID) {
