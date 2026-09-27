@@ -509,8 +509,8 @@ docs/agent-actions.md there). The options would be the group names plus "none"; 
 confidence is calibrated enough to replace `joins` and `tie`, and what 0.35–1.3 s per tab on MPS costs when tabs
 arrive in bursts. The same question asked of a local instruct model is built (**Sort By ▸ Local Model**,
 docs/layout.md): Gemma 4 E2B places tabs better than the embeddings but at 5.6 s and 3.6 GB a tab on 8 GB, and
-never answered "between". An ACP agent is not asked to name groups because its one session is the person's chat;
-a headless session of its own would be the way.
+never answered "between". An ACP agent names groups through its own errand sessions (`AgentErrands`), but does not
+place tabs yet.
 
 ## Smaller things
 

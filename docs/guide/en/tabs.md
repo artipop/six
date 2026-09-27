@@ -65,8 +65,8 @@ features:
   is coloured between the two groups' colours.
 - Three alike tabs with no group become a new group. At first it is named after
   the words their titles share; a moment later a name by meaning replaces it
-  ("Cooking", "Football"). The assistant's model gives it when language models are
-  on, the **Local Model** on this Mac otherwise. A name you typed in the meantime
+  ("Cooking", "Football"). The assistant's model or agent gives it when language
+  models are on, the **Local Model** on this Mac otherwise. A name you typed in the meantime
   stays.
 - A tab you moved by hand stays where you put it until it goes to another site. A
   group you ungrouped is not made again.

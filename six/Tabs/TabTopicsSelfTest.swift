@@ -35,6 +35,10 @@ enum TabTopicsSelfTest {
             await self.compare(embedder, say)
             return say("done")
         }
+        if ProcessInfo.processInfo.environment["SIX_TOPICS_SELFTEST"] == "agent" {
+            await askAgent(browser, say)
+            return say("done")
+        }
         if grid {
             let models = AppDatabase.url.deletingLastPathComponent().appending(path: "Models", directoryHint: .isDirectory)
             for choice in EmbeddingModelChoice.allCases {
@@ -72,6 +76,21 @@ enum TabTopicsSelfTest {
                 say("\(chosen.name) name \"\(name)\" in \(Int(Date().timeIntervalSince(started) * 1000)) ms for \(titles.first ?? "")")
             } catch {
                 say("name failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private static func askAgent(_ browser: BrowserState, _ say: (String) -> Void) async {
+        guard let ask = browser.askAgent else { return say("agent: not wired") }
+        for titles in [["Chocolate lava cake recipe", "Как испечь брауни", "Panna cotta with berries"],
+                       ["Tesla Model 3 review", "Зарядные станции для электромобилей", "BYD Seal: first drive"]] {
+            let started = Date()
+            do {
+                let question = LocalLanguageModel.instructions + " Do not use tools.\n\n" + LocalLanguageModel.prompt(titles)
+                let answer = try await ask(question)
+                say("agent answered \"\(answer ?? "nil")\" → \"\(answer.map { LocalLanguageModel.clean($0, titles: titles) } ?? "")\" in \(Int(Date().timeIntervalSince(started) * 1000)) ms")
+            } catch {
+                say("agent failed: \(error.localizedDescription)")
             }
         }
     }

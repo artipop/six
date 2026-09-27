@@ -60,6 +60,7 @@
 			membershipExceptions = (
 				ACP/ACPAgent.swift,
 				ACP/ACPClient.swift,
+				ACP/AgentErrands.swift,
 				ACP/AgentSessionStore.swift,
 				ACP/AgentToolchain.swift,
 				ACP/AgentToolName.swift,

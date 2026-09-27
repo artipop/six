@@ -266,14 +266,22 @@ final class TabSorter {
         return true
     }
 
-    /// The assistant's model when AI is on, else the small one. Not an ACP agent: its one session is
-    /// the person's chat. A name typed in the meantime wins.
+    /// The assistant's model or agent when AI is on, else the small one. A name typed in the meantime wins.
     private func rename(_ group: UUID, from label: String, titles: [String], in browser: BrowserState) {
         let session = browser.isAIEnabled ? try? browser.assistantSettings.namingSession(instructions: LocalLanguageModel.instructions) : nil
+        let agent = browser.isAIEnabled ? browser.askAgent : nil
         let choice = browser.localModel
         Task { [weak browser, model] in
             var name = ""
-            if let session {
+            if let agent {
+                do {
+                    let question = LocalLanguageModel.instructions + " Do not use tools.\n\n" + LocalLanguageModel.prompt(titles)
+                    if let answer = try await agent(question) { name = LocalLanguageModel.clean(answer, titles: titles) }
+                } catch {
+                    Log.info(.browser, "group name: agent: \(error.localizedDescription)")
+                }
+            }
+            if name.isEmpty, let session {
                 do {
                     name = LocalLanguageModel.clean(try await session.respond(to: LocalLanguageModel.prompt(titles)).content, titles: titles)
                 } catch {

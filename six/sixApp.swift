@@ -171,6 +171,12 @@ struct sixApp: App {
         agentSession.browser = browser
         let research = ResearchCoordinator(browser: browser, agentSession: agentSession, settings: settings)
         assistant.agentSession = agentSession
+        let errands = AgentErrands()
+        browser.askAgent = { [weak agentSession] question in
+            guard let agentSession, let agent = AssistantSettings(store: settings).model.agentDefinition else { return nil }
+            if agentSession.toolchain.report(for: agent).adapter == .unknown { await agentSession.toolchain.refresh(agent) }
+            return try await errands.ask(question, agent: agentSession.toolchain.launchDefinition(for: agent))
+        }
         assistant.research = research
         let mcp = MCPHost(server: MCPServer(catalog: tools))
         // Always listening, whatever the assistant switch says. This is six offering *itself* to

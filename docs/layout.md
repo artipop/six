@@ -768,9 +768,11 @@ average-linkage over how much closer two are than either usually is to *every* t
 group.
 
 **Names and the local model.** A new group is named at once by c-TF-IDF over its tabs' text (or the host), then
-renamed in the background, unless the person has renamed it meanwhile: by the assistant's language model when the
-AI switch is on and one is chosen (`AssistantSettings.namingSession`; never an ACP agent, whose one session is the
-person's chat), else by the **local model** (`LocalLanguageModel`, `LocalModelChoice`, Configuration ▸ Windows):
+renamed in the background, unless the person has renamed it meanwhile. With the AI switch on, the assistant's own
+choice answers: a language model through `AssistantSettings.namingSession`, or an ACP agent through `AgentErrands` —
+a second connection to the same agent, a fresh session per question in `Agents/Errands` inside six's folder, tools
+refused, so nothing lands in the person's chat (Claude Code: 9 s for the first name, spawn included, 4 s after).
+Otherwise, and when that fails, the **local model** (`LocalLanguageModel`, `LocalModelChoice`, Configuration ▸ Windows):
 Gemma 3 1B by default, Qwen 2.5 1.5B, or Gemma 4 E2B, through MLXLLM from the `mlx-swift-lm` package the embedder
 already uses. It is loaded for the question and let go a minute after the last one. The answer has to be in the
 interface's script (a title's own words excepted), or the c-TF-IDF name stays. The examples are earlier chat turns,

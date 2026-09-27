@@ -1477,6 +1477,9 @@ final class BrowserState {
 
     var assistantSettings: AssistantSettings { AssistantSettings(store: settings) }
 
+    /// The assistant's ACP agent, asked outside the person's chat; answers nil when the assistant is not an agent.
+    @ObservationIgnored var askAgent: (@MainActor (String) async throws -> String?)?
+
     var sortsTabsByMeaning: Bool { settings.sortsTabsByMeaning }
 
     var localModel: LocalModelChoice {
