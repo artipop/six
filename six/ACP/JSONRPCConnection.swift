@@ -121,8 +121,9 @@ actor JSONRPCConnection {
                     }
                 }
             } else {
-                let handler = notificationHandler
-                Task { await handler?(method, params) }
+                // In order, and before any response read after it: a Task per notification let
+                // message chunks land shuffled, and a turn's answer be read before its last chunk.
+                await notificationHandler?(method, params)
             }
         } else if let id = object["id"]?.intValue, let continuation = pending.removeValue(forKey: id) {
             if let error = object["error"], let rpcError = try? error.decode(JSONRPCError.self) {
