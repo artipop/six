@@ -60,6 +60,9 @@ public struct WebView: AdwaitaWidget {
             // Here and not in `connect`: `permission-request` is wired by hand, and hand-wiring has
             // none of adwaita's one-handler-per-name bookkeeping. `update` runs on every render.
             PermissionRequests.connect(pointer, tabID: tabID)
+            // Before the first load, which `update` below starts: a user script reaches the loads
+            // that begin after it was added, and no earlier one.
+            PageChannels.install(pointer, tabID: tabID)
         }
         update(storage, data: data, updateProperties: true, type: type)
         return storage

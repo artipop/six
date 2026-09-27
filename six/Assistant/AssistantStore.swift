@@ -425,13 +425,23 @@ final class AssistantStore {
     // MARK: The prompt
 
     private func currentSession() throws -> LanguageModelSession {
-        if let session, sessionModel == settings.model { return session }
+        // The page's own tools are the window's, not the app's, so a session outlives them: the
+        // window navigates and what it offers is something else (docs/webmcp.md, stage 4). The
+        // signature is empty while WebMCP is off — which is the default — and then this is the
+        // session cache exactly as it was.
+        let pageSignature = tools?.pageToolsSignature ?? ""
+        if let session, sessionModel == settings.model, sessionPageTools == pageSignature { return session }
         let modelTools = try (tools?.tools(for: .assistant) ?? []).map { try BrowserModelTool($0) }
-        let session = try settings.makeSession(instructions: Self.instructions, tools: modelTools)
+        let pageTools = tools?.pageModelTools() ?? []
+        let session = try settings.makeSession(instructions: Self.instructions, tools: modelTools + pageTools)
         self.session = session
         sessionModel = settings.model
+        sessionPageTools = pageSignature
         return session
     }
+
+    /// What `pageToolsSignature` said when the session was built.
+    private var sessionPageTools = ""
 
     /// What the model is given: where the person is, what they are pointing at, and the one thing to
     /// do with it. The page's text comes along only when nothing narrower was pointed at — a

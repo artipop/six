@@ -1,0 +1,83 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>WebMCP test page</title>
+<style>
+  body { font: 16px/1.5 system-ui, sans-serif; margin: 2em; max-width: 44em; }
+  code, pre { font: 14px ui-monospace, Consolas, monospace; }
+</style>
+<h1>WebMCP test page</h1>
+<p>
+  Declares four tools through <code>document.modelContext</code>, which is six's polyfill
+  (<code>six/WebMCP/WebMCPScript.swift</code>). <code>SIX_WEBMCP_SELFTEST</code> drives it from
+  launch; by hand, the address field's tool badge should say 4, then 3 after
+  <code>forget_slow</code>, and nothing after a navigation. See docs/webmcp.md.
+</p>
+<pre id="log"></pre>
+<script>
+  const log = (line) => { document.getElementById('log').textContent += line + '\n'; };
+  const context = document.modelContext;
+  if (!context) {
+    log('No document.modelContext: WebMCP is off in six, or this page is not a secure context.');
+  } else {
+    let aborts = 0;
+    let toolchanges = 0;
+    context.addEventListener('toolchange', () => { toolchanges += 1; });
+
+    context.registerTool({
+      name: 'add',
+      title: 'Add',
+      description: 'Adds two numbers and answers the sum.',
+      inputSchema: {
+        type: 'object',
+        properties: { a: { type: 'number' }, b: { type: 'number' } },
+        required: ['a', 'b']
+      },
+      annotations: { readOnlyHint: true },
+      execute: ({ a, b }) => String(a + b)
+    });
+
+    // Registered with a signal, so that forget_slow can take it away the draft's way.
+    const slowRegistration = new AbortController();
+    context.registerTool({
+      name: 'slow',
+      description: 'Waits ms milliseconds, then answers "done". Gives up as soon as the call is cancelled.',
+      inputSchema: { type: 'object', properties: { ms: { type: 'number' } } },
+      execute: ({ ms }, { signal }) => new Promise((resolve, reject) => {
+        const timer = setTimeout(() => resolve('done'), ms || 1000);
+        signal.addEventListener('abort', () => {
+          clearTimeout(timer);
+          aborts += 1;
+          log('slow: cancelled (' + signal.reason + ')');
+          reject(signal.reason);
+        });
+      })
+    }, { signal: slowRegistration.signal });
+
+    context.registerTool({
+      name: 'forget_slow',
+      description: 'Unregisters slow by aborting the signal it was registered with.',
+      execute: () => { slowRegistration.abort(); return 'slow is gone'; }
+    });
+
+    // Answered in MCP's CallToolResult shape, the way pages written for the first origin trial do.
+    context.registerTool({
+      name: 'status',
+      description: 'What this page has seen: cancelled calls, toolchange events, and its own view of the API.',
+      annotations: { readOnlyHint: true },
+      execute: async () => ({
+        content: [{
+          type: 'text',
+          text: JSON.stringify({
+            aborts,
+            toolchanges,
+            same: document.modelContext === navigator.modelContext,
+            secure: window.isSecureContext,
+            tools: (await context.getTools()).length
+          })
+        }]
+      })
+    });
+
+    log('Declared add, slow, forget_slow and status.');
+  }
+</script>
