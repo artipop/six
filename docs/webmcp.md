@@ -213,6 +213,50 @@ enumerable, have WebIDL's lengths and brand-check `this`. The polyfill takes `Pr
 from `window` before the page runs, so a page replacing one of them does not break it; a page patching their
 prototypes still can.
 
+## Frames: what WebKit allows, measured
+
+Every frame test in the suite needs the polyfill in frames other than the main one, and a broker that can reach any
+of them. Measured on 2026-09-27, macOS 27, dev build, with a throwaway probe (a user script in every frame of the
+page's world, a `WKScriptMessageHandlerWithReply`, and `WKWebView.callAsyncJavaScript(_:in: WKFrameInfo, contentWorld:)`
+through `WebViewResponder.webView(for:)`), on a stand page holding a same-origin iframe, two cross-origin ones
+(`www1.six.localhost`, one with `allow="tools"`), a `srcdoc`, a static `about:blank` and one created from script:
+
+- **A `forMainFrameOnly: false` user script reaches every one of them** — cross-origin frames included, `srcdoc`, the
+  static `about:blank`, and an `about:blank` iframe created by `appendChild`, where it has already run when
+  `appendChild` returns. The parent does not have to install anything into a same-origin child itself.
+- **The reply handler answers in every frame.** `postMessage` returns a promise there, and each frame got its own
+  answer; `message.frameInfo` names the frame's own origin (`about:blank` and `srcdoc` inherit the parent's), which
+  is the origin six should trust rather than anything the page says.
+- **Running code in one particular frame works**, cross-origin frames too, from the `WKFrameInfo` its message
+  carried. A frame that has gone answers `WKErrorDomain` 12, "Target frame could not be found" — the navigated-away
+  case, for free. `WebPage.callJavaScript(in:)` takes a `WebPage.FrameInfo`, which only navigation and dialog
+  callbacks hand out, so the `WKWebView` is the way in; it exists once a pane has shown the window.
+- **WebKit has no `document.featurePolicy` or `permissionsPolicy`.** The `tools` policy has to be six's own
+  computation.
+- **`window.open` hands the page no window.** Without a gesture WebKit's popup blocking answers `null`; with one six
+  opens a new column that is not scripting-connected to its opener (docs/links.md). The two tests that script an
+  opened window — `exposedTo-window-open` and `executeTool-across-trees` — cannot pass until that changes, and the
+  same gap breaks any site whose sign-in popup answers through `window.opener`. That is a browser matter, not a
+  WebMCP one.
+
+### The shape this gives stage 3
+
+- The polyfill runs in every frame, each with a random frame token beside its document token. Swift keeps the latest
+  `WKFrameInfo` per window and frame token, and takes the frame's origin from it.
+- The channel becomes a reply handler, so `getTools` and `executeTool` from any frame are one request to Swift and
+  one answer. The broker is `WebMCPHost`, in `SixCore`: a registry per window, per frame, with `exposedTo` and
+  `fromOrigins` applied there.
+- A call into another frame goes to that frame through `callAsyncJavaScript(in:)`, and its answer comes back over
+  the channel as calls do now. A stale frame is a navigation.
+- The `tools` policy: a frame is allowed when it is same-origin with its parent, or when the parent's iframe element
+  says `allow="tools"` (or `tools *`, or names the child's origin). The parent's polyfill reports its iframes'
+  `allow` and hands each child, by `postMessage`, a random id for its element; the child passes it to Swift. A child
+  that lies can only claim a sibling's policy, and only with an id it was never sent.
+- A detached frame's `document.defaultView` is `null`: every operation there is `InvalidStateError`.
+- `toolchange` is dispatched by Swift into every frame whose view of the tools changed.
+- Agents see a subframe's tools with the subframe's origin, and the site question is asked about that origin — an
+  ad frame does not inherit the answer given to the page.
+
 ## What has been checked
 
 - **Mac.** Both schemes build. `SIX_WEBMCP_SELFTEST` against `Tests/WebMCP/webmcp.html`: 22 checks, `PASS`.
