@@ -41,6 +41,19 @@ nonisolated enum WebMCPScript {
             """
     }
 
+    /// The same, for a call one frame's `executeTool` makes to another's tool: the input arrives
+    /// as the caller's JSON text.
+    static func startBody(call: String, tool: String, input: String) -> String {
+        """
+        const bridge = window.\(bridgeKey);
+        if (!bridge) { throw new Error('there is no WebMCP polyfill in this frame'); }
+        return bridge.start(\(literal(call)), \(literal(tool)), \(literal(input)));
+        """
+    }
+
+    /// Tells a frame that the tools it can see changed.
+    static let toolChangeBody = "const bridge = window.\(bridgeKey); if (bridge) { bridge.toolchange(); } return true;"
+
     /// Fires the call's `AbortSignal` in the page. Harmless for a call that has already ended.
     static func cancelBody(call: String, reason: String) -> String {
         """
@@ -63,14 +76,11 @@ nonisolated enum WebMCPScript {
             .replacingOccurrences(of: "\u{2029}", with: "\\u2029")
     }
 
-    /// The polyfill: a `WKUserScript` at document start, main frame only.
+    /// The polyfill: a `WKUserScript` at document start, in every frame a front injects it into.
     static var source: String {
         #"""
         (function () {
             'use strict';
-            // The main frame only. The draft lets a frame in through the `tools` permissions policy,
-            // and six has not built that half (docs/webmcp.md, stage 3).
-            if (window.top !== window) { return; }
             const channel = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.\#(handlerName);
             if (!channel) { return; }
             // Taken now, before any of the page's own scripts has run and could replace them.
@@ -79,19 +89,43 @@ nonisolated enum WebMCPScript {
             const stringify = JSON.stringify;
             const parse = JSON.parse;
             const doc = Math.random().toString(36).slice(2) + Date.now().toString(36);
-            const post = (message) => {
+            // Where this frame sits in the page, as indices into `frames` from the top.
+            const path = [];
+            try {
+                for (let w = window; w !== w.parent; w = w.parent) {
+                    const up = w.parent;
+                    let i = 0;
+                    while (i < up.frames.length && up.frames[i] !== w) { i++; }
+                    path.unshift(i);
+                }
+            } catch (e) {}
+            // A channel that answers (a reply handler) is what reaches the other frames through six;
+            // one that does not leaves this document on its own.
+            const ask = (message) => {
                 message.doc = doc;
-                try { channel.postMessage(stringify(message)); } catch (e) {}
+                let answer;
+                try { answer = channel.postMessage(stringify(message)); } catch (e) { return null; }
+                if (!answer || typeof answer.then !== 'function') { return null; }
+                return Promise.resolve(answer).then((text) => {
+                    try { return text ? parse(text) : {}; } catch (e) { return {}; }
+                });
             };
+            const post = (message) => { ask(message); };
 
-            // First, and whatever happens next: this window shows a new document. A page that gets
+            // First, and whatever happens next: this frame shows a new document. A page that gets
             // no modelContext below still has to take the previous page's tools away with it.
-            post({ kind: 'document', url: String(location.href) });
+            const brokered = !!ask({ kind: 'document', url: String(location.href), path });
 
             // `[SecureContext]` in the draft. And a page that already has one — a native
             // implementation, one day — keeps it; the draft's own polyfills check for this too.
             if (!window.isSecureContext) { return; }
-            if ('modelContext' in document || 'modelContext' in navigator) { return; }
+            // An initial about:blank that navigates keeps its Window, and with it the previous
+            // install; that one is replaced, anything else that got here first is left alone.
+            const previous = Object.getOwnPropertyDescriptor(window, '\#(bridgeKey)');
+            if (!previous && ('modelContext' in document || 'modelContext' in navigator)) { return; }
+            const TARGET = Symbol('document');
+            const detached = () => !document.defaultView;
+            const gone = () => Promise.reject(new DOMException('the document is not active', 'InvalidStateError'));
 
             const NAME = /^[A-Za-z0-9_.-]{1,128}$/;
             const origin = String(location.origin);
@@ -112,17 +146,21 @@ nonisolated enum WebMCPScript {
                 inputSchema: entry.inputSchema, annotations: entry.annotations, origin
             });
 
-            // `getTools()`'s RegisteredTool: the page also gets its window, and annotations only
-            // when the tool was registered with some.
+            // The schema and annotations as a page reads them back: absent when none were given.
+            const asPage = (entry) => ({
+                inputSchema: entry.pageSchema,
+                annotations: entry.declaredAnnotations
+                    ? Object.assign({}, entry.annotations, { debugging: entry.debugging }) : undefined
+            });
+
+            // `getTools()`'s RegisteredTool: the page also gets its window.
             const registered = (entry) => {
                 const tool = describe(entry);
                 tool.origin = String(self.origin);
                 tool.window = window;
-                if (entry.declaredAnnotations) {
-                    tool.annotations = Object.assign({}, entry.annotations, { debugging: entry.debugging });
-                } else {
-                    delete tool.annotations;
-                }
+                const page = asPage(entry);
+                if (page.inputSchema === undefined) { delete tool.inputSchema; } else { tool.inputSchema = page.inputSchema; }
+                if (page.annotations === undefined) { delete tool.annotations; } else { tool.annotations = page.annotations; }
                 return tool;
             };
 
@@ -151,7 +189,9 @@ nonisolated enum WebMCPScript {
                 return value;
             }
 
-            const announce = (entry) => post({ kind: 'register', origin, tool: describe(entry) });
+            const announce = (entry) => ask({
+                kind: 'register', origin, tool: describe(entry), exposedTo: entry.exposedTo, page: stringify(asPage(entry))
+            });
 
             const changed = (context) => {
                 try { context.dispatchEvent(new Event('toolchange')); } catch (e) {}
@@ -171,13 +211,19 @@ nonisolated enum WebMCPScript {
                     throw new TypeError('registerTool: execute must be a function');
                 }
                 let inputSchema = { type: 'object', properties: {} };
+                let pageSchema;
                 if (tool.inputSchema !== undefined && tool.inputSchema !== null) {
                     if (typeof tool.inputSchema !== 'object') {
                         throw new TypeError('registerTool: inputSchema must be an object');
                     }
-                    try { inputSchema = parse(stringify(tool.inputSchema)); } catch (e) {
+                    let text;
+                    try { text = stringify(tool.inputSchema); } catch (e) {
                         throw new TypeError('registerTool: inputSchema must be JSON');
                     }
+                    if (text === undefined) { throw new TypeError('registerTool: inputSchema must be JSON'); }
+                    pageSchema = parse(text);
+                    // What the page gets back is what it wrote; agents need an object.
+                    if (pageSchema && typeof pageSchema === 'object' && !Array.isArray(pageSchema)) { inputSchema = pageSchema; }
                 }
                 const hints = tool.annotations || {};
                 return {
@@ -189,6 +235,7 @@ nonisolated enum WebMCPScript {
                     declaredAnnotations: tool.annotations !== undefined && tool.annotations !== null,
                     debugging: !!hints.debugging,
                     inputSchema,
+                    pageSchema,
                     annotations: {
                         readOnlyHint: !!hints.readOnlyHint,
                         untrustedContentHint: !!hints.untrustedContentHint,
@@ -287,6 +334,53 @@ nonisolated enum WebMCPScript {
             // and sites built then still call it that way. One object can be both.
             const withUnregister = (promise, unregister) => { promise.unregister = unregister; return promise; };
 
+            const frameAt = (steps) => {
+                try {
+                    let w = window.top;
+                    for (const i of steps) { w = w.frames[i]; }
+                    return w || null;
+                } catch (e) { return null; }
+            };
+
+            // A tool another document of this page registered, as `getTools()` hands it out.
+            const foreign = (t) => {
+                const tool = { name: t.name, title: t.title || '', description: t.description, origin: t.origin, window: frameAt(t.path || []) };
+                let page = {};
+                try { page = parse(t.page || '{}'); } catch (e) {}
+                if (page.inputSchema !== undefined) { tool.inputSchema = page.inputSchema; }
+                if (page.annotations !== undefined) { tool.annotations = page.annotations; }
+                Object.defineProperty(tool, TARGET, { value: t.doc });
+                return tool;
+            };
+
+            // A call to another document's tool, through six. The caller's abort rejects at once and
+            // is passed on to the tool's own signal.
+            const elsewhere = (tool, target, args, signal) => new Promise((resolve, reject) => {
+                const call = Math.random().toString(36).slice(2) + Date.now().toString(36);
+                let settled = false;
+                const onAbort = () => {
+                    if (settled) { return; }
+                    settled = true;
+                    reject(signal.reason);
+                    post({ kind: 'cancel', call, reason: say(signal.reason) });
+                };
+                if (signal) { signal.addEventListener('abort', onAbort, { once: true }); }
+                const answer = ask({
+                    kind: 'execute', call, target: target === undefined ? null : target,
+                    name: String(tool.name), origin: String(tool.origin), input: stringify(args)
+                });
+                const fail = (name, message) => { if (!settled) { settled = true; reject(new DOMException(message, name)); } };
+                if (!answer) { return fail('UnknownError', 'No tool named ' + tool.name); }
+                answer.then((reply) => {
+                    if (signal) { signal.removeEventListener('abort', onAbort); }
+                    if (reply && reply.ok) {
+                        if (!settled) { settled = true; resolve(reply.value); }
+                    } else {
+                        fail((reply && reply.error) || 'UnknownError', (reply && reply.message) || 'the call failed');
+                    }
+                }, (error) => fail('UnknownError', say(error)));
+            });
+
             const constructing = {};
             let token = null;
 
@@ -305,55 +399,75 @@ nonisolated enum WebMCPScript {
 
                 registerTool(tool, options = undefined) {
                     if (!ModelContext.#is(this)) { return Promise.reject(ModelContext.#illegal()); }
+                    if (detached()) { return gone(); }
                     const refused = (error) => withUnregister(Promise.reject(error), () => {});
                     let entry;
                     try { entry = validate(tool); } catch (error) { return refused(error); }
                     const signal = options && options.signal;
                     if (signal && signal.aborted) { return refused(signal.reason); }
                     const exposedTo = options && options.exposedTo;
+                    entry.exposedTo = [];
                     if (exposedTo !== undefined && exposedTo !== null) {
                         let origins;
                         try { origins = Array.from(exposedTo, String); } catch (error) { return refused(error); }
                         if (!origins.every(trustworthy)) {
                             return refused(new DOMException('exposedTo takes potentially trustworthy origins only', 'SecurityError'));
                         }
+                        entry.exposedTo = origins;
                     }
                     if (tools.has(entry.name)) {
                         return refused(new DOMException('A tool named ' + entry.name + ' is already registered', 'InvalidStateError'));
                     }
                     tools.set(entry.name, entry);
-                    announce(entry);
+                    const answer = announce(entry);
                     changed(this);
                     const unregister = () => remove(this, entry);
                     const done = new Promise((resolve, reject) => {
                         if (signal) {
                             signal.addEventListener('abort', () => { unregister(); reject(signal.reason); }, { once: true });
                         }
-                        queueMicrotask(resolve);
+                        if (!answer) { queueMicrotask(resolve); return; }
+                        answer.then((reply) => {
+                            if (!reply || !reply.error) { return resolve(); }
+                            if (tools.get(entry.name) === entry) { tools.delete(entry.name); }
+                            reject(new DOMException(reply.message || reply.error, reply.error));
+                        }, () => resolve());
                     });
                     return withUnregister(done, unregister);
                 }
 
                 getTools(options = undefined) {
                     if (!ModelContext.#is(this)) { return Promise.reject(ModelContext.#illegal()); }
-                    const from = options && Array.isArray(options.fromOrigins) ? options.fromOrigins : null;
-                    if (from && !from.includes(origin)) { return Promise.resolve([]); }
-                    const list = Array.from(tools.values(), registered);
-                    list.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
-                    return Promise.resolve(list);
+                    if (detached()) { return gone(); }
+                    let from = [];
+                    if (options && options.fromOrigins !== undefined && options.fromOrigins !== null) {
+                        try { from = Array.from(options.fromOrigins, String); } catch (error) { return Promise.reject(error); }
+                        if (!from.every(trustworthy)) {
+                            return Promise.reject(new DOMException('fromOrigins takes potentially trustworthy origins only', 'SecurityError'));
+                        }
+                    }
+                    const sorted = (list) => list.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+                    const own = Array.from(tools.values(), registered);
+                    const answer = brokered ? ask({ kind: 'getTools', fromOrigins: from.map((o) => new URL(o).origin) }) : null;
+                    if (!answer) { return Promise.resolve(sorted(own)); }
+                    return answer.then((reply) => {
+                        if (reply && reply.error) { throw new DOMException(reply.message || reply.error, reply.error); }
+                        return sorted(own.concat(((reply && reply.tools) || []).map(foreign)));
+                    });
                 }
 
                 executeTool(tool, input = undefined, options = undefined) {
                     if (!ModelContext.#is(this)) { return Promise.reject(ModelContext.#illegal()); }
+                    if (detached()) { return gone(); }
                     if (!tool || typeof tool !== 'object' || typeof tool.name !== 'string') {
                         return Promise.reject(new TypeError('executeTool: pass a tool from getTools()'));
                     }
                     if (tool.origin === undefined) {
                         return Promise.reject(new TypeError("executeTool: the tool's origin is required"));
                     }
-                    let target = 'null';
-                    try { target = new URL(String(tool.origin)).origin; } catch (e) {}
-                    if (target === 'null') {
+                    let serialized = 'null';
+                    try { serialized = new URL(String(tool.origin)).origin; } catch (e) {}
+                    if (serialized === 'null') {
                         return Promise.reject(new DOMException('executeTool: the tool has an opaque origin', 'NotSupportedError'));
                     }
                     const signal = options && options.signal;
@@ -362,8 +476,17 @@ nonisolated enum WebMCPScript {
                     try { args = argumentsOf(input); } catch (error) {
                         return Promise.reject(error instanceof TypeError ? error : new TypeError(say(error)));
                     }
-                    const entry = tools.get(tool.name);
-                    if (!entry) { return Promise.reject(new DOMException('No tool named ' + tool.name, 'UnknownError')); }
+                    try {
+                        if (tool.window && tool.window.closed) {
+                            return Promise.reject(new DOMException('the tool\'s document is not active', 'InvalidStateError'));
+                        }
+                    } catch (e) {}
+                    const target = tool[TARGET];
+                    const entry = target === undefined || target === doc ? tools.get(tool.name) : undefined;
+                    if (!entry || (target === undefined && tool.origin !== String(self.origin))) {
+                        if (!brokered) { return Promise.reject(new DOMException('No tool named ' + tool.name, 'UnknownError')); }
+                        return elsewhere(tool, target, args, signal);
+                    }
                     return invoke(entry, args, signal).catch((error) => {
                         if (signal && signal.aborted && error === signal.reason) { throw error; }
                         throw new DOMException(say(error), 'UnknownError');
@@ -440,8 +563,10 @@ nonisolated enum WebMCPScript {
             } catch (e) {}
 
             Object.defineProperty(window, '\#(bridgeKey)', {
+                configurable: true,
                 value: Object.freeze({
                     doc,
+                    toolchange() { changed(context); return true; },
                     start(call, name, inputText) {
                         let input = {};
                         try { input = inputText ? parse(inputText) : {}; } catch (e) {}
@@ -465,9 +590,10 @@ nonisolated enum WebMCPScript {
 
             // A page restored from the back-forward cache is the same document, but six forgot its
             // tools when the window left it. So it says everything again.
+            window.addEventListener('pagehide', () => { post({ kind: 'gone' }); });
             window.addEventListener('pageshow', (event) => {
                 if (!event.persisted) { return; }
-                post({ kind: 'document', url: String(location.href) });
+                post({ kind: 'document', url: String(location.href), path });
                 for (const entry of tools.values()) { announce(entry); }
             });
         })();

@@ -215,7 +215,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("only", nargs="*", help="run the files whose path contains any of these")
     parser.add_argument("--app", default=newest_app(), help="the six.app whose --mcp relay to use")
-    parser.add_argument("--timeout", type=float, default=20, help="seconds to wait for one file")
+    parser.add_argument("--timeout", type=float, default=45, help="seconds to wait for one file")
     parser.add_argument("--update", action="store_true", help="pull the suite again first")
     parser.add_argument("--install-ca", action="store_true", help="trust the stand's CA in the dev build, then stop")
     parser.add_argument("--write-baseline", action="store_true", help="save this run as scripts/webmcp-wpt-baseline.json")

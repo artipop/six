@@ -428,3 +428,39 @@ struct WebMCPScriptTests {
         #expect(WebMCPScript.handlerName != WebMCPScript.bridgeKey)
     }
 }
+
+struct WebMCPBrokerTests {
+    private func allow(_ allow: String, src: String = "https://b.test") -> String {
+        #"{"allow":"\#(allow)","src":"\#(src)"}"#
+    }
+
+    @Test func aFrameWithoutADirectiveGetsItsParentsOrigin() {
+        #expect(WebMCPBroker.permits(allow: allow(""), child: "https://a.test", parent: "https://a.test"))
+        #expect(!WebMCPBroker.permits(allow: allow(""), child: "https://b.test", parent: "https://a.test"))
+        #expect(!WebMCPBroker.permits(allow: allow("camera *"), child: "https://b.test", parent: "https://a.test"))
+    }
+
+    @Test func theToolsDirectiveNamesWhoMay() {
+        #expect(WebMCPBroker.permits(allow: allow("tools *"), child: "https://c.test", parent: "https://a.test"))
+        #expect(WebMCPBroker.permits(allow: allow("tools"), child: "https://b.test", parent: "https://a.test"))
+        #expect(!WebMCPBroker.permits(allow: allow("tools"), child: "https://c.test", parent: "https://a.test"))
+        #expect(WebMCPBroker.permits(allow: allow("camera; tools https://c.test:8443"), child: "https://c.test:8443",
+                                     parent: "https://a.test"))
+        #expect(!WebMCPBroker.permits(allow: allow("tools https://b.test"), child: "https://c.test", parent: "https://a.test"))
+        #expect(!WebMCPBroker.permits(allow: allow("tools 'none'"), child: "https://a.test", parent: "https://a.test"))
+        #expect(WebMCPBroker.permits(allow: allow("tools 'self'"), child: "https://a.test", parent: "https://a.test"))
+    }
+
+    @Test func originsAreSerialisedTheWebsWay() {
+        #expect(WebMCPBroker.origin(of: "https://Example.test:443/path") == "https://example.test")
+        #expect(WebMCPBroker.origin(of: "https://example.test:8443") == "https://example.test:8443")
+        #expect(WebMCPBroker.origin(of: "*") == nil)
+    }
+
+    @Test func aToolIsSeenByItsOriginAndByWhomItIsExposedTo() {
+        #expect(WebMCPBroker.sees("https://a.test", "https://a.test", exposedTo: []))
+        #expect(!WebMCPBroker.sees("https://b.test", "https://a.test", exposedTo: []))
+        #expect(WebMCPBroker.sees("https://b.test", "https://a.test", exposedTo: ["https://b.test/"]))
+        #expect(!WebMCPBroker.sees("https://c.test", "https://a.test", exposedTo: ["https://b.test"]))
+    }
+}

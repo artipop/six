@@ -77,11 +77,14 @@ is that rule taken literally: the page's own API, declared for the agent.
 **Only three things are owed by a front** (`WebMCPPage.swift`): install `WebMCPScript.source` as a user script in the
 page's world, route the channel's messages into `WebMCPHost.receive`, and run a function body in the page's world.
 Everything else — whether WebMCP is on, settling the document after a navigation, the call, the gate, finding the
-self-test's window — is shared.
+self-test's window — is shared. That is the main frame alone. A front that also injects into every frame, answers
+the channel (`WebMCPHost.request`) and can run code in one given frame (`WebMCPFrame`) gets the frames: the Mac does,
+Windows and Linux do not yet, and the polyfill tells the two apart by whether `postMessage` answers.
 
 - `six/WebMCP/`, in `SixCore` and so on every front: `WebMCPScript` (the polyfill and the call bodies),
-  `WebMCPRegistry` (the channel's messages and the window → tools registry), `WebMCPHost` (calls in flight, the gate,
-  the "an agent is calling" mark), `WebMCPPage`, `WebMCPSelfTest`.
+  `WebMCPRegistry` (the channel's messages and the window → tools registry agents read), `WebMCPHost` (calls in
+  flight, the gate, the "an agent is calling" mark), `WebMCPBroker` (every frame's documents, who sees what, the
+  `tools` policy, calls between frames), `WebMCPPage`, `WebMCPSelfTest`.
 - The bridges: `six/WebMCP/WebMCPStore.swift` (Apple), `windows/Sources/SixUI/StripWebMCP.swift` (Windows),
   `linux/Sources/SixWebKitCore/PageChannels.swift` with `linux/Sources/SixBrowser/WebMCP.swift` (Linux).
 - Agents get `list_page_tools` and `call_page_tool` in the catalog, over MCP. The ⌘K assistant gets the focused
@@ -158,14 +161,22 @@ in [permissions.md](permissions.md).
   filling the fields and submitting with the agent mark (`SubmitEvent.agentInvoked`, `respondWith(promise)` in the
   explainer). Follow the spec, not the explainer — Lighthouse already checks the attributes, so sites will set them
   before the spec settles.
-- **iframes and `exposedTo`.** Main frame only, `exposedTo` ignored, no `tools` permissions policy — so `fromOrigins`
-  in `getTools` filters nothing useful.
+- **Agents see the main frame's tools only.** Frames reach each other's tools through the page's own
+  `getTools`/`executeTool`; `list_page_tools` still lists the top document's. Offering a subframe's to an agent
+  wants the gate to ask about the subframe's origin first (stage 5 of the compatibility plan).
+- **Frames on Windows and Linux.** Their bridges inject into the main frame and do not answer the channel, so there the
+  polyfill keeps to its own document, as it did before frames were built.
+- **`document.domain`.** The draft refuses the API where `document.domain` is enabled; WebKit has no origin-keyed
+  agent clusters (`window.originAgentCluster` does not exist), so there `document.domain` is always enabled and the
+  rule would refuse everything. six does not apply it.
+- **An opened window.** `window.open` hands the page no window in six ([Frames](#frames-what-webkit-allows-measured)),
+  so nothing about tools across an opener boundary can be tested, or needs to be.
+- **The initial `about:blank` of an iframe with a `src`** gets no polyfill: WebKit does not run user scripts in it,
+  and the page reaches it before it navigates. The wpt test for it says Chrome gets it wrong too.
 - **Not native.** The IDL is followed as far as `idlharness` checks it, but the events six dispatches are the page's
   own and `isTrusted` is false. The page sees the polyfill and can replace it — with an engine that opposes WebMCP there
   is no other way.
 - **Input is not checked against `inputSchema`** before a call.
-- **`exposedTo` is validated and then ignored**: a non-trustworthy origin is a `SecurityError`, as the draft says,
-  but nothing is ever exposed to another frame.
 - **Windows a page opens itself** (Windows, `openPageWindow`) get no channel: WebKit configures them, not
   `WebEngine.makeView`.
 - **Linux has no MCP server**, so its page tools are seen only by the self-test and `BrowserModel.pageToolCount`, and
@@ -197,11 +208,10 @@ open -na <Debug six.app> --env SIX_WEBMCP=1
 ./scripts/webmcp-wpt.py --write-baseline      # after a change that should move the numbers
 ```
 
-The baseline is `scripts/webmcp-wpt-baseline.json`. At wpt `a9871a2`: **89 of 166** — imperative 60 of 97,
-`idlharness` 22 of 22, `tool-activated-event` 4 of 4, declarative 3 of 43. Every imperative test that fails involves a
-frame — an iframe, a detached frame, a second origin, `window.open` — which six does not build (main frame only),
-plus `isTrusted` on `toolactivated`, which no polyfill can pass. The declarative ones fail because declarative forms
-are not built. What the suite taught the polyfill, and it now does: `getTools()` sorted by name and carrying
+The baseline is `scripts/webmcp-wpt-baseline.json`. At wpt `a9871a2`: **127 of 174** — imperative 98 of 105,
+`idlharness` 22 of 22, `tool-activated-event` 4 of 4, declarative 3 of 43. The seven imperative ones left are the
+ones [Not built](#not-built) explains: an opened window (2), `document.domain` (3), `isTrusted` (1) and the initial
+`about:blank` of an iframe with a `src` (1). The declarative ones fail because declarative forms are not built. What the suite taught the polyfill, and it now does: `getTools()` sorted by name and carrying
 `window`; annotations absent when none were given, with `debugging`; `InvalidStateError` for a bad name;
 `AbortError`/the signal's reason from `registerTool` when its signal aborts; `SecurityError` for `exposedTo`;
 `executeTool` input through JSON and required to be an object, `UnknownError` for a missing tool or a failed call,
@@ -239,23 +249,30 @@ through `WebViewResponder.webView(for:)`), on a stand page holding a same-origin
   same gap breaks any site whose sign-in popup answers through `window.opener`. That is a browser matter, not a
   WebMCP one.
 
-### The shape this gives stage 3
+### Frames, as built
 
-- The polyfill runs in every frame, each with a random frame token beside its document token. Swift keeps the latest
-  `WKFrameInfo` per window and frame token, and takes the frame's origin from it.
-- The channel becomes a reply handler, so `getTools` and `executeTool` from any frame are one request to Swift and
-  one answer. The broker is `WebMCPHost`, in `SixCore`: a registry per window, per frame, with `exposedTo` and
-  `fromOrigins` applied there.
-- A call into another frame goes to that frame through `callAsyncJavaScript(in:)`, and its answer comes back over
-  the channel as calls do now. A stale frame is a navigation.
-- The `tools` policy: a frame is allowed when it is same-origin with its parent, or when the parent's iframe element
-  says `allow="tools"` (or `tools *`, or names the child's origin). The parent's polyfill reports its iframes'
-  `allow` and hands each child, by `postMessage`, a random id for its element; the child passes it to Swift. A child
-  that lies can only claim a sibling's policy, and only with an id it was never sent.
-- A detached frame's `document.defaultView` is `null`: every operation there is `InvalidStateError`.
-- `toolchange` is dispatched by Swift into every frame whose view of the tools changed.
-- Agents see a subframe's tools with the subframe's origin, and the site question is asked about that origin — an
-  ad frame does not inherit the answer given to the page.
+- The polyfill runs in every frame. Each document has a random token and knows its place in the frame tree — indices
+  into `frames` from the top, worked out at document start, before any script of that document has run. Every
+  message answers with the frame's `WKFrameInfo` (`WebMCPFrameHandle`), and the origin six uses is the frame's own
+  from there, never the page's word.
+- The channel is a reply handler, so `getTools` and `executeTool` from any frame are one request to Swift and one
+  answer. `WebMCPBroker`, in `SixCore`, keeps every document of a window by token and place: a new document at a
+  place replaces whatever was there and everything below it, and `pagehide` says a document is going.
+- Who sees what: a document sees every tool of its own origin, in any frame, and every tool whose `exposedTo` names
+  its origin; `getTools({fromOrigins})` keeps the first kind always and the second kind only from the origins
+  asked for. `toolchange` goes to every other document that could see the tool, once its policy is known to allow it.
+- A call into another frame goes to that frame through `callAsyncJavaScript(in:)`, and its answer comes back over the
+  channel as a `result`, which the broker hands to the caller's pending reply. The caller's abort rejects at once and
+  is passed on to the tool's signal; a caller or a target that goes away ends the call on the other side.
+- The `tools` policy: the top document may; a subframe may when its parent may and the parent's container for it
+  allows the child's origin — `'self'` (the parent's origin) with no `tools` directive, else what the directive
+  lists: nothing for the `src` origin, `*`, `'self'`, `'src'`, `'none'`, origins. The container is read in six's
+  own world (`WebMCPBroker.allowQuery`), matched to the child by `contentWindow === frames[i]`, so the page cannot
+  answer for it. A frame that may not gets `NotAllowedError` from all three operations.
+- A detached frame's `document.defaultView` is `null`, and a tool whose `window` is closed is gone: every operation
+  there is `InvalidStateError`.
+- A tool's schema and annotations cross to other frames as the page's own JSON text, so a page reads back its keys in
+  the order it wrote them, and nothing it did not give.
 
 ## What has been checked
 

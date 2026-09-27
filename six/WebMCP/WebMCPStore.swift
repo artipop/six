@@ -84,13 +84,13 @@ final class WebMCPStore {
         }
         let handler = WebMCPMessageHandler(windowID: windowID, host: host)
         handlers[windowID] = handler
-        controller.add(handler, contentWorld: .page, name: WebMCPScript.handlerName)
+        controller.addScriptMessageHandler(handler, contentWorld: .page, name: WebMCPScript.handlerName)
         // At document start, so `document.modelContext` is there before the page's first script
         // looks for it.
         controllers.setUserScripts([WKUserScript(
             source: WebMCPScript.source,
             injectionTime: .atDocumentStart,
-            forMainFrameOnly: true,
+            forMainFrameOnly: false,
             in: .page)], named: Self.scriptName, for: windowID)
     }
 
@@ -148,8 +148,8 @@ extension BrowserTab: WebMCPPage {
 }
 
 /// One per window, because a message has to say which window it came from and the page cannot be
-/// trusted to say so itself.
-private final class WebMCPMessageHandler: NSObject, WKScriptMessageHandler {
+/// trusted to say so itself. Every frame's messages arrive here, and every one is answered.
+private final class WebMCPMessageHandler: NSObject, WKScriptMessageHandlerWithReply {
     let windowID: UUID
     weak var host: WebMCPHost?
 
@@ -158,13 +158,36 @@ private final class WebMCPMessageHandler: NSObject, WKScriptMessageHandler {
         self.host = host
     }
 
-    func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
-        // The user script is main-frame only, so anything else on this channel is a frame
-        // posting to it by hand.
-        guard message.frameInfo.isMainFrame, let text = message.body as? String else { return }
-        let windowID = windowID
-        Task { @MainActor [weak host] in
-            host?.receive(text, from: windowID)
+    func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage,
+                               replyHandler: @escaping @MainActor @Sendable (Any?, String?) -> Void) {
+        guard let text = message.body as? String, let host else { return replyHandler(nil, "no WebMCP") }
+        let frame = WebMCPFrameHandle(frame: message.frameInfo, webView: message.webView)
+        host.request(text, from: windowID, frame: frame, isMain: message.frameInfo.isMainFrame) { answer in
+            replyHandler(answer, nil)
         }
+    }
+}
+
+/// A frame of a page, reached through the `WKWebView` its message came from: WebPage has no way
+/// to run code in one frame, `callAsyncJavaScript(in:)` does, cross-origin frames included.
+@MainActor
+private final class WebMCPFrameHandle: WebMCPFrame {
+    let frame: WKFrameInfo
+    weak var webView: WKWebView?
+    let origin: String
+
+    init(frame: WKFrameInfo, webView: WKWebView?) {
+        self.frame = frame
+        self.webView = webView
+        let security = frame.securityOrigin
+        origin = security.protocol.isEmpty || security.host.isEmpty
+            ? "null"
+            : "\(security.protocol)://\(security.host)" + (security.port == 0 ? "" : ":\(security.port)")
+    }
+
+    func run(_ body: String, isolated: Bool) async throws -> String {
+        guard let webView else { throw WebMCPError.navigatedAway }
+        let value = try await webView.callAsyncJavaScript(body, in: frame, contentWorld: isolated ? .six : .page)
+        return value as? String ?? ""
     }
 }

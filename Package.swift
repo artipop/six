@@ -182,6 +182,7 @@ let package = Package(
                 // are one main-actor class, and none of it knows which engine it runs in — the
                 // bargain translation makes, so each front owes a bridge and nothing more.
                 "WebMCP/WebMCPRegistry.swift",
+                "WebMCP/WebMCPBroker.swift",
                 "WebMCP/WebMCPScript.swift",
                 "WebMCP/WebMCPHost.swift",
                 "WebMCP/WebMCPPage.swift",

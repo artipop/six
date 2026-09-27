@@ -91,6 +91,7 @@ final class WebMCPHost {
     /// The tool a window is running for an agent right now, so the window can say so while it does.
     private(set) var activity: [UUID: String] = [:]
     @ObservationIgnored private var pending: [String: Pending] = [:]
+    @ObservationIgnored let broker = WebMCPBroker()
 
     private struct Pending {
         let windowID: UUID
@@ -124,6 +125,20 @@ final class WebMCPHost {
         update(windowID) { $0.apply(message, from: windowID) }
     }
 
+    /// One message off a channel that can answer, from any frame of a window's page. The main
+    /// frame's registrations also feed what agents see (`receive`); everything goes to the broker,
+    /// which is what lets one frame's `getTools` and `executeTool` reach another's.
+    func request(_ text: String, from windowID: UUID, frame: any WebMCPFrame, isMain: Bool,
+                 reply: @escaping (String) -> Void) {
+        guard let json = try? JSONDecoder().decode(ACPJSON.self, from: Data(text.utf8)) else {
+            return reply(WebMCPBroker.error("SyntaxError", "the message did not parse"))
+        }
+        if isMain, ["document", "register", "unregister", "result"].contains(json["kind"]?.stringValue ?? "") {
+            receive(text, from: windowID)
+        }
+        broker.receive(json, from: windowID, frame: frame, reply: reply)
+    }
+
     /// What the page answered to `WebMCPScript.documentQuery` after a navigation — `nil` when there
     /// was nothing there to answer.
     func settle(_ windowID: UUID, document: String?) {
@@ -132,6 +147,7 @@ final class WebMCPHost {
 
     /// The window closed, or its page was thrown away: its tools and its calls go with it.
     func forget(_ windowID: UUID) {
+        broker.forget(windowID)
         for (call, entry) in pending where entry.windowID == windowID {
             finish(call, .failure(WebMCPError.navigatedAway))
         }
