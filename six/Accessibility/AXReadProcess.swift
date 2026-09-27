@@ -1,8 +1,8 @@
 #if os(macOS)
 import Foundation
 
-/// The browser's side of `six --ax-read`: starts the reader on the first request, keeps it while
-/// reads keep coming, and lets it go after a quiet spell.
+/// The browser's side of `six --ax-read`: starts the reader on the first request and again whenever
+/// the last one has gone — it leaves by itself after a quiet spell.
 ///
 /// Launched by six itself, from six's own executable — the one shape of second process macOS counts
 /// as six for Privacy & Security ▸ Accessibility, besides an XPC service ([accessibility.md]).
@@ -11,7 +11,6 @@ nonisolated final class AXReadProcess: @unchecked Sendable {
 
     /// A walk is cut at five seconds by the child; past this the child is taken to be stuck.
     private static let answerTimeout: TimeInterval = 8
-    private static let idleTimeout: TimeInterval = 30
 
     // Everything below is touched on `queue` only.
     private let queue = DispatchQueue(label: "org.deffun.six.accessibility", qos: .userInitiated)
@@ -19,7 +18,6 @@ nonisolated final class AXReadProcess: @unchecked Sendable {
     private var input: FileHandle?
     private var output: FileHandle?
     private var buffer = Data()
-    private var idle: DispatchWorkItem?
 
     func snapshot(at point: CGPoint, visible: CGRect, limit: Int) async -> AXPageSnapshot {
         let request = AXReadRequest(point: point, visible: visible, limit: limit)
@@ -30,16 +28,16 @@ nonisolated final class AXReadProcess: @unchecked Sendable {
 
     private func exchange(_ request: AXReadRequest) -> AXPageSnapshot {
         let reused = process?.isRunning == true
-        let snapshot = ask(request)
-        // A process keeps the answer to "am I trusted" it was started with, so one started before the
-        // grant stays refused after it.
-        guard reused, snapshot.failure == .notTrusted else { return snapshot }
+        let (snapshot, gone) = ask(request)
+        // A reused reader may have just left on its own; and a process keeps the answer to "am I
+        // trusted" it was started with, so one started before the grant stays refused after it.
+        guard reused, gone || snapshot.failure == .notTrusted else { return snapshot }
         stop()
-        return ask(request)
+        return ask(request).snapshot
     }
 
-    private func ask(_ request: AXReadRequest) -> AXPageSnapshot {
-        idle?.cancel()
+    /// `gone`: the reader was not there to answer, as against too slow to.
+    private func ask(_ request: AXReadRequest) -> (snapshot: AXPageSnapshot, gone: Bool) {
         let started = Date()
         defer {
             let elapsed = Date().timeIntervalSince(started)
@@ -47,11 +45,11 @@ nonisolated final class AXReadProcess: @unchecked Sendable {
         }
         var failed = AXPageSnapshot()
         failed.failure = .noAnswer
-        guard let process = running(), let input, var line = try? JSONEncoder().encode(request) else { return failed }
+        guard let process = running(), let input, var line = try? JSONEncoder().encode(request) else { return (failed, false) }
         line.append(0x0A)
         do { try input.write(contentsOf: line) } catch {
             stop()
-            return failed
+            return (failed, true)
         }
 
         let watchdog = DispatchWorkItem { process.terminate() }
@@ -59,15 +57,12 @@ nonisolated final class AXReadProcess: @unchecked Sendable {
         let answer = readLine()
         watchdog.cancel()
         guard let answer, let snapshot = try? JSONDecoder().decode(AXPageSnapshot.self, from: answer) else {
-            Log.error(.pages, "six --ax-read gave no answer; stopping it")
+            let gone = Date().timeIntervalSince(started) < Self.answerTimeout
+            if !gone { Log.error(.pages, "six --ax-read gave no answer in time; stopping it") }
             stop()
-            return failed
+            return (failed, gone)
         }
-
-        let quiet = DispatchWorkItem { [weak self] in self?.stop() }
-        idle = quiet
-        queue.asyncAfter(deadline: .now() + Self.idleTimeout, execute: quiet)
-        return snapshot
+        return (snapshot, false)
     }
 
     private func running() -> Process? {
@@ -109,8 +104,6 @@ nonisolated final class AXReadProcess: @unchecked Sendable {
     }
 
     private func stop() {
-        idle?.cancel()
-        idle = nil
         try? input?.close()
         if let process, process.isRunning { process.terminate() }
         process = nil

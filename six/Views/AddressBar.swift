@@ -26,6 +26,8 @@ struct AddressBar: View {
     @State private var filled = ""
     @State private var suggestions = AddressSuggestions()
     @State private var selection: Int?
+    @State private var derived: DerivedPageTools?
+    @Environment(WebMCPStore.self) private var webMCP
 
     private var isEditing: Bool { addressFocus.wrappedValue == tab.id }
     private var isWebPage: Bool { tab.currentURL?.scheme?.hasPrefix("http") == true }
@@ -102,6 +104,7 @@ struct AddressBar: View {
                     return .handled
                 }
             PageToolsButton(tab: tab)
+            DerivedToolsButton(tab: tab, derived: derived)
             translate
             // ⌘⇧C leaves nothing on screen; this is the whole of what it says. Two rectangles
             // rather than a tick, because the answer is "the address is on the pasteboard" and not
@@ -130,6 +133,11 @@ struct AddressBar: View {
         }
         .onChange(of: tab.id, initial: true) { _, _ in
             if !isEditing { fill(displayString(for: tab.currentURL)) }
+        }
+        .task(id: "\(tab.id) \(tab.currentURL?.absoluteString ?? "") \(tab.isLoading) \(webMCP.isEnabled)") {
+            derived = nil
+            guard webMCP.isEnabled, !browser.isPrivate(tab.profileID), !tab.showsStartPage, !tab.isLoading else { return }
+            derived = await DerivedToolsButton.assess(tab)
         }
         .onChange(of: isEditing) { _, editing in
             guard editing, let url = tab.currentURL else {

@@ -43,6 +43,7 @@ final class AccessibilityOverlay {
     private(set) var isStale = false
 
     private var readings: [UUID: AXPlacedSnapshot] = [:]
+    @ObservationIgnored private var refused: ContinuousClock.Instant?
 
     func placed(for tabID: UUID) -> AXPlacedSnapshot? { readings[tabID] }
 
@@ -86,7 +87,8 @@ final class AccessibilityOverlay {
             if !view.isFlipped { local.origin.y = view.bounds.height - local.maxY }
             return local
         }
-        let placed = AXPlacedSnapshot(snapshot: snapshot, rects: rects, viewport: view.bounds.size, key: key)
+        let placed = AXPlacedSnapshot(snapshot: snapshot, rects: rects, viewport: view.bounds.size, key: key,
+                                      url: tab.currentURL?.absoluteString ?? "")
         readings[tab.id] = placed
         isStale = false
         return placed
@@ -100,6 +102,26 @@ final class AccessibilityOverlay {
         } catch let failure as AXReadProblem {
             problem = failure
         } catch {}
+    }
+
+    /// A reading of the page as it now stands, for the derived-tools mark: the one already held if it
+    /// is of this address, else a fresh one. Nil when the page cannot be read.
+    ///
+    /// Not gated on `AXIsProcessTrusted` here: six keeps the answer it started with, so only the reader
+    /// knows. A refusal is believed for a minute instead of asked again on every page.
+    func assess(_ tab: BrowserTab) async -> AXPlacedSnapshot? {
+        let url = tab.currentURL?.absoluteString ?? ""
+        if let held = readings[tab.id], held.url == url { return held }
+        if let refused, ContinuousClock.now - refused < .seconds(60) { return nil }
+        guard !isReading else { return nil }
+        do {
+            return try await read(tab)
+        } catch AXReadProblem.notTrusted {
+            refused = .now
+            return nil
+        } catch {
+            return nil
+        }
     }
 
     /// Keeps the focused window's reading current for as long as the overlay is on it. Cancelled by
@@ -163,6 +185,8 @@ nonisolated struct AXPlacedSnapshot: Sendable {
     let viewport: CGSize
     /// `AccessibilityOverlay.viewportKey` at the time of reading.
     let key: String
+    /// The address that was read, which is what a derived tool belongs to.
+    let url: String
 
     var nodes: [AXPageNode] { snapshot.nodes }
     var unnamed: Int { nodes.filter(\.isUnnamed).count }

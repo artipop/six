@@ -11,6 +11,8 @@ import ApplicationServices
 /// `AXReadProcess` launches it, which is also what makes it six in macOS's eyes.
 nonisolated enum PageAccessibilityReader {
     static let flag = "--ax-read"
+    /// The reader leaves by itself after this long without a request; the browser starts another.
+    static let idleTimeout: TimeInterval = 30
 
     static var isRequested: Bool { CommandLine.arguments.dropFirst().contains(flag) }
 
@@ -23,7 +25,7 @@ nonisolated enum PageAccessibilityReader {
     }
 
     /// The child: one `AXReadRequest` per line on stdin, one `AXPageSnapshot` per line on stdout, until
-    /// the browser closes the pipe.
+    /// the browser closes the pipe or has asked nothing for `idleTimeout`.
     static func runChild() -> Never {
         signal(SIGPIPE, SIG_IGN)
         let arguments = CommandLine.arguments
@@ -37,7 +39,8 @@ nonisolated enum PageAccessibilityReader {
         AXUIElementSetMessagingTimeout(AXUIElementCreateSystemWide(), 1.5)
         let decoder = JSONDecoder()
         let encoder = JSONEncoder()
-        while let line = readLine() {
+        var waiting = pollfd(fd: STDIN_FILENO, events: Int16(POLLIN), revents: 0)
+        while poll(&waiting, 1, Int32(idleTimeout * 1000)) > 0, let line = readLine() {
             guard let request = try? decoder.decode(AXReadRequest.self, from: Data(line.utf8)) else { continue }
             let snapshot = read(pid: pid, at: request.point, visible: request.visible, limit: request.limit)
             guard var data = try? encoder.encode(snapshot) else { continue }

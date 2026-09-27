@@ -15,6 +15,8 @@ The user-facing account is
 | `six/Accessibility/PageAccessibilityReader.swift` | `six --ax-read`: the walk, `AXUIElement` calls → `AXPageSnapshot`, plain `Codable` values |
 | `six/Accessibility/AXReadProcess.swift` | the browser's side: starts the reader, one JSON line each way over a pipe, the watchdog, the idle stop |
 | `six/sixApp.swift` | `SixMain` hands `--ax-read` to the reader before AppKit is touched, as it does `--mcp` |
+| `six/Accessibility/DerivedPageTools.swift` | whether a reading is good enough to make tools of, and the tools it would make |
+| `six/Views/DerivedToolsButton.swift` | the mark for them in the address field, beside WebMCP's; `AddressBar` holds the reading |
 | `six/Accessibility/AccessibilityOverlay.swift` | the model (`AccessibilityOverlay.shared`), placing the snapshot over the web view, the outline for a model, and the SwiftUI layer |
 | `six/Input/WebViewResponder.swift` | `webView(for:)` — the pane's `WKWebView`, which is the only way to know where on screen a `WebPage` is |
 | `six/Views/TilingStripView.swift` | mounts `AccessibilityOverlayView` over the focused pane |
@@ -62,13 +64,16 @@ part and that visible part itself, both in accessibility coordinates, and hands 
 `AXPageSnapshot` line back from its stdout.
 
 - **Started on demand**, from `Bundle.main.executableURL` with `--ax-read <six's pid>`, on the first read.
-- **Kept while reads keep coming** — the overlay reads every few seconds — and stopped after 30 s without one.
-  Closing its stdin is enough: the child's loop ends on end of file, which is also what happens when six quits.
+- **Kept while reads keep coming** — the overlay reads every few seconds. The child leaves by itself after 30 s
+  without a request (`poll` on stdin), and on end of file, which is what happens when six quits. A timer on the
+  browser's side was tried first and measurably did not fire; the child owning its own end has nothing to miss.
 - **A watchdog of 8 s** per answer. The child cuts its own walk at 5 s and says it was truncated, so a child past 8 s
   is stuck; it is killed, the read answers "did not answer in time", and the next read starts a new one.
-- **A child that answers "not trusted" is replaced once.** A process keeps the answer to `AXIsProcessTrusted` it was
-  started with, so the child the overlay's first press launched stays refused after the person switches six on —
-  measured. A fresh one is asked before the refusal is believed.
+- **A reused child that has gone, or answers "not trusted", is replaced once.** It may have just left on its own;
+  and a process keeps the answer to `AXIsProcessTrusted` it was started with, so the child the overlay's first
+  press launched stays refused after the person switches six on — measured, and so is the replacement, with no
+  restart. **six itself keeps its answer too**, so nothing that decides whether to read asks six's own
+  `AXIsProcessTrusted`: the child's answer is the one that counts, and a refusal is believed for a minute.
 
 In the child, `PageAccessibilityReader.read(pid:at:visible:limit:)`:
 
@@ -255,9 +260,8 @@ Debug, macOS 27, 27 September 2026, one build throughout (a rebuild costs the gr
   0.16–0.6 s, and `list_workspaces` straight after each.
 - **`⌥⌘A` three times** on the stand, on, off, on, with a scroll: six alive, the boxes on the elements (by eye),
   and MCP answering with the overlay on.
-- A child started before the grant stayed refused after it — which is what the "replaced once" rule is for. That
-  rule and the second retry for "no web area" were added after this run and have been built, not yet run with
-  the permission.
+- A child started before the grant stayed refused after it — which is what the "replaced once" rule is for. A
+  second build, granted with a child already running, read the stand at the first call.
 
 ## Still not measured
 
@@ -294,11 +298,49 @@ whose inputs are its fields. The same, derived rather than declared:
 Acting needs hands per source: for this one, `AXUIElementPerformAction` and setting `AXValue`, asked of the same
 child over the same pipe — which is why `AXReadRequest` is a request type and not a bare rectangle.
 
-**The mark.** A variant of `PageToolsButton` — the same place, a different glyph (a wrench with a spark, say) —
-for "this page declared nothing, but six could make tools of it". Shown only when the reading is *good*, and what good
-means is the open question. Candidates, all readable from a snapshot: the share of controls and fields with a name
-(the red boxes, inverted), fields that have a label, a form that has a submit, and the read finishing within its
-budget. The stand and a handful of real sites would set the threshold before any of it is drawn.
+### The mark, as built
+
+Beside `PageToolsButton`, the same wrench with a spark: this page declared no tools, and its tree is good enough to
+make some of. The popover lists them — `fill` a form with its fields, `press` a control, `type` into a field — with
+"not offered to agents yet" under the title, since nothing calls them. Only with WebMCP on (`six://configuration`
+▸ Develop), never in a private window, never over a page's own tools. `AddressBar` reads the focused window a second
+after it stops loading, through the same `AccessibilityOverlay.read` — so it costs one child and ~30–200 ms per
+navigation, and puts the web content process into accessibility mode as the overlay does. `get_accessibility_tree`
+ends with the same verdict, for an agent and for measuring.
+
+**What counts as good** (`DerivedPageTools`), counting controls and fields and leaving links out — following a link
+is navigation, which an agent has already:
+
+- a web area with at least three elements in it — otherwise *no tree*: a PDF, a canvas with nothing inside, a page
+  not built yet;
+- at least **3** controls and fields — otherwise *too few*: an article, a front page of links, a cookie wall;
+- at least **60 %** of them named — otherwise *unnamed*: an agent would be pressing buttons it cannot tell apart.
+
+Chosen on nineteen pages, read on screen at 1440 pt wide, 27 September 2026:
+
+| page | elements | controls and fields | named | verdict |
+|---|---|---|---|---|
+| example.com | 8 | 0 | 0 | too few |
+| Hacker News, front page | 1 097 | 0 | 0 | too few — links only |
+| booking.com | 15 | 1 | 1 | too few |
+| an arXiv PDF | — | — | — | no tree |
+| Wikipedia, *Accessibility* | 156 | 20 | 20 | good |
+| GitHub, a repository | 496 | 26 | 23 | good |
+| DuckDuckGo | 102 | 7 | 7 | good |
+| Google | 78 | 10 | 9 | good — the search form is one tool |
+| Excalidraw | 66 | 25 | 24 | good — the toolbar around the canvas |
+| Apple's SwiftUI docs | 204 | 25 | 24 | good |
+| Stack Overflow, a question | 239 | 11 | 9 | good |
+| vc.ru | 151 | 18 | 15 | good |
+| Figma's login | 30 | 4 | 4 | good |
+| the stand | 32 | 8 | 8 | good |
+| YouTube | 101 | 8 | 6 | good at 60 % (75 %) |
+| OpenStreetMap | 177 | 10 | 7 | good at 60 % (70 %) |
+| Amazon | 290 | 54 | 24 | unnamed (44 %) |
+| ya.ru | 54 | 27 | 6 | unnamed (22 %) |
+
+80 % was the first threshold and lost YouTube and OpenStreetMap, where most of what an agent would press does have a
+name. Only the visible part is read, so the verdict is about the screen, not the page.
 
 ## Not built
 

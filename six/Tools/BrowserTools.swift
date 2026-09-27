@@ -971,7 +971,10 @@ final class BrowserToolCatalog {
         await Self.waitForLoad(tab)
         let placed = try await AccessibilityOverlay.shared.read(tab)
         let limit = min(max(20, args["max_nodes"]?.intValue ?? 400), 2000)
+        let derived = DerivedPageTools(placed.nodes)
         return "\(Self.describe(tab))\n\n" + placed.outline(includeText: args["include_text"]?.boolValue ?? false, limit: limit)
+            + "\n\nControls and fields, links left out: \(derived.actionable), \(derived.named) of them named. "
+            + "Tools derivable from this reading: \(derived.tools.count) (\(derived.verdict))."
         #else
         throw BrowserTool.Failure(message: "The accessibility tree is read on the Mac only.")
         #endif

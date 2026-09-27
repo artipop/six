@@ -8345,6 +8345,56 @@
           }
         }
       }
+    },
+    "Tools derived from the page: %lld" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Инструменты, выведенные из страницы: %lld"
+          }
+        }
+      }
+    },
+    "Tools derived from the page" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Инструменты, выведенные из страницы"
+          }
+        }
+      }
+    },
+    "From the accessibility tree of the part on screen. Not offered to agents yet." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Из дерева доступности видимой части. Агентам пока не предлагаются."
+          }
+        }
+      }
+    },
+    "%lld of %lld controls named" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "С именем %lld из %lld элементов управления"
+          }
+        }
+      }
+    },
+    "Show Accessibility Overlay" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показать слой доступности"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"
