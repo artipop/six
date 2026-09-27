@@ -76,6 +76,10 @@ it pulses while an agent is calling one. Clicking it lists them: name, descripti
 and the **read-only** and **consequential** marks — what the page said about
 itself. The agent sees the same tools and can call them.
 
+A page can also turn an ordinary form into a tool by marking it up. The agent then
+fills the form in; if the page allows it, the agent submits it too, and otherwise
+the submit button is focused and the form waits for you to press it.
+
 The switch reaches pages loaded after it: turning it on reloads the open windows.
 
 **What you will be asked.** The first call to a site raises a bar under the

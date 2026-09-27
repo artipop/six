@@ -248,7 +248,11 @@ nonisolated enum WebMCPScript {
             // What a tool returned, as the draft's DOMString. A page written for the first origin
             // trial returns MCP's own CallToolResult — `{ content: [{ type: 'text', text }] }` —
             // and is read as what it meant, not as a JSON object an agent then has to unwrap.
+            // What a form tool answers when its submission navigated: `null` to the page, nothing to an agent.
+            const NOTHING = Object.freeze({});
+
             function serialize(value) {
+                if (value === NOTHING) { return null; }
                 if (value === undefined || value === null) { return ''; }
                 if (typeof value === 'string') { return value; }
                 if (typeof value === 'object' && Array.isArray(value.content)) {
@@ -311,7 +315,8 @@ nonisolated enum WebMCPScript {
                     };
                     let result;
                     try { result = entry.execute.call(entry.tool, input, options); } catch (e) { return finish(false, e); }
-                    announceCall('toolactivated', entry.name);
+                    // A form announces itself once it is filled (`declarative`).
+                    if (!entry.form) { announceCall('toolactivated', entry.name); }
                     Promise.resolve(result).then((value) => finish(true, value), (error) => finish(false, error));
                 });
             }
@@ -381,6 +386,9 @@ nonisolated enum WebMCPScript {
                 }, (error) => fail('UnknownError', say(error)));
             });
 
+            // The forms' pending mutations, applied before a read (`declarative` sets it).
+            let flushForms = () => {};
+
             const constructing = {};
             let token = null;
 
@@ -446,6 +454,7 @@ nonisolated enum WebMCPScript {
                             return Promise.reject(new DOMException('fromOrigins takes potentially trustworthy origins only', 'SecurityError'));
                         }
                     }
+                    flushForms();
                     const sorted = (list) => list.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
                     const own = Array.from(tools.values(), registered);
                     const answer = brokered ? ask({ kind: 'getTools', fromOrigins: from.map((o) => new URL(o).origin) }) : null;
@@ -587,6 +596,8 @@ nonisolated enum WebMCPScript {
                     }
                 })
             });
+
+        \#(declarative)
 
             // A page restored from the back-forward cache is the same document, but six forgot its
             // tools when the window left it. So it says everything again.

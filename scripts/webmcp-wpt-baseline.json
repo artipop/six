@@ -1,6 +1,6 @@
 {
  "wpt": "a9871a2",
- "passed": 127,
+ "passed": 165,
  "total": 174,
  "results": {
   "webmcp/declarative/document-domain-enabled.sub.https.html": {
@@ -14,217 +14,217 @@
    ]
   },
   "webmcp/declarative/duplicate-tool-name.https.html": {
-   "harness": "Timeout",
+   "harness": "OK",
    "rows": [
     {
-     "status": "Timeout",
+     "status": "Pass",
      "name": "Test that duplicate declarative tools with different descriptions do not crash and only the first is registered",
-     "message": "Test timed outAsserts runNo asserts ran"
+     "message": "Asserts runPassassert_equals(1, 1, \"Exactly one tool should be registered\")"
     },
     {
-     "status": "Not Run",
+     "status": "Pass",
      "name": "Test that duplicate declarative tools with identical descriptions do not crash and only the first is registered",
-     "message": "Asserts runNo asserts ran"
+     "message": "Asserts runPassassert_equals(1, 1, \"Exactly one tool should be registered\")"
     }
    ]
   },
   "webmcp/declarative/executeTool-abort.https.html": {
-   "harness": "Timeout",
+   "harness": "OK",
    "rows": [
     {
-     "status": "Timeout",
+     "status": "Pass",
      "name": "executeTool signal successfully resets tool pseudo-classes",
-     "message": "Test timed outAsserts runNo asserts ran"
+     "message": "Asserts runPassassert_false(false)"
     }
    ]
   },
   "webmcp/declarative/executeTool-detach-toolactivated.https.html": {
-   "harness": "Timeout",
+   "harness": "OK",
    "rows": [
     {
-     "status": "Timeout",
+     "status": "Pass",
      "name": "toolactivated is not dispatched when filling out a declarative tool form detaches the tool document",
-     "message": "Test timed outAsserts runNo asserts ran"
+     "message": "Asserts runPassassert_false(false, \"the iframe is detached\")"
     }
    ]
   },
   "webmcp/declarative/executeTool-flexible-types.https.html": {
-   "harness": "Timeout",
+   "harness": "OK",
    "rows": [
     {
-     "status": "Timeout",
+     "status": "Pass",
      "name": "Declarative form tool coerces flexible input types appropriately",
-     "message": "Test timed outAsserts runNo asserts ran"
+     "message": "Asserts runPassassert_equals(\"123\", \"123\", \"Number should be coerced to string for text input\")"
     }
    ]
   },
   "webmcp/declarative/executeTool-invalid-input.https.html": {
-   "harness": "Timeout",
+   "harness": "OK",
    "rows": [
     {
-     "status": "Timeout",
+     "status": "Pass",
      "name": "executeTool rejects when input contains a parameter that does not exist in the form",
-     "message": "Test timed outAsserts runNo asserts ran"
+     "message": "Asserts runPassassert_true(true, \"Tool should be registered\")"
     },
     {
-     "status": "Not Run",
+     "status": "Pass",
      "name": "executeTool rejects when input contains an invalid value for select element",
-     "message": "Asserts runNo asserts ran"
+     "message": "Asserts runPassassert_true(true, \"Tool should be registered\")"
     },
     {
-     "status": "Not Run",
+     "status": "Pass",
      "name": "executeTool rejects when form input violates pattern constraint",
-     "message": "Asserts runNo asserts ran"
+     "message": "Asserts runPassassert_true(true, \"Tool should be registered\")"
     },
     {
-     "status": "Not Run",
+     "status": "Pass",
      "name": "executeTool rejects when form inputs violate required and min constraints",
-     "message": "Asserts runNo asserts ran"
+     "message": "Asserts runPassassert_true(true, \"Tool should be registered\")"
     }
    ]
   },
   "webmcp/declarative/executeTool-navigation.https.html": {
-   "harness": "Timeout",
+   "harness": "OK",
    "rows": [
     {
-     "status": "Timeout",
+     "status": "Pass",
      "name": "executeTool resolves with null and triggers standard form navigation",
-     "message": "Test timed outAsserts runNo asserts ran"
+     "message": "Asserts runPassassert_true(true, \"Tool should be registered\")"
     }
    ]
   },
   "webmcp/declarative/executeTool-no-autosubmit.https.html": {
-   "harness": "Timeout",
+   "harness": "Error",
    "rows": [
     {
-     "status": "Timeout",
+     "status": "Pass",
      "name": "executeTool without toolautosubmit focuses submit button and waits for manual submit",
-     "message": "Test timed outAsserts runNo asserts ran"
+     "message": "Asserts runPassassert_equals(Element node <button type=\"submit\">Submit</button>, Element node <button type=\"submit\">Submit</button>, \"Submit button should be focused\")"
     },
     {
-     "status": "Not Run",
+     "status": "Pass",
      "name": "form.reset() cancels pending executeTool execution and clears :tool-form-active",
-     "message": "Asserts runNo asserts ran"
+     "message": "Asserts runPassassert_true(true, \"Form should match :tool-form-active\")"
     },
     {
-     "status": "Not Run",
+     "status": "Pass",
      "name": "Unrelated form submission and removal cancels pending tool execution",
-     "message": "Asserts runNo asserts ran"
+     "message": "Asserts runPassassert_true(true, \"Form should match :tool-form-active\")"
     }
    ]
   },
   "webmcp/declarative/executeTool-pseudo-classes.https.html": {
-   "harness": "Timeout",
+   "harness": "OK",
    "rows": [
     {
-     "status": "Timeout",
+     "status": "Fail",
      "name": "Pseudo-classes :tool-form-active and :tool-submit-active apply correctly during execution and are removed upon completion",
-     "message": "Test timed outAsserts runNo asserts ran"
+     "message": "assert_equals: Form should be styled by :tool-form-active expected \"rgb(0, 255, 0)\" but got \"rgba(0, 0, 0, 0)\"@https://six.localhost:8443/webmcp/declarative/executeTool-pseudo-classes.https.html:59:16Asserts runPassassert_true(true, \"Form should match :tool-form-active during submit\")"
     },
     {
-     "status": "Not Run",
+     "status": "Pass",
      "name": "Form controls are populated with arguments when toolactivated event fires",
-     "message": "Asserts runNo asserts ran"
+     "message": "Asserts runPassassert_true(true, \"toolactivated event should have fired on the window\")"
     }
    ]
   },
   "webmcp/declarative/executeTool-respondWith-circular-object.https.html": {
-   "harness": "Timeout",
+   "harness": "OK",
    "rows": [
     {
-     "status": "Timeout",
+     "status": "Pass",
      "name": "Declarative tool executeTool() rejects when respondWith() receives a circular object",
-     "message": "Test timed outAsserts runNo asserts ran"
+     "message": "Asserts runPassassert_true(true, \"Tool should be registered\")"
     }
    ]
   },
   "webmcp/declarative/executeTool-respondWith-reject.https.html": {
-   "harness": "Timeout",
+   "harness": "OK",
    "rows": [
     {
-     "status": "Timeout",
+     "status": "Pass",
      "name": "executeTool rejects when respondWith() promise is rejected",
-     "message": "Test timed outAsserts runNo asserts ran"
+     "message": "Asserts runPassassert_true(true, \"submit event should have fired\")"
     }
    ]
   },
   "webmcp/declarative/executeTool-respondWith.https.html": {
-   "harness": "Timeout",
+   "harness": "OK",
    "rows": [
     {
-     "status": "Timeout",
+     "status": "Pass",
      "name": "executeTool resolves with respondWith() value when preventDefault() is called",
-     "message": "Test timed outAsserts runNo asserts ran"
+     "message": "Asserts runPassassert_true(true, \"agentInvoked should be true during tool invocation\")"
     },
     {
-     "status": "Not Run",
+     "status": "Pass",
      "name": "executeTool rejects when preventDefault() is called without respondWith()",
      "message": "Asserts runNo asserts ran"
     },
     {
-     "status": "Not Run",
+     "status": "Pass",
      "name": "respondWith() throws InvalidStateError if preventDefault() was not called, and form navigates",
-     "message": "Asserts runNo asserts ran"
+     "message": "Asserts runPassassert_true(true, \"respondWith should throw DOMException\")"
     },
     {
-     "status": "Fail",
+     "status": "Pass",
      "name": "respondWith() throws InvalidStateError and agentInvoked is false when submit is not agent-invoked",
-     "message": "assert_false: agentInvoked should be false for manual submission expected false got undefined@https://six.localhost:8443/webmcp/declarative/executeTool-respondWith.https.html:122:15"
+     "message": "Asserts runPassassert_false(false, \"agentInvoked should be false for manual submission\")"
     },
     {
-     "status": "Not Run",
+     "status": "Pass",
      "name": "Calling respondWith() after submit event dispatch throws InvalidStateError",
-     "message": "Asserts runNo asserts ran"
+     "message": "Asserts runPassassert_equals(\"result\", \"result\")"
     },
     {
-     "status": "Not Run",
+     "status": "Pass",
      "name": "executeTool resolves successfully with respondWith() value even if a navigation is initiated",
-     "message": "Asserts runNo asserts ran"
+     "message": "Asserts runPassassert_equals(\"result value\", \"result value\", \"executeTool should resolve to respondWith value even if navigation occurs\")"
     }
    ]
   },
   "webmcp/declarative/execute_tool_change_event.https.html": {
-   "harness": "Timeout",
+   "harness": "OK",
    "rows": [
     {
-     "status": "Timeout",
+     "status": "Pass",
      "name": "executeTool triggers input and change events",
-     "message": "Test timed outAsserts runNo asserts ran"
+     "message": "Asserts runPassassert_true(true, \"Tool should be registered\")"
     }
    ]
   },
   "webmcp/declarative/execute_tool_submit_from_js.https.html": {
-   "harness": "Timeout",
+   "harness": "OK",
    "rows": [
     {
-     "status": "Timeout",
+     "status": "Pass",
      "name": "executeTool resolves successfully when submit handler calls form.submit()",
-     "message": "Test timed outAsserts runNo asserts ran"
+     "message": "Asserts runPassassert_true(true, \"Tool should be registered\")"
     }
    ]
   },
   "webmcp/declarative/form_removal_submit_crash.https.html": {
-   "harness": "Timeout",
+   "harness": "OK",
    "rows": [
     {
-     "status": "Timeout",
+     "status": "Pass",
      "name": "Form removal on submit with respondWith does not crash the renderer",
-     "message": "Test timed outAsserts runNo asserts ran"
+     "message": "Asserts runPassassert_true(true, \"Tool should be found\")"
     }
    ]
   },
   "webmcp/declarative/getTools-declarative-schema.https.html": {
-   "harness": "Timeout",
+   "harness": "OK",
    "rows": [
     {
-     "status": "Timeout",
+     "status": "Pass",
      "name": "WebMCP: getTools() retrieves declarative schema at registration time",
-     "message": "Test timed outAsserts runNo asserts ran"
+     "message": "Asserts runPassassert_equals(\"search_tool\", \"search_tool\", \"Tool name matches\")"
     }
    ]
   },
   "webmcp/declarative/no-frame-documents.https.html": {
-   "harness": "Timeout",
+   "harness": "OK",
    "rows": [
     {
      "status": "Pass",
@@ -242,99 +242,99 @@
      "message": "Asserts runPassassert_equals(0, 0, \"No tools should be registered from a frame-less document with name only\")"
     },
     {
-     "status": "Timeout",
+     "status": "Pass",
      "name": "Declarative tool in iframe removed after registration does not crash on attribute modification",
-     "message": "Test timed outAsserts runNo asserts ran"
+     "message": "Asserts runPassassert_equals(\"mytool\", \"mytool\")"
     }
    ]
   },
   "webmcp/declarative/opaque-origin-tools.https.html": {
-   "harness": "Timeout",
+   "harness": "OK",
    "rows": [
     {
-     "status": "Timeout",
+     "status": "Pass",
      "name": "An opaque origin document can register but not execute its own declarative tools",
-     "message": "Test timed outAsserts runPassassert_equals(\"null\", \"null\")"
+     "message": "Asserts runPassassert_equals(\"null\", \"null\")"
     },
     {
-     "status": "Not Run",
+     "status": "Pass",
      "name": "executeTool() rejects synchronously for opaque origins",
-     "message": "Asserts runNo asserts ran"
+     "message": "Asserts runPassassert_array_equals([\"rejection\", \"microtask\"], [\"rejection\", \"microtask\"], \"returned promise is rejected before custom microtask is queued\")"
     }
    ]
   },
   "webmcp/declarative/sandboxed-iframe.https.html": {
-   "harness": "Timeout",
+   "harness": "OK",
    "rows": [
     {
-     "status": "Timeout",
+     "status": "Pass",
      "name": "Declarative tool in sandboxed iframe without allow-scripts is not registered",
-     "message": "Test timed outAsserts runNo asserts ran"
+     "message": "Asserts runPassassert_equals(1, 1)"
     }
    ]
   },
   "webmcp/declarative/select-multiple-events.https.html": {
-   "harness": "Timeout",
+   "harness": "OK",
    "rows": [
     {
-     "status": "Timeout",
+     "status": "Pass",
      "name": "executeTool() on a <select multiple> dispatches input and change events",
-     "message": "Test timed outAsserts runNo asserts ran"
+     "message": "Asserts runPassassert_true(true, \"Tool should be registered\")"
     }
    ]
   },
   "webmcp/declarative/toolchange-on-attribute-mutation.https.html": {
-   "harness": "Timeout",
+   "harness": "OK",
    "rows": [
     {
-     "status": "Timeout",
+     "status": "Pass",
      "name": "Test that mutating or removing form attributes (toolname, tooldescription, tooltitle, toolautosubmit) fires toolchange and updates getTools() correctly",
-     "message": "Test timed outAsserts runNo asserts ran"
+     "message": "Asserts runPassassert_equals(\"my_tool\", \"my_tool\")"
     },
     {
-     "status": "Not Run",
+     "status": "Pass",
      "name": "No toolchange event on unrelated attribute mutation",
-     "message": "Asserts runNo asserts ran"
+     "message": "Asserts runPassassert_equals(0, 0, \"toolchange should not fire on unrelated attribute\")"
     },
     {
-     "status": "Not Run",
+     "status": "Pass",
      "name": "No toolchange event on redundant schema mutation",
-     "message": "Asserts runNo asserts ran"
+     "message": "Asserts runPassassert_equals(0, 0, \"toolchange should not fire on redundant schema mutation\")"
     }
    ]
   },
   "webmcp/declarative/toolchange-on-control-add-remove.https.html": {
-   "harness": "Timeout",
+   "harness": "OK",
    "rows": [
     {
-     "status": "Timeout",
+     "status": "Pass",
      "name": "Test that toolchange event fires when controls are added or removed",
-     "message": "Test timed outAsserts runNo asserts ran"
+     "message": "Asserts runNo asserts ran"
     }
    ]
   },
   "webmcp/declarative/toolchange-on-name-change.https.html": {
-   "harness": "Timeout",
+   "harness": "OK",
    "rows": [
     {
-     "status": "Timeout",
+     "status": "Pass",
      "name": "Test that toolchange event fires on various mutations of form controls",
-     "message": "Test timed outAsserts runPassassert_true(true, \"Element input1 should exist\")"
+     "message": "Asserts runPassassert_true(true, \"Element input1 should exist\")"
     }
    ]
   },
   "webmcp/declarative/unregister-during-executeTool.https.html": {
-   "harness": "Timeout",
+   "harness": "OK",
    "rows": [
     {
-     "status": "Timeout",
+     "status": "Pass",
      "name": "Pending executeTool() Promise resolves successfully when target declarative tool is unregistered via DOM removal",
-     "message": "Test timed outAsserts runNo asserts ran"
+     "message": "Asserts runPassassert_true(true, \"Tool should be registered\")"
     },
     {
-     "status": "Not Run",
+     "status": "Pass",
      "name": "Pending executeTool() Promise resolves successfully when target declarative tool is unregistered via attribute removal",
-     "message": "Asserts runNo asserts ran"
+     "message": "Asserts runPassassert_true(true, \"Tool should be registered\")"
     }
    ]
   },

@@ -156,11 +156,11 @@ in [permissions.md](permissions.md).
 
 ## Not built
 
-- **Declarative forms.** When the spec's section stops being TODO: walk `form[toolname]` in six's world, map
-  `toolname` / `tooldescription` to a tool and named fields with `toolparamdescription` to its schema, and call by
-  filling the fields and submitting with the agent mark (`SubmitEvent.agentInvoked`, `respondWith(promise)` in the
-  explainer). Follow the spec, not the explainer — Lighthouse already checks the attributes, so sites will set them
-  before the spec settles.
+- **Styling by `:tool-form-active` and `:tool-submit-active`.** `matches()` and `closest()` know them; a style sheet
+  does not, because WebKit's CSS parser drops a rule with a pseudo-class it has never heard of, and nothing a page
+  script can do brings it back.
+- **File inputs** in declarative forms: Chromium keeps them behind a flag pending a privacy review, and so does six —
+  there is no flag.
 - **Agents see the main frame's tools only.** Frames reach each other's tools through the page's own
   `getTools`/`executeTool`; `list_page_tools` still lists the top document's. Offering a subframe's to an agent
   wants the gate to ask about the subframe's origin first (stage 5 of the compatibility plan).
@@ -192,6 +192,33 @@ What not to do: wait for WebKit, or turn six into a bridge for someone else's ag
 external client path is not needed when six **is** the MCP server (`six --mcp`), and page tools leave through
 `call_page_tool` with the rest of the catalog and its permissions, not around them.
 
+## Declarative forms
+
+`<form toolname tooldescription>` is a tool (`WebMCPForms.swift`, spliced into the polyfill). The draft's section is
+still TODO, so the behaviour is Chromium's: the schema and the filling follow `form_mcp_schema.cc` (BSD) line for
+line, and the submission follows wpt's `webmcp/declarative`.
+
+- **The schema.** One property per control name, in the order the names first appear among the form's controls;
+  disabled and read-only controls are left out. Text-like inputs and `<textarea>` are strings (with `pattern`),
+  `number` and `range` numbers (`minimum`, `maximum`, `multipleOf` when the step base is a multiple of the step),
+  dates and times strings with a format, a lone checkbox a boolean, a checkbox group an array of its values, a radio
+  group and a `<select>` a string with `anyOf` and `enum` (`<select multiple>` an array). A description is
+  `toolparamdescription`, else the label's text, else `aria-description`; a group's is its `<fieldset>`'s.
+  `required` lists the required names, and is there even when empty.
+- **A call** checks every argument before it touches anything — a name the form does not have, a value the control
+  would refuse — then fills the fields with the native setters and fires `input` and `change` where a value changed,
+  then `toolactivated`. With `toolautosubmit` six submits: the `submit` event carries `agentInvoked`, a handler that
+  cancels it answers with `respondWith(promise)`, one that does not lets the form navigate and the call answers
+  `null`. Without it six focuses the submit button and waits for the person to press it — which is what makes a form
+  without `toolautosubmit` safe to offer. A reset, the form's removal before it was submitted, or the caller's abort
+  ends the call.
+- **Keeping up.** A `MutationObserver` on the document re-reads the forms when a tool attribute or a control changes,
+  and registers, updates or drops the tool; `toolchange` fires only when what an agent would read changed.
+  `getTools()` applies pending mutations first, so a page that edits a form and asks at once reads the edit.
+- The first form with a name wins; an imperative tool of the same name keeps it. Forms of a document with no window
+  (`DOMParser`, `createHTMLDocument`) and of a sandboxed frame without scripts are not tools.
+- To an agent a form tool is like any other: not read-only, so every call is confirmed in the bar.
+
 ## Compatibility: web-platform-tests
 
 wpt has the suite Chromium moved its own tests into, [`webmcp/`](https://github.com/web-platform-tests/wpt/tree/master/webmcp),
@@ -208,10 +235,10 @@ open -na <Debug six.app> --env SIX_WEBMCP=1
 ./scripts/webmcp-wpt.py --write-baseline      # after a change that should move the numbers
 ```
 
-The baseline is `scripts/webmcp-wpt-baseline.json`. At wpt `a9871a2`: **127 of 174** — imperative 98 of 105,
-`idlharness` 22 of 22, `tool-activated-event` 4 of 4, declarative 3 of 43. The seven imperative ones left are the
-ones [Not built](#not-built) explains: an opened window (2), `document.domain` (3), `isTrusted` (1) and the initial
-`about:blank` of an iframe with a `src` (1). The declarative ones fail because declarative forms are not built. What the suite taught the polyfill, and it now does: `getTools()` sorted by name and carrying
+The baseline is `scripts/webmcp-wpt-baseline.json`. At wpt `a9871a2`: **165 of 174** — imperative 98 of 105,
+declarative 41 of 43, `idlharness` 22 of 22, `tool-activated-event` 4 of 4. The nine left are the ones
+[Not built](#not-built) explains: an opened window (2), `document.domain` (4), `isTrusted` (1), the initial
+`about:blank` of an iframe with a `src` (1), and styling by `:tool-form-active` (1). What the suite taught the polyfill, and it now does: `getTools()` sorted by name and carrying
 `window`; annotations absent when none were given, with `debugging`; `InvalidStateError` for a bad name;
 `AbortError`/the signal's reason from `registerTool` when its signal aborts; `SecurityError` for `exposedTo`;
 `executeTool` input through JSON and required to be an object, `UnknownError` for a missing tool or a failed call,

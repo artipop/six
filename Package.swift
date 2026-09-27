@@ -183,6 +183,7 @@ let package = Package(
                 // bargain translation makes, so each front owes a bridge and nothing more.
                 "WebMCP/WebMCPRegistry.swift",
                 "WebMCP/WebMCPBroker.swift",
+                "WebMCP/WebMCPForms.swift",
                 "WebMCP/WebMCPScript.swift",
                 "WebMCP/WebMCPHost.swift",
                 "WebMCP/WebMCPPage.swift",
