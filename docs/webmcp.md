@@ -316,6 +316,14 @@ through `WebViewResponder.webView(for:)`), on a stand page holding a same-origin
   navigation, a navigation mid-call, an empty registry on `about:blank`. It forgets its own site answer first, so it
   can be run back to back.
 
+- **Live pages** (2026-09-27, dev build): all fourteen of Chrome Labs' demos
+  (`googlechromelabs.github.io/webmcp-tools/demos/`) declare their tools in six — 41 between them, imperative and
+  declarative, React, Angular and plain pages — and `list_page_tools` lists what the page's own `getTools()` returns.
+  Called from inside the page: the pizza maker's `set_pizza_size` answered, the doors' and order tracking's forms
+  submitted and answered `null`, and an argument outside a form's `enum` was refused before anything was filled.
+- **`@mcp-b/global` 5.1.0** on a stand page: it takes six's `document.modelContext` for a native one and wraps it, as
+  its README says, and a tool registered through the wrapper reaches six and is listed to agents.
+
 ### Not checked
 
 - **Linux has never been built.** Its first container build has to answer whether `WebKitUserContentManager` and
@@ -323,7 +331,6 @@ through `WebViewResponder.webView(for:)`), on a stand page holding a same-origin
   the world as its third argument, whether `script-message-received` is (`manager`, `JSCValue*`, `gpointer`), and
   whether `webkit_web_view_get_user_content_manager` gives each view its own manager.
 - **The ⌘K schema translation (`WebMCPModelTool`)** has not been exercised with a model.
-- A polyfill that arrived with the page (`@mcp-b/global`), on a live page: whether it and six's leave each other alone.
 
 ### How to check it
 

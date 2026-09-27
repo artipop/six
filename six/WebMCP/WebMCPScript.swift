@@ -498,6 +498,7 @@ nonisolated enum WebMCPScript {
                     }
                     return invoke(entry, args, signal).catch((error) => {
                         if (signal && signal.aborted && error === signal.reason) { throw error; }
+                        if (error instanceof DOMException && error.name === 'UnknownError') { throw error; }
                         throw new DOMException(say(error), 'UnknownError');
                     });
                 }
