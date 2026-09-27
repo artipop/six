@@ -92,8 +92,8 @@ struct PageFailureView: View {
         if let offered {
             // The whole point of the page, in one sentence: six has it, and it is off.
             return String(localized: """
-                This site’s certificate was issued by \(offered.name). six includes this authority but \
-                does not trust it until you turn it on. Sites with certificates from other authorities are not affected.
+                This site’s certificate was issued by \(offered.name). The authority is on the list but \
+                is not trusted until you turn it on. Sites with certificates from other authorities are not affected.
                 """)
         }
         if failure.isCertificateProblem {
@@ -102,6 +102,6 @@ struct PageFailureView: View {
                 you have the authority’s certificate, add it under Certificates in settings.
                 """)
         }
-        return String(localized: "six could not reach this address.")
+        return String(localized: "This address could not be reached.")
     }
 }

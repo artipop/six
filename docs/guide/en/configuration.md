@@ -31,6 +31,10 @@ menus is what a menu is for: things you do, with a key beside them.
 **Search engine** — DuckDuckGo, Google, Bing or Yandex. The same choice is the
 chip on the left of the field on the start page.
 
+**Start page** — what stands above the field: the **Name** (which can be
+changed), the app's **Icon**, or **None**. The same goes for a window's
+miniature when peeking and in the overview.
+
 **Translation** — the language pages are translated into (`⌘⇧L`). The list is
 whichever languages macOS has a model for.
 

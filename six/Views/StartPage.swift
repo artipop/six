@@ -71,9 +71,7 @@ struct StartPage: View {
             // grows downward into the empty half of the page, where there is room for it.
             GeometryReader { geometry in
                 VStack(spacing: 14) {
-                    Text("six")
-                        .font(.system(size: 46, weight: .light, design: .rounded))
-                        .foregroundStyle(accent)
+                    PageMark(size: 46, color: accent)
                     field
                     list
                     Spacer(minLength: 0)

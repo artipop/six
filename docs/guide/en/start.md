@@ -143,6 +143,6 @@ restored windows do not start by themselves — not until the first click on the
 
 ## Making it the default browser
 
-The **six ▸ Set six as Default Browser…** menu item, or System Settings › Desktop
+**Configuration ▸ General ▸ Make Default Browser…**, or System Settings › Desktop
 & Dock › Default web browser. After that, links from other applications and
 `.html` files from the Finder arrive as windows in the row.

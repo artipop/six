@@ -34,9 +34,7 @@ struct WelcomePage: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                Text("six")
-                    .font(.system(size: 44, weight: .semibold, design: .rounded))
-                    .foregroundStyle(browser.selectedProfile.color)
+                PageMark(size: 44, weight: .semibold, color: browser.selectedProfile.color)
                 Text("A browser with a row instead of tabs: a page is a full-height window, the windows stand side by side, and the row scrolls. ⌥← and ⌥→ move along it; ⌥↑ and ⌥↓ move between workspaces.")
                     .font(.title3)
                     .foregroundStyle(.secondary)
@@ -66,7 +64,7 @@ struct WelcomePage: View {
     }
 
     @ViewBuilder private var question: some View {
-        Text("Should six use language models?")
+        Text("Use language models?")
             .font(.title2.weight(.semibold))
         Text("The ⌘E line, actions over selected text, the agent panel, deep research and the MCP server.")
             .foregroundStyle(.secondary)

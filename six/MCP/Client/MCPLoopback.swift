@@ -144,7 +144,7 @@ nonisolated final class MCPLoopback: @unchecked Sendable {
     private static func page(succeeded: Bool, message: String?) -> String {
         let title = succeeded ? String(localized: "Signed in") : String(localized: "Sign-in failed")
         let detail = succeeded
-            ? String(localized: "You can close this window and go back to six.")
+            ? String(localized: "You can close this window.")
             : (message ?? String(localized: "The authorization server did not return a code."))
         return """
         <!doctype html><html><head><meta charset="utf-8">
