@@ -1,356 +1,189 @@
-# Агент, который действует в залогиненной сессии — план
+# Agents acting on a page
 
-Продолжение [mcp.md](mcp.md) и [agents.md](agents.md). Там разобрано, как агент читает браузер; здесь — то, чего в
-каталоге нет вовсе: **действие**. Написано по-русски, как соседний [mcp-sandbox.md](mcp-sandbox.md), потому что это
-ещё не описание кода, а решение о том, какой код писать.
+The rest of the catalog ([mcp.md](mcp.md), [agents.md](agents.md)) is about how an agent *reads* the browser. This is
+about how it *acts*: fills a form, runs a search, presses a button — inside the person's signed-in session.
 
-## Задача, с которой это началось
+That session is the point. `BrowserState.dataStore(for:)` gives each window its profile's
+`WKWebsiteDataStore(forIdentifier:)`, so `open_window` on a site the person is signed in to opens signed in: no key,
+no OAuth, no app registered anywhere. A cloud agent (Operator, Browserbase) cannot do that and hands control back
+for the password; a browser is the program the person is already signed in with.
 
-«Хочу дать агенту доступ к моей гугл-таблице. Я в гугле залогинен, OAuth настраивать не хочу, API не хочу — хочу
-просто дать доступ к странице, на которой я уже сижу.»
+## How an agent acts, best first
 
-Половина этого уже работает, и это самая ценная половина. `BrowserState.dataStore(for:)` отдаёт окну
-`WKWebsiteDataStore(forIdentifier:)` профиля, а инструменты открывают окна в реальном профиле — значит `open_window`
-на `docs.google.com/spreadsheets/...` открывается **уже залогиненным**, с настоящими куками. Ни ключа, ни согласия,
-ни отдельного приложения в Google Cloud Console. Это ровно та модель, которую продают Comet, Atlas, Dia и Copilot
-Mode, и у браузера она получается бесплатно: он и есть та программа, в которой человек залогинен. Облачные агенты
-(Operator, Browserbase) как раз этого не могут и выкручиваются «передачей управления», когда человек вводит пароль в
-чужом браузере.
+The rule, settled early and kept: **through the page's own API or its DOM, not a model looking at pixels.** A site's
+own entry point is faster, survives a redesign and gives what the DOM does not have at all. If a vision path ever
+exists, it is switched on **per site**, the way `SitePermissions` is, never by one switch for everything.
 
-Не работает вторая половина. Каталог сегодня — `get_page_content`, `get_page_links`, `list_page_blocks`,
-`take_screenshot` и `evaluate_javascript`: всё читает, ничего не нажимает. Нет `click`, `fill`, `press_key`,
-`scroll`, нет снимка интерактивных элементов. Агент видит страницу и не может к ней прикоснуться иначе как написав
-JavaScript руками.
+1. **The service's own MCP server**, connected in Apps — not a page at all ([mcp-apps.md](mcp-apps.md)).
+2. **The tools the page declared** — WebMCP ([webmcp.md](webmcp.md)).
+3. **Tools derived from the page's accessibility tree** — a form with its fields, a named control, a field
+   ([accessibility.md](accessibility.md#toward-page-tools-derived-from-the-tree)). Mac only, and only with six
+   allowed under Accessibility.
+4. **The page's elements one by one** — the DOM snapshot and the acting tools below. Every page has these, on every
+   front.
 
-А Google Sheets — худший из возможных первых случаев, и полезно понимать почему: сетка рисуется в `<canvas>`, так
-что `innerText` вернёт меню и панель инструментов вместо таблицы, а синтетические DOM-события приходят в страницу
-как `isTrusted: false`, и Sheets их в основном игнорирует. То есть общий подход «снимок DOM плюс клики» — правильный
-для веба вообще и бесполезный именно здесь. Отсюда четыре этапа: три из них про веб, один про canvas.
+An agent over MCP chooses among 2–4 itself (`list_page_tools`, `get_accessibility_tree`, `page_snapshot`); the
+catalog's instructions put them in that order. `run_page_task` chooses for it, at every step
+([below](#run_page_task-the-routes)).
 
-## Этап 1. `fetch_url` — выборка из-под куки профиля
+What is left when none of them works — a canvas (Sheets, Figma, Maps), a page whose controls have no names — is
+[not built](#not-built).
 
-Самый большой выигрыш на строку кода, и он закрывает исходную задачу на чтение целиком.
+## The acting tools
 
-У множества сервисов есть собственный экспорт, доступный по той же сессии, что и интерфейс — не API, а обычная
-ссылка, которую браузер откроет, потому что человек залогинен. У таблиц это
+`page_snapshot`, `click`, `fill`, `select_option`, `press_key`, `scroll_page`, `wait_for`, all `surfaces: .mcp`: an
+ACP agent gets them through its own permission dialog, and the ⌘E line never gets a button pressed in answer to a
+question. The page half is `six/Tools/PageActionScript.swift`, the Swift half `six/Tools/PageActions.swift`, the
+tools themselves in `BrowserTools.swift`.
 
-```
-https://docs.google.com/spreadsheets/d/<id>/export?format=csv&gid=<gid>
-https://docs.google.com/spreadsheets/d/<id>/gviz/tq?tqx=out:csv&sheet=<name>
-```
+- **The script runs in six's own content world** (`WebPage.six`), as the readable-text extractor does
+  ([architecture.md](architecture.md#page-side-scripts)): a page cannot redefine `querySelectorAll` or a getter to
+  show the agent a button the person does not see, or reach the registry to aim a click elsewhere. It is also why the
+  WebMCP polyfill, which patches `Element.prototype.matches` / `closest` and `HTMLFormElement.prototype.submit` in
+  the page's world, does not touch the snapshot.
+- **A ref is the node's identity, not its place in the list.** Borrowed from
+  [browser-use/jev-ultrafast](https://github.com/browser-use/jev-ultrafast): a `WeakMap` numbers every element the
+  snapshot saw, a `Map` keeps the live node. The same element keeps `e12` across snapshots; a removed element's ref
+  fails with "take a new snapshot" instead of landing on whatever took its place. The model answers with a ref —
+  never a selector, coordinates or script — so nothing it says is executed.
+- **Every action answers with the new snapshot**, as Playwright's MCP server does: the next thing an agent needs
+  after a click is always to look, and one round trip is cheaper than two. Before it, a wait until the DOM stops
+  changing (a `MutationObserver` count, two agreeing reads, 3 s ceiling), so a slow autocomplete shows its
+  suggestions.
+- **Typing goes through `execCommand('insertText')`**, not the `value` setter: WebKit runs it as real editing, so
+  `beforeinput` / `input` arrive as from a keyboard and autocomplete opens. The setter is the fallback for fields
+  that refuse editing (dates, masks).
+- **`click` refuses when something covers the element**, and names it (`elementFromPoint` at the centre). A
+  full-screen cookie banner otherwise eats the click silently.
+- **Look-alikes get their row's text**: five "Select" buttons on a results page are one button to a model until each
+  carries its flight and price.
+- Open shadow roots are walked; closed ones and `ElementInternals` are not — the narrow difference from the
+  accessibility tree measured in [accessibility.md](accessibility.md). Main frame only.
+- `wait_for` is not a convenience: `callJavaScript` takes no `await`, so everything that waits is polled from Swift.
 
-— настоящие строки и столбцы, структурированные, без рендера, без canvas и без единого клика.
+## `run_page_task`: the routes
 
-Инструмент: `fetch_url(url, profile?, max_chars?)`.
+`/do …` or `do: …` on the ⌘E line (`сделай: …` too), and `run_page_task` over MCP. The loop is
+`six/PageTasks/PageTaskRunner.swift`: snapshot → decide → act → snapshot, with ceilings on steps (40) and on a page
+that stopped changing (3).
 
-`URLSession` для этого не годится: куки живут в `WKWebsiteDataStore` профиля, а не в `HTTPCookieStorage`. Два пути,
-брать первый:
+At every step `PageTaskRoute.choose` asks what the page offers, in the order above:
 
-1. **Офскрин `WebPage`** в `dataStore(for: profile)` — ровно то, что уже делает `WebSearch`
-   (`six/Browser/WebSearch.swift`), но с персистентным стором вместо `.nonPersistent()`. Редиректы, реферер,
-   `Sec-Fetch-*` и всё остальное, чем Google отличает браузер от скрипта, получаются сами.
-2. `dataStore.httpCookieStore.allCookies()` → `URLSession` с этими куками. Проще и, скорее всего, упрётся в страницу
-   логина.
+- **The page's WebMCP tools**, when it declared any. The model may answer `CALL_TOOL` with the tool's name and its
+  input as JSON. The call goes through `WebMCPStore.call` — the same gate as `call_page_tool`: the site is asked
+  about once, anything not `readOnlyHint` per call — and the answer comes back fenced as the page's data.
+- **Tools derived from the accessibility tree**, when WebMCP is on (the same switch the spark mark in the address
+  bar waits for) and the tree's verdict is *good*. The tree is read for the eyes, the DOM snapshot is the hands:
+  each node is matched to the smallest snapshot element whose box holds the node's middle (scaled by the zoom), and
+  a node with nothing under it is dropped. A form becomes `FILL_FORM` with a JSON object of field name to text —
+  one step for what was one `TYPE_TEXT` per field; a named control or field is offered by its ref. A refused
+  Accessibility grant is believed for a minute, then asked again.
+- **The elements**, always, below whatever was offered: a WebMCP page still has buttons its tools do not cover.
 
-Границы, потому что «достань мне что угодно с моими куками» — это в одну строку «прочитай мне почту»: только `GET`;
-тот же eTLD+1, что у уже открытого окна профиля, иначе отказ; результат — текст, с потолком по размеру.
+The trace names the route on each step (`via the page's tools (1)`), and the ⌘E line and MCP answer are that trace.
 
-В `instructions` каталога — абзац о том, что у сервиса часто есть свой экспорт и что для таблицы он лучше, чем
-`get_page_content`.
+### Two deciders
 
-**Проверка:** `open_window` на таблицу → `fetch_url` на её `export?format=csv` → в ответе настоящие строки.
+- **System 1** — `six/PageTasks/SystemOne.swift`, a client of one protocol, `/v1/systemone`, which both TypeSafe's
+  hosted Jev and a local laya-browser server speak; which one is an address in `six://configuration` ▸ Assistant ▸
+  Page Tasks. One request asks for the operation and a target for every operation, and only the head for the chosen
+  operation is used. It picks elements; it cannot call a page tool, so on a WebMCP page every step is System 2's.
+- **System 2** — the assistant's model: a `LanguageModelSession`, or an **ACP agent** when the ⌘E line is set to
+  one (Claude Code, paid for by a subscription already). The agent answers one JSON object and is told not to touch
+  the page itself; the finished message is taken from the transcript, not the stream, and the JSON is found by
+  trying brace spans until one parses and names an operation.
 
-## Этап 2. Снимок и действия по DOM
+Rules, each put there by a run rather than by theory:
 
-Ставка на обычный веб — формы, кнопки, ссылки, логины, чекауты — то есть на девяносто процентов случаев, а не на
-Google.
+1. **System 2 writes every value.** A classifier produces no words.
+2. **While System 2 is asked for a value, it may overrule the step.** It costs nothing, and it is most of the
+   hybrid's accuracy: on the first run laya typed into a field under a cookie banner, and System 2 answered "close
+   the banner first".
+3. **System 1's `DONE` is never taken; the step after one that changed nothing goes up; the first step on a new page
+   is System 2's.** All three are one failure: on the results page laya pressed "Select" on the first flight at
+   0.97–0.98 — on a live site, booking — with no notion that the goal was met.
+4. **A trusted step costs few tokens.** When System 1 chose the field and is sure, System 2 is asked only for the
+   value — goal, title, the last four steps — not the page.
 
-**Глаза уже есть, и не из DOM.** `get_accessibility_tree` ([accessibility.md](accessibility.md)) отдаёт то же самое
-— пронумерованные элементы с ролью, именем и списком того, что с ними можно сделать, — но из дерева доступности
-WebKit, а не из собственного обхода: роли и имена по ARIA уже вычислены движком, скрытое уже убрано, а `div` с
-обработчиком клика уже помечен как нажимаемый. Цена — разрешение «Универсальный доступ» для six, и только Mac.
-Обход DOM ниже остаётся как вариант без разрешения и для Linux, Windows и iOS; действия по номеру (`click(ref)`
-и соседи) могут идти через `AXUIElementPerformAction` / `AXUIElementSetAttributeValue` — это нажатие так, как его
-делает VoiceOver, — или через DOM, и это решение этапа, а не этого абзаца. Если страница сама объявила
-инструменты, всё это не нужно вовсе — [webmcp.md](webmcp.md). Как из дерева (а потом из DOM и VLM) получать
-инструменты того же вида, что объявляет WebMCP, —
-[accessibility.md](accessibility.md#toward-page-tools-derived-from-the-tree).
+**Nothing that commits is pressed.** `PageTaskRunner.commits` (both languages) stops the run in front of a button that
+pays, books, orders, subscribes or deletes, and says what is ready. A prompt could ask a language model for this; a
+322M classifier has no notion of it, so the rule is in code.
 
-`page_snapshot(window_id?, max_elements?)` — обход интерактивных узлов (`a[href]`, `button`, `input`, `select`,
-`textarea`, `[role]`, `[contenteditable]`, обработчики клика), только видимых (`checkVisibility`), с доступным
-именем: `aria-label` → `<label>` → `placeholder` → текст. Наружу — пронумерованный список вида
-`[12] button "Сохранить"`.
+### Trying Jev
 
-Скрипт живёт в **мире six** (`WebPage.six`, `six/Browser/PageScripts.swift`), не в мире страницы, и по той же
-причине, по которой там же живёт извлекатель читаемого текста ([architecture.md](architecture.md#page-side-scripts)):
-страница не должна иметь возможности подменить `querySelectorAll` или геттер `innerText` и показать агенту кнопку,
-которой человек не видит. Реестр номеров тоже в мире six и живёт до навигации.
+The client already speaks `/v1/systemone`, so it is settings, not code: **Fast Decider**
+`https://api.typesafe.ai/v1/systemone`, **Model** `jev-latest`, a TypeSafe key, **Trust Above** 0.9. For a
+side-by-side run, environment variables override the settings: `SIX_PAGETASK_ENDPOINT`, `SIX_PAGETASK_KEY`,
+`SIX_PAGETASK_MODEL`, `SIX_PAGETASK_THRESHOLD` (an empty endpoint is the model-only baseline). A refused key or an
+unreachable endpoint is the trace's first line, not a silent model-only run.
 
-Дальше — действия по номеру из снимка: `click(ref)`, `fill(ref, text)`, `select_option(ref, value)`,
-`press_key(key)`, `scroll_page(to|by)`. Внутри — `focus()`, установка значения через нативный сеттер плюс `input` и
-`change` с `bubbles`, затем `element.click()`.
+## The stand
 
-`wait_for(text|selector|idle, timeout)` обязателен и не является удобством: `callJavaScript` не принимает `await`
-(это стоило часов, см. AGENTS.md), так что всё ждущее — опрос из Swift, как уже сделано в `HighlightScript`.
+`scripts/agent-stand/`: `serve.py` serves the pages and appends everything they submit to `submitted.jsonl`, which is
+what a run is checked against — never the agent's account of itself.
 
-Разрешения: `surfaces: .mcp`. Через ACP действия проходят диалог агента; ⌘E-ассистенту их не давать вовсе — человек
-за клавиатурой не должен получить нажатие кнопки в ответ на вопрос.
-
-**Проверка:** любой сайт с формой — снимок, `fill`, `click`, `get_page_content` показывает результат. Sheets не
-поддастся, и это ожидаемо.
-
-### Построено (21 сентября 2026)
-
-`page_snapshot`, `click`, `fill`, `select_option`, `press_key`, `scroll_page`, `wait_for` — только `surfaces: .mcp`.
-Страничная половина — `six/Tools/PageActionScript.swift` (мир six), Swift-половина — `six/Tools/PageActions.swift`,
-сами инструменты — в `BrowserTools.swift`. Что вышло не так, как было задумано выше:
-
-- **Номера — идентичность узла, а не порядковый номер в снимке.** Схема из
-  [browser-use/jev-ultrafast](https://github.com/browser-use/jev-ultrafast): `WeakMap` даёт каждому увиденному
-  элементу номер, `Map` держит живой узел. Тот же элемент сохраняет `e12` между снимками, а номер удалённого
-  элемента падает с «сделай новый снимок», а не попадает в того, кто встал на его место. Модель выбирает
-  номер — не селектор, не координаты и не скрипт, так что из её ответа ничего не исполняется.
-- **Каждое действие возвращает новый снимок**, как у Playwright MCP: после клика агенту всегда нужно снова
-  посмотреть, и один круг дешевле двух. До снимка — ожидание, пока DOM не перестанет меняться (счётчик
-  `MutationObserver`, две совпавшие выборки, потолок 3 с): так автокомплит с задержкой успевает показать подсказки.
-- **Ввод — через `execCommand('insertText')`**, а не через сеттер `value`: WebKit проводит его как настоящее
-  редактирование, `beforeinput`/`input` приходят как с клавиатуры, и автокомплит открывается. Сеттер — запасной
-  путь для полей, которые отказываются от редактирования (дата, маска).
-- **`click` отказывается, если элемент чем-то закрыт**, и называет что закрыло — `elementFromPoint` в центре.
-  Куки-баннер на весь экран иначе съедает клик молча.
-- **Одноимённые элементы получают текст своей строки**: пять кнопок «Select» на странице результатов — это одна
-  кнопка для модели, пока рядом не написан рейс и цена.
-- Открытые shadow root обходятся; закрытые и `ElementInternals` — нет (это и есть та узкая разница с деревом
-  доступности, что измерена в [accessibility.md](accessibility.md)). Фреймы — пока только главный.
-
-**Проверено через `six --mcp` на собранном Debug** — агент Claude Code (`claude -p`, Opus 5), которому дали только
-цель на естественном языке и только инструменты six:
-
-| задача | ходов | время | стоимость | итог |
-|---|---|---|---|---|
-| тестовая страница: рейс ZRH→LHR, one-way, дата в календаре, 2 взрослых, бизнес, без пересадок | 18 | 31 с | $0.40 | все параметры дошли до сервера |
-| тестовая форма поддержки: поля, `select`, радио, согласие, отправка | 11 | 17 с | $0.19 | payload совпал |
-| httpbin.org/forms/post, вживую | 14 | 24 с | $0.22 | эхо сервера совпало поле в поле |
-| Google Flights, вживую: Цюрих → Лондон, 16 октября, one-way, эконом, через форму страницы | 29 | 92 с | $0.98 | результаты на экране, три самых дешёвых названы |
-
-Стенд — `scripts/agent-stand/`: `python3 serve.py 8765`, страницы `flights.html` (автокомплит с задержкой,
-календарь, куки-баннер на весь экран, `+`/`−`, `select`, чекбокс) и `contact.html`; всё, что страницы
-отправили, ложится в `submitted.jsonl` — проверять по нему, а не по рассказу агента. `sixmcp.py` — клиент
-`six --mcp` на полстраницы: строки `tool {json-аргументы}` на stdin.
-
-Вручную по шагам то же самое: ~0.8 с на действие вместе со снимком, ~0.2 с на отдельный снимок.
-
-### Гибрид, построенный 23 сентября
-
-`сделай: …` / `/do …` в строке ⌘E, и инструмент `run_page_task` для тех, кто приходит через MCP.
-Цикл — `six/PageTasks/PageTaskRunner.swift`: снимок → решение → действие → снимок, потолки на шаги и на
-неизменность страницы. Решателей два.
-
-- **System 1** — `six/PageTasks/SystemOne.swift`, клиент **одного** протокола `/v1/systemone`. Его говорят и
-  hosted Jev от TypeSafe, и локальный сервер laya-browser, поэтому выбор между ними — это адрес в
-  `six://configuration` ▸ Assistant (`pagetask.endpoint`, `pagetask.model`, `pagetask.threshold`), а не вторая
-  реализация. Форма запроса — браузер-юзовская: одним запросом спрашивается и операция, и цель для каждой
-  операции, а исполняется только та голова, которая относится к выбранной операции.
-- **System 2** — модель ассистента: `LanguageModelSession` для языковых моделей и **ACP-агент**, когда ⌘E
-  настроен на него (у Артёма — Claude Code, то есть System 2 бесплатный по подписке). Агент отвечает одним
-  JSON-объектом, и ему сказано ничего не нажимать самому.
-
-Три правила, каждое написано по результату замера, а не из общих соображений:
-
-1. **Текст в поля всегда пишет System 2.** Классификатор слов не производит вовсе.
-2. **Пока System 2 всё равно вызван ради текста, ему дают право переопределить шаг.** Это бесплатно и это
-   главный источник точности: в первом же прогоне laya предложила печатать в поле, пока весь экран закрывал
-   куки-баннер, а System 2 ответил «сначала закрой баннер».
-3. **`DONE` от System 1 не принимается; после шага, который ничего не изменил, следующий идёт наверх; и первый
-   шаг на новой странице всегда решает System 2.** Все три — про один и тот же провал: на странице результатов
-   laya с уверенностью 0.97–0.98 нажимала «Select» у первого рейса, то есть на живом сайте пошла бы
-   бронировать, не понимая, что задача уже выполнена. Новая страница — это ровно то место, где решается вопрос
-   «уже готово?», и классификатор ошибается там в дорогую сторону.
-4. **Уверенный шаг не стоит токенов.** Когда System 1 сам выбрал поле и уверен, System 2 получает короткий
-   вопрос «какое значение у этого поля» — цель, заголовок страницы, четыре последних шага — а не весь снимок.
-   Полный разбор уходит наверх только при низкой уверенности. Это и есть та экономия, ради которой строится
-   гибрид, и трасса её считает: сколько раз звали модель и на сколько символов промпта.
-
-Необратимое не нажимается вовсе: список слов (`PageTaskRunner.commits`, оба языка) останавливает прогон перед
-кнопкой, которая платит, бронирует, оформляет заказ, подписывает или удаляет. Для модели это можно было бы
-написать в промпте; для классификатора на 322M понятия «необратимо» не существует, поэтому правило в коде.
-
-Трасса — это и есть ответ. Каждая строка: кто решил, с какой вероятностью, за сколько миллисекунд, был ли шаг
-эскалирован и что при этом хотел классификатор.
-
-**Измерено на стенде `scripts/agent-stand`**, System 2 — Claude Code через ACP, System 1 — laya-browser v10s
-на CPU этого Мака:
-
-| стенд (`tasks.py`) | шагов | время | вызовов LLM | символов промпта | шагов оставлено за System 1 |
-|---|---:|---:|---:|---:|---:|
-| рейсы, только модель | 14 | 34.3 с | 14 | 27 477 | — |
-| рейсы, + laya-browser v10s (MPS) | 14 | 37.5 с | 13 | 28 512 | 1 из 13 |
-| форма, только модель | 8 | 14.5 с | 8 | 12 018 | — |
-| форма, + laya | 9 | 18.5 с | 8 | 14 420 | 1 из 7 |
-| «уже готово», только модель | 1 | 1.8 с | 1 | 645 | — |
-| «уже готово», + laya | 1 | 2.0 с | 1 | 645 | 0 |
-
-Все шесть прогонов закончились верно — проверено по `submitted.jsonl`, а не по рассказу агента.
-
-Три вещи по дороге выяснились и стоят отдельного упоминания, потому что все они были ошибками этой стороны:
-
-- **Запрос был обеднённым.** Варианты уходили как `{element, operation}`, тогда как jev-ultrafast шлёт
-  `{element, role, current_value, checked, selected, expanded}` — а сжимает сервер laya именно эти поля. Пока
-  роли и текущего значения в вопросе не было, модель отвечала одним и тем же `SELECT`.
-- **Промпт был пересказан своими словами.** laya-browser дообучали на дословных строках `NEXT_ACTION` и `TARGET`
-  из `jev_ultrafast/questions.py`, включая подписи операций («Scroll down», а не «Scroll down to content further
-  down the page») и то, что у вопроса о цели `rules` — список из двух строк, а не одна. Для чекпойнта на 322M
-  это часть входа. После приведения к дословному виду предложения стали осмысленными: вместо вечного `SELECT`
-  она целится в поля ввода, и её собственные шаги — `Cabin → Business` при 0.90, «Where to?» при 0.91,
-  «Full name» при 0.94 — верные. Запрос теперь шлёт и то, что видно **в окне**, как их DOM-ридер, без элементов
-  за краем экрана и без приписанного контекста строки.
-- **Ответ агента собирался из потока.** Один прогон умер на `{"operation": "CLe32", "value": "",ICK", "ref": "` —
-  все символы ответа на месте, часть в другом порядке. Финальное сообщение берётся из стенограммы сессии, а
-  разбор JSON перебирает скобки, пока не найдёт объект, который и разбирается, и называет операцию.
-
-**Вывод: с laya-browser v10s экономии нет.** Она оставляет за собой 1 шаг из 13, то есть модель всё равно зовут
-почти каждый шаг, а её собственные 0.35–1.3 с на MPS прибавляются сверху. Архитектура при этом проверяема за
-один прогон, и цена следующего кандидата — адрес и ключ.
-
-### Что нужно, чтобы попробовать Jev
-
-Клиент говорит на том же `/v1/systemone`, поэтому подключение — это поля, а не код:
-
-```sh
-six://configuration ▸ Assistant ▸ Page Tasks
-  Fast Decider   https://api.typesafe.ai/v1/systemone
-  Model          jev-latest
-  Key            <ключ TypeSafe>
-  Trust Above    0.9
-```
-
-Для замера рядом со старым — переменные окружения, которые перебивают настройки, чтобы между прогонами никто
-ничего не правил руками:
+- `flights.html` — a delayed autocomplete, a calendar, a full-screen cookie banner, `+`/`−`, a `select`, a checkbox;
+- `contact.html` — fields, a `select`, radios, consent, submit;
+- `orders.html` — a lookup form that also declares `order_status` through WebMCP, and records which one was used;
+- `results.html` — the goal is already met; a decider that presses anything fails.
 
 ```sh
 python3 scripts/agent-stand/serve.py 8765 &
-open -na <six.app> --env SIX_PAGETASK_ENDPOINT="" # база: одна модель
-python3 scripts/agent-stand/tasks.py --label "model only" --out runs/model.json
-
-open -na <six.app> --env SIX_PAGETASK_ENDPOINT=https://api.typesafe.ai/v1/systemone \
-                  --env SIX_PAGETASK_KEY=<ключ> --env SIX_PAGETASK_MODEL=jev-latest
-python3 scripts/agent-stand/tasks.py --label "jev" --out runs/jev.json
+open -na <six.app> [--env SIX_WEBMCP=1]
+python3 scripts/agent-stand/tasks.py --label "model only"
 ```
 
-`tasks.py` печатает готовую строку таблицы: задача, шаги, секунды, вызовы LLM, символы промпта и сколько шагов
-осталось за быстрым решателем. Последняя колонка и решает: решатель, у которого не остаётся ни одного шага,
-не экономит ничего, как бы быстро он ни отвечал. Отказ эндпойнта (неверный ключ, недоступный адрес) виден
-первой строкой прогона, а не молча превращает гибрид в прогон на одной модели.
+`sixmcp.py` finds this checkout's Debug build by the workspace path DerivedData records (the newest `six-*` is often
+another worktree's); `SIX_APP` overrides it. `tasks.py` prints one row per task: steps, seconds, System 2 calls and
+prompt characters, and how many steps were left to System 1 — the column that decides whether a fast decider saves
+anything. The first `orders` run asks about the site `127.0.0.1` once.
 
-Что осталось непроверенным:Что осталось непроверенным: **Jev вживую** (нужен ключ TypeSafe) и второй файнтюн,
-[ShaunSpark/laya-mind2web-browser-agent](https://huggingface.co/ShaunSpark/laya-mind2web-browser-agent) — 671
-пример Mind2Web, 74 % на 68 отложенных, сервера под этот протокол у него нет и как агент он не проверялся.
+**Measured**, System 2 Claude Code over ACP, all endings checked against `submitted.jsonl`:
 
-### Быстрая политика: Jev и Laya вместо LLM на каждом шаге
+| run | flights | contact | orders | results |
+|---|---|---|---|---|
+| model only, elements (23 Sep) | 14 steps, 34 s | 8, 15 s | — | 1, 1.8 s |
+| + laya-browser v10s on MPS (23 Sep) | 14, 38 s — 1 of 13 kept | 9, 19 s — 1 of 7 | — | 1, 2.0 s |
+| WebMCP off (27 Sep) | 16, 67 s | 8, 30 s | 3, 11 s — the form | 1, 4.0 s |
+| WebMCP on, Accessibility granted (27 Sep, two rounds) | 14, 54–59 s | 6, 23–26 s — one `FILL_FORM` | 2, 8 s — `order_status` | 1, 3.9–4.1 s |
 
-LLM на каждом шаге — это 30–90 с и доллар на задачу. jev-ultrafast показывает другой путь: на каждом шаге
-классификатор выбирает операцию и элемент из снимка за один проход, а LLM зовётся только чтобы сочинить текст
-для поля. Снимок six отдаёт ровно то, что для этого нужно (`format: json`).
+With laya-browser v10s there is no saving: it kept one step in thirteen, so the model is called almost every step
+anyway and its own 0.35–1.3 s on MPS come on top. Three mistakes on this side were found on the way: the request
+lacked the role and current value that jev-ultrafast sends; the questions were paraphrased, while laya-browser was
+fine-tuned on `jev_ultrafast/questions.py` verbatim, which for a 322M checkpoint is part of the input; and the agent's
+answer was assembled from the stream, which once arrived as `{"operation": "CLe32", "value": "",ICK", "ref": "`.
 
-- **Jev** (TypeSafe) — hosted API, `/v1/systemone`; нужен ключ.
-- **[cklxx/laya-browser](https://huggingface.co/cklxx/laya-browser)** — открытая Laya (322M, mmBERT), дообученная
-  под тот же формат вопросов: 17–23 мс на шаг на GPU, top-1 по элементу 0.63, операция 0.88. Но её собственный
-  набор из 16 живых задач — 62 %, и падают **ровно наши**: «ввести и выбрать подсказку» и Google Flights, 0 из 3.
-  [ShaunSpark/laya-mind2web-browser-agent](https://huggingface.co/ShaunSpark/laya-mind2web-browser-agent) —
-  671 пример Mind2Web, 74 % на 68 примерах валидации; как агент не проверялся.
+Reading the transcript did not cure that last one: a handful of runs on 27 September still ended on
+`"CLIC1", "value": "",K"`. The transcript itself was shuffled — `JSONRPCConnection` started a `Task` per
+notification, so message chunks reached the store in no particular order, and a turn's response could be read
+before its last chunk. Notifications are now handled in the reader, in order; all twenty-one stand runs after that
+ended as `submitted.jsonl` says they should.
 
-Значит, быстрая политика — это оптимизация поверх LLM-агента, а не замена ему: System 1 делает очевидные шаги,
-System 2 (Claude) — текст полей и шаги, где уверенность низкая. Эксперимент с этим — в `../brat`, через тот же
-`six --mcp`. On-device Foundation Models на 8 ГБ M2 недоступна (`deviceNotEligible`), так что текст для полей там
-пишет облачная модель.
+Untried: Jev live (needs a key) and
+[ShaunSpark/laya-mind2web-browser-agent](https://huggingface.co/ShaunSpark/laya-mind2web-browser-agent) (671
+Mind2Web examples, no server for this protocol) are untried.
 
-## Этап 3. Настоящие события — для canvas-приложений
+By hand, over `six --mcp`, with only a goal and six's tools (Claude Code, `claude -p`, 21 Sep): the stand's flights
+in 18 turns ($0.40), its form in 11 ($0.19), httpbin.org/forms/post in 14 ($0.22), and live Google Flights, Zurich →
+London, one-way, in 29 turns and 92 s ($0.98). One action with its snapshot is ~0.8 s; a snapshot alone ~0.2 s.
 
-Делать только когда этап 2 упрётся: Sheets, Figma, Maps, любой холст.
+## Not built
 
-Козырь у нас редкий и уже проверенный: `NSApp.postEvent` не требует Accessibility — это собственная очередь
-приложения, — а события получаются **trusted**, чего синтетическим DOM-событиям как раз не хватает. Механика
-написана и работает в `six/Input/KeySelfTest.swift`.
-
-- **Клавиатура** почти закрывает Sheets: стрелки по ячейкам, ввод, Enter, ⌘C/⌘V. `focus_window`, сделать web view
-  первым откликающимся (`KeySelfTest.menuKeys` это уже делает руками), собрать `NSEvent.keyEvent`, отправить.
-- **Мышь**: `getBoundingClientRect` в мире six → координаты страницы → координаты окна. Перевод складывается из
-  фрейма колонки на рейле (`TilingStripView.columnFrames`), смещения скролла страницы и флипа по Y. Приватный
-  `WKWebView` у `WebPage` для этого просить **не нужно** — событие уходит в `NSWindow`, hit-test сам найдёт вью. Это
-  единственное место плана, которое стоит померить, а не вывести рассуждением.
-
-Отказывать, если окно не на экране или рейл в середине анимации: координаты тогда врут молча. Значит —
-принудительный `focus_window`, ожидание конца скролла, и ошибка вместо клика мимо.
-
-`#if os(macOS)` — каталог общий, iOS получает его целиком.
-
-## Этап 4. Границы
-
-Без этого агент с живой сессией — это агент с доступом к почте и банку, и никакой диалог на вызов инструмента этого
-не меняет.
-
-- **Профиль как песочница.** Здесь у six ответ лучше, чем у любого расширения в Chrome, где разделить нечего:
-  профиль «Agent», единожды залогиненный в Google, и потолок «агент работает только в этом профиле». Аргумент
-  `profile` у инструментов уже есть — нужен именно потолок, а не умолчание. Настройка в `six://configuration` ▸ Assistant.
-- **Список сайтов, где агенту можно действовать**, отдельно от списка, где можно читать. Поверх `SitePermissions`:
-  сейчас там camera/microphone/motion, придётся либо расширить перечисление, либо завести соседнее хранилище с той
-  же формой (origin + профиль → решение).
-- **Текст страницы — данные, а не инструкции.** Для чтения это уже сказано в
-  [architecture.md](architecture.md#page-side-scripts); для действий формулировка должна быть жёстче и стоять в
-  `instructions` каталога.
-
-## Этап 0. Тот случай, ради которого это писалось
-
-Первая настоящая задача оказалась уже, чем план, и половина её решается тем, что построено:
-
-**Из таблицы — по ссылкам — написать людям в Telegram.**
-
-- **Таблица.** Google выкатил официальные MCP-серверы Workspace, по одному на продукт;
-  Sheets — `https://sheetsmcp.googleapis.com/mcp/v1`, remote HTTP, OAuth, Developer Preview,
-  инструменты `get_values` / `update_values` и соседи. То есть и чтение, и обратная запись колонки
-  «написано», и `fetch_url` первого этапа для этого больше не нужен. Подключается он не как все:
-  динамической регистрации у Google нет, поэтому потребовался
-  [`MCPOAuthClient`](mcp-apps.md#1a-oauth--это-работа-клиента) — клиент, введённый руками.
-- **Отправка.** Личный аккаунт, и никакого отдельного входа: у `../lead/leadheat` в `internal/tg/js.go`
-  уже есть мост, который зовёт `rootScope.managers` внутри залогиненного `web.telegram.org` — это
-  MTProto той же сессии, того же устройства. Он читает участников; отправка — одна недостающая
-  ветка (`appMessagesManager.sendText`) рядом с существующими. Ни telethon, ни api_id, ни второго
-  клиента. Ограничение остаётся одно и оно не про транспорт: `PEER_FLOOD` — это про аккаунт, так
-  что темп и качество текста решают всё.
-- **Панель.** `cmd/leadheat-contacts` — уже MCP-сервер; очередь «черновик → подтверждение →
-  отправка» с журналом прогона рисуется его собственным `ui://`-ресурсом, а six — хост.
-
-Отсюда видно, что в самой шестёрке для этого сценария не нужно ни этапа 2, ни этапа 3: страница
-Telegram отдаёт свой API, а `evaluate_javascript` уже работает в мире страницы. Этапы остаются —
-они про веб вообще, а не про этот случай.
-
-**Решение о том, как агент вообще действует** (принято здесь же): через собственный API или DOM
-страницы, а не через модель, которая смотрит на пиксели и кликает по координатам. Своя точка входа
-у сайта быстрее, переживает редизайн и отдаёт то, чего в DOM нет вовсе. Если путь через VLM
-когда-нибудь появится, он включается **с разрешения на каждый сайт**, по образцу `SitePermissions`,
-а не одним переключателем на всё.
-
-## Что ещё не выяснено
-
-**Каталоги MCP-серверов.** six ищет в официальном реестре (`MCPRegistry`, `registry.modelcontextprotocol.io`)
-и держит свой список приложений (`MCPCatalog`). Официальный реестр — канонический источник, но не
-самый полный: Glama и mcp.so индексируют кратно больше автоматически, PulseMCP — самый большой
-вручную просмотренный, Smithery ещё и хостит. У Glama есть публичный HTTP-API. Стоит ли добавлять
-второй источник в поиск — и какой — не решено; цена вопроса в том, что чем шире каталог, тем больше
-в нём того, что никто не смотрел.
-
-## Порядок
-
-1 → 2 → 4 → 3.
-
-Первый этап закрывает исходную задачу на чтение сразу же. Второй — то, ради чего это вообще стоит строить.
-Четвёртый обязан стоять раньше третьего, потому что настоящие события — это первый момент, когда агент может
-сделать в браузере то, чего человек не заметит. Третий нужен только холстам.
-
-Что помнить по ходу:
-
-- `callJavaScript` не принимает `await` — всё ждущее опрашивается из Swift.
-- Скрипты снимка и действий — в мире six; в мире страницы остаются только те, кому нужны её собственные глобалы.
-- `title` инструментов локализуется, `description` и `instructions` остаются английскими
-  ([localization.md](localization.md)): это промпт, а не интерфейс.
-- Готово — когда написаны [agents.md](agents.md), [mcp.md](mcp.md) и гид в [guide/](guide/) на обоих языках.
+- **Hands per source.** A derived tool acts through the DOM ref under its node. `AXUIElementPerformAction(AXPress)`
+  and setting `AXValue` in the `--ax-read` child would press the way VoiceOver does, which matters exactly where the
+  tree sees what the DOM walk does not (closed shadow roots, `ElementInternals`).
+- **Derived tools for agents over MCP.** Only `run_page_task` uses them; `list_page_tools` still lists declared tools
+  only, and the popover under the spark still says they are not offered.
+- **Real events, for canvases.** Sheets draws its grid in `<canvas>` and mostly ignores `isTrusted: false` events.
+  `NSApp.postEvent` needs no Accessibility and produces trusted events (`six/Input/KeySelfTest.swift`): the keyboard
+  nearly covers Sheets (arrows, typing, Enter, ⌘C/⌘V); the mouse needs page → window coordinates through the column
+  frame, page scroll and the Y flip — the one place to measure rather than reason. Refuse while the window is off
+  screen or the row is animating.
+- **Boundaries, before real events.** A profile as the sandbox (an "Agent" profile, and a ceiling — not a default —
+  that the agent acts only there), and sites where acting is allowed, apart from where reading is, on the shape of
+  `SitePermissions` (origin + profile → answer).
+- **`fetch_url`** — a GET under the profile's cookies for a service's own export
+  (`docs.google.com/spreadsheets/d/<id>/export?format=csv`), through an off-screen `WebPage` on the profile's store.
+  Google's Workspace MCP servers (Sheets at `sheetsmcp.googleapis.com`) now cover the case it was for.
+- **Frames.** The snapshot reads the main frame only.
+- **Other fronts.** `PageActionScript` is plain JavaScript, but the tools and the runner are wired on Apple only.

@@ -30,7 +30,7 @@ names applied, `aria-hidden` subtrees gone, a label resolved from wherever it ca
 turned into something that answers `AXPress` — plus, per element, the list of what it actually answers. That is the
 vocabulary a person with a screen reader drives the page in, and the one a well-made site has already been tested
 against. It is computed in the engine, out of the page's reach: a page cannot redefine a getter to show the agent a
-button a person does not see. The DOM walk in [agent-actions.md](agent-actions.md#этап-2-снимок-и-действия-по-dom)
+button a person does not see. The DOM walk in [agent-actions.md](agent-actions.md#the-acting-tools)
 stays the fallback for everything this cannot do — no permission, and the fronts that are not the Mac.
 
 ## Why `AXUIElement`, and why that takes a permission
@@ -134,7 +134,8 @@ test lands on the overlay instead of the page under it. The legend is `HostedOve
 
 Roles are ARIA's (`button`, `textbox`, `navigation`), not AppKit's and not the system's localized ones: a model knows
 the first vocabulary. Groups that are only structure are left out and their children pulled up a level. The numbers
-are valid until the next read — they are what the acting tools of [agent-actions.md](agent-actions.md) will take. A
+are valid until the next read. The acting tools of [agent-actions.md](agent-actions.md) take the DOM snapshot's refs
+instead; `run_page_task` reads both and matches them by box ([Used by page tasks](#used-by-page-tasks)). A
 read done for the tool lands in the overlay too, so with the overlay on, the person sees what the agent was just
 given.
 
@@ -302,7 +303,8 @@ child over the same pipe — which is why `AXReadRequest` is a request type and 
 
 Beside `PageToolsButton`, the same wrench with a spark: this page declared no tools, and its tree is good enough to
 make some of. The popover lists them — `fill` a form with its fields, `press` a control, `type` into a field — with
-"not offered to agents yet" under the title, since nothing calls them. Only with WebMCP on (`six://configuration`
+"not offered to agents yet" under the title: no MCP tool calls them, though `run_page_task` does
+([below](#used-by-page-tasks)). Only with WebMCP on (`six://configuration`
 ▸ Develop), never in a private window, never over a page's own tools. `AddressBar` reads the focused window a second
 after it stops loading, through the same `AccessibilityOverlay.read` — so it costs one child and ~30–200 ms per
 navigation, and puts the web content process into accessibility mode as the overlay does. `get_accessibility_tree`
@@ -342,11 +344,19 @@ Chosen on nineteen pages, read on screen at 1440 pt wide, 27 September 2026:
 80 % was the first threshold and lost YouTube and OpenStreetMap, where most of what an agent would press does have a
 name. Only the visible part is read, so the verdict is about the screen, not the page.
 
+### Used by page tasks
+
+`run_page_task` and `/do` on the ⌘E line ([agent-actions.md](agent-actions.md#run_page_task-the-routes)) are the
+first caller. On a page with no WebMCP tools of its own, with WebMCP on and a *good* verdict, each step reads the tree,
+and every derived tool's node is matched to the smallest DOM snapshot element whose box holds its middle — the tree
+for the eyes, the DOM for the hands. A form is then offered as one `FILL_FORM` step: on the stand's contact form that
+is three fields in one step, 6 steps instead of 8. `DerivedPageTools.Tool.fields` carries the field nodes for it.
+
 ## Not built
 
-- **Acting**, and the derived tools above. `AXUIElementPerformAction(AXPress)` and setting `AXValue` press the way
-  VoiceOver does — but acting is the next stage of [agent-actions.md](agent-actions.md), with the permission
-  boundaries that plan puts first.
+- **Acting through the tree**, and derived tools for agents over MCP. `AXUIElementPerformAction(AXPress)` and setting
+  `AXValue` press the way VoiceOver does; today a derived tool acts through the DOM element under it. Acting on its
+  own is the next stage of [agent-actions.md](agent-actions.md#not-built), with the permission boundaries put first.
 - **Developer ID signing.** Under ad-hoc signing every build is a new code hash and loses the grant ("Signing"
   above); the Release in `/Applications` included.
 - **Other fronts.** WebKitGTK exposes the same tree over AT-SPI (D-Bus), so Linux could have this without a

@@ -731,7 +731,8 @@ final class BrowserToolCatalog {
                 + "round trip per click. Steps are decided by the fast decision model configured in six when there is "
                 + "one and by six's assistant model otherwise; the answer is the trace, one line per step, naming which "
                 + "decided it, how sure it was and how long it took. It stops in front of anything that pays, books or "
-                + "deletes. Use it for a goal you can state in a sentence; drive the page yourself when you need to "
+                + "deletes. It acts through the page's own WebMCP tools when it declared any, through tools read from its "
+                + "accessibility tree when six may read it, and through the page's elements otherwise. Use it for a goal you can state in a sentence; drive the page yourself when you need to "
                 + "judge what you see at every step.",
             parameters: [Self.windowID,
                          .init(name: "goal", description: "What to achieve on this page, in one or two sentences, with every value it needs.", required: true)],
@@ -741,9 +742,9 @@ final class BrowserToolCatalog {
                 guard let goal = args["goal"]?.stringValue, !goal.isEmpty else { throw BrowserTool.Failure(message: "goal is required") }
                 await Self.waitForLoad(tab)
                 #if os(macOS)
-                let runner = PageTaskRunner(settings: self.assistant, agentSession: self.agentSession)
+                let runner = PageTaskRunner(settings: self.assistant, agentSession: self.agentSession, webMCP: self.webMCP)
                 #else
-                let runner = PageTaskRunner(settings: self.assistant)
+                let runner = PageTaskRunner(settings: self.assistant, webMCP: self.webMCP)
                 #endif
                 var trace = ""
                 let run = await runner.run(goal: goal, tab: tab) { trace = $0 }

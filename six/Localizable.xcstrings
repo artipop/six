@@ -8515,6 +8515,46 @@
           }
         }
       }
+    },
+    "The page has no tool called %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "На странице нет инструмента %@"
+          }
+        }
+      }
+    },
+    "The input for %@ is not a JSON object" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Входные данные для %@ — не объект JSON"
+          }
+        }
+      }
+    },
+    "No form %@ on this page" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "На этой странице нет формы %@"
+          }
+        }
+      }
+    },
+    "The values for %@ are not a JSON object" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Значения для %@ — не объект JSON"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

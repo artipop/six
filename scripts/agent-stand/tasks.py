@@ -47,6 +47,13 @@ TASKS = [
                    "topic": "billing", "pref": "email", "consent": "on"},
     },
     {
+        "name": "orders",
+        "url": "orders.html",
+        # Declares `order_status` through WebMCP: with it on, `channel` should come back "tool".
+        "goal": "Find out the delivery status of order A-1042 and tell me when it arrives.",
+        "expect": {"task": "orders", "order": "A-1042"},
+    },
+    {
         "name": "results",
         "url": "results.html?from=ZRH&to=LHR&d=2026-10-16&adults=1&cabin=Economy",
         # Nothing to do: the goal is already satisfied. A decider that cannot see that presses

@@ -126,17 +126,13 @@ of a **profile**. Everything defaults to what is on screen.
 
 The agent sees the console and the network only while **Configuration ▸ Assistant ▸ ⌘E Line ▸ Access to Page Console and Network** is on — see [developer tools](/en/devtools).
 
-An agent acts in a real window and in your profile — where you are already signed in
-to the sites. Every action shows in the panel, and the agent asks before each one. It is
-told not to press anything that pays, books, sends or deletes: it stops, says what is
-ready, and leaves the last button to you. The ⌘E line gets no actions at all.
-
-## The same agent on the ⌘E line
-
-The `⌘E` model menu has **Claude Code (ACP)** and **Codex (ACP)**. That is the
-same session and the same transcript as the panel: permission requests appear
-inside the answer card, and the tool the agent is using is named next to the
-model.
+An agent acts in a real window and in your profile — where you are already signed
+in to the sites. It asks before each action, in the answer card. It is told not to
+press anything that pays, books, sends or deletes: it stops, says what is ready,
+and leaves the last button to you. When the page itself declared tools for agents,
+it uses those rather than the buttons ([WebMCP](/en/devtools#webmcp)). A language model on
+the ⌘E line gets none of these tools; the [do command](/en/assistant#the-do-command)
+is how it is asked to act.
 
 ## The browser as an MCP server for anything else
 

@@ -1,7 +1,24 @@
 """Minimal MCP stdio client for `six --mcp`."""
-import json, subprocess, sys, glob, os, time
+import json, subprocess, sys, glob, os, plistlib, time
 
-APP = sorted(glob.glob(os.path.expanduser("~/Library/Developer/Xcode/DerivedData/six-*/Build/Products/Debug/six.app")), key=os.path.getmtime)[-1]
+def _app():
+    """This checkout's Debug build: the newest six-* in DerivedData can be another worktree's."""
+    if os.environ.get("SIX_APP"):
+        return os.environ["SIX_APP"]
+    project = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "six.xcodeproj")
+    project = os.path.realpath(project)
+    for root in glob.glob(os.path.expanduser("~/Library/Developer/Xcode/DerivedData/six-*")):
+        try:
+            with open(os.path.join(root, "info.plist"), "rb") as f:
+                workspace = plistlib.load(f).get("WorkspacePath", "")
+        except OSError:
+            continue
+        app = os.path.join(root, "Build/Products/Debug/six.app")
+        if os.path.realpath(workspace) == project and os.path.isdir(app):
+            return app
+    raise SystemExit("no Debug build of " + project + " in DerivedData; build it, or set SIX_APP")
+
+APP = _app()
 
 class Six:
     def __init__(self):

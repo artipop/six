@@ -36,12 +36,14 @@ nonisolated struct PageTaskStep: Identifiable, Sendable {
     /// is trusted sends the page to no language model at all.
     var systemOneTokens = 0
     var systemTwoChars = 0
+    /// What the page offered to act through, when it was more than its elements.
+    var via: String?
 
     /// The line the person reads: `3. [laya-browser 0.93, 21 ms] CLICK e12 "Search"`.
     var line: String {
         var text = "\(number). [\(decider)"
         if let probability { text += String(format: " %.2f", probability) }
-        text += ", \(latencyMs) ms\(escalated ? ", escalated" : "")] \(operation)"
+        text += ", \(latencyMs) ms\(escalated ? ", escalated" : "")\(via.map { ", via \($0)" } ?? "")] \(operation)"
         if let ref { text += " \(ref)" }
         if let target { text += " \"\(target)\"" }
         if let value = self.text, !value.isEmpty { text += " ← \"\(value)\"" }

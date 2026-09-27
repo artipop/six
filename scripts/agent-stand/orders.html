@@ -1,0 +1,18 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Acme — order status</title><style>body{font:15px system-ui;margin:24px;max-width:600px}label{display:block;margin:10px 0}input{display:block;width:100%;padding:8px;margin-top:4px}</style></head><body>
+<h1>Order status</h1>
+<form id="f"><label>Order number <input name="order" required></label><button>Look up</button></form>
+<p id="status"></p>
+<script>
+const look = (order, channel) => fetch('/log', {method: 'POST', body: JSON.stringify({task: 'orders', order, channel})})
+  .then(() => { const text = `Order ${order}: shipped on 24 September, arriving 29 September.`; document.getElementById('status').textContent = text; return text; });
+document.getElementById('f').addEventListener('submit', e => { e.preventDefault(); look(new FormData(e.target).get('order'), 'form'); });
+// With WebMCP on, the same lookup is declared as a tool: a run should call it rather than fill the form.
+document.modelContext?.registerTool({
+  name: 'order_status',
+  description: 'Answers the delivery status of one order.',
+  inputSchema: {type: 'object', properties: {order: {type: 'string', description: 'The order number, such as A-1000.'}}, required: ['order']},
+  annotations: {readOnlyHint: true},
+  execute: ({order}) => look(order, 'tool')
+});
+</script>
+</body></html>

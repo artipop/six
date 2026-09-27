@@ -23,6 +23,8 @@ nonisolated struct DerivedPageTools: Sendable {
         let name: String
         /// For a form: the names of its fields, in document order.
         let inputs: [String]
+        /// For a form: the nodes of those fields, parallel to `inputs`.
+        var fields: [Int] = []
     }
 
     static let minimumActionable = 3
@@ -86,7 +88,7 @@ nonisolated struct DerivedPageTools: Sendable {
             let region = nodes[formID - 1]
             let submit = inside.first { $0.kind == .control && !$0.name.isEmpty }
             let name = [region.name, submit?.name ?? "", fields[0].name].first { !$0.isEmpty } ?? ""
-            tools.append(Tool(id: formID, kind: .form, name: name, inputs: fields.map(\.name)))
+            tools.append(Tool(id: formID, kind: .form, name: name, inputs: fields.map(\.name), fields: fields.map(\.id)))
         }
         for node in loose where !node.name.isEmpty {
             tools.append(Tool(id: node.id, kind: node.kind == .field ? .type : .press, name: node.name, inputs: []))

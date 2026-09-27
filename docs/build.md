@@ -61,16 +61,10 @@ lines at first launch and silence in Release. mlx-swift-lm's `MLXHuggingFace` pr
 *not* linked: it depends on `MLXFoundationModels`, a third-party `LanguageModel` over the executor ABI.
 
 
-**Xcode-beta 27.2 cannot find that SDK by name** (measured 21 September 2026, Xcode 27B5019j): every target
-stops on `SDK lookup failed for canonical name: macosx27.0`. `SDKROOT=macosx` on the command line builds the
-whole scheme against Xcode's own macOS 27.2 SDK without touching the project, with four `switch must be
-exhaustive` warnings in `six/Vendor` as the only difference. Whether that SDK's Foundation Models ABI still
-crashes a third-party `LanguageModel` has not been checked — the override stays until it has.
-
-```sh
-DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer xcodebuild -project six.xcodeproj -scheme six \
-  -configuration Debug -skipMacroValidation -skipPackagePluginValidation SDKROOT=macosx build
-```
+**The override is redundant with release Xcode 27.0 (27A266a), and still there.** Its macOS SDK and the Command
+Line Tools one are the same build, 26A425, with identical `FoundationModels.framework` (checked 27 September 2026).
+Removing `SDKROOT` and the plugin path, and moving `six/Vendor` back to packages, is a decision still to be made, not
+a fix.
 
 ## A DMG to install from
 

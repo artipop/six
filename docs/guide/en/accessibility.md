@@ -75,6 +75,7 @@ declared no tools for agents may show a wrench with a spark beside its address.
 It means the page's accessibility tree is good enough to make tools of: at least
 three buttons or fields on screen (links do not count), most of them named.
 Pressing it lists them — a form that can be filled, what can be pressed, where
-text can be typed. They are not offered to agents yet.
+text can be typed. Agents are not offered them yet; the [do command](/en/assistant#the-do-command)
+uses them, filling such a form in one step.
 
 The overlay is Mac-only for now.

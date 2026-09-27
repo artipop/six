@@ -37,15 +37,20 @@ final class PageTaskRunner {
     #if os(macOS)
     private let agentSession: AgentSessionStore?
     #endif
+    private let webMCP: WebMCPStore?
+    /// What the page on screen offers to act through; decided again at every step.
+    private var route = PageTaskRoute.elements
 
     #if os(macOS)
-    init(settings: AssistantSettings, agentSession: AgentSessionStore? = nil) {
+    init(settings: AssistantSettings, agentSession: AgentSessionStore? = nil, webMCP: WebMCPStore? = nil) {
         self.settings = settings
         self.agentSession = agentSession
+        self.webMCP = webMCP
     }
     #else
-    init(settings: AssistantSettings) {
+    init(settings: AssistantSettings, webMCP: WebMCPStore? = nil) {
         self.settings = settings
+        self.webMCP = webMCP
     }
     #endif
 
@@ -68,7 +73,8 @@ final class PageTaskRunner {
         You are given the goal, the page's interactive elements — each with a ref such as `e12`, its \
         role, its accessible name and its current value — and the steps taken so far. Answer with one \
         operation: CLICK, TYPE_TEXT, SELECT, SCROLL_DOWN, SCROLL_UP, WAIT, DONE or BLOCKED, and the \
-        ref it applies to. TYPE_TEXT also needs the exact text; SELECT needs the option's label.
+        ref it applies to. TYPE_TEXT also needs the exact text; SELECT needs the option's label. When \
+        the page offers tools, CALL_TOOL and FILL_FORM are allowed as well, as the offer describes.
 
         Choose the step that advances the whole goal from this page. Do not repeat a step whose \
         result is already on the page, and do not set a control that already holds the requested \
@@ -135,11 +141,13 @@ final class PageTaskRunner {
             digests.append(Self.digest(snapshot))
             if digests.count > Self.unchangedLimit,
                Set(digests.suffix(Self.unchangedLimit + 1)).count == 1,
-               run.steps.suffix(Self.unchangedLimit).allSatisfy({ $0.operation != "WAIT" }) {
+               run.steps.suffix(Self.unchangedLimit).allSatisfy({ $0.operation != "WAIT" && $0.operation != "CALL_TOOL" }) {
                 run.ending = .blocked(String(localized: "The page stopped changing"))
                 break
             }
+            route = await PageTaskRoute.choose(for: tab, snapshot: snapshot, webMCP: webMCP)
             var step = PageTaskStep(number: run.steps.count + 1, operation: "", decider: "", latencyMs: 0)
+            step.via = route.label
             await decide(&step, goal: goal, snapshot: snapshot, run: run, systemOne: systemOne)
             if step.failed {
                 run.ending = .stopped(step.outcome ?? String(localized: "No decision"))
@@ -196,7 +204,8 @@ final class PageTaskRunner {
         // laya-browser answered 0.98 for the button that picks a flight.
         let url = snapshot["url"] as? String ?? ""
         if url != lastURL { distrusted = true; lastURL = url }
-        if let systemOne {
+        // A classifier picks elements; it cannot call a page's tool, so a page that has them is the model's.
+        if let systemOne, case .elements = route {
             do {
                 let decision = try await systemOne.decide(goal: goal, snapshot: snapshot, history: run.steps)
                 step.operation = decision.operation
@@ -241,7 +250,7 @@ final class PageTaskRunner {
     private func modelStep(_ step: inout PageTaskStep, goal: String, snapshot: [String: Any], run: PageTaskRun) async {
         let started = Date()
         do {
-            let answer = try await ask(Self.prompt(goal: goal, snapshot: snapshot, run: run))
+            let answer = try await ask(prompt(goal: goal, snapshot: snapshot, run: run))
             step.systemTwoChars += lastPromptChars
             step.operation = answer.operation.uppercased().trimmingCharacters(in: .whitespaces)
             let ref = answer.ref.trimmingCharacters(in: .whitespaces)
@@ -338,7 +347,7 @@ final class PageTaskRunner {
             Answer with TYPE_TEXT, the ref \(ref), and the exact text the field "\(field)" should hold, \
             taken from the goal. Never invent personal data; if the goal does not give the value, answer \
             BLOCKED and say what is missing.
-            """ : Self.prompt(goal: goal, snapshot: snapshot, run: run) + """
+            """ : prompt(goal: goal, snapshot: snapshot, run: run) + """
 
 
             The fast decider chose TYPE_TEXT into \(ref) (\(field)) and cannot write words, so answer \
@@ -393,6 +402,10 @@ final class PageTaskRunner {
                 _ = try await PageActions.run(tab.page, PageActionScript.scroll, arguments: ["ref": "", "direction": step.operation == "SCROLL_DOWN" ? "down" : "up"])
             case "WAIT":
                 try? await Task.sleep(for: .milliseconds(400))
+            case "CALL_TOOL":
+                step.outcome = try await callTool(named: ref, input: step.text ?? "", tab: tab)
+            case "FILL_FORM":
+                try await fillForm(ref, input: step.text ?? "", tab: tab)
             default:
                 step.failed = true
                 step.outcome = String(localized: "Unknown operation \(step.operation)")
@@ -403,6 +416,40 @@ final class PageTaskRunner {
         } catch {
             step.failed = true
             step.outcome = error.localizedDescription
+        }
+    }
+
+    /// Through WebMCP's own gate: the person is asked about the site, and about any call the page
+    /// did not mark read-only, exactly as when an agent calls it.
+    private func callTool(named name: String, input: String, tab: BrowserTab) async throws -> String {
+        guard let webMCP, case .pageTools(let tools) = route, let tool = tools.first(where: { $0.name == name }) else {
+            throw PageTaskFailure(message: String(localized: "The page has no tool called \(name)"))
+        }
+        let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        let arguments: ACPJSON
+        if text.isEmpty {
+            arguments = [:]
+        } else if let parsed = try? JSONDecoder().decode(ACPJSON.self, from: Data(text.utf8)), parsed.objectValue != nil {
+            arguments = parsed
+        } else {
+            throw PageTaskFailure(message: String(localized: "The input for \(name) is not a JSON object"))
+        }
+        let answer = try await webMCP.call(name, arguments: arguments, in: tab, origin: tool.origin, timeout: .seconds(30))
+        return WebMCPHost.answer(answer, from: tool, limit: 1500)
+    }
+
+    /// One fill per field, in the form's order; submitting is the next step's, so that the button
+    /// that commits still meets `commitment`.
+    private func fillForm(_ handle: String, input: String, tab: BrowserTab) async throws {
+        guard case .derived(let actions) = route, let form = actions.first(where: { $0.handle == handle && $0.kind == .form }) else {
+            throw PageTaskFailure(message: String(localized: "No form \(handle) on this page"))
+        }
+        guard let values = (try? JSONSerialization.jsonObject(with: Data(input.utf8))) as? [String: Any], !values.isEmpty else {
+            throw PageTaskFailure(message: String(localized: "The values for \(handle) are not a JSON object"))
+        }
+        for field in form.fields {
+            guard let value = values.first(where: { $0.key.caseInsensitiveCompare(field.name) == .orderedSame || $0.key == field.ref })?.value else { continue }
+            _ = try await PageActions.run(tab.page, PageActionScript.fill, arguments: ["ref": field.ref, "text": "\(value)", "submit": false])
         }
     }
 
@@ -431,13 +478,14 @@ final class PageTaskRunner {
         return lines.joined(separator: "\n")
     }
 
-    private static func prompt(goal: String, snapshot: [String: Any], run: PageTaskRun) -> String {
-        """
+    private func prompt(goal: String, snapshot: [String: Any], run: PageTaskRun) -> String {
+        let offer = route.offer
+        return """
         Goal: \(goal)
 
         Steps so far:
         \(run.steps.isEmpty ? "none" : run.steps.suffix(8).map(\.line).joined(separator: "\n"))
-
+        \(offer.isEmpty ? "" : "\n" + offer + "\n")
         The page now:
         \(PageActions.outline(snapshot, header: (snapshot["url"] as? String) ?? ""))
         """
@@ -475,11 +523,11 @@ final class PageTaskRunner {
 /// generates a peer type and cannot do that inside a private declaration.
 @Generable
 nonisolated struct PageTaskStepAnswer {
-    @Guide(description: "CLICK, TYPE_TEXT, SELECT, SCROLL_DOWN, SCROLL_UP, WAIT, DONE or BLOCKED.")
+    @Guide(description: "CLICK, TYPE_TEXT, SELECT, SCROLL_DOWN, SCROLL_UP, WAIT, DONE or BLOCKED; CALL_TOOL or FILL_FORM when the page offers them.")
     var operation: String
-    @Guide(description: "The ref of the element, such as e12. Empty for SCROLL, WAIT, DONE and BLOCKED.")
+    @Guide(description: "The ref of the element, such as e12; the tool's name for CALL_TOOL, the form's handle for FILL_FORM. Empty for SCROLL, WAIT, DONE and BLOCKED.")
     var ref: String
-    @Guide(description: "The text for TYPE_TEXT, or the option's label for SELECT. Empty otherwise.")
+    @Guide(description: "The text for TYPE_TEXT, the option's label for SELECT, a JSON object for CALL_TOOL and FILL_FORM. Empty otherwise.")
     var value: String
     @Guide(description: "One short sentence: why this step, or — for DONE and BLOCKED — what the page shows.")
     var reason: String

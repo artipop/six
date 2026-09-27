@@ -188,9 +188,9 @@ final class AssistantStore {
             return report(.failure(String(localized: "Open the page to work on first")))
         }
         #if os(macOS)
-        let runner = PageTaskRunner(settings: settings, agentSession: agentSession)
+        let runner = PageTaskRunner(settings: settings, agentSession: agentSession, webMCP: tools?.webMCP)
         #else
-        let runner = PageTaskRunner(settings: settings)
+        let runner = PageTaskRunner(settings: settings, webMCP: tools?.webMCP)
         #endif
         _ = await runner.run(goal: goal, tab: tab) { text in report(.text(text)) }
     }
