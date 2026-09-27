@@ -62,6 +62,20 @@ is the home page, and `Alt`+letter opens a menu on Windows. The Windows front re
 key), and a reserved chord of each platform's own — `Super` is the window manager's on both, so it is a real choice
 and not a transcription.
 
+## Popups: a window the page can script
+
+`window.open` hands the page nothing back. Without a user gesture WebKit's popup blocking answers `null`; with one,
+six opens a new column through `BrowserState.openInNewWindow`, which starts a fresh `WebPage` at the address and is
+not the `WKWebView` WebKit asked the UI client for — so the opener gets `null`, and the new page has no
+`window.opener` ([links.md](links.md#a-second-window)). Every site whose sign-in popup reports back through
+`window.opener.postMessage` (OAuth and payment windows, "Sign in with …" buttons) cannot finish in six. Measured
+while building WebMCP's frames ([webmcp.md](webmcp.md#frames-what-webkit-allows-measured)); two wpt tests there
+fail on it and nothing else.
+
+The work is the UI client's `createWebView`: answer it with a page built from the configuration WebKit passes in,
+and put that page in the new column. Whether SwiftUI's `WebPage` can be made from that configuration at all is the
+first thing to measure.
+
 ## Save As: web archives
 
 Document windows, Save As and highlights are built ([deep-research.md](deep-research.md)). What Save As still
@@ -511,6 +525,27 @@ arrive in bursts. The same question asked of a local instruct model is built (**
 docs/layout.md): Gemma 4 E2B places tabs better than the embeddings but at 5.6 s and 3.6 GB a tab on 8 GB, and
 never answered "between". An ACP agent names groups through its own errand sessions (`AgentErrands`), but does not
 place tabs yet.
+
+## WebMCP: the nine wpt tests left
+
+165 of 174 of wpt's `webmcp/` pass (`scripts/webmcp-wpt.py`, the baseline beside it). The nine left, and what each
+would take — none of it is a polyfill's to do ([webmcp.md](webmcp.md#not-built)):
+
+- **An opened window (2).** Needs [Popups](#popups-a-window-the-page-can-script) above; once `window.open` returns a
+  window, the polyfill in it is already there and the broker only has to know it belongs to another frame tree.
+- **`document.domain` (4).** The draft refuses the API where `document.domain` is enabled, and WebKit has no
+  origin-keyed agent clusters, so the rule read literally refuses everything. Waits for WebKit to ship
+  `Origin-Agent-Cluster` by default, or for the draft to phrase the rule so it has meaning there.
+- **`isTrusted` on `toolactivated` (1).** Only an event the engine dispatches is trusted. Native WebMCP in WebKit, or
+  six's own WebKit build ([Someday](#someday-sixs-own-webkit-build)).
+- **An iframe's initial `about:blank` when the iframe has a `src` (1).** WebKit runs no user script there, and the
+  page reaches the document before it navigates. The parent's polyfill could install one into a same-origin child it
+  sees created; wpt's own comment says Chrome fails this one too, so it waits for the test to settle.
+- **Styling by `:tool-form-active` (1).** WebKit's CSS parser drops a rule with a pseudo-class it does not know.
+  Engine work again.
+
+Re-run the suite when wpt moves (`--update`): the declarative section of the draft is still TODO, and its tests are
+where the next changes will land.
 
 ## Smaller things
 
