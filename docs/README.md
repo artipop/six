@@ -45,6 +45,7 @@ from [`six/Localizable.xcstrings`](../six/Localizable.xcstrings) rather than tra
 | [logging.md](logging.md) | what six says happened: the unified log, the file under `~/Library/Logs`, and the levels |
 | [mcp.md](mcp.md) | `six --mcp`: the browser as an MCP server, and its tools |
 | [webmcp.md](webmcp.md) | WebMCP: a page declaring tools of its own for agents — how six carries them, the gate in front of them, and what is not built |
+| [test-suites.md](test-suites.md) | external test suites six can be run against — wpt where six answers rather than WebKit, extensions, blocking, privacy, MCP, certificates — and the shared stand |
 | [localization.md](localization.md) | the String Catalogs, English and Russian, and the line between what a person reads and what a model reads |
 | [android.md](android.md) | the fourth front end: Kotlin and Compose on the system WebView, what it shares with the Mac and what it deliberately does not |
 | [build.md](build.md) | toolchain, SDK override, sandbox |

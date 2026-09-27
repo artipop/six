@@ -185,30 +185,30 @@ external client path is not needed when six **is** the MCP server (`six --mcp`),
 ## Compatibility: web-platform-tests
 
 wpt has the suite Chromium moved its own tests into, [`webmcp/`](https://github.com/web-platform-tests/wpt/tree/master/webmcp),
-and `scripts/webmcp-wpt.py` runs it in a running dev six over `six --mcp`: it fetches the suite once into
-`~/Library/Caches/six-wpt`, serves it from 127.0.0.1 (a secure context, `.headers` files included), opens every file in
-one window and reads testharness's own report off the page.
+and `scripts/webmcp-wpt.py` runs it in a running dev six over `six --mcp`, on wpt's own `wpt serve` — the stand is
+described in [test-suites.md](test-suites.md#the-shared-stand): `six.localhost` and its subdomains with no hosts file,
+a second and a cross-site origin, the LAN address as the non-secure one, and a CA of its own trusted by the dev build
+only.
 
 ```sh
+./scripts/webmcp-wpt.py --install-ca          # once, with the dev six quit
 open -na <Debug six.app> --env SIX_WEBMCP=1
-./scripts/webmcp-wpt.py                       # everything; --update pulls the suite again
+./scripts/webmcp-wpt.py                       # everything, and what moved against the baseline
 ./scripts/webmcp-wpt.py imperative/getTools   # only paths containing an argument
+./scripts/webmcp-wpt.py --write-baseline      # after a change that should move the numbers
 ```
 
-At wpt `a9871a2`: **64 of 141**. Imperative 57 of 94, `tool-activated-event` 4 of 4, declarative 3 of 43. Every
-imperative test that fails involves a frame — an iframe, a detached frame, a second origin, `window.open` — which six
-does not build (main frame only), plus two that no polyfill can pass: `isTrusted` on `toolactivated`, and
-`non-secure.html`, which needs a page served from an origin that is not localhost. The declarative ones fail because
-declarative forms are not built. What the suite taught the polyfill, and it now does: `getTools()` sorted by name and
-carrying `window`; annotations absent when none were given, with `debugging`; `InvalidStateError` for a bad name;
+The baseline is `scripts/webmcp-wpt-baseline.json`. At wpt `a9871a2`: **84 of 166** — imperative 60 of 97,
+`idlharness` 17 of 22, `tool-activated-event` 4 of 4, declarative 3 of 43. Every imperative test that fails involves a
+frame — an iframe, a detached frame, a second origin, `window.open` — which six does not build (main frame only),
+plus `isTrusted` on `toolactivated`, which no polyfill can pass. The declarative ones fail because declarative forms
+are not built. What the suite taught the polyfill, and it now does: `getTools()` sorted by name and carrying
+`window`; annotations absent when none were given, with `debugging`; `InvalidStateError` for a bad name;
 `AbortError`/the signal's reason from `registerTool` when its signal aborts; `SecurityError` for `exposedTo`;
 `executeTool` input through JSON and required to be an object, `UnknownError` for a missing tool or a failed call,
 `NotSupportedError` for an opaque origin, a default `AbortSignal`, the caller's abort rejecting at once and reaching
 the tool a task later; `toolactivated` on the window and the context (with `ontoolactivated`) and `toolcancel` on the
-window; titles made well-formed.
-
-The server here has one origin and no `.sub.` substitution, so a test that needs `get-host-info`'s remote origin
-fails whatever six does. Running wpt's own `wpt serve` would lift that, and is worth doing once frames are built.
+window; titles made well-formed; nothing at all on a non-secure page.
 
 ## What has been checked
 
