@@ -794,6 +794,15 @@ Qwen 2.5 0.5B and Gemma 3 270M were tried and are not offered: the first answere
 second copied the example. Gemma 3 1B is the default for naming because it is the smallest that names well; for
 placing, only Gemma 4 beat the embeddings, at a cost this Mac feels.
 
+**What it costs.** e5 stays loaded once sorting has used it (~235 MB, the bookmark index's own); the local model is
+loaded for an answer and let go after a minute. MLX keeps freed buffers for reuse, and with both models that cache
+took six's footprint to 2.9 GB on this 8 GB Mac — swap, which is what the machine felt like. The cache is capped at
+64 MB and cleared after each embedding pass and each answer (`LocalLanguageModel.trimMemory`). Measured on the main
+process over the same Wikipedia pages (vmmap physical footprint): with sorting on, 1.3 GB while Gemma 3 1B is loaded,
+~600 MB once it is let go; CPU about twice sorting-off's while pages load (10 s against 5 s for four cold pages,
+most of it loading the models once), and the same when idle. If a name comes back in the wrong script, the model
+is asked once more in the interface's language before the c-TF-IDF name is kept.
+
 Why a lead and not Firefox's absolute threshold: `SIX_TOPICS_SELFTEST=1` (`grid` for the model and prefix
 comparison) on e5-small puts every title cosine between 0.75 and 0.92, and "Купить билеты на поезд" scores 0.851
 with football where a match report scores 0.834. `query:` separates same-topic from cross-topic pairs 0.91 of the

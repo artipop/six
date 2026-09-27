@@ -21,17 +21,14 @@ actor LocalLanguageModel {
 
     /// In the interface's language; downloads the model on first use.
     func name(for titles: [String], with model: LocalModelChoice) async throws -> String {
-        unload?.cancel()
-        let container = try await loaded(model.repository)
-        let session = ChatSession(container, history: Self.namingHistory,
-                                  generateParameters: GenerateParameters(maxTokens: 12, temperature: 0))
+        let session = try await makeSession(model, history: Self.namingHistory, maxTokens: 12)
+        defer { scheduleUnload() }
         var answer = try await session.respond(to: Self.prompt(titles))
         var name = Self.clean(answer, titles: titles)
         if name.isEmpty, !answer.isEmpty {
             answer = try await session.respond(to: "In \(Self.language), please.")
             name = Self.clean(answer, titles: titles)
         }
-        scheduleUnload()
         Log.debug(.browser, "group name: \(model.name) answered \"\(answer)\" → \"\(name)\"")
         return name
     }
@@ -40,15 +37,19 @@ actor LocalLanguageModel {
     func choose(for tab: String, among groups: [(name: String, titles: [String])],
                 with model: LocalModelChoice) async throws -> [Int] {
         guard !groups.isEmpty else { return [] }
-        unload?.cancel()
-        let container = try await loaded(model.repository)
-        let session = ChatSession(container, history: Self.choosingHistory,
-                                  generateParameters: GenerateParameters(maxTokens: 8, temperature: 0))
+        let session = try await makeSession(model, history: Self.choosingHistory, maxTokens: 8)
+        defer { scheduleUnload() }
         let answer = try await session.respond(to: Self.choosingPrompt(tab, groups))
-        scheduleUnload()
         let picked = Self.numbers(in: answer, upTo: groups.count)
         Log.debug(.browser, "group choice: \(model.name) answered \"\(answer)\" → \(picked)")
         return picked
+    }
+
+    private func makeSession(_ model: LocalModelChoice, history: [Chat.Message], maxTokens: Int) async throws -> ChatSession {
+        unload?.cancel()
+        let container = try await loaded(model.repository)
+        return ChatSession(container, history: history,
+                           generateParameters: GenerateParameters(maxTokens: maxTokens, temperature: 0))
     }
 
     private func loaded(_ repository: String) async throws -> ModelContainer {
@@ -68,7 +69,7 @@ actor LocalLanguageModel {
         return container
     }
 
-    /// MLX keeps freed buffers for reuse, and on 8 GB that cache pushed six past 2.5 GB.
+    /// MLX keeps freed buffers for reuse; on 8 GB that is swap.
     nonisolated static func trimMemory() {
         Memory.cacheLimit = 64 * 1024 * 1024
         Memory.clearCache()

@@ -33,8 +33,8 @@ final class TabSorter {
     /// E5's prefix for symmetric comparison; it also measured better on titles.
     static let role = EmbeddingRole.query
 
-    var weights = TabTopics.Weights.standard
-    var thresholds = TabTopics.Thresholds.standard
+    private let weights = TabTopics.Weights.standard
+    private let thresholds = TabTopics.Thresholds.standard
 
     func arrived(_ id: UUID) { arrivals.insert(id) }
 
@@ -170,11 +170,7 @@ final class TabSorter {
             if browser.tabSorting == .languageModel, !groups.isEmpty {
                 verdict = await chosen(for: features, among: strip.filter { !$0.name.isEmpty }, in: browser) ?? verdict
             }
-            Log.debug(.browser, String(format: "sort %@: usual %.3f, loose %.3f, ", host, background, loose)
-                + groups.map { group in
-                    String(format: "%@ %.3f", strip.first { $0.id == group.id }?.name ?? "", TabTopics.score(features, in: group) ?? 0)
-                }
-                    .joined(separator: ", ") + " → \(verdict)")
+            Log.debug(.browser, "sort \(host): usual \(background), loose \(loose) → \(verdict)")
             // The strip can have changed while the model answered.
             let latest = browser.layout.strip(for: profileID).workspaces
             guard let here = latest.first(where: { $0.columns.contains { $0.holds(id) } }), here.id == row.id else { continue }
