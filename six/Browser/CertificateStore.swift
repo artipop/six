@@ -222,7 +222,7 @@ final class CertificateStore {
             case .unreadable:
                 String(localized: "The file could not be read.")
             case .noCertificates:
-                String(localized: "No certificate in this file. six reads PEM (.pem, .crt) and DER (.cer, .der).")
+                String(localized: "No certificate in this file. PEM (.pem, .crt) and DER (.cer, .der) are supported.")
             case .alreadyPresent(let name):
                 String(localized: "\(name) is already in the list.")
             }

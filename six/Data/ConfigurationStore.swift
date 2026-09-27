@@ -19,6 +19,14 @@ nonisolated enum InterfaceStyle: String, Sendable, CaseIterable {
     case tabs
 }
 
+/// What stands at the top of six's own pages — the start page, its sketch in a glance, the welcome
+/// window: the name, the app's icon, or nothing.
+nonisolated enum PageLogo: String, Sendable, CaseIterable {
+    case name
+    case icon
+    case none
+}
+
 /// Typed access to the settings table, cached in memory. Reads are observable; writes hit the
 /// database at once.
 @MainActor
@@ -43,6 +51,9 @@ final class ConfigurationStore {
         case tabSorting = "tabs.sortMethod"
         /// The row, or a tab bar over one page (`InterfaceStyle`).
         case interfaceStyle = "interface.style"
+        /// The name on six's own pages and the mark above the start page's field (`PageLogo`).
+        case pageName = "pages.name"
+        case pageLogo = "pages.logo"
         case agentModel = "agent.model"
         case agentModels = "agents.models"
         case agentModelCatalogs = "agents.modelCatalogs"
@@ -155,6 +166,20 @@ final class ConfigurationStore {
     var interfaceStyle: InterfaceStyle {
         get { self[.interfaceStyle].flatMap(InterfaceStyle.init(rawValue:)) ?? .tabs }
         set { self[.interfaceStyle] = newValue.rawValue }
+    }
+
+    /// Stored as typed, an empty name included: snapping back to the default the moment the field
+    /// is cleared would put it under the caret of whoever is typing a new one.
+    var pageName: String {
+        get { self[.pageName] ?? Self.defaultPageName }
+        set { self[.pageName] = newValue == Self.defaultPageName ? nil : newValue }
+    }
+
+    static let defaultPageName = "six"
+
+    var pageLogo: PageLogo {
+        get { self[.pageLogo].flatMap(PageLogo.init(rawValue:)) ?? .name }
+        set { self[.pageLogo] = newValue == .name ? nil : newValue.rawValue }
     }
 
     #if os(macOS)

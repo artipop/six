@@ -186,6 +186,17 @@ private struct GeneralConfiguration: View {
                 }
             }
 
+            SwiftUI.Section("Start Page") {
+                Picker("Logo", selection: $settings.pageLogo) {
+                    Text("Name").tag(PageLogo.name)
+                    Text("Icon").tag(PageLogo.icon)
+                    Text("None").tag(PageLogo.none)
+                }
+                if settings.pageLogo == .name {
+                    TextField("Name", text: $settings.pageName)
+                }
+            }
+
             SwiftUI.Section("Translation") {
                 Picker("Translate Pages Into", selection: Binding(
                     get: { browser.translationTarget.languageCode?.identifier ?? "en" },
@@ -263,7 +274,7 @@ private struct GeneralConfiguration: View {
                             Image(systemName: "checkmark.circle")
                                 .foregroundStyle(.secondary)
                         } else {
-                            Button("Set six as Default Browser…") {
+                            Button("Make Default Browser…") {
                                 Task { await DefaultBrowser.makeDefault() }
                             }
                         }
@@ -287,7 +298,7 @@ private struct ShareExtensionRow: View {
     @State private var isWorking = false
 
     var body: some View {
-        Toggle("Show six in the Share Menu", isOn: Binding(
+        Toggle("Show in the Share Menu", isOn: Binding(
             get: { state == .on },
             set: { on in
                 isWorking = true
@@ -297,7 +308,7 @@ private struct ShareExtensionRow: View {
         .disabled(state == nil || state == .unregistered || isWorking)
         .task { state = await ShareExtensionSwitch.state() }
         if state == .unregistered {
-            Text("Not registered yet — launch six from where it is installed.")
+            Text("Not registered yet — launch the app from where it is installed.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -481,7 +492,7 @@ private struct DevelopConfiguration: View {
                 // open it. Where to attach from is written here rather than left to devtools.md.
                 // The computer is named by what it is rather than by what it is called: the name is
                 // whatever Sharing says, and read here it looked like something six had made up.
-                Toggle("Allow Safari to Inspect six's Pages", isOn: $devTools.isInspectable)
+                Toggle("Allow Safari to Inspect Pages", isOn: $devTools.isInspectable)
                 Text("In Safari: the Develop menu, this computer's name, then \(DevToolsStore.appName).")
                     .font(.caption)
                     .foregroundStyle(.secondary)

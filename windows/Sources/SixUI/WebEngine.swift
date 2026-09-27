@@ -611,7 +611,7 @@ final class StripWebView {
             <div class="mark">&#9888;</div>
             <h1>This page didn&#8217;t open</h1>
             <div class="host">\(shown)</div>
-            <p>six could not reach this address.</p>
+            <p>This address could not be reached.</p>
             <button id="again" data-url="\(escape(address))">Try Again</button>
             <div class="detail">\(escape(message)) (\(escape(detail)))</div>
             </main><script>document.getElementById('again').onclick=function(){location.replace(this.dataset.url)}</script>

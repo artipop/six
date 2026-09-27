@@ -231,7 +231,7 @@ final class AssistantSettings {
             let address = openAIBaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
             guard let url = URL(string: address), url.scheme != nil, url.host() != nil else {
                 return .notConfigured(address.isEmpty ? "This model needs an address to ask"
-                                                      : "That address is not one six can ask")
+                                                      : "That is not an address a model can be asked at")
             }
             guard !openAIModel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 return .notConfigured("Name the model this address should answer with")
@@ -310,7 +310,7 @@ final class AssistantSettings {
             try check()
             let address = openAIBaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
             guard let url = URL(string: address), url.scheme != nil, url.host() != nil else {
-                throw AssistantError.notConfigured("That address is not one six can ask")
+                throw AssistantError.notConfigured("That is not an address a model can be asked at")
             }
             let name = openAIModel.trimmingCharacters(in: .whitespacesAndNewlines)
             // No key is a real answer — a server on this machine asks for none — so the header
