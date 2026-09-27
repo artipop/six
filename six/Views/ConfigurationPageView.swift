@@ -186,6 +186,17 @@ private struct GeneralConfiguration: View {
                 }
             }
 
+            SwiftUI.Section("Start Page") {
+                Picker("Logo", selection: $settings.pageLogo) {
+                    Text("Name").tag(PageLogo.name)
+                    Text("Icon").tag(PageLogo.icon)
+                    Text("None").tag(PageLogo.none)
+                }
+                if settings.pageLogo == .name {
+                    TextField("Name", text: $settings.pageName)
+                }
+            }
+
             SwiftUI.Section("Translation") {
                 Picker("Translate Pages Into", selection: Binding(
                     get: { browser.translationTarget.languageCode?.identifier ?? "en" },
@@ -263,7 +274,7 @@ private struct GeneralConfiguration: View {
                             Image(systemName: "checkmark.circle")
                                 .foregroundStyle(.secondary)
                         } else {
-                            Button("Set six as Default Browser…") {
+                            Button("Make Default Browser…") {
                                 Task { await DefaultBrowser.makeDefault() }
                             }
                         }
@@ -287,7 +298,7 @@ private struct ShareExtensionRow: View {
     @State private var isWorking = false
 
     var body: some View {
-        Toggle("Show six in the Share Menu", isOn: Binding(
+        Toggle("Show in the Share Menu", isOn: Binding(
             get: { state == .on },
             set: { on in
                 isWorking = true
@@ -297,7 +308,7 @@ private struct ShareExtensionRow: View {
         .disabled(state == nil || state == .unregistered || isWorking)
         .task { state = await ShareExtensionSwitch.state() }
         if state == .unregistered {
-            Text("Not registered yet — launch six from where it is installed.")
+            Text("Not registered yet — launch the app from where it is installed.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -326,6 +337,31 @@ private struct WindowConfiguration: View {
                     Text("Workspaces are tab groups. The row's ⌥ keys are off.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                }
+                Toggle("Group Tabs by Meaning", isOn: Binding(
+                    get: { browser.sortsTabsByMeaning },
+                    set: { browser.setSortsTabsByMeaning($0) }
+                ))
+                if browser.sortsTabsByMeaning {
+                    Picker("Sort By", selection: Binding(
+                        get: { browser.tabSorting },
+                        set: { browser.tabSorting = $0 }
+                    )) {
+                        ForEach(TabSortingMethod.allCases) { Text($0.title).tag($0) }
+                    }
+                    LabeledContent("Local Model") {
+                        Menu(browser.localModel.name) {
+                            Picker("Local Model", selection: Binding(
+                                get: { browser.localModel },
+                                set: { browser.localModel = $0 }
+                            )) {
+                                ForEach(LocalModelChoice.allCases) { Text($0.title).tag($0) }
+                            }
+                            .pickerStyle(.inline)
+                            .labelsHidden()
+                        }
+                        .fixedSize()
+                    }
                 }
             }
 
@@ -445,16 +481,18 @@ private struct PrivacyConfiguration: View {
 /// Safari's inspector and six's own log — the two things a person developing against six reads.
 private struct DevelopConfiguration: View {
     @Environment(DevToolsStore.self) private var devTools
+    @Environment(WebMCPStore.self) private var webMCP
 
     var body: some View {
         @Bindable var devTools = devTools
+        @Bindable var webMCP = webMCP
         Form {
             SwiftUI.Section("Web Inspector") {
                 // six has no inspector window of its own — WebKit lets an app allow inspection, not
                 // open it. Where to attach from is written here rather than left to devtools.md.
                 // The computer is named by what it is rather than by what it is called: the name is
                 // whatever Sharing says, and read here it looked like something six had made up.
-                Toggle("Allow Safari to Inspect six's Pages", isOn: $devTools.isInspectable)
+                Toggle("Allow Safari to Inspect Pages", isOn: $devTools.isInspectable)
                 Text("In Safari: the Develop menu, this computer's name, then \(DevToolsStore.appName).")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -466,6 +504,15 @@ private struct DevelopConfiguration: View {
                     }
                     .controlSize(.small)
                 }
+            }
+
+            // Here and not beside the assistant's switches: until a site has to be allowed and a
+            // call confirmed (docs/webmcp.md, stage 3), this is a thing to test, not to live with.
+            SwiftUI.Section("WebMCP") {
+                Toggle("Let Pages Offer Tools to Agents", isOn: $webMCP.isEnabled)
+                Text("Experimental. A page declares tools through document.modelContext, and agents list and call them with list_page_tools and call_page_tool. There is no per-site permission or confirmation yet: keep it off outside testing.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             SwiftUI.Section("Log") {

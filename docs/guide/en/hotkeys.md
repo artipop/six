@@ -8,6 +8,11 @@ always takes. None of it is
 required: [every operation has a mouse
 equivalent](/en/layout#with-the-mouse-alone).
 
+On a page, `Enter` submits a form or activates a button, while `Space` and `Shift+Space`
+scroll down and up. In a text field they remain typing keys. When the page has nothing
+to do with the key and nothing to scroll, there is no system alert sound — the same holds
+for `Esc`, the arrows, `Home` and `End`.
+
 ## The row
 
 | | |

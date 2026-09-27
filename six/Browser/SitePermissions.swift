@@ -15,6 +15,10 @@ enum SitePermission: String, Codable, CaseIterable, Sendable, Identifiable {
     /// `DeviceOrientationEvent` and `DeviceMotionEvent`. A desktop has neither sensor, but the
     /// question still arrives here, and answering it costs less than explaining the silence.
     case motion
+    /// Whether agents may call the tools this site declares for them (WebMCP, docs/webmcp.md).
+    /// Not a device, and filed here anyway: it is the same shape of answer — one site, one
+    /// decision, remembered per profile, taken back from the same panel.
+    case pageTools
 
     var id: String { rawValue }
 
@@ -27,12 +31,14 @@ enum SitePermission: String, Codable, CaseIterable, Sendable, Identifiable {
         case .camera: "camera"
         case .microphone: "microphone"
         case .motion: "motion sensors"
+        case .pageTools: "tools for agents"
         }
         #else
         switch self {
         case .camera: String(localized: "camera")
         case .microphone: String(localized: "microphone")
         case .motion: String(localized: "motion sensors")
+        case .pageTools: String(localized: "tools for agents")
         }
         #endif
     }
@@ -42,6 +48,7 @@ enum SitePermission: String, Codable, CaseIterable, Sendable, Identifiable {
         case .camera: "video"
         case .microphone: "mic"
         case .motion: "gyroscope"
+        case .pageTools: "wrench.and.screwdriver"
         }
     }
 }
@@ -76,19 +83,59 @@ final class SitePermissions {
         var isAllowed: Bool
     }
 
+    /// What a bar is asking about. Three shapes, one queue: they arrive in the same window, they
+    /// are answered by the same two buttons, and a page is suspended on each of them — so the
+    /// machinery is written once and only the sentence differs, which is the front's to write
+    /// because it is the front that translates it.
+    enum Ask: Sendable, Equatable {
+        /// The camera, the microphone, the motion sensors. Remembered per site.
+        case devices([SitePermission])
+        /// May agents call the tools this site declares (WebMCP)? Remembered per site.
+        case pageTools
+        /// One call to one of those tools, named with the arguments it was given. **Not**
+        /// remembered: an answer here is about this call and nothing else, which is what makes it
+        /// safe to ask it for everything a page did not mark read-only (docs/webmcp.md).
+        case pageToolCall(tool: String, arguments: String)
+    }
+
     /// A question waiting for the user, drawn as a bar in the window that asked.
     struct Question: Identifiable {
         let id = UUID()
         let profileID: UUID
         /// `https://example.com` — what the answer is filed under.
         let origin: String
-        /// Everything asked for at once: "camera and microphone" is one bar and two answers.
-        let permissions: [SitePermission]
+        let ask: Ask
         fileprivate let pending: Pending
+
+        /// What an answer is written down under — empty for a question that is not remembered.
+        var permissions: [SitePermission] {
+            switch ask {
+            case .devices(let asked): asked
+            case .pageTools: [.pageTools]
+            case .pageToolCall: []
+            }
+        }
+
+        /// Whether answering writes anything down. A call is answered for that call alone.
+        var isRemembered: Bool { !permissions.isEmpty }
 
         /// What the bar shows. The origin without its scheme, which is what people call a site.
         var host: String {
             URL(string: origin)?.host() ?? origin
+        }
+
+        /// The sentence, in English, for the fronts that have no string catalogue to translate it
+        /// through (Windows and Linux). The Mac's `PermissionBar` writes its own from `ask` and
+        /// localises it; these two must say the same thing, so they are kept beside each other.
+        var prompt: String {
+            switch ask {
+            case .devices(let asked):
+                "\(host) wants to use your \(asked.map(\.label).joined(separator: " and "))."
+            case .pageTools:
+                "Let agents use the tools \(host) offers them?"
+            case .pageToolCall(let tool, let arguments):
+                "Let an agent call \(tool) on \(host) with \(arguments)?"
+            }
         }
     }
 
@@ -184,10 +231,37 @@ final class SitePermissions {
             return answer(known.allSatisfy { $0 })
         }
 
+        enqueue(.devices(asked), origin: origin, in: windowID, profileID: profileID, then: answer)
+    }
+
+    /// May agents use this site's tools (WebMCP)? Asked once per site and remembered, exactly like
+    /// a device — and asked before the first call, not when the page declares them: a page that
+    /// declares tools nobody calls has asked for nothing.
+    func decidePageTools(origin: String, in windowID: UUID, profileID: UUID,
+                         then answer: @escaping (Bool) -> Void) {
+        guard !origin.isEmpty else { return answer(false) }
+        if let known = decision(for: .pageTools, origin: origin, profileID: profileID) {
+            return answer(known)
+        }
+        enqueue(.pageTools, origin: origin, in: windowID, profileID: profileID, then: answer)
+    }
+
+    /// This one call, now. Never remembered and never answered from memory: `WebMCPHost` asks it
+    /// for every tool a page did not mark `readOnlyHint`, and for every `consequentialHint` one
+    /// whatever else is remembered.
+    func confirmPageToolCall(tool: String, arguments: String, origin: String,
+                             in windowID: UUID, profileID: UUID,
+                             then answer: @escaping (Bool) -> Void) {
+        enqueue(.pageToolCall(tool: tool, arguments: arguments),
+                origin: origin, in: windowID, profileID: profileID, then: answer)
+    }
+
+    private func enqueue(_ ask: Ask, origin: String, in windowID: UUID, profileID: UUID,
+                         then answer: @escaping (Bool) -> Void) {
         let pending = Pending()
         pending.answer = answer
         queues[windowID, default: []].append(
-            Question(profileID: profileID, origin: origin, permissions: asked, pending: pending))
+            Question(profileID: profileID, origin: origin, ask: ask, pending: pending))
         onQuestionsChanged?()
     }
 
@@ -263,6 +337,15 @@ final class SitePermissions {
         } else {
             decisions.append(Decision(profileID: profileID, origin: origin,
                                       permission: permission, isAllowed: allowed))
+        }
+        save()
+    }
+
+    /// Take back one answer and leave the rest of the site's alone — what `WebMCPSelfTest` does
+    /// before it starts, so a run measures the question being asked rather than last run's answer.
+    func forget(_ permission: SitePermission, forOrigin origin: String, profileID: UUID) {
+        decisions.removeAll {
+            $0.profileID == profileID && $0.origin == origin && $0.permission == permission
         }
         save()
     }

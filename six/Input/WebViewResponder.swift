@@ -55,7 +55,10 @@ final class WebViewResponder {
         guard let found else { return }
         views[tabID] = WeakView(found)
         Log.debug(.keys, "the keyboard can reach \(tabID.uuidString.prefix(8)) at \(Int(mine.width))pt")
-        if let webView = found as? WKWebView { onWebViewFound(tabID, webView) }
+        if let webView = found as? WKWebView {
+            PageKeyFallback.install(on: webView)
+            onWebViewFound(tabID, webView)
+        }
     }
 
     /// Told on every claim, with the live `WKWebView` — the only moment anything outside WebKit gets a

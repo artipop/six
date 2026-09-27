@@ -19,6 +19,14 @@ nonisolated enum InterfaceStyle: String, Sendable, CaseIterable {
     case tabs
 }
 
+/// What stands at the top of six's own pages — the start page, its sketch in a glance, the welcome
+/// window: the name, the app's icon, or nothing.
+nonisolated enum PageLogo: String, Sendable, CaseIterable {
+    case name
+    case icon
+    case none
+}
+
 /// Typed access to the settings table, cached in memory. Reads are observable; writes hit the
 /// database at once.
 @MainActor
@@ -37,8 +45,15 @@ final class ConfigurationStore {
         case centersFocus = "layout.centersFocus"
         case fill = "layout.fill"
         case peeksAtEdges = "layout.peeksAtEdges"
+        /// Tabs put into groups by what they are about (`TabSorter`).
+        case sortsTabsByMeaning = "tabs.sortByMeaning"
+        case localModel = "local.model"
+        case tabSorting = "tabs.sortMethod"
         /// The row, or a tab bar over one page (`InterfaceStyle`).
         case interfaceStyle = "interface.style"
+        /// The name on six's own pages and the mark above the start page's field (`PageLogo`).
+        case pageName = "pages.name"
+        case pageLogo = "pages.logo"
         case agentModel = "agent.model"
         case agentModels = "agents.models"
         case agentModelCatalogs = "agents.modelCatalogs"
@@ -62,6 +77,8 @@ final class ConfigurationStore {
         case newTabOverride = "extensions.newTabOverride"
         case devToolsInspector = "devtools.inspector"
         case devToolsCapture = "devtools.capture"
+        /// Whether pages may declare tools for agents (WebMCP). See `webMCP`.
+        case webMCP = "webmcp.enabled"
         case sitePermissions = "permissions.sites"
         /// The default profile's identifier. On the Mac profiles live in the state snapshot; a front
         /// that has no snapshot yet still needs the id to be the same one tomorrow, or every launch
@@ -119,6 +136,12 @@ final class ConfigurationStore {
         set { self[.centersFocus] = newValue ? "1" : "0" }
     }
 
+    /// Off by default: it moves tabs, and it loads the embedding model.
+    var sortsTabsByMeaning: Bool {
+        get { self[.sortsTabsByMeaning] == "1" }
+        set { self[.sortsTabsByMeaning] = newValue ? "1" : "0" }
+    }
+
     /// Tiled or full-window, whichever the user last chose — so an empty workspace losing its last
     /// window and being rebuilt fresh does not quietly answer this itself. Full window until anyone
     /// has chosen otherwise.
@@ -143,6 +166,20 @@ final class ConfigurationStore {
     var interfaceStyle: InterfaceStyle {
         get { self[.interfaceStyle].flatMap(InterfaceStyle.init(rawValue:)) ?? .tabs }
         set { self[.interfaceStyle] = newValue.rawValue }
+    }
+
+    /// Stored as typed, an empty name included: snapping back to the default the moment the field
+    /// is cleared would put it under the caret of whoever is typing a new one.
+    var pageName: String {
+        get { self[.pageName] ?? Self.defaultPageName }
+        set { self[.pageName] = newValue == Self.defaultPageName ? nil : newValue }
+    }
+
+    static let defaultPageName = "six"
+
+    var pageLogo: PageLogo {
+        get { self[.pageLogo].flatMap(PageLogo.init(rawValue:)) ?? .name }
+        set { self[.pageLogo] = newValue == .name ? nil : newValue.rawValue }
     }
 
     #if os(macOS)
@@ -248,6 +285,16 @@ final class ConfigurationStore {
     var newTabOverrideExtensionID: String? {
         get { self[.newTabOverride] }
         set { self[.newTabOverride] = newValue }
+    }
+
+    /// WebMCP: pages may declare tools through `document.modelContext`, and agents may call them
+    /// (docs/webmcp.md). Off by default, and a developer switch rather than a feature until the
+    /// per-site permission and the per-call confirmation exist — without them a page's tools are one
+    /// agent call away from acting in the session the person is signed into. Here rather than in the
+    /// app because the Windows front reads it too.
+    var webMCP: Bool {
+        get { self[.webMCP].map { $0 == "1" } ?? false }
+        set { self[.webMCP] = newValue ? "1" : "0" }
     }
 
     /// The profile a front uses when it has no other. Made once and kept, so history and cookies

@@ -755,6 +755,105 @@ another way. `SIX_KEY_SELFTEST` prints a `tabs` column.
 `TilingLayout.unanimated` is written up for. `ContentView.swapFace` takes the old face down, waits 32 ms with neither on
 screen, then puts the new one up, so the new `WebView` can never be built while the old one still holds the page.
 
+**Sorted by meaning** (`TabSorter`, `TabTopics`, `ConfigurationStore.sortsTabsByMeaning`, off by default and
+outside the AI switch). A web tab that finishes loading is embedded — its title with the site's name taken off, plus
+the first sentence of its meta description or first real paragraph, cut to 120 characters — by the bookmark index's
+own e5, with `query:` on both sides. Only a tab opened since the sorter last looked, or one that has gone to another
+site, is placed; a tab restored at launch is only noted. `TabTopics.classify` then asks how far the best group is
+*ahead*: of the second group, of the tab's median similarity to every tab (`background`), and of its nearest
+ungrouped tab (`loose`). Ahead by `joins` (0.035) it goes in, focus following (`placeTab`); two groups within `tie`
+of each other and both `betweenLead` ahead of the rest put it in the row between them. Ahead of the other groups and
+its `background` by `near` (0.035, the same as `joins`) and kept out only by a loose tab no more than `betweenLead`
+nearer, it goes into a row right after the group (`.near`). Ungrouped tabs are clustered average-linkage over how much closer two are than
+either usually is to *every* tab, and three or more become a group.
+
+**Rows between groups** (`TilingWorkspace.blend`, `TilingBlend`). The near verdict exists because of `loose`: four
+recipes joined «Ужин», the next four arrived together, each was nearer the others than the group, and they became a
+second group, «Кулинария», beside it. `near` ignores a loose tab about as close as the group, so they now stand next
+to «Ужин» instead. `near` is not lower because e5-small cannot tell a near miss from a stray: a curry recipe led
+the other groups by 0.029, a weather forecast led them (football) by 0.028; at 0.02 both went next to a group. What
+tells them apart is a loose tab about as near, which the recipes have and the strays do not.
+
+`SIX_TOPICS_SELFTEST=batch` (four recipes arriving together after a food group, two tabs about food and football,
+two strays) and `=live` (the same with Wikipedia pages in a new profile, through `TabSorter` itself):
+
+| | recipes | between | strays |
+|---|---|---|---|
+| e5-small, before `near` | 0/4, all loose | 0/2 | 2/2 kept |
+| e5-small, `near` at 0.02 | 1 in, 3 next to it | 0/2 | 0/2 — both next to football |
+| e5-small, `near` at 0.035 | 3 next to it, 1 loose | 0/2 | 2/2 kept |
+| e5-base, `near` at 0.035 | 0/4 | 0/2 | 1 next to football |
+| live, e5-small | Solyanka in; pilaf, curry, ramen next to it, named «Азиатская кухня» | 0/1 | 2/2 kept |
+| Gemma 4 E2B as the chooser | 4/4 in | 0/2, both to football | 2/2 kept |
+| Qwen 2.5 1.5B | 2/4 | 0/2 | 2/2 |
+| Gemma 3 1B | 0/4, everything to football | — | 0/2 |
+
+`=compare` with `near` at 0.035: held-out 8/12, strays 5/5, between 1/2 — as before it. A blend row is a group in the tab bar whether or not it is named: its title is its parents'
+names («Ужин · Спорт», «≈ Ужин») until the namer answers, which it is asked once the row has two tabs. The blend
+belongs to the row, not the tab, so a tab dragged in takes its colour and one dragged out loses it. Its menu merges
+it into a parent or makes it a group of its own. In `normalize`, a blend whose parent stops being a group (ungrouped,
+closed) stands next to the other parent; with neither left it is ungrouped tabs, or a group of its own if the person
+named it. A session saved with the old per-column `lean` has it moved to the row.
+
+**Colours** (`GroupColor`). OKLCH, mixed with lightness and chroma linear and the hue the short way round, then the
+chroma cut back into sRGB: red and yellow give orange, blue and yellow green, where an RGB mix goes through grey.
+The palette starts with blue, red and yellow so the first three groups' mixes are the secondaries. A group is given
+the first palette entry no other group has, kept on the row (`TilingWorkspace.color`), so closing one does not
+recolour the rest; a row next to one group is that colour faded towards a pale neutral by its weight. Groups saved
+before this had a colour taken from their id and are given one from the palette on the next change. The row itself
+does not show group colours yet.
+
+**Names and the local model.** A new group is named at once by c-TF-IDF over its tabs' text (or the host), then
+renamed in the background, unless the person has renamed it meanwhile. With the AI switch on, the assistant's own
+choice answers: a language model through `AssistantSettings.namingSession`, or an ACP agent through `AgentErrands` —
+a second connection to the same agent, a fresh session per question in `Agents/Errands` inside six's folder, tools
+refused, so nothing lands in the person's chat (Claude Code: 9 s for the first name, spawn included, 4 s after).
+Otherwise, and when that fails, the **local model** (`LocalLanguageModel`, `LocalModelChoice`, Configuration ▸ Windows):
+Gemma 3 1B by default, Qwen 2.5 1.5B, or Gemma 4 E2B, through MLXLLM from the `mlx-swift-lm` package the embedder
+already uses. It is loaded for the question and let go a minute after the last one. The answer has to be in the
+interface's script (a title's own words excepted), or the c-TF-IDF name stays. The examples are earlier chat turns,
+not text in the question: asked for Russian, the small models answered in English and once in Chinese; shown an
+answer inside the question, they copied it onto every group.
+
+**Sort By** (`TabSortingMethod`) picks what places a tab: the embeddings above (the default), or the local model
+asked outright, "which of these numbered groups, 0 for none, two numbers for both" (`LocalLanguageModel.choose`).
+New groups are always found by the embeddings.
+
+Measured with `SIX_TOPICS_SELFTEST` on this 8 GB M2 (`=compare` for placing, `SIX_LOCAL_MODEL=<case>` for naming):
+
+| | naming, 5 groups (ru UI) | placing: own topic / strays left / between | per tab |
+|---|---|---|---|
+| e5 embeddings | — | 8/12 · 5/5 · 1/2 | ~0 |
+| Gemma 3 1B (770 MB) | 4/5 | 4/12 · 0/5 · 0/2 — nearly all to the last group | 2.3 s |
+| Qwen 2.5 1.5B (870 MB) | 4/5 | 8/12 · 3/5 · 0/2 | 0.6 s |
+| Gemma 4 E2B (3.6 GB) | 5/5 | 11/12 · 5/5 · 0/2, both into one of the two | 5.6 s |
+
+Qwen 2.5 0.5B and Gemma 3 270M were tried and are not offered: the first answered «Конcurrency» and «Делимаки», the
+second copied the example. Gemma 3 1B is the default for naming because it is the smallest that names well; for
+placing, only Gemma 4 beat the embeddings, at a cost this Mac feels.
+
+**What it costs.** e5 stays loaded once sorting has used it (~235 MB, the bookmark index's own); the local model is
+loaded for an answer and let go after a minute. MLX keeps freed buffers for reuse, and with both models that cache
+took six's footprint to 2.9 GB on this 8 GB Mac — swap, which is what the machine felt like. The cache is capped at
+64 MB and cleared after each embedding pass and each answer (`LocalLanguageModel.trimMemory`). Measured on the main
+process over the same Wikipedia pages (vmmap physical footprint): with sorting on, 1.3 GB while Gemma 3 1B is loaded,
+~600 MB once it is let go; CPU about twice sorting-off's while pages load (10 s against 5 s for four cold pages,
+most of it loading the models once), and the same when idle. If a name comes back in the wrong script, the model
+is asked once more in the interface's language before the c-TF-IDF name is kept.
+
+Why a lead and not Firefox's absolute threshold: `SIX_TOPICS_SELFTEST=1` (`grid` for the model and prefix
+comparison) on e5-small puts every title cosine between 0.75 and 0.92, and "Купить билеты на поезд" scores 0.851
+with football where a match report scores 0.834. `query:` separates same-topic from cross-topic pairs 0.91 of the
+time against `passage:`'s 0.77, and e5-base did worse than small on titles (0.73). Two more things were measured in
+the running app: a whole paragraph made a bread article nearer a tech site's blurb than any title did (long texts
+are alike for being long, hence the 120 characters), and a background taken over the loose tabs alone never let
+four recipes cluster, because half the loose tabs were the recipes. What it gets wrong: a Russian title on a mostly
+English topic stays out (e5-small keeps languages apart on short text).
+
+The person wins. The sorter remembers the row it last put or saw each tab in (in memory); a tab found anywhere else
+was moved by hand and is left alone until it goes to another site, a split is never touched, and a group it made
+that was ungrouped marks its tabs the same way.
+
 What the tab bar does **not** have yet: tabs from several profiles side by side (it shows the profile on screen,
 like the row), dragging a tab out into a group of its own (the tab menu's "Add Tab to New Group" does that), and
 group colours chosen by hand.

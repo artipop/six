@@ -31,6 +31,10 @@ menus is what a menu is for: things you do, with a key beside them.
 **Search engine** — DuckDuckGo, Google, Bing or Yandex. The same choice is the
 chip on the left of the field on the start page.
 
+**Start page** — what stands above the field: the **Name** (which can be
+changed), the app's **Icon**, or **None**. The same goes for a window's
+miniature when peeking and in the overview.
+
 **Translation** — the language pages are translated into (`⌘⇧L`). The list is
 whichever languages macOS has a model for.
 
@@ -47,6 +51,10 @@ built again.
 
 **Show Windows As** — **Row** or **Tabs**: workspaces become tab groups and the
 row's `⌥` keys are switched off. More in [Tabs instead of the row](tabs.md).
+
+**Group Tabs by Meaning** — a new tab goes into the group it is about by itself,
+and three alike tabs with no group become a group. More in [Groups by
+meaning](tabs.md#groups-by-meaning).
 
 **Centre the focused window** (`⌥C`) — the window you are reading sits in the
 middle and both neighbours peek in by the same amount. Off, the row moves as

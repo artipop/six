@@ -61,6 +61,48 @@ count on finding it. Capture is off by default and is meant to be turned on whil
 you are looking into something, not left on.
 :::
 
+## WebMCP
+
+**Configuration ▸ Develop ▸ WebMCP ▸ Let Pages Offer Tools to Agents** is an
+experimental switch, off by default.
+[WebMCP](https://webmachinelearning.github.io/webmcp/) is a W3C draft by which a
+page tells an [agent](/en/agents) what it can do: not "click button number 12"
+but `search_flights(from, to, date)`. The function runs in the page itself, in
+the session you are already signed in to.
+
+When the open page has declared tools, a wrench appears at the end of the
+address field, beside the translation button; its tooltip gives their number, and
+it pulses while an agent is calling one. Clicking it lists them: name, description,
+and the **read-only** and **consequential** marks — what the page said about
+itself. The agent sees the same tools and can call them.
+
+Tools declared by a frame inside the page — an embedded widget, say — are listed
+too, each under its frame's address, and the question about a site is asked about
+the frame's own site.
+
+A page can also turn an ordinary form into a tool by marking it up. The agent then
+fills the form in; if the page allows it, the agent submits it too, and otherwise
+the submit button is focused and the form waits for you to press it.
+
+The switch reaches pages loaded after it: turning it on reloads the open windows.
+
+**What you will be asked.** The first call to a site raises a bar under the
+window's title: may agents use the tools this site offers them? The answer is
+remembered and sits with the camera's — **Configuration ▸ Privacy ▸ Site
+Permissions** — and can be taken back there. After that, every call to a tool
+the page did not mark read-only is confirmed on its own, and the bar shows the
+tool's name and the arguments it is being called with. A private window offers
+no tools at all.
+
+::: warning Why this is in Develop for now
+A page's tool does whatever the site wrote it to do — on your behalf, in your
+session. The question about the site and the confirmation of each call limit
+that, but they lean on marks the page puts on itself, so keep WebMCP off unless
+you are testing it on purpose. Like console capture,
+it lives in the page's own world: the page can see it and can post to its
+channel itself — but only about its own tools.
+:::
+
 ## The log
 
 The capture above belongs to a window and is gone when the window navigates.

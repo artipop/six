@@ -44,7 +44,9 @@ from [`six/Localizable.xcstrings`](../six/Localizable.xcstrings) rather than tra
 | [devtools.md](devtools.md) | Web Inspector on six's pages, and the console/network capture the agent tools read |
 | [logging.md](logging.md) | what six says happened: the unified log, the file under `~/Library/Logs`, and the levels |
 | [mcp.md](mcp.md) | `six --mcp`: the browser as an MCP server, and its tools |
-| [accessibility.md](accessibility.md) | the accessibility overlay and `get_accessibility_tree`: WebKit's accessibility tree as the agent's eyes, read through `AXUIElement`, why that takes a permission — and why, with the permission given, the read deadlocks the browser |
+| [webmcp.md](webmcp.md) | WebMCP: a page declaring tools of its own for agents — how six carries them, the gate in front of them, and what is not built |
+| [test-suites.md](test-suites.md) | external test suites six can be run against — wpt where six answers rather than WebKit, extensions, blocking, privacy, MCP, certificates — and the shared stand |
+| [accessibility.md](accessibility.md) | the accessibility overlay and `get_accessibility_tree`: WebKit's accessibility tree as the agent's eyes, read through `AXUIElement` by `six --ax-read` — a second process, because six asking itself deadlocks |
 | [localization.md](localization.md) | the String Catalogs, English and Russian, and the line between what a person reads and what a model reads |
 | [android.md](android.md) | the fourth front end: Kotlin and Compose on the system WebView, what it shares with the Mac and what it deliberately does not |
 | [build.md](build.md) | toolchain, SDK override, sandbox |

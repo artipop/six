@@ -659,9 +659,7 @@ private struct StartPageSketch: View {
         // whole column it was a bar across the middle of the card.
         let size = min(band * 0.42, cap)
         VStack(spacing: size * 0.33) {
-            Text("six")
-                .font(.system(size: size, weight: .light, design: .rounded))
-                .foregroundStyle(accent)
+            PageMark(size: size, color: accent)
             Capsule()
                 .fill(accent.opacity(0.22))
                 .frame(width: size * 1.52, height: max(5, size * 0.24))

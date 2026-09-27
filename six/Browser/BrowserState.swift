@@ -54,6 +54,10 @@ final class BrowserState {
     @ObservationIgnored var pageFocus: PageFocusStore? {
         didSet { for tab in tabs { tab.pageFocus = pageFocus } }
     }
+    /// The tools each window's page declares for agents (WebMCP); wired at launch.
+    @ObservationIgnored var webMCP: WebMCPStore? {
+        didSet { for tab in tabs { tab.webMCP = webMCP } }
+    }
     /// The camera, the microphone and the motion sensors, per site (`SitePermissions`). Handed to
     /// the initializer for the same reason as the blocker: the windows it restores are built and
     /// answered before anything assigned afterwards could reach them.
@@ -73,6 +77,7 @@ final class BrowserState {
     @ObservationIgnored let translation = PageTranslator()
     /// ⌘F, per window. `@Observable` itself, like `translation` above.
     @ObservationIgnored let find = PageFinder()
+    @ObservationIgnored let sorter = TabSorter()
     /// Apple's on-device translator. Held by name as well as behind the protocol, because the
     /// hidden `.translationTask` host needs the concrete one — that is the whole point of it.
     @ObservationIgnored let appleTranslator = AppleTranslator()
@@ -643,6 +648,7 @@ final class BrowserState {
         tab.pageControllers = pageControllers
         tab.devTools = devTools
         tab.pageFocus = pageFocus
+        tab.webMCP = webMCP
         tab.permissions = permissions
     }
 
@@ -670,6 +676,7 @@ final class BrowserState {
         let profile = profiles.first { $0.id == profileID } ?? selectedProfile
         let tab = makeTab(profile: profile)
         add(tab)
+        sorter.arrived(tab.id)
         if activate, selectedProfileID != profile.id {
             selectedProfileID = profile.id
             layout.activeProfileID = profile.id
@@ -714,6 +721,7 @@ final class BrowserState {
                 guard !profile.isPrivate else { return } // no history, and highlights are not stored for it
                 history.updateTitle(page.title, for: url, in: tab.profileID)
                 highlights?.apply(to: tab)
+                if settings.sortsTabsByMeaning { sorter.pageFinished(tab, in: self) }
             }
         }
         tab.onNewWindow = { [weak self] tab, request, behind in
@@ -1059,6 +1067,7 @@ final class BrowserState {
         blocker?.forget(id)
         devTools?.forget(id)
         pageFocus?.forget(id)
+        webMCP?.forget(id)
         pageControllers.forget(id)
         let tab = rebuilt(old, in: profile)
         tab.adopt(trail)
@@ -1142,6 +1151,7 @@ final class BrowserState {
         guard let index = tabs.firstIndex(where: { $0.id == id }) else { return }
         let closed = tabs.remove(at: index)
         tabsByID[id] = nil
+        sorter.forget(id)
         // Before anything is taken apart: `remember` reads where the column stands and what a
         // document window is holding, and both are gone by the end of this function.
         if remembering { remember(closed) }
@@ -1155,6 +1165,7 @@ final class BrowserState {
         extensions?.noteClosed(closed)
         devTools?.forget(id)
         pageFocus?.forget(id)
+        webMCP?.forget(id)
         pageControllers.forget(id)
         find.forget(id)
         if let document = closed.document {
@@ -1469,6 +1480,33 @@ final class BrowserState {
         settings.centersFocus = layout.centersFocus
     }
 
+    var isAIEnabled: Bool { settings.isAIEnabled }
+
+    var assistantSettings: AssistantSettings { AssistantSettings(store: settings) }
+
+    /// The assistant's ACP agent, asked outside the person's chat; answers nil when the assistant is not an agent.
+    @ObservationIgnored var askAgent: (@MainActor (String) async throws -> String?)?
+
+    var sortsTabsByMeaning: Bool { settings.sortsTabsByMeaning }
+
+    var localModel: LocalModelChoice {
+        get { settings.localModel }
+        set { settings.localModel = newValue }
+    }
+
+    var tabSorting: TabSortingMethod {
+        get { settings.tabSorting }
+        set { settings.tabSorting = newValue }
+    }
+
+    /// On loads the model now, so the first tab to finish loading is not the one kept waiting for it.
+    func setSortsTabsByMeaning(_ on: Bool) {
+        settings.sortsTabsByMeaning = on
+        guard on, let embedder = bookmarks?.embedder else { return }
+        Task { await embedder.warmUp() }
+        sorter.sortEverything(in: self)
+    }
+
     func togglePeeksAtEdges() {
         peeksAtEdges.toggle()
         settings.peeksAtEdges = peeksAtEdges
@@ -1689,7 +1727,7 @@ final class BrowserState {
 
     private func ungroupedEnd() -> Int? {
         let rows = layout.workspaces
-        if let last = rows.lastIndex(where: { !$0.isEmpty }), rows[last].name.isEmpty { return last }
+        if let last = rows.lastIndex(where: { !$0.isEmpty }), !rows[last].isGroup { return last }
         return rows.indices.last.flatMap { rows[$0].isEmpty ? $0 : nil }
     }
 
@@ -1697,10 +1735,10 @@ final class BrowserState {
     func removeFromGroup(_ id: UUID) {
         let rows = layout.workspaces
         guard let index = rows.firstIndex(where: { $0.columns.contains { $0.holds(id) } }),
-              !rows[index].name.isEmpty else { return }
+              rows[index].isGroup else { return }
         if rows[index].columns.flatMap(\.tabIDs).count == 1 { return ungroup(rows[index].id) }
         let next = index + 1
-        if rows.indices.contains(next), !rows[next].isEmpty, rows[next].name.isEmpty {
+        if rows.indices.contains(next), !rows[next].isEmpty, !rows[next].isGroup {
             placeTab(id, inGroup: rows[next].id, at: 0)
         } else {
             moveTabToNewGroup(id)
@@ -1710,7 +1748,26 @@ final class BrowserState {
     func ungroup(_ id: UUID) {
         guard let index = layout.workspaces.firstIndex(where: { $0.id == id }) else { return }
         layout.setCollapsed(false, workspace: id)
+        layout.setBlend(nil, workspace: id)
         layout.rename(workspaceAt: index, to: "")
+    }
+
+    /// A row between groups poured into one of them; its name goes first so it is not asked about.
+    func mergeGroup(_ id: UUID, into parent: UUID) {
+        guard let row = layout.workspaces.first(where: { $0.id == id }),
+              let target = layout.workspaces.first(where: { $0.id == parent }) else { return }
+        ungroup(id)
+        for (offset, tabID) in row.columns.map(\.tabID).enumerated() {
+            layout.placeTab(tabID, in: selectedProfileID, workspace: parent, at: target.columns.count + offset)
+        }
+        syncSelection()
+    }
+
+    /// A row between groups becomes a group of its own, keeping the title it had.
+    func separateGroup(_ id: UUID) {
+        guard let index = layout.workspaces.firstIndex(where: { $0.id == id }) else { return }
+        if layout.workspaces[index].name.isEmpty { layout.rename(workspaceAt: index, to: layout.title(at: index)) }
+        layout.setBlend(nil, workspace: id)
     }
 
     /// A new tab at the end of a group, and the group opened to show it.

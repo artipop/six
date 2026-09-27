@@ -60,7 +60,11 @@ public final class BrowserModel {
     private var titles: [UUID: String] = [:]
     private var urls: [UUID: URL] = [:]
     private var pages = LivePages()
-    private var settings: ConfigurationStore?
+    /// The tools each column's page declares for agents (WebMCP) — `SixCore`'s, fed by
+    /// `PageChannels`; see `startWebMCP`.
+    let webMCP = WebMCPHost()
+    /// Not `private`: `WebMCP.swift` reads it, and `private` does not cross files.
+    var settings: ConfigurationStore?
     private var bookmarks: BookmarkIndexer?
     /// The page the embedder runs in, made on first use. A reader who never saves anything should
     /// not have a hundred and thirty megabytes of E5 in memory, and the toolkit has to be up before
@@ -120,6 +124,9 @@ public final class BrowserModel {
             FileHandle.standardError.write(Data("[six] database unavailable: \(error)\n".utf8))
             profileID = layout.activeProfileID
         }
+        // Before `restore` and `fill`, which describe the first pages: a page is given its user
+        // scripts when it is built, and WebMCP's polyfill has to be among them by then.
+        startWebMCP()
         // Populated here rather than from the app's `init` or the view's `onAppear`. `init` runs
         // before `g_application_run`, and this creates a `NetworkSession`, which is a GObject —
         // building one before GTK is up is the kind of mistake that fires later, in someone else's
@@ -161,7 +168,7 @@ public final class BrowserModel {
             id: question.id,
             host: question.host,
             // `ListFormatter` is Apple Foundation's, and this list is never longer than two.
-            devices: question.permissions.map(\.label).joined(separator: " and "),
+            prompt: question.prompt,
             wantsCamera: question.permissions.contains(.camera)
         )
     }
@@ -245,6 +252,7 @@ public final class BrowserModel {
         for id in dropped {
             trace("discard \(id.uuidString.prefix(8))")
             PageRegistry.forget(id)
+            webMCP.forget(id)
         }
 
         // One entry per *window*, which is what `placements` is for: a column holds one window or
@@ -304,6 +312,7 @@ public final class BrowserModel {
         for id in layout.workspaces.flatMap({ $0.columns.flatMap(\.tabIDs) }) {
             PageRegistry.forget(id)
             pages.forget(id)
+            webMCP.forget(id)
             permissions?.forget(id)
             urls[id] = nil
             titles[id] = nil
@@ -439,6 +448,7 @@ public final class BrowserModel {
         layout.removeColumn(tabID: focused)
         PageRegistry.forget(focused)
         pages.forget(focused)
+        webMCP.forget(focused)
         TranslationController.shared.forget(focused)
         // The page is suspended inside `decide`; a promise that never lands is a page that never
         // finds out. Denying is the answer a closed column gives.
@@ -489,6 +499,7 @@ public final class BrowserModel {
         // not about recording that it was read. A private window gets the offer like any other.
         TranslationController.shared.pageChanged(tabID)
         TranslationController.shared.consider(tabID)
+        webMCPPageLoaded(tabID)
         guard !isPrivate else { return }
         history?.record(url, title: title, in: profileID)
         // Photographed when it finishes rather than when it is discarded. Waiting for the eviction

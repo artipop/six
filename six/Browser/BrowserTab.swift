@@ -155,6 +155,8 @@ final class BrowserTab: Identifiable {
     @ObservationIgnored weak var devTools: DevToolsStore?
     /// What this window has selected, or a caret in; set by `BrowserState`.
     @ObservationIgnored weak var pageFocus: PageFocusStore?
+    /// The tools this window's page declares for agents (WebMCP); set by `BrowserState`.
+    @ObservationIgnored weak var webMCP: WebMCPStore?
     /// What sites were allowed to use the camera, the microphone and the motion sensors. The page's
     /// `deviceSensorAuthorization` is this window's question routed here; set by `BrowserState`.
     @ObservationIgnored weak var permissions: SitePermissions?
@@ -252,6 +254,10 @@ final class BrowserTab: Identifiable {
     @ObservationIgnored private var savedForward: [URL] = []
     /// Where the page was scrolled to, put back when a discarded window loads again.
     @ObservationIgnored private var savedScroll: Double = 0
+    /// A resumed load's media waits for a gesture (`MediaHold`) — in that load's document only. Lifted
+    /// when the next navigation starts, once the held one has committed.
+    private enum MediaHoldState { case loading, shown }
+    @ObservationIgnored private var mediaHold: MediaHoldState?
     @ObservationIgnored private var pendingScroll: Double?
     /// The page as it last looked. Stands in for it in the strip and while a rebuilt page loads, so
     /// coming back to a discarded window shows the page rather than a white rectangle.
@@ -383,7 +389,7 @@ final class BrowserTab: Identifiable {
             switch permission {
             case .camera: await page.setCameraCaptureState(.none)
             case .microphone: await page.setMicrophoneCaptureState(.none)
-            case .motion: break
+            case .motion, .pageTools: break
             }
         }
     }
@@ -787,16 +793,20 @@ final class BrowserTab: Identifiable {
         case .startedProvisionalNavigation:
             // The window is trying again, whatever it was showing before.
             loadFailure = nil
+            if mediaHold == .shown { releaseMediaHold() }
         case .committed:
             loadFailure = nil
+            if mediaHold == .loading { mediaHold = .shown }
             hasCommitted = true
             savedURL = page.url ?? savedURL
             // Redirects and history moves never go through the decider.
             blocker?.note(id, showing: page.url)
             extensions?.noteChanged(self, [.URL, .loading])
-            // What was captured belonged to the page being left, and so did what was selected in it.
+            // What was captured belonged to the page being left, and so did what was selected in it
+            // and the tools it declared.
             devTools?.noteNavigation(id)
             pageFocus?.noteNavigation(id)
+            webMCP?.noteNavigation(id)
             onNavigation?(self, .committed)
         case .finished:
             savedURL = page.url ?? savedURL
@@ -922,6 +932,10 @@ final class BrowserTab: Identifiable {
     func resumeIfNeeded() {
         guard let url = pendingURL else { return }
         pendingURL = nil
+        if isWebPage {
+            pageControllers?.setUserScripts([MediaHold.script], named: MediaHold.scriptName, for: id)
+            mediaHold = .loading
+        }
         let page = materialize()
         pendingScroll = savedScroll > 0 ? savedScroll : nil
         loadStartedAt = Date()
@@ -942,6 +956,7 @@ final class BrowserTab: Identifiable {
             return
         }
         guard isWebPage else { return }
+        releaseMediaHold()
         showsStartPage = false
         pendingURL = nil
         savedTitle = ""
@@ -965,6 +980,12 @@ final class BrowserTab: Identifiable {
         }
         guard let url = URL.fromUserInput(input) else { return }
         load(url)
+    }
+
+    private func releaseMediaHold() {
+        guard mediaHold != nil else { return }
+        mediaHold = nil
+        pageControllers?.setUserScripts([], named: MediaHold.scriptName, for: id)
     }
 
     private func restoreScrollIfNeeded(_ page: WebPage) {

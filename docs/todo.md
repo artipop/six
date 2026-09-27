@@ -2,23 +2,6 @@
 
 What is planned but not built. Ordered by how much it is missed, not by effort.
 
-## macOS: Enter and Space trigger the system alert sound on pages
-
-Reported on every page in six, but not in Safari: pressing Enter or Space produces the standard
-macOS unhandled-key sound. Reproduce in the full browser, both with the page body focused and in
-editable fields, and trace where the event reaches AppKit's unhandled-key path.
-
-A standalone WebKit probe reproduced unhandled Return, keypad Enter and Space on a short page.
-An attempted `KeyRouter` fix consumed their redelivery from WebKit and replaced the single pending
-event with a weak event table. The probe passed, but the user reported other broken behavior in
-the browser and requested a rollback on 2026-09-18. That fix and its test were removed; the issue
-remains open, and the specific regressions still need to be identified before another attempt.
-
-Acceptance: no spurious alert sound in the browser, with text entry, form submission, button
-activation, Space/Shift-Space scrolling, page key handlers, native fields, menus, row shortcuts,
-the window switcher and rapid key repeats still working. Verify in six itself as well as any
-isolated probe; a passing probe alone did not establish that the previous change was safe.
-
 ## Two switches in the same corner mean two different sizes of thing
 
 `six://configuration` has two panes that open with a switch, and the switch means something
@@ -78,6 +61,20 @@ is the home page, and `Alt`+letter opens a menu on Windows. The Windows front re
 (WebKitGTK's `key-press-event` return value and WebKit2's unhandled-key callback both say whether the page took a
 key), and a reserved chord of each platform's own — `Super` is the window manager's on both, so it is a real choice
 and not a transcription.
+
+## Popups: a window the page can script
+
+`window.open` hands the page nothing back. Without a user gesture WebKit's popup blocking answers `null`; with one,
+six opens a new column through `BrowserState.openInNewWindow`, which starts a fresh `WebPage` at the address and is
+not the `WKWebView` WebKit asked the UI client for — so the opener gets `null`, and the new page has no
+`window.opener` ([links.md](links.md#a-second-window)). Every site whose sign-in popup reports back through
+`window.opener.postMessage` (OAuth and payment windows, "Sign in with …" buttons) cannot finish in six. Measured
+while building WebMCP's frames ([webmcp.md](webmcp.md#frames-what-webkit-allows-measured)); two wpt tests there
+fail on it and nothing else.
+
+The work is the UI client's `createWebView`: answer it with a page built from the configuration WebKit passes in,
+and put that page in the new column. Whether SwiftUI's `WebPage` can be made from that configuration at all is the
+first thing to measure.
 
 ## Save As: web archives
 
@@ -515,6 +512,40 @@ let it read the row from the app's container. Both halves become an **App Group*
 on its next activation, or on a Darwin notification while it runs. An App Group needs a developer team, and this
 machine signs ad hoc. The wire (`ShareRequest`, `ShareTargets`) is already portable Foundation, so once a team exists
 this is a target, an entitlement and a queue.
+
+## Tab groups by meaning: a classifier instead of cosines
+
+`TabSorter` measures e5 cosines and asks for a lead, which leaves a tab whose title says little where it is and keeps
+Russian titles out of English topics. The other shape is a classifier asked the question outright —
+"which of these groups is this tab about, or none" — which is what jev / laya-browser are (a 322M "System 1" that
+answers multiple-choice questions over `/v1/systemone`, tried for page actions on `origin/agent-actions`,
+docs/agent-actions.md there). The options would be the group names plus "none"; the fit to try is whether its
+confidence is calibrated enough to replace `joins` and `tie`, and what 0.35–1.3 s per tab on MPS costs when tabs
+arrive in bursts. The same question asked of a local instruct model is built (**Sort By ▸ Local Model**,
+docs/layout.md): Gemma 4 E2B places tabs better than the embeddings but at 5.6 s and 3.6 GB a tab on 8 GB, and
+never answered "between". An ACP agent names groups through its own errand sessions (`AgentErrands`), but does not
+place tabs yet.
+
+## WebMCP: the nine wpt tests left
+
+165 of 174 of wpt's `webmcp/` pass (`scripts/webmcp-wpt.py`, the baseline beside it). The nine left, and what each
+would take — none of it is a polyfill's to do ([webmcp.md](webmcp.md#not-built)):
+
+- **An opened window (2).** Needs [Popups](#popups-a-window-the-page-can-script) above; once `window.open` returns a
+  window, the polyfill in it is already there and the broker only has to know it belongs to another frame tree.
+- **`document.domain` (4).** The draft refuses the API where `document.domain` is enabled, and WebKit has no
+  origin-keyed agent clusters, so the rule read literally refuses everything. Waits for WebKit to ship
+  `Origin-Agent-Cluster` by default, or for the draft to phrase the rule so it has meaning there.
+- **`isTrusted` on `toolactivated` (1).** Only an event the engine dispatches is trusted. Native WebMCP in WebKit, or
+  six's own WebKit build ([Someday](#someday-sixs-own-webkit-build)).
+- **An iframe's initial `about:blank` when the iframe has a `src` (1).** WebKit runs no user script there, and the
+  page reaches the document before it navigates. The parent's polyfill could install one into a same-origin child it
+  sees created; wpt's own comment says Chrome fails this one too, so it waits for the test to settle.
+- **Styling by `:tool-form-active` (1).** WebKit's CSS parser drops a rule with a pseudo-class it does not know.
+  Engine work again.
+
+Re-run the suite when wpt moves (`--update`): the declarative section of the draft is still TODO, and its tests are
+where the next changes will land.
 
 ## Smaller things
 

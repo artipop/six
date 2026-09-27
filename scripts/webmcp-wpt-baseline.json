@@ -1,0 +1,1237 @@
+{
+ "wpt": "a9871a2",
+ "passed": 165,
+ "total": 174,
+ "results": {
+  "webmcp/declarative/document-domain-enabled.sub.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Fail",
+     "name": "Declarative tool registration is blocked when document.domain is enabled",
+     "message": "promise_rejects_dom: function \"function() { throw e; }\" threw object \"NotAllowedError: the tools permissions policy does not allow this frame\" that is not a DOMException SecurityError: property \"code\" is equal to 0, expected 18get_stack@https://www.six.localhost:8443/resources/testharness.js:4802:30"
+    }
+   ]
+  },
+  "webmcp/declarative/duplicate-tool-name.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "Test that duplicate declarative tools with different descriptions do not crash and only the first is registered",
+     "message": "Asserts runPassassert_equals(1, 1, \"Exactly one tool should be registered\")"
+    },
+    {
+     "status": "Pass",
+     "name": "Test that duplicate declarative tools with identical descriptions do not crash and only the first is registered",
+     "message": "Asserts runPassassert_equals(1, 1, \"Exactly one tool should be registered\")"
+    }
+   ]
+  },
+  "webmcp/declarative/executeTool-abort.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "executeTool signal successfully resets tool pseudo-classes",
+     "message": "Asserts runPassassert_false(false)"
+    }
+   ]
+  },
+  "webmcp/declarative/executeTool-detach-toolactivated.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "toolactivated is not dispatched when filling out a declarative tool form detaches the tool document",
+     "message": "Asserts runPassassert_false(false, \"the iframe is detached\")"
+    }
+   ]
+  },
+  "webmcp/declarative/executeTool-flexible-types.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "Declarative form tool coerces flexible input types appropriately",
+     "message": "Asserts runPassassert_equals(\"123\", \"123\", \"Number should be coerced to string for text input\")"
+    }
+   ]
+  },
+  "webmcp/declarative/executeTool-invalid-input.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "executeTool rejects when input contains a parameter that does not exist in the form",
+     "message": "Asserts runPassassert_true(true, \"Tool should be registered\")"
+    },
+    {
+     "status": "Pass",
+     "name": "executeTool rejects when input contains an invalid value for select element",
+     "message": "Asserts runPassassert_true(true, \"Tool should be registered\")"
+    },
+    {
+     "status": "Pass",
+     "name": "executeTool rejects when form input violates pattern constraint",
+     "message": "Asserts runPassassert_true(true, \"Tool should be registered\")"
+    },
+    {
+     "status": "Pass",
+     "name": "executeTool rejects when form inputs violate required and min constraints",
+     "message": "Asserts runPassassert_true(true, \"Tool should be registered\")"
+    }
+   ]
+  },
+  "webmcp/declarative/executeTool-navigation.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "executeTool resolves with null and triggers standard form navigation",
+     "message": "Asserts runPassassert_true(true, \"Tool should be registered\")"
+    }
+   ]
+  },
+  "webmcp/declarative/executeTool-no-autosubmit.https.html": {
+   "harness": "Error",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "executeTool without toolautosubmit focuses submit button and waits for manual submit",
+     "message": "Asserts runPassassert_equals(Element node <button type=\"submit\">Submit</button>, Element node <button type=\"submit\">Submit</button>, \"Submit button should be focused\")"
+    },
+    {
+     "status": "Pass",
+     "name": "form.reset() cancels pending executeTool execution and clears :tool-form-active",
+     "message": "Asserts runPassassert_true(true, \"Form should match :tool-form-active\")"
+    },
+    {
+     "status": "Pass",
+     "name": "Unrelated form submission and removal cancels pending tool execution",
+     "message": "Asserts runPassassert_true(true, \"Form should match :tool-form-active\")"
+    }
+   ]
+  },
+  "webmcp/declarative/executeTool-pseudo-classes.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Fail",
+     "name": "Pseudo-classes :tool-form-active and :tool-submit-active apply correctly during execution and are removed upon completion",
+     "message": "assert_equals: Form should be styled by :tool-form-active expected \"rgb(0, 255, 0)\" but got \"rgba(0, 0, 0, 0)\"@https://six.localhost:8443/webmcp/declarative/executeTool-pseudo-classes.https.html:59:16Asserts runPassassert_true(true, \"Form should match :tool-form-active during submit\")"
+    },
+    {
+     "status": "Pass",
+     "name": "Form controls are populated with arguments when toolactivated event fires",
+     "message": "Asserts runPassassert_true(true, \"toolactivated event should have fired on the window\")"
+    }
+   ]
+  },
+  "webmcp/declarative/executeTool-respondWith-circular-object.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "Declarative tool executeTool() rejects when respondWith() receives a circular object",
+     "message": "Asserts runPassassert_true(true, \"Tool should be registered\")"
+    }
+   ]
+  },
+  "webmcp/declarative/executeTool-respondWith-reject.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "executeTool rejects when respondWith() promise is rejected",
+     "message": "Asserts runPassassert_true(true, \"submit event should have fired\")"
+    }
+   ]
+  },
+  "webmcp/declarative/executeTool-respondWith.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "executeTool resolves with respondWith() value when preventDefault() is called",
+     "message": "Asserts runPassassert_true(true, \"agentInvoked should be true during tool invocation\")"
+    },
+    {
+     "status": "Pass",
+     "name": "executeTool rejects when preventDefault() is called without respondWith()",
+     "message": "Asserts runNo asserts ran"
+    },
+    {
+     "status": "Pass",
+     "name": "respondWith() throws InvalidStateError if preventDefault() was not called, and form navigates",
+     "message": "Asserts runPassassert_true(true, \"respondWith should throw DOMException\")"
+    },
+    {
+     "status": "Pass",
+     "name": "respondWith() throws InvalidStateError and agentInvoked is false when submit is not agent-invoked",
+     "message": "Asserts runPassassert_false(false, \"agentInvoked should be false for manual submission\")"
+    },
+    {
+     "status": "Pass",
+     "name": "Calling respondWith() after submit event dispatch throws InvalidStateError",
+     "message": "Asserts runPassassert_equals(\"result\", \"result\")"
+    },
+    {
+     "status": "Pass",
+     "name": "executeTool resolves successfully with respondWith() value even if a navigation is initiated",
+     "message": "Asserts runPassassert_equals(\"result value\", \"result value\", \"executeTool should resolve to respondWith value even if navigation occurs\")"
+    }
+   ]
+  },
+  "webmcp/declarative/execute_tool_change_event.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "executeTool triggers input and change events",
+     "message": "Asserts runPassassert_true(true, \"Tool should be registered\")"
+    }
+   ]
+  },
+  "webmcp/declarative/execute_tool_submit_from_js.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "executeTool resolves successfully when submit handler calls form.submit()",
+     "message": "Asserts runPassassert_true(true, \"Tool should be registered\")"
+    }
+   ]
+  },
+  "webmcp/declarative/form_removal_submit_crash.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "Form removal on submit with respondWith does not crash the renderer",
+     "message": "Asserts runPassassert_true(true, \"Tool should be found\")"
+    }
+   ]
+  },
+  "webmcp/declarative/getTools-declarative-schema.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "WebMCP: getTools() retrieves declarative schema at registration time",
+     "message": "Asserts runPassassert_equals(\"search_tool\", \"search_tool\", \"Tool name matches\")"
+    }
+   ]
+  },
+  "webmcp/declarative/no-frame-documents.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "Declarative tool in document without active frame is not registered",
+     "message": "Asserts runPassassert_equals(0, 0, \"No tools should be registered from a frame-less document\")"
+    },
+    {
+     "status": "Pass",
+     "name": "Declarative tool in DOMParser document is not registered",
+     "message": "Asserts runPassassert_equals(0, 0, \"No tools should be registered from DOMParser document\")"
+    },
+    {
+     "status": "Pass",
+     "name": "Declarative tool with name only in document without active frame is not registered",
+     "message": "Asserts runPassassert_equals(0, 0, \"No tools should be registered from a frame-less document with name only\")"
+    },
+    {
+     "status": "Pass",
+     "name": "Declarative tool in iframe removed after registration does not crash on attribute modification",
+     "message": "Asserts runPassassert_equals(\"mytool\", \"mytool\")"
+    }
+   ]
+  },
+  "webmcp/declarative/opaque-origin-tools.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "An opaque origin document can register but not execute its own declarative tools",
+     "message": "Asserts runPassassert_equals(\"null\", \"null\")"
+    },
+    {
+     "status": "Pass",
+     "name": "executeTool() rejects synchronously for opaque origins",
+     "message": "Asserts runPassassert_array_equals([\"rejection\", \"microtask\"], [\"rejection\", \"microtask\"], \"returned promise is rejected before custom microtask is queued\")"
+    }
+   ]
+  },
+  "webmcp/declarative/sandboxed-iframe.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "Declarative tool in sandboxed iframe without allow-scripts is not registered",
+     "message": "Asserts runPassassert_equals(1, 1)"
+    }
+   ]
+  },
+  "webmcp/declarative/select-multiple-events.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "executeTool() on a <select multiple> dispatches input and change events",
+     "message": "Asserts runPassassert_true(true, \"Tool should be registered\")"
+    }
+   ]
+  },
+  "webmcp/declarative/toolchange-on-attribute-mutation.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "Test that mutating or removing form attributes (toolname, tooldescription, tooltitle, toolautosubmit) fires toolchange and updates getTools() correctly",
+     "message": "Asserts runPassassert_equals(\"my_tool\", \"my_tool\")"
+    },
+    {
+     "status": "Pass",
+     "name": "No toolchange event on unrelated attribute mutation",
+     "message": "Asserts runPassassert_equals(0, 0, \"toolchange should not fire on unrelated attribute\")"
+    },
+    {
+     "status": "Pass",
+     "name": "No toolchange event on redundant schema mutation",
+     "message": "Asserts runPassassert_equals(0, 0, \"toolchange should not fire on redundant schema mutation\")"
+    }
+   ]
+  },
+  "webmcp/declarative/toolchange-on-control-add-remove.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "Test that toolchange event fires when controls are added or removed",
+     "message": "Asserts runNo asserts ran"
+    }
+   ]
+  },
+  "webmcp/declarative/toolchange-on-name-change.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "Test that toolchange event fires on various mutations of form controls",
+     "message": "Asserts runPassassert_true(true, \"Element input1 should exist\")"
+    }
+   ]
+  },
+  "webmcp/declarative/unregister-during-executeTool.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "Pending executeTool() Promise resolves successfully when target declarative tool is unregistered via DOM removal",
+     "message": "Asserts runPassassert_true(true, \"Tool should be registered\")"
+    },
+    {
+     "status": "Pass",
+     "name": "Pending executeTool() Promise resolves successfully when target declarative tool is unregistered via attribute removal",
+     "message": "Asserts runPassassert_true(true, \"Tool should be registered\")"
+    }
+   ]
+  },
+  "webmcp/idlharness.https.window.js": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "idl_test setup",
+     "message": "Asserts runNo asserts ran"
+    },
+    {
+     "status": "Pass",
+     "name": "idl_test validation",
+     "message": "Asserts runNo asserts ran"
+    },
+    {
+     "status": "Pass",
+     "name": "Partial interface Document: original interface defined",
+     "message": "Asserts runPassassert_true(true, \"Original interface should be defined\")"
+    },
+    {
+     "status": "Pass",
+     "name": "Partial interface Document: member names are unique",
+     "message": "Asserts runPassassert_true(true, \"member undefined is unique\")"
+    },
+    {
+     "status": "Pass",
+     "name": "Partial interface Document[2]: member names are unique",
+     "message": "Asserts runPassassert_true(true, \"member undefined is unique\")"
+    },
+    {
+     "status": "Pass",
+     "name": "Partial interface Document[3]: member names are unique",
+     "message": "Asserts runPassassert_true(true, \"member undefined is unique\")"
+    },
+    {
+     "status": "Pass",
+     "name": "Document includes GlobalEventHandlers: member names are unique",
+     "message": "Asserts runPassassert_true(true, \"member onabort is unique\")"
+    },
+    {
+     "status": "Pass",
+     "name": "Document includes NonElementParentNode: member names are unique",
+     "message": "Asserts runPassassert_true(true, \"member getElementById is unique\")"
+    },
+    {
+     "status": "Pass",
+     "name": "Document includes DocumentOrShadowRoot: member names are unique",
+     "message": "Asserts runPassassert_true(true, \"member customElementRegistry is unique\")"
+    },
+    {
+     "status": "Pass",
+     "name": "Document includes ParentNode: member names are unique",
+     "message": "Asserts runPassassert_true(true, \"member children is unique\")"
+    },
+    {
+     "status": "Pass",
+     "name": "Document includes XPathEvaluatorBase: member names are unique",
+     "message": "Asserts runPassassert_true(true, \"member createExpression is unique\")"
+    },
+    {
+     "status": "Pass",
+     "name": "ModelContext interface: existence and properties of interface object",
+     "message": "Asserts runPassassert_own_property(object \"[object Window]\", \"ModelContext\", \"self does not have own property \\\"ModelContext\\\"\")"
+    },
+    {
+     "status": "Pass",
+     "name": "ModelContext interface object length",
+     "message": "Asserts runPassassert_own_property(object \"[object Window]\", \"ModelContext\", \"self does not have own property \\\"ModelContext\\\"\")"
+    },
+    {
+     "status": "Pass",
+     "name": "ModelContext interface object name",
+     "message": "Asserts runPassassert_own_property(object \"[object Window]\", \"ModelContext\", \"self does not have own property \\\"ModelContext\\\"\")"
+    },
+    {
+     "status": "Pass",
+     "name": "ModelContext interface: existence and properties of interface prototype object",
+     "message": "Asserts runPassassert_own_property(object \"[object Window]\", \"ModelContext\", \"self does not have own property \\\"ModelContext\\\"\")"
+    },
+    {
+     "status": "Pass",
+     "name": "ModelContext interface: existence and properties of interface prototype object's \"constructor\" property",
+     "message": "Asserts runPassassert_own_property(object \"[object Window]\", \"ModelContext\", \"self does not have own property \\\"ModelContext\\\"\")"
+    },
+    {
+     "status": "Pass",
+     "name": "ModelContext interface: existence and properties of interface prototype object's @@unscopables property",
+     "message": "Asserts runPassassert_own_property(object \"[object Window]\", \"ModelContext\", \"self does not have own property \\\"ModelContext\\\"\")"
+    },
+    {
+     "status": "Pass",
+     "name": "ModelContext interface: operation registerTool(ModelContextTool, optional ModelContextRegisterToolOptions)",
+     "message": "Asserts runPassassert_own_property(object \"[object Window]\", \"ModelContext\", \"self does not have own property \\\"ModelContext\\\"\")"
+    },
+    {
+     "status": "Pass",
+     "name": "ModelContext interface: operation getTools(optional ModelContextGetToolOptions)",
+     "message": "Asserts runPassassert_own_property(object \"[object Window]\", \"ModelContext\", \"self does not have own property \\\"ModelContext\\\"\")"
+    },
+    {
+     "status": "Pass",
+     "name": "ModelContext interface: operation executeTool(RegisteredTool, optional any, optional ModelContextExecuteToolOptions)",
+     "message": "Asserts runPassassert_own_property(object \"[object Window]\", \"ModelContext\", \"self does not have own property \\\"ModelContext\\\"\")"
+    },
+    {
+     "status": "Pass",
+     "name": "ModelContext interface: attribute ontoolchange",
+     "message": "Asserts runPassassert_own_property(object \"[object Window]\", \"ModelContext\", \"self does not have own property \\\"ModelContext\\\"\")"
+    },
+    {
+     "status": "Pass",
+     "name": "Document interface: attribute modelContext",
+     "message": "Asserts runPassassert_own_property(object \"[object Window]\", \"Document\", \"self does not have own property \\\"Document\\\"\")"
+    }
+   ]
+  },
+  "webmcp/imperative/cancel-reentrancy-crash.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "the page survives",
+     "message": ""
+    }
+   ]
+  },
+  "webmcp/imperative/detached-frame-executeTool.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "executeTool() throws `InvalidStateError` in detached frame",
+     "message": "Asserts runPassassert_true(true, \"Tool should be registered\")"
+    }
+   ]
+  },
+  "webmcp/imperative/detached-frame-getTools.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "getTools() throws `InvalidStateError` in detached frame",
+     "message": "Asserts runNo asserts ran"
+    }
+   ]
+  },
+  "webmcp/imperative/detached-frame-modelContext.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "document.modelContext in detached frame",
+     "message": "Asserts runPassassert_not_equals(object \"[object ModelContext]\", undefined)"
+    }
+   ]
+  },
+  "webmcp/imperative/detached-frame-registerTool.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "registerTool() rejects `InvalidStateError` in detached frame",
+     "message": "Asserts runNo asserts ran"
+    }
+   ]
+  },
+  "webmcp/imperative/document-domain-enabled.sub.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Fail",
+     "name": "modelContext.registerTool rejects with SecurityError when document.domain is enabled",
+     "message": "promise_rejects_dom: function \"function() { throw e; }\" threw object \"NotAllowedError: the tools permissions policy does not allow this frame\" that is not a DOMException SecurityError: property \"code\" is equal to 0, expected 18get_stack@https://www.six.localhost:8443/resources/testharness.js:4802:30"
+    },
+    {
+     "status": "Fail",
+     "name": "modelContext.getTools rejects with SecurityError when document.domain is enabled",
+     "message": "promise_rejects_dom: function \"function() { throw e; }\" threw object \"NotAllowedError: the tools permissions policy does not allow this frame\" that is not a DOMException SecurityError: property \"code\" is equal to 0, expected 18get_stack@https://www.six.localhost:8443/resources/testharness.js:4802:30"
+    },
+    {
+     "status": "Fail",
+     "name": "modelContext.executeTool rejects with SecurityError when document.domain is enabled",
+     "message": "promise_rejects_dom: function \"function() { throw e; }\" threw object \"NotAllowedError: the tools permissions policy does not allow this frame\" that is not a DOMException SecurityError: property \"code\" is equal to 0, expected 18get_stack@https://www.six.localhost:8443/resources/testharness.js:4802:30"
+    }
+   ]
+  },
+  "webmcp/imperative/duplicate_tool_registration.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "duplicate tool registration is invalid.",
+     "message": "Asserts runNo asserts ran"
+    }
+   ]
+  },
+  "webmcp/imperative/executeTool-abort.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "executeTool() provides a non-aborted default AbortSignal when called without options",
+     "message": "Asserts runPassassert_equals(\"success\", \"success\")"
+    },
+    {
+     "status": "Pass",
+     "name": "caller abort propagates to tool callback options.signal",
+     "message": "Asserts runPassassert_equals(\"abort_propagate_tool\", \"abort_propagate_tool\")"
+    },
+    {
+     "status": "Pass",
+     "name": "executeTool() with already-aborted tool synchronously rejects",
+     "message": "Asserts runPassassert_equals(\"already aborted\", \"already aborted\")"
+    },
+    {
+     "status": "Pass",
+     "name": "executeTool() promise remains rejected even if tool callback resolves after abort",
+     "message": "Asserts runPassassert_equals(\"late resolved value\", \"late resolved value\")"
+    },
+    {
+     "status": "Pass",
+     "name": "concurrent executions of the same tool have independent AbortSignals",
+     "message": "Asserts runPassassert_true(true, \"execution 1 signal should be aborted\")"
+    }
+   ]
+  },
+  "webmcp/imperative/executeTool-across-trees.https.html": {
+   "harness": "Error",
+   "rows": [
+    {
+     "status": "Fail",
+     "name": "executeTool() rejects when the tool is hosted in another frame tree",
+     "message": "promise_test: Unhandled rejection with value: object \"TypeError: null is not an object (evaluating 'windowB.onload = resolve')\"get_stack@https://six.localhost:8443/resources/testharness.js:4802:30"
+    }
+   ]
+  },
+  "webmcp/imperative/executeTool-caller-navigate-abort.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "executeTool() aborts target signal when the invoker document (same-origin) navigates away",
+     "message": "Asserts runNo asserts ran"
+    },
+    {
+     "status": "Pass",
+     "name": "executeTool() aborts target signal when the invoker document (cross-origin) navigates away",
+     "message": "Asserts runNo asserts ran"
+    }
+   ]
+  },
+  "webmcp/imperative/executeTool-detach-toolactivated.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "toolactivated is not dispatched when a tool execute callback from another realm detaches the tool document",
+     "message": "Asserts runPassassert_true(true, \"\\\"detaching_tool\\\" is visible to the parent document\")"
+    },
+    {
+     "status": "Pass",
+     "name": "toolactivated is not dispatched when a tool execute callback detaches its own document",
+     "message": "Asserts runPassassert_true(true, \"\\\"self_detaching_tool\\\" is visible to the parent document\")"
+    }
+   ]
+  },
+  "webmcp/imperative/executeTool-error-window-onerror.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "Failed tool execution does not trigger window.onerror",
+     "message": "Asserts runPassassert_true(true, \"Should find the registered tool\")"
+    },
+    {
+     "status": "Pass",
+     "name": "Tool execution returning circular object rejects and does not trigger window.onerror",
+     "message": "Asserts runPassassert_true(true, \"Should find the registered tool\")"
+    }
+   ]
+  },
+  "webmcp/imperative/executeTool-events.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Fail",
+     "name": "toolactivated and toolcancel events are dispatched on window and document.modelContext during tool execution and cancellation",
+     "message": "assert_true: event is trusted expected true got false@https://six.localhost:8443/webmcp/imperative/executeTool-events.https.html:53:14Asserts runPassassert_array_equals([\"activated:slow\"], [\"activated:slow\"])"
+    },
+    {
+     "status": "Pass",
+     "name": "toolactivated is dispatched at the ModelContext of the tool target document",
+     "message": "Asserts runPassassert_true(true, \"\\\"iframe_tool\\\" is visible to the parent document\")"
+    }
+   ]
+  },
+  "webmcp/imperative/executeTool-invalid-dictionary.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "executeTool() rejects with TypeError when the required 'origin' dictionary member is omitted",
+     "message": "Asserts runPassassert_true(true, \"Legitimate tool must be successfully discovered\")"
+    },
+    {
+     "status": "Pass",
+     "name": "executeTool() rejects with TypeError for invalid JSON arguments",
+     "message": "Asserts runPassassert_true(true, \"Legitimate tool must be successfully discovered\")"
+    },
+    {
+     "status": "Pass",
+     "name": "executeTool() rejects with UnknownError when a non-existent tool object is supplied",
+     "message": "Asserts runNo asserts ran"
+    }
+   ]
+  },
+  "webmcp/imperative/executeTool-same-document-navigation-crash.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "the page survives",
+     "message": ""
+    }
+   ]
+  },
+  "webmcp/imperative/executeTool-signal-cross-origin.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "caller abort in parent document propagates to options.signal in cross-origin iframe tool",
+     "message": "Asserts runPassassert_true(true, \"Tool should be registered and visible to parent\")"
+    },
+    {
+     "status": "Pass",
+     "name": "caller abort in cross-origin iframe propagates to options.signal in parent document tool",
+     "message": "Asserts runPassassert_true(true, \"parent tool options.signal should be aborted by cross-origin iframe caller\")"
+    }
+   ]
+  },
+  "webmcp/imperative/executeTool-target-detachment.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "executeTool() rejects when target frame is detached before execution",
+     "message": "Asserts runPassassert_true(true, \"Tool should be retrieved successfully\")"
+    },
+    {
+     "status": "Pass",
+     "name": "executeTool() rejects when target frame is detached mid-execution",
+     "message": "Asserts runPassassert_true(true, \"Tool should be retrieved successfully\")"
+    },
+    {
+     "status": "Pass",
+     "name": "executeTool() rejects cleanly when tool callback synchronously detaches its own frame",
+     "message": "Asserts runPassassert_true(true, \"Tool should be retrieved successfully\")"
+    },
+    {
+     "status": "Pass",
+     "name": "executeTool() abort cleanly handles synchronous frame detachment inside options.signal abort listener",
+     "message": "Asserts runPassassert_true(true, \"Tool should be retrieved successfully\")"
+    }
+   ]
+  },
+  "webmcp/imperative/executeTool-target-navigation.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "executeTool() rejects when target document navigates away",
+     "message": "Asserts runNo asserts ran"
+    }
+   ]
+  },
+  "webmcp/imperative/executeTool-unauthorized-origin.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "executeTool() rejects when parent frame attempts unauthorized execution of cross-origin iframe tool",
+     "message": "Asserts runPassassert_array_equals([], [], \"Parent frame should see no tools\")"
+    }
+   ]
+  },
+  "webmcp/imperative/executeTool-unregister-resolution-race.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "executeTool resolves successfully even when tool is unregistered synchronously after its promise resolves",
+     "message": "Asserts runPassassert_equals(\"{\\\"status\\\":\\\"resolved\\\"}\", \"{\\\"status\\\":\\\"resolved\\\"}\")"
+    }
+   ]
+  },
+  "webmcp/imperative/exposedTo-cross-origin-child.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "Parent exposes tool to cross-origin child",
+     "message": "Asserts runPassassert_true(true, \"Tool details should match\")"
+    },
+    {
+     "status": "Pass",
+     "name": "Cross-origin child exposes tool to parent",
+     "message": "Asserts runPassassert_true(true, \"Tool details should match\")"
+    },
+    {
+     "status": "Pass",
+     "name": "Parent exposes tool to origin that is neither its own nor its iframe's",
+     "message": "Asserts runPassassert_array_equals([], [], \"iframe should see no tools\")"
+    },
+    {
+     "status": "Pass",
+     "name": "Iframe exposes tool to origin that is neither its own nor its parent's",
+     "message": "Asserts runPassassert_array_equals([], [], \"Parent should not see iframe tool\")"
+    },
+    {
+     "status": "Pass",
+     "name": "Cross-origin iframe without permissions policy does not receive toolchange event even if exposed to it",
+     "message": "Asserts runPassassert_equals(\"timeout\", \"timeout\", \"Cross-origin iframe without permissions policy should not receive toolchange event\")"
+    }
+   ]
+  },
+  "webmcp/imperative/exposedTo-defaults-cross-origin.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "Parent tool with no exposedTo array is not visible to cross-origin iframe",
+     "message": "Asserts runPassassert_array_equals([], [], \"Cross-origin iframe should see no tools\")"
+    },
+    {
+     "status": "Pass",
+     "name": "Parent tool with empty exposedTo array is not visible to cross-origin iframe",
+     "message": "Asserts runPassassert_array_equals([], [], \"Cross-origin iframe should see no tools\")"
+    },
+    {
+     "status": "Pass",
+     "name": "Cross-origin iframe tool with default exposure is not visible to parent",
+     "message": "Asserts runPassassert_array_equals([], [], \"Parent should see no tools\")"
+    },
+    {
+     "status": "Pass",
+     "name": "Cross-origin iframe tool with empty exposedTo array is not visible to parent",
+     "message": "Asserts runPassassert_array_equals([], [], \"Parent should see no tools\")"
+    }
+   ]
+  },
+  "webmcp/imperative/exposedTo-defaults-same-origin.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "Parent tool with missing `exposedTo` array is visible to same-origin iframe",
+     "message": "Asserts runPassassert_true(true, \"Same-origin iframe should see parent tool with no exposedTo\")"
+    },
+    {
+     "status": "Pass",
+     "name": "Parent tool with empty `exposedTo` array is visible to same-origin iframe",
+     "message": "Asserts runPassassert_true(true, \"Same-origin iframe should see parent tool with empty exposedTo\")"
+    },
+    {
+     "status": "Pass",
+     "name": "Same-origin iframe tool with default exposure is visible to parent",
+     "message": "Asserts runPassassert_true(true, \"Tool details should match\")"
+    },
+    {
+     "status": "Pass",
+     "name": "Same-origin iframe tool with empty exposedTo array is visible to parent",
+     "message": "Asserts runPassassert_true(true, \"Tool details should match\")"
+    }
+   ]
+  },
+  "webmcp/imperative/exposedTo-invalid-origins.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "registerTool() throws SecurityError for invalid or non-potentially-trustworthy origins like / in exposedTo",
+     "message": "Asserts runNo asserts ran"
+    },
+    {
+     "status": "Pass",
+     "name": "registerTool() throws SecurityError for invalid or non-potentially-trustworthy origins like * in exposedTo",
+     "message": "Asserts runNo asserts ran"
+    },
+    {
+     "status": "Pass",
+     "name": "registerTool() throws SecurityError for invalid or non-potentially-trustworthy origins like https://example:bogus in exposedTo",
+     "message": "Asserts runNo asserts ran"
+    },
+    {
+     "status": "Pass",
+     "name": "registerTool() throws SecurityError for invalid or non-potentially-trustworthy origins like https://U+d800.com in exposedTo",
+     "message": "Asserts runNo asserts ran"
+    },
+    {
+     "status": "Pass",
+     "name": "registerTool() throws SecurityError for invalid or non-potentially-trustworthy origins like http://example.com in exposedTo",
+     "message": "Asserts runNo asserts ran"
+    },
+    {
+     "status": "Pass",
+     "name": "registerTool() throws SecurityError for invalid or non-potentially-trustworthy origins like ftp://example.com in exposedTo",
+     "message": "Asserts runNo asserts ran"
+    },
+    {
+     "status": "Pass",
+     "name": "registerTool() throws SecurityError for invalid or non-potentially-trustworthy origins like about:blank in exposedTo",
+     "message": "Asserts runNo asserts ran"
+    },
+    {
+     "status": "Pass",
+     "name": "registerTool() throws SecurityError for invalid or non-potentially-trustworthy origins like about:srcdoc in exposedTo",
+     "message": "Asserts runNo asserts ran"
+    },
+    {
+     "status": "Pass",
+     "name": "registerTool() throws SecurityError for invalid or non-potentially-trustworthy origins like https://example.com in exposedTo",
+     "message": "Asserts runNo asserts ran"
+    },
+    {
+     "status": "Pass",
+     "name": "registerTool() throws SecurityError for invalid or non-potentially-trustworthy origins like http://localhost:3000 in exposedTo",
+     "message": "Asserts runNo asserts ran"
+    },
+    {
+     "status": "Pass",
+     "name": "registerTool() with abort signal reason because signal is processed before `exposedTo`",
+     "message": "Asserts runNo asserts ran"
+    },
+    {
+     "status": "Pass",
+     "name": "Aborting a signal from a rejected registration must not unregister a later valid tool with the same name",
+     "message": "Asserts runPassassert_true(true, \"target_tool should be registered\")"
+    }
+   ]
+  },
+  "webmcp/imperative/exposedTo-multiple-children.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "Multi-origin setup with mixed exposure lists",
+     "message": "Asserts runPassassert_equals(\"fired\", \"fired\", \"Frame C received toolchange event\")"
+    }
+   ]
+  },
+  "webmcp/imperative/exposedTo-window-open.https.html": {
+   "harness": "Error",
+   "rows": [
+    {
+     "status": "Fail",
+     "name": "Tools are scoped to a frame tree, and are not exposed across opener boundaries.",
+     "message": "promise_test: Unhandled rejection with value: object \"TypeError: null is not an object (evaluating 'opened_window.document')\"get_stack@https://six.localhost:8443/resources/testharness.js:4802:30"
+    }
+   ]
+  },
+  "webmcp/imperative/getTools-filtering.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "getTools() correctly filters returned tools by fromOrigins origins while preserving same-origin tools",
+     "message": "Asserts runPassassert_equals(1, 1, \"Should return 1 tool when getTools() is called with no arguments\")"
+    },
+    {
+     "status": "Pass",
+     "name": "getTools() rejects with SecurityError if an insecure origin is supplied in fromOrigins",
+     "message": "Asserts runNo asserts ran"
+    }
+   ]
+  },
+  "webmcp/imperative/getTools-imperative-annotations.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "Test that getTools() returns explicit annotations for an imperative tool",
+     "message": "Asserts runPassassert_object_equals(object \"[object Object]\", object \"[object Object]\", \"annotations object should match exactly the expected IDL properties and values\")"
+    },
+    {
+     "status": "Pass",
+     "name": "Test that getTools() populates default values for omitted annotation properties",
+     "message": "Asserts runPassassert_object_equals(object \"[object Object]\", object \"[object Object]\", \"annotations object should contain default value for omitted untrustedContentHint property\")"
+    },
+    {
+     "status": "Pass",
+     "name": "Test that getTools() returns default values when annotations object is empty",
+     "message": "Asserts runPassassert_object_equals(object \"[object Object]\", object \"[object Object]\", \"annotations object should match exactly the expected IDL default properties and values\")"
+    },
+    {
+     "status": "Pass",
+     "name": "Test that getTools() returns undefined annotations when omitted at registration",
+     "message": "Asserts runPassassert_equals(undefined, undefined, \"annotations property should be undefined when omitted at registration\")"
+    }
+   ]
+  },
+  "webmcp/imperative/getTools-imperative-schema.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "Test that getTools() returns the correct inputSchema for an imperative tool",
+     "message": "Asserts runPassassert_equals(1, 1, \"Exactly one tool should be registered\")"
+    }
+   ]
+  },
+  "webmcp/imperative/getTools.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "getTools should return all tools sorted in lexicographical order",
+     "message": "Asserts runPassassert_equals(3, 3, \"Should find exactly the 3 registered tools\")"
+    }
+   ]
+  },
+  "webmcp/imperative/initial-about-blank-shared-tool.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Fail",
+     "name": "tools registered with the initial about:blank Document do not survive navigation",
+     "message": "promise_test: Unhandled rejection with value: object \"TypeError: undefined is not an object (evaluating 'iframe.contentWindow.document.modelContext.registerTool')\"get_stack@https://six.localhost:8443/resources/testharness.js:4802:30"
+    }
+   ]
+  },
+  "webmcp/imperative/model_context.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "document.modelContext instanceof ModelContext",
+     "message": "Asserts runPassassert_true(true)"
+    },
+    {
+     "status": "Pass",
+     "name": "document.modelContext SameObject",
+     "message": "Asserts runPassassert_equals(object \"[object ModelContext]\", object \"[object ModelContext]\")"
+    }
+   ]
+  },
+  "webmcp/imperative/non-secure.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "document.modelContext instanceof ModelContext",
+     "message": "Asserts runPassassert_true(true)"
+    },
+    {
+     "status": "Pass",
+     "name": "document.modelContext SameObject",
+     "message": "Asserts runPassassert_equals(object \"[object ModelContext]\", object \"[object ModelContext]\")"
+    }
+   ]
+  },
+  "webmcp/imperative/object-arguments.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "tool execution requires a JSON Object input argument; and Arrays are Objects",
+     "message": "Asserts runPassassert_equals(\"Success\", \"Success\")"
+    }
+   ]
+  },
+  "webmcp/imperative/opaque-origin-tools.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "An opaque origin document can register but not execute its own tools",
+     "message": "Asserts runPassassert_equals(\"null\", \"null\")"
+    },
+    {
+     "status": "Pass",
+     "name": "executeTool() rejects synchronously for origin \"null\" that fails to parse as a URL",
+     "message": "Asserts runPassassert_equals(\"null\", \"null\", \"getTools() gives\")"
+    },
+    {
+     "status": "Pass",
+     "name": "executeTool() rejects synchronously for invalid origin: https://test.example:invalidport",
+     "message": "Asserts runPassassert_array_equals([\"rejection\", \"microtask\"], [\"rejection\", \"microtask\"], \"returned promise is rejected before custom microtask is queued\")"
+    },
+    {
+     "status": "Pass",
+     "name": "executeTool() rejects synchronously for invalid origin: data:text/html,foo",
+     "message": "Asserts runPassassert_array_equals([\"rejection\", \"microtask\"], [\"rejection\", \"microtask\"], \"returned promise is rejected before custom microtask is queued\")"
+    }
+   ]
+  },
+  "webmcp/imperative/permissions-policy.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "registerTool() rejects in iframe, after navigation to an origin not covered by permissions policy",
+     "message": "Asserts runPassassert_true(true, \"Expected NotAllowedError in navigated iframe, got: tool registration failed: NotAllowedError: the tools permissions policy does not allow this frame\")"
+    },
+    {
+     "status": "Pass",
+     "name": "getTools() throws NotAllowedError in iframe when permissions policy is disabled",
+     "message": "Asserts runPassassert_true(true, \"Expected NotAllowedError in iframe, got: getTools promise rejected: NotAllowedError: the tools permissions policy does not allow this frame\")"
+    },
+    {
+     "status": "Pass",
+     "name": "executeTool() throws NotAllowedError in iframe when permissions policy is disabled",
+     "message": "Asserts runPassassert_equals(\"NotAllowedError\", \"NotAllowedError\", \"Should reject with NotAllowedError\")"
+    }
+   ]
+  },
+  "webmcp/imperative/register-tool-title.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "Tool title is preserved when provided",
+     "message": "Asserts runPassassert_equals(\"My Custom Title\", \"My Custom Title\", \"Title is preserved\")"
+    },
+    {
+     "status": "Pass",
+     "name": "Missing tool title in registration is exposed as empty string",
+     "message": "Asserts runPassassert_equals(\"\", \"\", \"Title is empty string when not provided\")"
+    },
+    {
+     "status": "Pass",
+     "name": "Tool title with unpaired surrogate is fixed up by USVString",
+     "message": "Asserts runPassassert_equals(\"Title with \\ufffd unpaired surrogate\", \"Title with \\ufffd unpaired surrogate\")"
+    }
+   ]
+  },
+  "webmcp/imperative/register_tool_invalid_json_schema.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "registerTool rejects when inputSchema.toJSON() returns undefined",
+     "message": "Asserts runNo asserts ran"
+    },
+    {
+     "status": "Pass",
+     "name": "registerTool rejects when inputSchema contains a circular reference",
+     "message": "Asserts runNo asserts ran"
+    },
+    {
+     "status": "Pass",
+     "name": "registerTool rejects when inputSchema contains non-serializable types (BigInt)",
+     "message": "Asserts runNo asserts ran"
+    },
+    {
+     "status": "Pass",
+     "name": "registerTool rejects on invalid schema even if an aborted signal was provided",
+     "message": "Asserts runNo asserts ran"
+    }
+   ]
+  },
+  "webmcp/imperative/register_tool_name_validation.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "Valid tool names are accepted.",
+     "message": "Asserts runNo asserts ran"
+    },
+    {
+     "status": "Pass",
+     "name": "Invalid tool names throw InvalidStateError.",
+     "message": "Asserts runNo asserts ran"
+    }
+   ]
+  },
+  "webmcp/imperative/register_tool_no_schema.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "register tool with only required params",
+     "message": "Asserts runNo asserts ran"
+    }
+   ]
+  },
+  "webmcp/imperative/register_tool_signal.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "register tool promise rejects with AbortError when signal gets aborted",
+     "message": "Asserts runNo asserts ran"
+    },
+    {
+     "status": "Pass",
+     "name": "register tool promise rejects with error when signal gets aborted",
+     "message": "Asserts runNo asserts ran"
+    },
+    {
+     "status": "Pass",
+     "name": "register tool promise rejects when signal is already aborted",
+     "message": "Asserts runNo asserts ran"
+    },
+    {
+     "status": "Pass",
+     "name": "aborting signal unregister tool",
+     "message": "Asserts runPassassert_equals(0, 0)"
+    }
+   ]
+  },
+  "webmcp/imperative/register_tool_toolchange.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "registerTool triggers toolchange before promise resolves",
+     "message": "Asserts runPassassert_array_equals([\"toolchange\", \"resolve\"], [\"toolchange\", \"resolve\"], \"toolchange event must trigger before registerTool promise resolves\")"
+    }
+   ]
+  },
+  "webmcp/imperative/register_tool_with_empty_annotation.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "register tool with empty annotations",
+     "message": "Asserts runNo asserts ran"
+    }
+   ]
+  },
+  "webmcp/imperative/register_tool_with_schema.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "register and unregister script tool",
+     "message": "Asserts runNo asserts ran"
+    },
+    {
+     "status": "Pass",
+     "name": "registerTool succeeds when inputSchema.toJSON() returns 'undefined'",
+     "message": "Asserts runNo asserts ran"
+    }
+   ]
+  },
+  "webmcp/imperative/same-origin-iframe-registerTool-regression.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "registerTool() does not reject in connected same-origin iframe navigated away of about:blank",
+     "message": "Asserts runNo asserts ran"
+    }
+   ]
+  },
+  "webmcp/imperative/unregister-during-executeTool.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "Pending executeTool() Promise resolves successfully when the target cross-origin tool is unregistered mid-execution",
+     "message": "Asserts runPassassert_true(true, \"Tool should be registered and visible to parent\")"
+    },
+    {
+     "status": "Pass",
+     "name": "Pending executeTool() Promise resolves successfully when target same-document tool is unregistered mid-execution",
+     "message": "Asserts runPassassert_array_equals([], [], \"Unregistered tool should no longer be returned by getTools()\")"
+    }
+   ]
+  },
+  "webmcp/tool-activated-event.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Pass",
+     "name": "ToolActivatedEvent constructor with default event init dictionary",
+     "message": "Asserts runPassassert_equals(\"toolactivated\", \"toolactivated\")"
+    },
+    {
+     "status": "Pass",
+     "name": "ToolActivatedEvent constructor with an event init dictionary",
+     "message": "Asserts runPassassert_equals(\"my_tool\", \"my_tool\")"
+    },
+    {
+     "status": "Pass",
+     "name": "ontoolactivated is invoked for synthetic toolactivated events dispatched at ModelContext",
+     "message": "Asserts runPassassert_array_equals([object \"[object ToolActivatedEvent]\"], [object \"[object ToolActivatedEvent]\"], \"synthetic toolactivated events must reach ontoolactivated\")"
+    },
+    {
+     "status": "Pass",
+     "name": "ontoolactivated is invoked when a tool is activated",
+     "message": "Asserts runPassassert_equals(null, null, \"ontoolactivated must initially be null\")"
+    }
+   ]
+  }
+ }
+}

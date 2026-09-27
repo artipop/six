@@ -43,6 +43,9 @@ six/Translation   the portable half (segments, batching, the page script, Langua
 six/ACP           JSONRPCConnection, ACPClient (actor), ACPAgent (process), AgentSessionStore (view model)
 six/MCP           MCPServer + MCPSocket + MCPStdioBridge (`six --mcp`), Client/ (MCP apps, SEP-1865, OAuth, catalog)
 six/Tools         BrowserTools — one catalog, served to the assistant, to ACP agents and over MCP
+six/WebMCP        pages declaring tools for agents: the polyfill, registry, calls and `WebMCPPage` — the three
+                  things a front owes — in SixCore; WebMCPStore is Apple's bridge, `StripWebMCP` Windows',
+                  `PageChannels` + `SixBrowser/WebMCP.swift` Linux's — docs/webmcp.md
 six/Vendor        ClaudeForFoundationModels, FoundationModelsUtilities — compiled into the target, see below
 ```
 
@@ -532,8 +535,10 @@ anything added there has to exist on both:
   neither is a place for the program to describe itself in the third person. Name the value and let the row's label
   say what it is ("File", then the path), rather than wrapping it in a sentence about the browser. six as the *object*
   of a verb the person performs is fine and stays — "Show six in the Share Menu", "Set six as Default Browser…".
-- **Comments explain why, not what**, and read like the surrounding code — the codebase's register is a short essay at
-  the top of a type, and a line of reasoning where a decision looks arbitrary. Match it.
+- **Comments are few and one line long.** Only where a decision would look wrong without one, and never an essay on a
+  type — older code still has those, and it is not the register to match. No measurements, model outputs, quoted
+  strings from a test, or the story of the bug a fix came from: those go in the commit message and `docs/*.md`.
+  Self-explanatory code gets no comment at all.
 - Artem writes in Russian; the repo, the docs and the commit messages are in English.
 
 ## What is built, and what is not

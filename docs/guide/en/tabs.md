@@ -53,6 +53,37 @@ on either one takes them apart. It is the same split as `⌥S` on the row.
 
 A folded group stays folded after a relaunch.
 
+### Groups by meaning
+
+With **Configuration ▸ Windows ▸ Group Tabs by Meaning** on, six sorts tabs by what
+the page is about — on this Mac, with no network and without the language model
+features:
+
+- A new tab, once its page has loaded, goes into the group it is about, and the
+  focus goes with it. When it is not sure, the tab stays where it is.
+- A tab about two groups at once goes into a group between them, coloured between
+  their colours: orange between yellow and red. A tab almost about a group, but not
+  surely, goes into a pale group right after it. Until such a group has a name of
+  its own it is called after its neighbours ("Dinner · Sport", "≈ Dinner"). Tabs can
+  be dragged in and out; the colour is the group's. Its menu has **Merge into …**
+  and **Make Separate Group**; if a neighbouring group goes away, it stays next to
+  the other.
+- Three alike tabs with no group become a new group. At first it is named after
+  the words their titles share; a moment later a name by meaning replaces it
+  ("Cooking", "Football"). The assistant's model or agent gives it when language
+  models are on, the **Local Model** on this Mac otherwise. A name you typed in the meantime
+  stays.
+- A tab you moved by hand stays where you put it until it goes to another site. A
+  group you ungrouped is not made again.
+
+**Sort By**: **Embeddings** — the model that searches bookmarks, fast and light on
+memory — or **Local Model**, which reads the titles and picks the group itself. That
+works best with **Gemma 4 E2B**, at 3.6 GB and a few seconds a tab.
+
+**Local Model** — Gemma 3 1B (770 MB), Qwen 2.5 1.5B (870 MB) or Gemma 4 E2B
+(3.6 GB). Downloaded the first time it is needed, and held in memory only while it
+answers.
+
 ## Keys
 
 With the tabs up the row's `⌥` keys are off: `⌥←` moves by word again, `⌥W`

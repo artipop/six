@@ -1,6 +1,46 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Start Page" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Стартовая страница"
+          }
+        }
+      }
+    },
+    "Logo" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Логотип"
+          }
+        }
+      }
+    },
+    "Icon" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Значок"
+          }
+        }
+      }
+    },
+    "None" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нет"
+          }
+        }
+      }
+    },
     "Add %lld Tabs to New Group" : {
       "localizations" : {
         "ru" : {
@@ -229,6 +269,16 @@
         }
       }
     },
+    "Embeddings" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Эмбеддинги"
+          }
+        }
+      }
+    },
     "Environment" : {
       "localizations" : {
         "ru" : {
@@ -285,6 +335,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Загрузить у агента"
+          }
+        }
+      }
+    },
+    "Make Separate Group" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сделать отдельной группой"
+          }
+        }
+      }
+    },
+    "Merge into %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Объединить с «%@»"
           }
         }
       }
@@ -553,6 +623,16 @@
         }
       }
     },
+    "Sort By" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Распределять"
+          }
+        }
+      }
+    },
     "Stop Showing Side by Side" : {
       "localizations" : {
         "ru" : {
@@ -629,6 +709,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Откройте терминал и выполните `claude`, чтобы войти в Claude Code."
+          }
+        }
+      }
+    },
+    "Local Model" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Локальная модель"
           }
         }
       }
@@ -1153,12 +1243,12 @@
         }
       }
     },
-    "That address is not one six can ask" : {
+    "That is not an address a model can be asked at" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "По этому адресу six обратиться не может"
+            "value" : "По этому адресу обратиться нельзя"
           }
         }
       }
@@ -1365,6 +1455,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ — поиск %@"
+          }
+        }
+      }
+    },
+    "%@ — 3.6 GB" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ — 3,6 ГБ"
+          }
+        }
+      }
+    },
+    "%@ — 770 MB" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ — 770 МБ"
+          }
+        }
+      }
+    },
+    "%@ — 870 MB" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ — 870 МБ"
           }
         }
       }
@@ -2187,12 +2307,12 @@
         }
       }
     },
-    "Allow Safari to Inspect six's Pages" : {
+    "Allow Safari to Inspect Pages" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Разрешить Safari инспектировать страницы six"
+            "value" : "Разрешить Safari инспектировать страницы"
           }
         }
       }
@@ -3470,16 +3590,6 @@
         }
       }
     },
-    "Forget the token six holds for this server" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Забыть токен, который six хранит для этого сервера"
-          }
-        }
-      }
-    },
     "Forget This Site's Choices" : {
       "localizations" : {
         "ru" : {
@@ -3596,6 +3706,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "gpt-5"
+          }
+        }
+      }
+    },
+    "Group" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Группа"
+          }
+        }
+      }
+    },
+    "Group Tabs by Meaning" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Группировать вкладки по смыслу"
           }
         }
       }
@@ -4450,12 +4580,12 @@
         }
       }
     },
-    "No certificate in this file. six reads PEM (.pem, .crt) and DER (.cer, .der)." : {
+    "No certificate in this file. PEM (.pem, .crt) and DER (.cer, .der) are supported." : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "В этом файле нет сертификата. six читает PEM (.pem, .crt) и DER (.cer, .der)."
+            "value" : "В этом файле нет сертификата. Подходят PEM (.pem, .crt) и DER (.cer, .der)."
           }
         }
       }
@@ -5602,12 +5732,12 @@
         }
       }
     },
-    "Set six as Default Browser…" : {
+    "Make Default Browser…" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Сделать six браузером по умолчанию…"
+            "value" : "Сделать браузером по умолчанию…"
           }
         }
       }
@@ -5622,22 +5752,22 @@
         }
       }
     },
-    "Show six in the Share Menu" : {
+    "Show in the Share Menu" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Показывать six в меню «Поделиться»"
+            "value" : "Показывать в меню «Поделиться»"
           }
         }
       }
     },
-    "Not registered yet — launch six from where it is installed." : {
+    "Not registered yet — launch the app from where it is installed." : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ещё не зарегистрировано — запустите six оттуда, где он установлен."
+            "value" : "Ещё не зарегистрировано — запустите приложение оттуда, где оно установлено."
           }
         }
       }
@@ -5662,7 +5792,7 @@
         }
       }
     },
-    "Should six use language models?" : {
+    "Use language models?" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
@@ -5882,12 +6012,12 @@
         }
       }
     },
-    "six could not reach this address." : {
+    "This address could not be reached." : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "six не смог открыть этот адрес."
+            "value" : "Не удалось открыть этот адрес."
           }
         }
       }
@@ -6308,12 +6438,12 @@
         }
       }
     },
-    "This site’s certificate was issued by %@. six includes this authority but does not trust it until you turn it on. Sites with certificates from other authorities are not affected." : {
+    "This site’s certificate was issued by %@. The authority is on the list but is not trusted until you turn it on. Sites with certificates from other authorities are not affected." : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Сертификат этого сайта выдан удостоверяющим центром «%@». Этот центр есть в six, но доверять ему six начнёт, только когда вы его включите. На сайты с сертификатами других центров это не влияет."
+            "value" : "Сертификат этого сайта выдан удостоверяющим центром «%@». Этот центр есть в списке, но ему не доверяют, пока вы его не включите. На сайты с сертификатами других центров это не влияет."
           }
         }
       }
@@ -6766,12 +6896,12 @@
         }
       }
     },
-    "You can close this window and go back to six." : {
+    "You can close this window." : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Это окно можно закрыть и вернуться в six."
+            "value" : "Это окно можно закрыть."
           }
         }
       }
@@ -6998,6 +7128,146 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Разгруппировать"
+          }
+        }
+      }
+    },
+    "Page Tools" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Инструменты страницы"
+          }
+        }
+      }
+    },
+    "Call Page Tool" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вызвать инструмент страницы"
+          }
+        }
+      }
+    },
+    "Tools this page offers to agents" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Инструменты, которые страница предлагает агентам"
+          }
+        }
+      }
+    },
+    "Tools this page offers to agents: %lld" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Инструменты для агентов на этой странице: %lld"
+          }
+        }
+      }
+    },
+    "Declared by the page through WebMCP. Agents reach them with list_page_tools and call_page_tool." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Страница объявила их через WebMCP. Агенты находят их через list_page_tools и вызывают через call_page_tool."
+          }
+        }
+      }
+    },
+    "read-only" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "только чтение"
+          }
+        }
+      }
+    },
+    "consequential" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "с последствиями"
+          }
+        }
+      }
+    },
+    "WebMCP" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WebMCP"
+          }
+        }
+      }
+    },
+    "Let Pages Offer Tools to Agents" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешить страницам предлагать инструменты агентам"
+          }
+        }
+      }
+    },
+    "Experimental. A page declares tools through document.modelContext, and agents list and call them with list_page_tools and call_page_tool. There is no per-site permission or confirmation yet: keep it off outside testing." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Экспериментально. Страница объявляет инструменты через document.modelContext, а агенты видят и вызывают их через list_page_tools и call_page_tool. Разрешений по сайтам и подтверждения вызовов пока нет — вне тестов держите это выключенным."
+          }
+        }
+      }
+    },
+    "tools for agents" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "инструменты для агентов"
+          }
+        }
+      }
+    },
+    "Let agents use the tools %@ offers them?" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешить агентам пользоваться инструментами, которые предлагает %@?"
+          }
+        }
+      }
+    },
+    "Let an agent call %@ on %@ with %@?" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешить агенту вызвать %@ на %@ с аргументами %@?"
+          }
+        }
+      }
+    },
+    "An agent is calling %@" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Агент вызывает %@"
           }
         }
       }

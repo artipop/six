@@ -113,6 +113,10 @@ let package = Package(
                 // lives where it can be tested, and a second front inherits the ring rather than
                 // reinventing its order.
                 "Browser/WindowSwitcher.swift",
+                // Which group a tab belongs to by meaning: vectors in, a verdict out. The model and
+                // the moving stay in each front.
+                "Tabs/TabTopics.swift",
+                "Tabs/GroupColor.swift",
                 "Browser/SearchEngine.swift",
                 // A page six owns and nobody sees, for running something that is a program written
                 // for a JavaScript engine rather than a library six could link. Bergamot below is
@@ -172,7 +176,18 @@ let package = Package(
                 "ACP/JSONRPCError.swift",
                 "MCP/Client/MCPAppTypes.swift",
                 "MCP/Client/MCPRegistry.swift",
-                "MCP/Client/MCPOAuth.swift"
+                "MCP/Client/MCPOAuth.swift",
+                // WebMCP: a page declaring tools of its own for agents (docs/webmcp.md). The
+                // polyfill is JavaScript in a string, the registry is plain values and the calls
+                // are one main-actor class, and none of it knows which engine it runs in — the
+                // bargain translation makes, so each front owes a bridge and nothing more.
+                "WebMCP/WebMCPRegistry.swift",
+                "WebMCP/WebMCPBroker.swift",
+                "WebMCP/WebMCPForms.swift",
+                "WebMCP/WebMCPScript.swift",
+                "WebMCP/WebMCPHost.swift",
+                "WebMCP/WebMCPPage.swift",
+                "WebMCP/WebMCPSelfTest.swift"
                 //
                 // `ConfigurationStore` is in only because it was untangled first: it used to decode six
                 // subsystems' types out of the settings table, so taking it would have dragged most

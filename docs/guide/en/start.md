@@ -138,10 +138,11 @@ All of it on your machine, in `~/Library/Application Support/org.deffun.six`:
 | `Blocking/`, `Models/`, `Thumbnails/`, `Screenshots/` | filter lists, the model behind search-by-meaning, window pictures, screenshots |
 
 A session survives a relaunch whole: windows come back where they stood, with
-their addresses and scroll offsets, and agent chats carry on.
+their addresses and scroll offsets, and agent chats carry on. Video and sound in
+restored windows do not start by themselves — not until the first click on the page.
 
 ## Making it the default browser
 
-The **six ▸ Set six as Default Browser…** menu item, or System Settings › Desktop
+**Configuration ▸ General ▸ Make Default Browser…**, or System Settings › Desktop
 & Dock › Default web browser. After that, links from other applications and
 `.html` files from the Finder arrive as windows in the row.

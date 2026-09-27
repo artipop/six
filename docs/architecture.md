@@ -271,6 +271,10 @@ rather than left to be overwritten by the fresh one.
 page's URL, a column moving, a chat line — schedules a debounced (1 s) write off the main thread; `NSApplication`'s
 `willTerminate` flushes synchronously. On restore, a `BrowserTab` is created with its saved URL but doesn't load until
 it first comes on screen (or a tool looks at it) — relaunching with a hundred windows fires no requests.
+That first load — and the one that rebuilds a discarded window — does not start media by itself: `MediaHold` puts a
+script in six's world that pauses any `play` until a trusted click or key press in that frame. `WebPage.Configuration`
+has no `mediaTypesRequiringUserActionForPlayback` on macOS, and one would hold every later navigation too; the script
+is dropped as soon as the next navigation starts, so a reload or a link plays as usual.
 The window itself — frame and fullscreen — is in the snapshot too (`WindowState`, fed by `NSWindow`
 notifications and applied once when the content view lands in its window; a saved frame off every screen is
 ignored). Restore drops anything that doesn't line up (a column whose tab is gone, a tab no column points at).

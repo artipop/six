@@ -111,16 +111,20 @@ final class AssistantSettings {
     /// one row per configured agent needs no case of its own to tell them apart.
     var providerTag: String {
         get {
+            #if os(macOS)
             if model == .customAgent, let selected = store.selectedCustomAgent { return "custom:" + selected.id }
+            #endif
             return model.rawValue
         }
         set {
+            #if os(macOS)
             if newValue.hasPrefix("custom:") {
                 store[.selectedCustomAgent] = String(newValue.dropFirst("custom:".count))
                 model = .customAgent
-            } else if let choice = ModelChoice(rawValue: newValue) {
-                model = choice
+                return
             }
+            #endif
+            if let choice = ModelChoice(rawValue: newValue) { model = choice }
         }
     }
 
@@ -227,7 +231,7 @@ final class AssistantSettings {
             let address = openAIBaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
             guard let url = URL(string: address), url.scheme != nil, url.host() != nil else {
                 return .notConfigured(address.isEmpty ? "This model needs an address to ask"
-                                                      : "That address is not one six can ask")
+                                                      : "That is not an address a model can be asked at")
             }
             guard !openAIModel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 return .notConfigured("Name the model this address should answer with")
@@ -274,6 +278,11 @@ final class AssistantSettings {
         }
     }
 
+    /// Nil for an agent: its one session is the person's chat.
+    func namingSession(instructions: String) throws -> LanguageModelSession? {
+        model.isAgent ? nil : try makeSession(instructions: instructions)
+    }
+
     /// Builds a session for the selected model. Throws a readable error when the model isn't usable.
     /// `tools` are offered to the model (browser tools for the assistant; none for one-off jobs).
     func makeSession(instructions: String, tools: [any Tool] = []) throws -> LanguageModelSession {
@@ -301,7 +310,7 @@ final class AssistantSettings {
             try check()
             let address = openAIBaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
             guard let url = URL(string: address), url.scheme != nil, url.host() != nil else {
-                throw AssistantError.notConfigured("That address is not one six can ask")
+                throw AssistantError.notConfigured("That is not an address a model can be asked at")
             }
             let name = openAIModel.trimmingCharacters(in: .whitespacesAndNewlines)
             // No key is a real answer — a server on this machine asks for none — so the header

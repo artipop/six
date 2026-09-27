@@ -110,7 +110,7 @@ private struct TabStrip: View {
                                     ForEach(group.tabIDs, id: \.self) { id in
                                         if let tab = browser.tab(id) {
                                             TabItem(tab: tab, group: group, width: width,
-                                                    tint: chip ? group.color : nil,
+                                                    tint: chip ? group.color.map(Color.init) : nil,
                                                     rename: { renaming = $0 })
                                                 .id(id)
                                         }
@@ -167,6 +167,9 @@ struct TabGroup: Identifiable {
     var tabIDs: [UUID]
     var columns: [TilingColumn]
     var isCollapsed: Bool
+    var blend: TilingBlend?
+    /// Its own, or its parents' mixed; the workspace's and not its place's, so it stays put.
+    var color: GroupColor?
 
     /// Every row with a window in it, in the strip's order. The spare empty row the row keeps at the
     /// bottom is not a group, and neither is a named row that has just emptied — the question it is
@@ -178,11 +181,12 @@ struct TabGroup: Identifiable {
             guard !workspace.isEmpty else { return nil }
             return TabGroup(id: workspace.id, index: index, name: workspace.name,
                             title: layout.title(at: index), tabIDs: workspace.columns.flatMap(\.tabIDs),
-                            columns: workspace.columns, isCollapsed: workspace.isFolded)
+                            columns: workspace.columns, isCollapsed: workspace.isFolded,
+                            blend: workspace.blend, color: layout.groupColor(of: workspace.id))
         }
     }
 
-    var isGroup: Bool { !name.isEmpty }
+    var isGroup: Bool { !name.isEmpty || blend != nil }
 
     @MainActor
     func holdsSelection(_ browser: BrowserState) -> Bool {
@@ -194,13 +198,13 @@ struct TabGroup: Identifiable {
         columns.firstIndex { $0.holds(tabID) }
     }
 
-    /// The group's colour, which is the workspace's own and stays put: read off its id rather than
-    /// its place, so a group does not change colour when another one is closed before it.
-    var color: Color {
-        Self.palette[Int(id.uuid.0) % Self.palette.count]
-    }
+}
 
-    private static let palette: [Color] = [.blue, .red, .orange, .green, .purple, .pink, .teal, .indigo, .brown]
+extension Color {
+    nonisolated init(_ group: GroupColor) {
+        let rgb = group.srgb
+        self.init(.sRGB, red: rgb.red, green: rgb.green, blue: rgb.blue)
+    }
 }
 
 // MARK: - A group's label
@@ -222,7 +226,7 @@ private struct GroupChip: View {
                 TextField("Name", text: $draft)
                     .textFieldStyle(.plain)
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(ink)
                     .frame(width: 120)
                     .focused($focused)
                     .onSubmit(commit)
@@ -244,14 +248,14 @@ private struct GroupChip: View {
                             .opacity(0.8)
                     }
                 }
-                .foregroundStyle(.white)
+                .foregroundStyle(ink)
                 .contentShape(Rectangle())
                 .onTapGesture { browser.toggleGroup(group.id) }
             }
         }
         .padding(.horizontal, 9)
         .frame(height: 22)
-        .background(group.color.opacity(isTargeted ? 0.75 : 1), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+        .background(fill.opacity(isTargeted ? 0.75 : 1), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
         .frame(maxWidth: 180)
         .fixedSize(horizontal: true, vertical: false)
         .padding(.horizontal, 3)
@@ -266,11 +270,24 @@ private struct GroupChip: View {
         } isTargeted: { isTargeted = $0 }
     }
 
+    private var fill: Color { group.color.map(Color.init) ?? .secondary }
+    private var ink: Color { group.color?.isLight == true ? .black.opacity(0.75) : .white }
+
     @ViewBuilder
     private var menu: some View {
         Button("New Tab in Group") { browser.newTab(inGroup: group.id) }
         Button("Rename Group…") { renaming = group.id }
         Button(group.isCollapsed ? "Expand Group" : "Collapse Group") { browser.toggleGroup(group.id) }
+        if let blend = group.blend {
+            Divider()
+            ForEach(blend.parents, id: \.self) { parent in
+                if let index = browser.layout.workspaces.firstIndex(where: { $0.id == parent }) {
+                    Button("Merge into \(browser.layout.title(at: index))") { browser.mergeGroup(group.id, into: parent) }
+                }
+            }
+            Button("Make Separate Group") { browser.separateGroup(group.id) }
+            Divider()
+        }
         Button("Ungroup") { browser.ungroup(group.id) }
         Divider()
         Button("Close Group", role: .destructive) { browser.closeGroup(group.id) }
@@ -281,7 +298,7 @@ private struct GroupChip: View {
         guard renaming == group.id else { return }
         let typed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         browser.layout.rename(workspaceAt: group.index,
-                              to: typed.isEmpty && group.name.isEmpty ? group.title : typed)
+                              to: typed.isEmpty && group.name.isEmpty && group.blend == nil ? group.title : typed)
         renaming = nil
     }
 }
