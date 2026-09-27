@@ -53,6 +53,10 @@ final class WebMCPBroker {
 
     private var windows: [UUID: [String: Document]] = [:]
     private var calls: [String: Call] = [:]
+    /// Told when a subframe's tools change, or a document goes; the host redraws and ends the
+    /// agent calls that were in it.
+    var onChange: ((UUID) -> Void)?
+    var onGone: ((UUID, String) -> Void)?
 
     // MARK: Messages
 
@@ -85,6 +89,7 @@ final class WebMCPBroker {
                 document.tools[registered.name] = Tool(tool: registered, exposedTo: exposedTo, page: json["page"]?.stringValue ?? "{}")
                 reply("{}")
                 changed(document, exposedTo: exposedTo, in: windowID)
+                if !document.isMain { onChange?(windowID) }
             }
         case "unregister":
             guard let name = json["name"]?.stringValue, let document = windows[windowID]?[token],
@@ -92,6 +97,7 @@ final class WebMCPBroker {
             else { return reply("{}") }
             reply("{}")
             changed(document, exposedTo: removed.exposedTo, in: windowID)
+            if !document.isMain { onChange?(windowID) }
         case "getTools":
             guard let document = windows[windowID]?[token] else { return reply(#"{"tools":[]}"#) }
             let from = json["fromOrigins"]?.arrayValue?.compactMap(\.stringValue) ?? []
@@ -183,6 +189,8 @@ final class WebMCPBroker {
     /// A document went away: its tools, the calls to them, and the calls it made.
     private func gone(_ token: String, in windowID: UUID) {
         guard let document = windows[windowID]?.removeValue(forKey: token) else { return }
+        onGone?(windowID, token)
+        if !document.isMain && !document.tools.isEmpty { onChange?(windowID) }
         for (id, call) in calls where call.windowID == windowID {
             if call.target == token {
                 calls[id] = nil
@@ -197,6 +205,33 @@ final class WebMCPBroker {
         }
         if !document.tools.isEmpty {
             changed(document, exposedTo: document.tools.values.flatMap(\.exposedTo), in: windowID)
+        }
+    }
+
+    // MARK: What agents see
+
+    /// The tools of the window's subframes that the tools policy lets in, each with its frame's
+    /// origin and token. The main frame's are the registry's.
+    func frameTools(in windowID: UUID) -> [WebMCPTool] {
+        (windows[windowID] ?? [:]).values
+            .filter { !$0.isMain && $0.allowed == true }
+            .sorted { $0.path.lexicographicallyPrecedes($1.path) }
+            .flatMap { document in
+                document.tools.values.map { entry -> WebMCPTool in
+                    var tool = entry.tool
+                    tool.origin = document.origin
+                    tool.frame = document.token
+                    return tool
+                }.sorted { $0.name < $1.name }
+            }
+    }
+
+    /// A way to run a function body in one subframe, for an agent's call to its tool.
+    func runner(for token: String, in windowID: UUID) -> (@MainActor (String) async throws -> Void)? {
+        guard let document = windows[windowID]?[token] else { return nil }
+        return { [weak document] body in
+            guard let document else { throw WebMCPError.navigatedAway }
+            _ = try await document.frame.run(body, isolated: false)
         }
     }
 

@@ -113,8 +113,9 @@ final class WebMCPStore {
     }
 
     /// Calls one of the tools a window's page declared, and waits for its answer.
-    func call(_ name: String, arguments: ACPJSON, in tab: BrowserTab, timeout: Duration) async throws -> String {
-        try await host.call(name, arguments: arguments, in: tab.id, on: { [weak tab] in tab }, timeout: timeout)
+    func call(_ name: String, arguments: ACPJSON, in tab: BrowserTab, origin: String? = nil,
+              timeout: Duration) async throws -> String {
+        try await host.call(name, arguments: arguments, in: tab.id, origin: origin, on: { [weak tab] in tab }, timeout: timeout)
     }
 
     /// `SIX_WEBMCP_SELFTEST=<page>`, in the window on screen — the one way to watch this work on a
@@ -133,7 +134,8 @@ final class WebMCPStore {
                 forgetSite: { [weak self, weak tab] in
                     guard let self, let tab, let origin = SitePermissions.origin(of: tab.currentURL) else { return }
                     permissions?.forget(.pageTools, forOrigin: origin, profileID: tab.profileID)
-                })
+                },
+                framesSupported: true)
         }
     }
 }

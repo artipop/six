@@ -49,10 +49,10 @@ extension WebMCPHost {
 
     /// `call(_:arguments:in:timeout:run:)` over a `WebMCPPage`, asked for afresh at every step, so a
     /// page that has gone by then is a navigation rather than a call into nothing.
-    func call(_ name: String, arguments: ACPJSON, in windowID: UUID,
+    func call(_ name: String, arguments: ACPJSON, in windowID: UUID, origin: String? = nil,
               on page: @escaping @MainActor () -> (any WebMCPPage)?,
               timeout: Duration = defaultTimeout) async throws -> String {
-        try await call(name, arguments: arguments, in: windowID, timeout: timeout) { body in
+        try await call(name, arguments: arguments, in: windowID, origin: origin, timeout: timeout) { body in
             guard let page = page() else { throw WebMCPError.navigatedAway }
             _ = try await page.evaluateInPage(body)
         }

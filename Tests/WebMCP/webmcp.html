@@ -79,5 +79,14 @@
     });
 
     log('Declared add, slow, forget_slow and status.');
+
+    // `?frame`: a same-origin frame with a tool of its own, for the self-test's frame step.
+    if (location.search.includes('frame')) {
+      const frame = document.createElement('iframe');
+      frame.srcdoc = '<script>document.modelContext.registerTool({ name: "frame_echo", description: '
+        + '"Answers its text.", annotations: { readOnlyHint: true }, '
+        + 'execute: ({ text }) => String(text) });<\/script>';
+      document.body.append(frame);
+    }
   }
 </script>

@@ -45,7 +45,7 @@ private struct PageToolsList: View {
             Divider()
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
-                    ForEach(tools, id: \.name) { tool in
+                    ForEach(tools, id: \.listID) { tool in
                         VStack(alignment: .leading, spacing: 3) {
                             HStack(spacing: 6) {
                                 Text(verbatim: tool.name)
@@ -59,6 +59,11 @@ private struct PageToolsList: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .lineLimit(4)
+                            if tool.frame != nil {
+                                Label { Text(verbatim: tool.origin) } icon: { Image(systemName: "rectangle.inset.filled") }
+                                    .font(.caption2)
+                                    .foregroundStyle(.tertiary)
+                            }
                         }
                     }
                 }
@@ -74,6 +79,11 @@ private struct PageToolsList: View {
         .padding(14)
         .frame(width: 360)
     }
+}
+
+private extension WebMCPTool {
+    /// A frame may declare a name the page also declares.
+    var listID: String { (frame ?? "") + "/" + name }
 }
 
 /// One of the page's annotations, as a word in a capsule. Only the two that change what a call

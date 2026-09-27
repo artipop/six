@@ -464,3 +464,64 @@ struct WebMCPBrokerTests {
         #expect(!WebMCPBroker.sees("https://c.test", "https://a.test", exposedTo: ["https://b.test"]))
     }
 }
+
+@MainActor
+struct WebMCPFrameToolTests {
+    let window = UUID()
+
+    /// A frame as the broker reaches it: the parent answers the allow query, the child records
+    /// what six ran in it.
+    final class Frame: WebMCPFrame {
+        let origin: String
+        let allow: String
+        var ran: [String] = []
+        init(_ origin: String, allow: String = "") { self.origin = origin; self.allow = allow }
+        func run(_ body: String, isolated: Bool) async throws -> String {
+            ran.append(body)
+            return isolated ? allow : ""
+        }
+    }
+
+    private func send(_ host: WebMCPHost, _ text: String, from frame: Frame, isMain: Bool) async -> String {
+        await withCheckedContinuation { continuation in
+            host.request(text, from: window, frame: frame, isMain: isMain) { continuation.resume(returning: $0) }
+        }
+    }
+
+    @Test func aFramesToolIsOfferedAndAskedAboutAsItsOwnSite() async throws {
+        let host = WebMCPHost()
+        var asked: [String] = []
+        host.origin = { _ in "https://page.test" }
+        host.ask = { ask, answer in asked.append(ask.origin); answer(true) }
+        let page = Frame("https://page.test", allow: #"{"allow":"tools *","src":""}"#)
+        let child = Frame("https://frame.test")
+        _ = await send(host, #"{"kind":"document","doc":"top","path":[]}"#, from: page, isMain: true)
+        _ = await send(host, #"{"kind":"document","doc":"sub","path":[0]}"#, from: child, isMain: false)
+        let registered = await send(host, #"{"kind":"register","doc":"sub","origin":"https://frame.test","tool":{"name":"echo","description":"x","annotations":{"readOnlyHint":true}}}"#,
+                                    from: child, isMain: false)
+        #expect(registered == "{}")
+        let offered = host.tools(in: window)
+        #expect(offered.map(\.name) == ["echo"])
+        #expect(offered.first?.origin == "https://frame.test")
+        #expect(offered.first?.frame == "sub")
+
+        let call = Task { try await host.call("echo", arguments: [:], in: window) { _ in Issue.record("ran in the page") } }
+        while !child.ran.contains(where: { $0.contains("bridge.start") }) { await Task.yield() }
+        let id = WebMCPHostTests.callID(in: child.ran.last { $0.contains("bridge.start") } ?? "")
+        _ = await send(host, #"{"kind":"result","doc":"sub","call":""# + id + #"","ok":true,"value":"hello"}"#, from: child, isMain: false)
+        #expect(try await call.value == "hello")
+        #expect(asked == ["https://frame.test"], "the site asked about is the frame's")
+    }
+
+    @Test func aFrameThePolicyKeepsOutOffersNothing() async {
+        let host = WebMCPHost()
+        let page = Frame("https://page.test", allow: #"{"allow":"","src":""}"#)
+        let child = Frame("https://frame.test")
+        _ = await send(host, #"{"kind":"document","doc":"top","path":[]}"#, from: page, isMain: true)
+        _ = await send(host, #"{"kind":"document","doc":"sub","path":[0]}"#, from: child, isMain: false)
+        let registered = await send(host, #"{"kind":"register","doc":"sub","origin":"https://frame.test","tool":{"name":"echo","description":"x"}}"#,
+                                    from: child, isMain: false)
+        #expect(registered.contains("NotAllowedError"))
+        #expect(host.tools(in: window).isEmpty)
+    }
+}

@@ -123,6 +123,16 @@ nonisolated enum WebMCPSelfTest {
         let remembered = await call("add", ["a": 1, "b": 1], answering: true)
         report.check(remembered.asked == nil, "the site's answer outlived the navigation")
 
+        if target.framesSupported {
+            target.load(address + (address.contains("?") ? "&" : "?") + "frame")
+            let framed = await waitUntil { host.tools(in: windowID).contains { $0.name == "frame_echo" && $0.frame != nil } }
+            report.check(framed, "a frame's tool is offered to agents, marked as the frame's — \(names())")
+            if framed {
+                let echo = await call("frame_echo", ["text": "from six"], answering: true)
+                report.check((try? echo.result.get()) == "from six", "…and a call to it runs in the frame — \(describe(echo.result))")
+            }
+        }
+
         // A navigation in the middle of a call. `about:blank` has no polyfill to announce itself, so
         // this is also the front's backstop being tested: the call has to end on the navigation it
         // observed, not on a message from a page that never comes.
@@ -154,6 +164,8 @@ nonisolated enum WebMCPSelfTest {
         /// question being asked and not what the run before it answered. A self-test that leaves
         /// state behind passes once and then measures nothing.
         let forgetSite: @MainActor () -> Void
+        /// A front whose polyfill runs in every frame and whose channel answers (the Mac).
+        var framesSupported = false
     }
 
     /// A call's ending, written down by the task that made it so the poller can see it is over.

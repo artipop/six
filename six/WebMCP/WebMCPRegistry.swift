@@ -17,8 +17,10 @@ nonisolated struct WebMCPTool: Equatable, Sendable {
     var readOnly: Bool
     var untrustedContent: Bool
     var consequential: Bool
-    /// The page's `location.origin` when it registered. Main frame only, so it is the window's.
+    /// The origin of the document that registered it: the window's, or a frame's.
     var origin: String
+    /// The document token of the frame it lives in; `nil` for the main frame's.
+    var frame: String? = nil
 
     /// For `list_page_tools`: the draft's own field names, so an agent that has read the spec reads
     /// this without a glossary.

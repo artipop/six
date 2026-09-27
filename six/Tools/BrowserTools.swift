@@ -222,6 +222,8 @@ final class BrowserToolCatalog {
             parameters: [
                 Self.windowID,
                 .init(name: "name", description: "The tool's name, from list_page_tools.", required: true),
+                .init(name: "origin", description: "The tool's origin, from list_page_tools — needed only when a frame "
+                    + "declares a tool of the same name as the page."),
                 .init(name: "arguments", description: "The tool's input, matching its inputSchema. Default: {}.", type: .object),
                 .init(name: "timeout", description: "Seconds to wait for the answer (default 30, at most 300).", type: .integer),
                 .init(name: "max_chars", description: "Truncate the answer to this many characters (default 20000).", type: .integer),
@@ -880,13 +882,14 @@ final class BrowserToolCatalog {
             throw BrowserTool.Failure(message: "arguments must be a JSON object")
         }
         let offered = webMCP.tools(in: tab.id)
-        guard let tool = offered.first(where: { $0.name == name }) else {
+        let origin = args["origin"]?.stringValue.flatMap { $0.isEmpty ? nil : $0 }
+        guard let tool = offered.first(where: { $0.name == name && (origin == nil || $0.origin == origin) }) else {
             throw BrowserTool.Failure(message: WebMCPError.noSuchTool(name, available: offered.map(\.name)).localizedDescription)
         }
         let seconds = min(300, max(1, args["timeout"]?.intValue ?? 30))
         let limit = max(200, args["max_chars"]?.intValue ?? WebMCPHost.resultLimit)
         do {
-            let text = try await webMCP.call(name, arguments: arguments, in: tab, timeout: .seconds(seconds))
+            let text = try await webMCP.call(name, arguments: arguments, in: tab, origin: origin, timeout: .seconds(seconds))
             return "\(Self.describe(tab))\n\n" + WebMCPHost.answer(text, from: tool, limit: limit)
         } catch let error as WebMCPError {
             throw BrowserTool.Failure(message: error.localizedDescription)

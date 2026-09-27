@@ -76,6 +76,10 @@ it pulses while an agent is calling one. Clicking it lists them: name, descripti
 and the **read-only** and **consequential** marks — what the page said about
 itself. The agent sees the same tools and can call them.
 
+Tools declared by a frame inside the page — an embedded widget, say — are listed
+too, each under its frame's address, and the question about a site is asked about
+the frame's own site.
+
 A page can also turn an ordinary form into a tool by marking it up. The agent then
 fills the form in; if the page allows it, the agent submits it too, and otherwise
 the submit button is focused and the form waits for you to press it.

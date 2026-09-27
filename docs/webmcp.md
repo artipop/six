@@ -161,9 +161,6 @@ in [permissions.md](permissions.md).
   script can do brings it back.
 - **File inputs** in declarative forms: Chromium keeps them behind a flag pending a privacy review, and so does six —
   there is no flag.
-- **Agents see the main frame's tools only.** Frames reach each other's tools through the page's own
-  `getTools`/`executeTool`; `list_page_tools` still lists the top document's. Offering a subframe's to an agent
-  wants the gate to ask about the subframe's origin first (stage 5 of the compatibility plan).
 - **Frames on Windows and Linux.** Their bridges inject into the main frame and do not answer the channel, so there the
   polyfill keeps to its own document, as it did before frames were built.
 - **`document.domain`.** The draft refuses the API where `document.domain` is enabled; WebKit has no origin-keyed
@@ -300,6 +297,11 @@ through `WebViewResponder.webView(for:)`), on a stand page holding a same-origin
   there is `InvalidStateError`.
 - A tool's schema and annotations cross to other frames as the page's own JSON text, so a page reads back its keys in
   the order it wrote them, and nothing it did not give.
+- **Agents see frames' tools too**, those of every frame the tools policy lets in, after the page's own
+  (`WebMCPHost.tools(in:)`, `WebMCPBroker.frameTools`). Each carries its frame's origin: `list_page_tools` shows it,
+  the wrench's list names it under the tool, and `call_page_tool` takes `origin` when a frame declares a name the page
+  also declares. A call to a frame's tool runs in that frame, and the site question is asked about the frame's origin
+  — an embedded frame does not inherit the answer given to the page. The frame going away ends the call.
 
 ## What has been checked
 
