@@ -111,16 +111,20 @@ final class AssistantSettings {
     /// one row per configured agent needs no case of its own to tell them apart.
     var providerTag: String {
         get {
+            #if os(macOS)
             if model == .customAgent, let selected = store.selectedCustomAgent { return "custom:" + selected.id }
+            #endif
             return model.rawValue
         }
         set {
+            #if os(macOS)
             if newValue.hasPrefix("custom:") {
                 store[.selectedCustomAgent] = String(newValue.dropFirst("custom:".count))
                 model = .customAgent
-            } else if let choice = ModelChoice(rawValue: newValue) {
-                model = choice
+                return
             }
+            #endif
+            if let choice = ModelChoice(rawValue: newValue) { model = choice }
         }
     }
 
