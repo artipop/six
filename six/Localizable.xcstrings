@@ -8575,6 +8575,66 @@
           }
         }
       }
+    },
+    "Dictate" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Диктовать"
+          }
+        }
+      }
+    },
+    "Stop dictation" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Остановить диктовку"
+          }
+        }
+      }
+    },
+    "Download the speech model?" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скачать модель распознавания речи?"
+          }
+        }
+      }
+    },
+    "Download" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скачать"
+          }
+        }
+      }
+    },
+    "Dictation runs on this Mac and needs a 470 MB model." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Диктовка работает на этом Mac, и ей нужна модель на 470 МБ."
+          }
+        }
+      }
+    },
+    "Microphone access is off in System Settings → Privacy & Security." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступ к микрофону выключен в Системных настройках → Конфиденциальность и безопасность."
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

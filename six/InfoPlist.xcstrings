@@ -133,13 +133,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A site you are visiting is asking to use the microphone."
+            "value" : "For dictation, and for sites that ask to use the microphone."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Сайт, который вы открыли, просит доступ к микрофону."
+            "value" : "Для диктовки и для сайтов, которые просят доступ к микрофону."
           }
         }
       }

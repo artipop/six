@@ -39,6 +39,23 @@ does the same. When it is not a matter of settings — the model is not
 ready yet, Apple Intelligence is off, this Mac cannot run it — there is only
 the sentence.
 
+## Dictation
+
+On the right of the ⌘E line, and beside the message field in the agent panel, there is a microphone
+(**Dictate**). Press it and talk: what is being heard shows in grey while you speak, and when you stop for a couple of
+seconds the text lands in the field. A second press stops sooner. Sending is always `⏎` — yours, after you have read
+it.
+
+Speech is recognised on this Mac and goes nowhere else. Russian and English in one sentence is fine. It needs a
+470 MB model: the first press asks **Download the speech model?**, and nothing is downloaded without **Download**.
+The first start after the download spends about twenty seconds preparing the model; after that dictation starts at
+once.
+
+macOS asks for the microphone once. If access is off, the microphone says where to switch it on: System Settings →
+Privacy & Security.
+
+Mac only for now.
+
 ## When you select text
 
 Select some text and press `⌘E` — the line stands under the selection with the

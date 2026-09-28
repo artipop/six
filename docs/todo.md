@@ -195,6 +195,12 @@ missed:
    `ModelChoice` has should be reachable from the welcome as well, not only the four doors it opens
    now (Private Cloud Compute is the one left out).
 
+## Dictation: saying it instead of typing it
+
+Built on the Mac: a microphone beside the agent panel's composer and the ⌘E line, FluidAudio's Parakeet TDT v3 with
+Silero in front of it on the Neural Engine. What is left — Apple's `SpeechAnalyzer` as the engine that downloads
+nothing, a Settings section with the model's Delete, a key, the phone — is at the end of [speech.md](speech.md).
+
 ## Windows: a WebKit that is not Playwright's
 
 The Windows front runs the WebKit that `playwright install webkit` puts on the machine, and takes whatever

@@ -138,10 +138,14 @@ struct AgentPanel: View {
 
     private var composer: some View {
         VStack(spacing: 6) {
-            TextField("Message \(store.agent.name)…", text: $input, axis: .vertical)
-                .textFieldStyle(.plain)
-                .lineLimit(1...6)
-                .onSubmit(send)
+            HStack(alignment: .firstTextBaseline) {
+                TextField("Message \(store.agent.name)…", text: $input, axis: .vertical)
+                    .textFieldStyle(.plain)
+                    .lineLimit(1...6)
+                    .onSubmit(send)
+                DictationButton(text: $input, owner: "agent")
+            }
+            DictationDraft(owner: "agent")
             HStack {
                 Toggle("Attach page", isOn: $attachPage).toggleStyle(.checkbox).controlSize(.small)
                 Spacer()

@@ -22,6 +22,7 @@
 		AC9001010000000000000025 /* ContentBlockerConverter in Frameworks */ = {isa = PBXBuildFile; productRef = AC9001010000000000000015 /* ContentBlockerConverter */; };
 		C4E57E1CA358AD438C0F5731 /* SQLiteVecData in Frameworks */ = {isa = PBXBuildFile; productRef = 82F43A23555A3254647ADAE5 /* SQLiteVecData */; };
 		AC9002010000000000000012 /* six-share.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = AC9002010000000000000008 /* six-share.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		5A11C0DE0000000000000F01 /* FluidAudio in Frameworks */ = {isa = PBXBuildFile; productRef = 5A11C0DE0000000000000F02 /* FluidAudio */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -166,6 +167,7 @@
 				5A11C0DE0000000000000A01 /* MLXLLM in Frameworks */,
 				A271466D26DE9D05E6A5B285 /* HuggingFace in Frameworks */,
 				5CD2470091CF7AE5F73D25A5 /* Tokenizers in Frameworks */,
+				5A11C0DE0000000000000F01 /* FluidAudio in Frameworks */,
 			);
 		};
 		AC9001010000000000000006 /* Frameworks */ = {
@@ -236,6 +238,7 @@
 				FF7BC8AD7FB5289836E41C75 /* HuggingFace */,
 				E4D3C02313C636C3B360B52A /* Tokenizers */,
 				AD01B10D4E2F7A6390D5C442 /* ContentBlockerConverter */,
+				5A11C0DE0000000000000F02 /* FluidAudio */,
 			);
 			productName = six;
 			productReference = AC897661303CEC20008426C2 /* six.app */;
@@ -324,6 +327,7 @@
 				9202E564C34651D6970C63AD /* XCRemoteSwiftPackageReference "swift-huggingface" */,
 				F6FD676108E197A94959A73D /* XCRemoteSwiftPackageReference "swift-transformers" */,
 				AD01B10C4E2F7A6390D5C441 /* XCRemoteSwiftPackageReference "SafariConverterLib" */,
+				5A11C0DE0000000000000F03 /* XCRemoteSwiftPackageReference "FluidAudio" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = AC897662303CEC20008426C2 /* Products */;
@@ -810,6 +814,14 @@
 				minimumVersion = 1.3.0;
 			};
 		};
+		5A11C0DE0000000000000F03 /* XCRemoteSwiftPackageReference "FluidAudio" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/FluidInference/FluidAudio";
+			requirement = {
+				kind = upToNextMinorVersion;
+				minimumVersion = 0.17.4;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -882,6 +894,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 9202E564C34651D6970C63AD /* XCRemoteSwiftPackageReference "swift-huggingface" */;
 			productName = HuggingFace;
+		};
+		5A11C0DE0000000000000F02 /* FluidAudio */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5A11C0DE0000000000000F03 /* XCRemoteSwiftPackageReference "FluidAudio" */;
+			productName = FluidAudio;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

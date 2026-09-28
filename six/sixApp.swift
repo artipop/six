@@ -148,6 +148,12 @@ struct sixApp: App {
             Task { let report = await mlx.diagnostics(); Log.info(.embed, "selftest:\n\(report)") }
         }
         #if os(macOS)
+        if let path = ProcessInfo.processInfo.environment["SIX_SPEECH_SELFTEST"], !path.isEmpty {
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(3))
+                await SpeechSelfTest.run(directory: URL(fileURLWithPath: path, isDirectory: true))
+            }
+        }
         let extensions = ExtensionStore(settings: settings)
         extensions.browser = browser
         browser.extensions = extensions

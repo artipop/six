@@ -154,7 +154,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>A site you are visiting is asking to use the camera.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>A site you are visiting is asking to use the microphone.</string>
+	<string>For dictation, and for sites that ask to use the microphone.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>A site you are visiting is asking for your location.</string>
 </dict>

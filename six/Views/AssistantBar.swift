@@ -73,6 +73,11 @@ struct AssistantBar: View {
 
     /// What the line says it will do, which depends entirely on what is pointed at.
     private var placeholder: LocalizedStringKey {
+        #if os(macOS)
+        if DictationStore.shared.isActive("assistant"), !DictationStore.shared.draft.isEmpty {
+            return "\(DictationStore.shared.draft)"
+        }
+        #endif
         if isAgent {
             return "Ask \(assistant.settings.model.title.replacingOccurrences(of: " (ACP)", with: ""))…"
         }
@@ -268,6 +273,11 @@ struct AssistantBar: View {
                 .focused($where_, equals: .field)
                 .onSubmit(submit)
                 .onKeyPress(phases: .down, action: chipKey)
+            #if os(macOS)
+            if assistant.answer?.isRunning != true {
+                DictationButton(text: $question, owner: "assistant")
+            }
+            #endif
             if assistant.answer?.isRunning == true {
                 Button { assistant.cancel() } label: { Image(systemName: "stop.circle.fill") }
                     .buttonStyle(.plain)
