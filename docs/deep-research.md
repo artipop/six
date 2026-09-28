@@ -108,7 +108,7 @@ window supports:
   extension of its type, then `.pdf` and `.txt`. Text WebKit shows as one `<pre>` is read back from the page, since a
   raw log's signed link expires; anything else is fetched again with the profile's cookies.
 
-The page's context menu carries Save As too.
+The page's context menu carries Save As too, and a saved file is listed in the downloads popover as finished.
 
 The last folder is remembered in `UserDefaults`, the document's file URL on the document. No `.webarchive`:
 `WebPage` has no API for one ([todo.md](todo.md)).

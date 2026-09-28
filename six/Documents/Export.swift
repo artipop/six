@@ -62,20 +62,20 @@ enum Exporter {
     }
 
     /// ⌘S: a document that has a file goes straight back to it; anything else asks where.
-    static func save(_ tab: BrowserTab) async {
+    static func save(_ tab: BrowserTab, listingIn downloads: DownloadStore? = nil) async {
         if let document = tab.document, let url = document.fileURL {
             do {
                 try await write(tab, to: url, as: Format.format(for: url, of: tab))
             } catch {
-                await saveAs(tab)
+                await saveAs(tab, listingIn: downloads)
             }
             return
         }
-        await saveAs(tab)
+        await saveAs(tab, listingIn: downloads)
     }
 
     /// ⌘⇧S: the panel, with the formats the window can be saved as.
-    static func saveAs(_ tab: BrowserTab) async {
+    static func saveAs(_ tab: BrowserTab, listingIn downloads: DownloadStore? = nil) async {
         #if os(iOS)
         // No panel on the phone: the file lands in the app's own Documents folder, which is what
         // `UIFileSharingEnabled` puts in front of the Files app.
@@ -84,7 +84,7 @@ enum Exporter {
         let format = Format.formats(for: tab, served: served)[0]
         let type = format == .original ? served ?? .data : format.type
         let url = folder.appending(path: suggestedName(for: tab) + "." + (type.preferredFilenameExtension ?? "txt"))
-        try? await write(tab, to: url, as: format)
+        if (try? await write(tab, to: url, as: format)) != nil { downloads?.record(url, from: tab.currentURL) }
         #elseif os(macOS)
         let served = await servedType(of: tab)
         let panel = NSSavePanel()
@@ -99,6 +99,7 @@ enum Exporter {
         lastFolder = url.deletingLastPathComponent()
         do {
             try await write(tab, to: url, as: Format.format(for: url, of: tab, served: served))
+            downloads?.record(url, from: tab.currentURL)
         } catch {
             let alert = NSAlert(error: error)
             alert.messageText = "Couldn't save \(url.lastPathComponent)"
@@ -200,10 +201,10 @@ struct FileCommands: Commands {
             Button("New Document") { browser.newDocument() }
                 .keyboardShortcut("n", modifiers: [.command, .shift])
             Divider()
-            Button("Save…") { if let tab = browser.selectedTab { Task { await Exporter.save(tab) } } }
+            Button("Save…") { if let tab = browser.selectedTab { Task { await Exporter.save(tab, listingIn: browser.downloads) } } }
                 .keyboardShortcut("s")
                 .disabled(!canSave)
-            Button("Save As…") { if let tab = browser.selectedTab { Task { await Exporter.saveAs(tab) } } }
+            Button("Save As…") { if let tab = browser.selectedTab { Task { await Exporter.saveAs(tab, listingIn: browser.downloads) } } }
                 .keyboardShortcut("s", modifiers: [.command, .shift])
                 .disabled(!canSave)
             Divider()

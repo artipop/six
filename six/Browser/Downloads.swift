@@ -254,6 +254,19 @@ final class DownloadStore {
 
     func markSeen() { hasUnseen = false }
 
+    /// A file written some other way — Save As — listed beside the downloads, already finished.
+    func record(_ file: URL, from url: URL?) {
+        var item = Item(url: url ?? file, filename: file.lastPathComponent)
+        item.destination = file
+        if let size = try? file.resourceValues(forKeys: [.fileSizeKey]).fileSize {
+            item.received = Int64(size)
+            item.expected = Int64(size)
+        }
+        item.state = .finished
+        items.insert(item, at: 0)
+        hasUnseen = true
+    }
+
 
     // MARK: What the transfer says
 
