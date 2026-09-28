@@ -12,6 +12,9 @@ import WebKit
 enum Exporter {
     enum Format: String, CaseIterable, Identifiable {
         case markdown, html, pdf, text
+        /// What the server sent, byte for byte — a raw log, a JSON reply, an image. Offered only for
+        /// a page that is not HTML; its type is the one WebKit reports for the document.
+        case original
 
         var id: String { rawValue }
 
@@ -21,6 +24,7 @@ enum Exporter {
             case .html: .html
             case .pdf: .pdf
             case .text: .plainText
+            case .original: .data
             }
         }
 
@@ -30,17 +34,23 @@ enum Exporter {
             case .html: "HTML"
             case .pdf: "PDF"
             case .text: "Plain Text"
+            case .original: "Original"
             }
         }
 
-        static func formats(for tab: BrowserTab) -> [Format] {
-            tab.isDocument ? [.markdown, .html, .pdf] : [.html, .pdf, .text]
+        static func formats(for tab: BrowserTab, served: UTType? = nil) -> [Format] {
+            if tab.isDocument { return [.markdown, .html, .pdf] }
+            return served == nil ? [.html, .pdf, .text] : [.original, .pdf, .text]
         }
 
-        static func format(for url: URL, of tab: BrowserTab) -> Format {
+        static func format(for url: URL, of tab: BrowserTab, served: UTType? = nil) -> Format {
             let ext = url.pathExtension.lowercased()
-            return formats(for: tab).first { $0.type.preferredFilenameExtension == ext || ($0 == .markdown && ext == "markdown") }
-                ?? formats(for: tab)[0]
+            let formats = formats(for: tab, served: served)
+            return formats.first { format in
+                let type = format == .original ? served ?? .data : format.type
+                return type.preferredFilenameExtension == ext || type.tags[.filenameExtension]?.contains(ext) == true
+                    || (format == .markdown && ext == "markdown")
+            } ?? formats[0]
         }
     }
 
@@ -70,22 +80,25 @@ enum Exporter {
         // No panel on the phone: the file lands in the app's own Documents folder, which is what
         // `UIFileSharingEnabled` puts in front of the Files app.
         let folder = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let format = Format.formats(for: tab)[0]
-        let url = folder.appending(path: suggestedName(for: tab) + "." + (format.type.preferredFilenameExtension ?? "txt"))
+        let served = await servedType(of: tab)
+        let format = Format.formats(for: tab, served: served)[0]
+        let type = format == .original ? served ?? .data : format.type
+        let url = folder.appending(path: suggestedName(for: tab) + "." + (type.preferredFilenameExtension ?? "txt"))
         try? await write(tab, to: url, as: format)
         #elseif os(macOS)
+        let served = await servedType(of: tab)
         let panel = NSSavePanel()
-        let formats = Format.formats(for: tab)
-        panel.allowedContentTypes = formats.map(\.type)
+        let types = Format.formats(for: tab, served: served).map { $0 == .original ? served ?? .data : $0.type }
+        panel.allowedContentTypes = types
         panel.canCreateDirectories = true
         panel.isExtensionHidden = false
-        panel.nameFieldStringValue = suggestedName(for: tab) + "." + (formats[0].type.preferredFilenameExtension ?? "txt")
+        panel.nameFieldStringValue = suggestedName(for: tab) + "." + (types[0].preferredFilenameExtension ?? "txt")
         panel.directoryURL = tab.document?.fileURL?.deletingLastPathComponent() ?? lastFolder
         panel.title = String(localized: "Save As")
         guard panel.runModal() == .OK, let url = panel.url else { return }
         lastFolder = url.deletingLastPathComponent()
         do {
-            try await write(tab, to: url, as: Format.format(for: url, of: tab))
+            try await write(tab, to: url, as: Format.format(for: url, of: tab, served: served))
         } catch {
             let alert = NSAlert(error: error)
             alert.messageText = "Couldn't save \(url.lastPathComponent)"
@@ -111,7 +124,7 @@ enum Exporter {
     static func data(of tab: BrowserTab, as format: Format) async throws -> Data {
         if let document = tab.document {
             switch format {
-            case .markdown, .text:
+            case .markdown, .text, .original:
                 return Data(document.text.utf8)
             case .html:
                 return Data(Markdown.page(title: document.title, markdown: document.text).utf8)
@@ -135,7 +148,37 @@ enum Exporter {
         case .text, .markdown:
             let text = await BrowserToolCatalog.pageText(of: tab.page) ?? ""
             return Data(text.utf8)
+        case .original:
+            return try await original(of: tab)
         }
+    }
+
+    /// The document's type as WebKit took it from the response, or nil for an HTML page.
+    private static func servedType(of tab: BrowserTab) async -> UTType? {
+        guard !tab.isDocument, !tab.showsStartPage,
+              let mime = (try? await tab.page.six("return document.contentType")) as? String,
+              !["text/html", "application/xhtml+xml"].contains(mime) else { return nil }
+        return UTType(mimeType: mime) ?? .data
+    }
+
+    /// Text WebKit shows as a single `<pre>` is read back from the page: a raw CI log's link is signed
+    /// and short-lived, so asking the server again can fail. Anything else is fetched with the
+    /// profile's cookies.
+    private static func original(of tab: BrowserTab) async throws -> Data {
+        let script = """
+        const pre = document.body?.children.length === 1 ? document.body.firstElementChild : null
+        return pre?.tagName === 'PRE' ? pre.textContent : null
+        """
+        if let text = (try? await tab.page.six(script)) as? String { return Data(text.utf8) }
+        guard let url = tab.currentURL else { throw URLError(.badURL) }
+        let request = await DownloadStore.outgoing(URLRequest(url: url), referrer: nil, cookies: tab.dataStore)
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.httpCookieStorage = nil
+        let (data, response) = try await URLSession(configuration: configuration).data(for: request)
+        if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
+            throw URLError(.badServerResponse)
+        }
+        return data
     }
 
     private static func waitForLoad(_ page: WebPage, timeout: TimeInterval = 15) async {

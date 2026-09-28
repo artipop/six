@@ -133,7 +133,7 @@ final class BrowserTab: Identifiable {
     let content: TabContent
     /// The profile's store, kept so the page can be built again after a discard. Documents render in
     /// a non-persistent store instead: nothing a preview renders is anyone's site data.
-    @ObservationIgnored private let dataStore: WKWebsiteDataStore?
+    @ObservationIgnored let dataStore: WKWebsiteDataStore?
     /// The app-wide budget this window's page counts against; set by `BrowserState`.
     @ObservationIgnored weak var cache: LivePageCache?
     /// Where the window's picture is kept between launches; set by `BrowserState`.

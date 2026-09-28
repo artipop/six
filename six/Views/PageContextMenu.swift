@@ -49,6 +49,8 @@ extension View {
                 Button("Forward") { tab.goForward() }
                     .disabled(!tab.canGoForward)
                 Button(tab.isLoading ? "Stop" : "Reload") { tab.reloadOrStop() }
+                Button("Save As…") { Task { await Exporter.saveAs(tab) } }
+                    .disabled(tab.showsStartPage)
                 if let url = tab.shareableURL {
                     ShareLink("Share", item: url, subject: Text(tab.shareTitle), preview: SharePreview(tab.shareTitle))
                 }

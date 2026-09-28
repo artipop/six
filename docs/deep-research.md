@@ -104,6 +104,11 @@ window supports:
 
 - document → `.md` (the source), `.html` (the preview page), `.pdf` (`WebPage.exported(as: .pdf())` of the preview)
 - page → `.html` (`outerHTML`), `.pdf`, `.txt` (the visible text)
+- a page that is not HTML (`document.contentType` — a raw CI log, JSON, an image) → the original first, with the
+  extension of its type, then `.pdf` and `.txt`. Text WebKit shows as one `<pre>` is read back from the page, since a
+  raw log's signed link expires; anything else is fetched again with the profile's cookies.
+
+The page's context menu carries Save As too.
 
 The last folder is remembered in `UserDefaults`, the document's file URL on the document. No `.webarchive`:
 `WebPage` has no API for one ([todo.md](todo.md)).

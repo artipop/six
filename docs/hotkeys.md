@@ -158,7 +158,7 @@ and never another profile; this run only.
 | `⌘W` | close the focused window |
 | `⌘⇧T` | put the last closed window back where it stood, showing what it showed — ten deep, this run only. A private window is not on the list, and neither is one that never showed anything |
 | `⌘S` | save — a document that has a file goes back to it; otherwise Save As |
-| `⌘⇧S` | save as… — a document as `.md` / `.html` / `.pdf`, a page as `.html` / `.pdf` / `.txt`; the folder is remembered |
+| `⌘⇧S` | save as… — a document as `.md` / `.html` / `.pdf`, a page as `.html` / `.pdf` / `.txt` (a non-HTML page — a raw log, JSON — as the original instead of `.html`); the folder is remembered |
 | `⌥⇧H` | highlight the selection on the page; it comes back when the page is opened again (File → Remove Highlights on This Page to clear) |
 | `⌥⇧P` | the focused window's video into the floating picture-in-picture player, and out of it again. WebKit's own player, above every other application, and it keeps playing when the window is scrolled out of the row — the page behind it is never given back for the live-page budget while it is up ([layout.md](layout.md#picture-in-picture)) |
 | `⌥⌘A` | the accessibility overlay on / off (View ▸ Accessibility Overlay): WebKit's accessibility tree drawn over the focused window's page — what `get_accessibility_tree` hands an agent. A menu key, not a table row: `⌘` reaches the menu past a focused page, and the other fronts have no tree to draw ([accessibility.md](accessibility.md)) |

@@ -122,7 +122,7 @@ final class DownloadStore {
     /// The request as six actually sends it: Safari's user agent, the page's address as `Referer`,
     /// and the profile's cookies for this URL — the last of which is the whole reason a download
     /// cannot simply be handed to `URLSession` as it arrived.
-    private static func outgoing(_ request: URLRequest, referrer: URL?,
+    static func outgoing(_ request: URLRequest, referrer: URL?,
                                  cookies dataStore: WKWebsiteDataStore?) async -> URLRequest {
         var outgoing = request
         outgoing.setValue(UserAgent.full, forHTTPHeaderField: "User-Agent")
