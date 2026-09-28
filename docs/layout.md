@@ -708,10 +708,11 @@ group, or in a new row of its own; the last tab of a group ungroups it instead, 
 Folding is only for groups: `TilingWorkspace.isFolded` is `isCollapsed` and named. The colour is read off the workspace's id rather
 than its position, so a group does not change colour when the one before it is closed.
 
-A **pinned** tab is its column's `TilingColumn.pinned` (optional, so older files read as unpinned): `normalize`
-keeps pinned columns at the front of their own workspace, which makes pins per group and per profile and lets every
-drop and move stay unaware of them. The tab bar draws them as icons at a fixed width; the row draws them as any
-other window, only first. "Close Other Tabs" skips them.
+A **pinned** tab is its column's `TilingColumn.pinned` (optional, so older files read as unpinned). The column stays
+in whatever row it stood in — `normalize` only keeps it first there — but the tab bar takes it out of that row's group
+(`TabGroup.tabIDs` leaves it out) and draws every pinned tab of the profile as an icon at the bar's left edge, outside
+the scrolling part (`BrowserState.pinnedTabIDs`, which `tabOrder` also puts first). Folding, "Close Group", "Close
+Other Tabs" and `TabSorter` pass over them. Pins per group are a possible second mode, not built.
 
 What the row does not have is a group **folded** up to its label. That lives on the workspace
 (`TilingWorkspace.collapsed`, optional so an older session file reads as every group open) and the row ignores it, so a

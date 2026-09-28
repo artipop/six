@@ -94,8 +94,21 @@ private struct TabStrip: View {
 
     var body: some View {
         let groups = TabGroup.all(in: browser)
+        let pinned = browser.pinnedTabIDs
         HStack(spacing: 0) {
             Color.clear.frame(width: 78, height: 1) // room for the window buttons
+            if !pinned.isEmpty {
+                HStack(spacing: 2) {
+                    ForEach(pinned, id: \.self) { id in
+                        if let tab = browser.tab(id), let group = TabGroup.holding(id, in: browser) {
+                            TabItem(tab: tab, group: group, width: Self.pinnedWidth, tint: nil,
+                                    isPinned: true, rename: { renaming = $0 })
+                        }
+                    }
+                }
+                .padding(.leading, 4)
+                .frame(maxHeight: .infinity, alignment: .bottom)
+            }
             GeometryReader { proxy in
                 let width = tabWidth(groups, available: proxy.size.width - 36)
                 ScrollViewReader { scroller in
@@ -110,8 +123,7 @@ private struct TabStrip: View {
                                 if !group.isCollapsed || group.holdsSelection(browser) {
                                     ForEach(group.tabIDs, id: \.self) { id in
                                         if let tab = browser.tab(id) {
-                                            TabItem(tab: tab, group: group,
-                                                    width: group.pinned.contains(id) ? Self.pinnedWidth : width,
+                                            TabItem(tab: tab, group: group, width: width,
                                                     tint: chip ? group.color.map(Color.init) : nil,
                                                     rename: { renaming = $0 })
                                                 .id(id)
@@ -153,10 +165,9 @@ private struct TabStrip: View {
 
     private func tabWidth(_ groups: [TabGroup], available: CGFloat) -> CGFloat {
         let shown = groups.filter { !$0.isCollapsed || $0.holdsSelection(browser) }
-        let pinned = shown.reduce(0) { $0 + $1.pinned.count }
-        let count = CGFloat(max(1, shown.reduce(0) { $0 + $1.tabIDs.count } - pinned))
+        let count = CGFloat(max(1, shown.reduce(0) { $0 + $1.tabIDs.count }))
         let labels = CGFloat(groups.filter(\.isGroup).count) * Self.chipAllowance
-        let share = ((available - labels - CGFloat(pinned) * (Self.pinnedWidth + 2)) / count).rounded(.down)
+        let share = ((available - labels) / count).rounded(.down)
         return min(Self.tabRange.upperBound, max(Self.tabRange.lowerBound, share))
     }
 }
@@ -167,9 +178,8 @@ struct TabGroup: Identifiable {
     var index: Int
     var name: String
     var title: String
+    /// Its tabs but the pinned ones, which the bar shows apart, before every group.
     var tabIDs: [UUID]
-    /// Drawn as icons; `normalize` keeps them at the front of `tabIDs`.
-    var pinned: Set<UUID>
     var columns: [TilingColumn]
     var isCollapsed: Bool
     var blend: TilingBlend?
@@ -182,14 +192,26 @@ struct TabGroup: Identifiable {
     @MainActor
     static func all(in browser: BrowserState) -> [TabGroup] {
         let layout = browser.layout
-        return layout.workspaces.enumerated().compactMap { index, workspace in
-            guard !workspace.isEmpty else { return nil }
-            return TabGroup(id: workspace.id, index: index, name: workspace.name,
-                            title: layout.title(at: index), tabIDs: workspace.columns.flatMap(\.tabIDs),
-                            pinned: Set(workspace.columns.filter(\.isPinned).flatMap(\.tabIDs)),
-                            columns: workspace.columns, isCollapsed: workspace.isFolded,
-                            blend: workspace.blend, color: layout.groupColor(of: workspace.id))
+        return layout.workspaces.indices.compactMap { index in
+            let group = row(at: index, in: layout)
+            return group.tabIDs.isEmpty ? nil : group
         }
+    }
+
+    /// The row a tab stands in, pinned or not.
+    @MainActor
+    static func holding(_ tabID: UUID, in browser: BrowserState) -> TabGroup? {
+        let layout = browser.layout
+        return layout.workspaces.firstIndex { $0.columns.contains { $0.holds(tabID) } }.map { row(at: $0, in: layout) }
+    }
+
+    @MainActor
+    private static func row(at index: Int, in layout: TilingLayout) -> TabGroup {
+        let workspace = layout.workspaces[index]
+        return TabGroup(id: workspace.id, index: index, name: workspace.name, title: layout.title(at: index),
+                  tabIDs: workspace.columns.filter { !$0.isPinned }.flatMap(\.tabIDs),
+                  columns: workspace.columns, isCollapsed: workspace.isFolded,
+                  blend: workspace.blend, color: layout.groupColor(of: workspace.id))
     }
 
     var isGroup: Bool { !name.isEmpty || blend != nil }
@@ -317,6 +339,7 @@ private struct TabItem: View {
     let width: CGFloat
     /// The group's colour along the tab's foot, while the row is showing groups at all.
     let tint: Color?
+    var isPinned = false
     let rename: (UUID) -> Void
 
     @Environment(BrowserState.self) private var browser
@@ -327,7 +350,6 @@ private struct TabItem: View {
     private var isSelected: Bool { browser.selectedTabID == tab.id }
     /// Picked with ⌘ or ⇧ along with others, and not the one in front (`BrowserState.clickTab`).
     private var isPicked: Bool { !isSelected && browser.pickedTabs.contains(tab.id) }
-    private var isPinned: Bool { group.pinned.contains(tab.id) }
     private var showsClose: Bool { !isPinned && (hovering || isSelected) && width > 80 }
     private var title: String { tab.showsStartPage || tab.title.isEmpty ? String(localized: "New Tab") : tab.title }
 
@@ -416,7 +438,7 @@ private struct TabItem: View {
                           },
                           hover: { hovering = $0 })
         }
-        .contextMenu { TabMenu(tab: tab, group: group, rename: rename) }
+        .contextMenu { TabMenu(tab: tab, group: group, isPinned: isPinned, rename: rename) }
         .onDrop(of: [.plainText], delegate: TabDrop(width: width, side: $dropSide) { id, side in
             guard id != tab.id, let here = group.columnIndex(of: tab.id) else { return }
             browser.placeTab(id, inGroup: group.id, at: side < 0 ? here : here + 1)
@@ -477,6 +499,7 @@ private struct TabMark: View {
 private struct TabMenu: View {
     let tab: BrowserTab
     let group: TabGroup
+    let isPinned: Bool
     let rename: (UUID) -> Void
 
     @Environment(BrowserState.self) private var browser
@@ -485,7 +508,9 @@ private struct TabMenu: View {
         // Opened on one of several picked tabs, the menu is about all of them — Chrome's rule. On a
         // tab outside the pick it is about that tab alone.
         let picked = browser.pickedTabsInOrder
-        if picked.count > 1, picked.contains(tab.id) {
+        if isPinned {
+            pinned
+        } else if picked.count > 1, picked.contains(tab.id) {
             many(picked)
         } else {
             one
@@ -514,17 +539,24 @@ private struct TabMenu: View {
     }
 
     @ViewBuilder
+    private var pinned: some View {
+        Button("Reload") { tab.reload() }
+        Button("Unpin Tab") { browser.setPinned(false, tab: tab.id) }
+        if browser.profiles.count > 1 {
+            Menu("Move to Profile") { MoveToProfileItems(tab: tab) }
+        }
+        Divider()
+        Button("Close Tab") { browser.closeTab(tab.id) }
+    }
+
+    @ViewBuilder
     private var one: some View {
         Button("New Tab to the Right") {
             browser.selectTab(tab.id)
             browser.newTab()
         }
         Button("Reload") { tab.reload() }
-        if group.pinned.contains(tab.id) {
-            Button("Unpin Tab") { browser.setPinned(false, tab: tab.id) }
-        } else {
-            Button("Pin Tab") { browser.setPinned(true, tab: tab.id) }
-        }
+        Button("Pin Tab") { browser.setPinned(true, tab: tab.id) }
         if browser.layout.columnMates(of: tab.id).count > 1 {
             Button("Stop Showing Side by Side") { browser.separate(tab.id) }
         }

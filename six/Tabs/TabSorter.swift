@@ -117,7 +117,7 @@ final class TabSorter {
         pending = []
 
         let rows = browser.layout.strip(for: profileID).workspaces
-        let tabs = rows.flatMap { $0.columns.flatMap(\.tabIDs) }.compactMap(browser.tab).filter(isSortable)
+        let tabs = rows.flatMap { $0.columns.filter { !$0.isPinned }.flatMap(\.tabIDs) }.compactMap(browser.tab).filter(isSortable)
         let stale = tabs.filter { vectors[$0.id]?.text != text(of: $0) }
         let names = Set(rows.map(\.name).filter { !$0.isEmpty && nameVectors[$0] == nil })
         do {

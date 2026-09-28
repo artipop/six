@@ -1667,8 +1667,8 @@ final class BrowserState {
     /// ⌘1…⌘9 cannot see — except the group the selected tab is in, which is never folded away from
     /// under it.
     func tabOrder(skippingCollapsed: Bool = false) -> [UUID] {
-        layout.workspaces.flatMap { workspace -> [UUID] in
-            let ids = workspace.columns.flatMap(\.tabIDs)
+        pinnedTabIDs + layout.workspaces.flatMap { workspace -> [UUID] in
+            let ids = workspace.columns.filter { !$0.isPinned }.flatMap(\.tabIDs)
             if skippingCollapsed, workspace.isFolded, !ids.contains(where: { $0 == selectedTabID }) { return [] }
             return ids
         }
@@ -1696,8 +1696,9 @@ final class BrowserState {
     func toggleGroup(_ id: UUID) {
         guard let workspace = layout.workspaces.first(where: { $0.id == id }) else { return }
         let collapsing = !workspace.isCollapsed
-        if collapsing, let selected = selectedTabID, workspace.columns.contains(where: { $0.holds(selected) }) {
-            let inside = Set(workspace.columns.flatMap(\.tabIDs))
+        let folding = workspace.columns.filter { !$0.isPinned }
+        if collapsing, let selected = selectedTabID, folding.contains(where: { $0.holds(selected) }) {
+            let inside = Set(folding.flatMap(\.tabIDs))
             let order = tabOrder(skippingCollapsed: true)
             let here = order.firstIndex(of: selected) ?? 0
             let after = order[here...].first { !inside.contains($0) }
@@ -1783,7 +1784,7 @@ final class BrowserState {
     /// the answer to that question.
     func closeGroup(_ id: UUID) {
         guard let index = layout.workspaces.firstIndex(where: { $0.id == id }) else { return }
-        let ids = layout.workspaces[index].columns.flatMap(\.tabIDs)
+        let ids = layout.workspaces[index].columns.filter { !$0.isPinned }.flatMap(\.tabIDs)
         layout.rename(workspaceAt: index, to: "")
         for tabID in ids { closeTab(tabID) }
         selectTabIfNone()
@@ -1814,6 +1815,11 @@ final class BrowserState {
 
     func isPinned(_ id: UUID) -> Bool {
         layout.workspaces.contains { $0.columns.contains { $0.holds(id) && $0.isPinned } }
+    }
+
+    /// Every pinned tab of the profile, whatever row it stands in: the tab bar shows them first.
+    var pinnedTabIDs: [UUID] {
+        layout.workspaces.flatMap { $0.columns.filter(\.isPinned).flatMap(\.tabIDs) }
     }
 
     func setPinned(_ pinned: Bool, tab id: UUID) {
