@@ -1805,11 +1805,20 @@ final class BrowserState {
         return created
     }
 
-    /// Every other tab in the tab's own group.
+    /// Every other tab in the tab's own group, pinned ones aside.
     func closeOtherTabs(besides id: UUID) {
         guard let workspace = layout.workspaces.first(where: { $0.columns.contains { $0.holds(id) } }) else { return }
         selectTab(id)
-        for other in workspace.columns.flatMap(\.tabIDs) where other != id { closeTab(other) }
+        for other in workspace.columns.filter({ !$0.isPinned }).flatMap(\.tabIDs) where other != id { closeTab(other) }
+    }
+
+    func isPinned(_ id: UUID) -> Bool {
+        layout.workspaces.contains { $0.columns.contains { $0.holds(id) && $0.isPinned } }
+    }
+
+    func setPinned(_ pinned: Bool, tab id: UUID) {
+        guard let tab = tab(id) else { return }
+        layout.setPinned(pinned, tabID: id, in: tab.profileID)
     }
 
     /// A click on a tab, and the modifiers it came with — Chrome's rules on a Mac. Plain: that tab,

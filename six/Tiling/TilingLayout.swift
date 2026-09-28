@@ -51,6 +51,8 @@ nonisolated struct TilingColumn: Identifiable, Hashable, Sendable, Codable {
     var pane: Int = 0
     /// Read from sessions saved when the tint was a window's and not its row's; `normalize` moves it.
     var lean: TilingBlend?
+    /// Kept at the front of its workspace and drawn as an icon in the tab bar; nil when not.
+    var pinned: Bool?
 
     init(id: UUID = UUID(), tabID: UUID, second: UUID? = nil, pane: Int = 0) {
         self.id = id
@@ -62,6 +64,7 @@ nonisolated struct TilingColumn: Identifiable, Hashable, Sendable, Codable {
     /// The windows in it, left to right.
     var tabIDs: [UUID] { second.map { [tabID, $0] } ?? [tabID] }
     var isSplit: Bool { second != nil }
+    var isPinned: Bool { pinned == true }
     /// The focused half's window — which is the whole of what a column meant before it could split.
     var focusedTabID: UUID { pane == 1 ? (second ?? tabID) : tabID }
     func holds(_ id: UUID) -> Bool { tabID == id || second == id }
@@ -104,7 +107,7 @@ nonisolated struct TilingColumn: Identifiable, Hashable, Sendable, Codable {
     // MARK: Codable
 
     enum CodingKeys: String, CodingKey {
-        case id, tabID, second, pane, lean
+        case id, tabID, second, pane, lean, pinned
     }
 
     /// A column on disk was a `tabID` and nothing else until it could hold two, and a session file
@@ -119,6 +122,7 @@ nonisolated struct TilingColumn: Identifiable, Hashable, Sendable, Codable {
         second = try values.decodeIfPresent(UUID.self, forKey: .second)
         pane = try values.decodeIfPresent(Int.self, forKey: .pane) ?? 0
         lean = try values.decodeIfPresent(TilingBlend.self, forKey: .lean)
+        pinned = try values.decodeIfPresent(Bool.self, forKey: .pinned)
     }
 }
 
@@ -563,6 +567,11 @@ final class TilingLayout {
             kept.append(spare)
         } else {
             kept.append(TilingWorkspace())
+        }
+        for i in kept.indices where kept[i].columns.contains(where: \.isPinned) {
+            let focused = kept[i].focusedColumn?.id
+            kept[i].columns = kept[i].columns.filter(\.isPinned) + kept[i].columns.filter { !$0.isPinned }
+            if let focused, let index = kept[i].columns.firstIndex(where: { $0.id == focused }) { kept[i].focus = index }
         }
         for i in kept.indices {
             for j in kept[i].columns.indices {
@@ -1933,6 +1942,26 @@ final class TilingLayout {
                 s.workspaces[target].collapsed = nil
                 s.focus = target
                 scrollFocusIntoView(&s.workspaces[target])
+            }
+        }
+    }
+
+    /// Pins the window's column to the front of its workspace, or lets it go back behind the pinned ones.
+    func setPinned(_ pinned: Bool, tabID: UUID, in profileID: UUID) {
+        unanimated {
+            mutate(profile: profileID) { s in
+                for w in s.workspaces.indices {
+                    guard let at = s.workspaces[w].columns.firstIndex(where: { $0.holds(tabID) }) else { continue }
+                    let focused = s.workspaces[w].focusedColumn?.id
+                    var column = s.workspaces[w].columns.remove(at: at)
+                    column.pinned = pinned ? true : nil
+                    let edge = s.workspaces[w].columns.lastIndex(where: \.isPinned).map { $0 + 1 } ?? 0
+                    s.workspaces[w].columns.insert(column, at: edge)
+                    if let focused, let index = s.workspaces[w].columns.firstIndex(where: { $0.id == focused }) {
+                        s.workspaces[w].focus = index
+                    }
+                    return
+                }
             }
         }
     }

@@ -8555,6 +8555,26 @@
           }
         }
       }
+    },
+    "Pin Tab" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закрепить вкладку"
+          }
+        }
+      }
+    },
+    "Unpin Tab" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открепить вкладку"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

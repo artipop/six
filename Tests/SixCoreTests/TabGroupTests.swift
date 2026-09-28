@@ -36,6 +36,37 @@ struct TabGroupTests {
         #expect(row(layout, 0) == [a, b, c])
     }
 
+    @Test func aPinnedTabStaysAtTheFrontOfItsOwnRow() {
+        let layout = layout()
+        let profile = layout.activeProfileID
+        let (a, b, c) = (UUID(), UUID(), UUID())
+        for id in [a, b, c] { layout.insertColumn(tabID: id) }
+        let group = layout.workspaces[0].id
+
+        layout.setPinned(true, tabID: c, in: profile)
+        #expect(row(layout, 0) == [c, a, b])
+        #expect(layout.focusedTabID == c)
+
+        layout.setPinned(true, tabID: b, in: profile)
+        #expect(row(layout, 0) == [c, b, a])
+
+        // Dropped in front of the pinned ones, an ordinary tab lands just after them.
+        layout.placeTab(a, in: profile, workspace: group, at: 0)
+        #expect(row(layout, 0) == [c, b, a])
+
+        layout.setPinned(false, tabID: c, in: profile)
+        #expect(row(layout, 0) == [b, c, a])
+        #expect(layout.workspaces[0].columns.map(\.isPinned) == [true, false, false])
+    }
+
+    @Test func aPinSurvivesTheSnapshot() throws {
+        let column = TilingColumn(tabID: UUID())
+        var pinned = column
+        pinned.pinned = true
+        let decoded = try JSONDecoder().decode([TilingColumn].self, from: JSONEncoder().encode([column, pinned]))
+        #expect(decoded.map(\.isPinned) == [false, true])
+    }
+
     @Test func aTabDroppedOnAnotherGroupJoinsItAndOpensIt() {
         let layout = layout()
         let profile = layout.activeProfileID

@@ -51,6 +51,12 @@ menu: both pages stand under the tab bar, and the two tabs get a split mark. The
 half that has the keyboard is underlined at the top. **Stop Showing Side by Side**
 on either one takes them apart. It is the same split as `⌥S` on the row.
 
+**Pinned tabs.** **Pin Tab** in a tab's menu turns it into an icon at the front
+of its group — each group has its own pinned tabs, and each profile its own. It
+has no close button, **Close Other Tabs** leaves it alone, and a tab dragged in
+front of the pinned ones lands right after them. **Unpin Tab** takes it back. A
+pin stays after a relaunch.
+
 A folded group stays folded after a relaunch.
 
 ### Groups by meaning

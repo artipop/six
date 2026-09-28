@@ -88,6 +88,7 @@ private struct TabStrip: View {
 
     static let height: CGFloat = 38
     private static let tabRange: ClosedRange<CGFloat> = 56...220
+    static let pinnedWidth: CGFloat = 40
     /// What a group's label takes of the row, for sharing out the rest; its real width is its own.
     private static let chipAllowance: CGFloat = 84
 
@@ -109,7 +110,8 @@ private struct TabStrip: View {
                                 if !group.isCollapsed || group.holdsSelection(browser) {
                                     ForEach(group.tabIDs, id: \.self) { id in
                                         if let tab = browser.tab(id) {
-                                            TabItem(tab: tab, group: group, width: width,
+                                            TabItem(tab: tab, group: group,
+                                                    width: group.pinned.contains(id) ? Self.pinnedWidth : width,
                                                     tint: chip ? group.color.map(Color.init) : nil,
                                                     rename: { renaming = $0 })
                                                 .id(id)
@@ -151,9 +153,10 @@ private struct TabStrip: View {
 
     private func tabWidth(_ groups: [TabGroup], available: CGFloat) -> CGFloat {
         let shown = groups.filter { !$0.isCollapsed || $0.holdsSelection(browser) }
-        let count = CGFloat(max(1, shown.reduce(0) { $0 + $1.tabIDs.count }))
+        let pinned = shown.reduce(0) { $0 + $1.pinned.count }
+        let count = CGFloat(max(1, shown.reduce(0) { $0 + $1.tabIDs.count } - pinned))
         let labels = CGFloat(groups.filter(\.isGroup).count) * Self.chipAllowance
-        let share = ((available - labels) / count).rounded(.down)
+        let share = ((available - labels - CGFloat(pinned) * (Self.pinnedWidth + 2)) / count).rounded(.down)
         return min(Self.tabRange.upperBound, max(Self.tabRange.lowerBound, share))
     }
 }
@@ -165,6 +168,8 @@ struct TabGroup: Identifiable {
     var name: String
     var title: String
     var tabIDs: [UUID]
+    /// Drawn as icons; `normalize` keeps them at the front of `tabIDs`.
+    var pinned: Set<UUID>
     var columns: [TilingColumn]
     var isCollapsed: Bool
     var blend: TilingBlend?
@@ -181,6 +186,7 @@ struct TabGroup: Identifiable {
             guard !workspace.isEmpty else { return nil }
             return TabGroup(id: workspace.id, index: index, name: workspace.name,
                             title: layout.title(at: index), tabIDs: workspace.columns.flatMap(\.tabIDs),
+                            pinned: Set(workspace.columns.filter(\.isPinned).flatMap(\.tabIDs)),
                             columns: workspace.columns, isCollapsed: workspace.isFolded,
                             blend: workspace.blend, color: layout.groupColor(of: workspace.id))
         }
@@ -321,7 +327,9 @@ private struct TabItem: View {
     private var isSelected: Bool { browser.selectedTabID == tab.id }
     /// Picked with ⌘ or ⇧ along with others, and not the one in front (`BrowserState.clickTab`).
     private var isPicked: Bool { !isSelected && browser.pickedTabs.contains(tab.id) }
-    private var showsClose: Bool { (hovering || isSelected) && width > 80 }
+    private var isPinned: Bool { group.pinned.contains(tab.id) }
+    private var showsClose: Bool { !isPinned && (hovering || isSelected) && width > 80 }
+    private var title: String { tab.showsStartPage || tab.title.isEmpty ? String(localized: "New Tab") : tab.title }
 
     private func dragPreview() -> NSImage? {
         let icon = tab.isWebPage ? browser.siteIcons.icon(for: tab.currentURL?.host()) : nil
@@ -345,33 +353,42 @@ private struct TabItem: View {
         return renderer.nsImage
     }
 
+    @ViewBuilder
+    private var label: some View {
+        TabMark(tab: tab)
+        if browser.layout.columnMates(of: tab.id).count > 1 {
+            Image(systemName: "rectangle.split.2x1")
+                .font(.system(size: 10))
+                .foregroundStyle(.secondary)
+                .help("Shown Side by Side")
+        }
+        // A start page's title is the row's "New Window"; here it is a tab.
+        Text(title)
+            .font(.system(size: 12))
+            .lineLimit(1)
+            .foregroundStyle(isSelected ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
+        Spacer(minLength: 0)
+        if showsClose {
+            Button { browser.closeTab(tab.id) } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 9, weight: .bold))
+                    .frame(width: 16, height: 16)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.borderless)
+            .help("Close Tab (⌘W)")
+        }
+    }
+
     var body: some View {
         HStack(spacing: 6) {
-            TabMark(tab: tab)
-            if browser.layout.columnMates(of: tab.id).count > 1 {
-                Image(systemName: "rectangle.split.2x1")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-                    .help("Shown Side by Side")
-            }
-            // A start page's title is the row's "New Window"; here it is a tab.
-            Text(tab.showsStartPage || tab.title.isEmpty ? String(localized: "New Tab") : tab.title)
-                .font(.system(size: 12))
-                .lineLimit(1)
-                .foregroundStyle(isSelected ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
-            Spacer(minLength: 0)
-            if showsClose {
-                Button { browser.closeTab(tab.id) } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 9, weight: .bold))
-                        .frame(width: 16, height: 16)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.borderless)
-                .help("Close Tab (⌘W)")
+            if isPinned {
+                TabMark(tab: tab).frame(maxWidth: .infinity).help(title)
+            } else {
+                label
             }
         }
-        .padding(.horizontal, 9)
+        .padding(.horizontal, isPinned ? 0 : 9)
         .frame(width: width, height: 30)
         .background {
             UnevenRoundedRectangle(topLeadingRadius: 8, topTrailingRadius: 8, style: .continuous)
@@ -503,6 +520,11 @@ private struct TabMenu: View {
             browser.newTab()
         }
         Button("Reload") { tab.reload() }
+        if group.pinned.contains(tab.id) {
+            Button("Unpin Tab") { browser.setPinned(false, tab: tab.id) }
+        } else {
+            Button("Pin Tab") { browser.setPinned(true, tab: tab.id) }
+        }
         if browser.layout.columnMates(of: tab.id).count > 1 {
             Button("Stop Showing Side by Side") { browser.separate(tab.id) }
         }
