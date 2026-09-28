@@ -405,7 +405,7 @@ final class PageTaskRunner {
             case "CALL_TOOL":
                 step.outcome = try await callTool(named: ref, input: step.text ?? "", tab: tab)
             case "FILL_FORM":
-                try await fillForm(ref, input: step.text ?? "", tab: tab)
+                step.outcome = try await fillForm(ref, input: step.text ?? "", tab: tab)
             default:
                 step.failed = true
                 step.outcome = String(localized: "Unknown operation \(step.operation)")
@@ -438,19 +438,21 @@ final class PageTaskRunner {
         return WebMCPHost.answer(answer, from: tool, limit: 1500)
     }
 
-    /// One fill per field, in the form's order; submitting is the next step's, so that the button
-    /// that commits still meets `commitment`.
-    private func fillForm(_ handle: String, input: String, tab: BrowserTab) async throws {
+    private func fillForm(_ handle: String, input: String, tab: BrowserTab) async throws -> String {
         guard case .derived(let actions) = route, let form = actions.first(where: { $0.handle == handle && $0.kind == .form }) else {
             throw PageTaskFailure(message: String(localized: "No form \(handle) on this page"))
         }
-        guard let values = (try? JSONSerialization.jsonObject(with: Data(input.utf8))) as? [String: Any], !values.isEmpty else {
+        guard var values = (try? JSONSerialization.jsonObject(with: Data(input.utf8))) as? [String: Any], !values.isEmpty else {
             throw PageTaskFailure(message: String(localized: "The values for \(handle) are not a JSON object"))
         }
-        for field in form.fields {
-            guard let value = values.first(where: { $0.key.caseInsensitiveCompare(field.name) == .orderedSame || $0.key == field.ref })?.value else { continue }
-            _ = try await PageActions.run(tab.page, PageActionScript.fill, arguments: ["ref": field.ref, "text": "\(value)", "submit": false])
+        var submit = (values.removeValue(forKey: "submit") as? Bool) == true
+        // The button that commits is the person's, here as for a CLICK.
+        if submit, let name = form.submitName, Self.commitment(in: name) { submit = false }
+        let texts = values.mapValues { value -> String in
+            if let flag = value as? Bool { return flag ? "true" : "false" }
+            return "\(value)"
         }
+        return try await PageTaskRoute.fill(form, values: texts, submit: submit, tab: tab).joined(separator: ", ")
     }
 
     // MARK: What the person reads

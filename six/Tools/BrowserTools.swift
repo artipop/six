@@ -226,17 +226,20 @@ final class BrowserToolCatalog {
             title: String(localized: "Page Tools"),
             description: "The tools a window's page declares for agents through WebMCP (document.modelContext): name, "
                 + "description, JSON Schema for the arguments, annotations (readOnlyHint, consequentialHint, "
-                + "untrustedContentHint) and origin. Only the open page's, and empty for most pages. Needs "
+                + "untrustedContentHint) and origin. Only the open page's. On a page that declares none, on the Mac, "
+                + "the tools six derives from its accessibility tree instead — a form to fill, a control to press, a "
+                + "field to type into — called the same way, every call confirmed by the user. Needs "
                 + "six://configuration › Develop › WebMCP; the tool says so if it is off.",
             parameters: [Self.windowID],
             surfaces: .mcp,
-            run: { [unowned self] args in try self.listPageTools(args) }
+            run: { [unowned self] args in try await self.listPageTools(args) }
         ),
         BrowserTool(
             name: "call_page_tool",
             title: String(localized: "Call Page Tool"),
             description: "Calls a tool a window's page declared (see list_page_tools) and returns what the page answered. "
-                + "The tool runs in the page, in the user's session, and does whatever the site wrote it to do.",
+                + "The tool runs in the page, in the user's session, and does whatever the site wrote it to do. A "
+                + "derived tool fills, types or presses on the page instead, and answers with the page afterwards.",
             parameters: [
                 Self.windowID,
                 .init(name: "name", description: "The tool's name, from list_page_tools.", required: true),
@@ -1098,10 +1101,23 @@ final class BrowserToolCatalog {
         return webMCP
     }
 
-    private func listPageTools(_ args: ACPJSON) throws -> String {
+    private func listPageTools(_ args: ACPJSON) async throws -> String {
         let tab = try webTab(args)
         let webMCP = try requireWebMCP()
-        return "\(Self.describe(tab))\n\n" + WebMCPHost.listing(webMCP.tools(in: tab.id))
+        let declared = webMCP.tools(in: tab.id)
+        #if os(macOS)
+        // A page's own tools win: the page knows what its buttons mean, the tree only what they are called.
+        if declared.isEmpty {
+            do {
+                let derived = try await DerivedPageToolCalls.tools(on: tab)
+                if !derived.isEmpty { return "\(Self.describe(tab))\n\n" + DerivedPageToolCalls.listing(derived.map(\.tool)) }
+            } catch {
+                return "\(Self.describe(tab))\n\n" + WebMCPHost.listing([])
+                    + " None could be derived from its accessibility tree either: \(error.localizedDescription)"
+            }
+        }
+        #endif
+        return "\(Self.describe(tab))\n\n" + WebMCPHost.listing(declared)
     }
 
     private func callPageTool(_ args: ACPJSON) async throws -> String {
@@ -1127,6 +1143,15 @@ final class BrowserToolCatalog {
         }
         let offered = webMCP.tools(in: tab.id)
         let origin = args["origin"]?.stringValue.flatMap { $0.isEmpty ? nil : $0 }
+        #if os(macOS)
+        if offered.isEmpty {
+            do {
+                return "\(Self.describe(tab))\n\n" + (try await DerivedPageToolCalls.call(name, arguments: arguments, on: tab, webMCP: webMCP))
+            } catch {
+                throw BrowserTool.Failure(message: error.localizedDescription)
+            }
+        }
+        #endif
         guard let tool = offered.first(where: { $0.name == name && (origin == nil || $0.origin == origin) }) else {
             throw BrowserTool.Failure(message: WebMCPError.noSuchTool(name, available: offered.map(\.name)).localizedDescription)
         }

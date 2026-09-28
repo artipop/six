@@ -8366,16 +8366,6 @@
         }
       }
     },
-    "From the accessibility tree of the part on screen. Not offered to agents yet." : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Из дерева доступности видимой части. Агентам пока не предлагаются."
-          }
-        }
-      }
-    },
     "%lld of %lld controls named" : {
       "localizations" : {
         "ru" : {
@@ -8552,6 +8542,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Значения для %@ — не объект JSON"
+          }
+        }
+      }
+    },
+    "From the accessibility tree of the part on screen. Each call by an agent is confirmed." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Из дерева доступности видимой части. Каждый вызов агентом подтверждается."
           }
         }
       }

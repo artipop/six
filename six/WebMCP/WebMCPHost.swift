@@ -299,6 +299,11 @@ final class WebMCPHost {
     // MARK: What an agent reads
 
     /// `list_page_tools`' answer, less the line naming the window, which is the catalog's.
+    /// The gate alone, for a tool six derived from the page rather than one the page declared.
+    func confirm(_ tool: WebMCPTool, arguments: ACPJSON, in windowID: UUID) async throws {
+        try await gate(tool, arguments: arguments, in: windowID)
+    }
+
     static func listing(_ tools: [WebMCPTool]) -> String {
         guard let first = tools.first else {
             return "This page declares no tools. A page declares them as it loads and only while it is open — "

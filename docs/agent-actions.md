@@ -22,8 +22,8 @@ exists, it is switched on **per site**, the way `SitePermissions` is, never by o
 4. **The page's elements one by one** — the DOM snapshot and the acting tools below. Every page has these, on every
    front.
 
-An agent over MCP chooses among 2–4 itself (`list_page_tools`, `get_accessibility_tree`, `page_snapshot`); the
-catalog's instructions put them in that order. `run_page_task` chooses for it, at every step
+An agent over MCP gets 2 and 3 through the same pair, `list_page_tools` and `call_page_tool`: a page's declared
+tools when it has any, the derived ones when it has none. The elements are `page_snapshot` and the tools below. `run_page_task` chooses for it, at every step
 ([below](#run_page_task-the-routes)).
 
 What is left when none of them works — a canvas (Sheets, Figma, Maps), a page whose controls have no names — is
@@ -75,8 +75,9 @@ At every step `PageTaskRoute.choose` asks what the page offers, in the order abo
 - **Tools derived from the accessibility tree**, when WebMCP is on (the same switch the spark mark in the address
   bar waits for) and the tree's verdict is *good*. The tree is read for the eyes, the DOM snapshot is the hands:
   each node is matched to the smallest snapshot element whose box holds the node's middle (scaled by the zoom), and
-  a node with nothing under it is dropped. A form becomes `FILL_FORM` with a JSON object of field name to text —
-  one step for what was one `TYPE_TEXT` per field; a named control or field is offered by its ref. A refused
+  a node with nothing under it is dropped. A form becomes `FILL_FORM` with a JSON object of field name to value —
+  text, a list's option, a checkbox's true or false, and `submit` — one step for what was a step per field; a
+  named control or field is offered by its ref. A submit button whose name commits is not pressed. A refused
   Accessibility grant is believed for a minute, then asked again.
 - **The elements**, always, below whatever was offered: a WebMCP page still has buttons its tools do not cover.
 
@@ -146,6 +147,7 @@ anything. The first `orders` run asks about the site `127.0.0.1` once.
 | + laya-browser v10s on MPS (23 Sep) | 14, 38 s — 1 of 13 kept | 9, 19 s — 1 of 7 | — | 1, 2.0 s |
 | WebMCP off (27 Sep) | 16, 67 s | 8, 30 s | 3, 11 s — the form | 1, 4.0 s |
 | WebMCP on, Accessibility granted (27 Sep, two rounds) | 14, 54–59 s | 6, 23–26 s — one `FILL_FORM` | 2, 8 s — `order_status` | 1, 3.9–4.1 s |
+| same, forms with lists, checkboxes and `submit` (28 Sep) | 14, 83 s | 4, 18 s | 2, 9 s | 1, 3.8 s |
 
 With laya-browser v10s there is no saving: it kept one step in thirteen, so the model is called almost every step
 anyway and its own 0.35–1.3 s on MPS come on top. Three mistakes on this side were found on the way: the request
@@ -172,8 +174,6 @@ London, one-way, in 29 turns and 92 s ($0.98). One action with its snapshot is ~
 - **Hands per source.** A derived tool acts through the DOM ref under its node. `AXUIElementPerformAction(AXPress)`
   and setting `AXValue` in the `--ax-read` child would press the way VoiceOver does, which matters exactly where the
   tree sees what the DOM walk does not (closed shadow roots, `ElementInternals`).
-- **Derived tools for agents over MCP.** Only `run_page_task` uses them; `list_page_tools` still lists declared tools
-  only, and the popover under the spark still says they are not offered.
 - **Real events, for canvases.** Sheets draws its grid in `<canvas>` and mostly ignores `isTrusted: false` events.
   `NSApp.postEvent` needs no Accessibility and produces trusted events (`six/Input/KeySelfTest.swift`): the keyboard
   nearly covers Sheets (arrows, typing, Enter, ⌘C/⌘V); the mouse needs page → window coordinates through the column
@@ -182,8 +182,5 @@ London, one-way, in 29 turns and 92 s ($0.98). One action with its snapshot is ~
 - **Boundaries, before real events.** A profile as the sandbox (an "Agent" profile, and a ceiling — not a default —
   that the agent acts only there), and sites where acting is allowed, apart from where reading is, on the shape of
   `SitePermissions` (origin + profile → answer).
-- **`fetch_url`** — a GET under the profile's cookies for a service's own export
-  (`docs.google.com/spreadsheets/d/<id>/export?format=csv`), through an off-screen `WebPage` on the profile's store.
-  Google's Workspace MCP servers (Sheets at `sheetsmcp.googleapis.com`) now cover the case it was for.
 - **Frames.** The snapshot reads the main frame only.
 - **Other fronts.** `PageActionScript` is plain JavaScript, but the tools and the runner are wired on Apple only.

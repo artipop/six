@@ -47,7 +47,7 @@ private struct DerivedToolsList: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Tools derived from the page")
                 .font(.headline)
-            Text("From the accessibility tree of the part on screen. Not offered to agents yet.")
+            Text("From the accessibility tree of the part on screen. Each call by an agent is confirmed.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
             Divider()

@@ -118,6 +118,11 @@ final class WebMCPStore {
         try await host.call(name, arguments: arguments, in: tab.id, origin: origin, on: { [weak tab] in tab }, timeout: timeout)
     }
 
+    /// Asks about a derived tool's call the way a declared one's is asked about.
+    func confirm(_ tool: WebMCPTool, arguments: ACPJSON, in tab: BrowserTab) async throws {
+        try await host.confirm(tool, arguments: arguments, in: tab.id)
+    }
+
     /// `SIX_WEBMCP_SELFTEST=<page>`, in the window on screen — the one way to watch this work on a
     /// machine where screenshots come back black (CLAUDE.md).
     func runSelfTestIfAsked() {

@@ -16,6 +16,8 @@ nonisolated struct DerivedPageTools: Sendable {
 
     nonisolated struct Tool: Sendable, Identifiable {
         nonisolated enum Kind: Sendable { case form, press, type }
+        /// What a form's input takes: text, one of a list's options, or on and off.
+        nonisolated enum Input: Sendable { case text, choice, toggle }
 
         /// The node the tool acts on: the form, the control or the field.
         let id: Int
@@ -25,6 +27,10 @@ nonisolated struct DerivedPageTools: Sendable {
         let inputs: [String]
         /// For a form: the nodes of those fields, parallel to `inputs`.
         var fields: [Int] = []
+        /// For a form: what each field takes, parallel to `inputs`.
+        var kinds: [Input] = []
+        /// For a form: its last named button, which is what sends it.
+        var submit: Int?
     }
 
     static let minimumActionable = 3
@@ -80,15 +86,24 @@ nonisolated struct DerivedPageTools: Sendable {
         }
         var tools: [Tool] = []
         for (formID, inside) in members.sorted(by: { $0.key < $1.key }) {
-            let fields = inside.filter { $0.kind == .field && !$0.name.isEmpty }
-            guard !fields.isEmpty else {
+            // Radios are left out: each is named for its option ("Email"), not for the question.
+            var fields: [(node: AXPageNode, input: Tool.Input)] = []
+            for node in inside where !node.name.isEmpty && !fields.contains(where: { $0.node.name == node.name }) {
+                if node.kind == .field { fields.append((node, .text)) }
+                else if node.role == "AXPopUpButton" { fields.append((node, .choice)) }
+                else if node.role == "AXCheckBox" { fields.append((node, .toggle)) }
+            }
+            guard fields.contains(where: { $0.input == .text }) else {
                 loose += inside
                 continue
             }
             let region = nodes[formID - 1]
-            let submit = inside.first { $0.kind == .control && !$0.name.isEmpty }
-            let name = [region.name, submit?.name ?? "", fields[0].name].first { !$0.isEmpty } ?? ""
-            tools.append(Tool(id: formID, kind: .form, name: name, inputs: fields.map(\.name), fields: fields.map(\.id)))
+            let submit = inside.last { $0.role == "AXButton" && !$0.name.isEmpty }
+            // A form with no label of its own is named by WebKit from everything in it.
+            let own = region.name.hasPrefix(fields[0].node.name) || region.name.count > 60 ? "" : region.name
+            let name = [own, submit?.name ?? "", fields[0].node.name].first { !$0.isEmpty } ?? ""
+            tools.append(Tool(id: formID, kind: .form, name: name, inputs: fields.map(\.node.name), fields: fields.map(\.node.id),
+                              kinds: fields.map(\.input), submit: submit?.id))
         }
         for node in loose where !node.name.isEmpty {
             tools.append(Tool(id: node.id, kind: node.kind == .field ? .type : .press, name: node.name, inputs: []))

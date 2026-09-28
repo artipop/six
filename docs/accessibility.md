@@ -303,8 +303,7 @@ child over the same pipe — which is why `AXReadRequest` is a request type and 
 
 Beside `PageToolsButton`, the same wrench with a spark: this page declared no tools, and its tree is good enough to
 make some of. The popover lists them — `fill` a form with its fields, `press` a control, `type` into a field — with
-"not offered to agents yet" under the title: no MCP tool calls them, though `run_page_task` does
-([below](#used-by-page-tasks)). Only with WebMCP on (`six://configuration`
+"each call by an agent is confirmed" under the title ([below](#offered-to-agents)). Only with WebMCP on (`six://configuration`
 ▸ Develop), never in a private window, never over a page's own tools. `AddressBar` reads the focused window a second
 after it stops loading, through the same `AccessibilityOverlay.read` — so it costs one child and ~30–200 ms per
 navigation, and puts the web content process into accessibility mode as the overlay does. `get_accessibility_tree`
@@ -350,13 +349,28 @@ name. Only the visible part is read, so the verdict is about the screen, not the
 first caller. On a page with no WebMCP tools of its own, with WebMCP on and a *good* verdict, each step reads the tree,
 and every derived tool's node is matched to the smallest DOM snapshot element whose box holds its middle — the tree
 for the eyes, the DOM for the hands. A form is then offered as one `FILL_FORM` step: on the stand's contact form that
-is three fields in one step, 6 steps instead of 8. `DerivedPageTools.Tool.fields` carries the field nodes for it.
+is fields, list, consent and send in one step, 4 steps instead of 8. `DerivedPageTools.Tool.fields` carries the field nodes for it.
+
+### Offered to agents
+
+On the same page — no declared tools, WebMCP on, a *good* verdict — `list_page_tools` answers with the derived tools
+as `WebMCPTool`s, and `call_page_tool` calls them (`DerivedPageToolCalls`). A form is `fill_<its name>`: a string
+per text field, an option's label per list, a boolean per checkbox, and `submit`, which presses its last named
+button. Radios are left out — each is named for its option, not for the question. A form with no label of its own is
+named after that button, because WebKit names it from all the text inside. A field is `type_…` with `text` and
+`submit` (Enter); a control is `press_…`. A node whose middle lands on no element — a checkbox, whose node spans its
+label while the `<input>` is the small box at its edge — takes the element it overlaps most. The name is built from the accessible name, so it survives a new read:
+every call reads the tree again and finds the tool by name, and a tool that went away fails as `noSuchTool` with
+the ones that are there. `FILL_FORM` in `run_page_task` fills through the same `PageTaskRoute.fill`, and there a
+submit button whose name commits is not pressed. The call goes through WebMCP's gate with `readOnlyHint` false — six cannot know what a
+button does — so the person confirms every one; the answer is what was done and the page's snapshot after it. They
+are not in `WebMCPRegistry` and not shown under the wrench: they belong to one reading of the screen, not to the page.
 
 ## Not built
 
-- **Acting through the tree**, and derived tools for agents over MCP. `AXUIElementPerformAction(AXPress)` and setting
-  `AXValue` press the way VoiceOver does; today a derived tool acts through the DOM element under it. Acting on its
-  own is the next stage of [agent-actions.md](agent-actions.md#not-built), with the permission boundaries put first.
+- **Acting through the tree.** `AXUIElementPerformAction(AXPress)` and setting `AXValue` press the way VoiceOver
+  does; today a derived tool acts through the DOM element under it
+  ([agent-actions.md](agent-actions.md#not-built)).
 - **Developer ID signing.** Under ad-hoc signing every build is a new code hash and loses the grant ("Signing"
   above); the Release in `/Applications` included.
 - **Other fronts.** WebKitGTK exposes the same tree over AT-SPI (D-Bus), so Linux could have this without a
