@@ -112,8 +112,8 @@ pays, books, orders, subscribes or deletes, and says what is ready. A prompt cou
 
 ### Trying Jev
 
-The client already speaks `/v1/systemone`, so it is settings, not code: **Fast Decider**
-`https://api.typesafe.ai/v1/systemone`, **Model** `jev-latest`, a TypeSafe key, **Trust Above** 0.9. For a
+The client already speaks `/v1/systemone`, so it is settings, not code: **Fast Model Server**
+`https://api.typesafe.ai/v1/systemone`, **Model** `jev-latest`, a TypeSafe key, **Confidence Threshold** 0.9. For a
 side-by-side run, environment variables override the settings: `SIX_PAGETASK_ENDPOINT`, `SIX_PAGETASK_KEY`,
 `SIX_PAGETASK_MODEL`, `SIX_PAGETASK_THRESHOLD` (an empty endpoint is the model-only baseline). A refused key or an
 unreachable endpoint is the trace's first line, not a silent model-only run.

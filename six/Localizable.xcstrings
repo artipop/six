@@ -7222,16 +7222,6 @@
         }
       }
     },
-    "Experimental. A page declares tools through document.modelContext, and agents list and call them with list_page_tools and call_page_tool. There is no per-site permission or confirmation yet: keep it off outside testing." : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Экспериментально. Страница объявляет инструменты через document.modelContext, а агенты видят и вызывают их через list_page_tools и call_page_tool. Разрешений по сайтам и подтверждения вызовов пока нет — вне тестов держите это выключенным."
-          }
-        }
-      }
-    },
     "tools for agents" : {
       "localizations" : {
         "ru" : {
@@ -8456,16 +8446,6 @@
         }
       }
     },
-    "`do: …` on the ⌘E line carries a goal out on the page. A fast decision model — TypeSafe's Jev, or a laya-browser server of your own — can choose the obvious steps; the assistant's model writes what goes into fields and takes every step the fast one is less sure of than this. Leave the address empty to let the assistant's model decide every step." : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "«сделай: …» в строке ⌘E выполняет задачу прямо на странице. Очевидные шаги может выбирать быстрая модель-классификатор — Jev от TypeSafe или свой сервер laya-browser; текст в поля пишет модель ассистента, и она же берёт каждый шаг, в котором быстрая уверена слабее указанного. Пустой адрес — все шаги решает модель ассистента."
-          }
-        }
-      }
-    },
     "Do It on the Page" : {
       "localizations" : {
         "ru" : {
@@ -8476,32 +8456,12 @@
         }
       }
     },
-    "Fast Decider" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Быстрый решатель"
-          }
-        }
-      }
-    },
     "Page Tasks" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Задачи на странице"
-          }
-        }
-      }
-    },
-    "Trust Above" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Доверять выше"
           }
         }
       }
@@ -8632,6 +8592,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Доступ к микрофону выключен в Системных настройках → Конфиденциальность и безопасность."
+          }
+        }
+      }
+    },
+    "Fast Model Server" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сервер быстрой модели"
+          }
+        }
+      }
+    },
+    "Confidence Threshold" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Порог уверенности"
+          }
+        }
+      }
+    },
+    "For `do: …` on the ⌘E line. The fast model takes the steps it is more confident in than the threshold; the assistant's model takes the rest, and every step when no server is set." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Для «сделай: …» в строке ⌘E. Быстрая модель выполняет шаги, в которых уверена выше порога, остальные — модель ассистента. Без сервера все шаги выполняет модель ассистента."
+          }
+        }
+      }
+    },
+    "Experimental: no per-site permission yet." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Экспериментально: разрешений для отдельных сайтов пока нет."
           }
         }
       }

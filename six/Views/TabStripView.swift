@@ -352,6 +352,7 @@ private struct TabItem: View {
     private var isPicked: Bool { !isSelected && browser.pickedTabs.contains(tab.id) }
     private var showsClose: Bool { !isPinned && (hovering || isSelected) && width > 80 }
     private var title: String { tab.showsStartPage || tab.title.isEmpty ? String(localized: "New Tab") : tab.title }
+    private var accent: Color { browser.profiles.first { $0.id == tab.profileID }?.color ?? .accentColor }
 
     private func dragPreview() -> NSImage? {
         let icon = tab.isWebPage ? browser.siteIcons.icon(for: tab.currentURL?.host()) : nil
@@ -423,6 +424,13 @@ private struct TabItem: View {
                 Capsule().fill(tint).frame(height: 2).padding(.horizontal, 6)
             }
         }
+        // The selected tab's line is under the address field.
+        .overlay(alignment: .top) {
+            if !isSelected, !tab.isDocument, tab.isLoading {
+                LoadingLine(progress: tab.estimatedProgress, accent: accent).padding(.horizontal, 6)
+            }
+        }
+        .animation(.easeOut(duration: 0.2), value: tab.isLoading)
         .overlay(alignment: dropSide == -1 ? .leading : .trailing) {
             if dropSide != nil {
                 Capsule().fill(Color.accentColor).frame(width: 2).padding(.vertical, 5)
@@ -474,17 +482,14 @@ private struct TabDrop: DropDelegate {
     }
 }
 
-/// The tab's icon: a spinner while it loads, the site's own mark, or the glyph for what kind of
-/// window it is.
+/// The tab's icon: the site's own mark, or the glyph for what kind of window it is.
 private struct TabMark: View {
     let tab: BrowserTab
     @Environment(BrowserState.self) private var browser
 
     var body: some View {
         Group {
-            if !tab.isDocument, tab.isLoading {
-                ProgressView().controlSize(.mini)
-            } else if tab.isWebPage, let icon = browser.siteIcons.icon(for: tab.currentURL?.host()) {
+            if tab.isWebPage, let icon = browser.siteIcons.icon(for: tab.currentURL?.host()) {
                 Image(platform: icon).resizable().interpolation(.high)
             } else {
                 Image(systemName: tab.isDocument ? "doc.text" : tab.builtIn != nil ? "gearshape" : "globe")

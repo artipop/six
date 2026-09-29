@@ -144,16 +144,15 @@ struct ConfigurationPageView: View {
     private var detail: some View {
         Group {
             switch section {
-            case .general: GeneralConfiguration()
-            case .windows: WindowConfiguration()
-            case .privacy: PrivacyConfiguration(part: part)
-            case .assistant: AssistantPane(part: part)
-            case .extensions: ExtensionConfiguration()
-            case .develop: DevelopConfiguration()
+            case .general: GeneralConfiguration().settingsFormColumn()
+            case .windows: WindowConfiguration().settingsFormColumn()
+            case .privacy: PrivacyConfiguration(part: part).settingsColumn()
+            case .assistant: AssistantPane(part: part).settingsColumn()
+            case .extensions: ExtensionConfiguration().settingsColumn()
+            case .develop: DevelopConfiguration().settingsFormColumn()
             }
         }
         .padding(.top, Self.contentInset)
-        .settingsColumn()
     }
 }
 
@@ -164,6 +163,15 @@ extension View {
             Spacer(minLength: 0)
             frame(maxWidth: ConfigurationPageView.columnWidth)
             Spacer(minLength: 0)
+        }
+    }
+
+    /// The same column for a pane that is one form, drawn as margins so the scroll bar and the
+    /// scrolling reach the whole pane rather than stopping at the column's edge.
+    func settingsFormColumn() -> some View {
+        GeometryReader { proxy in
+            contentMargins(.horizontal, max(0, (proxy.size.width - ConfigurationPageView.columnWidth) / 2),
+                           for: .scrollContent)
         }
     }
 }
@@ -338,22 +346,19 @@ private struct WindowConfiguration: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                Toggle("Group Tabs by Meaning", isOn: Binding(
-                    get: { browser.sortsTabsByMeaning },
-                    set: { browser.setSortsTabsByMeaning($0) }
-                ))
-                if browser.sortsTabsByMeaning {
-                    Picker("Sort By", selection: Binding(
-                        get: { browser.tabSorting },
-                        set: { browser.tabSorting = $0 }
-                    )) {
-                        ForEach(TabSortingMethod.allCases) { Text($0.title).tag($0) }
-                    }
+                // Chosen before the switch: turning it on sorts every tab at once.
+                Picker("Sort By", selection: Binding(
+                    get: { browser.tabSorting },
+                    set: { browser.tabSorting = $0; resort() }
+                )) {
+                    ForEach(TabSortingMethod.allCases) { Text($0.title).tag($0) }
+                }
+                if browser.tabSorting == .languageModel {
                     LabeledContent("Local Model") {
                         Menu(browser.localModel.name) {
                             Picker("Local Model", selection: Binding(
                                 get: { browser.localModel },
-                                set: { browser.localModel = $0 }
+                                set: { browser.localModel = $0; resort() }
                             )) {
                                 ForEach(LocalModelChoice.allCases) { Text($0.title).tag($0) }
                             }
@@ -363,6 +368,10 @@ private struct WindowConfiguration: View {
                         .fixedSize()
                     }
                 }
+                Toggle("Group Tabs by Meaning", isOn: Binding(
+                    get: { browser.sortsTabsByMeaning },
+                    set: { browser.setSortsTabsByMeaning($0) }
+                ))
             }
 
             SwiftUI.Section {
@@ -386,6 +395,10 @@ private struct WindowConfiguration: View {
             }
         }
         .formStyle(.grouped)
+    }
+
+    private func resort() {
+        if browser.sortsTabsByMeaning { browser.setSortsTabsByMeaning(true) }
     }
 }
 
@@ -510,7 +523,7 @@ private struct DevelopConfiguration: View {
             // call confirmed (docs/webmcp.md, stage 3), this is a thing to test, not to live with.
             SwiftUI.Section("WebMCP") {
                 Toggle("Let Pages Offer Tools to Agents", isOn: $webMCP.isEnabled)
-                Text("Experimental. A page declares tools through document.modelContext, and agents list and call them with list_page_tools and call_page_tool. There is no per-site permission or confirmation yet: keep it off outside testing.")
+                Text("Experimental: no per-site permission yet.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

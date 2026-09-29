@@ -184,7 +184,7 @@ did not, and the [tools mark](/en/accessibility#the-tools-mark) is there, a
 whole form is filled in one step.
 
 Steps can be decided by a fast classifier when its address is set in
-**Configuration ▸ Assistant ▸ Page Tasks ▸ Fast Decider** — TypeSafe's Jev, or a laya-browser server on this
+**Configuration ▸ Assistant ▸ Page Tasks ▸ Fast Model Server** — TypeSafe's Jev, or a laya-browser server on this
 machine — and then it takes the obvious steps while the assistant's own model
 writes the text for fields and settles what the classifier is unsure about.
 Without that address every step is the assistant's model.
