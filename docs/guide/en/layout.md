@@ -87,7 +87,7 @@ window, not about what is drawn on it.
 **The gaps beside the focused window.** Nothing is drawn there at rest. Sweep the
 pointer in and the row leans that way to show what is over there: a `‹` or a
 `›` if it is a window, and — where the row has run out — the **edge of the
-start page that would open there**: the profile's colour, the six wordmark and
+start page that would open there**: the profile's colour, the Savoia wordmark and
 the field under it. A click on that sliver steps to the neighbour or opens a
 new window — including one *before* the first, which is the only way the row
 grows backwards.
@@ -226,7 +226,7 @@ itself out again on every frame — and find time to show a horizontal scrollbar
 
 `⌥⇧P`, or **View ▸ Picture in Picture**, or the button that appears in the
 player's own controls: the video leaves the page for a small window that floats
-above everything — above six, above your editor, above whatever you switch to
+above everything — above Savoia, above your editor, above whatever you switch to
 next. The same key puts it back.
 
 The page it came from stays in the row exactly where it was. Scroll away from
@@ -239,11 +239,11 @@ The menu item is never greyed out, because only the page knows whether it has a
 video to float, and that changes with every play and pause. On a page of text,
 pressing it does nothing at all.
 
-The little window itself belongs to macOS rather than to six — the same one
+The little window itself belongs to macOS rather than to Savoia — the same one
 Safari opens, drawn by a system process. So it sits in a corner of the *screen*
 rather than inside the browser window, and it stays above other applications when
 you switch away. Drag it to another corner and the system remembers, for every
-application at once; six cannot place it or make it travel with its own window.
+application at once; Savoia cannot place it or make it travel with its own window.
 
 ## The overview
 
@@ -273,7 +273,7 @@ In the overview:
 Nothing loads in the overview: every window there is a card, and a card is the
 last picture of its page, with the site's icon and the window's title along its
 top. With no picture yet — a window just restored, a browser just started — the
-icon and the address are what is left. Six's own pages — Configuration, MCP Apps
+icon and the address are what is left. Savoia's own pages — Configuration, MCP Apps
 — have no picture, and in the overview they are a card with their name.
 
 ### On Windows and Linux
@@ -301,11 +301,11 @@ and a fresh empty one appears below. A workspace that runs out of windows
 disappears — silently and at once, as it should: an empty unnamed workspace is
 nothing.
 
-**If it has a name, VI asks first:** *Delete the workspace "Tickets"?* —
+**If it has a name, Savoia asks first:** *Delete the workspace "Tickets"?* —
 **Delete** or **Keep It**. One rule for every name, on purpose: you are not the
 only one who names workspaces here. Research names one after its question, an
 agent asks for `workspace: "notes"` and gets one. Which of those names is a
-booking and which is a label on a room is not something VI can tell, and it does
+booking and which is a label on a room is not something Savoia can tell, and it does
 not guess — it asks whoever is there.
 
 - **Delete** — the workspace goes, and the name with it.
@@ -323,7 +323,7 @@ is gone.
 ## How many pages are actually live
 
 A page is a process of its own: its own memory, its own timers, its own
-rendering. A row of a hundred windows cannot carry a hundred of them, so VI
+rendering. A row of a hundred windows cannot carry a hundred of them, so Savoia
 does what Chrome's Memory Saver and Safari's suspended tabs do: it **discards**
 the pages it is unlikely to be asked for and builds them again from the address.
 

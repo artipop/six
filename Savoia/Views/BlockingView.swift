@@ -1,0 +1,191 @@
+import SwiftUI
+
+/// The sheet the phone opens and the shield in a window's address field asks for: `BlockingConfiguration`
+/// under a title and a Done button. On the Mac the same content is a section of `savoia://settings`,
+/// which is why the two are separate types — a sheet is a frame and a way out, and a page has
+/// neither.
+struct BlockingView: View {
+    @Environment(ContentBlocker.self) private var blocker
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        @Bindable var blocker = blocker
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                Image(systemName: "shield.lefthalf.filled")
+                Text("Content Blocking").font(.headline)
+                Spacer()
+                // The switch is the first row of the content now, named in full, so the sheet and
+                // the configuration pane show it in the same place and with the same words.
+                Button("Done") { dismiss() }.keyboardShortcut(.cancelAction)
+            }
+            .padding(12)
+            Divider()
+            BlockingConfiguration()
+        }
+        .frame(width: sheetSize.width, height: sheetSize.height)
+    }
+
+    /// Relative to the screen, like the rest of the layout.
+    private var sheetSize: CGSize {
+        let screen = Platform.screenSize
+        return CGSize(width: (screen.width * 0.36).rounded(), height: (screen.height * 0.58).rounded())
+    }
+}
+
+/// The filter lists, what each one costs, and the sites left alone — the content, with no frame and
+/// no way out of its own, so a page and a sheet can each put it where it belongs.
+struct BlockingConfiguration: View {
+    @Environment(ContentBlocker.self) private var blocker
+    @State private var newListAddress = ""
+
+    var body: some View {
+        @Bindable var blocker = blocker
+        VStack(spacing: 0) {
+            List {
+                // The master switch, in the tab it governs rather than over the tabs beside it:
+                // here it has the width to be named in full, and the rows below it grey out under
+                // the thing that greyed them.
+                Section {
+                    Toggle("Block Ads and Trackers", isOn: $blocker.isEnabled)
+                        .toggleStyle(.switch)
+                    if blocker.isWorking {
+                        HStack(spacing: 6) {
+                            ProgressView().controlSize(.small)
+                            Text("Preparing filter lists…").font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                // Greyed by the switch above, which is not itself — a disabled master switch is one
+                // nobody can switch back on.
+                Group {
+                Section("Filter Lists") {
+                    ForEach(blocker.lists) { list in
+                        FilterListRow(list: list, status: blocker.status[list.id])
+                            .contextMenu {
+                                if !list.isBuiltIn {
+                                    Button("Remove List", role: .destructive) { blocker.removeList(list.id) }
+                                }
+                                Button("Copy Address") {
+                                    Platform.copy(list.source.absoluteString)
+                                }
+                            }
+                    }
+                    HStack(spacing: 8) {
+                        TextField("Add a list by address", text: $newListAddress)
+                            .textFieldStyle(.roundedBorder)
+                            .onSubmit(addList)
+                        Button("Add", action: addList)
+                            .disabled(URL(string: newListAddress.trimmingCharacters(in: .whitespaces))?.host() == nil)
+                    }
+                    .padding(.vertical, 2)
+                }
+
+                Section("Sites Left Alone") {
+                    if blocker.allowlist.isEmpty {
+                        Text("No sites. To allow ads on a site, click the shield in its address field.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(blocker.allowlist.sorted(), id: \.self) { host in
+                            HStack {
+                                Image(systemName: "shield.slash").foregroundStyle(.secondary)
+                                Text(host)
+                                Spacer()
+                                Button {
+                                    if let url = URL(string: "https://\(host)") { blocker.setAllowed(false, for: url) }
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                }
+                                .buttonStyle(.plain)
+                                .foregroundStyle(.secondary)
+                                .help("Block ads on \(host) again")
+                            }
+                        }
+                    }
+                }
+                }
+                .disabled(!blocker.isEnabled)
+            }
+            .listStyle(.inset)
+
+            // Gone entirely while blocking is off, rather than an empty caption beside a greyed
+            // button: the count it carries is about lists that are doing nothing, and updating them
+            // is the same. The switch above is what says why, and saying it twice was cut once
+            // already (4ace9f6).
+            if blocker.isEnabled {
+                Divider()
+                HStack {
+                    Text(footnote)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Update") { Task { await blocker.updateNow() } }
+                        .controlSize(.small)
+                        .disabled(blocker.isWorking)
+                }
+                .padding(10)
+            }
+        }
+    }
+
+    private var footnote: String {
+        let ready = blocker.lists.filter { blocker.status[$0.id]?.isReady == true }
+        let rules = ready.reduce(0) { $0 + (blocker.status[$1.id]?.rules ?? 0) }
+        guard rules > 0 else { return String(localized: "Preparing filter lists…") }
+        return String(localized: "\(String(localized: "\(ready.count) lists blocking")), \(String(localized: "\(rules) rules"))")
+    }
+
+    private func addList() {
+        let text = newListAddress.trimmingCharacters(in: .whitespaces)
+        guard let url = URL(string: text), url.host() != nil else { return }
+        blocker.addList(source: url, title: "")
+        newListAddress = ""
+    }
+}
+
+private struct FilterListRow: View {
+    @Environment(ContentBlocker.self) private var blocker
+    let list: FilterList
+    let status: ContentBlocker.Status?
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Toggle("", isOn: Binding(
+                get: { list.isEnabled },
+                set: { blocker.setEnabled($0, forListID: list.id) }
+            ))
+            .labelsHidden()
+            VStack(alignment: .leading, spacing: 2) {
+                Text(list.title)
+                if !list.detail.isEmpty {
+                    Text(list.detail).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                }
+                Text(state).font(.caption2).foregroundStyle(.tertiary)
+            }
+            Spacer()
+            if case .updating = status?.phase { ProgressView().controlSize(.small) }
+            if case .compiling = status?.phase { ProgressView().controlSize(.small) }
+        }
+        .padding(.vertical, 2)
+    }
+
+    private var state: String {
+        guard list.isEnabled else { return String(localized: "Off") }
+        switch status?.phase {
+        case .updating: return String(localized: "Updating…")
+        case .compiling: return String(localized: "Compiling…")
+        case .failed(let message): return String(localized: "Last update failed: \(message)")
+        default: break
+        }
+        guard let status, status.isReady else { return String(localized: "Waiting") }
+        var line = String(localized: "\(status.rules) rules")
+        if status.advanced > 0 { line += String(localized: ", \(status.advanced.formatted()) in the page") }
+        if status.dropped > 0 { line += String(localized: ", \(status.dropped.formatted()) over WebKit's limit") }
+        if let updatedAt = status.updatedAt {
+            line += String(localized: " · updated \(updatedAt.formatted(.relative(presentation: .named)))")
+        }
+        return line
+    }
+}
+

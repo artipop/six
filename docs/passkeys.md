@@ -3,7 +3,7 @@
 *Not built yet. Tracked in [todo.md](todo.md).*
 
 Goal: on any site, "Sign in with a passkey" opens the system sheet — Touch ID, iCloud Keychain passkeys, a security
-key, or the QR flow to a phone — and saved passwords autofill the way they do in Safari. Nothing six-specific in the
+key, or the QR flow to a phone — and saved passwords autofill the way they do in Safari. Nothing savoia-specific in the
 UI; the work is making WebKit's WebAuthn reach the platform authenticator from *our* process.
 
 ## What decides everything: the entitlements
@@ -18,13 +18,13 @@ platform authenticator when the app carries Apple's browser entitlements:
 
 Both are managed capabilities: they need the Developer Program, an App ID with the capability, and a provisioning
 profile — a plain ad-hoc Debug signature won't carry them. Until they are granted `PublicKeyCredential` is either
-absent from the page or fails, which is what six most likely does today.
+absent from the page or fails, which is what Savoia most likely does today.
 
 ## Phases
 
 ### 0. Measure (an afternoon)
 
-- Open <https://webauthn.io> and <https://passkeys.io> in six; note what `navigator.credentials` does with the
+- Open <https://webauthn.io> and <https://passkeys.io> in Savoia; note what `navigator.credentials` does with the
   current signature. Also test `ASWebAuthenticationSession`-free password autofill: does the Passwords app offer
   anything in our `WebPage`?
 - Check `WebPage.Configuration` / `WKWebViewConfiguration` for anything credential-related in the macOS 27 SDK
@@ -33,11 +33,11 @@ absent from the page or fails, which is what six most likely does today.
 
 ### 1. Paperwork (start now, it is the long pole)
 
-- Developer Program membership for the team, an explicit App ID for `org.deffun.six`.
+- Developer Program membership for the team, an explicit App ID for `org.deffun.savoia`.
 - Submit the web-browser entitlement request; the form asks what the browser is and for a build to look at.
   Meanwhile, keep building unsigned.
 - Once granted: capability on the App ID, Developer ID / development profile with both entitlements, add them to
-  `six.entitlements`, sign the Debug build with the profile (`CODE_SIGN_STYLE = Manual` or automatic with the team
+  `Savoia.entitlements`, sign the Debug build with the profile (`CODE_SIGN_STYLE = Manual` or automatic with the team
   set). Sandbox stays off — the browser entitlement does not require it.
 
 ### 2. Passkeys through WebKit (the real thing)
@@ -45,7 +45,7 @@ absent from the page or fails, which is what six most likely does today.
 - With the entitlements, WebKit shows the system sheet on `create()`/`get()` with no code from us. Verify: platform
   passkey (Touch ID), iCloud Keychain sync, security key over USB/NFC, cross-device (QR → iPhone), conditional UI
   (`mediation: "conditional"` — passkeys offered inside the username field's autofill).
-- Six-specific care:
+- Savoia-specific care:
   - the sheet is anchored to the *window*; a passkey request from a column that is a placeholder card (no live
     `WebView`, see [layout.md](layout.md)) or from an agent-driven background window must be surfaced — focus that
     column first, or refuse with a clear message in the transcript;
@@ -66,10 +66,10 @@ absent from the page or fails, which is what six most likely does today.
 
 - `ASAuthorizationController` with `ASAuthorizationPlatformPublicKeyCredentialProvider` works *without* the browser
   entitlement — but only for relying parties whose associated domains include our app, i.e. not for arbitrary
-  sites. Useful for nothing here except a six account, if one ever exists.
+  sites. Useful for nothing here except a Savoia account, if one ever exists.
 - Bridging WebAuthn ourselves (a JS shim over `navigator.credentials` that calls the app, which talks CTAP2 to a
   USB key) is possible for hardware keys only, and is a project of its own. Not planned.
-- So the honest answer without the entitlement is "passkeys don't work in six"; the plan is to get the entitlement.
+- So the honest answer without the entitlement is "passkeys don't work in Savoia"; the plan is to get the entitlement.
 
 ## Open questions
 

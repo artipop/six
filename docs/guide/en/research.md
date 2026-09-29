@@ -13,7 +13,7 @@ sentences that earned them.
 ```
 
 The workspace *is* the result: it stays open, survives a relaunch, and can be
-come back to. Close the last window on it and VI asks whether to delete the
+come back to. Close the last window on it and Savoia asks whether to delete the
 workspace with the question on it ([more](/en/layout#workspaces-make-themselves)):
 for one run the answer is keep, for another it is delete, and only the person who
 started it knows which.
@@ -85,7 +85,7 @@ stay either way: the evidence outlives the page.
 ::: warning Where a highlight will not work
 A PDF shown by the built-in viewer; text drawn on a canvas (Google Docs and
 friends); text inside cross-origin iframes; pages that rewrite themselves on
-every visit. In all of these VI says so rather than highlighting approximately.
+every visit. In all of these Savoia says so rather than highlighting approximately.
 :::
 
 The link written into the document is a text fragment (`#:~:text=…`), which any

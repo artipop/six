@@ -1,6 +1,6 @@
 # Agents
 
-`six/ACP/` is a self-contained Swift client for the [Agent Client Protocol](https://agentclientprotocol.com): JSON-RPC
+`Savoia/ACP/` is a self-contained Swift client for the [Agent Client Protocol](https://agentclientprotocol.com): JSON-RPC
 over stdio to an adapter process.
 
 - `JSONRPCConnection` — framing and request/response correlation over the pipes.
@@ -9,27 +9,27 @@ over stdio to an adapter process.
   `session/cancel`, `session/set_mode` and `session/set_model` / `session/set_config_option`; it receives streaming `session/update` notifications and serves `session/request_permission` and
   `fs/read_text_file` / `fs/write_text_file` back to the agent, restricted to the session cwd.
 - `AgentSessionStore` — the view model: transcript items, plans, permission prompts, working directory, model override.
-  `session/new` also hands the agent the browser itself as an MCP server (`six --mcp`, see [mcp](mcp.md)), so it can
+  `session/new` also hands the agent the browser itself as an MCP server (`Savoia --mcp`, see [mcp](mcp.md)), so it can
   open windows, read and summarize pages. Through the same server it reaches the tools a page declares for
-  agents (WebMCP — `list_page_tools`, `call_page_tool`) when `six://configuration` ▸ Develop ▸ WebMCP is on;
+  agents (WebMCP — `list_page_tools`, `call_page_tool`) when `savoia://configuration` ▸ Develop ▸ WebMCP is on;
   the catalog's instructions put them after a connected service's own tools and before reading the page, and
   fence everything a page says as its data rather than instructions ([webmcp.md](webmcp.md)).
 - `AgentChatArchive`, `AgentSessionCatalog` (`AgentChatHistory.swift`) — past chats on disk, and the sessions the
   agents themselves keep for a folder ([History](#history)).
 
 **Where a person meets it.** The ⌘E line, with an agent chosen for it ([assistant.md](assistant.md)), and the chat
-pages `six://chats` / `six://chat/<id>`. The agent panel (`AgentPanel`, an inspector on `ContentView`) is still in the
+pages `savoia://chats` / `savoia://chat/<id>`. The agent panel (`AgentPanel`, an inspector on `ContentView`) is still in the
 tree but has no way in: `toggleAgentPanel` is published as a focused value and no command reads it, so only
-`SIX_ACP_SELFTEST` presents it. What it owned that nothing else offers is written down where it matters — the working
+`SAVOIA_ACP_SELFTEST` presents it. What it owned that nothing else offers is written down where it matters — the working
 directory picker below, and the research preset ([deep-research.md](deep-research.md)). `TranscriptRow` and
 `PermissionView` live in its file and are what the chat page and the ⌘E card draw with.
 
 ## What a tool call is called
 
 An agent namespaces the tools it got from an MCP server: Claude Code hands them to the model — and to us — as
-`mcp__six__open_window`. That prefix is the client's own disambiguation, not the protocol's, so six takes it
+`mcp__savoia__open_window`. That prefix is the client's own disambiguation, not the protocol's, so Savoia takes it
 apart before showing anything: `AgentToolName.display` drops `mcp__` and turns `__` into a space, leaving
-**`six open_window`** — the server, then the method. The rewrite happens once, where the notification lands
+**`savoia open_window`** — the server, then the method. The rewrite happens once, where the notification lands
 (`AgentSessionStore.handle`, and the permission request beside it), so the transcript, the permission prompt, the
 ⌘E activity line and the saved chat all agree. Titles an agent wrote itself (`Read`, `Bash`, a whole sentence) pass
 through untouched. See [mcp.md](mcp.md#names) for the naming on the wire.
@@ -41,18 +41,18 @@ text, nested values as compact JSON; `{}` and `null` draw nothing. Allow options
 options `.bordered` with a destructive role — a tinted `.bordered` button was too faint on the material over a page. **Cancel** (outcome `cancelled`, which ends the
 turn — the composer's stop does the same) appears only when the agent offers no reject option.
 
-An "always" answer is kept by six, not left to the agent. The agent only honours `allow_always` for its own session
+An "always" answer is kept by Savoia, not left to the agent. The agent only honours `allow_always` for its own session
 at best, and every reconnect (a model or agent switch, a relaunch) is a new
 session, so the same call asked again each time. `resolvePermission(with:)` stores `allow_always` / `reject_always`
 under `agents.standingAnswers` (agent id → raw tool title → option kind), and `requestPermission` answers from it
 before a prompt is shown, picking the option of the stored kind from the ones offered; if the agent no longer offers
-that kind, it asks. The key is the title *before* `AgentToolName.display`, so `mcp__six__open_window` — for a
+that kind, it asks. The key is the title *before* `AgentToolName.display`, so `mcp__savoia__open_window` — for a
 built-in tool the title carries its argument (a `Bash` command), which makes the answer that narrow. **Ask Again**
 in Configuration → Agents clears the setting.
 
 ## Working directory
 
-Each profile has a folder of its own — `~/Library/Application Support/org.deffun.six/Profiles/<name>` — and the agent works in
+Each profile has a folder of its own — `~/Library/Application Support/org.deffun.savoia/Profiles/<name>` — and the agent works in
 its `Scratchpad/` by default, created on first use: a place for whatever a run writes, next to (not inside) the
 profile's `Bookmarks/`, so saved pages are reached through the MCP tools and their search rather than by grepping the
 working directory ([bookmarks.md](bookmarks.md)). The panel said "*Personal* scratchpad" then, and its **Choose…** picked
@@ -76,11 +76,11 @@ puts the current chat *aside* rather than forgetting it:
 its transcript goes to `Chats/<id>.json` under Application Support (`AgentChatArchive`) and the snapshot keeps only a
 summary in `AgentSnapshot.past` — id, agent, folder, session id, title, dates. Not the transcript: the state file is
 rewritten on every autosave and tool calls carry whole diffs, so a year of history there would be a year rewritten
-every few seconds. `AgentChat.id` is six's own name for a conversation, separate from the session id, which is the
+every few seconds. `AgentChat.id` is Savoia's own name for a conversation, separate from the session id, which is the
 agent's, may be missing, and changes when a session cannot be resumed.
 
-The history is a page and not a sidebar: `six://chats` (`AgentChatsPage`, ⌘⇧E, View ▸ Chats) lists
-the profile's folder, or every folder, grouped by day; a chat opens as its own column, `six://chat/<id>`
+The history is a page and not a sidebar: `savoia://chats` (`AgentChatsPage`, ⌘⇧E, View ▸ Chats) lists
+the profile's folder, or every folder, grouped by day; a chat opens as its own column, `savoia://chat/<id>`
 (`AgentChatPage`) — `BuiltInPage.isPerSection`, so two chats are two windows and the same one asked for twice is
 focused. Typing there calls `AgentSessionStore.open`, which makes that chat the current one for its agent in its
 folder (the one before is put aside) and the next prompt resumes its session with `session/load`. A chat can only be
@@ -93,19 +93,19 @@ adapter is already running for that folder, only opens a `session/new` in it on 
 (`openFreshSession`) — a relaunch is seconds, and the line is called up many times an hour. Follow-ups while the line
 stands go on in the same chat. Before this every ⌘E question about every page ran on in one session that was never
 done, and a new question showed in the history only as a newer time on an old title. Not during a running turn.
-`SIX_LINE_CHATS_SELFTEST="…"` checks it: summons, follow-up, second summons — measured 2 s for the second chat's
+`SAVOIA_LINE_CHATS_SELFTEST="…"` checks it: summons, follow-up, second summons — measured 2 s for the second chat's
 answer on the kept process against 11 s for the first with a launch.
 
 **Finding a chat from the line.** After a `/` the line lists, beside the verbs, the chats of the current folder whose
 title has every typed word (`AgentSessionStore.chats(matching:)`; the five newest for a bare `/`). Picking one —
 click, ↑/↓ then Return, or Return when no verb matches — is `AssistantStore.continueChat`: the chat becomes `continuedChat` for this
-summons, a chip in the field (↗ opens `six://chat/<id>`, click or ⌘⌫ drops it), the answer strip shows its last
+summons, a chip in the field (↗ opens `savoia://chat/<id>`, click or ⌘⌫ drops it), the answer strip shows its last
 question and answer, and `askAgent` opens it in the session store instead of starting a fresh one — with the chat's
-own agent, whatever the ⌘E model is. `SIX_LINE_CHATS_SELFTEST` ends with that step: found by a title word, the last
+own agent, whatever the ⌘E model is. `SAVOIA_LINE_CHATS_SELFTEST` ends with that step: found by a title word, the last
 exchange recalled, the question landing in the old chat (6 → 8 items) with the history count unchanged.
 The arrows (`AssistantBar.chatKey`) go into the list from the field's side — ↑ at the bottom of the row, where the
 line grows up and the list stands above it, ↓ beside a field where it grows down — and walk back out to the field,
-where Return means the verbs again; ← → stay the caret's. `SIX_KEY_SELFTEST=chats` posts `/ ↑ ⏎`, `/ ↑↑ ⏎` and
+where Return means the verbs again; ← → stay the caret's. `SAVOIA_KEY_SELFTEST=chats` posts `/ ↑ ⏎`, `/ ↑↑ ⏎` and
 `/ ↑↑↓ ⏎` through the real key path and checks the chat picked by id; nothing is asked of the agent.
 
 The title is the agent's when it sends one (`session_info_update`, which claude-agent-acp generates after the first
@@ -115,9 +115,9 @@ exchange), else the first prompt.
 (`AgentSessionCatalog`) — for `session/list` in the folder; one that does not advertise `sessionCapabilities.list`, or
 is not installed, adds nothing. **Other sessions** is one list across them, newest first, each row naming its agent —
 there is no agent filter, because a person looks for a conversation and not for one agent's conversations. It holds
-the sessions six does not know: started from the agent's CLI there, or dropped before six kept a history.
+the sessions Savoia does not know: started from the agent's CLI there, or dropped before Savoia kept a history.
 Opening one `adopt`s it (a chat with the session id and no transcript) and **Load from the Agent** replays it with
-`session/load`. Measured with claude-agent-acp 0.79: a chat six had been made to forget came back through the list,
+`session/load`. Measured with claude-agent-acp 0.79: a chat Savoia had been made to forget came back through the list,
 with the agent's title, and replayed its three items.
 
 ## When a turn fails
@@ -136,15 +136,15 @@ in the log. Copy takes whichever line is on screen.
 
 ## Debugging
 
-`SIX_ACP_TRACE=1` mirrors the connection steps and every JSON-RPC line to stderr. `SIX_ACP_SELFTEST="hi"` opens the
-panel and sends the text on launch; `SIX_ASSISTANT_SELFTEST="acp:claude-code:hi"` does the same through the ⌘E line
+`SAVOIA_ACP_TRACE=1` mirrors the connection steps and every JSON-RPC line to stderr. `SAVOIA_ACP_SELFTEST="hi"` opens the
+panel and sends the text on launch; `SAVOIA_ASSISTANT_SELFTEST="acp:claude-code:hi"` does the same through the ⌘E line
 with the given model choice — together they exercise the whole path without clicking:
 
 ```sh
-SIX_ACP_TRACE=1 SIX_ACP_SELFTEST="Say hi" ./six.app/Contents/MacOS/six 2>&1 | grep '^\[acp'
+SAVOIA_ACP_TRACE=1 SAVOIA_ACP_SELFTEST="Say hi" ./Savoia.app/Contents/MacOS/Savoia 2>&1 | grep '^\[acp'
 ```
 
-`SIX_CHATS_SELFTEST="Reply with the single word: pong"` walks the history against the selected agent
+`SAVOIA_CHATS_SELFTEST="Reply with the single word: pong"` walks the history against the selected agent
 (`AgentChatSelfTest`): one turn in a new chat, the chat put aside and archived, `session/list`, the chat opened again,
 then forgotten, found in the agent's list and replayed with `session/load`. One line per step in the log, prefixed
 `chats selftest:`.
@@ -153,7 +153,7 @@ then forgotten, found in the agent's list and replayed with `session/load`. One 
 
 Adapters are npm packages, resolved by `AgentToolchain` in the environment of an interactive login
 shell (`zsh -l -i`, so `.zshrc` — where nvm usually lives — counts). They are **shown and installed on
-`six://configuration` ▸ Assistant ▸ Agents** (`AgentToolchainRow`, one section per built-in agent, with the login
+`savoia://configuration` ▸ Assistant ▸ Agents** (`AgentToolchainRow`, one section per built-in agent, with the login
 command beside it): installing one is a setting. `AgentToolchainHint` — one line with **Set Up…** for when something
 is wrong — was the panel's; the ⌘E line checks nothing in advance for an agent (`AssistantSettings.trouble` answers
 nil, since only starting it can say) and a failed start arrives as the answer:
@@ -173,7 +173,7 @@ nil, since only starting it can say) and a failed start arrives as the answer:
 
 **An adapter is not a shim, and this cost a session.** It carries its own copy of the CLI it drives:
 `codex-acp` 1.1.14 depends on `@openai/codex` 0.147, so with Codex 0.154 installed and current on the
-machine, six's agent still answered a request for today's model with `The 'gpt-6-astra' model requires
+machine, Savoia's agent still answered a request for today's model with `The 'gpt-6-astra' model requires
 a newer version of Codex`. Nothing on screen said which of the two was old, and `npx -y <package>`
 does not help: it reuses whatever version its cache holds, which here was a year of releases behind.
 Hence `@latest` in both the npx arguments and the install command, and the version beside the

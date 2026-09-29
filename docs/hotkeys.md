@@ -1,14 +1,14 @@
 # Hotkeys
 
-Every key binding in six, in one place. `⌥` is the layout's modifier; `⌘` bindings are the browser's own. Each
+Every key binding in Savoia, in one place. `⌥` is the layout's modifier; `⌘` bindings are the browser's own. Each
 row is backed by a key monitor, a menu item or a view — the file is named so nothing here can drift from the code:
-**`KeyBindings` in `six/Input/`** for everything a menu cannot keep, `ViewCommands` / `HistoryCommands` /
-`BookmarkCommands` in `six/Views/MacCommands.swift`, the File menu in `six/sixApp.swift`, `FileCommands` in
-`six/Documents/Export.swift`, the rest in `six/Views/`.
+**`KeyBindings` in `Savoia/Input/`** for everything a menu cannot keep, `ViewCommands` / `HistoryCommands` /
+`BookmarkCommands` in `Savoia/Views/MacCommands.swift`, the File menu in `Savoia/SavoiaApp.swift`, `FileCommands` in
+`Savoia/Documents/Export.swift`, the rest in `Savoia/Views/`.
 
-**This file is checked against the code.** `KeyBindings` is in `SixCore` — a binding is a key's name, the
+**This file is checked against the code.** `KeyBindings` is in `SavoiaCore` — a binding is a key's name, the
 modifiers a hand can hold, where it may answer and what it does, none of which is AppKit's business — and
-`Tests/SixCoreTests/KeyBindingsTests.swift` reads *this* file and asks the table about it in both directions:
+`Tests/SavoiaCoreTests/KeyBindingsTests.swift` reads *this* file and asks the table about it in both directions:
 every binding has to be written down here, and every key the row and ring tables below promise has to resolve
 to one. The line above has been in this file since it was written; it is enforced from `b7dc8da` on. On its
 first run the check found `⌤` bound and undocumented, and a mutation test confirmed it catches the other
@@ -33,7 +33,7 @@ Option, while a `WKWebView` is the first responder. The DOM and the window's def
 already had their turns; native fields, sheets and menu shortcuts keep their normal paths. There
 is one fallback per host window, and `KeyRouter`'s page-first bookkeeping is unchanged.
 
-`SIX_KEY_SELFTEST=alert` in a Debug build checks both the tab and row interfaces in the actual browser.
+`SAVOIA_KEY_SELFTEST=alert` in a Debug build checks both the tab and row interfaces in the actual browser.
 It observes AppKit's unhandled-key endpoint, posts key-down/up events and verifies the DOM's counts
 and effects: each of those keys on a short page, scrolling pages, fields, forms, buttons, cancelled
 events and held-key repeats.
@@ -50,16 +50,16 @@ it and keeps `⌥←` / `⌥→` for word movement, so after clicking into a pag
 through a local `NSEvent` monitor now (`KeyRouter`).
 
 **Every key here is offered to the page first** (`KeyBinding.Precedence.pageFirst`). `⌥` has work of its own on a
-Mac before six gives it any — `StandardKeyBinding.dict` makes the arrows word and paragraph movement, the letters
+Mac before Savoia gives it any — `StandardKeyBinding.dict` makes the arrows word and paragraph movement, the letters
 type «∑ ß ø ç», WebKit pages a scrollable page with `⌥↑` / `⌥↓`, and a web app may bind anything it likes (Google
 Sheets walks its sheets with `⌥↑` / `⌥↓`). Nobody can know in advance which of those the thing in front of you
-wants — a page's `addEventListener` cannot be enumerated from outside — so six does what Chrome and Firefox do
-for every shortcut they do not reserve: the key goes to the page, and six answers only if the page hands it
+wants — a page's `addEventListener` cannot be enumerated from outside — so Savoia does what Chrome and Firefox do
+for every shortcut they do not reserve: the key goes to the page, and Savoia answers only if the page hands it
 back. WebKit already does the handing back. A key the page did not handle — no `preventDefault`, no caret moved,
 nothing scrolled, nothing typed — is sent again through `NSApp.sendEvent` (`WebViewImpl::doneWithKeyEvent`,
 which is how the menu bar gets the `⌘` keys a page leaves alone), and that second delivery passes through the
 same local monitor. `KeyRouter` remembers the key it let through by timestamp and key code and answers it when it
-comes back. Measured, by `SIX_KEY_SELFTEST=page` (`KeySelfTestPage.swift`):
+comes back. Measured, by `SAVOIA_KEY_SELFTEST=page` (`KeySelfTestPage.swift`):
 
 | where | `⌥←` | `⌥↓` | `⌥W` |
 |---|---|---|---|
@@ -69,7 +69,7 @@ comes back. Measured, by `SIX_KEY_SELFTEST=page` (`KeySelfTestPage.swift`):
 | an empty field on the page | **the page** — WebKit keeps it though nothing moves | **the page** | **the page** |
 | a page with its own `keydown` handler for the key | **the page** | **the page** | **the page** |
 
-Six's own fields (the address, `⌘E`, the start page, a document) cannot hand anything back, so for them the router
+Savoia's own fields (the address, `⌘E`, the start page, a document) cannot hand anything back, so for them the router
 decides on the first pass (`KeyBinding.yieldsToCaret(in:)`): **every arrow goes to a field with any text in it**,
 and every `⌥`+letter goes to any field at all, empty included. It used to be per caret — `⌥←` yielded only while
 there was a word behind the caret — and that was a trap: holding `⌥←` walked the caret home and one press later
@@ -94,7 +94,7 @@ The cost is the obvious one: on a page that scrolls, `⌥↑` / `⌥↓` are the
 | `⌥W` | full width — the page fills the window under the top bar; again to leave (also View ▸ Full Width, and the button beside the profile) |
 | `⌥S` | split — the window next along comes in beside this one, sharing its column; again to put them back in the row (also View ▸ Split, and the strip's own menu). Both halves are windows in their own right: `⌥←` `⌥→` walk into one and then out to the next column, and closing one leaves the other filling the column. Moving is where they are one thing — `⌥⇧↑` `⌥⇧↓` and a drag in the overview take the pair, and this key is the way apart ([layout.md](layout.md#two-windows-in-one-column)) |
 | `⌥O` | overview on / off; `Esc` also leaves it (also View ▸ Overview, and the button at the right of the top bar). In the overview a click on a card flies to it, a card's × closes it, and the dashed place at the end of a row opens a window there |
-| `⌥C` | centre the focused window (on by default) — off means the row moves as little as possible. The switch is on `six://configuration` ▸ Windows |
+| `⌥C` | centre the focused window (on by default) — off means the row moves as little as possible. The switch is on `savoia://configuration` ▸ Windows |
 | `⌥` + vertical scroll | one workspace per gesture |
 | `⌥` + horizontal scroll | a window per push while centring is on — as many as the hand asks for, one per 55 pt of travel; free panning with `⌥C` off |
 
@@ -151,7 +151,7 @@ and never another profile; this run only.
 | `⌘⇧R` | load it again without believing the cache — everything asked of the network afresh |
 | `⌘.` | stop loading |
 | `⌘[` `⌘]` | back / forward through this window's own history (also the ‹ › buttons) |
-| `⌘,` | settings — `six://configuration`, in a column of the row like any other address |
+| `⌘,` | settings — `savoia://configuration`, in a column of the row like any other address |
 | `⌘T` | new window in the row, right of the focused one |
 | `⌘⇧N` | new document — a Markdown column next to the pages (edit / preview in the top bar, where its address would be) |
 | `⌘⇧P` | new private window — in the private profile (created on the first press; in-memory session, nothing recorded); File → Close Private Browsing forgets it |
@@ -166,7 +166,7 @@ and never another profile; this run only.
 | `⌘F` | find on the page in front of you — searches the page's own JavaScript, since `WebPage` carries no find API of its own and `WKWebView`'s is an async completion-handler with no menu (also View ▸ Find on Page…) |
 | `⌘L` | focus the address field |
 | `⌘E` | the assistant line: up and focused, or put away if it is already up |
-| `⌘⇧E` | chats — `six://chats`, every conversation with an agent, as a column (View ▸ Chats) |
+| `⌘⇧E` | chats — `savoia://chats`, every conversation with an agent, as a column (View ▸ Chats) |
 | `⌘Y` | history of the current profile |
 | `⌘D` | bookmark the focused page (again: remove the bookmark) |
 | `⌘⌥B` | bookmarks, searchable by meaning |
@@ -178,7 +178,7 @@ and never another profile; this run only.
 
 With the window drawn as a tab bar ([layout.md](layout.md#tabs-instead-of-the-row)), every key in the row and
 reserved tables above passes through untouched — `⌥←` is word movement again, `⌥W` types «∑» — because there is no
-row on screen to walk (`KeyAction.answersInTabs`, `KeyContext.showsTabs`). What stays six's is what is about the page:
+row on screen to walk (`KeyAction.answersInTabs`, `KeyContext.showsTabs`). What stays Savoia's is what is about the page:
 `⌥⇧T`, `⌥⇧H`, `⌥⇧P`, `⌘⇧C`, the `⌘` keys — and the ring — `⌃Tab` over every tab in every group, folded ones
 included, `⌃⇧Tab` over the group in front, a split's halves as two cards. The View menu drops Full Width, Split and Overview for
 these:
@@ -254,7 +254,7 @@ written into the page's DOM.
 | `⌘⌫` | on an empty field, take the verb chip, or the chat chip, off |
 | `Esc` | put the line away |
 
-## Chat window (`six://chat/<id>`)
+## Chat window (`savoia://chat/<id>`)
 
 | | |
 |---|---|
@@ -276,10 +276,10 @@ it); its keys were the chat window's.
   reports «ц» from `charactersIgnoringModifiers`; matching only that is why `⌥W` / `⌥O` / `⌥C` were dead for anyone
   not typing in Latin. `KeyBinding.Key.letter` matches either the US key code or the character, so the three work on
   a Cyrillic layout (by position) and on Dvorak (by letter).
-- `⌥W` / `⌥S` / `⌥O` / `⌥C` / `⌥⇧T` / `⌥⇧H` / `⌥⇧P` type their characters in any field, on a page or six's own; they
-  are the row's everywhere else. `SIX_UI_DEBUG=1` says which: `offered to the page first` and then either nothing
+- `⌥W` / `⌥S` / `⌥O` / `⌥C` / `⌥⇧T` / `⌥⇧H` / `⌥⇧P` type their characters in any field, on a page or Savoia's own; they
+  are the row's everywhere else. `SAVOIA_UI_DEBUG=1` says which: `offered to the page first` and then either nothing
   (the page kept it) or `…, after the page`.
-- **Nothing in the table answers outside six's own window.** A sheet, a popover and WebKit's full-screen video are
+- **Nothing in the table answers outside Savoia's own window.** A sheet, a popover and WebKit's full-screen video are
   `KeyContext.Window.elsewhere`, and there `⎋` closes the sheet instead of the overview behind it and `⌥O` does
   nothing at all.
 - To move the whole layout set to another modifier, change the `.exactly(.option)` rows in `KeyBindings.table` — the
@@ -300,20 +300,20 @@ it); its keys were the chat window's.
   responder stayed where a click had put it, so the keys went on reaching the window you had walked away from
   ([layout.md](layout.md#the-keyboard-follows-the-focus)). It is never taken off a text field — `⌘L` and `⌘E` are
   left by keystroke — so nothing here eats what you were typing.
-- **`⌃←` and `⌃→` never reach six, and no application can have them.** They are Mission Control's *Move
+- **`⌃←` and `⌃→` never reach Savoia, and no application can have them.** They are Mission Control's *Move
   left/right a space* — symbolic hotkeys 79 and 80, on by default — and the WindowServer takes them
   before any app's event monitor. That is why the ring's arrows are written `⌃⇧←` / `⌃⇧→` above: the
   binding matches any modifiers, so one extra key is enough to get the event delivered. System
   Settings ▸ Keyboard ▸ Keyboard Shortcuts ▸ Mission Control turns the pair off for anyone who would
-  rather have the bare arrows. **This is a Mac tax and only a Mac tax** — the table is `SixCore`'s and
+  rather have the bare arrows. **This is a Mac tax and only a Mac tax** — the table is `SavoiaCore`'s and
   nothing on Linux or Windows takes `⌃←`, so the bare arrows work on those fronts. Three keys to page
   a carousel is a bad answer wherever it is written down; [todo.md](todo.md) keeps it open.
 - **A key the system owns tests green.** `KeySelfTest` posts with `NSApp.postEvent`, which puts the
   event straight into the app's own queue — past everything the WindowServer would have taken. So a
   binding can be measured working, card index and all, and do nothing whatsoever in the hand. When a
   key is reported dead and the table says it is bound, check the system's own shortcuts before the
-  router; `SIX_UI_DEBUG=1` printing *nothing* for a press is the tell, because a key that arrives and
+  router; `SAVOIA_UI_DEBUG=1` printing *nothing* for a press is the tell, because a key that arrives and
   is declined still prints.
-- **`SIX_UI_DEBUG=1` prints a line per key** — the chord, the context it landed in, and who took it. **`SIX_KEY_SELFTEST=1`**
+- **`SAVOIA_UI_DEBUG=1` prints a line per key** — the chord, the context it landed in, and who took it. **`SAVOIA_KEY_SELFTEST=1`**
   prints the whole matrix at launch: every binding against every context, which is how a binding that goes quiet
   somewhere is found without pressing anything (`KeySelfTest`; this Mac cannot press its own keys, see AGENTS.md).

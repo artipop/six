@@ -4,8 +4,8 @@ Both switches are off by default.
 
 ## Web Inspector
 
-**Configuration ▸ Develop ▸ Allow Safari to Inspect VI's Pages** lets **Safari's inspector** attach to them.
-There is no inspector window of VI's own and there cannot be one: WebKit lets an
+**Configuration ▸ Develop ▸ Allow Safari to Inspect Savoia's Pages** lets **Safari's inspector** attach to them.
+There is no inspector window of Savoia's own and there cannot be one: WebKit lets an
 application declare its pages inspectable, and no more. Safari's inspector,
 though, is the real thing — elements, console, network, sources, breakpoints.
 
@@ -15,7 +15,7 @@ How to attach:
    developers** — without it Safari's own Develop menu is hidden and there is
    nowhere to attach from. This is the usual reason for "I turned it on and
    nothing happened";
-2. in Safari's menu bar: **Develop › ‹the name of this Mac› › six › ‹the page's
+2. in Safari's menu bar: **Develop › ‹the name of this Mac› › Savoia › ‹the page's
    title›**.
 
 An **Open Safari to Attach** button appears beside the switch. The computer's
@@ -51,7 +51,7 @@ of a load, or it does not see the load's beginning.
 
 ::: warning What this means for privacy
 The console and `fetch` hooks live **in the page's own world** — anywhere else
-they would wrap nothing. Everything else VI injects into pages lives in a world
+they would wrap nothing. Everything else Savoia injects into pages lives in a world
 of its own that the page cannot reach, and this is the one deliberate exception.
 
 Which means: the page can see the hooks, can replace them, and can post to them
@@ -106,10 +106,10 @@ channel itself — but only about its own tools.
 ## The log
 
 The capture above belongs to a window and is gone when the window navigates.
-Separately from it, VI keeps a log of **its own** — what it did: settings that
+Separately from it, Savoia keeps a log of **its own** — what it did: settings that
 did not save, a site that did not open, an extension refused without asking.
 
-It goes to `~/Library/Logs/org.deffun.six/six.log` and, in the same words, to
+It goes to `~/Library/Logs/org.deffun.savoia/savoia.log` and, in the same words, to
 macOS's system log. **Configuration ▸ Develop ▸ Log** names the path, reveals the file
 in Finder and opens Console.
 

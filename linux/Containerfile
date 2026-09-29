@@ -13,8 +13,8 @@
 # 26.04 also carries libadwaita 1.9.1 and WebKitGTK 2.52.3 — the branch where `WebKitWebExtension`
 # arrived — so the whole stack comes from one LTS with nothing pinned by hand.
 #
-#   container build --tag six-gnome:26.04 linux
-#   container run --rm -v "$PWD:/work/six" -w /work/six/linux six-gnome:26.04 swift build
+#   container build --tag savoia-gnome:26.04 linux
+#   container run --rm -v "$PWD:/work/savoia" -w /work/savoia/linux savoia-gnome:26.04 swift build
 
 FROM docker.io/library/swift:6.3.3-noble AS toolchain
 

@@ -1,5 +1,5 @@
 #!/bin/sh
-# Builds six in Release and wraps it in a DMG you can drag into /Applications.
+# Builds Savoia in Release and wraps it in a DMG you can drag into /Applications.
 #
 # There is no signing identity on this machine, so the app is signed ad-hoc ("Sign to Run Locally"),
 # exactly as a Debug build is. That installs and runs fine here. Handing the DMG to someone else needs
@@ -8,28 +8,28 @@ set -eu
 
 root=$(cd "$(dirname "$0")/.." && pwd)
 dist="$root/dist"
-version=$(sed -n 's/.*MARKETING_VERSION = \([^;]*\);.*/\1/p' "$root/six.xcodeproj/project.pbxproj" | head -1)
-dmg="$dist/six-$version.dmg"
+version=$(sed -n 's/.*MARKETING_VERSION = \([^;]*\);.*/\1/p' "$root/Savoia.xcodeproj/project.pbxproj" | head -1)
+dmg="$dist/savoia-$version.dmg"
 
 echo "==> building Release"
-xcodebuild -project "$root/six.xcodeproj" -scheme six -configuration Release \
+xcodebuild -project "$root/Savoia.xcodeproj" -scheme Savoia -configuration Release \
     -skipMacroValidation -skipPackagePluginValidation \
     -derivedDataPath "$root/dist/DerivedData" \
     build
 
-app="$root/dist/DerivedData/Build/Products/Release/six.app"
+app="$root/dist/DerivedData/Build/Products/Release/Savoia.app"
 [ -d "$app" ] || { echo "no app at $app" >&2; exit 1; }
 
 echo "==> staging"
 stage=$(mktemp -d)
 trap 'rm -rf "$stage"' EXIT
-cp -R "$app" "$stage/six.app"
+cp -R "$app" "$stage/Savoia.app"
 ln -s /Applications "$stage/Applications"
 
 echo "==> $dmg"
 mkdir -p "$dist"
 rm -f "$dmg"
-hdiutil create -volname "six $version" -srcfolder "$stage" -fs HFS+ -format UDZO -ov -quiet "$dmg"
+hdiutil create -volname "Savoia $version" -srcfolder "$stage" -fs HFS+ -format UDZO -ov -quiet "$dmg"
 
 echo
 echo "$dmg"

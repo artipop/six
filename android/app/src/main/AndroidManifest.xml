@@ -18,10 +18,10 @@
     <application
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Six">
+        android:theme="@style/Theme.Savoia">
 
         <activity
-            android:name="org.deffun.six.app.MainActivity"
+            android:name="org.deffun.savoia.app.MainActivity"
             android:exported="true"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|density"
             android:launchMode="singleTask">

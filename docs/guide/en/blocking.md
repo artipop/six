@@ -55,7 +55,7 @@ lookups.
 
 WebKit's rules are a table: block a request, upgrade it to HTTPS, strip a
 header, hide an element by CSS selector. A filter list says more than that, and
-six runs the remainder itself, inside the page:
+Savoia runs the remainder itself, inside the page:
 
 | what it is | example | what it is for |
 |---|---|---|
@@ -70,7 +70,7 @@ blocker" now simply open.
 ::: tip Why this works better than an extension can
 A scriptlet is only any use if it got there before the site's own scripts. An
 extension has to inject a `<script>` tag into the page, which arrives late — and
-on strict sites a Content-Security-Policy refuses it outright. six is the
+on strict sites a Content-Security-Policy refuses it outright. Savoia is the
 browser: it prepares the code in advance and runs it first, ahead of everything
 else on the page. Extended CSS runs in a world of its own, where the site can
 see neither the library nor what it is doing.
@@ -99,6 +99,6 @@ it back. While it is empty it says where entries come from.
   did. A number in the corner would have to be invented, so there isn't one.
 - **HTML filtering** (`$$`). Such a rule rewrites the server's response before
   the browser parses it, and there is no getting between those two moments. It
-  is the one kind of rule six throws away.
+  is the one kind of rule Savoia throws away.
 
 Blocking is the same in a private window as in an ordinary one.

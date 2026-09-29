@@ -1,6 +1,6 @@
 # Extensions: what a `WebPage` browser can host
 
-six hosts browser extensions on `WKWebExtension` (public API since macOS 15.4): a `WKWebExtensionController` goes
+Savoia hosts browser extensions on `WKWebExtension` (public API since macOS 15.4): a `WKWebExtensionController` goes
 into `WebPage.Configuration.webExtensionController`, a `WKWebExtensionContext` per extension, and the app answers
 for its tabs and windows through `WKWebExtensionTab` / `WKWebExtensionWindow`.
 
@@ -20,12 +20,12 @@ is WebKit's own static match against a manifest and never calls this method at a
 measurement with the same rigor as the rest of this page. Whoever re-runs it: confirm `runtime.sendMessage` /
 `tabs.sendMessage` / `scripting.executeScript` / `scripting.insertCSS` and uBlock Origin Lite's per-tab logic again,
 each on its own, before moving this out of "believed fixed." What each of those runs would have to show, and the
-one reading that already disagrees with this page — uBOL scoring 96/100 on a request-counting test with six's own
+one reading that already disagrees with this page — uBOL scoring 96/100 on a request-counting test with Savoia's own
 blocking switched off — are in [unmeasured.md](unmeasured.md).
 
 **Install** from **Extensions › Manage Extensions…**: a folder, a `.zip`, a `.crx` or an `.xpi`. Before anything
 runs, the dialog says what the extension is, what it will be granted, and — from its manifest alone — what will not
-work in six. The panel keeps that verdict on the row afterwards.
+work in Savoia. The panel keeps that verdict on the row afterwards.
 
 ```
 InstalledExtension   what is installed and what the user decided about it (+ the compatibility verdict)
@@ -34,7 +34,7 @@ ExtensionStore       a controller per profile, a context per extension, actions,
 ExtensionAdapters    a column as WKWebExtensionTab, a profile's strip as WKWebExtensionWindow
 ```
 
-`SIX_EXTENSION=/path/to/unpacked` installs one at launch with no dialog, for development.
+`SAVOIA_EXTENSION=/path/to/unpacked` installs one at launch with no dialog, for development.
 
 ## What works, measured
 
@@ -44,13 +44,13 @@ ExtensionAdapters    a column as WKWebExtensionTab, a profile's strip as WKWebEx
 | background (`service_worker` and a `scripts` module page) | starts, runs, `browser.*` namespace present |
 | `storage.local` | works, from the background and from a content script |
 | `alarms` | works (a 0.5 min alarm fired) |
-| `tabs.query` | works — sees six's columns with their URLs and titles, through the adapters |
+| `tabs.query` | works — sees Savoia's columns with their URLs and titles, through the adapters |
 | `tabs.onUpdated` | works, *once the app reports changes* — `didChangeTabProperties(.URL/.title/.loading)` from the navigation stream |
 | `cookies` | present and answers |
 | **content scripts declared in the manifest** | **run** — `document_start`, DOM touched, `browser.*` available inside them |
 | **`scripting.registerContentScripts`** | **works** — dynamically registered scripts run in pages |
 | **`declarativeNetRequest`** | **blocks** — subresources *and* main-frame navigations, static rulesets and dynamic rules alike, including rules conditioned on `initiatorDomains`, `excludedInitiatorDomains` and `requestDomains` |
-| action popup | works — WebKit hands over its own `NSPopover` (and a live `WKWebView` on `webkit-extension://…/popup.html`), which six points at the toolbar button that was clicked, through that button's own AppKit view |
+| action popup | works — WebKit hands over its own `NSPopover` (and a live `WKWebView` on `webkit-extension://…/popup.html`), which Savoia points at the toolbar button that was clicked, through that button's own AppKit view |
 | extension pages (options, dashboards, `tabs.create` of its own pages) | work, **in a window of their own** — see below |
 | permissions | granted programmatically, or through `promptForPermissions` on the delegate |
 
@@ -89,7 +89,7 @@ and `ExtensionTabAdapter.webView(for:)` hands WebKit a view only when its config
 controller. Measured: under the same conditions that logged the bursts before (a web page restored and claimed
 before the extensions load, two profiles), none. Two other WebKit messages remain and predate this: a
 `WKWebExtension.Error` 6 (invalid manifest entry) at every launch, once per profile, and an occasional "array
-returned by tabsForWebExtensionContext: does not contain the active tab". six writes each extension's
+returned by tabsForWebExtensionContext: does not contain the active tab". Savoia writes each extension's
 `WKWebExtensionContext.errors` to its own log now (`[extensions] <name> reports …`), so which extension a recorded
 error belongs to is no longer a guess.
 
@@ -101,7 +101,7 @@ error belongs to is no longer a guess.
 | `tabs.sendMessage` **to a content script** | silently delivers nothing |
 | `scripting.executeScript` | `Could not execute script on this tab.` |
 | `scripting.insertCSS` | `Could not inject stylesheet on this tab.` |
-| `declarativeNetRequest.onRuleMatchedDebug` | not implemented by WebKit at all — not six's gap |
+| `declarativeNetRequest.onRuleMatchedDebug` | not implemented by WebKit at all — not Savoia's gap |
 
 Every failure but the last is the same failure: **WebKit cannot map a frame back to a tab without the tab's web
 view**. So content scripts run, but they are *deaf* — they cannot talk to their own background, and the background
@@ -114,7 +114,7 @@ extension whose content script is a client of its background — which is most o
 ## uBlock Origin Lite
 
 The interesting case, since it is the MV3 ad blocker and it ships a **Safari** build meant for exactly this API.
-Loaded into six it starts, enables its rule sets (`ublock-filters`, `easylist`, `easyprivacy`, `rus-0`), reports
+Loaded into Savoia it starts, enables its rule sets (`ublock-filters`, `easylist`, `easyprivacy`, `rus-0`), reports
 `hasBroadHostPermissions: true`, produces no context errors — **and blocks nothing.**
 
 What was ruled out, one at a time: rule-set enablement (they are enabled), permissions (`<all_urls>` granted,
@@ -124,10 +124,10 @@ allows 50 enabled rule sets and 30 000 dynamic rules; uBOL enables four and adds
 static rule sets does not make a fresh dynamic rule work either).
 
 What is left is uBOL's own per-tab logic: its filtering mode is decided per site and per tab, and its popup renders
-empty in six — the same symptom as everything else in the table above. Best read: **uBOL cannot see a tab, so it
+empty in Savoia — the same symptom as everything else in the table above. Best read: **uBOL cannot see a tab, so it
 filters nothing.**
 
-So the answer to "can six's ad blocking be an extension" is, today, *no* — which is why blocking is native
+So the answer to "can Savoia's ad blocking be an extension" is, today, *no* — which is why blocking is native
 (see [blocking.md](blocking.md)) and does not depend on any of this. uBOL installs and shows its verdict like any
 other extension; it simply does not block.
 
@@ -155,17 +155,17 @@ other extension; it simply does not block.
 
 ## Commands: an extension's own shortcuts
 
-`commands` in a manifest — Focus Mode's ⌘B — cannot be a static menu item the way six's own `⌘` keys are
+`commands` in a manifest — Focus Mode's ⌘B — cannot be a static menu item the way Savoia's own `⌘` keys are
 (`ViewCommands` and the rest): nobody knows the shortcut until the extension is installed. So it goes through
 `KeyRouter` instead, the monitor that already sees a key before the focused page can, tried only once the `⌥`/`⌃`
 table has declined it — which every `⌘` chord always does, since the table holds none.
 
 `WKWebExtensionContext.performCommand(for:)` is tried first, and is not enough by itself: it answers by the
 character the event carries, and a Russian layout's ⌘B reports «И» — the same bug `KeyBindings.Key.letter` exists
-to answer for six's own bindings ([hotkeys.md](hotkeys.md)), here on WebKit's side of the fence. When that method
+to answer for Savoia's own bindings ([hotkeys.md](hotkeys.md)), here on WebKit's side of the fence. When that method
 declines, `ExtensionStore.performCommand(for:in:)` checks each of the extension's `commands` again itself, this
 time by the event's physical key code against a small US-ANSI letter table — the same "code or character" shape,
-independently arrived at for a type six does not otherwise touch.
+independently arrived at for a type Savoia does not otherwise touch.
 
 ## To revisit
 
@@ -178,19 +178,19 @@ trusting the table below. Two routes stayed out on purpose even so:
    about this exists on bugs.webkit.org today — a search for `WKWebExtension` + `WebPage` finds nothing at all — so
    the useful move is to file it, with the measurements in this document as the case.
 2. **`Mirror`-ing into `WebPage`'s private storage** — verified to work on this SDK, and not used anywhere in
-   six: picture-in-picture and element fullscreen reached the view that way until they moved onto the same
+   Savoia: picture-in-picture and element fullscreen reached the view that way until they moved onto the same
    view-tree walk. The two are not the same bet: a property Apple renames or restructures
    next OS is invisible to the type checker and this fails silently, where the view-tree walk fails by finding
    nothing (a `nil` `webView(for:)`, the same answer as before the fix) rather than finding the wrong thing.
 3. **A `WKWebView` per tab**, which is what every other WebKit browser with extension support does — and which is
-   exactly the thing six exists not to do.
-4. **A WebKit build of six's own**, which would also close the devtools wall and costs accordingly — the price is
-   written down in [todo.md](todo.md#someday-sixs-own-webkit-build).
+   exactly the thing Savoia exists not to do.
+4. **A WebKit build of Savoia's own**, which would also close the devtools wall and costs accordingly — the price is
+   written down in [todo.md](todo.md#someday-savoias-own-webkit-build).
 
 ## Installing from a file
 
 `WKWebExtension` takes only `resourceBaseURL:` — an unpacked folder. So the install paths are a folder, a `.zip`, a
-`.crx` (a zip behind a header) or an `.xpi` (a zip), unpacked into `Application Support/org.deffun.six/Extensions/<id>/`.
+`.crx` (a zip behind a header) or an `.xpi` (a zip), unpacked into `Application Support/org.deffun.savoia/Extensions/<id>/`.
 Extensions from the App Store cannot be adopted: those are app extensions belonging to their own host apps, and
-`WKWebExtension(appExtensionBundle:)` is for an extension shipped *inside* six. Nothing verifies a `.crx`
+`WKWebExtension(appExtensionBundle:)` is for an extension shipped *inside* Savoia. Nothing verifies a `.crx`
 signature, which the install dialog should say in as many words.

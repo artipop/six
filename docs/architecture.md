@@ -1,41 +1,41 @@
 # Architecture
 
 SwiftUI, one window, `@Observable` state in the environment. Everything is `@MainActor` except the ACP/MCP transports.
-The entry point is `SixMain`, not the `App`: with `--mcp` the process never touches AppKit and runs
+The entry point is `SavoiaMain`, not the `App`: with `--mcp` the process never touches AppKit and runs
 `MCPStdioBridge` instead (see [mcp](mcp.md)).
 
 ```
-six/Tiling       TilingLayout (workspaces, columns, geometry, focus/move ops), TilingScrollMonitor (scroll gestures)
-six/Input       KeyBindings + KeyContext (the table and what has the keyboard — in SixCore, tested against
+Savoia/Tiling       TilingLayout (workspaces, columns, geometry, focus/move ops), TilingScrollMonitor (scroll gestures)
+Savoia/Input       KeyBindings + KeyContext (the table and what has the keyboard — in SavoiaCore, tested against
                 docs/hotkeys.md), KeyEvents (NSEvent → those values), KeyRouter (the one key monitor)
-six/Browser     Profile, BrowserTab (WebPage), LivePageCache (the live-page budget), BrowserState, History, SitePermissions + PageDialogs (camera/microphone per site, the page's own dialogs), SearchEngine, SearchSuggestions, WebSearch
-six/Bookmarks   Bookmark (tables), ReadablePage (page → Markdown), Embedder + MLXEmbedder (multilingual-e5 over MLX), BookmarkStore (files, vec0 index, search)
-six/Views       ContentView (top bar), TilingStripView (the row + overview), ConfigurationPageView (six://configuration/<pane>#<tab>), StartPage, AssistantBar, AgentPanel, HistoryView, BookmarksView
-six/Assistant   ModelChoice/AssistantSettings, AssistantStore (streaming), FoundationModelsCompatibility
-six/ACP         ACPJSON, JSONRPCConnection, ACPTypes, ACPAgent (process), ACPClient (actor), AgentSessionStore
-six/Tools       BrowserToolCatalog (the tools, over BrowserState), BrowserModelTool (Foundation Models adapter)
-six/Documents   TextDocument + DocumentStore (Markdown files behind document windows), Markdown (→ HTML for the preview), Export (Save As, File menu)
-six/Highlights  Highlight (the selectors), HighlightStore (highlights.json, re-anchoring on load), HighlightScript (the page-side JS)
-six/Research    ResearchRun + ResearchPreset (the snapshot shape and the prompt), ResearchCoordinator (workspace + document + agent)
-six/MCP         MCPServer + MCPHost (the catalog over a Unix socket), MCPSocket, MCPStdioBridge (`six --mcp`)
-six/Persistence AppStateSnapshot (the Codable shape), SnapshotStore (a versioned JSON file), StatePersistence (autosave)
-six/Data        AppDatabase (the SQLite file, migrations), ConfigurationStore (the settings table)
-six/Vendor      ClaudeForFoundationModels sources
-six/*.xcstrings Localizable + InfoPlist String Catalogs (English source, Russian) — see [localization](localization.md)
+Savoia/Browser     Profile, BrowserTab (WebPage), LivePageCache (the live-page budget), BrowserState, History, SitePermissions + PageDialogs (camera/microphone per site, the page's own dialogs), SearchEngine, SearchSuggestions, WebSearch
+Savoia/Bookmarks   Bookmark (tables), ReadablePage (page → Markdown), Embedder + MLXEmbedder (multilingual-e5 over MLX), BookmarkStore (files, vec0 index, search)
+Savoia/Views       ContentView (top bar), TilingStripView (the row + overview), ConfigurationPageView (savoia://configuration/<pane>#<tab>), StartPage, AssistantBar, AgentPanel, HistoryView, BookmarksView
+Savoia/Assistant   ModelChoice/AssistantSettings, AssistantStore (streaming), FoundationModelsCompatibility
+Savoia/ACP         ACPJSON, JSONRPCConnection, ACPTypes, ACPAgent (process), ACPClient (actor), AgentSessionStore
+Savoia/Tools       BrowserToolCatalog (the tools, over BrowserState), BrowserModelTool (Foundation Models adapter)
+Savoia/Documents   TextDocument + DocumentStore (Markdown files behind document windows), Markdown (→ HTML for the preview), Export (Save As, File menu)
+Savoia/Highlights  Highlight (the selectors), HighlightStore (highlights.json, re-anchoring on load), HighlightScript (the page-side JS)
+Savoia/Research    ResearchRun + ResearchPreset (the snapshot shape and the prompt), ResearchCoordinator (workspace + document + agent)
+Savoia/MCP         MCPServer + MCPHost (the catalog over a Unix socket), MCPSocket, MCPStdioBridge (`Savoia --mcp`)
+Savoia/Persistence AppStateSnapshot (the Codable shape), SnapshotStore (a versioned JSON file), StatePersistence (autosave)
+Savoia/Data        AppDatabase (the SQLite file, migrations), ConfigurationStore (the settings table)
+Savoia/Vendor      ClaudeForFoundationModels sources
+Savoia/*.xcstrings Localizable + InfoPlist String Catalogs (English source, Russian) — see [localization](localization.md)
 ```
 
 The Linux front is a second set of modules over some of the same files, built by SwiftPM rather than
 Xcode. Its module boundaries are enforced rather than agreed — see [linux.md](linux.md):
 
 ```
-Package.swift          SixCore: the files above that are Foundation-only — TilingLayout, Data/, Persistence/,
+Package.swift          SavoiaCore: the files above that are Foundation-only — TilingLayout, Data/, Persistence/,
                        Bookmark, History, SearchEngine, SitePermissions — plus the two the fronts without a
                        snapshot share, StripState and LivePages (compiled away on Apple). Listed, not moved.
-linux/  SixWebKitCore  the WebKitGTK interop, no toolkit: NetworkSession, PageRegistry, Thumbnails,
+linux/  SavoiaWebKitCore  the WebKitGTK interop, no toolkit: NetworkSession, PageRegistry, Thumbnails,
                        PermissionRequests, Signal
-        SixWebKit      the page as a widget adwaita can place
-        SixBrowser     BrowserModel, PageScript, Translation, Bookmarks — the Linux six/Browser
-        SixUI          the only module that knows what a toolkit is
+        SavoiaWebKit      the page as a widget adwaita can place
+        SavoiaBrowser     BrowserModel, PageScript, Translation, Bookmarks — the Linux Savoia/Browser
+        SavoiaUI          the only module that knows what a toolkit is
 ```
 
 ## State
@@ -111,7 +111,7 @@ private profile can still touch is its agent scratchpad, if an agent is asked to
 ## Live pages
 
 A `WebPage` is a web content process — a JavaScript heap, a render tree, timers, a compositor. A strip of a hundred
-windows cannot hold a hundred of them, so six does what every browser does and calls by the same name: it **discards**
+windows cannot hold a hundred of them, so Savoia does what every browser does and calls by the same name: it **discards**
 the pages it is unlikely to be asked for and builds them again from the address. Discarding is not closing; the window
 stays in the strip with its title, its address, its back/forward stacks, its scroll offset and a picture of itself.
 
@@ -136,8 +136,8 @@ still on them.
   for a picture of itself, a dozen times over, every time the view moves. The pictures are taken on the way in.
 - **The rest is LRU**, `budget` deep. The default is sized from the machine — about one page per gigabyte of RAM,
   clamped to 8…32. Nothing sets it: it was a picker in the Layout menu, under a status line, and how many web
-  content processes a Mac can carry is not a thing a person knows. `six://configuration` ▸ Windows shows the number
-  and offers no way to change it; `SIX_LIVE_PAGES=n` pins it for measuring.
+  content processes a Mac can carry is not a thing a person knows. `savoia://configuration` ▸ Windows shows the number
+  and offers no way to change it; `SAVOIA_LIVE_PAGES=n` pins it for measuring.
 - **Guards**, the ones Chrome's Memory Saver uses: a page loading (for the last 20 s — plenty of pages never stop
   loading at all), playing audio or video, or holding a draft in a `textarea` or a filled-in password is skipped and
   the next candidate taken. Deliberately *not* "a field whose value differs from its attribute": that calls every
@@ -148,7 +148,7 @@ still on them.
   nothing guarantees the one that says "normal" ever arrives, a reported band expires after ninety seconds by itself.
   A browser that shrank on a warning it heard once and stayed shrunk for the rest of the launch is the bug you cannot
   see; if the pressure is real, growing back is what makes the system say so again.
-- `SIX_LIVE_PAGES=n` pins the budget and `SIX_PAGE_CACHE_DEBUG=1` narrates evictions on stderr. Measured over one real
+- `SAVOIA_LIVE_PAGES=n` pins the budget and `SAVOIA_PAGE_CACHE_DEBUG=1` narrates evictions on stderr. Measured over one real
   strip of 31 windows, visiting every one: 22 web content processes and 798 MB with the budget out of the way, 6 and
   287 MB with it in place.
 
@@ -161,19 +161,19 @@ keeps the newest `budget × 4` (at least 24) in memory and the rest let go of th
 memory too, and giving memory back was the point.
 
 The pictures themselves outlive both the page and the launch: `PageThumbnails` writes each one as a PNG under
-`Application Support/org.deffun.six/Thumbnails/<window id>.png`, the way Firefox keeps `moz-page-thumbnails` and Safari keeps its
+`Application Support/org.deffun.savoia/Thumbnails/<window id>.png`, the way Firefox keeps `moz-page-thumbnails` and Safari keeps its
 snapshots, because an overview full of blank cards after a relaunch is exactly the moment they were for. They are read
 back lazily — when the overview opens, for the windows with nothing in memory — never all at once. What bounds the
 folder is the strip: `prune(keeping:)` drops the pictures of windows that no longer exist, at launch and as they
 close, so there is one file per open window and no more.
 
 Beside them, one file per **host**: `SiteIcons` keeps the site's own icon under
-`Application Support/org.deffun.six/SiteIcons/<host>.icon`, which is what a card falls back to when there is no
-picture of the page yet. The page fetches it, not six — a `URLSession` asking `https://host/favicon.ico` would be a
+`Application Support/org.deffun.savoia/SiteIcons/<host>.icon`, which is what a card falls back to when there is no
+picture of the page yet. The page fetches it, not Savoia — a `URLSession` asking `https://host/favicon.ico` would be a
 second visit to that site from outside the profile it belongs to, with none of its cookies and none of its blocking,
 and a private window would make it as readily as any other. A script reads the page's own `<link rel="icon">` tags,
 fetches the best of them, draws it into a 64-point canvas (which is what makes an SVG usable, since `NSImage` cannot
-decode one) and leaves a `data:` URL on the window; `callJavaScript` cannot await, so six polls for it. The one thing
+decode one) and leaves a `data:` URL on the window; `callJavaScript` cannot await, so Savoia polls for it. The one thing
 the page cannot draw is a `.ico` — WebKit's `<img>` refuses a `data:` URL that says `image/x-icon`, measured — and
 those bytes go back as they came for ImageIO to decode. A private profile is given no `SiteIcons` at all.
 
@@ -188,15 +188,15 @@ Back and forward survive: WebKit's own list goes with the page, so the window ke
 once a rebuilt page runs out of its own. A window on the start page never builds a page at all — the start page is
 SwiftUI.
 
-## What six says it is
+## What Savoia says it is
 
 `WKWebView`'s default user agent stops at the application name — `… AppleWebKit/605.1.15 (KHTML, like Gecko)
-Six/1.0` — and contains no `Version/… Safari/…`. That token is what browser-sniffing scripts look for, so without it
+Savoia/1.0` — and contains no `Version/… Safari/…`. That token is what browser-sniffing scripts look for, so without it
 they fall through to "unknown, probably ancient": Aviasales and Yandex both answer a fresh WebKit with *your browser
 is out of date*.
 
-`UserAgent` (`six/Browser/UserAgent.swift`) sets `applicationNameForUserAgent` to Safari's own tail instead, so the
-string six sends is identical to the Safari installed on the machine — the version is read from
+`UserAgent` (`Savoia/Browser/UserAgent.swift`) sets `applicationNameForUserAgent` to Safari's own tail instead, so the
+string Savoia sends is identical to the Safari installed on the machine — the version is read from
 `/Applications/Safari.app` at launch (falling back to the macOS major version), so the claim ages with the system
 rather than with this file. It is not a disguise: the engine, the JavaScript and the quirks really are that Safari's.
 Naming ourselves in the same string is what broke it, so we don't.
@@ -209,19 +209,19 @@ is Chromium's), and a site that insists on it will simply not recognise us.
 
 macOS decides what an app *is* from its `Info.plist`, and Xcode's generated one says "an app". `Info.plist` at the
 repo root fills the gap and `GENERATE_INFOPLIST_FILE` stays on, so the generator's keys (bundle name, version,
-`NSPrincipalClass`) are merged into it at build time. It sits at the root rather than in `six/` because that folder
+`NSPrincipalClass`) are merged into it at build time. It sits at the root rather than in `Savoia/` because that folder
 is a file-system-synchronized group: anything inside it is added to the target, and the plist would be copied into
 `Resources` as well.
 
-What it declares: `CFBundleURLTypes` for `http`/`https` as a Viewer — the key that puts six in System Settings ›
+What it declares: `CFBundleURLTypes` for `http`/`https` as a Viewer — the key that puts Savoia in System Settings ›
 Desktop & Dock › Default web browser — and for `file`; `CFBundleDocumentTypes` for HTML, web archives, `.webloc`,
 PDF, images and text, all `Alternate` so Preview and TextEdit keep their files; `NSUserActivityTypes` for Handoff;
 camera, microphone and location usage strings, without which a site's permission prompt has nothing to say and the
-request is denied; and `NSAllowsArbitraryLoadsInWebContent`, which is for page content only, not for what six fetches
-itself. The app menu's **Set six as Default Browser…** calls `NSWorkspace.setDefaultApplication` for both schemes;
+request is denied; and `NSAllowsArbitraryLoadsInWebContent`, which is for page content only, not for what Savoia fetches
+itself. The app menu's **Set Savoia as Default Browser…** calls `NSWorkspace.setDefaultApplication` for both schemes;
 macOS puts up its own confirmation, as it should — an app cannot promote itself silently.
 
-The receiving end is the scene itself. `sixApp.body` declares a `Window`, not a `WindowGroup`, and that is the whole
+The receiving end is the scene itself. `SavoiaApp.body` declares a `Window`, not a `WindowGroup`, and that is the whole
 defence: SwiftUI answers an external open — a link from another app, a Handoff tile — by asking `AppWindowsController`
 for a *window*, and a group happily builds a second one, which puts the same `WebPage`s into a second `WebView`;
 WebKit traps and the process dies. A `Window` scene has nowhere to build, so SwiftUI raises the one that is up and
@@ -230,7 +230,7 @@ delivers to it. With that in place the sanctioned modifiers do the rest: `.onOpe
 `handlesExternalEvents(preferring:allowing:)` with `"*"` saying the one window takes everything.
 
 Two things macOS does not do for us, both in `ExternalOpen.swift`. It leaves whatever app was clicked in front, so
-`comeForward()` activates six and digs the window out if it was minimised. And a `.webloc` is a plist wrapping a URL,
+`comeForward()` activates Savoia and digs the window out if it was minimised. And a `.webloc` is a plist wrapping a URL,
 so `resolve(_:)` opens what it points at rather than the file.
 
 ## Persistence
@@ -238,8 +238,8 @@ so `resolve(_:)` opens what it points at rather than the file.
 Everything that makes up a session — the selected profile, every tab (URL, title and the trail it walked to get
 there) and every profile's strip (workspaces with their names, their columns, focus), the downloads that did not
 finish, plus the agent chats — is one `AppStateSnapshot`,
-written to `~/Library/Application Support/org.deffun.six/state.json` — the folder is the bundle identifier, so a Debug
-build writes to `org.deffun.six.dev/` and the two never meet (`AppSupport`, and
+written to `~/Library/Application Support/org.deffun.savoia/state.json` — the folder is the bundle identifier, so a Debug
+build writes to `org.deffun.savoia.dev/` and the two never meet (`AppSupport`, and
 [build.md](build.md#two-apps-the-one-you-use-and-the-one-you-build)). The snapshot types, `SnapshotStore` and `StatePersistence`
 use only Foundation and Observation (no SwiftData, no AppKit), so the format and the machinery are portable as they
 are; only the mapping to the live objects (`BrowserState.snapshot` / `init(snapshot:)`, `TilingLayout.allStrips` /
@@ -272,7 +272,7 @@ page's URL, a column moving, a chat line — schedules a debounced (1 s) write o
 `willTerminate` flushes synchronously. On restore, a `BrowserTab` is created with its saved URL but doesn't load until
 it first comes on screen (or a tool looks at it) — relaunching with a hundred windows fires no requests.
 That first load — and the one that rebuilds a discarded window — does not start media by itself: `MediaHold` puts a
-script in six's world that pauses any `play` until a trusted click or key press in that frame. `WebPage.Configuration`
+script in Savoia's world that pauses any `play` until a trusted click or key press in that frame. `WebPage.Configuration`
 has no `mediaTypesRequiringUserActionForPlayback` on macOS, and one would hold every later navigation too; the script
 is dropped as soon as the next navigation starts, so a reload or a link plays as usual.
 The window itself — frame and fullscreen — is in the snapshot too (`WindowState`, fed by `NSWindow`
@@ -281,7 +281,7 @@ ignored). Restore drops anything that doesn't line up (a column whose tab is gon
 
 **Back and forward survive a relaunch, as addresses.** `WebPage` hands out no `interactionState` — the opaque blob
 `WKWebView` has had since macOS 12 for exactly this — so WebKit's own back-forward list cannot be restored into a
-fresh page at all. What six restores instead is `BrowserTab.Trail`, the list of addresses it already keeps for a
+fresh page at all. What Savoia restores instead is `BrowserTab.Trail`, the list of addresses it already keeps for a
 window whose page was discarded and for one handed to another profile: `savedBack` / `savedForward`, walked by
 `goBack()` when the live page's own list runs out. The snapshot carries 50 steps each way per window. A restored
 window is therefore one WebKit knows nothing about, and one whose ⌘[ loads the previous address rather than
@@ -290,7 +290,7 @@ restored: it is only read when a window leaves the screen, so for one that never
 session started at. Only the API key
 stays in `UserDefaults`; the other settings are in the database (below).
 
-History and settings live in SQLite — `~/Library/Application Support/org.deffun.six/six.sqlite`, opened by `AppDatabase`
+History and settings live in SQLite — `~/Library/Application Support/org.deffun.savoia/savoia.sqlite`, opened by `AppDatabase`
 through [SQLiteData](https://github.com/pointfreeco/sqlite-data) (GRDB + StructuredQueries; `@Table` structs, typed
 queries, `#sql` for the schema). Tables follow SQLiteData's CloudKit rules from the start — UUID text primary keys,
 no `UNIQUE` elsewhere, columns only ever added — so turning its `SyncEngine` on later is configuration
@@ -313,29 +313,29 @@ search, and how sqlite-vec is loaded into the Apple SQLite.
 
 ## Page-side scripts
 
-Everything six runs inside a page — the readable-text extractor behind bookmarks and `get_page_content`, the link
-lister, the scroll save/restore, the highlight anchoring — goes through `WebPage.six(_:arguments:)`
-(`six/Browser/PageScripts.swift`): `callJavaScript` in a `WKContentWorld` of six's own. This is the arrangement
+Everything Savoia runs inside a page — the readable-text extractor behind bookmarks and `get_page_content`, the link
+lister, the scroll save/restore, the highlight anchoring — goes through `WebPage.savoia(_:arguments:)`
+(`Savoia/Browser/PageScripts.swift`): `callJavaScript` in a `WKContentWorld` of Savoia's own. This is the arrangement
 Firefox Reader View and Safari Reader use — the browser's script reads the page from a privileged context, never as a
 guest of the page's own scripts. The DOM is shared, the JavaScript is not:
 
 - the page cannot redefine `document.querySelectorAll`, the `innerText` getter or `getComputedStyle` to hand the
   extractor (and the model or agent reading its output) text a person never sees;
-- the page cannot see six's globals (the highlight registry's ranges, the constructed stylesheet) — nothing to
+- the page cannot see Savoia's globals (the highlight registry's ranges, the constructed stylesheet) — nothing to
   detect, nothing to erase;
-- what six adds to the page is a constructed `CSSStyleSheet` in `document.adoptedStyleSheets` (a page's CSP has no say
+- what Savoia adds to the page is a constructed `CSSStyleSheet` in `document.adoptedStyleSheets` (a page's CSP has no say
   over it) and `Range`s in `CSS.highlights`, both DOM objects and both shared. `<mark>` wrappers and a `<style>` element
   exist only as fallbacks for engines without those APIs.
 
 One of these scripts is a *watcher* rather than a reader: `PageFocusScript` follows the selection and the caret and
-pushes what it finds over a message handler in six's world, because a selection is an event and polling for one would
+pushes what it finds over a message handler in Savoia's world, because a selection is an event and polling for one would
 run while nothing is happening ([assistant.md](assistant.md)). It is also where password fields are dropped — in the
 page, before anything is sent — and the same script is what writes an answer back into a field.
 
 There are two deliberate exceptions. The `evaluate_javascript` tool runs in the page's world because that is what
 it is for. The devtools capture ([devtools.md](devtools.md)) does too, and has to: `console.log` and `fetch` are the
 page's own globals, so wrapping them anywhere else would wrap nothing. It is off by default, and what it returns is
-described as the page's account of itself rather than the browser's. Its result is the page's word, not six's. What isolation does not change: page text still reaches the
+described as the page's account of itself rather than the browser's. Its result is the page's word, not Savoia's. What isolation does not change: page text still reaches the
 model — that is the task, not an injection — and the defence there is the agent's (permission prompts, treating page
 content as data).
 

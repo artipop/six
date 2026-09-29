@@ -1,4 +1,4 @@
-# six
+# Savoia
 
 A minimal browser with a scrollable-tiling layout. macOS first, with an
 iPhone/iPad target beside it and a Linux front on WebKitGTK over the same storage layer
@@ -15,17 +15,17 @@ It is a playground for three things:
    and Claude (`ClaudeLanguageModel` from [anthropics/ClaudeForFoundationModels](https://github.com/anthropics/ClaudeForFoundationModels),
    which conforms to the new `LanguageModel` protocol). Page text is sent as context. There is no official OpenAI
    provider for this protocol yet, so GPT is not wired up.
-3. **ACP (Agent Client Protocol) in Swift** — `six/ACP/` is a self-contained client: JSON-RPC over stdio,
+3. **ACP (Agent Client Protocol) in Swift** — `Savoia/ACP/` is a self-contained client: JSON-RPC over stdio,
    `initialize` / `session/new` / `session/prompt` / `session/cancel` / `session/set_mode`, streaming `session/update`,
    `session/request_permission`, and `fs/read_text_file` / `fs/write_text_file` served from the app (restricted to the
    session cwd). Built-in agents: Claude Code (`@agentclientprotocol/claude-agent-acp`) and Codex
    (`@agentclientprotocol/codex-acp`). The agent panel entry points are temporarily commented out.
-4. **The browser as an MCP server** — the same binary run as `six --mcp` is a stdio MCP server relaying to the
+4. **The browser as an MCP server** — the same binary run as `Savoia --mcp` is a stdio MCP server relaying to the
    running app over a Unix socket. Every ACP session gets it in `mcpServers`, so agents can open windows into a
    named workspace, read and summarize pages, move and close windows — the same tool catalog the assistant uses.
-   With `six://settings` ▸ **Develop** ▸ Capture Console and Network on, that catalog also answers what a page logged and what it
+   With `savoia://settings` ▸ **Develop** ▸ Capture Console and Network on, that catalog also answers what a page logged and what it
    requested (`list_console_messages`, `list_network_requests`, `take_screenshot`) — Chrome's devtools-MCP moves, on
-   WebKit. `WebPage.isInspectable` puts six's pages in Safari's own Develop menu.
+   WebKit. `WebPage.isInspectable` puts Savoia's pages in Safari's own Develop menu.
    See [docs/mcp.md](docs/mcp.md) and [docs/devtools.md](docs/devtools.md).
 
 Windows, workspaces, profiles and agent chats survive a relaunch: one JSON snapshot under Application Support, autosaved
@@ -41,20 +41,20 @@ See [docs/architecture.md](docs/architecture.md#live-pages).
 Ads and trackers are blocked out of the box, by WebKit itself: filter lists are converted to WebKit's content-blocker
 JSON and compiled into `WKContentRuleList`s, so a blocked request never leaves the content process and nothing runs
 inside the page. Every window has its own content controller, which is what makes the per-site allowlist — the shield
-in the address field — a reload rather than a ten-second recompile. `six://settings` ▸ **Privacy** has the switch (off means
+in the address field — a reload rather than a ten-second recompile. `savoia://settings` ▸ **Privacy** has the switch (off means
 off: nothing fetched, nothing compiled), the lists and the sites left alone.
 See [docs/blocking.md](docs/blocking.md).
 
 Some sites are served under a certificate authority no Apple machine has ever heard of — Russian banks under the
 Ministry of Digital Development's CA are the case this was built for — and to a browser those look exactly like an
-attack. six carries that authority switched **off** and puts a switch beside it on `six://settings` ▸ **Privacy**, along with a
+attack. Savoia carries that authority switched **off** and puts a switch beside it on `savoia://settings` ▸ **Privacy**, along with a
 way to import your own. Turning one on does less than the keychain would: the system judges every chain first,
 untouched, and only a chain it has already turned down is read a second time with the extra anchors *added*. So trust
-here belongs to six alone, nothing else on the machine is affected, and switching it off takes it back.
+here belongs to Savoia alone, nothing else on the machine is affected, and switching it off takes it back.
 See [docs/certificates.md](docs/certificates.md).
 
 Browser extensions run too, on `WKWebExtension` — installed from a folder, a `.zip`, a `.crx` or an `.xpi`, one
-controller per profile, never in a private window. There is one thing six cannot give them: a tab's `WKWebView`,
+controller per profile, never in a private window. There is one thing Savoia cannot give them: a tab's `WKWebView`,
 which `WebPage` does not hand out, so a content script runs but cannot message its extension. That boundary is
 measured rather than guessed, and every install says what it costs *that* extension before it runs.
 See [docs/extensions.md](docs/extensions.md).
@@ -65,8 +65,8 @@ catalog's instructions, every tool description, the research preset — stays En
 than an interface.
 See [docs/localization.md](docs/localization.md).
 
-six registers with macOS as a browser: it claims `http`/`https` and the usual web file types, so it can be picked in
-System Settings › Desktop & Dock › Default web browser (or from **Set six as Default Browser…** in the six menu), and
+Savoia registers with macOS as a browser: it claims `http`/`https` and the usual web file types, so it can be picked in
+System Settings › Desktop & Dock › Default web browser (or from **Set Savoia as Default Browser…** in the Savoia menu), and
 links or `.html` files opened from other apps land as windows in the row.
 See [docs/architecture.md](docs/architecture.md#being-a-browser).
 
@@ -81,7 +81,7 @@ stacked vertically and exactly one is on screen at a time. The bottom workspace 
 and a fresh empty one appears below (dynamic workspaces); a workspace that runs out of windows disappears,
 unless you gave it a name (double-click its plate in the overview).
 
-A new window opens on six's own start page — one field for both queries and addresses, so the first thing a window
+A new window opens on Savoia's own start page — one field for both queries and addresses, so the first thing a window
 does isn't a network request. Under it, in this order: what you **saved**, what you **visited**, what the engine
 **guesses**. The first of those is the search being personal — the query is embedded on this Mac and put to the
 bookmarks' vector index, so it answers across languages and without the words matching («плов» finds the English page
@@ -107,7 +107,7 @@ stays the page's.
 | `⌥C` | centre the focused window (default) or scroll the row as little as possible |
 | `⌥O`, `Esc` | overview — zoomed out just enough to show the focused row end to end, scrolling sideways runs along it; no modifier needed there, a click opens a window |
 | `⌘T` / `⌘W` | new window in the row, right of the focused one / close it |
-| `⌘,` | settings — `six://settings`, a column of the row like any other address |
+| `⌘,` | settings — `savoia://settings`, a column of the row like any other address |
 | `⌘⇧T` | put the last closed window back where it stood |
 | `⌘Y` | the profile's history — searchable; the History menu lists the last 20 pages |
 
@@ -127,24 +127,24 @@ Full reference: [docs/](docs/) — [controls](docs/controls.md), [hotkeys](docs/
 The phone and the tablet are a second Xcode target over the same folder; what they leave out and why the layout turns
 sideways on a phone is [docs/platforms.md](docs/platforms.md).
 
-Linux is a third front end — GTK 4 and WebKitGTK 6.0, built by SwiftPM in a container — over the *same* `six.sqlite`,
+Linux is a third front end — GTK 4 and WebKitGTK 6.0, built by SwiftPM in a container — over the *same* `savoia.sqlite`,
 the same schema and the same `TilingLayout`. The row, workspaces, the overview, history, bookmarks, private profiles,
 thumbnails, the live-page budget and site permissions are there; extensions, blocking, the assistant and embeddings
 are not yet. [docs/linux.md](docs/linux.md).
 
 ```
-six/Tiling       TilingLayout (workspaces, columns, geometry, focus/move ops), TilingScrollMonitor (⌥+scroll gestures)
-six/Browser     Profile, BrowserTab (WebPage), BrowserState, SearchEngine + SearchSuggestions
-six/DevTools    DevToolsStore (Web Inspector + capture), PageInstrumentation (the page-world hooks)
-six/Extensions  ExtensionStore (a controller per profile), ExtensionInstaller (+ the compatibility verdict), adapters
-six/Blocking    ContentBlocker (compiles + attaches rules), FilterList/FilterListStore (the lists), RuleConversion
-six/Browser     CertificateStore + ServerTrust (extra trust anchors), BundledCertificates (the ones six ships)
-six/Views       ContentView (top bar), TilingStripView (the row + overview), SettingsPageView, StartPage, AssistantBar, AgentPanel
-six/Assistant   ModelChoice/AssistantSettings (model selection), AssistantStore (streaming), FM compatibility probe
-six/ACP         ACPJSON, JSONRPCConnection, ACPTypes, ACPAgent (process), ACPClient (actor), AgentSessionStore (VM)
-six/Tools       BrowserToolCatalog (the tools, over BrowserState), BrowserModelTool (Foundation Models adapter)
-six/MCP         MCPServer + MCPHost (the catalog over a Unix socket), MCPSocket (listener), MCPStdioBridge (`six --mcp`)
-six/Vendor      ClaudeForFoundationModels sources (see note below)
+Savoia/Tiling       TilingLayout (workspaces, columns, geometry, focus/move ops), TilingScrollMonitor (⌥+scroll gestures)
+Savoia/Browser     Profile, BrowserTab (WebPage), BrowserState, SearchEngine + SearchSuggestions
+Savoia/DevTools    DevToolsStore (Web Inspector + capture), PageInstrumentation (the page-world hooks)
+Savoia/Extensions  ExtensionStore (a controller per profile), ExtensionInstaller (+ the compatibility verdict), adapters
+Savoia/Blocking    ContentBlocker (compiles + attaches rules), FilterList/FilterListStore (the lists), RuleConversion
+Savoia/Browser     CertificateStore + ServerTrust (extra trust anchors), BundledCertificates (the ones Savoia ships)
+Savoia/Views       ContentView (top bar), TilingStripView (the row + overview), SettingsPageView, StartPage, AssistantBar, AgentPanel
+Savoia/Assistant   ModelChoice/AssistantSettings (model selection), AssistantStore (streaming), FM compatibility probe
+Savoia/ACP         ACPJSON, JSONRPCConnection, ACPTypes, ACPAgent (process), ACPClient (actor), AgentSessionStore (VM)
+Savoia/Tools       BrowserToolCatalog (the tools, over BrowserState), BrowserModelTool (Foundation Models adapter)
+Savoia/MCP         MCPServer + MCPHost (the catalog over a Unix socket), MCPSocket (listener), MCPStdioBridge (`Savoia --mcp`)
+Savoia/Vendor      ClaudeForFoundationModels sources (see note below)
 ```
 
 ## Testing ACP
@@ -179,7 +179,7 @@ requests show up in the transcript; permission buttons answer `session/request_p
   OS beta. `FoundationModelsCompatibility` still probes the ABI at launch and disables Claude with an explanation if
   the runtime ever diverges again.
 - `ClaudeForFoundationModels` (`main`; tags predate the beta 5 API changes) is compiled straight into the app target
-  from `six/Vendor/` — SwiftPM targets ignore the project's `SDKROOT` override and would build against Xcode's stale SDK.
+  from `Savoia/Vendor/` — SwiftPM targets ignore the project's `SDKROOT` override and would build against Xcode's stale SDK.
 - App Sandbox is off because the ACP layer spawns `npx`/`claude`/`codex` from the user's toolchain.
 - Claude Code refuses to run nested inside another Claude Code session; the ACP layer strips `CLAUDECODE` from the
   agent environment. Choose the agent and its model in Configuration → Assistant → Responses; each agent supplies its own model list.

@@ -7,8 +7,8 @@
 </style>
 <h1>WebMCP test page</h1>
 <p>
-  Declares four tools through <code>document.modelContext</code>, which is six's polyfill
-  (<code>six/WebMCP/WebMCPScript.swift</code>). <code>SIX_WEBMCP_SELFTEST</code> drives it from
+  Declares four tools through <code>document.modelContext</code>, which is Savoia's polyfill
+  (<code>Savoia/WebMCP/WebMCPScript.swift</code>). <code>SAVOIA_WEBMCP_SELFTEST</code> drives it from
   launch; by hand, the address field's tool badge should say 4, then 3 after
   <code>forget_slow</code>, and nothing after a navigation. See docs/webmcp.md.
 </p>
@@ -17,7 +17,7 @@
   const log = (line) => { document.getElementById('log').textContent += line + '\n'; };
   const context = document.modelContext;
   if (!context) {
-    log('No document.modelContext: WebMCP is off in six, or this page is not a secure context.');
+    log('No document.modelContext: WebMCP is off in Savoia, or this page is not a secure context.');
   } else {
     let aborts = 0;
     let toolchanges = 0;

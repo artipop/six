@@ -3,7 +3,10 @@
 Working notes for whoever changes this code. [README.md](README.md) is the pitch, [docs/](docs/) is the reference;
 this file is the part that is neither — how to build it, how to check it, and the things that have cost hours.
 
-## What six is
+## What Savoia is
+
+It was called **six** until September 2026: bundle ids, folders and the `six://` scheme were renamed with it,
+and `FormerName` carries the old Application Support, WebKit data, preferences and Keychain items across.
 
 A browser with a scrollable-tiling layout: no tabs and no sidebar, a page
 is a full-height **window** on a horizontally scrollable **row**, a row is a **workspace**, workspaces stack
@@ -11,9 +14,9 @@ vertically. Four front ends over one core:
 
 | | | |
 |---|---|---|
-| **macOS** | `six.xcodeproj`, scheme `six` | where every feature lands first |
-| **iOS/iPadOS** | `six.xcodeproj`, scheme `six-iOS` | same `six/` folder, exclusions in the pbxproj |
-| **Linux** | `linux/`, SwiftPM + GTK4/WebKitGTK 6.0 | over the same `six.sqlite`, in a container |
+| **macOS** | `Savoia.xcodeproj`, scheme `Savoia` | where every feature lands first |
+| **iOS/iPadOS** | `Savoia.xcodeproj`, scheme `Savoia-iOS` | same `Savoia/` folder, exclusions in the pbxproj |
+| **Linux** | `linux/`, SwiftPM + GTK4/WebKitGTK 6.0 | over the same `savoia.sqlite`, in a container |
 | **Android** | `android/`, Kotlin + Compose | system WebView, its own storage layer, [docs/android.md](docs/android.md) |
 | **Windows** | `windows/`, SwiftPM + Win32 (`WinSDK`) | real WebKit2 engine, with a DPI shim in front of it — [docs/windows.md](docs/windows.md) |
 
@@ -24,60 +27,61 @@ the single LLM API, ACP for agents, and the browser itself as an MCP server. Swi
 ## Where things are
 
 ```
-six/Tiling         TilingLayout (workspaces, columns, geometry, focus/move), TilingScrollMonitor (⌥+scroll gestures)
-six/Input         KeyBindings + KeyContext (the table, in SixCore), KeyEvents (the AppKit half), KeyRouter, KeySelfTest
-six/Browser       BrowserState, BrowserTab (WebPage), Profile/ProfileStore, History, SearchEngine, LivePageCache,
+Savoia/Tiling         TilingLayout (workspaces, columns, geometry, focus/move), TilingScrollMonitor (⌥+scroll gestures)
+Savoia/Input         KeyBindings + KeyContext (the table, in SavoiaCore), KeyEvents (the AppKit half), KeyRouter, KeySelfTest
+Savoia/Browser       BrowserState, BrowserTab (WebPage), Profile/ProfileStore, History, SearchEngine, LivePageCache,
                   SitePermissions, CertificateStore, Downloads, IDN, PersonalSuggestions, PageThumbnails, PageFinder
-six/Views         ContentView (top bar), TilingStripView (row + overview), StartPage, SettingsPageView, AssistantBar,
+Savoia/Views         ContentView (top bar), TilingStripView (row + overview), StartPage, SettingsPageView, AssistantBar,
                   AgentPanel, MCPApps*, Phone/ (the iOS layout)
-six/Data          AppSupport (the one place that knows the bundle id → folder), AppDatabase, SettingsStore
-six/Persistence   AppStateSnapshot, SnapshotStore (versioned JSON), StatePersistence (debounced autosave)
-six/Bookmarks     Bookmark(Store), ReadablePage (Markdown copy), Embedder/MLXEmbedder (on-device, multilingual-e5),
+Savoia/Data          AppSupport (the one place that knows the bundle id → folder), AppDatabase, SettingsStore,
+                     FormerName (moves the state of the browser once called six, on the first launch)
+Savoia/Persistence   AppStateSnapshot, SnapshotStore (versioned JSON), StatePersistence (debounced autosave)
+Savoia/Bookmarks     Bookmark(Store), ReadablePage (Markdown copy), Embedder/MLXEmbedder (on-device, multilingual-e5),
                   TextChunker + VectorIndex + BookmarkIndexer (the half every front shares), Embedding/ — the same
                   E5 as transformers.js in a PageSandbox, for the fronts with no Metal
-six/Blocking      ContentBlocker (WKContentRuleList per profile), FilterList(Store), RuleConversion,
+Savoia/Blocking      ContentBlocker (WKContentRuleList per profile), FilterList(Store), RuleConversion,
                   AdvancedRules (scriptlets + extended CSS, in the page), Payload/ (built JS)
-six/Extensions    ExtensionStore (a controller per profile), ExtensionInstaller + the compatibility verdict
-six/Translation   the portable half (segments, batching, the page script, LanguageGuess) + AppleTranslator
+Savoia/Extensions    ExtensionStore (a controller per profile), ExtensionInstaller + the compatibility verdict
+Savoia/Translation   the portable half (segments, batching, the page script, LanguageGuess) + AppleTranslator
                   on Apple and Bergamot/ — Marian as wasm in an off-screen page — on Linux and Windows
-six/ACP           JSONRPCConnection, ACPClient (actor), ACPAgent (process), AgentSessionStore (view model)
-six/MCP           MCPServer + MCPSocket + MCPStdioBridge (`six --mcp`), Client/ (MCP apps, SEP-1865, OAuth, catalog)
-six/Speech        dictation (macOS): MicrophoneCapture, ParakeetTranscriber (FluidAudio), DictationStore, the button
-six/Tools         BrowserTools — one catalog, served to the assistant, to ACP agents and over MCP
-six/WebMCP        pages declaring tools for agents: the polyfill, registry, calls and `WebMCPPage` — the three
-                  things a front owes — in SixCore; WebMCPStore is Apple's bridge, `StripWebMCP` Windows',
-                  `PageChannels` + `SixBrowser/WebMCP.swift` Linux's — docs/webmcp.md
-six/Vendor        ClaudeForFoundationModels, FoundationModelsUtilities — compiled into the target, see below
+Savoia/ACP           JSONRPCConnection, ACPClient (actor), ACPAgent (process), AgentSessionStore (view model)
+Savoia/MCP           MCPServer + MCPSocket + MCPStdioBridge (`Savoia --mcp`), Client/ (MCP apps, SEP-1865, OAuth, catalog)
+Savoia/Speech        dictation (macOS): MicrophoneCapture, ParakeetTranscriber (FluidAudio), DictationStore, the button
+Savoia/Tools         BrowserTools — one catalog, served to the assistant, to ACP agents and over MCP
+Savoia/WebMCP        pages declaring tools for agents: the polyfill, registry, calls and `WebMCPPage` — the three
+                  things a front owes — in SavoiaCore; WebMCPStore is Apple's bridge, `StripWebMCP` Windows',
+                  `PageChannels` + `SavoiaBrowser/WebMCP.swift` Linux's — docs/webmcp.md
+Savoia/Vendor        ClaudeForFoundationModels, FoundationModelsUtilities — compiled into the target, see below
 ```
 
-`SixCore` (root `Package.swift`) is the slice that must build on **Linux**: `TilingLayout`, the storage layer, the
+`SavoiaCore` (root `Package.swift`) is the slice that must build on **Linux**: `TilingLayout`, the storage layer, the
 profile/bookmark/permission/translation models, the key bindings, and the wire half of ACP/MCP. A file joins it by
 being listed in `sources:` — see the essay at the top of that manifest before editing it.
 
-New files under `six/` need no project edits (`PBXFileSystemSynchronizedRootGroup`), but a file that must **not** ship
+New files under `Savoia/` need no project edits (`PBXFileSystemSynchronizedRootGroup`), but a file that must **not** ship
 on iOS needs a line in `membershipExceptions` in `project.pbxproj` — a bare folder name there does not recurse.
 
 ## Build
 
 ```sh
 # macOS — both skip flags are required (SQLiteData macros, mlx-swift's CudaBuild plugin)
-xcodebuild -project six.xcodeproj -scheme six -configuration Debug \
+xcodebuild -project Savoia.xcodeproj -scheme Savoia -configuration Debug \
   -skipMacroValidation -skipPackagePluginValidation build
 
 # iOS — a destination, never -sdk iphonesimulator (that breaks every @Table macro)
-xcodebuild -project six.xcodeproj -scheme six-iOS -configuration Debug \
+xcodebuild -project Savoia.xcodeproj -scheme Savoia-iOS -configuration Debug \
   -destination 'generic/platform=iOS Simulator' -skipMacroValidation -skipPackagePluginValidation build
 
-# SixCore and its tests — ALWAYS with the flag, on every invocation
+# SavoiaCore and its tests — ALWAYS with the flag, on every invocation
 swift build --disable-automatic-resolution
 swift test  --disable-automatic-resolution
 
-./scripts/dmg.sh          # Release → dist/six-<version>.dmg
+./scripts/dmg.sh          # Release → dist/savoia-<version>.dmg
 
 # Vendored JavaScript. Both write committed output, so a normal build needs neither network nor
 # Node; run one only when the upstream version it pins moves.
-./scripts/blocking-payload.sh     # AdGuard's scriptlets and extended CSS → six/Blocking/Payload
-./scripts/bergamot-payload.sh     # Emscripten's glue for bergamot-translator → six/Translation/Payload
+./scripts/blocking-payload.sh     # AdGuard's scriptlets and extended CSS → Savoia/Blocking/Payload
+./scripts/bergamot-payload.sh     # Emscripten's glue for bergamot-translator → Savoia/Translation/Payload
 ```
 
 Details, and the SDK override, in [docs/build.md](docs/build.md).
@@ -85,7 +89,7 @@ Details, and the SDK override, in [docs/build.md](docs/build.md).
 ### The Linux front
 
 **Run it only when the work is about Linux, and say so before starting one.** The container is the heaviest thing
-this machine does: a cold `six-linux.sh core` is **17 minutes** at 4 GB on a Mac that has 8, and everything else on
+this machine does: a cold `savoia-linux.sh core` is **17 minutes** at 4 GB on a Mac that has 8, and everything else on
 the desktop swaps for the duration — the three-minute figure below is a *warm* scratch path. A Swift change that
 compiles on the Mac does not need proving on Linux unless it touches something the two platforms spell differently:
 `Foundation` against `FoundationNetworking`, paths, processes, threads, a manifest, or a pin. Those are the cases,
@@ -96,21 +100,21 @@ It is built and run **in a container** — never on the Mac, and `swift build --
 work, because `CWebKitGTK` has no `webkitgtk-6.0` to resolve against. Apple's own `container` CLI runs it natively on
 Apple Silicon, and the system service has to be up first (`container system start`).
 
-All of it is [`scripts/six-linux.sh`](scripts/six-linux.sh) — the recipe used to live in scripts written into the
+All of it is [`scripts/savoia-linux.sh`](scripts/savoia-linux.sh) — the recipe used to live in scripts written into the
 container's own filesystem, so it died with every container and was rebuilt from memory each time:
 
 ```sh
-./scripts/six-linux.sh image        # build six-gnome:26.04 from linux/Containerfile
-./scripts/six-linux.sh up           # start six-live, then open the URL it prints
-./scripts/six-linux.sh build fresh  # rebuild inside it; `fresh` also drops the cached build plan
-./scripts/six-linux.sh test         # SixCore's tests, on Linux
-./scripts/six-linux.sh core         # SixCore alone in a plain toolchain image — the pre-version-bump check
-./scripts/six-linux.sh shot out.png # one still picture, no VNC
-./scripts/six-linux.sh logs / sh / down
+./scripts/savoia-linux.sh image        # build savoia-gnome:26.04 from linux/Containerfile
+./scripts/savoia-linux.sh up           # start savoia-live, then open the URL it prints
+./scripts/savoia-linux.sh build fresh  # rebuild inside it; `fresh` also drops the cached build plan
+./scripts/savoia-linux.sh test         # SavoiaCore's tests, on Linux
+./scripts/savoia-linux.sh core         # SavoiaCore alone in a plain toolchain image — the pre-version-bump check
+./scripts/savoia-linux.sh shot out.png # one still picture, no VNC
+./scripts/savoia-linux.sh logs / sh / down
 ```
 
 `up` runs [`scripts/linux-run.sh`](scripts/linux-run.sh) inside the container: it builds, then starts `Xvfb :99`, the
-binary at `/tmp/g/debug/six-linux`, `x11vnc` and `websockify`, so the window is **watchable in a browser at
+binary at `/tmp/g/debug/savoia-linux`, `x11vnc` and `websockify`, so the window is **watchable in a browser at
 `http://localhost:6080/vnc_lite.html`**. There is no display in a container; this is how the Linux UI gets looked at.
 The app runs under a restart loop on purpose — a front that has crashed and a front drawing nothing are the same black
 screen, and a restart at least says *when*.
@@ -127,21 +131,21 @@ that they apply to anything else you run in there:
   `/tmp/gcore` for the root package's tests. `build fresh` is what drops them.
 
 What the front does and does not have, the GTK traps (a `Task` never runs under `g_main_loop_run`; every signal has
-its own C signature; only value types in `@State`), and the run-time environment variables — `SIX_URL`,
-`SIX_LIVE_PAGES`, `SIX_UI_DEBUG`, `SIX_MOCK_CAPTURE` — are in [docs/linux.md](docs/linux.md).
+its own C signature; only value types in `@State`), and the run-time environment variables — `SAVOIA_URL`,
+`SAVOIA_LIVE_PAGES`, `SAVOIA_UI_DEBUG`, `SAVOIA_MOCK_CAPTURE` — are in [docs/linux.md](docs/linux.md).
 
 ### The Windows front
 
 ```powershell
-./scripts/six-windows.ps1 build   # compile, copy the runtime DLLs next to the .exe
-./scripts/six-windows.ps1 run     # stop what is running, build, launch exactly one
-./scripts/six-windows.ps1 stop    # stop what is running, nothing else
+./scripts/savoia-windows.ps1 build   # compile, copy the runtime DLLs next to the .exe
+./scripts/savoia-windows.ps1 run     # stop what is running, build, launch exactly one
+./scripts/savoia-windows.ps1 stop    # stop what is running, nothing else
 ```
 
 Built on the Windows dev machine itself, not in a container, and all three are idempotent — `run` twice leaves one
 window, not two. The script exists because a plain `swift build` in `windows/` needs the MSVC linker and the
 toolchain's own `bin` directories on `PATH`, and the Universal CRT, Swift runtime and WebKit DLLs copied next to the
-`.exe`. `SIX_URL` and `SIX_UI_DEBUG` work here the way they do on Linux, and `SIX_URL` is the only way to point a run
+`.exe`. `SAVOIA_URL` and `SAVOIA_UI_DEBUG` work here the way they do on Linux, and `SAVOIA_URL` is the only way to point a run
 at a test page when nobody is at the keyboard.
 
 **It builds with `6.3.3+NoAsserts`, and that is load-bearing.** `swift-structured-queries`, which arrives through
@@ -157,7 +161,7 @@ absolute path for a mirror.
 
 The engine is not a Swift package: it is whatever `playwright install webkit` put under `%LOCALAPPDATA%\ms-playwright`,
 and `windows/vendor/WebKit2` holds only the import library generated from that DLL's export table. Node for that
-installer is a user-scope unzip at `%LOCALAPPDATA%\six-tools\node-*`, deliberately off `PATH`.
+installer is a user-scope unzip at `%LOCALAPPDATA%\savoia-tools\node-*`, deliberately off `PATH`.
 
 Everything else — why Win32 and not WinUI, the DPI shim, the top bar and the profiles behind it, and what is
 still missing — is in [docs/windows.md](docs/windows.md).
@@ -167,50 +171,50 @@ still missing — is in [docs/windows.md](docs/windows.md).
 The fresh app is in DerivedData, **not** in the repo's `build/`:
 
 ```sh
-ls -td ~/Library/Developer/Xcode/DerivedData/six-*/Build/Products/Debug/six.app | head -1
+ls -td ~/Library/Developer/Xcode/DerivedData/Savoia-*/Build/Products/Debug/Savoia.app | head -1
 ```
 
-- Debug is `org.deffun.six.dev` ("six dev"), Release is `org.deffun.six`. **They coexist and are meant to** — the
+- Debug is `org.deffun.savoia.dev` ("Savoia dev"), Release is `org.deffun.savoia`. **They coexist and are meant to** — the
   Release one is Artem's real browser with real state. Never kill it; restart only the dev one, by its own id.
-- `pkill -x six` + `open -na <full path>`. Never `open -b <bundleid>`: with several copies registered, LaunchServices
-  picks whichever it likes and two sixes on one Application Support directory trap in WebKit.
+- `pkill -x Savoia` + `open -na <full path>`. Never `open -b <bundleid>`: with several copies registered, LaunchServices
+  picks whichever it likes and two Savoias on one Application Support directory trap in WebKit.
 - Launch from a non-sandboxed shell (`dangerouslyDisableSandbox`), or the app never initialises. A crash in
-  `sixApp.init` leaves no window and no stderr — run the binary directly once, or read `~/Library/Logs/DiagnosticReports/six-*.ips`.
-- **six keeps a log now, and it does not need a terminal**: `~/Library/Logs/org.deffun.six.dev/six.log` for the dev
+  `SavoiaApp.init` leaves no window and no stderr — run the binary directly once, or read `~/Library/Logs/DiagnosticReports/Savoia-*.ips`.
+- **Savoia keeps a log now, and it does not need a terminal**: `~/Library/Logs/org.deffun.savoia.dev/savoia.log` for the dev
   build, plus the unified log (`/usr/bin/log show --last 1h --info --debug --predicate 'subsystem ==
-  "org.deffun.six.dev"'` — `log` alone is a zsh builtin and dies with "too many arguments"). Everything that used to
-  be an unread `[six] …` on stderr is in both. [docs/logging.md](docs/logging.md).
-- Before believing "it's still not there", check `ps -eo pid,lstart,command | grep MacOS/six`. Three rounds of that
+  "org.deffun.savoia.dev"'` — `log` alone is a zsh builtin and dies with "too many arguments"). Everything that used to
+  be an unread `[Savoia] …` on stderr is in both. [docs/logging.md](docs/logging.md).
+- Before believing "it's still not there", check `ps -eo pid,lstart,command | grep MacOS/Savoia`. Three rounds of that
   once turned out to be a stale Release build being looked at.
 
 **Screenshots do not work here.** `screencapture` writes black (no Screen Recording for the terminal) and System Events
-is refused (no Accessibility), so synthetic clicks, hover and menu states cannot be captured. Verify through six's own
+is refused (no Accessibility), so synthetic clicks, hover and menu states cannot be captured. Verify through Savoia's own
 MCP server instead — that is what it is for:
 
 ```sh
-<six.app>/Contents/MacOS/six --mcp     # JSON-RPC on stdio, relays to the running app over its Unix socket
+<Savoia.app>/Contents/MacOS/Savoia --mcp     # JSON-RPC on stdio, relays to the running app over its Unix socket
 ```
 
-`open_window` with a `six://` address, `list_workspaces`, `get_page_content`, `evaluate_javascript`,
+`open_window` with a `savoia://` address, `list_workspaces`, `get_page_content`, `evaluate_javascript`,
 `list_console_messages`, `take_screenshot` (only for windows with a real `WebPage`). See [docs/mcp.md](docs/mcp.md).
 
 **Keys can be pressed, though — `NSApp.postEvent` needs no Accessibility.** It is the app's own queue, and a local
 `NSEvent` monitor is exactly what pulls events out of it, so a synthetic `⌥→` goes through the real router and moves
-the real row. `SIX_KEY_SELFTEST=1` does both halves: it prints what every binding answers in every context, then
-posts the row's keys one at a time and says where the row ended up (`six/Input/KeySelfTest.swift`). It does the
+the real row. `SAVOIA_KEY_SELFTEST=1` does both halves: it prints what every binding answers in every context, then
+posts the row's keys one at a time and says where the row ended up (`Savoia/Input/KeySelfTest.swift`). It does the
 `⌘` keys too, which are menu items and not table rows: `menuKeys` makes the focused `WKWebView` first responder by
 hand and then posts `⌘[` `⌘]` `⌘R`, because the interesting case is the one where WebKit is in front of the menu bar.
 Add to it rather than reasoning about the keyboard from the source — the bug it was written to find had survived a
 whole session of reasoning. Two things that make its output readable: a **control** key whose effect is not in doubt,
 so "the item did nothing" can be told from "the key never arrived"; and that control going **last**, because `⌘T`
 takes the selection with it and every key after it is then aimed at a fresh window with no history — which reads
-exactly like WebKit swallowing the key, and was believed once. `SIX_UI_DEBUG=1` prints a line per key press with the context it landed in and who took it.
+exactly like WebKit swallowing the key, and was believed once. `SAVOIA_UI_DEBUG=1` prints a line per key press with the context it landed in and who took it.
 **But `postEvent` goes past the system**, straight into the app's own queue — so a key the WindowServer
 owns tests green and does nothing in the hand. `⌃←` / `⌃→` are Mission Control's *Move left/right a
 space* (symbolic hotkeys 79 and 80, on by default) and never reach any application; the ring's row
 arrows are written `⌃⇧←` / `⌃⇧→` for that reason. When a key is reported dead and the table says it is
 bound, read `defaults read com.apple.symbolichotkeys` before reading the router — and note that
-`SIX_UI_DEBUG` printing *nothing* is the tell, since a key that arrives and is declined still prints.
+`SAVOIA_UI_DEBUG` printing *nothing* is the tell, since a key that arrives and is declined still prints.
 
 ## Three fronts, one dependency graph
 
@@ -223,13 +227,13 @@ root package dragged in `swift-structured-queries`, which crashed `swift-fronten
 read as a Windows compiler bug for a long time. It is not — it is an *assertion*, and Windows is the
 one platform where swift.org ships the assertions-enabled compiler; the same source builds on macOS
 and Linux because those toolchains are release builds. The `+NoAsserts` toolchain the same installer
-carries compiles the whole graph, so the Windows front now depends on `SixCore` like every other
+carries compiles the whole graph, so the Windows front now depends on `SavoiaCore` like every other
 front, and has a resolved file to keep in step. docs/windows.md has the account.
 
 | file | resolves for | the constraint on it |
 |---|---|---|
-| `six.xcodeproj/…/swiftpm/Package.resolved` | the Mac and iOS app | the leader — the app's graph moves first |
-| `Package.resolved` (root) | `SixCore` + its tests, on **both** platforms | a **superset** of the app's, and the surplus is the point |
+| `Savoia.xcodeproj/…/swiftpm/Package.resolved` | the Mac and iOS app | the leader — the app's graph moves first |
+| `Package.resolved` (root) | `SavoiaCore` + its tests, on **both** platforms | a **superset** of the app's, and the surplus is the point |
 | `linux/Package.resolved` | the GTK front, which depends on the root by path | must agree with the root on the shared subset |
 | `windows/Package.resolved` | the Win32 front, which depends on the root by path | the same, plus `combine-schedulers` held at the version the local mirror carries |
 
@@ -267,7 +271,7 @@ manifests in a while.
 **Why the pins are frozen, in three sentences.** sqlite-data 1.11.0 does not compile against structured-queries 0.38,
 so a free resolve picks a set that builds nowhere. swift-sharing 2.10.0 imports `Foundation.NSData` — a Clang
 submodule that does not exist on Linux — and combine-schedulers 1.2.1 uses `pthread_mutex_t` without importing
-CoreFoundation; both arrive through SQLiteData, which depends on Sharing unconditionally even though six uses none of
+CoreFoundation; both arrive through SQLiteData, which depends on Sharing unconditionally even though Savoia uses none of
 it. Both are regressions, both are written up with repros in [UPSTREAM.md](UPSTREAM.md), and until they are fixed
 upstream the only defence is the pin.
 
@@ -324,7 +328,7 @@ reflect an edited `Package.swift`, and say nothing about it.
 
 What not to do: take the flag off to get past it. The command then succeeds, and *that* is the commit that kills the
 pin. The file is not out of date for the platform it was written for. Build with a warm `.build`, or accept the error
-and leave the file alone; if `SixCore` genuinely has to be built cold on the Mac, restore the file afterwards
+and leave the file alone; if `SavoiaCore` genuinely has to be built cold on the Mac, restore the file afterwards
 (`grep -c opencombine` back to 1) before committing anything.
 
 Whether the root file should stay the Linux shape, or the Mac should be given a resolved graph of its own, is an open
@@ -334,7 +338,7 @@ decision and not something to settle mid-task.
 
 1. Move the **app's** graph first, in Xcode, and build both Apple schemes.
 2. Reconcile the root file to the app's versions by hand for the shared packages; keep `opencombine`.
-3. Prove `SixCore` still builds on **Linux** before committing — that is the only step that catches Linux-only
+3. Prove `SavoiaCore` still builds on **Linux** before committing — that is the only step that catches Linux-only
    breakage, and it has already caught one (`URLSession` and `HTTPURLResponse` live in `FoundationNetworking` there,
    which nothing on macOS can tell you):
 
@@ -344,7 +348,7 @@ container run --rm --memory 4g -v "$PWD:/work" -w /work docker.io/library/swift:
            && swift build --disable-automatic-resolution --scratch-path /tmp/linuxbuild -j 2'
 ```
 
-The plain toolchain image has **no `libsqlite3-dev`**, so GRDB dies on `'sqlite3.h' file not found` before `SixCore`
+The plain toolchain image has **no `libsqlite3-dev`**, so GRDB dies on `'sqlite3.h' file not found` before `SavoiaCore`
 is reached; and `container run` defaults to 1024 MB, at which the build stalls around 120/453 with no error and no
 progress for as long as you leave it. With `--memory 4g -j 2` it is three minutes onto a warm scratch path and
 seventeen onto a cold one — which is why this is the version-move check and not a habit ([above](#the-linux-front)).
@@ -355,9 +359,9 @@ anything added there has to exist on both:
 - **No sqlite-vec in the root manifest.** Its `CSQLiteVec` reads the system SQLite headers while adwaita-swift's
   `meta-sqlite` vendors its own, and Clang refuses two definitions of `sqlite3_api_routines` in one compilation unit.
   `AppDatabase` asks for it with `#if canImport(…)` so the app keeps vectors and the Linux build does without. The
-  same reason keeps `SixBrowser` free of Adwaita in `linux/Package.swift` — the seam is enforced by the compiler, not
+  same reason keeps `SavoiaBrowser` free of Adwaita in `linux/Package.swift` — the seam is enforced by the compiler, not
   by discipline.
-- **A file joins `SixCore` by being listed in `sources:`** — and from that moment it is compiled on Linux. Anything
+- **A file joins `SavoiaCore` by being listed in `sources:`** — and from that moment it is compiled on Linux. Anything
   Apple in it needs `#if canImport(WebKit)` / `#if os(macOS)`, and networking needs
   `#if canImport(FoundationNetworking) import FoundationNetworking`.
 - **Editing the root `Package.swift` does not reach the Linux build, and the symptom is a *success*.** llbuild caches
@@ -367,7 +371,7 @@ anything added there has to exist on both:
   for the GTK front, `/tmp/gcore` for the root package's own scratch, which `swift test` uses. Object files survive,
   so the rebuild is incremental. Clearing `~/.cache/org.swift.swiftpm/manifests` does **not** help.
 - **WebKitGTK cannot be brewed on the Mac** — `depends_on :linux`, and brew's formula is GTK3 / WebKitGTK 4.1 anyway,
-  while six needs the GTK 4 `webkitgtk-6.0` API. The Linux front stays in the container; the full checked list is in
+  while Savoia needs the GTK 4 `webkitgtk-6.0` API. The Linux front stays in the container; the full checked list is in
   [docs/linux.md](docs/linux.md#why-the-container-and-not-homebrew-on-the-mac) so it does not get retried every few
   months.
 - **The container tracks GNOME, not convenience.** adwaita-swift's `main` follows GNOME 50, so `linux/Containerfile`
@@ -379,7 +383,7 @@ anything added there has to exist on both:
 
 - **The SDK override is load-bearing.** The target sets `SDKROOT` to the *Command Line Tools* macOS 27 SDK because
   Xcode's own SDK has an older Foundation Models executor ABI than the OS and crashes third-party `LanguageModel`s on
-  launch. That is also why `six/Vendor/` exists: a SwiftPM target would ignore the override. Don't move those back to
+  launch. That is also why `Savoia/Vendor/` exists: a SwiftPM target would ignore the override. Don't move those back to
   packages until Xcode's SDK matches.
 - **The app target compiles main-actor-by-default** (`SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`), so anything that
   does not say `nonisolated` is on the main actor — and the compiler complains at the *reader*, not at the
@@ -405,7 +409,7 @@ anything added there has to exist on both:
   `.libraryDirectory` on Windows answers with an *empty array*, which is the same shape of trap one
   subscript along — `AppSupport.logs` spells Windows out for that reason.
 - **A share extension is registered by bundle id, and another session's build answers for yours.** The
-  copy in the *other* worktree's DerivedData carries the same `org.deffun.six.dev.share`, and
+  copy in the *other* worktree's DerivedData carries the same `org.deffun.savoia.dev.share`, and
   LaunchServices picks one of them — so a rebuild here can change nothing that actually runs, and the
   new log lines simply never appear. `pluginkit -m -v -i <id>` prints the path that won; `pluginkit -r
   <the other .appex>` then `pluginkit -a <yours>` moves it, and `lsregister -f -R` on the app does not.
@@ -424,9 +428,9 @@ anything added there has to exist on both:
   extension loading, so `sqlite3ext.h`'s redefinitions are live and `sqlite-vec.c` compiles as a loadable
   extension: `sqlite3_vec_init(db, nil, nil)` hands it a null `sqlite3_api_routines` and it dies on the first call
   through it. `sqlite3_auto_extension`, before the first connection — `Vectors.register()` in each front's
-  `SixBrowser`. `SixCore` does not link sqlite-vec at all (Adwaita's own SQLite is why), so `AppDatabase` guards on
+  `SavoiaBrowser`. `SavoiaCore` does not link sqlite-vec at all (Adwaita's own SQLite is why), so `AppDatabase` guards on
   **`canImport(Darwin) && canImport(SQLiteVecData)`**: once a front puts the package in its graph `canImport` alone
-  answers yes while `SixCore` has nothing to import through, and the build stops on "missing required module
+  answers yes while `SavoiaCore` has nothing to import through, and the build stops on "missing required module
   'CSQLiteVec'" three files from anything about vectors.
 - **A dynamic `import()` from a `file:` page is refused by WebKit; a static one is not.** ONNX Runtime loads its own
   glue that way, so an embedder page that reads its weights happily still answers "no available backend found. ERR:
@@ -452,10 +456,10 @@ anything added there has to exist on both:
   `canGoBack` stayed greyed out after a navigation and `⌘[` did nothing at all — measured with a run
   each way. Read the window *inside* the action and let the key be a no-op where it has nothing to
   do; `.disabled` on a `@FocusedValue` is the one form that does get rebuilt.
-- **The system's Close item takes ⌘W back whenever SwiftUI fills the File menu in.** Six's own ⌘W item and AppKit's
+- **The system's Close item takes ⌘W back whenever SwiftUI fills the File menu in.** Savoia's own ⌘W item and AppKit's
   `performClose:` sat side by side, and a menu read straight after launch showed ours holding the key — but SwiftUI
-  fills its menus in lazily (on opening, and when six comes to the front), and after that the key was the system's:
-  ⌘W a moment after switching to six closed the one window, and six quit after it. The log said
+  fills its menus in lazily (on opening, and when Savoia comes to the front), and after that the key was the system's:
+  ⌘W a moment after switching to Savoia closed the one window, and Savoia quit after it. The log said
   `performKeyEquivalent:` → `performClick:` → `terminate:` with no tab closed. `CommandGroup(replacing: .saveItem) {}`
   removes Close and Close All. A menu dump that means anything calls `menuNeedsUpdate` on every submenu first
   (`TabsSelfTest.menuForCommandW`); without it you are reading what the menu held last time.
@@ -471,18 +475,18 @@ anything added there has to exist on both:
   row, including one that shipped. [docs/windows.md](docs/windows.md).
 - **A Windows process that has already stopped can still hold the build directory.** Zero threads, no image path,
   `taskkill` answering "Access is denied", outliving the session that made it and clearing only on a reboot — and the
-  files it mapped still cannot be overwritten, which fails the linker on `six-windows.exe` and `Copy-Item` on
-  `BlocksRuntime.dll`. `six-windows.ps1` renames the old `.exe` aside (renaming a mapped image works where
+  files it mapped still cannot be overwritten, which fails the linker on `savoia-windows.exe` and `Copy-Item` on
+  `BlocksRuntime.dll`. `savoia-windows.ps1` renames the old `.exe` aside (renaming a mapped image works where
   overwriting does not) and leaves a locked DLL alone, since it is already the file the copy would have written.
-- **`pkill -x six` kills the Release browser** — Artem's real one, with his real state. It is named in the rule above
-  and it is still the easy thing to type. Kill by path: `pkill -f "Debug/six.app/Contents/MacOS/six"`. That kill is
-  by path and not by process, so it also takes down the **other session's** dev six, however they launched it —
-  a run of `SIX_KEY_SELFTEST` every few minutes looks from over there like an unexplained SIGKILL at 75–135 s with no
+- **`pkill -x Savoia` kills the Release browser** — Artem's real one, with his real state. It is named in the rule above
+  and it is still the easy thing to type. Kill by path: `pkill -f "Debug/Savoia.app/Contents/MacOS/Savoia"`. That kill is
+  by path and not by process, so it also takes down the **other session's** dev Savoia, however they launched it —
+  a run of `SAVOIA_KEY_SELFTEST` every few minutes looks from over there like an unexplained SIGKILL at 75–135 s with no
   crash report. Say so before a series of them, and ask before taking the app down if someone needs a long window.
-- **A page API that wants a person is refused over `six --mcp`, fast and without a word.**
+- **A page API that wants a person is refused over `Savoia --mcp`, fast and without a word.**
   `Notification.requestPermission()` needs a user gesture and answers `denied` in milliseconds without one;
-  `getDisplayMedia()` needs the page to have focus and throws `InvalidStateError` while six is not the front app.
-  Neither refusal reaches six's own code, so a `denied` from `evaluate_javascript` says nothing about the permission
+  `getDisplayMedia()` needs the page to have focus and throws `InvalidStateError` while Savoia is not the front app.
+  Neither refusal reaches Savoia's own code, so a `denied` from `evaluate_javascript` says nothing about the permission
   code under test. Have Artem click, or send a real click into a throwaway app's window
   ([docs/todo.md](docs/todo.md#geolocation-and-notifications-webkits-c-api-one-header-for-both)).
 
@@ -502,7 +506,7 @@ anything added there has to exist on both:
   lies to such a process at 96 DPI for *every* query it makes, diagnostics included, so a rect or a cursor position
   read there comes back divided by the display scale — and against a Per-Monitor-V2 app it reads exactly like
   "drawn at one size, hit-tested at another". The Windows front's top bar was reported as that bug and is not: it
-  draws and hit-tests through one `chromeLayout()`, and the app's own `SIX_UI_DEBUG` line says `scale=1.5`. Call
+  draws and hit-tests through one `chromeLayout()`, and the app's own `SAVOIA_UI_DEBUG` line says `scale=1.5`. Call
   `SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)` first thing in the harness, and when
   a measurement disagrees with the app, suspect the harness before the app.
 - **Other Claude sessions edit this repo at the same time.** Check `git status` before committing and stage only your
@@ -510,32 +514,32 @@ anything added there has to exist on both:
   not something to revert. Ask the session rather than guessing — a source file under someone's hand looks exactly
   like debris. Two files are the **exception**, because nobody edits either deliberately and an unclaimed diff in
   them is always mechanical: `Package.resolved`, where it is a stray resolve (above), and the root `Info.plist`.
-- **A `swift build` of the root package overwrites the root `Info.plist`.** `SixCore` is `path: "six"` and the String
+- **A `swift build` of the root package overwrites the root `Info.plist`.** `SavoiaCore` is `path: "Savoia"` and the String
   Catalogs there are resources, so SwiftPM builds a resource bundle — and stages it into the *package root*, dropping
   its generated 497-byte `BNDL` plist on top of the real one and leaving copies of `InfoPlist.xcstrings` and
-  `Localizable.xcstrings` beside it. Its `CFBundleIdentifier` is `<checkout folder>.SixCore.resources`: SwiftPM takes
+  `Localizable.xcstrings` beside it. Its `CFBundleIdentifier` is `<checkout folder>.SavoiaCore.resources`: SwiftPM takes
   a root package's identity from the directory rather than from the `name:` in the manifest, so the prefix follows
-  whatever the clone happens to be called — it read `six-main` where this was first found. The real file is what
-  makes macOS treat six as a browser at all — the http/https claim, the document types, the camera and microphone
+  whatever the clone happens to be called — it read `savoia-main` where this was first found. The real file is what
+  makes macOS treat Savoia as a browser at all — the http/https claim, the document types, the camera and microphone
   prompt strings — so committing that diff ships a browser that cannot be made the default and whose permission
   prompts are blank. It sat dirty for two days once. `git checkout -- Info.plist` and delete the two stray
-  catalogues; the tell is that they are byte-identical to the ones in `six/` and all three carry the same timestamp.
+  catalogues; the tell is that they are byte-identical to the ones in `Savoia/` and all three carry the same timestamp.
 - **Commit messages are prose.** A sentence for the title — what changed, in the voice of the thing that changed
   ("The window that was closed comes back where it stood") — and a body that explains the why, the measurement, and
   what was left honest. No conventional-commits prefixes. Quotes in the subject break the shell; commit via
   `git commit -F -` with a heredoc.
 - **A feature is not finished until the docs say so.** `docs/*.md` for whoever changes the code, and
   [`docs/guide/`](docs/guide/) — the VitePress user guide — **in both Russian and English**, naming buttons with the
-  strings from `six/Localizable.xcstrings` rather than translating by eye. That build runs from `docs/guide` and
+  strings from `Savoia/Localizable.xcstrings` rather than translating by eye. That build runs from `docs/guide` and
   writes into the sibling `xciii` site; VitePress drops the diacritic on «й» when slugifying anchors.
 - **Localization**: everything a person reads goes through the String Catalogs, English and Russian. Everything a
   *model* reads — tool descriptions, the catalog's instructions, presets — stays English, because that is a prompt and
   not an interface. [docs/localization.md](docs/localization.md).
-- **The interface never narrates what six does.** No "six writes what it did to …", no "six trusts what this Mac
-  trusts", no "six reads PEM and DER" — a label names the thing, a caption names a consequence or a missing step, and
+- **The interface never narrates what Savoia does.** No "Savoia writes what it did to …", no "Savoia trusts what this Mac
+  trusts", no "Savoia reads PEM and DER" — a label names the thing, a caption names a consequence or a missing step, and
   neither is a place for the program to describe itself in the third person. Name the value and let the row's label
-  say what it is ("File", then the path), rather than wrapping it in a sentence about the browser. six as the *object*
-  of a verb the person performs is fine and stays — "Show six in the Share Menu", "Set six as Default Browser…".
+  say what it is ("File", then the path), rather than wrapping it in a sentence about the browser. Savoia as the *object*
+  of a verb the person performs is fine and stays — "Show Savoia in the Share Menu", "Set Savoia as Default Browser…".
 - **Comments are few and one line long.** Only where a decision would look wrong without one, and never an essay on a
   type — older code still has those, and it is not the register to match. No measurements, model outputs, quoted
   strings from a test, or the story of the bug a fix came from: those go in the commit message and `docs/*.md`.
@@ -548,11 +552,11 @@ Built: the row and workspaces with the full gesture set, profiles with isolated 
 system of record plus a versioned JSON snapshot), history and bookmarks with on-device multilingual embeddings and
 personal search on the start page, ad/tracker blocking down to scriptlets and extended CSS, extra certificate
 authorities, `WKWebExtension` hosting, site permissions, downloads, page translation, find on page (⌘F), picture-in-
-picture, the ⌘K assistant, the ACP agent panel, `six --mcp`, MCP apps (SEP-1865) with OAuth, deep research with
+picture, the ⌘K assistant, the ACP agent panel, `Savoia --mcp`, MCP apps (SEP-1865) with OAuth, deep research with
 document windows and highlights, DevTools capture, localization, and the Linux, Android and Windows fronts at the
 parity levels their docs state.
 
 Not built, with reasons: [docs/todo.md](docs/todo.md) — web archives, bookmark images, the content-script boundary
 `WebPage` cannot cross, geolocation and site notifications, floating windows, passkeys, CloudKit sync, and what the
-Linux front still owes the Mac. What six is waiting on Apple to make public, and how to notice when it does:
+Linux front still owes the Mac. What Savoia is waiting on Apple to make public, and how to notice when it does:
 [docs/api-watch.md](docs/api-watch.md).

@@ -3,8 +3,8 @@
 Every string a person reads is localized; every string a *model* reads is not. That line is the whole design.
 
 - **People**: menus, panels, sheets, help tags, status lines, the names of the default profiles, "Untitled". These
-  live in `six/Localizable.xcstrings` — one String Catalog, English as the source language, Russian shipped next to
-  it. `six/InfoPlist.xcstrings` carries what the system shows on six's behalf: the camera / microphone / location
+  live in `Savoia/Localizable.xcstrings` — one String Catalog, English as the source language, Russian shipped next to
+  it. `Savoia/InfoPlist.xcstrings` carries what the system shows on Savoia's behalf: the camera / microphone / location
   prompts and the document type names in the Finder.
 - **Models**: `BrowserToolCatalog.instructions`, every tool `description` and parameter description, the research
   preset, the errors a tool hands back (`BrowserTool.Failure`). They stay English, because they are a prompt, not an
@@ -32,9 +32,9 @@ var title: String {
 After a build, fold them into the catalog:
 
 ```sh
-M=$(ls -d ~/Library/Developer/Xcode/DerivedData/six-*/Build/Intermediates.noindex/six.build/Debug/six.build/Objects-normal/arm64)
-I=$(ls -d ~/Library/Developer/Xcode/DerivedData/six-*/Build/Intermediates.noindex/six.build/Debug-iphonesimulator/six-iOS.build/Objects-normal/arm64)
-xcrun xcstringstool sync six/Localizable.xcstrings --stringsdata "$M"/*.stringsdata "$I"/*.stringsdata
+M=$(ls -d ~/Library/Developer/Xcode/DerivedData/Savoia-*/Build/Intermediates.noindex/savoia.build/Debug/savoia.build/Objects-normal/arm64)
+I=$(ls -d ~/Library/Developer/Xcode/DerivedData/Savoia-*/Build/Intermediates.noindex/savoia.build/Debug-iphonesimulator/Savoia-iOS.build/Objects-normal/arm64)
+xcrun xcstringstool sync Savoia/Localizable.xcstrings --stringsdata "$M"/*.stringsdata "$I"/*.stringsdata
 ```
 
 **Both targets, in one call.** A sync against the Mac's `.stringsdata` alone marks every iOS-only string
@@ -85,17 +85,17 @@ composed from two localized pieces instead, each with its own plural rules:
 
 ## Adding a language
 
-1. Add the code to `knownRegions` in `six.xcodeproj/project.pbxproj` (`en`, `Base`, `ru` today).
+1. Add the code to `knownRegions` in `Savoia.xcodeproj/project.pbxproj` (`en`, `Base`, `ru` today).
 2. Add a `localizations` entry per key in both catalogs.
-3. Build: `xcodebuild` compiles each language into `six.app/Contents/Resources/<code>.lproj/`.
+3. Build: `xcodebuild` compiles each language into `Savoia.app/Contents/Resources/<code>.lproj/`.
 
 The system's own menus (Edit, Window, Help, the services) follow automatically once the language is in the bundle —
-they come from AppKit, not from six.
+they come from AppKit, not from Savoia.
 
 To see the app in a language without changing the system:
 
 ```sh
-./six.app/Contents/MacOS/six -AppleLanguages '(ru)'
+./Savoia.app/Contents/MacOS/Savoia -AppleLanguages '(ru)'
 ```
 
 ## What is deliberately not translated
@@ -104,4 +104,4 @@ To see the app in a language without changing the system:
 - Tool *names* on the wire (`open_window`) — they are identifiers an agent types, and the panel shows them as they
   are called ([mcp.md](mcp.md#names)).
 - Anything an agent or a page wrote: a transcript, a document, a page title, a bookmark's saved text.
-- `six` itself.
+- `Savoia` itself.

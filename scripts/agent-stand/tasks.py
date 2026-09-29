@@ -1,16 +1,16 @@
-"""Runs the stand's page tasks through a running six and prints one row per task.
+"""Runs the stand's page tasks through a running Savoia and prints one row per task.
 
     python3 scripts/agent-stand/serve.py 8765 &
     python3 scripts/agent-stand/tasks.py --label "jev"
 
 What a row says is the whole question a fast decider has to answer: did the task end
 correctly, how long it took, how many times the language model was called and how much
-prompt it was given, and how often six kept the fast decider's own step. A decider that
+prompt it was given, and how often Savoia kept the fast decider's own step. A decider that
 is never kept saves nothing, however quick it is.
 
 The verdict is what the stand's server received (`submitted.jsonl`), never the run's own
-account of itself. Point six at one endpoint or another by launching it with
-SIX_PAGETASK_ENDPOINT / SIX_PAGETASK_KEY / SIX_PAGETASK_MODEL / SIX_PAGETASK_THRESHOLD,
+account of itself. Point Savoia at one endpoint or another by launching it with
+SAVOIA_PAGETASK_ENDPOINT / SAVOIA_PAGETASK_KEY / SAVOIA_PAGETASK_MODEL / SAVOIA_PAGETASK_THRESHOLD,
 and run this with a --label saying which.
 """
 
@@ -23,7 +23,7 @@ import time
 import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from sixmcp import Six  # noqa: E402
+from savoiamcp import Savoia  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SUBMITTED = os.path.join(HERE, "submitted.jsonl")
@@ -91,16 +91,16 @@ def main():
     except OSError:
         sys.exit(f"The stand is not serving on {base} — start serve.py first")
 
-    six = Six()
+    savoia = Savoia()
     rows = []
     for task in TASKS:
         if arguments.only and task["name"] != arguments.only:
             continue
         open(SUBMITTED, "w").close()
-        six.call("open_window", url=base + task["url"])
+        savoia.call("open_window", url=base + task["url"])
         started = time.perf_counter()
         try:
-            trace, _ = six.call("run_page_task", goal=task["goal"])
+            trace, _ = savoia.call("run_page_task", goal=task["goal"])
         except RuntimeError as error:
             rows.append({"task": task["name"], "ok": False, "why": str(error)[:120]})
             continue

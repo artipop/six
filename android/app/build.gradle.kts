@@ -6,13 +6,13 @@ plugins {
 }
 
 android {
-    namespace = "org.deffun.six"
+    namespace = "org.deffun.savoia"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "org.deffun.six"
+        applicationId = "org.deffun.savoia"
         // 34 is where androidx.webkit's multi-profile API arrives, and profiles are not an optional
-        // part of six — a build that cannot keep two profiles apart is a different app.
+        // part of Savoia — a build that cannot keep two profiles apart is a different app.
         minSdk = 34
         targetSdk = 37
         versionCode = 1

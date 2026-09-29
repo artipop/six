@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""One MCP server with several personalities, for testing six's MCP Apps host by hand.
+"""One MCP server with several personalities, for testing Savoia's MCP Apps host by hand.
 
-The unit tests in ../SixCoreTests cover the parsing and the policy — the pure functions. Everything
+The unit tests in ../SavoiaCoreTests cover the parsing and the policy — the pure functions. Everything
 that makes an app an app is not a pure function: a window in the strip, two origins, a `postMessage`
-relay, a permission bar, a teardown six has to *wait* for. That half can only be checked by running
+relay, a permission bar, a teardown Savoia has to *wait* for. That half can only be checked by running
 a server and looking, and it was checked for months against servers that lived in a temporary
 directory and are now gone. This file is that directory, kept.
 
@@ -15,22 +15,22 @@ spec rather than against an SDK is the one that catches a host reading its own S
     python3 mcp_apps_server.py --persona basic --http 8931        # Streamable HTTP
     python3 mcp_apps_server.py --persona oauth --http 8931        # ...behind OAuth 2.1
 
-Then in six: Configuration → Assistant → MCP → Add Server…, or from a terminal:
+Then in Savoia: Configuration → Assistant → MCP → Add Server…, or from a terminal:
 
-    ./six --mcp-probe 'python3 /path/to/mcp_apps_server.py --persona basic'
-    ./six --mcp-probe http://127.0.0.1:8931/mcp
+    ./Savoia --mcp-probe 'python3 /path/to/mcp_apps_server.py --persona basic'
+    ./Savoia --mcp-probe http://127.0.0.1:8931/mcp
 
 The personas, and what each one is for:
 
   basic      An app that does the whole view protocol: initialize, tool-input, tool-result, a tool
              call back through the host, open-link, message, update-model-context, size-changed.
              The one to open first.
-  readonly   `basic` with `annotations.readOnlyHint` on the tool. Close the window, quit six,
+  readonly   `basic` with `annotations.readOnlyHint` on the tool. Close the window, quit Savoia,
              relaunch: the window comes back and re-runs the call by itself.
   stateful   The same tool *without* the hint, and it counts its calls. The restored window shows a
-             card and waits for "Run Again" — six must not re-ask a question that changes something.
-  goodbye    The view answers `ui/resource-teardown` only after a round trip back through six.
-             Closing the window proves six holds the page alive until the app has finished.
+             card and waits for "Run Again" — Savoia must not re-ask a question that changes something.
+  goodbye    The view answers `ui/resource-teardown` only after a round trip back through Savoia.
+             Closing the window proves Savoia holds the page alive until the app has finished.
   forgetful  HTTP only. Drops its session after one call and answers 404 to the next request that
              carries the old id, which is the spec's cue to re-initialize without one.
   hostile    Declares `'unsafe-eval'`, a `;` and a second directive in `ui.csp`, asks for every
@@ -63,7 +63,7 @@ UI_MIME = "text/html;profile=mcp-app"
 # The views
 #
 # Written as plain HTML with no framework and no bundler, because the host is what is under test:
-# an SDK would sit between six and the protocol and hide exactly the mistakes worth finding. The
+# an SDK would sit between Savoia and the protocol and hide exactly the mistakes worth finding. The
 # transport is fifteen lines — post to `window.parent`, match answers by id — and it is the same
 # fifteen lines the official SDK compiles down to.
 # --------------------------------------------------------------------------------------------
@@ -205,7 +205,7 @@ GOODBYE_VIEW = """<!doctype html>
 </style></head>
 <body>
   <h1 id="state">Open</h1>
-  <p>Close this window. The view will do a round trip back through six before it lets go — if six
+  <p>Close this window. The view will do a round trip back through Savoia before it lets go — if Savoia
      tears the page down first, the read never comes back and nothing is written below.</p>
   <pre id="log"></pre>
 <script>
@@ -352,7 +352,7 @@ class ReadOnly(Persona):
 class Stateful(Persona):
     """The same tool with the hint removed, and a counter to prove the difference matters.
 
-    six restores this window as a card with a "Run Again" button rather than re-running the call.
+    Savoia restores this window as a card with a "Run Again" button rather than re-running the call.
     The counter is what makes that visible: a host that re-asks anyway shows a number that went up
     while nobody was looking.
     """
@@ -453,10 +453,10 @@ class Server:
                     "tools": {"listChanged": False},
                     "resources": {"subscribe": False, "listChanged": False},
                     # Echoing the extension back is what a server does when it means to carry apps.
-                    # Not required, and six does not insist on it — see `acknowledgedUIExtension`.
+                    # Not required, and Savoia does not insist on it — see `acknowledgedUIExtension`.
                     "extensions": {UI_EXTENSION: {"mimeTypes": [UI_MIME]}},
                 },
-                "serverInfo": {"name": "six-test-%s" % self.persona.name, "version": "1.0"},
+                "serverInfo": {"name": "savoia-test-%s" % self.persona.name, "version": "1.0"},
                 "instructions": self.persona.instructions,
             }
         if method == "ping":
@@ -519,7 +519,7 @@ class OAuth:
     """A minimal OAuth 2.1 authorization server: RFC 9728, RFC 8414, RFC 7591, PKCE S256, RFC 8707.
 
     It approves everything, immediately — there is no login page, because the thing under test is
-    six's half of the dance and not anybody's password field. What it *does* check is the parts a
+    Savoia's half of the dance and not anybody's password field. What it *does* check is the parts a
     client gets wrong: the code verifier against the challenge, the redirect URI against the one
     registered, and the `resource` parameter against the server the token is for.
     """
@@ -611,7 +611,7 @@ class OAuth:
 
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
-    server_version = "six-mcp-test/1.0"
+    server_version = "savoia-mcp-test/1.0"
 
     # Set by run_http.
     mcp = None
@@ -662,7 +662,7 @@ class Handler(BaseHTTPRequestHandler):
             # is what makes the whole flow runnable without a person in it.
             return self.reply(302, b"", "text/plain", {"Location": location})
         if path == "/mcp":
-            # six opens no long-lived GET stream, and says why in `MCPHTTPTransport`. Answering 405
+            # Savoia opens no long-lived GET stream, and says why in `MCPHTTPTransport`. Answering 405
             # is what the spec asks of a server that does not offer one.
             return self.reply(405, b"", "text/plain", {"Allow": "POST, DELETE"})
         self.reply(404, b"not found", "text/plain")

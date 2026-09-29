@@ -3,7 +3,7 @@
 View ▸ Accessibility Overlay (`⌥⌘A`) draws WebKit's accessibility tree over the focused window's page, and
 `get_accessibility_tree` hands the same read to an agent as numbered lines. Mac only.
 
-The tree is read by a second process, `six --ax-read <pid>`, which six starts itself: six asking *itself* through
+The tree is read by a second process, `Savoia --ax-read <pid>`, which Savoia starts itself: Savoia asking *itself* through
 `AXUIElement` deadlocks the browser the moment the permission is given ("Why a second process" below).
 
 The user-facing account is
@@ -12,16 +12,16 @@ The user-facing account is
 
 | file | what it does |
 |---|---|
-| `six/Accessibility/PageAccessibilityReader.swift` | `six --ax-read`: the walk, `AXUIElement` calls → `AXPageSnapshot`, plain `Codable` values |
-| `six/Accessibility/AXReadProcess.swift` | the browser's side: starts the reader, one JSON line each way over a pipe, the watchdog, the idle stop |
-| `six/sixApp.swift` | `SixMain` hands `--ax-read` to the reader before AppKit is touched, as it does `--mcp` |
-| `six/Accessibility/DerivedPageTools.swift` | whether a reading is good enough to make tools of, and the tools it would make |
-| `six/Views/DerivedToolsButton.swift` | the mark for them in the address field, beside WebMCP's; `AddressBar` holds the reading |
-| `six/Accessibility/AccessibilityOverlay.swift` | the model (`AccessibilityOverlay.shared`), placing the snapshot over the web view, the outline for a model, and the SwiftUI layer |
-| `six/Input/WebViewResponder.swift` | `webView(for:)` — the pane's `WKWebView`, which is the only way to know where on screen a `WebPage` is |
-| `six/Views/TilingStripView.swift` | mounts `AccessibilityOverlayView` over the focused pane |
-| `six/Views/MacCommands.swift` | the View menu toggle |
-| `six/Tools/BrowserTools.swift` | `get_accessibility_tree` (`surfaces: .mcp`) |
+| `Savoia/Accessibility/PageAccessibilityReader.swift` | `Savoia --ax-read`: the walk, `AXUIElement` calls → `AXPageSnapshot`, plain `Codable` values |
+| `Savoia/Accessibility/AXReadProcess.swift` | the browser's side: starts the reader, one JSON line each way over a pipe, the watchdog, the idle stop |
+| `Savoia/SavoiaApp.swift` | `SavoiaMain` hands `--ax-read` to the reader before AppKit is touched, as it does `--mcp` |
+| `Savoia/Accessibility/DerivedPageTools.swift` | whether a reading is good enough to make tools of, and the tools it would make |
+| `Savoia/Views/DerivedToolsButton.swift` | the mark for them in the address field, beside WebMCP's; `AddressBar` holds the reading |
+| `Savoia/Accessibility/AccessibilityOverlay.swift` | the model (`AccessibilityOverlay.shared`), placing the snapshot over the web view, the outline for a model, and the SwiftUI layer |
+| `Savoia/Input/WebViewResponder.swift` | `webView(for:)` — the pane's `WKWebView`, which is the only way to know where on screen a `WebPage` is |
+| `Savoia/Views/TilingStripView.swift` | mounts `AccessibilityOverlayView` over the focused pane |
+| `Savoia/Views/MacCommands.swift` | the View menu toggle |
+| `Savoia/Tools/BrowserTools.swift` | `get_accessibility_tree` (`surfaces: .mcp`) |
 
 ## Why the accessibility tree and not the DOM
 
@@ -63,16 +63,16 @@ part and that visible part itself, both in accessibility coordinates, and hands 
 `AXReadProcess`, which writes them as one JSON line (`AXReadRequest`) to the child's stdin and reads one
 `AXPageSnapshot` line back from its stdout.
 
-- **Started on demand**, from `Bundle.main.executableURL` with `--ax-read <six's pid>`, on the first read.
+- **Started on demand**, from `Bundle.main.executableURL` with `--ax-read <Savoia's pid>`, on the first read.
 - **Kept while reads keep coming** — the overlay reads every few seconds. The child leaves by itself after 30 s
-  without a request (`poll` on stdin), and on end of file, which is what happens when six quits. A timer on the
+  without a request (`poll` on stdin), and on end of file, which is what happens when Savoia quits. A timer on the
   browser's side was tried first and measurably did not fire; the child owning its own end has nothing to miss.
 - **A watchdog of 8 s** per answer. The child cuts its own walk at 5 s and says it was truncated, so a child past 8 s
   is stuck; it is killed, the read answers "did not answer in time", and the next read starts a new one.
 - **A reused child that has gone, or answers "not trusted", is replaced once.** It may have just left on its own;
   and a process keeps the answer to `AXIsProcessTrusted` it was started with, so the child the overlay's first
-  press launched stays refused after the person switches six on — measured, and so is the replacement, with no
-  restart. **six itself keeps its answer too**, so nothing that decides whether to read asks six's own
+  press launched stays refused after the person switches Savoia on — measured, and so is the replacement, with no
+  restart. **Savoia itself keeps its answer too**, so nothing that decides whether to read asks Savoia's own
   `AXIsProcessTrusted`: the child's answer is the one that counts, and a refusal is believed for a minute.
 
 In the child, `PageAccessibilityReader.read(pid:at:visible:limit:)`:
@@ -112,7 +112,7 @@ which are the overlay's, because the overlay is laid over exactly that view. The
 and the canvas scales by it if the pane has changed size since.
 
 A snapshot is a picture of a moment. While the overlay is on, `follow` asks the page for `scrollX`, `scrollY`,
-`innerWidth`, `innerHeight` and `readyState` every 500 ms (in six's world, from the live page only — the overlay must
+`innerWidth`, `innerHeight` and `readyState` every 500 ms (in Savoia's world, from the live page only — the overlay must
 never be what builds a page). When they change, the boxes fade to 20 %; once two polls agree, the tree is read
 again. A still page is read again every 5 s, for DOM changes. The task belongs to the view: moving the focus or
 turning the switch off cancels it.
@@ -144,13 +144,13 @@ reading a pane that is off the edge of the rail.
 
 ## Why a second process
 
-The first build read the tree from inside six (16 September 2026). Without the permission it refused politely; **with
+The first build read the tree from inside Savoia (16 September 2026). Without the permission it refused politely; **with
 the permission granted, the first read deadlocked the browser.** Reproduced twice: once by turning the overlay on
-with `⌥⌘A`, once by calling `get_accessibility_tree` over `six --mcp` with no window and no menu involved. The app
+with `⌥⌘A`, once by calling `get_accessibility_tree` over `Savoia --mcp` with no window and no menu involved. The app
 stayed alive at 0% CPU and answered nothing — no MCP, no clicks — and only a kill ended it.
 
-`sample` says the same thing both times. The thread that serves accessibility questions *inside six* suspends
-another thread of six to answer, and that thread is holding SwiftUI's update lock:
+`sample` says the same thing both times. The thread that serves accessibility questions *inside Savoia* suspends
+another thread of Savoia to answer, and that thread is holding SwiftUI's update lock:
 
 ```
 main thread   UpdateGroup.begin() → _MovableLockLock → _pthread_mutex_firstfit_lock_wait → __psynch_mutexwait
@@ -160,7 +160,7 @@ HIE: … thread SOME_OTHER_THREAD_SWALLOWED_AT_LEAST_ONE_EXCEPTION (in HIService
 So the lock is never given back and the main thread waits for it forever. Nothing in `PageAccessibilityReader` is
 wrong in itself — the read is already off the main thread, with a 1.5 s messaging timeout — because the suspension
 is done by the system, at a point of its choosing, in a process that is asking *itself*. That is the part that has
-to change: the question has to come from outside six.
+to change: the question has to come from outside Savoia.
 
 ### Asked from outside instead — measured, and it works
 
@@ -170,7 +170,7 @@ the other way — roles from `role` and the tag, names from the obvious attribut
 `getBoundingClientRect()`. A `.app` rather than a bare binary because a command run from a shell is answered for
 by the terminal, and the grant would land there.
 
-**What the tree holds that a DOM walk cannot get**, on the stand in Safari (the same engine, six not involved):
+**What the tree holds that a DOM walk cannot get**, on the stand in Safari (the same engine, Savoia not involved):
 
 | the case | the accessibility tree | the DOM walk in the page |
 |---|---|---|
@@ -186,55 +186,55 @@ by the terminal, and the grant would land there.
 So four of the ten cases are not "harder" from inside the page, they are unreachable. That is what the
 permission buys.
 
-**And the deadlock is specific to a process asking itself.** `axprobe` read the same page inside a running six
+**And the deadlock is specific to a process asking itself.** `axprobe` read the same page inside a running Savoia
 with this branch's build: 400 elements in 0.17–0.40 s, closed shadow root included, three times in a row, and
-six answered over MCP immediately after each read and went on working. A Wikipedia article came back as
+Savoia answered over MCP immediately after each read and went on working. A Wikipedia article came back as
 1 889 elements in 0.65 s. Nothing suspended, nothing hung.
 
 What the probe learned about finding the page and asking twice is in "The read" above.
 
-**Whose permission is it?** Five shapes, measured against a running build with six allowed in
+**Whose permission is it?** Five shapes, measured against a running build with Savoia allowed in
 Privacy & Security ▸ Accessibility and nothing else granted:
 
 | who calls `AXIsProcessTrusted` | launched by | trusted |
 |---|---|---|
-| a separate binary in `Contents/Helpers` | six | **no** |
-| the same binary re-signed with six's identifier | six | **no** |
-| **six's own executable, `six --ax-read <pid>`** | six | **yes** |
-| six's own executable, same arguments | a shell | **no** |
-| **an XPC service in `Contents/XPCServices`** | six, through `NSXPCConnection` | **yes** |
+| a separate binary in `Contents/Helpers` | Savoia | **no** |
+| the same binary re-signed with Savoia's identifier | Savoia | **no** |
+| **Savoia's own executable, `Savoia --ax-read <pid>`** | Savoia | **yes** |
+| Savoia's own executable, same arguments | a shell | **no** |
+| **an XPC service in `Contents/XPCServices`** | Savoia, through `NSXPCConnection` | **yes** |
 
 TCC's log explains every line. A request is attributed up a chain — `AttributionChain:
-responsible={… identifier=org.deffun.six.dev …}`, `AUTHREQ_SUBJECT: subject=org.deffun.six.dev` — so who
+responsible={… identifier=org.deffun.savoia.dev …}`, `AUTHREQ_SUBJECT: subject=org.deffun.savoia.dev` — so who
 launched it decides whose permission is asked for, which is why the same binary run from a terminal is refused:
 there the responsible process is the terminal. And the grant is tied to the code that was allowed
-(`matchesCodeRequirement: … cdhash …`), which is why a *different* binary is refused even with six responsible.
-Re-signing the helper with six's identifier does not help: under an ad-hoc signature the requirement is the code
+(`matchesCodeRequirement: … cdhash …`), which is why a *different* binary is refused even with Savoia responsible.
+Re-signing the helper with Savoia's identifier does not help: under an ad-hoc signature the requirement is the code
 hash.
 
 **An XPC service inside the bundle is trusted**, which is the tidiest of the shapes and the one Apple's own
 tooling produces. The measurement went only that far: the service reported `trusted: true`, and then asked its
-parent — which is `launchd`, since an XPC service is started by the system rather than by the app, so six's pid
+parent — which is `launchd`, since an XPC service is started by the system rather than by the app, so Savoia's pid
 has to be handed to it over the connection. Reading a *given* process is the same `AXUIElement` call the outside
-probe already makes against six, so nothing else is expected to differ; it has not been run end to end.
+probe already makes against Savoia, so nothing else is expected to differ; it has not been run end to end.
 
-So there are two workable shapes rather than one: an XPC service, or six spawning its own executable with a flag
+So there are two workable shapes rather than one: an XPC service, or Savoia spawning its own executable with a flag
 the way `--mcp` already does. Both are one checkbox, both are a second process, which is all the deadlock needs.
 
 **Signing, since the probe lost its grant twice.** That is ad-hoc signing, not something helpers do: with no Team
 ID, TCC has only the code directory hash to key the grant to, and every rebuild produces a new one. Signed with a
 Developer ID identity, the grant is keyed to the designated requirement — team plus bundle id — and survives
-updates. six is ad-hoc signed today, Debug *and* the Release in `/Applications`, so this is a thing to fix before
+updates. Savoia is ad-hoc signed today, Debug *and* the Release in `/Applications`, so this is a thing to fix before
 any of it ships.
 
-The other half is already right: **App Sandbox is off** (`six/six.entitlements` says why — the ACP layer spawns
+The other half is already right: **App Sandbox is off** (`Savoia/Savoia.entitlements` says why — the ACP layer spawns
 the user's own toolchain), and it has to be, because a sandboxed process cannot be an accessibility client at all.
 
-### Why `six --ax-read`, and not the XPC service
+### Why `Savoia --ax-read`, and not the XPC service
 
 Both shapes are one checkbox; the choice is about what else each one brings.
 
-- **It already has a pattern here.** `six --mcp` is the same binary in a second role, switched in `SixMain` before
+- **It already has a pattern here.** `Savoia --mcp` is the same binary in a second role, switched in `SavoiaMain` before
   AppKit is touched. `--ax-read` is one more line there, and the reader is the file it always was.
 - **One bundle, one signature, one target.** An XPC service is a target of its own in `project.pbxproj`, a bundle of
   its own under `Contents/XPCServices`, signed separately, and an `Info.plist` of its own — for macOS only, with an
@@ -245,21 +245,21 @@ Both shapes are one checkbox; the choice is about what else each one brings.
   `Process`. And the XPC service's measurement went only as far as `trusted: true` — `--ax-read` has now read pages
   end to end.
 
-What `--ax-read` costs instead: the child is a whole six executable in memory (it never touches AppKit, so it stays
-small, but it maps everything), and it is only six in macOS's eyes when six launches it — the same executable run from
+What `--ax-read` costs instead: the child is a whole Savoia executable in memory (it never touches AppKit, so it stays
+small, but it maps everything), and it is only Savoia in macOS's eyes when Savoia launches it — the same executable run from
 a shell is refused, which is also why it cannot be tested from a terminal with the permission on.
 
 ## What was checked, as built
 
 Debug, macOS 27, 27 September 2026, one build throughout (a rebuild costs the grant):
 
-- **Without the permission** the tool answers "six is not allowed to use macOS accessibility…" in 0.16–0.35 s, the
-  child is reused between calls, and six goes on answering over MCP.
-- **With the permission**, over `six --mcp`: example.com, 8 elements in 279 ms; Wikipedia's *Accessibility*, 265
+- **Without the permission** the tool answers "Savoia is not allowed to use macOS accessibility…" in 0.16–0.35 s, the
+  child is reused between calls, and Savoia goes on answering over MCP.
+- **With the permission**, over `Savoia --mcp`: example.com, 8 elements in 279 ms; Wikipedia's *Accessibility*, 265
   elements in 84 ms on the visible part, after the "no web area" first ask above; the stand, 32 elements in 55 ms,
   the closed shadow root's button and field and the slotted "Slotted label" among them. Every call answered in
   0.16–0.6 s, and `list_workspaces` straight after each.
-- **`⌥⌘A` three times** on the stand, on, off, on, with a scroll: six alive, the boxes on the elements (by eye),
+- **`⌥⌘A` three times** on the stand, on, off, on, with a scroll: Savoia alive, the boxes on the elements (by eye),
   and MCP answering with the overlay on.
 - A child started before the grant stayed refused after it — which is what the "replaced once" rule is for. A
   second build, granted with a child already running, read the stand at the first call.
@@ -292,7 +292,7 @@ whose inputs are its fields. The same, derived rather than declared:
   submit control;
 - a named control standing alone → a `press` tool, and a settable value → `set`;
 - registered in `WebMCPRegistry` beside the page's own, marked as derived and by which source, and never
-  `readOnlyHint` — six cannot know what a press does, so every call is asked about, as an unannotated page tool is.
+  `readOnlyHint` — Savoia cannot know what a press does, so every call is asked about, as an unannotated page tool is.
 - **A page's own tools win.** Where a page declares tools, derived ones step back or are listed after them: the page
   knows what its buttons mean, and the tree only knows what they are called.
 
@@ -303,7 +303,7 @@ child over the same pipe — which is why `AXReadRequest` is a request type and 
 
 Beside `PageToolsButton`, the same wrench with a spark: this page declared no tools, and its tree is good enough to
 make some of. The popover lists them — `fill` a form with its fields, `press` a control, `type` into a field — with
-"each call by an agent is confirmed" under the title ([below](#offered-to-agents)). Only with WebMCP on (`six://configuration`
+"each call by an agent is confirmed" under the title ([below](#offered-to-agents)). Only with WebMCP on (`savoia://configuration`
 ▸ Develop), never in a private window, never over a page's own tools. `AddressBar` reads the focused window a second
 after it stops loading, through the same `AccessibilityOverlay.read` — so it costs one child and ~30–200 ms per
 navigation, and puts the web content process into accessibility mode as the overlay does. `get_accessibility_tree`
@@ -362,7 +362,7 @@ named after that button, because WebKit names it from all the text inside. A fie
 label while the `<input>` is the small box at its edge — takes the element it overlaps most. The name is built from the accessible name, so it survives a new read:
 every call reads the tree again and finds the tool by name, and a tool that went away fails as `noSuchTool` with
 the ones that are there. `FILL_FORM` in `run_page_task` fills through the same `PageTaskRoute.fill`, and there a
-submit button whose name commits is not pressed. The call goes through WebMCP's gate with `readOnlyHint` false — six cannot know what a
+submit button whose name commits is not pressed. The call goes through WebMCP's gate with `readOnlyHint` false — Savoia cannot know what a
 button does — so the person confirms every one; the answer is what was done and the page's snapshot after it. They
 are not in `WebMCPRegistry` and not shown under the wrench: they belong to one reading of the screen, not to the page.
 
@@ -383,6 +383,6 @@ are not in `WebMCPRegistry` and not shown under the wrench: they belong to one r
   [`AXIsProcessTrustedWithOptions`](https://developer.apple.com/documentation/applicationservices/1459186-axisprocesstrustedwithoptions) — the API and the permission check.
 - [The Curious Case of the Responsible Process](https://www.qt.io/blog/the-curious-case-of-the-responsible-process) — what "responsible" means, and how a launched process inherits it.
 - [Permissions, privacy and TCC](https://eclecticlight.co/2025/11/08/explainer-permissions-privacy-and-tcc/) — how the records are kept and matched.
-- [Accessibility Permission in macOS](https://jano.dev/apple/macos/swift/2025/01/08/Accessibility-Permission.html) — including why App Sandbox rules this out entirely (six's is off).
-- [The host app appears in Accessibility Permission](https://developer.apple.com/forums/thread/777040) — the report that an extension's own entry can appear; our XPC measurement above is the answer for a service six launches itself.
+- [Accessibility Permission in macOS](https://jano.dev/apple/macos/swift/2025/01/08/Accessibility-Permission.html) — including why App Sandbox rules this out entirely (Savoia's is off).
+- [The host app appears in Accessibility Permission](https://developer.apple.com/forums/thread/777040) — the report that an extension's own entry can appear; our XPC measurement above is the answer for a service Savoia launches itself.
 - [Focus follows mouse deadlocks on a hit test into its own SwiftUI panel](https://github.com/vorssaint/vorssaint-utils/issues/1420) — the same deadlock, found by someone else, with the same conclusion: do not ask yourself.

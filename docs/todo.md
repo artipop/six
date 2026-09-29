@@ -4,7 +4,7 @@ What is planned but not built. Ordered by how much it is missed, not by effort.
 
 ## Two switches in the same corner mean two different sizes of thing
 
-`six://configuration` has two panes that open with a switch, and the switch means something
+`savoia://configuration` has two panes that open with a switch, and the switch means something
 different in each. Privacy puts **Block Ads and Trackers** in the pane's own header row, top right
 beside the segmented picker (`ConfigurationPageView.PrivacyConfiguration`) — and it governs one of
 the three segments, leaving Site Permissions and Certificates working. Assistant puts **Use Language
@@ -26,14 +26,14 @@ other's switch reaches.
 
 ## Help inside the app
 
-six has no Help menu content and no help book: the only account of what a setting does is the
+Savoia has no Help menu content and no help book: the only account of what a setting does is the
 VitePress guide on the site. That used to be papered over by captions under almost every setting,
 which made the configuration pages read like the guide and were cut down to the few that say
 something a person cannot do without (a consequence, a missing step). What is owed is a Help menu
 that opens the guide — the page for the pane in front of you, in the interface language — and a
 `?` button on each configuration pane that goes to the same place. Offline is the open question: a
 help book bundled with the app, or the guide's built pages shipped as resources and opened in a
-window of six's own.
+window of Savoia's own.
 
 ## The ring's arrows are three keys, and only on the Mac
 
@@ -44,7 +44,7 @@ two keys a person would reach for cannot be had at all on a default Mac. The bin
 modifiers, so one extra key is enough to get the event delivered, and `⇧` is the one already under the
 hand from `⌃⇧Tab`.
 
-**It is a Mac problem only.** The table is `SixCore`'s and the other fronts read the same rows;
+**It is a Mac problem only.** The table is `SavoiaCore`'s and the other fronts read the same rows;
 nothing on Linux or Windows takes `⌃←`, so the bare arrows work there and the documented chord is
 wrong for them. Three keys to page a carousel is a bad answer wherever it is written down, and
 another one has not been found yet: the ring is held open *by* `⌃`, so every key it can answer is a
@@ -65,10 +65,10 @@ and not a transcription.
 ## Popups: a window the page can script
 
 `window.open` hands the page nothing back. Without a user gesture WebKit's popup blocking answers `null`; with one,
-six opens a new column through `BrowserState.openInNewWindow`, which starts a fresh `WebPage` at the address and is
+Savoia opens a new column through `BrowserState.openInNewWindow`, which starts a fresh `WebPage` at the address and is
 not the `WKWebView` WebKit asked the UI client for — so the opener gets `null`, and the new page has no
 `window.opener` ([links.md](links.md#a-second-window)). Every site whose sign-in popup reports back through
-`window.opener.postMessage` (OAuth and payment windows, "Sign in with …" buttons) cannot finish in six. Measured
+`window.opener.postMessage` (OAuth and payment windows, "Sign in with …" buttons) cannot finish in Savoia. Measured
 while building WebMCP's frames ([webmcp.md](webmcp.md#frames-what-webkit-allows-measured)); two wpt tests there
 fail on it and nothing else.
 
@@ -127,11 +127,11 @@ is the precedent: something that lives on `WKWebView`, lifted into the new API.
 Smaller things that follow once the boundary moves (or that are worth doing anyway): a workspace per extension
 window rather than one window per profile strip.
 
-**Extension pages inside six's own interface.** An extension's options page, its dashboard and the pages it opens
+**Extension pages inside Savoia's own interface.** An extension's options page, its dashboard and the pages it opens
 with `tabs.create` open today in a plain `NSWindow` of their own (`ExtensionStore.openExtensionPage`), because a
 column is a `WebPage` and WebKit will not load an extension's page as a main frame into one
 ([extensions.md](extensions.md#extension-pages-get-a-window-not-a-column)). Try to fit them into the row anyway.
-The options, cheapest first: a panel six places and sizes over the focused column instead of a free-floating window
+The options, cheapest first: a panel Savoia places and sizes over the focused column instead of a free-floating window
 (still a `WKWebView` from `context.webViewConfiguration`); a column kind that hosts that `WKWebView` through
 `NSViewRepresentable` — an exception to the `WebPage`-only rule, to be weighed against everything such a column would
 not have (find, translation, highlights, DevTools capture, discarding); or, if `WebPage.Configuration` ever takes a
@@ -140,7 +140,7 @@ special about them. The new-tab override is blocked on the same thing.
 
 `commands` bound to real keys is no longer on this list — see [extensions.md](extensions.md#commands-an-extensions-own-shortcuts).
 
-## Someday: six's own WebKit build
+## Someday: Savoia's own WebKit build
 
 Two separate walls in this document are the same wall — WebKit can do the thing, the macOS SDK does not expose it:
 
@@ -148,7 +148,7 @@ Two separate walls in this document are the same wall — WebKit can do the thin
   answers this through a view-tree walk instead of waiting on Apple, but the walk is still a workaround for a wall
   the SDK put there in the first place ([extensions.md](extensions.md));
 - there is no public way to *open* Web Inspector on your own page — the whole word "Inspector" appears in exactly
-  one public header, as `WKWebView.isInspectable` — so six can only let Safari attach ([devtools.md](devtools.md)).
+  one public header, as `WKWebView.isInspectable` — so Savoia can only let Safari attach ([devtools.md](devtools.md)).
 
 Neither is a WebKit limitation. WebKit's inspector frontend is in the open-source tree, and the GTK port hands it to
 applications as ordinary public API (`webkit_web_view_get_inspector`, `webkit_web_inspector_show`). Orion has
@@ -156,7 +156,7 @@ in-window developer tools on macOS, which means either SPI or a build of its own
 precisely to reach the inspector protocol.
 
 So the escape hatch, if the walls ever start costing more than they are worth: **build WebKit ourselves and embed
-it.** What it would buy, in the order it matters — the inspector in six's own window, the inspector protocol behind
+it.** What it would buy, in the order it matters — the inspector in Savoia's own window, the inspector protocol behind
 the MCP devtools tools (real network with headers and bodies, a DOM snapshot, interactions), and whatever
 `WebPage` refuses to hand over, including the backing view an extension tab needs.
 
@@ -180,7 +180,7 @@ missed:
 1. **Ghost text in the field itself.** A rewrite arrives in the strip at the bottom of the window
    and goes into the page on Return; the thing to build is the answer shown *in place* — grey text
    after the caret, Tab to take it — which needs an overlay positioned on a caret rectangle that
-   moves with every keystroke, inside a page whose scrolling six does not own. The strip is the
+   moves with every keystroke, inside a page whose scrolling Savoia does not own. The strip is the
    honest version until that is measured.
 2. **A verb of your own.** The catalog is a Swift array; the row that would make it a setting — a
    title, a prompt, where it applies — is the smallest useful next feature, and the reason the type
@@ -257,7 +257,7 @@ different build, and they are worth keeping apart:
   which is where Artem got it, with his warning that the CI links have moved since.
 - A self-hosted build on a cloud VM is the remaining idea. Nobody has costed it.
 
-Trying a build is otherwise cheap, since nothing here pins the engine: `six-windows.ps1 -WebKitDir <folder>` points
+Trying a build is otherwise cheap, since nothing here pins the engine: `savoia-windows.ps1 -WebKitDir <folder>` points
 at any DLL set. The chore is `windows/vendor/WebKit2/WebKit2.lib` — see [windows.md](windows.md) for regenerating it.
 `../sixty` already has `windows/scripts/update-playwright-webkit.ps1` on a daily scheduled task watching for a newer
 Playwright; point at that rather than writing a second one.
@@ -269,13 +269,13 @@ above, both fronts' DPI findings, and Artem's reference links:
 [HN thread](https://news.ycombinator.com/item?id=30280404), and
 [qt-ultralight-browser](https://github.com/niutech/qt-ultralight-browser) for the QtWebKit route.
 
-## Developer tools: the half Chrome's devtools MCP has and six does not
+## Developer tools: the half Chrome's devtools MCP has and Savoia does not
 
 Web Inspector and capture are built ([devtools.md](devtools.md)): console, network, screenshots, over MCP. What an
 agent still cannot do is *act* on a page except through `evaluate_javascript`, and cannot measure it:
 
 - **A snapshot with stable ids** — Chrome's `take_snapshot` returns the accessibility tree with a uid per node, and
-  every interaction tool takes one. six has `list_page_blocks` for reading; the same idea with uids, over the
+  every interaction tool takes one. Savoia has `list_page_blocks` for reading; the same idea with uids, over the
   accessibility tree rather than paragraphs, is what `click`, `fill` and `hover` would address.
 - **Interactions as tools** rather than hand-written JavaScript: click, type, hover, select, drag, upload, and
   `wait_for(text)`. All of it is expressible through the page world today, which is why it is not urgent — but a
@@ -302,7 +302,7 @@ for service-worker notifications.
 
 What the two share, built once:
 
-- **The header.** six has none today. The functions — `WKContextGetGeolocationManager`,
+- **The header.** Savoia has none today. The functions — `WKContextGetGeolocationManager`,
   `WKGeolocationManagerSetProvider`, `WKGeolocationManagerProviderDidChangePosition`, `WKGeolocationPositionCreate`;
   `WKContextGetNotificationManager`, `WKNotificationManagerSetProvider`, `WKNotificationManagerProviderDidShowNotification`,
   `…DidClickNotification`, `…DidCloseNotifications`, `WKNotificationCopyTitle`, `WKNotificationCopyBody`,
@@ -318,19 +318,19 @@ What the two share, built once:
   the microphone still reached the adapter.
 
 **Geolocation.** The permission hook is public (`requestGeolocationPermissionFor:initiatedBy:`, macOS 27); the
-provider is not. six would run `CLLocationManager` itself — `NSLocationWhenInUseUsageDescription` is already in the
+provider is not. Savoia would run `CLLocationManager` itself — `NSLocationWhenInUseUsageDescription` is already in the
 Info.plist — and hand WebKit positions. Without a provider "Allow" led to a page that waited forever
 ([permissions.md](permissions.md#what-a-webpage-browser-still-cannot-ask-for)). First step: a position arriving in a
 page at all.
 
-**Notifications.** Measured on 2026-09-15 in a throwaway app, not in six:
+**Notifications.** Measured on 2026-09-15 in a throwaway app, not in Savoia:
 
 - `Notification.requestPermission()` is refused inside WebCore, before anyone is asked, unless it runs in a user
-  gesture and a secure context. A script run over `six --mcp` is not a gesture, which is why an early check from six
+  gesture and a secure context. A script run over `Savoia --mcp` is not a gesture, which is why an early check from Savoia
   read `denied` in 3 ms and proved nothing about the delegate.
-- A non-persistent data store — what six's private profiles use — is refused in `WebNotificationClient` before the
+- A non-persistent data store — what Savoia's private profiles use — is refused in `WebNotificationClient` before the
   delegate too (`sessionID().isEphemeral()`). Private profiles would stay without notifications, as in Safari.
-- With a persistent store, made the way six makes its other profiles, and a real click, the private delegate method
+- With a persistent store, made the way Savoia makes its other profiles, and a real click, the private delegate method
   `_webView:requestNotificationPermissionForSecurityOrigin:decisionHandler:` was called, answered yes, and the page got
   `granted`. `new Notification()` then reached the UI process (`showNotification called` in the log) and went no
   further: no provider, no banner, no `onshow`.
@@ -345,7 +345,7 @@ through the same provider marked persistent, but their clicks go to `WKWebsiteDa
 **Web Push** is out of reach rather than undocumented: `webpushd` checks the private entitlement
 `com.apple.private.webkit.webpush` before serving a client, and Apple does not hand it out.
 
-six is not sandboxed and not on the App Store, so undeclared API carries no review risk here — only the ordinary one,
+Savoia is not sandboxed and not on the App Store, so undeclared API carries no review risk here — only the ordinary one,
 that it changes in a macOS update.
 
 ## Blocking: cosmetic rules inside a frame
@@ -366,9 +366,9 @@ Three ways it could be closed, none of them free:
   the frame's own scripts run, and a round trip through the main actor is not before.
 - **Ship the lookup to the page.** Inject the engine's answers for every domain the page might frame — which is the
   whole index — or the engine itself as JavaScript. AdGuard's own extension does the second, in a background script;
-  six would be paying 350 KB and a build of the index per frame.
+  Savoia would be paying 350 KB and a build of the index per frame.
 - **A `WKURLSchemeHandler`-shaped proxy**, or the Web Inspector protocol, so the rules could be applied to a frame's
-  document before it is parsed. Both are the [own-WebKit-build](#someday-sixs-own-webkit-build) conversation.
+  document before it is parsed. Both are the [own-WebKit-build](#someday-savoias-own-webkit-build) conversation.
 
 The first is the only cheap one and it buys the smaller half. Worth doing when a real page is found where the frames
 are the problem; not worth guessing at before that.
@@ -382,13 +382,13 @@ controls. `WebPage.Configuration` turned out to have no field to allow it in, so
 floating player survives its window being scrolled out of the row, turned into a placeholder card and left behind for
 another profile. What it took, and what was measured, is in [layout.md](layout.md#picture-in-picture).
 
-**Window PiP** is not. Any six window as a small always-on-top panel: an `NSPanel` at `.floating` level hosting the
+**Window PiP** is not. Any Savoia window as a small always-on-top panel: an `NSPanel` at `.floating` level hosting the
 page, which leaves the strip while it floats and returns to its column when closed. This is a floating layer, and
 the same mechanism would later serve a proper floating-window mode. Nothing about the video half helps here — that one
 is not even a window WebKit owns: `PIPAgent` draws it in a process of its own, on a system layer, snapped to a corner
-of the screen, and six can neither parent it to the browser window nor place it
+of the screen, and Savoia can neither parent it to the browser window nor place it
 ([layout.md](layout.md#picture-in-picture) has the measurements). Which is the argument for this half: a floating
-window six draws is one it can put under the top bar and carry with the browser, and those are the two things asked
+window Savoia draws is one it can put under the top bar and carry with the browser, and those are the two things asked
 for about the video player that could not be answered.
 
 ## Passkeys and passwords
@@ -407,7 +407,7 @@ columns under Storage below.
 ## Storage: history pages and retrieval
 
 SQLite is the system of record — chosen and built: SQLiteData over GRDB for `visits`, `settings`, bookmarks and
-their chunks and vectors (`six/Data/`, `six/Bookmarks/`, [architecture.md](architecture.md#persistence),
+their chunks and vectors (`Savoia/Data/`, `Savoia/Bookmarks/`, [architecture.md](architecture.md#persistence),
 [bookmarks.md](bookmarks.md)). The app-state snapshot stays JSON — one small document, not a table. What is left:
 
 - **History pages through the same store.** Bookmarks are the first RAG slice; history is the second: `pages(url,
@@ -418,7 +418,7 @@ their chunks and vectors (`six/Data/`, `six/Bookmarks/`, [architecture.md](archi
 - **A bigger embedder when small isn't enough.** ~~One line in `MLXEmbedder.configuration`~~ — done, as a setting:
   `EmbeddingModelChoice` offers `multilingual-e5-small` and `multilingual-e5-base`, recommended by the Mac's memory
   and overridable ([bookmarks.md](bookmarks.md)). What is still open is a third rung — `multilingual-e5-large` or
-  `bge-m3`, at 2 GB and up — and whether the ladder should be one the user climbs at all rather than one six climbs
+  `bge-m3`, at 2 GB and up — and whether the ladder should be one the user climbs at all rather than one Savoia climbs
   for them. An ANN index (USearch) only past ~100k chunks — `vec0` is brute force too, just in C.
 - **Prototypes worth an afternoon**, both caches over SQLite, never systems of record:
   [Wax](https://github.com/christopherkarani/Wax) — one `.wax` file with FTS5 + Metal HNSW, hybrid search in one
@@ -429,7 +429,7 @@ their chunks and vectors (`six/Data/`, `six/Bookmarks/`, [architecture.md](archi
   every front, and `BookmarkIndexer` writes the rows, the passages and the vectors. The embedder is the same E5, run
   by transformers.js in a `PageSandbox` (`WebEmbedder`). Measured on Windows; **Linux is written and unrun** — the
   container is on the Mac. Windows has the bookmark button and `⌃D` now, beside the address the way the Mac's is. A saved page
-  is its whole text there too: `ReadablePage` is in `SixCore` and runs through `PageScriptRunner`, so the star saves
+  is its whole text there too: `ReadablePage` is in `SavoiaCore` and runs through `PageScriptRunner`, so the star saves
   the row at once and replaces its title-only passage with the page's a moment later. The Markdown copy is written
   beside the row there as well (`BookmarkFile`). What is still owed is somewhere to *see* the library — Windows has no
   bookmarks window, and Linux's `BookmarksSheet` searches titles and addresses only — and the hourly refresh, which
@@ -447,7 +447,7 @@ their chunks and vectors (`six/Data/`, `six/Bookmarks/`, [architecture.md](archi
 Rejected, so it isn't re-litigated: Core Data / SwiftData (Apple-only, no FTS or vectors), Realm (sync dropped, no
 Linux Swift), LMDB/RocksDB (everything built on top), Couchbase Lite (its own sync), DuckDB (poor for many small
 writes), libSQL / Turso (native vectors, but not the system `sqlite3`, young Swift SDK), ObjectBox (closed core, no
-Linux), PGlite (WASM runtime, data unreachable from `six --mcp`), Qdrant / Milvus / Weaviate / Chroma (server
+Linux), PGlite (WASM runtime, data unreachable from `Savoia --mcp`), Qdrant / Milvus / Weaviate / Chroma (server
 clients, nothing embedded).
 
 ## iOS: the data layer travels, the embedder is the question
@@ -459,7 +459,7 @@ flow this leans on).
 C file compiled into the app and entered per connection (`sqlite3_vec_init` from `prepareDatabase`) — the one way that
 works when the system library has extension loading compiled out, which iOS has too. sqlite-vec-data declares
 iOS 16 / tvOS / watchOS and builds the C with NEON on ARM; GRDB and SQLiteData are native there; the schema, the `vec0`
-tables and a copied `six.sqlite` work unchanged. Statically compiled C is fine for the App Store — nothing is loaded
+tables and a copied `savoia.sqlite` work unchanged. Statically compiled C is fine for the App Store — nothing is loaded
 dynamically. `WebPage` exists on iOS 26, so `ReadablePage` and the refresh path port too; the hourly refresh becomes a
 `BGProcessingTask` on Wi-Fi and power.
 
@@ -484,7 +484,7 @@ dynamically. `WebPage` exists on iOS 26, so `ReadablePage` and the refresh path 
 
 Built and measured; see [linux.md](linux.md) for the whole picture. What is left, in the order it is missed:
 
-- **Page scripting.** `PageScripts` and `PageControllers` are the two places six already abstracted WebKit, and both
+- **Page scripting.** `PageScripts` and `PageControllers` are the two places Savoia already abstracted WebKit, and both
   land on WebKitGTK without strain: `call_async_javascript_function` takes the same function body, arguments and
   isolated-world name as `callJavaScript(_:arguments:contentWorld:)`. Everything downstream waits on it — highlights,
   the readable copy, the DevTools capture the agent tools read. It should also be the first place the Linux build ends
@@ -504,11 +504,11 @@ Built and measured; see [linux.md](linux.md) for the whole picture. What is left
   FoundationModels is Apple's.
 - **Extensions**, when Igalia exposes `WebExtensionContext` and `WebExtensionController`. The install dialog and the
   compatibility verdict port today, because `WebKitWebExtension` already parses a manifest.
-- **Find-in-page**, which WebKitGTK gives away (`WebKitFindController`) and six does in the page's own JavaScript.
+- **Find-in-page**, which WebKitGTK gives away (`WebKitFindController`) and Savoia does in the page's own JavaScript.
   Favicons the Mac now reads through the page itself (`SiteIcons`), which ports as it stands — the script is
   portable and only the store is per-front — or WebKitGTK's `WebKitFaviconDatabase` does it for nothing.
 
-## Sharing into six on iOS
+## Sharing into Savoia on iOS
 
 The Mac takes pages in through a share extension that reads one file and opens one URL ([sharing.md](sharing.md)).
 Neither half is available on iOS. An extension there cannot open its containing app (the responder-chain trick that
@@ -543,7 +543,7 @@ would take — none of it is a polyfill's to do ([webmcp.md](webmcp.md#not-built
   origin-keyed agent clusters, so the rule read literally refuses everything. Waits for WebKit to ship
   `Origin-Agent-Cluster` by default, or for the draft to phrase the rule so it has meaning there.
 - **`isTrusted` on `toolactivated` (1).** Only an event the engine dispatches is trusted. Native WebMCP in WebKit, or
-  six's own WebKit build ([Someday](#someday-sixs-own-webkit-build)).
+  Savoia's own WebKit build ([Someday](#someday-savoias-own-webkit-build)).
 - **An iframe's initial `about:blank` when the iframe has a `src` (1).** WebKit runs no user script there, and the
   page reaches the document before it navigates. The parent's polyfill could install one into a same-origin child it
   sees created; wpt's own comment says Chrome fails this one too, so it waits for the test to settle.
@@ -556,7 +556,7 @@ where the next changes will land.
 ## Smaller things
 
 - A readable maximum width for the default column on ultra-wide displays: 88 % of a 5K panel is a very long line.
-- **WebKit's real back-forward list across a relaunch.** Six restores the trail as *addresses*
+- **WebKit's real back-forward list across a relaunch.** Savoia restores the trail as *addresses*
   ([architecture.md](architecture.md#persistence)), so ⌘[ after a restart loads the previous page rather than
   restoring the rendered one — no scroll position, no form state, no cached response. `WKWebView` has had
   `interactionState` since macOS 12 for exactly this, and `WebPage` exposes nothing equivalent: its

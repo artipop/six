@@ -31,7 +31,7 @@ There is one — the Swift SDK for Android shipped with 6.3 in March 2026, owned
 Swift project, and the Linux build here already runs 6.3.3. So the option is real. It is just not
 worth what it costs, and the reason is a measurement rather than a preference.
 
-`six/` without `Vendor/` is 17 575 lines. Split by what a file imports:
+`Savoia/` without `Vendor/` is 17 575 lines. Split by what a file imports:
 
 | | lines | |
 |---|---|---|
@@ -56,7 +56,7 @@ different front end over the same one. Sharing pays in proportion to how much st
 that fraction shrinks as the app grows rather than rising.
 
 (Skip.tools, which transpiles SwiftUI to Compose, is not a candidate for the same reason twice over:
-six's SwiftUI is deep in AppKit and `NSEvent`, and it does not do WebKit at all.)
+savoia's SwiftUI is deep in AppKit and `NSEvent`, and it does not do WebKit at all.)
 
 ## Why the system WebView, and what it costs
 
@@ -65,7 +65,7 @@ tracking protection in the box, real WebExtensions, and a content process per ta
 `LivePageCache` already assumes. It is also 70 MB per ABI and a seat on Mozilla's release train.
 
 The system WebView is Chromium, updated by the system rather than by us, and it costs nothing in the
-package. Its multi-profile API maps onto six's profiles almost exactly. What it does not have, and
+package. Its multi-profile API maps onto Savoia's profiles almost exactly. What it does not have, and
 will not:
 
 - **Extensions.** There is no host API. [extensions.md](extensions.md) has no Android section.
@@ -86,7 +86,7 @@ device.
 
 ## The WebKit surface, mapped
 
-| six, on WebKit | on Android |
+| Savoia, on WebKit | on Android |
 |---|---|
 | `WebPage` / SwiftUI `WebView` | `android.webkit.WebView` inside a Compose `AndroidView`, one per column |
 | `WKWebsiteDataStore(forIdentifier:)` per profile | `androidx.webkit.Profile` / `ProfileStore`, `WebViewCompat.setProfile` |
@@ -107,7 +107,7 @@ device.
 | `sqlite-vec` through `#if canImport` | `BundledSQLiteDriver.addExtension` — proven to work, blocked on packaging ([measured](#the-index-what-was-measured)) |
 
 `minSdk` is **34**. The multi-profile API arrived there, and profiles are not an optional part of
-six — a build that cannot keep two profiles apart is a different app.
+Savoia — a build that cannot keep two profiles apart is a different app.
 
 ## What is actually shared
 
@@ -138,7 +138,7 @@ would — a tablet is "large" whichever way it is held. Measure the window, in C
 `BoxWithConstraints`; re-measure on rotation and on fold state.
 
 The phone gesture model is already designed for this and happens to solve Android's hardest problem
-for free. A `WebView` inside a horizontally scrollable container fights over every touch; six never
+for free. A `WebView` inside a horizontally scrollable container fights over every touch; Savoia never
 asks it to, because the strip is driven from the handle above each window and never from the page.
 Along the handle pans the strip, across it changes workspace, both feeding `TilingLayout`'s
 `horizontalPreview` / `verticalPreview`. Inside the page every gesture is the page's.
@@ -332,7 +332,7 @@ Phase one, the browser. Everything below has been run on a device, not only comp
   last picture of themselves, and memory pressure narrows that to the window being read.
 - **Profiles**, including a private one that leaves nothing behind — and, because this platform has
   no ephemeral profile, deletes its store by hand and sweeps at launch for the times it could not.
-- **Persistence**: `state.json` and `six.sqlite`, both in the Mac's format, with history and settings.
+- **Persistence**: `state.json` and `savoia.sqlite`, both in the Mac's format, with history and settings.
 - **Bookmarks** without the index: the row, the passages and the readable Markdown file.
 - **Site permissions** and the four dialogs a page can put up.
 - **Both languages**, through `strings.xml`.
@@ -343,7 +343,7 @@ a window between workspaces, which the iPhone does not have either.
 
 ## The steps
 
-Two phases. Phase one is a browser; phase two is what makes it six.
+Two phases. Phase one is a browser; phase two is what makes it Savoia.
 
 Following the shape the GTK port took — a spike that answers a small number of questions, then the
 layer, then the thing.
@@ -375,7 +375,7 @@ layer, then the thing.
 Three things a green build and a hundred and thirty tests did not.
 
 **The app could not start.** The manifest named `.MainActivity` against the namespace
-`org.deffun.six`, and the class is in `org.deffun.six.app`.
+`org.deffun.savoia`, and the class is in `org.deffun.savoia.app`.
 
 **One SQLite connection, several coroutines.** A page committing a visit, the snapshot being written
 and a bookmark being saved are three writers on the IO dispatcher, and two transactions interleaving

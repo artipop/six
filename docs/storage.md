@@ -91,9 +91,9 @@ CloudKit Web Services"]
   USearch would be; losing one is harmless, and a `.wax` file would never be synced.
 - **`Embedder` returns a model id.** That is what keeps vectors compatible across devices and platforms: a chunk
   embedded by another model is re-embedded, not silently searched.
-- **What exists**: `DB`, `HistoryStore`, `ConfigurationStore` (`six/Data/`, `six/Browser/History.swift`), and for
+- **What exists**: `DB`, `HistoryStore`, `ConfigurationStore` (`Savoia/Data/`, `Savoia/Browser/History.swift`), and for
   bookmarks the `Embedder` protocol with `MLXEmbedder` (and `ContextualEmbedder`) behind it and `BookmarkStore` as
-  the retrieval layer over sqlite-vec (`six/Bookmarks/`, [bookmarks.md](bookmarks.md)). `Retrieval` is not a protocol
+  the retrieval layer over sqlite-vec (`Savoia/Bookmarks/`, [bookmarks.md](bookmarks.md)). `Retrieval` is not a protocol
   yet — the KNN lives inside `BookmarkStore.vectorSearch`, one function to swap. `SyncEngine` is not there.
 
 ## The seams, and what is still open
@@ -132,7 +132,7 @@ three. It is the honest statement of the arrangement anyway: a database written 
 by the other, and they should agree on the library that wrote it.
 
 **The consequence to remember:** `swift package update` is a Linux-breaking command here. Re-seed from
-`six.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` and let the project's own
+`Savoia.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` and let the project's own
 graph move first.
 
 ([sqlite-data#459](https://github.com/pointfreeco/sqlite-data/pull/459) is a separate Linux effort —

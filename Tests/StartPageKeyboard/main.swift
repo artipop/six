@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 import ObjectiveC
 
-// Standalone AppKit integration test: compile with six/Views/SuggestionTextField.swift.
+// Standalone AppKit integration test: compile with Savoia/Views/SuggestionTextField.swift.
 // Posts real key events through the app's queue; no Accessibility permission required.
 @MainActor
 @Observable

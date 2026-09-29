@@ -12,7 +12,7 @@ and mark it *Always Trust* by hand. That works, and it changes what **every
 application on the machine** trusts, permanently, with nothing to look at
 afterwards.
 
-VI keeps the same decision inside itself: **Configuration ▸ Privacy ▸ Certificates** — a list
+Savoia keeps the same decision inside itself: **Configuration ▸ Privacy ▸ Certificates** — a list
 you can read, a switch you can flip back, and a certificate that stops mattering
 the moment it is off.
 
@@ -23,7 +23,7 @@ the moment it is off.
 Less than the keychain does, and that is the point.
 
 A site's chain is **judged by the system first**, with the system's own anchors
-and nothing added. If it checks out, VI steps out of the way and WebKit does
+and nothing added. If it checks out, Savoia steps out of the way and WebKit does
 everything it would have done anyway. The ordinary web is not touched at all.
 
 **Only a chain the system has already turned down is read a second time** — and
@@ -37,7 +37,7 @@ Hence the promise, and it is smaller than "trusted":
 > turning an authority on **cannot** make an ordinary site validate differently.
 > It can only give a second reading to a chain that has **already** failed.
 
-Trust stays inside VI. Nothing else on the machine gets it, and the switch takes
+Trust stays inside Savoia. Nothing else on the machine gets it, and the switch takes
 it back.
 
 ## When a site does not open
@@ -48,7 +48,7 @@ including in the case where it had the answer: the Ministry's certificates were
 inside it, switched off, with nowhere to say so.
 
 Now the window shows a page: which address it was, what the system said, and —
-when the site's certificate was issued by an authority VI **carries and has not
+when the site's certificate was issued by an authority Savoia **carries and has not
 switched on** — which one, and a **Trust Russian Trusted CA** button next to
 **Try Again**.
 
@@ -57,7 +57,7 @@ Certificates**, written to the same place. Saying yes here is not saying yes
 somewhere off to the side: the list stays the same list, and it can be switched
 off there.
 
-If the authority is one VI does not carry, the page says only what it honestly
+If the authority is one Savoia does not carry, the page says only what it honestly
 knows: the chain could not be traced, and your own certificate can be added in
 settings.
 

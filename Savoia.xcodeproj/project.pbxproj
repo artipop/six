@@ -1,0 +1,907 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 110;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		5CD2470091CF7AE5F73D25A5 /* Tokenizers in Frameworks */ = {isa = PBXBuildFile; productRef = E4D3C02313C636C3B360B52A /* Tokenizers */; };
+		6129C17CC7CD1BD468139EF8 /* MLXEmbedders in Frameworks */ = {isa = PBXBuildFile; productRef = ABD000B7AE7299C48D5CC4DD /* MLXEmbedders */; };
+		5A11C0DE0000000000000A01 /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = 5A11C0DE0000000000000A02 /* MLXLLM */; };
+		A271466D26DE9D05E6A5B285 /* HuggingFace in Frameworks */ = {isa = PBXBuildFile; productRef = FF7BC8AD7FB5289836E41C75 /* HuggingFace */; };
+		AC11A8513040444B007E3F9B /* ContentBlockerConverter in Frameworks */ = {isa = PBXBuildFile; productRef = AD01B10D4E2F7A6390D5C442 /* ContentBlockerConverter */; };
+		AC8977A0303CEC22008426C2 /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = AC89779F303CEC22008426C2 /* SQLiteData */; };
+		AC9001010000000000000020 /* SQLiteData in Frameworks */ = {isa = PBXBuildFile; productRef = AC9001010000000000000010 /* SQLiteData */; };
+		AC9001010000000000000021 /* SQLiteVecData in Frameworks */ = {isa = PBXBuildFile; productRef = AC9001010000000000000011 /* SQLiteVecData */; };
+		AC9001010000000000000022 /* MLXEmbedders in Frameworks */ = {isa = PBXBuildFile; productRef = AC9001010000000000000012 /* MLXEmbedders */; };
+		5A11C0DE0000000000000A03 /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = 5A11C0DE0000000000000A04 /* MLXLLM */; };
+		AC9001010000000000000023 /* HuggingFace in Frameworks */ = {isa = PBXBuildFile; productRef = AC9001010000000000000013 /* HuggingFace */; };
+		AC9001010000000000000024 /* Tokenizers in Frameworks */ = {isa = PBXBuildFile; productRef = AC9001010000000000000014 /* Tokenizers */; };
+		AC9001010000000000000025 /* ContentBlockerConverter in Frameworks */ = {isa = PBXBuildFile; productRef = AC9001010000000000000015 /* ContentBlockerConverter */; };
+		C4E57E1CA358AD438C0F5731 /* SQLiteVecData in Frameworks */ = {isa = PBXBuildFile; productRef = 82F43A23555A3254647ADAE5 /* SQLiteVecData */; };
+		AC9002010000000000000012 /* savoia-share.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = AC9002010000000000000008 /* savoia-share.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		5A11C0DE0000000000000F01 /* FluidAudio in Frameworks */ = {isa = PBXBuildFile; productRef = 5A11C0DE0000000000000F02 /* FluidAudio */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		AC900201000000000000000F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AC897659303CEC20008426C2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AC9002010000000000000001;
+			remoteInfo = "savoia-share";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		AC9002010000000000000013 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				AC9002010000000000000012 /* savoia-share.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		AC897661303CEC20008426C2 /* Savoia.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Savoia.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AC9001010000000000000008 /* Savoia.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Savoia.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AC9002010000000000000008 /* savoia-share.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "savoia-share.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		AC9001010000000000000009 /* Exceptions for "Savoia" folder in "Savoia-iOS" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				ACP/ACPAgent.swift,
+				ACP/ACPClient.swift,
+				ACP/AgentErrands.swift,
+				ACP/AgentSessionStore.swift,
+				ACP/AgentToolchain.swift,
+				ACP/AgentToolName.swift,
+				ACP/JSONRPCConnection.swift,
+				MCP/MCPServer.swift,
+				MCP/MCPSocket.swift,
+				MCP/MCPStdioBridge.swift,
+				Research/ResearchCoordinator.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeAPI/APIError.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeAPI/ClaudeClient.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeAPI/Configuration.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeAPI/ContentAssembler.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeAPI/ContentBlock.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeAPI/HTTPTransport.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeAPI/JSONValue.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeAPI/Message.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeAPI/MessagesRequest.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeAPI/MessagesResponse.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeAPI/SSEParser.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeAPI/StreamEvent.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeAPI/Telemetry.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeAPI/ThinkingConfig.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeAPI/ToolDefinition.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/AppAttestSession.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/AppAttestStore.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/AttestationService.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/AuthMode.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ClaudeError.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ClaudeExecutor.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ClaudeImage.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ClaudeLanguageModel.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ClaudeModel.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ClaudeServerTool.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ClaudeServerToolActivity.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ErrorMapper.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/EventTranslator.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/RequestBuilder.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/ServerToolWire.swift,
+				Vendor/ClaudeForFoundationModels/ClaudeForFoundationModels/TurnRecord.swift,
+				Vendor/ClaudeForFoundationModels/LICENSE,
+				Vendor/ClaudeForFoundationModels/VENDORED.md,
+				Vendor/FoundationModelsUtilities/ChatCompletionsLanguageModel.swift,
+				Vendor/FoundationModelsUtilities/LICENSE.txt,
+				Vendor/FoundationModelsUtilities/VENDORED.md,
+				Views/AgentPanel.swift,
+			);
+			target = AC9001010000000000000001 /* Savoia-iOS */;
+		};
+		AC90010100000000000000A0 /* Exceptions for "Savoia" folder in "Savoia" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Vendor/ClaudeForFoundationModels/VENDORED.md,
+				Vendor/FoundationModelsUtilities/VENDORED.md,
+			);
+			target = AC897660303CEC20008426C2 /* Savoia */;
+		};
+		AC900201000000000000000A /* Exceptions for "ShareExtension" folder in "savoia-share" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+				ShareExtension.entitlements,
+			);
+			target = AC9002010000000000000001 /* savoia-share */;
+		};
+		AC900201000000000000000B /* Exceptions for "Savoia" folder in "savoia-share" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Share/ShareHandoff.swift,
+			);
+			target = AC9002010000000000000001 /* savoia-share */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		AC897663303CEC20008426C2 /* Savoia */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				AC90010100000000000000A0 /* Exceptions for "Savoia" folder in "Savoia" target */,
+				AC9001010000000000000009 /* Exceptions for "Savoia" folder in "Savoia-iOS" target */,
+				AC900201000000000000000B /* Exceptions for "Savoia" folder in "savoia-share" target */,
+			);
+			path = Savoia;
+			sourceTree = "<group>";
+		};
+		AC9002010000000000000009 /* ShareExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				AC900201000000000000000A /* Exceptions for "ShareExtension" folder in "savoia-share" target */,
+			);
+			path = ShareExtension;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		AC89765E303CEC20008426C2 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+				AC11A8513040444B007E3F9B /* ContentBlockerConverter in Frameworks */,
+				AC8977A0303CEC22008426C2 /* SQLiteData in Frameworks */,
+				C4E57E1CA358AD438C0F5731 /* SQLiteVecData in Frameworks */,
+				6129C17CC7CD1BD468139EF8 /* MLXEmbedders in Frameworks */,
+				5A11C0DE0000000000000A01 /* MLXLLM in Frameworks */,
+				A271466D26DE9D05E6A5B285 /* HuggingFace in Frameworks */,
+				5CD2470091CF7AE5F73D25A5 /* Tokenizers in Frameworks */,
+				5A11C0DE0000000000000F01 /* FluidAudio in Frameworks */,
+			);
+		};
+		AC9001010000000000000006 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+				AC9001010000000000000020 /* SQLiteData in Frameworks */,
+				AC9001010000000000000021 /* SQLiteVecData in Frameworks */,
+				AC9001010000000000000022 /* MLXEmbedders in Frameworks */,
+				5A11C0DE0000000000000A03 /* MLXLLM in Frameworks */,
+				AC9001010000000000000023 /* HuggingFace in Frameworks */,
+				AC9001010000000000000024 /* Tokenizers in Frameworks */,
+				AC9001010000000000000025 /* ContentBlockerConverter in Frameworks */,
+			);
+		};
+		AC9002010000000000000006 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		AC897658303CEC20008426C2 = {
+			isa = PBXGroup;
+			children = (
+				AC897663303CEC20008426C2 /* Savoia */,
+				AC9002010000000000000009 /* ShareExtension */,
+				AC897662303CEC20008426C2 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		AC897662303CEC20008426C2 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				AC897661303CEC20008426C2 /* Savoia.app */,
+				AC9001010000000000000008 /* Savoia.app */,
+				AC9002010000000000000008 /* savoia-share.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		AC897660303CEC20008426C2 /* Savoia */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AC89766C303CEC22008426C2 /* Build configuration list for PBXNativeTarget "Savoia" */;
+			buildPhases = (
+				AC89765D303CEC20008426C2 /* Sources */,
+				AC89765E303CEC20008426C2 /* Frameworks */,
+				AC89765F303CEC20008426C2 /* Resources */,
+				AC9002010000000000000013 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				AC900201000000000000000E /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				AC897663303CEC20008426C2 /* Savoia */,
+			);
+			name = Savoia;
+			packageProductDependencies = (
+				AC89779F303CEC22008426C2 /* SQLiteData */,
+				82F43A23555A3254647ADAE5 /* SQLiteVecData */,
+				ABD000B7AE7299C48D5CC4DD /* MLXEmbedders */,
+				5A11C0DE0000000000000A02 /* MLXLLM */,
+				FF7BC8AD7FB5289836E41C75 /* HuggingFace */,
+				E4D3C02313C636C3B360B52A /* Tokenizers */,
+				AD01B10D4E2F7A6390D5C442 /* ContentBlockerConverter */,
+				5A11C0DE0000000000000F02 /* FluidAudio */,
+			);
+			productName = Savoia;
+			productReference = AC897661303CEC20008426C2 /* Savoia.app */;
+			productType = "com.apple.product-type.application";
+		};
+		AC9001010000000000000001 /* Savoia-iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AC9001010000000000000002 /* Build configuration list for PBXNativeTarget "Savoia-iOS" */;
+			buildPhases = (
+				AC9001010000000000000005 /* Sources */,
+				AC9001010000000000000006 /* Frameworks */,
+				AC9001010000000000000007 /* Resources */,
+			);
+			buildRules = (
+			);
+			fileSystemSynchronizedGroups = (
+				AC897663303CEC20008426C2 /* Savoia */,
+			);
+			name = "Savoia-iOS";
+			packageProductDependencies = (
+				AC9001010000000000000010 /* SQLiteData */,
+				AC9001010000000000000011 /* SQLiteVecData */,
+				AC9001010000000000000012 /* MLXEmbedders */,
+				5A11C0DE0000000000000A04 /* MLXLLM */,
+				AC9001010000000000000013 /* HuggingFace */,
+				AC9001010000000000000014 /* Tokenizers */,
+				AC9001010000000000000015 /* ContentBlockerConverter */,
+			);
+			productName = Savoia;
+			productReference = AC9001010000000000000008 /* Savoia.app */;
+			productType = "com.apple.product-type.application";
+		};
+		AC9002010000000000000001 /* savoia-share */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AC9002010000000000000002 /* Build configuration list for PBXNativeTarget "savoia-share" */;
+			buildPhases = (
+				AC9002010000000000000005 /* Sources */,
+				AC9002010000000000000006 /* Frameworks */,
+				AC9002010000000000000007 /* Resources */,
+			);
+			buildRules = (
+			);
+			fileSystemSynchronizedGroups = (
+				AC9002010000000000000009 /* ShareExtension */,
+			);
+			name = "savoia-share";
+			productName = "savoia-share";
+			productReference = AC9002010000000000000008 /* savoia-share.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		AC897659303CEC20008426C2 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2700;
+				LastUpgradeCheck = 2700;
+				TargetAttributes = {
+					AC897660303CEC20008426C2 = {
+						CreatedOnToolsVersion = 27.0;
+					};
+					AC9001010000000000000001 = {
+						CreatedOnToolsVersion = 27.0;
+					};
+					AC9002010000000000000001 = {
+						CreatedOnToolsVersion = 27.0;
+					};
+				};
+			};
+			buildConfigurationList = AC89765C303CEC20008426C2 /* Build configuration list for PBXProject "Savoia" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+				ru,
+			);
+			mainGroup = AC897658303CEC20008426C2;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				AC89779E303CEC22008426C2 /* XCRemoteSwiftPackageReference "sqlite-data" */,
+				1101D959FF8C08C0D4171221 /* XCRemoteSwiftPackageReference "sqlite-vec-data" */,
+				0491713B9D1CDF6B8B095255 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */,
+				9202E564C34651D6970C63AD /* XCRemoteSwiftPackageReference "swift-huggingface" */,
+				F6FD676108E197A94959A73D /* XCRemoteSwiftPackageReference "swift-transformers" */,
+				AD01B10C4E2F7A6390D5C441 /* XCRemoteSwiftPackageReference "SafariConverterLib" */,
+				5A11C0DE0000000000000F03 /* XCRemoteSwiftPackageReference "FluidAudio" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = AC897662303CEC20008426C2 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				AC897660303CEC20008426C2 /* Savoia */,
+				AC9001010000000000000001 /* Savoia-iOS */,
+				AC9002010000000000000001 /* savoia-share */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		AC89765F303CEC20008426C2 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		AC9001010000000000000007 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		AC9002010000000000000007 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		AC89765D303CEC20008426C2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		AC9001010000000000000005 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		AC9002010000000000000005 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		AC900201000000000000000E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AC9002010000000000000001 /* savoia-share */;
+			targetProxy = AC900201000000000000000F /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		AC89766A303CEC22008426C2 /* Debug configuration for PBXProject "Savoia" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				OTHER_SWIFT_FLAGS = "-plugin-path $(DEVELOPER_DIR)/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins";
+				SDKROOT = /Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk;
+				SAVOIA_APP_IDENTIFIER = org.deffun.savoia.dev;
+				SAVOIA_SHARE_SCHEME = "savoia-dev-share";
+				SAVOIA_WEB_SCHEME_HTTP = "savoia-dev-http";
+				SAVOIA_WEB_SCHEME_HTTPS = "savoia-dev-https";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		AC89766B303CEC22008426C2 /* Release configuration for PBXProject "Savoia" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				OTHER_SWIFT_FLAGS = "-plugin-path $(DEVELOPER_DIR)/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins";
+				SDKROOT = /Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk;
+				SAVOIA_APP_IDENTIFIER = org.deffun.savoia;
+				SAVOIA_SHARE_SCHEME = "savoia-share";
+				SAVOIA_WEB_SCHEME_HTTP = http;
+				SAVOIA_WEB_SCHEME_HTTPS = https;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		AC89766D303CEC22008426C2 /* Debug configuration for PBXNativeTarget "Savoia" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "AppIcon-Dev";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Savoia/Savoia.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Savoia dev";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-weak_framework",
+					FoundationModels,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = org.deffun.savoia.dev;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_PACKAGE_NAME = Savoia;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		AC89766E303CEC22008426C2 /* Release configuration for PBXNativeTarget "Savoia" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Savoia/Savoia.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Info.plist;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-weak_framework",
+					FoundationModels,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = org.deffun.savoia;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_PACKAGE_NAME = Savoia;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		AC9001010000000000000003 /* Debug configuration for PBXNativeTarget "Savoia-iOS" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Savoia dev";
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleDefault;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-weak_framework",
+					FoundationModels,
+				);
+				OTHER_SWIFT_FLAGS = "";
+				PRODUCT_BUNDLE_IDENTIFIER = org.deffun.savoia.dev;
+				PRODUCT_NAME = Savoia;
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_PACKAGE_NAME = Savoia;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		AC9001010000000000000004 /* Release configuration for PBXNativeTarget "Savoia-iOS" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Info.plist;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleDefault;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-weak_framework",
+					FoundationModels,
+				);
+				OTHER_SWIFT_FLAGS = "";
+				PRODUCT_BUNDLE_IDENTIFIER = org.deffun.savoia;
+				PRODUCT_NAME = Savoia;
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_PACKAGE_NAME = Savoia;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		AC9002010000000000000003 /* Debug configuration for PBXNativeTarget "savoia-share" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ShareExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Savoia dev";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.deffun.savoia.dev.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		AC9002010000000000000004 /* Release configuration for PBXNativeTarget "savoia-share" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ShareExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Savoia";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.deffun.savoia.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		AC89765C303CEC20008426C2 /* Build configuration list for PBXProject "Savoia" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AC89766A303CEC22008426C2 /* Debug configuration for PBXProject "Savoia" */,
+				AC89766B303CEC22008426C2 /* Release configuration for PBXProject "Savoia" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		AC89766C303CEC22008426C2 /* Build configuration list for PBXNativeTarget "Savoia" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AC89766D303CEC22008426C2 /* Debug configuration for PBXNativeTarget "Savoia" */,
+				AC89766E303CEC22008426C2 /* Release configuration for PBXNativeTarget "Savoia" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		AC9001010000000000000002 /* Build configuration list for PBXNativeTarget "Savoia-iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AC9001010000000000000003 /* Debug configuration for PBXNativeTarget "Savoia-iOS" */,
+				AC9001010000000000000004 /* Release configuration for PBXNativeTarget "Savoia-iOS" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		AC9002010000000000000002 /* Build configuration list for PBXNativeTarget "savoia-share" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AC9002010000000000000003 /* Debug configuration for PBXNativeTarget "savoia-share" */,
+				AC9002010000000000000004 /* Release configuration for PBXNativeTarget "savoia-share" */,
+			);
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		0491713B9D1CDF6B8B095255 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ml-explore/mlx-swift-lm";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.31.3;
+			};
+		};
+		1101D959FF8C08C0D4171221 /* XCRemoteSwiftPackageReference "sqlite-vec-data" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/mhayes853/sqlite-vec-data";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.5.0;
+			};
+		};
+		9202E564C34651D6970C63AD /* XCRemoteSwiftPackageReference "swift-huggingface" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/huggingface/swift-huggingface";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.9.0;
+			};
+		};
+		AC89779E303CEC22008426C2 /* XCRemoteSwiftPackageReference "sqlite-data" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/pointfreeco/sqlite-data";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.11.0;
+			};
+		};
+		AD01B10C4E2F7A6390D5C441 /* XCRemoteSwiftPackageReference "SafariConverterLib" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/AdguardTeam/SafariConverterLib";
+			requirement = {
+				kind = exactVersion;
+				version = 4.3.0;
+			};
+		};
+		F6FD676108E197A94959A73D /* XCRemoteSwiftPackageReference "swift-transformers" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/huggingface/swift-transformers";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.3.0;
+			};
+		};
+		5A11C0DE0000000000000F03 /* XCRemoteSwiftPackageReference "FluidAudio" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/FluidInference/FluidAudio";
+			requirement = {
+				kind = upToNextMinorVersion;
+				minimumVersion = 0.17.4;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		82F43A23555A3254647ADAE5 /* SQLiteVecData */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1101D959FF8C08C0D4171221 /* XCRemoteSwiftPackageReference "sqlite-vec-data" */;
+			productName = SQLiteVecData;
+		};
+		ABD000B7AE7299C48D5CC4DD /* MLXEmbedders */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0491713B9D1CDF6B8B095255 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
+			productName = MLXEmbedders;
+		};
+		AC89779F303CEC22008426C2 /* SQLiteData */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AC89779E303CEC22008426C2 /* XCRemoteSwiftPackageReference "sqlite-data" */;
+			productName = SQLiteData;
+		};
+		AC9001010000000000000010 /* SQLiteData */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AC89779E303CEC22008426C2 /* XCRemoteSwiftPackageReference "sqlite-data" */;
+			productName = SQLiteData;
+		};
+		AC9001010000000000000011 /* SQLiteVecData */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1101D959FF8C08C0D4171221 /* XCRemoteSwiftPackageReference "sqlite-vec-data" */;
+			productName = SQLiteVecData;
+		};
+		AC9001010000000000000012 /* MLXEmbedders */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0491713B9D1CDF6B8B095255 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
+			productName = MLXEmbedders;
+		};
+		5A11C0DE0000000000000A02 /* MLXLLM */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0491713B9D1CDF6B8B095255 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
+			productName = MLXLLM;
+		};
+		5A11C0DE0000000000000A04 /* MLXLLM */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0491713B9D1CDF6B8B095255 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
+			productName = MLXLLM;
+		};
+		AC9001010000000000000013 /* HuggingFace */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9202E564C34651D6970C63AD /* XCRemoteSwiftPackageReference "swift-huggingface" */;
+			productName = HuggingFace;
+		};
+		AC9001010000000000000014 /* Tokenizers */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F6FD676108E197A94959A73D /* XCRemoteSwiftPackageReference "swift-transformers" */;
+			productName = Tokenizers;
+		};
+		AC9001010000000000000015 /* ContentBlockerConverter */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AD01B10C4E2F7A6390D5C441 /* XCRemoteSwiftPackageReference "SafariConverterLib" */;
+			productName = ContentBlockerConverter;
+		};
+		AD01B10D4E2F7A6390D5C442 /* ContentBlockerConverter */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AD01B10C4E2F7A6390D5C441 /* XCRemoteSwiftPackageReference "SafariConverterLib" */;
+			productName = ContentBlockerConverter;
+		};
+		E4D3C02313C636C3B360B52A /* Tokenizers */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F6FD676108E197A94959A73D /* XCRemoteSwiftPackageReference "swift-transformers" */;
+			productName = Tokenizers;
+		};
+		FF7BC8AD7FB5289836E41C75 /* HuggingFace */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9202E564C34651D6970C63AD /* XCRemoteSwiftPackageReference "swift-huggingface" */;
+			productName = HuggingFace;
+		};
+		5A11C0DE0000000000000F02 /* FluidAudio */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5A11C0DE0000000000000F03 /* XCRemoteSwiftPackageReference "FluidAudio" */;
+			productName = FluidAudio;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = AC897659303CEC20008426C2 /* Project object */;
+	validationLevel = 1;
+}

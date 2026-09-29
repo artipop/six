@@ -11,28 +11,28 @@ final class ShareModel {
         case loading
         /// An address on the web: it can be opened, and saved as a bookmark.
         case page(URL)
-        /// A file six can show. Opened, never bookmarked — a bookmark is a page re-read from its site.
+        /// A file Savoia can show. Opened, never bookmarked — a bookmark is a page re-read from its site.
         case file(URL)
-        /// Words: searched for with six's engine, in the chosen workspace.
+        /// Words: searched for with Savoia's engine, in the chosen workspace.
         case search(String)
-        /// Nothing six can do anything with, which the activation rule should have kept from happening.
+        /// Nothing Savoia can do anything with, which the activation rule should have kept from happening.
         case nothing
     }
 
     var content: Content = .loading
     var title = ""
-    /// Nil when six has never run (or never written the file down): the sheet still opens things,
+    /// Nil when Savoia has never run (or never written the file down): the sheet still opens things,
     /// in whatever profile and workspace is in front.
     var targets: ShareTargets?
     var profileID: UUID?
     var workspaceID: UUID?
-    /// Set once a button is pressed, so a second press does not send twice while six is launching.
+    /// Set once a button is pressed, so a second press does not send twice while Savoia is launching.
     var isSending = false
 
     @ObservationIgnored var finish: () -> Void = {}
     @ObservationIgnored var cancel: () -> Void = {}
 
-    private let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "six.share", category: "share")
+    private let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "savoia.share", category: "share")
 
     var profile: ShareTargets.Profile? {
         targets?.profiles.first { $0.id == profileID }
@@ -65,16 +65,16 @@ final class ShareModel {
         case .loading, .nothing: return cancel()
         }
         let info = Bundle.main.infoDictionary
-        let scheme = info?["SixShareScheme"] as? String ?? "six-share"
+        let scheme = info?["SavoiaShareScheme"] as? String ?? "savoia-share"
         guard let address = request.address(scheme: scheme) else { return cancel() }
         isSending = true
 
-        // To the app this extension is inside, by path, and not to whichever copy of six claims the
+        // To the app this extension is inside, by path, and not to whichever copy of Savoia claims the
         // scheme: a development build and the installed one both carry a sheet, and each one's sheet
-        // belongs to its own app. `…/six.app/Contents/PlugIns/six-share.appex` is three levels down.
+        // belongs to its own app. `…/Savoia.app/Contents/PlugIns/savoia-share.appex` is three levels down.
         let app = Bundle.main.bundleURL.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
         let configuration = NSWorkspace.OpenConfiguration()
-        // A bookmark is saved from where it was shared; six has no reason to take the front for it.
+        // A bookmark is saved from where it was shared; Savoia has no reason to take the front for it.
         configuration.activates = action != .bookmark
         let finish = finish
         let log = log
@@ -89,7 +89,7 @@ final class ShareModel {
 
     // MARK: Reading
 
-    /// The first attachment six can use, in the order that keeps a file a file: a file URL before its
+    /// The first attachment Savoia can use, in the order that keeps a file a file: a file URL before its
     /// own type (a text file shared from Finder registers `public.plain-text` too), an address before
     /// text (Safari hands over both), and text last.
     private static func read(_ items: [NSExtensionItem]) async -> Content {
@@ -137,11 +137,11 @@ final class ShareModel {
         }
     }
 
-    /// The file six keeps for this sheet, from the real home folder: inside the sandbox
+    /// The file Savoia keeps for this sheet, from the real home folder: inside the sandbox
     /// `NSHomeDirectory()` is the extension's container, and the entitlement names the path under the
     /// person's own `~/Library`.
     private static func readTargets() -> ShareTargets? {
-        guard let identifier = Bundle.main.infoDictionary?["SixAppIdentifier"] as? String,
+        guard let identifier = Bundle.main.infoDictionary?["SavoiaAppIdentifier"] as? String,
               let entry = getpwuid(getuid()), let home = entry.pointee.pw_dir else { return nil }
         let url = URL(fileURLWithPath: String(cString: home), isDirectory: true)
             .appending(path: "Library/Application Support/\(identifier)/\(ShareTargets.fileName)")
@@ -155,7 +155,7 @@ final class ShareModel {
 /// The sheet: what is being shared, which workspace it goes to, and what to do with it.
 ///
 /// The choices are Chrome's on the phone, which asks the same question: open it, open it privately,
-/// or save it for later. Save is six's bookmark rather than a reading list, and it goes to the
+/// or save it for later. Save is Savoia's bookmark rather than a reading list, and it goes to the
 /// profile the chosen workspace belongs to — bookmarks are kept per profile, so the workspace decides
 /// whose they are.
 struct ShareSheet: View {
@@ -165,7 +165,7 @@ struct ShareSheet: View {
         VStack(alignment: .leading, spacing: 14) {
             header
             if case .nothing = model.content {
-                Text("six can't open what was shared.")
+                Text("Savoia can't open what was shared.")
                     .foregroundStyle(.secondary)
             } else {
                 destination
@@ -234,7 +234,7 @@ struct ShareSheet: View {
                 }
             }
         } else {
-            Text("It opens in the workspace six has in front. Start six once, and its workspaces are offered here.")
+            Text("It opens in the workspace Savoia has in front. Start Savoia once, and its workspaces are offered here.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

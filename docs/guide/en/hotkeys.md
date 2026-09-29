@@ -75,7 +75,7 @@ the current row; never other profiles, and this run only.
 | `⌘⇧R` | load it again from the server, past the cache |
 | `⌘.` | stop loading |
 | `⌘[` `⌘]` | back / forward through this window's own history (so do ‹ ›) |
-| `⌘,` | settings — `six://configuration`, a column of the row like any other address |
+| `⌘,` | settings — `savoia://configuration`, a column of the row like any other address |
 | `⌘T` | a new window in the row, right of the focused one |
 | `⌘W` | close the focused window |
 | `⌘⇧T` | put the last closed window back where it stood |

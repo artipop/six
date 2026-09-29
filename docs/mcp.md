@@ -1,45 +1,45 @@
-# MCP server (`six --mcp`)
+# MCP server (`Savoia --mcp`)
 
 The app binary doubles as an [MCP](https://modelcontextprotocol.io) server, so an ACP agent (or anything else that
 speaks MCP over stdio) can drive the browser: open windows into workspaces, read pages, summarize them.
 
 ```
-agent ──stdio──▶ six --mcp ──unix socket──▶ six.app (MCPHost → MCPServer → BrowserState)
+agent ──stdio──▶ Savoia --mcp ──unix socket──▶ Savoia.app (MCPHost → MCPServer → BrowserState)
 ```
 
-- `six --mcp` (`MCPStdioBridge`) is a byte pump: MCP-over-stdio and the app's socket are both newline-delimited
+- `Savoia --mcp` (`MCPStdioBridge`) is a byte pump: MCP-over-stdio and the app's socket are both newline-delimited
   JSON-RPC, so it forwards lines untouched. It runs before AppKit is loaded — no Dock icon, no window. If the app
   isn't running it launches it (`open -g`) and waits up to 20 s for the socket.
-- The running app listens on `~/Library/Application Support/org.deffun.six/mcp.sock` (mode 0600; override with
-  `SIX_MCP_SOCKET`). `MCPHost` gives each client its own `JSONRPCConnection` — the same transport the ACP client
+- The running app listens on `~/Library/Application Support/org.deffun.savoia/mcp.sock` (mode 0600; override with
+  `SAVOIA_MCP_SOCKET`). `MCPHost` gives each client its own `JSONRPCConnection` — the same transport the ACP client
   uses — and `MCPServer` answers `initialize`, `ping`, `tools/list`, `tools/call` on the main actor. The tools
-  themselves live in `BrowserToolCatalog` (`six/Tools/`), shared with the ⌘E assistant (see [assistant.md](assistant.md)).
-- `AgentSessionStore` passes the server to every ACP session (`session/new` → `mcpServers: [{name: "six",
-  command: <this binary>, args: ["--mcp"]}]`), so Claude Code sees the tools as `mcp__six__*` and asks for permission
-  in the ⌘E card as for any other tool — six says them differently, see [names](#names).
+  themselves live in `BrowserToolCatalog` (`Savoia/Tools/`), shared with the ⌘E assistant (see [assistant.md](assistant.md)).
+- `AgentSessionStore` passes the server to every ACP session (`session/new` → `mcpServers: [{name: "Savoia",
+  command: <this binary>, args: ["--mcp"]}]`), so Claude Code sees the tools as `mcp__savoia__*` and asks for permission
+  in the ⌘E card as for any other tool — Savoia says them differently, see [names](#names).
 
 ## Names
 
 A tool has two of them. `name` is the identifier on the wire: `open_window`, ASCII, no spaces — the spec allows
 `A–Z a–z 0–9 _ - .` and nothing else. `title` is the optional human-readable one a client is meant to show instead;
-six fills it in for every tool (`BrowserTool.title`, localized — the client showing it is the user's own, see
+Savoia fills it in for every tool (`BrowserTool.title`, localized — the client showing it is the user's own, see
 [localization.md](localization.md)), so a client that reads it says *Open Window* rather than `open_window`.
 
-What no client can read is `mcp__six__open_window`. That mangling is not in the protocol: the spec only says an
+What no client can read is `mcp__savoia__open_window`. That mangling is not in the protocol: the spec only says an
 aggregating client **SHOULD** disambiguate colliding names "such as prefixing tool names with a server identifier"
 and leaves the shape of the prefix to the client. Claude Code chose `mcp__<server>__<tool>`, and over ACP that is
-what arrives in the tool call's title, so six takes it apart again: `AgentToolName.display` drops the `mcp__` and
+what arrives in the tool call's title, so Savoia takes it apart again: `AgentToolName.display` drops the `mcp__` and
 turns the `__` into a space, and the panel, the permission prompt and the ⌘E activity line all say
 
 ```
-six open_window
+savoia open_window
 ```
 
 — the server, a space, the method. A title an agent wrote itself (`Read`, `Bash`, a sentence) is left alone. The
 rewrite happens once, in `AgentSessionStore.handle`, so the saved transcript keeps the readable form too.
 
 There is no localization in MCP itself: no locale negotiation, no translated `title` or `description` — a server
-returns one string for every caller. six's tools are localized because six *is* the server and the client is on the
+returns one string for every caller. Savoia's tools are localized because Savoia *is* the server and the client is on the
 same machine as the person reading it.
 
 ## Tools
@@ -47,7 +47,7 @@ same machine as the person reading it.
 Vocabulary is the product's: a *window* (page) in a *workspace* (row) of a *profile*. Everything defaults to what
 is on screen — the current profile, its focused workspace, its focused window. Workspaces are addressed by name or
 1-based index; a name that doesn't exist is created (the trailing empty workspace gets the name). A workspace created
-this way is not permanent: when its last window closes, six asks the person at the screen whether to delete it — the
+this way is not permanent: when its last window closes, Savoia asks the person at the screen whether to delete it — the
 same question every named workspace gets, whoever named it
 ([layout.md](layout.md#a-named-workspace-that-runs-out-of-windows)).
 
@@ -65,22 +65,22 @@ same question every named workspace gets, whoever named it
 | `split_window` | put two windows side by side in one column — `with` names the second, which moves in beside `window_id`; without it, the window next along comes in, or a column that is already two goes back to being two windows. A column holds at most two ([layout.md](layout.md#two-windows-in-one-column)) |
 | `move_window_to_profile` | move a window to another profile — the same page, reopened with that profile's cookies and extensions ([architecture.md](architecture.md#moving-a-window-to-another-profile)) |
 | `close_window` | close a window |
-| `list_console_messages` | what a window's page logged since it last navigated (`level`, `limit`); listed only while `six://configuration` ▸ Assistant ▸ Access to Page Console and Network is on — see [devtools.md](devtools.md) |
+| `list_console_messages` | what a window's page logged since it last navigated (`level`, `limit`); listed only while `savoia://configuration` ▸ Assistant ▸ Access to Page Console and Network is on — see [devtools.md](devtools.md) |
 | `list_network_requests` | the requests a page made — method, status, duration, size, kind (`failed_only`, `limit`); same switch |
-| `take_screenshot` | writes a PNG of the whole page under `Application Support/org.deffun.six/Screenshots/` and returns the path |
-| `get_accessibility_tree` | the part of the page on screen as WebKit's accessibility tree — one numbered line per control, field, heading, landmark and named image: ARIA role, accessible name, value, state, what can be done (`press`, `type`, `increment`…) and its box in the window (`include_text`, `max_nodes`). The window must be on screen, and six allowed under Privacy & Security ▸ Accessibility. Mac only; the same read the accessibility overlay draws ([accessibility.md](accessibility.md)) |
+| `take_screenshot` | writes a PNG of the whole page under `Application Support/org.deffun.savoia/Screenshots/` and returns the path |
+| `get_accessibility_tree` | the part of the page on screen as WebKit's accessibility tree — one numbered line per control, field, heading, landmark and named image: ARIA role, accessible name, value, state, what can be done (`press`, `type`, `increment`…) and its box in the window (`include_text`, `max_nodes`). The window must be on screen, and Savoia allowed under Privacy & Security ▸ Accessibility. Mac only; the same read the accessibility overlay draws ([accessibility.md](accessibility.md)) |
 | `page_snapshot` | the page as something to act on: every visible interactive element numbered with a ref (`e12`) — role, accessible name, value, state, options for a `select`, the row's text for look-alikes such as five "Select" buttons — and the visible text; `format: json` for programs. Elements off screen are listed after a divider. See [agent-actions.md](agent-actions.md#the-acting-tools) |
 | `click` `fill` `select_option` `press_key` `scroll_page` | act on a ref from the snapshot; each returns the page's new snapshot (`snapshot: false` to skip). `click` refuses when something covers the element and names it; `fill` types through the editor, so autocomplete opens; `fill` with `submit` presses Enter |
 | `wait_for` | until `text` is on the page, or until it stops changing |
-| `run_page_task` | hands one goal on one page to six's own step loop — look, decide, act, look again — and answers with the trace: one line per step, naming which decider chose it, how sure it was and how long it took. Steps go to the fast decision model configured in `six://configuration` ▸ Assistant (TypeSafe's Jev, or a laya-browser server) when there is one, and to six's assistant model otherwise; at every step it acts through the page's WebMCP tools when it declared any, through tools derived from its accessibility tree when six may read it (Mac), and through its elements otherwise; it stops in front of anything that pays, books or deletes. See [agent-actions.md](agent-actions.md#run_page_task-the-routes) |
+| `run_page_task` | hands one goal on one page to Savoia's own step loop — look, decide, act, look again — and answers with the trace: one line per step, naming which decider chose it, how sure it was and how long it took. Steps go to the fast decision model configured in `savoia://configuration` ▸ Assistant (TypeSafe's Jev, or a laya-browser server) when there is one, and to Savoia's assistant model otherwise; at every step it acts through the page's WebMCP tools when it declared any, through tools derived from its accessibility tree when Savoia may read it (Mac), and through its elements otherwise; it stops in front of anything that pays, books or deletes. See [agent-actions.md](agent-actions.md#run_page_task-the-routes) |
 | `evaluate_javascript` | run a function body in the page — in the *page's* world, unlike every other tool ([architecture.md](architecture.md#page-side-scripts)); result back as JSON |
-| `list_page_tools` | the tools a window's page declared through WebMCP (`document.modelContext.registerTool`): name, description, `inputSchema`, annotations, origin; needs `six://configuration` ▸ Develop ▸ WebMCP — see [webmcp.md](webmcp.md). On a page that declares none (Mac), the tools six derives from its accessibility tree, in the same shape ([accessibility.md](accessibility.md#offered-to-agents)) |
+| `list_page_tools` | the tools a window's page declared through WebMCP (`document.modelContext.registerTool`): name, description, `inputSchema`, annotations, origin; needs `savoia://configuration` ▸ Develop ▸ WebMCP — see [webmcp.md](webmcp.md). On a page that declares none (Mac), the tools Savoia derives from its accessibility tree, in the same shape ([accessibility.md](accessibility.md#offered-to-agents)) |
 | `call_page_tool` | calls one of them (`name`, `arguments` as an object or its JSON text, `timeout` seconds — default 30, `max_chars`, and `origin` when a frame of the page declares the same name); the answer comes back fenced as the page's data. Ends with the page's answer, a timeout (the tool's `AbortSignal` fires in the page), the page navigating away — or a refusal: the first call to a site asks the person about the site, and anything the page did not mark `readOnlyHint` is confirmed per call, with the tool's name and arguments on the bar ([webmcp.md](webmcp.md)) |
 | `create_document` | a document window (Markdown in a column) — `title` or `markdown`, optional `workspace`, `profile`, `activate` → id |
 | `write_document` | `mode`: `replace` the text, `append`, or `section` — replace the body of one `## heading` (added when missing); `document_id` defaults to the run's document in the on-screen workspace |
 | `read_document` | the document's Markdown and its section list |
 | `cite` | adds `[n]: url "title" — retrieved …` (+ the passage) to the document's `## Sources` and returns `[n]`; from a window, a `url`, or a `highlight_id` (then the URL carries the `#:~:text=` fragment) |
-| `highlight_page` | marks the paragraphs that answer `question` — the ⌘E model (on-device when ⌘E is an agent) picks *numbers* from `list_page_blocks`, six anchors them — or `blocks` given by hand; returns id, text and a text-fragment link per passage — see [deep-research.md](deep-research.md#highlighted-passages) |
+| `highlight_page` | marks the paragraphs that answer `question` — the ⌘E model (on-device when ⌘E is an agent) picks *numbers* from `list_page_blocks`, Savoia anchors them — or `blocks` given by hand; returns id, text and a text-fragment link per passage — see [deep-research.md](deep-research.md#highlighted-passages) |
 | `list_page_blocks` `list_highlights` `remove_highlight` | the numbered paragraphs of a page; the highlights stored for a page; delete one |
 | `list_bookmarks` `search_bookmarks` `read_bookmark` `add_bookmark` `refresh_bookmark` `remove_bookmark` | the profile's (or every profile's) saved pages, searched by meaning — see [bookmarks.md](bookmarks.md) |
 
@@ -95,7 +95,7 @@ left with.
 
 ## Search
 
-`web_search` (`six/Browser/WebSearch.swift`) fetches results the way the browser would: a `WebPage` of its own, off
+`web_search` (`Savoia/Browser/WebSearch.swift`) fetches results the way the browser would: a `WebPage` of its own, off
 screen, with a non-persistent data store — no window, no profile, no cookies of yours. The source is DuckDuckGo's
 HTML endpoint, the no-JavaScript result page, whose markup (`.result__a`, `.result__snippet`) has been stable for
 years and needs no API key; its links go through a redirector, so the real URL is unwrapped from `uddg`. If that
@@ -106,15 +106,15 @@ reads. The engine chip on the start page is about the human's searches; this too
 ## Trying it by hand
 
 ```sh
-six=/path/to/six.app/Contents/MacOS/six
-$six --mcp   # then paste, one line each:
+Savoia=/path/to/Savoia.app/Contents/MacOS/Savoia
+$Savoia --mcp   # then paste, one line each:
 {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"me","version":"0"}}}
 {"jsonrpc":"2.0","id":2,"method":"tools/list"}   # every tool comes back with `name`, `title` and `description`
 {"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"open_window","arguments":{"url":"example.com","workspace":"Research"}}}
 {"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"get_page_content","arguments":{}}}
 ```
 
-Or register it with any MCP client, e.g. Claude Code: `claude mcp add six -- /path/to/six.app/Contents/MacOS/six --mcp`.
+Or register it with any MCP client, e.g. Claude Code: `claude mcp add savoia -- /path/to/Savoia.app/Contents/MacOS/Savoia --mcp`.
 
 ## Notes
 

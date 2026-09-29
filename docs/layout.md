@@ -20,11 +20,11 @@ with the Linux and Android fronts, so it stays where it is and the rename stoppe
 *`TilingLayout` is the one file two front ends share. It has no platform in it — `CGFloat`, `CGRect`,
 `CGSize` and nothing else — so the GTK front computes its columns from the same `columnFrames()` and
 inherits the same promises. Those promises are the repository's first tests
-(`Tests/SixCoreTests/TilingLayoutGeometryTests.swift`), written against the intent stated below rather
+(`Tests/SavoiaCoreTests/TilingLayoutGeometryTests.swift`), written against the intent stated below rather
 than against the numbers it happens to produce, because that is what would silently desynchronise the
 two. See [linux.md](linux.md).*
 
-## Model — `six/Tiling/TilingLayout.swift`
+## Model — `Savoia/Tiling/TilingLayout.swift`
 
 ```
 TilingStrip     workspaces: [TilingWorkspace], focus: Int      // one per profile
@@ -129,7 +129,7 @@ current one answers nothing at all (`allowsHitTesting`), unless the overview is 
 the top bar is `zIndex`-ed in front of the row, since they are siblings in a stack and the row is hit-tested after
 it.
 
-## Gestures — `six/Tiling/TilingScrollMonitor.swift`
+## Gestures — `Savoia/Tiling/TilingScrollMonitor.swift`
 
 *This section is AppKit's. The GTK front reaches the same gestures through a
 `GtkEventControllerScroll` in the capture phase, where the boundaries of a gesture are explicit
@@ -271,7 +271,7 @@ ring ordered by memory, the window looked at longest ago, which is not a step an
   over (`KeyBinding.yieldsToCaret(in:)`) — except while the ring is up, where nothing else in the
   window is being looked at. Without the exception `⌃→` over a ring opened while the address field had
   the caret walked the *caret*, and read as an arrow that did nothing at all: measured with the caret
-  where a launched window puts it, `card 1 → 2 → 1`. The decision lives in `SixCore` rather than in
+  where a launched window puts it, `card 1 → 2 → 1`. The decision lives in `SavoiaCore` rather than in
   `KeyRouter`, because it had been two lines there and a copy of them in `KeySelfTest`, and the
   exception was missing from both.
 - A row with **one** window on it opens a ring of one. The key has to answer: a press that gives
@@ -361,10 +361,10 @@ window, nothing to see. The row's `WebView` says `.webViewElementFullscreenBehav
 phone strip's. What WebKit then opens is a window of its own, with its own `⎋`; `KeyEvents` already knows to keep
 its hands off it, by the class name.
 
-Turning it on is only half of it, and the other half is a WebKit bug six has to reach around. With the modifier
+Turning it on is only half of it, and the other half is a WebKit bug Savoia has to reach around. With the modifier
 alone the page does go fullscreen — `fullscreenState` reaches `inFullscreen`, the sound plays, the timer runs — and
 draws **nothing**: a black screen the size of the display, given back unharmed on `⎋`. Twenty-five lines reproduce
-it with no six in them, and the same page in a `WKWebView` behind an `NSViewRepresentable` is perfect, so what
+it with no Savoia in them, and the same page in a `WKWebView` behind an `NSViewRepresentable` is perfect, so what
 differs is how the view is *held*. SwiftUI's `WebView` hosts it under Auto Layout; WebKit's fullscreen controller
 moves it into a window of its own and sizes it by frame, where it arrives with no constraints, is laid out at
 nothing, and leaves the backdrop showing. `PageElementFullscreen` swaps the hold for the duration —
@@ -387,7 +387,7 @@ the mode changes every width, so `setFill` re-centres every row, as `⌥C` and a
 Switching is deliberately **not** animated, unlike everything else the layout does. Every switch resizes every live
 page, and a web view changing size costs a hitch you can see — around 50 ms with three columns live. Running that
 through the 0.34 s spring spreads the stutter over the whole animation instead of getting it over with: measured over
-six switches, 20 dropped frames animated against 5 instant. (The neighbours stay live on purpose, so stepping to the
+Savoia switches, 20 dropped frames animated against 5 instant. (The neighbours stay live on purpose, so stepping to the
 next full window shows a page rather than a card; that is what makes the third resize worth paying for.)
 
 Leaving: the same key again, View ▸ Full Width, the right-click menu, or the button in the top bar. `⎋` deliberately
@@ -411,7 +411,7 @@ button at zero opacity still answers the mouse, which is what makes the sliver i
 
 All of that is the **peek**, and it is a pointer idea: it is asked for by resting somewhere and answered by the row
 leaning over. A finger has nowhere to rest — it is touching or it is not — so the whole arrangement has a switch,
-`BrowserState.peeksAtEdges` (`six://configuration` ▸ Windows ▸ Peek at the Edges, stored in the settings table). Off, there is no lean and no promise: the
+`BrowserState.peeksAtEdges` (`savoia://configuration` ▸ Windows ▸ Peek at the Edges, stored in the settings table). Off, there is no lean and no promise: the
 slivers are simply drawn where they stand, at a little under half, and do their job on the way in — which is what the
 row did before the peek existed, and the only thing that works without a pointer. It defaults on for macOS and off
 everywhere else, and it is chrome rather than geometry, so it lives in `BrowserState` and not in `TilingLayout`: a second
@@ -504,7 +504,7 @@ leaves both where they can be seen. The one place a single window still travels 
 `move_window` over MCP, because there a window is what was named.
 
 Both halves are *built*, and that is the one thing the live-page budget had to be told
-([`LivePageCache.setVisible`](../six/Browser/LivePageCache.swift) takes a column and not a window): a split showing
+([`LivePageCache.setVisible`](../Savoia/Browser/LivePageCache.swift) takes a column and not a window): a split showing
 a card in one half is a split that did not happen.
 
 ### The width changes in one step, and that is deliberate
@@ -567,7 +567,7 @@ defaults; a relaunch after an update finds the row it left.
 `⌥⇧P`, View ▸ Picture in Picture, the same item in a window's own menu, and the button in WebKit's media controls:
 the video leaves the page for a small window floating above every other application, and the page it left goes on
 being an ordinary window in the row. Scroll away from it, step to the workspace below, switch profiles — the player
-stays where it was put and keeps playing. That is the whole point of it, and it is why it needs six's help twice.
+stays where it was put and keeps playing. That is the whole point of it, and it is why it needs Savoia's help twice.
 
 **Turning it on.** WebKit has the feature and hands the new API no switch for it. The preference is real —
 `WKPreferencesSetAllowsPictureInPictureMediaPlayback` is exported by the framework on macOS — but the only public way
@@ -576,12 +576,12 @@ to set it is `WKWebViewConfiguration.allowsPictureInPictureMediaPlayback`, which
 fullscreen was ([above](#filling-the-window)): no button in the media controls,
 `video.webkitSupportsPresentationMode('picture-in-picture')` false, and `video.requestPictureInPicture()` rejecting
 with `NotSupportedError — The video element does not support the Picture-in-Picture mode`. Measured on a plain
-`<video>` through six's own MCP server, the day after the fullscreen fix landed: `{"pip": false, "fs": true}`.
+`<video>` through Savoia's own MCP server, the day after the fullscreen fix landed: `{"pip": false, "fs": true}`.
 
 So it is SPI: `WKPreferences._setAllowsPictureInPictureMediaPlayback:` to turn it on, `WKWebView._togglePictureInPicture`
 for the menu item and the key, `_isPictureInPictureActive` for the question below. All of it lives in
-`six/Browser/PagePictureInPicture.swift`, all of it behind `responds(to:)`, on the terms [todo.md](todo.md) already
-set for SPI here: six is not sandboxed and not on the App Store, so the only risk is a selector going away in a macOS
+`Savoia/Browser/PagePictureInPicture.swift`, all of it behind `responds(to:)`, on the terms [todo.md](todo.md) already
+set for SPI here: Savoia is not sandboxed and not on the App Store, so the only risk is a selector going away in a macOS
 update, and the shape that takes is a feature that is quietly not there rather than a crash. The way to the
 `WKWebView` behind a `WebPage`, which the new API does not hand out, is `WebViewResponder`'s — the same view-tree
 lookup the keyboard, extensions and screen sharing use — so the preference is set when a pane first shows the page
@@ -596,36 +596,36 @@ off the screen the user is looking at, so `keepAliveReason` asks `isInPictureInP
 "playing media" guard that was already there does not cover it: a floating player paused for a moment is still a
 window somebody put on their screen on purpose.
 
-Whether a window is in picture-in-picture is read off WebKit every time rather than remembered, because six is not
+Whether a window is in picture-in-picture is read off WebKit every time rather than remembered, because Savoia is not
 the only one who can put it there — the media controls' button, a site's own button and `⌥⇧P` all end in the same
-place, and a flag six kept would be right only for the third. Nothing observes it, so nothing has to be told: the
+place, and a flag Savoia kept would be right only for the third. Nothing observes it, so nothing has to be told: the
 menu asks when it is opened, the budget asks when it is about to evict, and both are moments where the answer is used
 at once. For the same reason the menu item is never greyed out — whether the page in front of you has a video to
 float is a question only the page can answer, and it changes with every play and pause without telling anyone.
 
-**Where the window sits, and why six cannot move it.** The floating player is not six's window and not WebKit's
-either: `WebPage` → `PIPViewController` → `PIPPanel` all live in six's process, but the thing on the screen is drawn by
+**Where the window sits, and why Savoia cannot move it.** The floating player is not Savoia's window and not WebKit's
+either: `WebPage` → `PIPViewController` → `PIPPanel` all live in Savoia's process, but the thing on the screen is drawn by
 `/System/Library/CoreServices/PIPAgent.app`, in a process of its own, on CoreGraphics layer 19 — above every ordinary
-window, below the Dock. six's `PIPPanel` sits at level 0 and never appears in the on-screen window list at all; it is
+window, below the Dock. Savoia's `PIPPanel` sits at level 0 and never appears in the on-screen window list at all; it is
 where the events go, and the agent is where the pixels are. Three things follow, each of them measured rather than
 reasoned:
 
-* **It cannot be tied to six's window.** `addChildWindow` on the `PIPPanel` succeeds and the panel dutifully follows
+* **It cannot be tied to Savoia's window.** `addChildWindow` on the `PIPPanel` succeeds and the panel dutifully follows
   its parent around, and nothing on the screen moves — and worse, the player then survives leaving picture-in-picture,
   still visible six seconds later, because a child window is ordered back in by its parent after WebKit orders it out.
 * **It cannot be placed.** The agent snaps the player to a corner of the **screen**, not of the window that owns the
   video, and remembers the choice for every application at once (`com.apple.PIPAgent`: `Corner`, and `Size` as a
   fraction of the screen). Measured with a host window 1100 points wide at (100, 120): the player landed in the corner
   of a 1440-point screen.
-* **`PIPViewController._pipSetWindowContentRect:completion:` is the wrong direction.** It is how the agent tells six
-  where the player went; calling it moves six's invisible `PIPPanel` and leaves the agent's window where it was.
+* **`PIPViewController._pipSetWindowContentRect:completion:` is the wrong direction.** It is how the agent tells Savoia
+  where the player went; calling it moves Savoia's invisible `PIPPanel` and leaves the agent's window where it was.
 
 This is what Safari gets, for the same reason — the whole path is WebKit's. Chrome and Firefox place and level their
 mini-players because they draw them, and drawing one is not something a browser built on `WebPage` can do: there is no
 way to take a `<video>` out of a page and into a window of one's own. So the two asks this produced — that the player
 travel with the browser on ⌘Tab, and that it sit under the top bar rather than over it — are not bugs with a fix here.
-The other feature of the same name is the answer if they matter enough: any six window as a floating always-on-top
-panel — a floating layer, six's own `NSPanel` and therefore six's to parent and to place. It is not built;
+The other feature of the same name is the answer if they matter enough: any Savoia window as a floating always-on-top
+panel — a floating layer, Savoia's own `NSPanel` and therefore Savoia's to parent and to place. It is not built;
 it is in [todo.md](todo.md).
 
 ## Overview
@@ -640,7 +640,7 @@ puts the row back under the focused window.
 A web page is a card there (`ColumnPlaceholder`) with its last picture, and one click on any window focuses it and
 leaves the overview. Each card carries a title bar **over** its top — the site's own icon (`SiteIcons`) and the
 window's title, lying on the picture rather than taking a row of the card for itself, so a card that has no bar to
-carry (a start page, one of six's own) is not a card whose page begins at a different height — and a × on its top corner (`OverviewCloseButtons`), which is the one way the mouse has of closing a
+carry (a start page, one of Savoia's own) is not a card whose page begins at a different height — and a × on its top corner (`OverviewCloseButtons`), which is the one way the mouse has of closing a
 window whatever its fill. Neither shrinks with the row: the × is drawn outside the scaled canvas like the workspace
 plates, and the title bar divides its own sizes by `overviewScale`, because how far the canvas is scaled depends on
 how many windows are in the row and an icon that was a different size in every row would be no mark at all. Every row ends with the place a new window would take (`NewWindowPlace`, `TilingLayout.appendFrame`): ⌘T and
@@ -648,7 +648,7 @@ the row's `+` open beside the focus, which in a view of every row at once is som
 pointer had no way to make a window from up here. It is drawn the way the row's own `+` draws its promise — the
 start page in miniature (`StartPageSketch`) — in the half of the place that is on screen. The row is laid out at
 `overviewWidth`, its windows plus a column's worth of slack, so the windows keep the middle and half the place shows
-past the right edge; an empty row has no row to stand at the end of, and there the place is centred instead. Six's own pages — configuration, MCP apps — are cards too, with no
+past the right edge; an empty row has no row to stand at the end of, and there the place is centred instead. Savoia's own pages — configuration, MCP apps — are cards too, with no
 picture, and they stay cards until the zoom back in has finished (`BrowserState.isLeavingOverview`, cleared by the
 exit animation's `.removed` completion). They are SwiftUI, but a form's text fields and steppers are AppKit views,
 and laid out under a scale that is still animating they never settle: each frame of the zoom was a run of SwiftUI's
@@ -686,7 +686,7 @@ drop: a window put in another row that left the view behind in the old one is a 
 `InterfaceStyle.tabs` — the default until someone chooses otherwise (Configuration ▸ Windows ▸ Show Windows As, or
 View ▸ Show Tabs; the key is `interface.style` in the settings table) draws the same strip the way every other browser draws a window: a tab bar in the title-bar
 band, a toolbar under it with the address field, and the one page in front filling the rest
-(`six/Views/TabStripView.swift`). **It is a second view of the strip and not a second model**, which is the whole of
+(`Savoia/Views/TabStripView.swift`). **It is a second view of the strip and not a second model**, which is the whole of
 the design and the reason switching loses nothing:
 
 | the row | the tab bar |
@@ -751,11 +751,11 @@ closing the tabs, because closing the group *is* the answer to the question a na
 `⌃Tab` over every tab of every group, `⌃⇧Tab` over the group in front — with a split's two halves as two cards,
 because the tab bar draws them as two tabs. The View menu swaps Full Width / Split / Overview for Show Next / Previous Tab and `⌘1…⌘9`,
 and File says "tab" instead of "window", both read off `browser.showsTabs`. It used to be a focused value, and that was
-worse than it looked: the value changes with every click and every return to six, and each change had SwiftUI fill the
-File menu in again — after which ⌘W belonged to the system's Close and quit six (`sixApp`, AGENTS.md). A menu that
+worse than it looked: the value changes with every click and every return to Savoia, and each change had SwiftUI fill the
+File menu in again — after which ⌘W belonged to the system's Close and quit Savoia (`SavoiaApp`, AGENTS.md). A menu that
 reads the model is filled in when it is about to be used, which is always after the face has changed.
 `toggleSplit`, `toggleFullWindow` and `toggleOverview` also refuse with the tabs up, for anything that reaches them
-another way. `SIX_KEY_SELFTEST` prints a `tabs` column.
+another way. `SAVOIA_KEY_SELFTEST` prints a `tabs` column.
 
 **The swap is a frame of nothing.** Both faces draw the pages, and a `WebPage` allows exactly one `WebView` — the trap
 `TilingLayout.unanimated` is written up for. `ContentView.swapFace` takes the old face down, waits 32 ms with neither on
@@ -780,7 +780,7 @@ to «Ужин» instead. `near` is not lower because e5-small cannot tell a near
 the other groups by 0.029, a weather forecast led them (football) by 0.028; at 0.02 both went next to a group. What
 tells them apart is a loose tab about as near, which the recipes have and the strays do not.
 
-`SIX_TOPICS_SELFTEST=batch` (four recipes arriving together after a food group, two tabs about food and football,
+`SAVOIA_TOPICS_SELFTEST=batch` (four recipes arriving together after a food group, two tabs about food and football,
 two strays) and `=live` (the same with Wikipedia pages in a new profile, through `TabSorter` itself):
 
 | | recipes | between | strays |
@@ -812,7 +812,7 @@ does not show group colours yet.
 **Names and the local model.** A new group is named at once by c-TF-IDF over its tabs' text (or the host), then
 renamed in the background, unless the person has renamed it meanwhile. With the AI switch on, the assistant's own
 choice answers: a language model through `AssistantSettings.namingSession`, or an ACP agent through `AgentErrands` —
-a second connection to the same agent, a fresh session per question in `Agents/Errands` inside six's folder, tools
+a second connection to the same agent, a fresh session per question in `Agents/Errands` inside Savoia's folder, tools
 refused, so nothing lands in the person's chat (Claude Code: 9 s for the first name, spawn included, 4 s after).
 Otherwise, and when that fails, the **local model** (`LocalLanguageModel`, `LocalModelChoice`, Configuration ▸ Windows):
 Gemma 3 1B by default, Qwen 2.5 1.5B, or Gemma 4 E2B, through MLXLLM from the `mlx-swift-lm` package the embedder
@@ -825,7 +825,7 @@ answer inside the question, they copied it onto every group.
 asked outright, "which of these numbered groups, 0 for none, two numbers for both" (`LocalLanguageModel.choose`).
 New groups are always found by the embeddings.
 
-Measured with `SIX_TOPICS_SELFTEST` on this 8 GB M2 (`=compare` for placing, `SIX_LOCAL_MODEL=<case>` for naming):
+Measured with `SAVOIA_TOPICS_SELFTEST` on this 8 GB M2 (`=compare` for placing, `SAVOIA_LOCAL_MODEL=<case>` for naming):
 
 | | naming, 5 groups (ru UI) | placing: own topic / strays left / between | per tab |
 |---|---|---|---|
@@ -840,14 +840,14 @@ placing, only Gemma 4 beat the embeddings, at a cost this Mac feels.
 
 **What it costs.** e5 stays loaded once sorting has used it (~235 MB, the bookmark index's own); the local model is
 loaded for an answer and let go after a minute. MLX keeps freed buffers for reuse, and with both models that cache
-took six's footprint to 2.9 GB on this 8 GB Mac — swap, which is what the machine felt like. The cache is capped at
+took Savoia's footprint to 2.9 GB on this 8 GB Mac — swap, which is what the machine felt like. The cache is capped at
 64 MB and cleared after each embedding pass and each answer (`LocalLanguageModel.trimMemory`). Measured on the main
 process over the same Wikipedia pages (vmmap physical footprint): with sorting on, 1.3 GB while Gemma 3 1B is loaded,
 ~600 MB once it is let go; CPU about twice sorting-off's while pages load (10 s against 5 s for four cold pages,
 most of it loading the models once), and the same when idle. If a name comes back in the wrong script, the model
 is asked once more in the interface's language before the c-TF-IDF name is kept.
 
-Why a lead and not Firefox's absolute threshold: `SIX_TOPICS_SELFTEST=1` (`grid` for the model and prefix
+Why a lead and not Firefox's absolute threshold: `SAVOIA_TOPICS_SELFTEST=1` (`grid` for the model and prefix
 comparison) on e5-small puts every title cosine between 0.75 and 0.92, and "Купить билеты на поезд" scores 0.851
 with football where a match report scores 0.834. `query:` separates same-topic from cross-topic pairs 0.91 of the
 time against `passage:`'s 0.77, and e5-base did worse than small on titles (0.73). Two more things were measured in

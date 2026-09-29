@@ -11,7 +11,7 @@ import PackageDescription
 // in `swift-frontend`, and swift.org ships only assertions-enabled toolchains for Windows, so what
 // reads as a platform bug is a compiler-variant one — the same source builds on macOS and Linux
 // because those toolchains are built with `NDEBUG`. Built by the `+NoAsserts` toolchain that ships
-// inside the same swift.org installer, the whole graph compiles and runs. `scripts/six-windows.ps1`
+// inside the same swift.org installer, the whole graph compiles and runs. `scripts/savoia-windows.ps1`
 // finds that toolchain, and `docs/windows.md` has the measurements.
 let webKit2LibDirectory = URL(fileURLWithPath: #filePath)
     .deletingLastPathComponent()
@@ -19,21 +19,21 @@ let webKit2LibDirectory = URL(fileURLWithPath: #filePath)
     .path
 
 let package = Package(
-    name: "six-windows",
+    name: "savoia-windows",
     dependencies: [
         // Named, unlike `linux/Package.swift`'s bare `.package(path: "..")`: a path dependency takes
-        // its identity from the *directory*, so `package: "six"` below is only right for as long as
+        // its identity from the *directory*, so `package: "savoia"` below is only right for as long as
         // the checkout happens to be called that. Saying the name here makes it right in any folder,
-        // which it had to be — this front was written in a copy of the repository named `six-main`,
+        // which it had to be — this front was written in a copy of the repository named `savoia-main`,
         // where the bare form did not resolve at all.
-        .package(name: "six", path: ".."),
+        .package(name: "savoia", path: ".."),
         .package(url: "https://github.com/pointfreeco/sqlite-data", from: "1.11.0"),
         // The vector index, the same one the Mac app links: `vec0` virtual tables and the KNN the
         // bookmarks are searched by. Named here rather than in the root manifest on purpose — the
         // root one is compiled on Linux too, where `CSQLiteVec` reads the system SQLite headers
         // while adwaita-swift's `meta-sqlite` vendors its own, and Clang will not hold two
         // definitions of `sqlite3_api_routines` in one compilation unit. Windows has no Adwaita and
-        // no such collision, so the dependency lives at the front that can afford it and `SixCore`
+        // no such collision, so the dependency lives at the front that can afford it and `SavoiaCore`
         // stays free of it. `linux/Package.swift` does the same thing behind the same seam.
         .package(url: "https://github.com/mhayes853/sqlite-vec-data", from: "0.5.0"),
         // Transitive, and named for the same reason combine-schedulers is: without it the resolve
@@ -58,34 +58,34 @@ let package = Package(
         // Header-only; `vendor/WebKit2/WebKit2.lib`, linked below, resolves the symbols.
         .target(name: "CWebKit2"),
         .target(
-            name: "SixBrowser",
+            name: "SavoiaBrowser",
             dependencies: [
-                .product(name: "SixCore", package: "six"),
+                .product(name: "SavoiaCore", package: "savoia"),
                 .product(name: "SQLiteData", package: "sqlite-data"),
                 .product(name: "SQLiteVecData", package: "sqlite-vec-data")
             ],
             swiftSettings: [.defaultIsolation(MainActor.self)]
         ),
         .target(
-            name: "SixUI",
-            // `SixCore` directly as well as through `SixBrowser`, because this is where the shared
+            name: "SavoiaUI",
+            // `SavoiaCore` directly as well as through `SavoiaBrowser`, because this is where the shared
             // page-facing code is used rather than wrapped: the translation state machine, the page
-            // script, `PageSandbox`. `SixBrowser` keeps its own import `internal` so that the model
+            // script, `PageSandbox`. `SavoiaBrowser` keeps its own import `internal` so that the model
             // does not re-export it, which is why naming it again here is not redundant.
             dependencies: [
-                "SixBrowser", "CStripInterop", "CWebKit2",
-                .product(name: "SixCore", package: "six")
+                "SavoiaBrowser", "CStripInterop", "CWebKit2",
+                .product(name: "SavoiaCore", package: "savoia")
             ],
             swiftSettings: [.defaultIsolation(MainActor.self)],
-            // The file picker behind `<input type=file>` (`SixStripOpenFiles`); the Downloads folder
-            // and opening a finished file (`SixStripDownloadsFolder`, `SixStripShellOpen`).
+            // The file picker behind `<input type=file>` (`SavoiaStripOpenFiles`); the Downloads folder
+            // and opening a finished file (`SavoiaStripDownloadsFolder`, `SavoiaStripShellOpen`).
             // …and which app a link to somebody else's scheme would open in (`AssocQueryStringW`).
             linkerSettings: [.linkedLibrary("comdlg32"), .linkedLibrary("shell32"), .linkedLibrary("ole32"),
                              .linkedLibrary("shlwapi")]
         ),
         .executableTarget(
-            name: "six-windows",
-            dependencies: ["SixUI"],
+            name: "savoia-windows",
+            dependencies: ["SavoiaUI"],
             swiftSettings: [.defaultIsolation(MainActor.self)],
             linkerSettings: [
                 .unsafeFlags(["-L", webKit2LibDirectory, "-lWebKit2"])

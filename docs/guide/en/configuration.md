@@ -1,8 +1,8 @@
 # Configuration
 
-`⌘,` — or the address `six://configuration`, typed into the field.
+`⌘,` — or the address `savoia://configuration`, typed into the field.
 
-Every section has an address of its own: `six://configuration/assistant`,
+Every section has an address of its own: `savoia://configuration/assistant`,
 `/privacy`, `/windows`, `/extensions`, `/develop`. Privacy and Assistant hold
 tabs inside them, and those are anchors on that page, after a `#`:
 `/privacy#blocking`, `/privacy#sites`, `/privacy#certificates`,
@@ -19,7 +19,7 @@ exactly what it describes. The column keeps its place across a relaunch, it has
 an address, and it moves and closes like any other window.
 
 ::: tip Where this came from
-VI used to have thirteen menus, five of them one feature each with a switch
+Savoia used to have thirteen menus, five of them one feature each with a switch
 inside — the kind you set once and forget. A switch is not a command: it has no
 key, it does not answer "what can I do here", and there is no guessing which of
 five menus it filed itself under. All of that moved here, and what stayed in the
@@ -42,7 +42,7 @@ whichever languages macOS has a model for.
 often a saved page is re-read from its site. Also how many are saved in this
 profile, and a button to re-read them all now.
 
-**Default browser** — hand VI the links from other applications. A development
+**Default browser** — hand Savoia the links from other applications. A development
 build never offers: it is a second application wearing the same face, and links
 from the whole machine would go into a browser that is about to be killed and
 built again.
@@ -68,7 +68,7 @@ drawn where they stand.
 **Loaded windows** — how many windows are holding a live page right now, and a
 button to unload the background ones. The number cannot be changed: how many
 separate processes a particular Mac will carry is not a thing a person can know,
-so VI works it out from the machine's memory and adjusts as the pressure moves.
+so Savoia works it out from the machine's memory and adjusts as the pressure moves.
 
 ## Privacy
 
@@ -82,7 +82,7 @@ field opens the same screen. More in [Ads and trackers](/en/blocking).
 microphone or the motion sensors, with a switch for each. More in
 [Site permissions](/en/permissions).
 
-**Certificates** — the certificate authorities VI trusts on top of the system's.
+**Certificates** — the certificate authorities Savoia trusts on top of the system's.
 Everything starts off. More in [Certificates](/en/certificates).
 
 ## Assistant
@@ -106,11 +106,11 @@ What is installed, what each one can do here, and installing from a folder, a
 
 ## Develop
 
-Let Safari's inspector attach to VI's pages and open the browser log. More in
+Let Safari's inspector attach to Savoia's pages and open the browser log. More in
 [Developer tools](/en/devtools).
 
 ## Where it all lives
 
-Every setting is a row in the `settings` table of VI's database, beside the
+Every setting is a row in the `settings` table of Savoia's database, beside the
 history and the bookmarks, rather than in `UserDefaults`. So they travel with the
 rest of the profile's data, and one day they will be able to sync.

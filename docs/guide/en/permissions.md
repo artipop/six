@@ -50,7 +50,7 @@ permissions** at the right end of the bar. `Delete` on a row forgets the answer,
 and the site asks again.
 
 ::: warning On Windows the question does not come yet
-And it is not six. The WebKit the Windows version runs on today (Playwright's
+And it is not Savoia. The WebKit the Windows version runs on today (Playwright's
 build) is compiled without the camera and the microphone for pages —
 `navigator.mediaDevices` is not there, so a site has nothing to ask with. The bar,
 the answer and the list are ready, and will work with the first engine that has

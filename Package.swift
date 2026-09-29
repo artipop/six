@@ -3,17 +3,17 @@ import PackageDescription
 
 // The Linux entry point, and the place tests live.
 //
-// This package does not replace `six.xcodeproj` — it reads the same files where they lie. A target
+// This package does not replace `Savoia.xcodeproj` — it reads the same files where they lie. A target
 // names its members in `sources:`, the way the iOS target names its exclusions in
 // `membershipExceptions`, so a file belongs to a module by being listed rather than by being moved.
-// `xcodebuild -project six.xcodeproj` ignores this manifest entirely.
+// `xcodebuild -project Savoia.xcodeproj` ignores this manifest entirely.
 //
-// `SixCore` grows one directory at a time, and every addition has to keep `swift build` green on
+// `SavoiaCore` grows one directory at a time, and every addition has to keep `swift build` green on
 // **Linux**, which is the only reason the package exists — building on macOS proves nothing the
 // project didn't already know.
 //
 // `Package.resolved` here is **seeded from the app's own**
-// (six.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved) and that is load-bearing
+// (Savoia.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved) and that is load-bearing
 // three times over. A database written by one build is opened by the other, so they had better agree
 // on the library that wrote it. sqlite-data 1.11.0 does not compile against structured-queries 0.38,
 // so a free resolve picks a set that does not build at all. And newer swift-sharing (2.10.0) and
@@ -35,10 +35,10 @@ import PackageDescription
 // exactly the promise this file is here to make. `--skip-update` is not it: that only skips the
 // fetch, and still writes.
 let package = Package(
-    name: "six",
+    name: "savoia",
     platforms: [.macOS("26.0")],
     products: [
-        .library(name: "SixCore", targets: ["SixCore"])
+        .library(name: "SavoiaCore", targets: ["SavoiaCore"])
     ],
     dependencies: [
         .package(url: "https://github.com/pointfreeco/sqlite-data", from: "1.11.0"),
@@ -49,11 +49,11 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "SixCore",
+            name: "SavoiaCore",
             dependencies: [
                 .product(name: "SQLiteData", package: "sqlite-data")
             ],
-            path: "six",
+            path: "Savoia",
             sources: [
                 // Geometry: no platform at all, and the piece a second front end reuses whole.
                 "Tiling/TilingLayout.swift",
@@ -64,9 +64,10 @@ let package = Package(
                 // those values is `Input/KeyEvents.swift`, and that one stays in the app.
                 "Input/KeyBindings.swift",
                 "Input/KeyContext.swift",
-                // Where six lives, and the versioned JSON snapshot beside the database.
+                // Where Savoia lives, and the versioned JSON snapshot beside the database.
                 "Data/AppSupport.swift",
-                // What six says happened. Here rather than in the app because the files that have
+                "Data/FormerName.swift",
+                // What Savoia says happened. Here rather than in the app because the files that have
                 // the most to say when something goes wrong — the snapshot, the settings, the
                 // profiles table — are all in this target. `os.Logger` is behind `canImport(os)`;
                 // the file half is Foundation and Dispatch, which both fronts have.
@@ -118,8 +119,8 @@ let package = Package(
                 "Tabs/TabTopics.swift",
                 "Tabs/GroupColor.swift",
                 "Browser/SearchEngine.swift",
-                // A page six owns and nobody sees, for running something that is a program written
-                // for a JavaScript engine rather than a library six could link. Bergamot below is
+                // A page Savoia owns and nobody sees, for running something that is a program written
+                // for a JavaScript engine rather than a library Savoia could link. Bergamot below is
                 // the first user; an on-device embedder is the next one.
                 "Browser/PageSandbox.swift",
                 // Domain names as they are written: the ACE form is what every platform's URL type
@@ -154,7 +155,7 @@ let package = Package(
                 "Translation/TranslationSettings.swift",
                 // …and the engine those two fronts translate with, which is Bergamot: Marian
                 // compiled to wasm, the same one Firefox uses, running in an off-screen page of
-                // six's own. All of it is here rather than in `linux/` or `windows/` because it is
+                // Savoia's own. All of it is here rather than in `linux/` or `windows/` because it is
                 // one feature on two fronts — only the four lines that call a function in a page
                 // are per platform. The 100 kB of Emscripten glue in `Payload` is the exception
                 // that proves it: that file is the one thing an Apple build compiles away.
@@ -168,7 +169,7 @@ let package = Package(
                 "Translation/Bergamot/BergamotTranslator.swift",
                 // The wire, and only the wire. JSON-RPC's own two types, the shape of an MCP
                 // server's answers, and the registry that lists servers: text in, values out, no
-                // window and no process. What six *does* with an app — the scheme handler, the
+                // window and no process. What Savoia *does* with an app — the scheme handler, the
                 // session, the store — is WebKit and AppKit and stays in the app target. This much
                 // is the same conversation on any platform, and it is the half worth a test.
                 "ACP/ACPJSON.swift",
@@ -189,7 +190,7 @@ let package = Package(
                 "WebMCP/WebMCPPage.swift",
                 "WebMCP/WebMCPSelfTest.swift"
                 //
-                // `ConfigurationStore` is in only because it was untangled first: it used to decode six
+                // `ConfigurationStore` is in only because it was untangled first: it used to decode Savoia
                 // subsystems' types out of the settings table, so taking it would have dragged most
                 // of the browser behind it. Each typed accessor now lives beside the type it
                 // decodes, and what is left here knows only keys and strings.
@@ -197,11 +198,11 @@ let package = Package(
             swiftSettings: [.swiftLanguageMode(.v5)]
         ),
         .testTarget(
-            name: "SixCoreTests",
+            name: "SavoiaCoreTests",
             // GRDB directly, so a test can hand `ConfigurationStore` a database of its own rather than
-            // the one under `AppSupport` that a running six is using.
-            dependencies: ["SixCore", .product(name: "SQLiteData", package: "sqlite-data")],
-            path: "Tests/SixCoreTests"
+            // the one under `AppSupport` that a running Savoia is using.
+            dependencies: ["SavoiaCore", .product(name: "SQLiteData", package: "sqlite-data")],
+            path: "Tests/SavoiaCoreTests"
         )
     ]
 )

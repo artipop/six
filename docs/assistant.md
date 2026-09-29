@@ -1,6 +1,6 @@
 # The assistant: one line, one catalog
 
-Six's assistant is not a chat. It is a **catalog of verbs** (`AssistantAction`) behind one line,
+Savoia's assistant is not a chat. It is a **catalog of verbs** (`AssistantAction`) behind one line,
 **⌘E**, which stands where the person is already pointing: under a **selection** or beside a
 **caret** in a field when the page has one, and at the bottom of the strip when it does not. A use
 case is a row in that catalog — a title, what it says to the model, and where the answer lands — so
@@ -8,21 +8,21 @@ adding one adds no interface at all.
 
 What keeps a transcript is an agent: with Claude Code, Codex or another ACP agent chosen for the line, what is asked
 there is a conversation, one per summons, kept and findable afterwards — on the line after a `/`, and on the
-`six://chats` page ([agents.md](agents.md#history)). The agent panel that used to carry that transcript has no way in
+`savoia://chats` page ([agents.md](agents.md#history)). The agent panel that used to carry that transcript has no way in
 at the moment.
 
 ## Why not a chat
 
 The context of a browser question is on the screen: this paragraph, this comment box, this page. A
-transcript adds six older contexts to a question that already has the right one, and it turns every
+transcript adds Savoia older contexts to a question that already has the right one, and it turns every
 answer into a message that has to be read rather than a result that can be used. So `AssistantStore`
 keeps exactly one `Answer` — replaced by the next one, dismissed with Escape, applied with Return
 where it can be applied at all.
 
-## What the page tells six
+## What the page tells Savoia
 
 `PageFocus` is what the person is pointing at inside a page, and it is the fact the old assistant
-never had. It is **pushed, not polled**: `PageFocusScript` installs a watcher in six's own content
+never had. It is **pushed, not polled**: `PageFocusScript` installs a watcher in Savoia's own content
 world (`PageScripts.swift`), which posts on `selectionchange`, on focus moving in or out of a field,
 and on scroll — debounced, deduplicated, main frame only. `PageFocusStore` receives it per window,
 `BrowserTab` clears it on navigation, and `BrowserState` forgets it when the window closes.
@@ -31,7 +31,7 @@ and on scroll — debounced, deduplicated, main frame only. `PageFocusStore` rec
 |---|---|
 | `kind` — `selection`, `caret` or `none` | `window.getSelection()`, or a field's own `selectionStart`/`selectionEnd`, which the former never reports |
 | `text`, `field`, `start`, `end` | the selected text, and the whole field when the caret is in one |
-| `isEditable` | an `<input>`, a `<textarea>` or a `contenteditable` — the only places six may write |
+| `isEditable` | an `<input>`, a `<textarea>` or a `contenteditable` — the only places Savoia may write |
 | `label` | `aria-label`, `<label>`, `placeholder`, `title`: "Comment" and "Search" want different drafts |
 | `rect` | viewport coordinates, which is exactly the box the overlay hangs in |
 
@@ -40,13 +40,13 @@ autocomplete/name/id that looks like a secret or a card number, and the watcher 
 cheapest place to drop a secret is before it leaves the frame it was typed in. An `<input>` of an
 exotic type is ignored for the same reason — a colour picker has no text worth reading.
 
-The world matters as much as the rule: the script runs in `WKContentWorld.six`, so a page cannot
+The world matters as much as the rule: the script runs in `WKContentWorld.savoia`, so a page cannot
 redefine `getSelection` or an input's value getter and feed the model text the person never saw.
 This is the arrangement the readable-page extractor and the highlighter already use.
 
 ## The catalog
 
-`AssistantAction` (`six/Assistant/AssistantAction.swift`) is one list, read by the line wherever it stands:
+`AssistantAction` (`Savoia/Assistant/AssistantAction.swift`) is one list, read by the line wherever it stands:
 
 | requirement | what is offered |
 |---|---|
@@ -126,7 +126,7 @@ made the hand-off land. A field that never loses the keyboard has nothing to han
 **A model that could not answer is said so before it is asked.** `AssistantSettings.trouble` reads
 the chosen model's own answer — `SystemLanguageModel.availability`, an empty API key, an endpoint
 that is not a URL — and the line puts that sentence where the verbs would be, with **Set Up…** to
-`six://configuration/assistant` for the half a person can put right and nothing but the sentence for the half
+`savoia://configuration/assistant` for the half a person can put right and nothing but the sentence for the half
 they cannot (a model still downloading, a Mac that is not eligible, the SDK/OS mismatch). Return
 over that row opens the same page rather than running a verb that is going to fail. `makeSession`
 throws the same sentences, as `AssistantError.notConfigured` or `.unavailable`, so a failure that
@@ -142,7 +142,7 @@ already there.
 **With an agent, `/` finds chats as well.** Under (or over) the verbs, the chats of the current folder whose title
 has every word typed after the slash, five newest for a bare `/` (`AgentSessionStore.chats(matching:)`). ↑/↓ walk
 them from the field's side and Return picks one; a click does too, and Return picks the first when no verb matches.
-The picked chat is `AssistantStore.continuedChat`: a chip in the field (↗ opens `six://chat/<id>`, a click or ⌘⌫
+The picked chat is `AssistantStore.continuedChat`: a chip in the field (↗ opens `savoia://chat/<id>`, a click or ⌘⌫
 takes it off), the answer strip shows its last question and answer, and the next question goes on in it with its own
 agent. It lasts for the summons, like the fresh chat a summons starts ([agents.md](agents.md#history)).
 
@@ -154,14 +154,14 @@ its hosting view, where `.global` is still the window's), and a scroll inside on
 `WKWebView` or `NSScrollView` under the pointer, or spent. Only the line: the curtains at the ends of the row are
 hosted over pages too, and a swipe there is meant for the row. A synthetic wheel posted into the app's queue did not reach
 the monitor (tried: a `CGEvent` scroll through `NSApp.postEvent`, no trace line), so this one is checked by hand:
-`SIX_UI_DEBUG=1` prints `scroll on the ⌘E line → <view>` for every event handed on.
+`SAVOIA_UI_DEBUG=1` prints `scroll on the ⌘E line → <view>` for every event handed on.
 
 **Away means out of the key-view loop.** The bottom line stays mounted while it is away and was
 only transparent, so Tab on a start page landed in it and showed it. Its controls are disabled while
 it is away, and a summons focuses on the next pass of the main queue, once there is something enabled
 to take the caret.
 
-`SIX_KEY_SELFTEST=assistant` checks all of it without a screenshot: the line summoned at the bottom
+`SAVOIA_KEY_SELFTEST=assistant` checks all of it without a screenshot: the line summoned at the bottom
 of a start page, the ⌘E menu item as a switch, `/sum` ⏎ starting `summarize-page`, Tab walking past
 the line, then a `<textarea>` — the line hung under it (the hosting view's frame is printed), `/con`
 ⏎ starting `continue`, Esc handing the keyboard back to the page — and a selection that the line
@@ -173,7 +173,7 @@ which is the difference between an assistant and a keylogger.
 ## Switching all of it off
 
 `Configuration ▸ Assistant ▸ Use Language Models and Agents` (`ConfigurationStore.isAIEnabled`) is one switch
-over everything in this document, and over agents, deep research and six's own MCP server.
+over everything in this document, and over agents, deep research and Savoia's own MCP server.
 Off is not a greyed-out button:
 
 - `AssistantBar` is not in the view hierarchy, so ⌘E has nothing to raise — the menu item stays enabled and does
@@ -181,8 +181,8 @@ Off is not a greyed-out button:
   presented either;
 - `PageFocusStore.isEnabled` goes false, which pulls the watcher **out of the pages**: the message
   handler is removed at once and the user script is dropped from every window's controller, so a
-  page loaded after that has nothing of six's watching what is selected in it;
-- `MCPHost.stop()` closes the socket and unlinks it, so `six --mcp` fails to connect rather than
+  page loaded after that has nothing of Savoia's watching what is selected in it;
+- `MCPHost.stop()` closes the socket and unlinks it, so `Savoia --mcp` fails to connect rather than
   hanging on a door nobody answers.
 
 What is deliberately outside the switch: the on-device bookmark index and page translation. Neither
@@ -190,11 +190,11 @@ is a model talking to a person — one is how search finds a page you read in an
 other is what every browser has had for a decade — and taking them away with the assistant would
 remove search and the translate button for a reason nobody asked for.
 
-The switch is asked about once, on the first launch, in a window in the row: `six://welcome`
+The switch is asked about once, on the first launch, in a window in the row: `savoia://welcome`
 (`WelcomePage`, `BuiltInPage.welcome`). A page rather than a sheet, for the reason written on
 `BuiltInPage` — and answering it closes the window, which is the first thing a new person does with
 a column. `ConfigurationStore.hasAnsweredWelcome` is what keeps it to once; until it is answered the
-assistant is on, because six is a browser built around these models and a switch nobody has seen
+assistant is on, because Savoia is a browser built around these models and a switch nobody has seen
 yet is not consent to have taken them away either.
 
 ## Models and agents
@@ -231,7 +231,7 @@ the person and the agent should not have to go and find it.
 
 ## Tools
 
-The language models get the browser tools: `BrowserToolCatalog` (`six/Tools/`) describes each tool
+The language models get the browser tools: `BrowserToolCatalog` (`Savoia/Tools/`) describes each tool
 once, `BrowserModelTool` wraps it as a Foundation Models `Tool`, and the same catalog is what MCP
 serves to agents ([mcp.md](mcp.md)). Bookmarks are searchable from here too; the model menu's
 **Bookmarks** picker sets whether they see this profile or all.
@@ -239,14 +239,14 @@ serves to agents ([mcp.md](mcp.md)). Bookmarks are searchable from here too; the
 ## OpenAI-compatible
 
 **OpenAI-compatible** is one menu entry rather than a list of models, because what it points at is a
-setting: `six://configuration` ▸ Assistant holds an endpoint, a model name and a key. Anything speaking
+setting: `savoia://configuration` ▸ Assistant holds an endpoint, a model name and a key. Anything speaking
 the OpenAI `/chat/completions` wire format answers there — OpenAI itself, a gateway, or llama.cpp
 and Ollama on this machine, which want no key at all, so an empty one sends no `Authorization`
 header rather than an empty one. `OPENAI_BASE_URL`, `OPENAI_MODEL` and `OPENAI_API_KEY` name any of
 the three for a single run.
 
 The provider is Apple's own `ChatCompletionsLanguageModel`, vendored into
-`six/Vendor/FoundationModelsUtilities/` for the reason the Claude bridge is (see
+`Savoia/Vendor/FoundationModelsUtilities/` for the reason the Claude bridge is (see
 [build.md](build.md)). `AssistantSettings` keeps the endpoint and the model name in the settings
 table; the two keys are read from the settings fields or `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` and stored in
 `UserDefaults`, out of the database — **development only**. `FoundationModelsCompatibility` probes the executor ABI at launch and disables
@@ -254,12 +254,12 @@ both remote options with an explanation if the runtime and the SDK diverge.
 
 ## Watching it work
 
-`SIX_UI_DEBUG=1` prints a line whenever the focus changes — the kind, whether it is editable, where
+`SAVOIA_UI_DEBUG=1` prints a line whenever the focus changes — the kind, whether it is editable, where
 it is and what it says — and a second line saying where the bar was placed for it, which is how the
 bar's coordinates were checked against the page's own (`getBoundingClientRect` against the view's
 box: 1412×737 reported by the page, 1412×738 measured by the overlay).
 
-`SIX_VERB_SELFTEST=explain` presses a verb. It waits for something to be selected — over MCP, from
+`SAVOIA_VERB_SELFTEST=explain` presses a verb. It waits for something to be selected — over MCP, from
 outside — then runs that catalog entry on it and logs the answer, the landing and whether it can be
 applied. Nothing on this machine can click the bar, so this is the only way to see a verb run end to
 end; `fix` on «это текст с ашипками» coming back as «это текст с ошибками», `replaceSelection`,

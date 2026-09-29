@@ -2,4 +2,4 @@
 // here. SwiftPM still wants a translation unit to build the target around, so this is it.
 #include "CStripInterop.h"
 
-int SixStripInteropVersion(void) { return 1; }
+int SavoiaStripInteropVersion(void) { return 1; }

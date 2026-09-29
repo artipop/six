@@ -9,7 +9,7 @@ of a language model, and it is the one that answers there. Every conversation
 with an agent is kept, and they are all on the [**Chats**](#chats) page.
 
 The conversation goes over ACP (the Agent Client Protocol), the same protocol
-those agents speak to editors. VI hands the agent itself as an MCP server, so the
+those agents speak to editors. Savoia hands the agent itself as an MCP server, so the
 browser's tools appear in the agent's hands on their own.
 
 ## Choosing an agent
@@ -50,7 +50,7 @@ arguments, one per line. **Edit…** and **Remove** are in its section.
 ## What it looks like
 
 An agent's answer arrives in the card above the line like any other. While it
-works, the tool it is using is named next to the model — readably: `six
+works, the tool it is using is named next to the model — readably: `savoia
 open_window`, the server, a space, the method. A title the agent wrote itself
 (`Read`, `Bash`, a whole sentence) is left alone.
 
@@ -59,7 +59,7 @@ Until you answer, it waits. Under the tool's name are its arguments, one row
 each: name and value.
 
 An "always" answer (allow or reject) is remembered for that agent and that tool —
-across a model switch and a relaunch of VI. That call never asks again. How many
+across a model switch and a relaunch of Savoia. That call never asks again. How many
 of them there are is on the **Agents** tab under **Tool Calls**; **Ask Again**
 forgets them all.
 
@@ -86,7 +86,7 @@ chip, its last question and answer above it, and the next question continues
 that conversation — with the agent it was had with. ↗ on the chip opens the chat
 as a window; clicking the chip or `⌘⌫` goes back to a new conversation.
 
-The agent remembers a conversation across a relaunch of VI: the session goes on
+The agent remembers a conversation across a relaunch of Savoia: the session goes on
 where it stopped. When the agent cannot do that, or has lost the session, a new
 one starts and the saved transcript stays above it as a record.
 
@@ -100,7 +100,7 @@ folders** shows the ones from other folders too. **New Chat** opens an empty
 one.
 
 A chat opens as a window of its own to the right, so two can stand side by
-side. Write in it and it becomes its agent's current chat, and VI asks the agent
+side. Write in it and it becomes its agent's current chat, and Savoia asks the agent
 to resume the same session. A chat from another folder can be read but not
 continued. Right-click a chat for **Delete**; the agent keeps its session.
 
@@ -136,12 +136,12 @@ is how it is asked to act.
 
 ## The browser as an MCP server for anything else
 
-The same binary run as `six --mcp` is an MCP server over the running
+The same binary run as `Savoia --mcp` is an MCP server over the running
 application. Any MCP client can connect to it and drive the browser the way the
 agent on the `⌘E` line does. For example:
 
 ```sh
-claude mcp add six -- /Applications/six.app/Contents/MacOS/six --mcp
+claude mcp add savoia -- /Applications/Savoia.app/Contents/MacOS/Savoia --mcp
 ```
 
 ::: warning Who can connect

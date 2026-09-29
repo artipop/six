@@ -14,7 +14,7 @@ everything else, exportable like a page, with citations that point at the senten
 
 ## Who runs the loop
 
-The agent, not the app. Claude Code / Codex already plan, call tools, retry and summarize; six does not grow a second
+The agent, not the app. Claude Code / Codex already plan, call tools, retry and summarize; Savoia does not grow a second
 planner. The app gives the loop a place to work (a workspace), the tools to work with, and a surface to write into.
 A native loop over the ⌘E model for machines without an agent is in [todo.md](todo.md).
 
@@ -26,7 +26,7 @@ A native loop over the ⌘E model for machines without an agent is in [todo.md](
   (`ResearchSheet`), was in the agent panel, which has no way in at the moment ([agents.md](agents.md)) — so today
   they are whatever was last saved, or the defaults.
 
-`ResearchCoordinator.start` (`six/Research/`) creates a workspace named after the question (unique within the
+`ResearchCoordinator.start` (`Savoia/Research/`) creates a workspace named after the question (unique within the
 profile), a document window in it with the question as its `# ` title and the preview on, and a `ResearchRun` —
 question, profile, workspace id, document tab id, source window ids, running flag, status, follow-ups — kept in
 `BrowserState.research` and so in the snapshot (`isRunning` is reset on relaunch; nothing survives a turn). Then it
@@ -50,7 +50,7 @@ belongs to a run is a **follow-up**: the follow-up preset points the agent at `r
 
 ## Document windows
 
-`BrowserTab.content` is `.web(WebPage)` or `.document(TextDocument)` (`six/Documents/`). A document is a column like
+`BrowserTab.content` is `.web(WebPage)` or `.document(TextDocument)` (`Savoia/Documents/`). A document is a column like
 any other — widths, focus, moving between workspaces, the overview and persistence all work unchanged. `tab.page`
 exists for both kinds: for a document it is a non-persistent `WebPage` that renders the preview and produces the
 HTML and PDF export.
@@ -58,7 +58,7 @@ HTML and PDF export.
 - `TextDocument` (`@Observable`): the Markdown, a title read off the first heading (else the first line, else
   "Untitled"), `modifiedAt`, `fileURL` after the first save, and whether the column shows the editor or the preview.
   Sections are `## heading` ranges (code fences skipped), which is what `write_document` works on.
-- `DocumentStore` writes the text to `~/Library/Application Support/org.deffun.six/Documents/<id>.md` a second after every edit
+- `DocumentStore` writes the text to `~/Library/Application Support/org.deffun.savoia/Documents/<id>.md` a second after every edit
   and on quit. The snapshot keeps only `DocumentSnapshot` (id, title, dates, file URL, preview flag) — a long
   document does not ride along in `state.json` on every keystroke. Closing the window deletes the file; Save As is
   for what is worth keeping. History records nothing for a document: it has no URL.
@@ -91,14 +91,14 @@ In `BrowserToolCatalog`, so the ⌘E assistant and MCP get the same ones; the fu
 
 `document_id` is optional everywhere: the default is the run's document in the on-screen workspace, else the only
 document there, else the focused one. The same URL cited twice keeps its number. `list_workspaces` marks documents
-with `kind: document` and `six://document/<id>` as the URL.
+with `kind: document` and `savoia://document/<id>` as the URL.
 
 Writing in sections rather than one final dump is what makes a run watchable: the outline appears first, then each
 section fills in while the sources are being read.
 
 ## Save As
 
-`Exporter` and `FileCommands` (`six/Documents/Export.swift`). `⌘S` re-saves a document that has a file; otherwise
+`Exporter` and `FileCommands` (`Savoia/Documents/Export.swift`). `⌘S` re-saves a document that has a file; otherwise
 `⌘S` and `⌘⇧S` both run an `NSSavePanel` (the app is not sandboxed — no bookmarks to keep) with the formats the
 window supports:
 
@@ -116,12 +116,12 @@ The last folder is remembered in `UserDefaults`, the document's file URL on the 
 ## Highlighted passages
 
 A citation should point at the sentences that earned it, not at a page. Two halves: deciding *which* paragraphs, and
-making the mark survive being reopened. Everything is in `six/Highlights/`.
+making the mark survive being reopened. Everything is in `Savoia/Highlights/`.
 
 **Choosing them.** Not by asking a model to quote — a model that retypes a passage mis-types it, and then nothing
 matches. `HighlightScript.blocks` lists the page's paragraph-ish elements as a numbered list (text and an XPath);
 the ⌘E model — the on-device model when ⌘E is set to an agent, since "which of these is about X" is within its reach —
-answers with *numbers* and a few words of reason; six anchors those blocks itself. The model never handles the text
+answers with *numbers* and a few words of reason; Savoia anchors those blocks itself. The model never handles the text
 it is marking, so it cannot corrupt it. `blocks: "12, 13"` skips the model; `⌥⇧H` does the same for a selection by
 hand.
 
@@ -138,7 +138,7 @@ position; the XPath range if what it spans still reads ≥ 0.8 similar; then a f
 windows seeded by the quote's first distinctive words, near the recorded position on long pages — that gives up
 below 0.75 rather than highlight the wrong sentence. This is how Hypothesis survives the real web.
 
-**Drawing.** The CSS Custom Highlight API: one `Highlight` registered as `six-highlight`, painted through
+**Drawing.** The CSS Custom Highlight API: one `Highlight` registered as `savoia-highlight`, painted through
 `::highlight()` from an injected `<style>`. It paints `Range`s without touching the DOM, so a React page
 re-rendering does not tear anything apart and the page's own scripts see no new nodes. Where the API is missing,
 `<mark>` wrappers.
@@ -155,7 +155,7 @@ call it the citation.
 with a `highlight_id` puts that link in the source line. Clicking it focuses the source window; WebKit scrolls to
 the fragment and `HighlightStore.scroll` lands on the painted range.
 
-**Storage.** `~/Library/Application Support/org.deffun.six/highlights.json`, keyed by URL without its fragment — per page, not
+**Storage.** `~/Library/Application Support/org.deffun.savoia/highlights.json`, keyed by URL without its fragment — per page, not
 per window, so highlights come back next week whether or not the run still exists. **File → Remove Highlights on
 This Page** clears one page's.
 
@@ -164,7 +164,7 @@ text inside cross-origin iframes, pages that rewrite their content on every visi
 
 ## Page-side scripts
 
-`ReadablePage`, `BrowserToolCatalog.pageText` and `HighlightScript` all run through `WebPage.six` — `callJavaScript`
-in six's own `WKContentWorld`, the way Firefox and Safari run their reader scripts: the page's JavaScript cannot
+`ReadablePage`, `BrowserToolCatalog.pageText` and `HighlightScript` all run through `WebPage.savoia` — `callJavaScript`
+in Savoia's own `WKContentWorld`, the way Firefox and Safari run their reader scripts: the page's JavaScript cannot
 tamper with what the extractor reads or see the highlight machinery. Why and what it covers is in
 [architecture.md](architecture.md#page-side-scripts).

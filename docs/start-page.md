@@ -1,11 +1,11 @@
 # Start page
 
-A new window opens on six's own start page instead of loading somebody's home page — so the first thing a window does
-isn't a network request. It is a native SwiftUI view (`six/Views/StartPage.swift`), not an HTML page: real keyboard
+A new window opens on Savoia's own start page instead of loading somebody's home page — so the first thing a window does
+isn't a network request. It is a native SwiftUI view (`Savoia/Views/StartPage.swift`), not an HTML page: real keyboard
 handling, the profile's colour, no web view to spin up.
 
 One field takes both a query and an address, the same rule the address bar uses (`URL.fromUserInput`). The rows under
-it are `AddressSuggestions` (`six/Views/AddressSuggestions.swift`), which the address bar's field shares — see
+it are `AddressSuggestions` (`Savoia/Views/AddressSuggestions.swift`), which the address bar's field shares — see
 [The address field](#the-address-field) below. With nothing typed there is no list — erasing the input or `Esc` puts it away. Underneath it, once something is typed:
 
 - an **address row** first when the input looks like one (`apple.com`, `localhost:3000`, anything with a scheme), so
@@ -22,7 +22,7 @@ it are `AddressSuggestions` (`six/Views/AddressSuggestions.swift`), which the ad
   and the address percent-decoded before anything is compared. Rows are one per page as a person counts pages
   (`HistoryStore.suggestionKey`): a search is its engine and query whatever the engine appended (`&ia=web`), and a
   page is its address without the fragment, or Telegram's web client would be a row per chat.
-  A results page of any engine six knows shows as the query it was with "*Engine* Search" beside it, the way Chrome
+  A results page of any engine Savoia knows shows as the query it was with "*Engine* Search" beside it, the way Chrome
   does, instead of the page's own title;
 - then **completions** from the search engine, each labelled "*Engine* Search" so it is clear where Enter goes;
   completions already shown from history are not repeated.
@@ -47,9 +47,9 @@ font size with the original SwiftUI field in light and dark appearances:
 
 ```sh
 xcrun swiftc -swift-version 5 -default-isolation MainActor \
-  six/Views/SuggestionTextField.swift Tests/StartPageKeyboard/main.swift \
-  -o /tmp/six-start-page-keyboard-test
-/tmp/six-start-page-keyboard-test
+  Savoia/Views/SuggestionTextField.swift Tests/StartPageKeyboard/main.swift \
+  -o /tmp/savoia-start-page-keyboard-test
+/tmp/savoia-start-page-keyboard-test
 ```
 
 Focus is mirrored when the native field takes the keyboard, including a click or Tab without typing. Waiting for
@@ -59,7 +59,7 @@ focus transitions and observes the cursor API to check that Escape cancels hidin
 
 ## Your own pages first
 
-The saved rows are `PersonalSuggestions` (`six/Browser/`) over the bookmark index — the same hybrid search the
+The saved rows are `PersonalSuggestions` (`Savoia/Browser/`) over the bookmark index — the same hybrid search the
 bookmarks window and the agents' `search_bookmarks` use ([bookmarks.md](bookmarks.md)), so the query is embedded by
 `multilingual-e5-small` on this Mac and put to the `vec0` table as a KNN. That is what makes it *personalised* rather
 than another completion service: it is your library that answers, by meaning, across languages — «плов» finds the
@@ -82,7 +82,7 @@ Three rules keep it out of the way:
 
 ### The floor moves with the query, and here is why
 
-`SIX_PERSONAL_SELFTEST="плов; руд"` on launch prints, per query, everything the index answered with its score and then
+`SAVOIA_PERSONAL_SELFTEST="плов; руд"` on launch prints, per query, everything the index answered with its score and then
 what the field would show. Against three saved pages — one of them an English Wikipedia article about pilaf — every
 score below is against *that* page:
 
@@ -127,8 +127,8 @@ of the page. In a window too short to hold both, the top inset gives way first, 
 
 ## The address field
 
-The top bar's field (`six/Views/AddressBar.swift`) drops the same list, over the page, from its own leading edge — with
-`Limits(rows: 8)`. It opens only once the text differs from what six put there (`filled`): ⌘L
+The top bar's field (`Savoia/Views/AddressBar.swift`) drops the same list, over the page, from its own leading edge — with
+`Limits(rows: 8)`. It opens only once the text differs from what Savoia put there (`filled`): ⌘L
 selects the page's address mostly to copy it, and a list falling over the page every time would be in the way of
 that. `↑` `↓` walk, `Enter` opens the selected row or navigates to the text, and `Esc` first puts the address back,
 then lets go of the field. It hangs below the bar because the top bar is drawn in front of the row (`zIndex(1)` in
@@ -136,13 +136,13 @@ then lets go of the field. It hangs below the bar because the top bar is drawn i
 
 ## Suggestions
 
-`SearchEngine` (`six/Browser/SearchEngine.swift`) holds both the search URL and the suggestions URL. All four engines
+`SearchEngine` (`Savoia/Browser/SearchEngine.swift`) holds both the search URL and the suggestions URL. All four engines
 — DuckDuckGo, Google, Bing, Yandex — answer in the same OpenSearch shape — `["query", ["suggestion", …]]` — so one
 parser serves them all. What they do not agree on is what to call the query in an address: three say `q` and Yandex
 says `text`, so the name is the engine's to say, and both building a search and recognising one ask it rather than
 assuming.
 
-Switch engines from the chip on the left of the search field, or from `six://configuration` ▸ **General** ▸ Search Engine. Both
+Switch engines from the chip on the left of the search field, or from `savoia://configuration` ▸ **General** ▸ Search Engine. Both
 bind to `settings.searchEngine` on the observed `ConfigurationStore`, which is the `search.engine` row of the settings table
 and the same value `SearchEngine.current` reads (DuckDuckGo is the default), so the choice takes effect everywhere at
 once — every open start page, the address bar, and the assistant's `open_window(query:)`.

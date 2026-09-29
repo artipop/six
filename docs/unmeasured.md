@@ -10,7 +10,7 @@ what was seen. Say when it was measured and on what.
 ## uBlock Origin Lite scored 96/100, and the control run is missing
 
 **2026-09-22, macOS, dev build.** uBOL at its strictest setting scored **96 of 100** on
-`https://adblock-tester.com`, with six's own **Block Ads and Trackers** switch off in that profile. Script-loading
+`https://adblock-tester.com`, with Savoia's own **Block Ads and Trackers** switch off in that profile. Script-loading
 rows came back yellow on some runs and green on others.
 
 [extensions.md](extensions.md) says uBOL **blocks nothing here** — measured before `WKWebExtensionTab.webView(for:)`
@@ -21,11 +21,11 @@ What is missing before the old claim is struck out:
 
 - **The control run.** Same profile, uBOL switched off, page reloaded. If the score barely moves, the blocking was
   never uBOL's.
-- **Whether that switch is a switch.** The Blocking toggle was *off* in the UI; that six then applies no rule list of
+- **Whether that switch is a switch.** The Blocking toggle was *off* in the UI; that Savoia then applies no rule list of
   its own is exactly the kind of thing this file exists for. Same page with uBOL off and blocking off is the
   measurement: a high score with both off means something else is blocking and neither result means anything yet.
 - **What kind of blocking it is.** `adblock-tester.com` counts requests, and `declarativeNetRequest` — which WebKit
-  implements and six has watched blocking — is enough to score well. The part that was never in doubt is not the
+  implements and Savoia has watched blocking — is enough to score well. The part that was never in doubt is not the
   part that is in doubt.
 
 ## uBOL's per-tab half
@@ -50,9 +50,9 @@ hit a wall one step short of proving anything. `ExtensionInstaller.permissionSup
 - `scripting.executeScript`
 - `scripting.insertCSS`
 
-The instrument is a three-file MV3 extension of our own, loaded with `SIX_EXTENSION=/path/to/unpacked`: a content
+The instrument is a three-file MV3 extension of our own, loaded with `SAVOIA_EXTENSION=/path/to/unpacked`: a content
 script that messages its background and writes the reply into `document.title`, a background that answers and then
-calls `insertCSS` and `executeScript` at the same tab, and one read through `six --mcp`:
+calls `insertCSS` and `executeScript` at the same tab, and one read through `Savoia --mcp`:
 
 ```js
 return [document.title, window.__probe, getComputedStyle(document.body).backgroundColor]
@@ -60,4 +60,4 @@ return [document.title, window.__probe, getComputedStyle(document.body).backgrou
 
 Three values, four calls, one page. Errors land in `list_console_messages` and in the app's own log as
 `[extensions] <name> reports …`. It has to be an ordinary page in an ordinary window: extensions do not run in
-private browsing, and `six://` pages have no content scripts.
+private browsing, and `savoia://` pages have no content scripts.

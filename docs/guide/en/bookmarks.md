@@ -1,6 +1,6 @@
 # Bookmarks and history
 
-A bookmark in VI is three things at once: a row in a list, **a readable copy of
+A bookmark in Savoia is three things at once: a row in a list, **a readable copy of
 the page as a file on disk**, and a place in an index that finds it by what it
 was about rather than by its title.
 
@@ -12,7 +12,7 @@ was about rather than by its title.
 
 ## What is saved
 
-Not an address — the page. VI pulls the main content out of it (headings,
+Not an address — the page. Savoia pulls the main content out of it (headings,
 paragraphs, lists, quotes, code, links, tables, large images) and writes a
 Markdown file beside the row, in `Profiles/<name>/Bookmarks/`. Navigation,
 sidebars, footers, forms, cookie notices and anything calling itself comments or
@@ -48,11 +48,11 @@ context menu has **Show File in Finder**.
 
 ### Which model
 
-VI picks one for your Mac and says which: **Configuration ▸ General ▸ Bookmarks ▸ Search
+Savoia picks one for your Mac and says which: **Configuration ▸ General ▸ Bookmarks ▸ Search
 Model**. Below 16 GB of memory the recommendation is **Compact — 465 MB**,
 above it **Standard — 1.1 GB**; the recommended one is marked in the list. The other is
 yours to take, at your own risk — larger ranks a little better between languages, but
-downloads twice as much and keeps twice as much memory busy for as long as VI runs, and
+downloads twice as much and keeps twice as much memory busy for as long as Savoia runs, and
 on a small Mac it is the open pages that pay for that.
 
 Changing the model re-indexes: every saved page is embedded again by the new one. Search
@@ -96,13 +96,13 @@ once and the text follows a moment later. A page with nothing to read — a pict
 drawn on a canvas, a PDF — stays a bookmark with its title.
 
 The Markdown copy is there too, in the same form as on the Mac: on Windows in
-`%LOCALAPPDATA%\six\Profiles\<profile>\Bookmarks`, on Linux in
-`~/.local/share/six/Profiles/Default/Bookmarks`. Remove the bookmark and the file
+`%LOCALAPPDATA%\savoia\Profiles\<profile>\Bookmarks`, on Linux in
+`~/.local/share/savoia/Profiles/Default/Bookmarks`. Remove the bookmark and the file
 goes with it.
 
 The model behind search by meaning is the same one — multilingual-e5-small — but
 it arrives by a different road: not through Metal, which those machines do not
-have, but through the page engine six already ships. There is one honest
+have, but through the page engine Savoia already ships. There is one honest
 difference: the model has to be downloaded, about 155 MB, once. That starts with
 the first page you save rather than at launch.
 
@@ -111,7 +111,7 @@ History is there too — the same table of visits, per profile. On Windows it is
 page as a new window beside the one you are on. On Linux it is `Ctrl+H` or the
 button in the toolbar. A private profile records none.
 
-Two things are missing on both: six saves the title, the description and the
+Two things are missing on both: Savoia saves the title, the description and the
 address but does not read the page's text yet, so a bookmark is found by what it
 is about rather than by a phrase from the middle of it. And there is no bookmarks
 window there — the list and the search are still the Mac's.

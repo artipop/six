@@ -5,36 +5,36 @@ Two different things, both off by default: Web Inspector under **Develop**, for 
 
 ## Web Inspector
 
-`WebPage.isInspectable`, and that is the whole of it. **six has no inspector window of its own, and cannot have
+`WebPage.isInspectable`, and that is the whole of it. **Savoia has no inspector window of its own, and cannot have
 one**: WebKit lets an app declare its pages inspectable, and nothing more — opening an inspector on your own page
 is `_WKInspector`, which is private API. What the switch does is let *Safari's* Web Inspector attach, and that one
 is the real thing — elements, console, network, sources, breakpoints.
 
-**How to attach**, once `six://configuration` ▸ **Develop** ▸ Allow Safari to Inspect six's Pages is on:
+**How to attach**, once `savoia://configuration` ▸ **Develop** ▸ Allow Safari to Inspect Savoia's Pages is on:
 
 1. In Safari: **Settings › Advanced › Show features for web developers**. Without it Safari's own Develop menu is
    hidden and there is nowhere to attach from. (This is the usual reason "I turned it on and nothing happened".)
-2. Safari's menu bar: **Develop › ‹the name of this Mac› › six › ‹the page's title›**.
-3. The window has to be showing a *page*. A fresh window in six is the start page, which is SwiftUI rather than web
+2. Safari's menu bar: **Develop › ‹the name of this Mac› › Savoia › ‹the page's title›**.
+3. The window has to be showing a *page*. A fresh window in Savoia is the start page, which is SwiftUI rather than web
    content, so it has nothing to inspect; so does a window whose page was discarded by the memory budget until you
    scroll back to it.
 
-six's settings page carries the same instruction under the switch — naming "this computer's name" rather than
-filling it in, since a Sharing name read back in six's own caption looked like something six had invented — and
+Savoia's settings page carries the same instruction under the switch — naming "this computer's name" rather than
+filling it in, since a Sharing name read back in Savoia's own caption looked like something Savoia had invented — and
 turning the switch on writes it, name and all, to the log.
 
 Off by default because an inspectable page is one another process on the machine can attach to. The switch applies
 to the pages that are open at once, and to every page built after it — the second half is set in
 `BrowserTab.materialize`, and for a while the web-page branch there did not set it, so after a relaunch no page was
-inspectable and Safari listed no six.
+inspectable and Safari listed no Savoia.
 
 ## Capture, for agents
 
-An agent driving the browser does not want an inspector window; it wants its facts. `six://configuration` ▸ Assistant ▸
+An agent driving the browser does not want an inspector window; it wants its facts. `savoia://configuration` ▸ Assistant ▸
 **Access to Page Console and Network** turns on a running record per window — what the page logged, what it
 requested — kept in memory and nowhere else, and adds the two MCP tools that read it ([mcp.md](mcp.md)).
 
-The switch lives with the agents and not under Develop because nothing in six shows a person what it records: a
+The switch lives with the agents and not under Develop because nothing in Savoia shows a person what it records: a
 person has Safari's inspector for the same facts, told by the browser rather than by the page. So the tools are not
 offered at all while it is off — `tools/list` leaves them out and `notifications/tools/list_changed` goes to whoever
 is connected when it flips, since a tool that can only answer "turn something on first" is one a model keeps
@@ -45,7 +45,7 @@ calling.
 |---|---|
 | `list_console_messages` | what the page logged since it last navigated, with uncaught errors and unhandled rejections; `level` filters |
 | `list_network_requests` | the requests it made — method, status, duration, size, kind; `failed_only` narrows to errors and 4xx/5xx |
-| `take_screenshot` | writes a PNG of the whole page (not the visible part) under `Application Support/org.deffun.six/Screenshots/` and returns the path |
+| `take_screenshot` | writes a PNG of the whole page (not the visible part) under `Application Support/org.deffun.savoia/Screenshots/` and returns the path |
 
 `take_screenshot` is there whether or not capture is on. Because the hooks are installed at the *start* of a load,
 turning capture on reloads the open windows.
@@ -67,7 +67,7 @@ and the only copy that outlives the window — under the `load` category, in the
 
 ```
 2026-09-09 14:30:31.108 [load] error: https://alfabank.ru/ failed: The certificate for this
-server is invalid. … (NSURLErrorDomain -1202) — six carries ru.trusted-ca, switched off
+server is invalid. … (NSURLErrorDomain -1202) — Savoia carries ru.trusted-ca, switched off
 ```
 
 The clause after the dash is [the certificate offer](certificates.md#when-it-fails-anyway).
@@ -75,12 +75,12 @@ The clause after the dash is [the certificate offer](certificates.md#when-it-fai
 ## How the capture works, and what it costs
 
 WebKit gives an app no API for a page's console or its resource loads, and the Web Inspector protocol is not
-reachable from the app hosting the page. So six instruments the page: a `WKUserScript` at document start that wraps
+reachable from the app hosting the page. So Savoia instruments the page: a `WKUserScript` at document start that wraps
 `console.*`, listens for `error` and `unhandledrejection`, wraps `fetch` and `XMLHttpRequest`, and runs a
 `PerformanceObserver` over resource timing for everything the page did not request by hand (scripts, images,
 stylesheets, media).
 
-**That script runs in the page's own world, which is a deliberate exception to how six works.** Everything else six
+**That script runs in the page's own world, which is a deliberate exception to how Savoia works.** Everything else Savoia
 injects lives in a `WKContentWorld` of its own precisely so a page cannot see or touch it
 ([architecture.md](architecture.md#page-side-scripts)) — but `console.log` and `fetch` *are* the page's globals, and
 wrapping them anywhere else would wrap nothing.
@@ -98,12 +98,12 @@ duration, no status), request and response *bodies* and headers are not recorded
 opaque and report status 0 — shown as `opaque`, and not counted as failures.
 
 The hooks live in the window's `WKUserContentController` — the same one that carries the blocker's rules, which is
-why both now go through [`PageControllers`](../six/Browser/PageControllers.swift) rather than belonging to either.
+why both now go through [`PageControllers`](../Savoia/Browser/PageControllers.swift) rather than belonging to either.
 
 ## What is not here
 
 No DOM snapshot with stable element ids, no synthetic clicks and typing, no performance traces, no request
 interception or throttling — the things Chrome's devtools MCP has beyond this. Most of them need the inspector
 protocol, which is why they share a fate with the in-window inspector: see
-[todo.md](todo.md#someday-sixs-own-webkit-build). `evaluate_javascript` covers a
+[todo.md](todo.md#someday-savoias-own-webkit-build). `evaluate_javascript` covers a
 surprising amount of it for now ([mcp.md](mcp.md)), and the rest is in [todo.md](todo.md).

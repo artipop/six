@@ -1,34 +1,34 @@
 # Platforms
 
-six is two app targets in one Xcode project over one set of sources, a third front end on Linux built
+Savoia is two app targets in one Xcode project over one set of sources, a third front end on Linux built
 by SwiftPM over the same files, and a fourth in Kotlin that shares no code with any of them:
 
 | target | platform | built by | product |
 |---|---|---|---|
-| `six` | macOS 27 | `six.xcodeproj` | `six.app` |
-| `six-iOS` | iOS / iPadOS 27, iPhone + iPad | `six.xcodeproj` | `six.app` |
-| `six-linux` | Linux, GTK 4 + WebKitGTK 6.0 | `linux/Package.swift` | `six-linux` |
-| `six-android` | Android 14+, Compose + system WebView | `android/` (Gradle) | `org.deffun.six` |
+| `Savoia` | macOS 27 | `Savoia.xcodeproj` | `Savoia.app` |
+| `Savoia-iOS` | iOS / iPadOS 27, iPhone + iPad | `Savoia.xcodeproj` | `Savoia.app` |
+| `savoia-linux` | Linux, GTK 4 + WebKitGTK 6.0 | `linux/Package.swift` | `savoia-linux` |
+| `savoia-android` | Android 14+, Compose + system WebView | `android/` (Gradle) | `org.deffun.savoia` |
 
 This page is about the two Apple targets; the third has [linux.md](linux.md) and the fourth
-[android.md](android.md). The first three share `SixCore` — the layout, the database, the settings —
+[android.md](android.md). The first three share `SavoiaCore` — the layout, the database, the settings —
 and the file it writes. The fourth shares only the file, the schema and the arithmetic, which is why
 its page spends most of its length on what "the same" has to mean without a shared compiler.
 
 ```sh
-xcodebuild -project six.xcodeproj -scheme six-iOS -configuration Debug \
+xcodebuild -project Savoia.xcodeproj -scheme Savoia-iOS -configuration Debug \
   -destination 'generic/platform=iOS Simulator' \
   -skipMacroValidation -skipPackagePluginValidation build
 ```
 
-Both targets take the whole `six/` synchronized folder, so a new file joins both without a project
+Both targets take the whole `Savoia/` synchronized folder, so a new file joins both without a project
 edit — the same as before. What the phone leaves out is a list of exceptions on the folder
 (`membershipExceptions` in the project file), not a second copy of anything.
 
 ## Why two targets and not one
 
 Xcode builds one target for several platforms happily, but only when `SDKROOT` can be `auto`, and
-six's cannot: the Mac needs the Command Line Tools SDK, because Xcode's own Foundation Models
+Savoia's cannot: the Mac needs the Command Line Tools SDK, because Xcode's own Foundation Models
 executor SPI does not match the OS ([build.md](build.md#sdk-override)). Compiled against Xcode's
 macOS SDK the app does not build at all — `RequestBuilder`, `EventTranslator` and
 `ClaudeServerToolActivity` in the vendored `ClaudeForFoundationModels` fail on `GeneratedContent`.
@@ -40,13 +40,13 @@ and the exception list becomes `#if os(macOS)` like everything else.
 
 ## What the phone does not have
 
-Excluded from `six-iOS`, in the project file:
+Excluded from `Savoia-iOS`, in the project file:
 
 - **`ACP/`** — everything but the wire types. The agent layer launches `claude` / `codex` as child
   processes and speaks JSON-RPC over their stdio; iOS has no `Process` and no toolchain to run.
   `ACPJSON`, `ACPTypes` and `AgentTranscript` stay: the browser tools are written in the first, and
   the state file is written in the others, on both platforms.
-- **`MCP/`** — the server six runs for those agents, over a Unix socket and over `--mcp` stdio.
+- **`MCP/`** — the server Savoia runs for those agents, over a Unix socket and over `--mcp` stdio.
 - **`Research/ResearchCoordinator.swift`** — deep research is the agent driving the browser.
   `ResearchRun` stays, so the phone reads and writes back that part of the state file untouched.
 - **`Vendor/ClaudeForFoundationModels`** — the SDK mismatch above; the iOS SDK is Xcode's by
@@ -56,7 +56,7 @@ Excluded from `six-iOS`, in the project file:
 - **`Views/AgentPanel.swift`** — the panel for the session that isn't there.
 
 Everything else is shared, with `#if os(macOS)` where the two frameworks spell the same thing
-differently ([Platform/](../six/Platform)) or where a thing is genuinely a Mac's: the menu bar
+differently ([Platform/](../Savoia/Platform)) or where a thing is genuinely a Mac's: the menu bar
 (`Views/MacCommands.swift`), the window restoration, the `NSEvent` scroll monitor, `NSOpenPanel` and
 `NSSavePanel`, "Show in Finder".
 

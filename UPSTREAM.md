@@ -1,4 +1,4 @@
-# Upstream: bugs that are not six's
+# Upstream: bugs that are not Savoia's
 
 Five of them, kept here with the repro that isolates each. Four are dependency bugs that keep
 SQLiteData from building — two Linux regressions and two that only Windows sees — and the fifth is a
@@ -7,16 +7,16 @@ WebKit rendering bug that makes a video's own fullscreen button draw a black scr
 
 ## The four that arrive through SQLiteData
 
-Found while bringing six's storage layer up on Linux ([docs/storage.md](docs/storage.md)) and,
-further down this file, while trying to bring `SixCore` itself up on Windows
-([docs/windows.md](docs/windows.md)). None of these are six's bugs and none are in a package six
+Found while bringing Savoia's storage layer up on Linux ([docs/storage.md](docs/storage.md)) and,
+further down this file, while trying to bring `SavoiaCore` itself up on Windows
+([docs/windows.md](docs/windows.md)). None of these are Savoia's bugs and none are in a package Savoia
 imports directly — the first two arrive through `SQLiteData`, which depends on `Sharing`
 unconditionally; the Windows ones arrive the same way, through `SQLiteData` → GRDB →
 `swift-structured-queries` and `SQLiteData` → `Sharing` → `swift-dependencies` →
 `combine-schedulers`. The first two are **regressions**: the immediately preceding release of each
 builds clean on the same toolchain.
 
-six works around them by seeding its `Package.resolved` from the app's own, which holds the graph at
+Savoia works around them by seeding its `Package.resolved` from the app's own, which holds the graph at
 the last good versions. That is a workaround, not a fix, and it makes `swift package update` a
 Linux-breaking command in this repo — hence these two reports.
 
@@ -150,14 +150,14 @@ past the package.
 
 **Title:** already filed — [swiftlang/swift#69386](https://github.com/swiftlang/swift/issues/69386),
 "Constraint solver assertion failure with key paths and dynamic member subscript", October 2023,
-still open at the time of writing. Not six's report.
+still open at the time of writing. Not Savoia's report.
 
 **It is not a Windows bug, and this section used to say it was.** It is an assertion, so it exists
 only in a compiler built without `NDEBUG` — and Windows is the one platform where swift.org ships
 an assertions-enabled toolchain, installed as `<version>+Asserts`. The same assertion fires on
 **macOS** against the same package with an open-source toolchain
 ([swiftlang/swift#82529](https://github.com/swiftlang/swift/issues/82529): same file, same
-predicate), and six's Mac and Linux builds compile this code daily because those toolchains are
+predicate), and Savoia's Mac and Linux builds compile this code daily because those toolchains are
 release builds. Building with the `+NoAsserts` toolchain — which the same swift.org installer
 already carries, behind `OptionsInstallNoAssertsToolchain=1` — compiles the package and runs it:
 `@Table`, `#sql`, `Draft`, and the `.where {}.select()` builder all round-trip real SQLite on
@@ -228,7 +228,7 @@ on Windows, is not something to do piecemeal from outside the project.
 
 ## 4. pointfreeco/combine-schedulers — no Windows support at all
 
-Not a regression like #2 above — every released version, including the one six pins to on Linux/Mac
+Not a regression like #2 above — every released version, including the one Savoia pins to on Linux/Mac
 (1.2.0), lacks Windows support outright. `Sources/CombineSchedulers/Internal/Lock.swift`'s non-Darwin
 branch assumes `import Foundation` brings `pthread_mutex_t` along, true on Linux (Foundation there
 sits on Glibc, which has pthreads) and false on Windows (swift-corelibs-foundation there wraps
@@ -267,11 +267,11 @@ release whatever might still be held, the same contract the pthread branch's ver
 ```
 
 Confirmed: applying exactly this to a local checkout clears the error, and with it `swift-sharing`
-2.9.1, `sqlite-data` 1.11.0 and `SixCore` itself all build and run on Windows.
+2.9.1, `sqlite-data` 1.11.0 and `SavoiaCore` itself all build and run on Windows.
 
-six now **does** depend on this package there, so the patch is maintained rather than remembered:
+Savoia now **does** depend on this package there, so the patch is maintained rather than remembered:
 it lives at `windows/patches/combine-schedulers-1.2.0-srwlock.patch`, and
-`scripts/six-windows.ps1` applies it to a sibling clone and substitutes that through SwiftPM's
+`scripts/savoia-windows.ps1` applies it to a sibling clone and substitutes that through SwiftPM's
 mirror mechanism. That patch file is the PR, ready to send. Note for whoever sends it that
 disabling `swift-dependencies`' `CombineSchedulers` trait is not an alternative route: `Sharing`
 depends on this package directly as well, and traits union across a graph.
@@ -281,7 +281,7 @@ depends on this package directly as well, and traits union across a graph.
 ## What this costs downstream
 
 `SQLiteData` depends on `Sharing` unconditionally (target dependency, not trait-gated), so any package
-that uses SQLiteData on Linux resolves into both of these. six uses none of the layer that pulls
+that uses SQLiteData on Linux resolves into both of these. Savoia uses none of the layer that pulls
 `Sharing` in — no `@FetchAll`, no `@Fetch`, no `@Shared`, only `@Table`, `#sql` and `defaultDatabase` —
 and still cannot build without pinning around them.
 
@@ -371,8 +371,8 @@ view.autoresizingMask = [.width, .height]
 ```
 
 Only for the duration. Left on, SwiftUI goes on laying the surrounding view out with constraints the
-view no longer answers to. six does this from `enteringFullscreen` until the state comes back to
-`notInFullscreen` (`six/Browser/PageElementFullscreen.swift`), and the web view itself is reached
+view no longer answers to. Savoia does this from `enteringFullscreen` until the state comes back to
+`notInFullscreen` (`Savoia/Browser/PageElementFullscreen.swift`), and the web view itself is reached
 through `Mirror`, because `WebPage` does not hand it out — which is to say the workaround is only
 available to someone willing to do both of those things.
 

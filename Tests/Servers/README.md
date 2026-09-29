@@ -4,7 +4,7 @@
 говорит на протоколе напрямую, а не через SDK: сервер, написанный по тексту спеки, ловит в хосте ровно те
 ошибки, которые SDK по обе стороны согласованно прячет.
 
-Юнит-тесты рядом ([../SixCoreTests](../SixCoreTests)) закрывают чистые функции — разбор `_meta`, построение CSP,
+Юнит-тесты рядом ([../SavoiaCoreTests](../SavoiaCoreTests)) закрывают чистые функции — разбор `_meta`, построение CSP,
 разбор `WWW-Authenticate`, отображение записи реестра на определение сервера. Всё, что делает приложение
 приложением, чистой функцией не является: окно в полосе, два источника, мост через `postMessage`, полоса
 разрешений, teardown, которого хост обязан дождаться. Эта половина проверяется руками, и вот чем.
@@ -20,10 +20,10 @@ python3 Tests/Servers/mcp_apps_server.py --persona oauth --http 8931    # он �
 Дальше либо **Конфигурация → Ассистент → MCP → Добавить сервер…**, либо из терминала (см. [docs/mcp-apps.md](../../docs/mcp-apps.md)):
 
 ```sh
-six=/path/to/six.app/Contents/MacOS/six
-$six --mcp-probe "python3 $PWD/Tests/Servers/mcp_apps_server.py --persona basic"
-$six --mcp-probe http://127.0.0.1:8931/mcp
-SIX_MCP_APP_SELFTEST='http://127.0.0.1:8931/mcp#show_greeting' six
+Savoia=/path/to/Savoia.app/Contents/MacOS/Savoia
+$Savoia --mcp-probe "python3 $PWD/Tests/Servers/mcp_apps_server.py --persona basic"
+$Savoia --mcp-probe http://127.0.0.1:8931/mcp
+SAVOIA_MCP_APP_SELFTEST='http://127.0.0.1:8931/mcp#show_greeting' Savoia
 ```
 
 Флаги: `--http PORT` — вместо stdio слушать `127.0.0.1:PORT` (по умолчанию 8931, путь всегда `/mcp`),
@@ -34,9 +34,9 @@ SIX_MCP_APP_SELFTEST='http://127.0.0.1:8931/mcp#show_greeting' six
 | персона | транспорт | что проверяет |
 |---|---|---|
 | `basic` | оба | весь протокол вида: `ui/initialize`, `tool-input`, `tool-result`, `tools/call` обратно через хост, `ui/open-link`, `ui/message`, `ui/update-model-context`, `size-changed`, `resources/read`. С неё начинать |
-| `readonly` | оба | `annotations.readOnlyHint: true`. Закрыть six, запустить снова — окно возвращается и **само** повторяет вызов |
+| `readonly` | оба | `annotations.readOnlyHint: true`. Закрыть Savoia, запустить снова — окно возвращается и **само** повторяет вызов |
 | `stateful` | оба | тот же инструмент без пометки, со счётчиком вызовов. Восстановленное окно показывает карточку и ждёт «Run Again»; счётчик, выросший сам, — это баг |
-| `goodbye` | оба | вид отвечает на `ui/resource-teardown` только после круга обратно через six. Закрытие окна доказывает, что хост держит страницу живой |
+| `goodbye` | оба | вид отвечает на `ui/resource-teardown` только после круга обратно через Savoia. Закрытие окна доказывает, что хост держит страницу живой |
 | `hostile` | оба | сервер, просящий больше, чем ему положено (ниже) |
 | `slow` | оба | 90 секунд на `tools/call` — что видно в окне, пока оно ждёт |
 | `forgetful` | только HTTP | забывает сессию после первого вызова и отвечает 404 на следующий запрос со старым `Mcp-Session-Id`. Клиент обязан переинициализироваться без него |
@@ -60,7 +60,7 @@ SIX_MCP_APP_SELFTEST='http://127.0.0.1:8931/mcp#show_greeting' six
 2. Он же по `--http` и по `--http --sse`: разбор `text/event-stream` — отдельная ветка в транспорте.
 3. `--persona hostile`: в логе окна нет ни одного `ALLOWED`.
 4. `--persona goodbye`: закрыть окно — в stderr сервера видно `resources/read`, пришедший **после** закрытия.
-5. `--persona readonly` и `--persona stateful`: закрыть six, запустить снова, посмотреть на обе колонки.
-6. `--persona forgetful --http`: вызвать инструмент дважды; второй раз six переинициализируется молча.
-7. `--persona oauth --http`: вход целиком, потом перезапуск six — токен должен подхватиться из Keychain без
+5. `--persona readonly` и `--persona stateful`: закрыть Savoia, запустить снова, посмотреть на обе колонки.
+6. `--persona forgetful --http`: вызвать инструмент дважды; второй раз Savoia переинициализируется молча.
+7. `--persona oauth --http`: вход целиком, потом перезапуск Savoia — токен должен подхватиться из Keychain без
    второго входа.

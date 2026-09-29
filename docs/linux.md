@@ -1,7 +1,7 @@
 # Linux — WebKitGTK
 
-six on Linux is a third front end over the same storage layer, on WebKitGTK 6.0 and GTK 4 through
-libadwaita. It is not a port of the SwiftUI views; it is a second front over the parts of six that
+Savoia on Linux is a third front end over the same storage layer, on WebKitGTK 6.0 and GTK 4 through
+libadwaita. It is not a port of the SwiftUI views; it is a second front over the parts of Savoia that
 were never about Apple in the first place.
 
 | | |
@@ -9,18 +9,18 @@ were never about Apple in the first place.
 | engine | **WebKitGTK 6.0** (2.52.3), one `WebKitWebView` per column |
 | toolkit | **libadwaita 1.9** through [adwaita-swift](https://codeberg.org/aparoksha/adwaita-swift) |
 | language | **Swift 6.3**, the same source tree |
-| storage | **the same `six.sqlite`**, the same schema, the same migrations |
+| storage | **the same `savoia.sqlite`**, the same schema, the same migrations |
 | built in | a container ([build.md](build.md#linux)) |
 
-The reason this is worth doing at all is the storage layer. `SixCore` — `TilingLayout`, `AppDatabase`,
+The reason this is worth doing at all is the storage layer. `SavoiaCore` — `TilingLayout`, `AppDatabase`,
 `ConfigurationStore`, `HistoryStore`, `Bookmark`, `AppSupport` — imports Foundation and Observation and
 nothing else, and builds on Linux unchanged. A database written by the Mac opens here, migrates
 forward, and reads back. That was the premise ([storage.md](storage.md)) and it held.
 
 ## Two packages, and why
 
-`Package.swift` at the root declares `SixCore` and the tests. It reads the same files where they lie
-— `path: "six"` plus an explicit `sources:` list — so nothing moves, `six.xcodeproj` is not edited,
+`Package.swift` at the root declares `SavoiaCore` and the tests. It reads the same files where they lie
+— `path: "Savoia"` plus an explicit `sources:` list — so nothing moves, `Savoia.xcodeproj` is not edited,
 and a file joins a module by being listed rather than by being relocated. That is the same shape the
 iOS target already had, where membership is an exception list in the project file.
 
@@ -29,20 +29,20 @@ iOS target already had, where membership is an exception list in the project fil
 is what lets the root package still build on a Mac.
 
 ```
-six-linux ── SixUI ── SixWebKit ── SixWebKitCore ── CWebKitGTK
-                 └─── SixBrowser ── SixCore
+savoia-linux ── SavoiaUI ── SavoiaWebKit ── SavoiaWebKitCore ── CWebKitGTK
+                 └─── SavoiaBrowser ── SavoiaCore
 ```
 
 - **`CWebKitGTK`** — `systemLibrary`, one header. GTK itself comes from adwaita's own `CAdw`; webkit's
   headers pull in the same gtk headers and Clang unifies them.
-- **`SixWebKitCore`** — the interop, and no toolkit at all: `NetworkSession`, `PageRegistry`,
+- **`SavoiaWebKitCore`** — the interop, and no toolkit at all: `NetworkSession`, `PageRegistry`,
   `Thumbnails`, `PermissionRequests`, `Signal`. This is the part that stays whichever UI library wins.
-- **`SixWebKit`** — the page as a widget adwaita can place.
-- **`SixBrowser`** — the model. **Deliberately without Adwaita**, and the compiler enforces it: adwaita
-  depends on its own vendored SQLite (`meta-sqlite` → `CSQLite`) while `SixCore` reaches GRDB's, and
+- **`SavoiaWebKit`** — the page as a widget adwaita can place.
+- **`SavoiaBrowser`** — the model. **Deliberately without Adwaita**, and the compiler enforces it: adwaita
+  depends on its own vendored SQLite (`meta-sqlite` → `CSQLite`) while `SavoiaCore` reaches GRDB's, and
   Clang refuses two definitions of `sqlite3_api_routines` in one compilation unit. So the seam the
   plan asked for is not a matter of discipline; it fails to build if crossed.
-- **`SixUI`** — the only module that knows what a toolkit is.
+- **`SavoiaUI`** — the only module that knows what a toolkit is.
 
 adwaita-swift is pinned to a commit, not a tag: its only tag, `0.1.0`, does not build on Linux
 (their #97), and the maintainer's advice is to live on `main`.
@@ -62,7 +62,7 @@ command here — see the comment at the top of `Package.swift` for the three rea
 - Private browsing as a profile with an ephemeral `WebKitNetworkSession`.
 - Site permissions for the camera and the microphone ([permissions.md](permissions.md)).
 - The strip comes back after a relaunch, out of the `settings` table. `StripState`, the row it is
-  written as, and `LivePages`, the budget above, were this front's and are `SixCore`'s now — the
+  written as, and `LivePages`, the budget above, were this front's and are `SavoiaCore`'s now — the
   Windows front runs the same two files (compiled away on Apple). After pulling that change into a
   warm container, `rm -f /tmp/g/build.db`: it is a root-manifest edit, and AGENTS.md has why a path
   dependency's manifest edit is otherwise a silent no-op.
@@ -74,7 +74,7 @@ command here — see the comment at the top of `Package.swift` for the three rea
   `manifest.json`, permissions and icons, but `WebExtensionContext` and `WebExtensionController` —
   the classes that actually run one — are not exposed yet. Igalia is porting them from Apple's
   Objective-C to C++ shared by all ports. See [extensions.md](extensions.md) for the reversal this
-  implies: on Linux six owns a real `WebKitWebView` per column, which is the single reason content
+  implies: on Linux Savoia owns a real `WebKitWebView` per column, which is the single reason content
   scripts are half-deaf on macOS.
 - **Blocking.** `WebKitUserContentFilterStore` eats the same content-blocker JSON as
   `WKContentRuleList`, so this is wiring rather than design ([blocking.md](blocking.md)).
@@ -84,7 +84,7 @@ command here — see the comment at the top of `Package.swift` for the three rea
   through transformers.js in a `GtkSandbox` — the same `PageSandbox` translation runs in. Saving a page writes its
   passages and queues them. **Not run yet on Linux:** the container is on the Mac, and everything below the seam is
   the code the Windows front proved.
-- **The assistant, ACP and MCP.** `six/ACP/` and `six/MCP/` are the most portable code in the
+- **The assistant, ACP and MCP.** `Savoia/ACP/` and `Savoia/MCP/` are the most portable code in the
   repository — Foundation, child processes, JSON-RPC over stdio — and would fit Linux better than
   iOS, where they were excluded for the lack of `Process`. Not wired to a front yet.
 - **Sync.** There is none anywhere.
@@ -97,7 +97,7 @@ on this platform is libdispatch's main queue: a `Task { @MainActor in … }` cre
 handler was enqueued and then simply never executed. That is why `SitePermissions.decide` is a
 callback function with the `async` one layered on top rather than the other way round.
 
-`MainQueueBridge` in `SixWebKitCore` is the fix, and it is one watch rather than a rewrite of how
+`MainQueueBridge` in `SavoiaWebKitCore` is the fix, and it is one watch rather than a rewrite of how
 the app runs. libdispatch exports the seam CoreFoundation uses to embed its main queue in a foreign
 run loop — `_dispatch_get_main_queue_handle_4CF` hands back an eventfd that becomes readable when
 the queue has work, and `_dispatch_main_queue_callback_4CF` drains the queue on the calling thread —
@@ -121,7 +121,7 @@ per signal: `notify::` is `.oneArg`, `load-changed` is `.guint`. Taking the `.no
 `load-changed` produced a null dereference inside adwaita's own signal machinery, three renders in
 and nowhere near the mistake. Where no case fits — `permission-request` returns `gboolean` *and*
 takes an argument — the trampoline is written out by hand next to the signal, and `Signal` in
-`SixWebKitCore` owns the boxing, the `GClosureNotify` and the connect so that trio exists once.
+`SavoiaWebKitCore` owns the boxing, the `GClosureNotify` and the connect so that trio exists once.
 
 **Only value types live in `@State`.** Meta reflects over a view's stored properties to find its
 state, and a class in one takes the runtime down inside `swift_getTypeByMangledName` — the window
@@ -136,12 +136,12 @@ original, and a third press puts the translation back. While a run is going on a
 the toolbar saying how far it has got, and it goes away when there is nothing left to say.
 
 **The engine is Bergamot**, and almost none of it is in `linux/`. The page walk, the batching, the
-state machine, Show Original, the model catalogue, the downloads and the engine driver are `SixCore`
+state machine, Show Original, the model catalogue, the downloads and the engine driver are `SavoiaCore`
 — the same files the Windows front runs, above the same `PageTranslating` seam the Mac's
 `Translation.framework` sits behind. [windows.md](windows.md) has the account of where the weights
 come from and why the Emscripten glue is vendored rather than downloaded; none of that differs here.
 
-What this front provides is three files in `SixBrowser`, and they are small because the shared half
+What this front provides is three files in `SavoiaBrowser`, and they are small because the shared half
 is large:
 
 - **`PageScript`** — `webkit_web_view_call_async_javascript_function`, which
@@ -157,17 +157,17 @@ is large:
   (`allow_file_access_from_file_urls`) because that page has to `fetch()` its own wasm and weights.
   The Windows front needs a hidden `HWND` for the same job; here it is eleven lines.
 - **`Translation`** — which page, which languages, when to offer, and a `TranslationStatus` value
-  for the toolbar to read. That last part is not ceremony: `SixCore` is an `internal import` here,
+  for the toolbar to read. That last part is not ceremony: `SavoiaCore` is an `internal import` here,
   because nothing may put it and Adwaita in one compilation unit, so `TabTranslation` cannot cross
-  into `SixUI` and a plain-Foundation struct crosses instead.
+  into `SavoiaUI` and a plain-Foundation struct crosses instead.
 
 The source language is guessed rather than asked of the system — there is no `NLLanguageRecognizer`
-here — by `LanguageGuess` in `SixCore`, with `<html lang>` checked against it rather than trusted.
+here — by `LanguageGuess` in `SavoiaCore`, with `<html lang>` checked against it rather than trusted.
 
 **Not verified on this front.** Every line of it was written on the Windows machine, where the
 container does not exist, and the Windows front is where it was measured end to end. What is
 believed to work because it is the same code: the walk, the batching, the catalogue, the downloads,
-the engine, the state machine. What wants a first run under `six-linux.sh up` is exactly the three
+the engine, the state machine. What wants a first run under `savoia-linux.sh up` is exactly the three
 files above and `MainQueueBridge` — the GObject shapes, the unparented view, and whether GLib's
 watch fires the way it is expected to.
 
@@ -175,18 +175,18 @@ watch fires the way it is expected to.
 
 | | |
 |---|---|
-| `SIX_URL` | space-separated addresses to open on a first launch |
-| `SIX_LIVE_PAGES` | pin the live-page budget, for measuring |
-| `SIX_UI_DEBUG=1` | what the model was asked to do and what it thought it was doing |
-| `SIX_MOCK_CAPTURE=1` | a camera and a microphone that are not there, for testing permissions |
-| `SIX_VEC_SELFTEST=1` | whether this build has a working `vec0` index at all, against the real database |
-| `SIX_EMBED_SELFTEST=1` | save three pages, embed them, put five questions to the index, delete them again |
+| `SAVOIA_URL` | space-separated addresses to open on a first launch |
+| `SAVOIA_LIVE_PAGES` | pin the live-page budget, for measuring |
+| `SAVOIA_UI_DEBUG=1` | what the model was asked to do and what it thought it was doing |
+| `SAVOIA_MOCK_CAPTURE=1` | a camera and a microphone that are not there, for testing permissions |
+| `SAVOIA_VEC_SELFTEST=1` | whether this build has a working `vec0` index at all, against the real database |
+| `SAVOIA_EMBED_SELFTEST=1` | save three pages, embed them, put five questions to the index, delete them again |
 
 ### The first run after translation and embeddings, in the order things fail
 
 Both features landed written but unrun — the container is on the Mac and neither was built here. They lean on the same
 three lines (`webkit_web_view_new` unparented, the floating reference, `allow_file_access_from_file_urls`), so **one
-session that does a page translation and a `SIX_EMBED_SELFTEST=1` answers for both**: if the off-screen page works for
+session that does a page translation and a `SAVOIA_EMBED_SELFTEST=1` answers for both**: if the off-screen page works for
 one it works for the other, and if it does not, the failure is in the same place.
 
 Check these two first, because they fail *silently* rather than loudly, and both read from the outside as "the button
@@ -199,7 +199,7 @@ does nothing":
    signal never arrives and the first translation hangs with nothing written anywhere. The answer if it does not is a
    `GtkWindow` the view is never shown in, which is what the Windows front already does with a one-pixel `WS_POPUP`.
 
-The log is `~/.local/state/six/six.log`; the categories are `[translation]` and `[bookmarks]`. The embedding self-test
+The log is `~/.local/state/savoia/savoia.log`; the categories are `[translation]` and `[bookmarks]`. The embedding self-test
 wants a 157 MB download the first time it runs.
 
 ## Why the container, and not Homebrew on the Mac
@@ -225,7 +225,7 @@ cannot run — several of those formulae are themselves Linux-only.
 
 **And it is the wrong API even then.** The formula builds `-DPORT=GTK -DUSE_GTK4=OFF`, depends on
 `gtk+3`, and its own test compiles `<webkit2/webkit2.h>` against `gtk_container_add` and `gtk_main`.
-That is WebKitGTK 4.1 over GTK 3, `pkg-config webkit2gtk-4.1`. six asks for **`webkitgtk-6.0`**,
+That is WebKitGTK 4.1 over GTK 3, `pkg-config webkit2gtk-4.1`. Savoia asks for **`webkitgtk-6.0`**,
 which is the GTK 4 API — a different library with different signal signatures, and the one where
 `WebKitNetworkSession` and `WebKitWebExtension` live at all. Homebrew packages no GTK 4 build of
 WebKit, on either platform. Version is not the issue: brew's 2.52.6 and the container's 2.52.3 are
@@ -233,9 +233,9 @@ the same branch.
 
 **The toolkit half would genuinely work**, which is what makes the idea tempting. `gtk4` (4.22.4)
 and `libadwaita` (1.9.3) are both bottled for `arm64_tahoe` — native, no source build — and
-adwaita-swift declares `.macOS(.v13)`. So `SixUI` builds and a window opens over GTK's quartz
-backend. But `CWebKitGTK` cannot resolve `webkitgtk-6.0`, and with it go `SixWebKitCore`,
-`SixWebKit`, `SixBrowser` and the executable. What is left is a strip of cards with no page in any
+adwaita-swift declares `.macOS(.v13)`. So `SavoiaUI` builds and a window opens over GTK's quartz
+backend. But `CWebKitGTK` cannot resolve `webkitgtk-6.0`, and with it go `SavoiaWebKitCore`,
+`SavoiaWebKit`, `SavoiaBrowser` and the executable. What is left is a strip of cards with no page in any
 of them — the layout, which the Mac already renders, and nothing that is actually under test.
 
 One difference worth knowing if this is ever revisited: adwaita-swift appends `CSQLite` only under

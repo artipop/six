@@ -1,6 +1,6 @@
 # The assistant
 
-Six's assistant is not a chat. It is one line, `⌘E`, and it comes up where you
+Savoia's assistant is not a chat. It is one line, `⌘E`, and it comes up where you
 are already pointing: under selected text, beside the field your caret is in,
 and at the bottom of the row when nothing on the page is pointed at. It never
 comes up by itself.
@@ -88,7 +88,7 @@ Nothing is sent anywhere while you type. Leave the caret in the field and press
 `Esc` puts the caret back in the field.
 
 **Password fields are not read at all** — no content, no caret, no event: the
-page drops them before anything reaches six. The same goes for fields that look
+page drops them before anything reaches Savoia. The same goes for fields that look
 like a one-time code or a card number.
 
 ## How an answer gets into the page
@@ -101,18 +101,18 @@ if it had been typed, so `⌘Z` takes it back.
 
 **Configuration ▸ Assistant ▸ Use Language Models and Agents** is one switch over
 everything: the `⌘E` line, agents, deep
-research, and six's MCP server.
+research, and Savoia's MCP server.
 
 Off is not a greyed-out button. The line is not there at all, `⌘E` is
 disabled in the menu, the watcher that follows the selection is **removed from
-the pages** (a page opened after that gets nothing of six's in it), and the
+the pages** (a page opened after that gets nothing of Savoia's in it), and the
 socket external agents drive the browser through is closed.
 
 Bookmark search and page translation keep working: neither is a model talking to
 you — one is search, the other is a translator.
 
 You are asked once, on the first launch, in a window in the row —
-`six://welcome`. Answer "Yes, use them" and the next step, in the same window,
+`savoia://welcome`. Answer "Yes, use them" and the next step, in the same window,
 is who answers: On-Device, Claude Code, Codex or API Key (Anthropic or an
 OpenAI-compatible server) — set up on the spot: an agent shows whether its adapter
 is installed, a key shows the key and endpoint fields. "Done" points the `⌘E`
@@ -135,7 +135,7 @@ and the model an agent answers with, sets which bookmarks are searched, and
 carries **Configuration…** and **New Conversation**.
 
 **OpenAI-compatible** is one menu entry rather than a list of models because what
-it points at is a setting: `six://configuration` ▸ **Assistant** ▸ **⌘E Line** holds an
+it points at is a setting: `savoia://configuration` ▸ **Assistant** ▸ **⌘E Line** holds an
 endpoint, a model name and a key. A local server wants no key at all, and an empty field
 means no authorization header is sent. The Anthropic key goes in the same place.
 
@@ -167,7 +167,7 @@ writes into.
 
 ## The do command
 
-`do: …` or `/do …` on the `⌘E` line hands six the work on the page in front of
+`do: …` or `/do …` on the `⌘E` line hands Savoia the work on the page in front of
 you: it looks at the page and clicks and fills in the fields itself, step by
 step, until the goal is visibly satisfied. It suits anything you can state in a
 sentence with the values it needs — "find a one-way flight Zurich to London on
@@ -175,10 +175,10 @@ sentence with the values it needs — "find a one-way flight Zurich to London on
 
 The answer is the list of steps: what was clicked, what was typed, **which
 decider chose it** and how long it took. In front of a button that pays, books,
-places an order or deletes, six stops and says what is ready: the last press is
+places an order or deletes, Savoia stops and says what is ready: the last press is
 yours.
 
-When the page declared tools for agents ([WebMCP](/en/devtools#webmcp)), six
+When the page declared tools for agents ([WebMCP](/en/devtools#webmcp)), Savoia
 uses them instead of the buttons, and asks you first, as for an agent. When it
 did not, and the [tools mark](/en/accessibility#the-tools-mark) is there, a
 whole form is filled in one step.

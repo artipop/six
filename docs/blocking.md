@@ -8,7 +8,7 @@ the site's own scripts cannot see that anything did.
 That is most of blocking but not all of it: about a seventh of a filter list cannot be said in WebKit's JSON at
 all, and that part runs inside the page — see [the advanced rules](#the-advanced-rules-what-runs-inside-the-page).
 
-The whole of it is `six/Blocking/` — five files and two JavaScript payloads — plus a shield in every window's
+The whole of it is `Savoia/Blocking/` — five files and two JavaScript payloads — plus a shield in every window's
 address field and a **Privacy** menu.
 
 ```
@@ -25,7 +25,7 @@ Payload/            blocking-cosmetic.js (extended CSS), blocking-scriptlets.js 
 A filter list is written in the syntax the ad-blocking world shares (`||ads.example^$third-party`,
 `site.com##.banner`). WebKit does not read it; WebKit takes a JSON array of trigger/action pairs. The translation is
 [SafariConverterLib](https://github.com/AdguardTeam/SafariConverterLib) — AdGuard's own converter, the one behind
-AdGuard for Safari — rather than a parser of six's, because the interesting part of that job is the hundred edge
+AdGuard for Safari — rather than a parser of Savoia's, because the interesting part of that job is the hundred edge
 cases in `$modifiers` and regular expressions, all of which someone has already met.
 
 The catalogue points at AdGuard's **Safari** builds of its filters (`filters.adtidy.org/extension/safari/`): the
@@ -39,7 +39,7 @@ same lists with the modifiers WebKit cannot express already removed, so conversi
 | AdGuard Russian | ads on Russian-language sites | on when the system prefers Russian |
 
 Any other list can be added by address — EasyList, a regional list, one written by hand and served from a file. The
-panel is `six://configuration` ▸ **Privacy** ▸ Blocking (⌘,), which the shield in the address field also opens.
+panel is `savoia://configuration` ▸ **Privacy** ▸ Blocking (⌘,), which the shield in the address field also opens.
 
 What it costs, measured on this machine (M-series, 8 GB):
 
@@ -54,7 +54,7 @@ Building the advanced engine over all three — 14 676 rules — is another 1.3 
 That is the *first* launch, in the background, while the browser is already usable. Afterwards WebKit keeps the
 compiled rule lists in its own store and a launch is three lookups — a fraction of a millisecond each, no
 conversion, no compilation, nothing read but `index.json`. A list is fetched again when it is more than
-`blocking.refreshDays` old (3 by default) and on a six-hour timer while the app is up; an ETag or an unchanged hash
+`blocking.refreshDays` old (3 by default) and on a savoia-hour timer while the app is up; an ETag or an unchanged hash
 means nothing is recompiled. Peak memory during a compile is ~330 MB, which is why lists are compiled one after
 another rather than at once.
 
@@ -84,7 +84,7 @@ launch. Building it is a second and a third, on a detached task, and only when t
 
 **Scriptlets are compiled in the app, not in the page.** AdGuard's scriptlet library is a *compiler*:
 `invoke({name, args})` hands back the source of one scriptlet, and the library is 356 KB. Running it inside every
-page would mean paying that per page load; six runs it once, in a `JSContext`, and a page carries only the few
+page would mean paying that per page load; Savoia runs it once, in a `JSContext`, and a page carries only the few
 kilobytes that came out (0.1–1 ms per scriptlet, memoised by name and arguments; the whole library parses in 14 ms,
 lazily, on the first page that needs one).
 
@@ -92,9 +92,9 @@ That has a second consequence, and it is the better one. Because the result is a
 library call, it can be a **`WKUserScript` at document start in the page's own world** — which means it runs *before*
 the page's own scripts, the only moment at which a scriptlet that patches a global is any use, and it is out of
 reach of a Content-Security-Policy that would have refused an injected `<script>` tag. A Safari web extension has to
-inject a tag and live with both problems; six is the browser and does not.
+inject a tag and live with both problems; Savoia is the browser and does not.
 
-**Extended CSS runs in six's own content world** (`WKContentWorld.six`), like everything else six puts in a page
+**Extended CSS runs in Savoia's own content world** (`WKContentWorld.savoia`), like everything else Savoia puts in a page
 ([architecture.md](architecture.md#page-side-scripts)): the site cannot see the library, cannot replace the DOM
 methods it matches with, and cannot find the style element by looking for one it did not create. The payload is
 `blocking-cosmetic.js`, 44 KB, and it is injected only into a page that actually has extended CSS or CSS injection
@@ -102,7 +102,7 @@ to apply.
 
 ### One engine over every list
 
-This is the one place six's blocking is *better* than WebKit's own. Rule lists are evaluated separately, so an
+This is the one place Savoia's blocking is *better* than WebKit's own. Rule lists are evaluated separately, so an
 exception in one cannot undo a rule from another — that is the whole reason for [a controller per
 window](#one-content-controller-per-window). The advanced rules of every enabled list go into a **single** engine, so
 `@@||example.com^$elemhide` written in a regional list does cancel a cosmetic rule from the base list, exactly as the
@@ -121,13 +121,13 @@ anything that reads the page.
 
 ### The JavaScript payload
 
-`six/Blocking/Payload/` holds two built files and the versions they were built from. They are committed, so building
-six needs no Node; `./scripts/blocking-payload.sh` rebuilds them, and is run only when SafariConverterLib moves.
+`Savoia/Blocking/Payload/` holds two built files and the versions they were built from. They are committed, so building
+Savoia needs no Node; `./scripts/blocking-payload.sh` rebuilds them, and is run only when SafariConverterLib moves.
 
 The versions are not a choice. The converter states which `@adguard/scriptlets` and `@adguard/extended-css` its
 output was written for (`ContentBlockerConverterVersion`), and a scriptlet the library does not know by that name is
 a rule that silently does nothing — the worst failure this feature has. So the script reads them out of the resolved
-checkout, writes them beside the payload as `blocking-versions.json`, and six compares the two at launch and says so
+checkout, writes them beside the payload as `blocking-versions.json`, and Savoia compares the two at launch and says so
 in the log if they have drifted.
 
 ### What it does not reach
@@ -140,17 +140,17 @@ in the log if they have drifted.
   load. That is the same bargain the compiled rule lists make at first launch.
 - **HTML filtering** (`$$`) is not in the advanced set — it needs to rewrite the response before it is parsed, which
   no `WKWebView`-shaped browser can do.
-- `SIX_UI_DEBUG=1` prints a line per navigation with what the page was given: `habr.com: 5 css, 3 extended, 4
+- `SAVOIA_UI_DEBUG=1` prints a line per navigation with what the page was given: `habr.com: 5 css, 3 extended, 4
   scripts`.
 
 ## One content controller per window
 
-The obvious arrangement is one `WKUserContentController` per profile, shared by every page. six does not do that,
+The obvious arrangement is one `WKUserContentController` per profile, shared by every page. Savoia does not do that,
 because of the per-site allowlist.
 
 WebKit evaluates each rule list on its own and combines what they say. An `ignore-previous-rules` action only undoes
 actions from *earlier rules in the same list* — a second, smaller list saying "let this site through" does not
-cancel a block from the first. (AdGuard says the same thing about its six Safari blockers: exception rules do not
+cancel a block from the first. (AdGuard says the same thing about its Savoia Safari blockers: exception rules do not
 reliably cross from one to another.) So the standard way to allow a site is to write the exception into every list
 and compile them all again: ten seconds of work for one click on a shield.
 
@@ -171,7 +171,7 @@ lost.
 
 ## Off means off
 
-The **Privacy › Block Ads and Trackers** switch is not a filter that lets everything through. With it off six
+The **Privacy › Block Ads and Trackers** switch is not a filter that lets everything through. With it off Savoia
 fetches nothing, converts nothing, compiles nothing and attaches nothing — someone who brings their own blocker is
 not paying for ours. (Measured the same way: with the switch off the log has no blocking lines at all and every ad
 request loads.)
@@ -185,7 +185,7 @@ shield at all: a crossed-out one read as "allowed on this site", which is a narr
 - **crossed out** — the site is on the allowlist.
 
 Clicking it allows (or blocks again) every site under this one's host — `example.com` covers `www.example.com` and
-`cdn.example.com` — and offers the filter list panel. The same two actions are on `six://configuration` ▸ Privacy ▸ Blocking, which also has
+`cdn.example.com` — and offers the filter list panel. The same two actions are on `savoia://configuration` ▸ Privacy ▸ Blocking, which also has
 **Update Filter Lists Now**.
 
 ## What this does not do, and why
@@ -200,10 +200,10 @@ Clicking it allows (or blocks again) every site under this one's host — `examp
 
 ## Sundries
 
-- Lists live in `~/Library/Application Support/org.deffun.six/Blocking/`: `<id>.txt` as the publisher wrote it, `<id>.json`
+- Lists live in `~/Library/Application Support/org.deffun.savoia/Blocking/`: `<id>.txt` as the publisher wrote it, `<id>.json`
   converted, `<id>.adv.txt` the advanced half, `index.json` for the ETags and counts, and `.webext/` the built
   engine. Deleting the folder costs one re-download.
-- Compiled rule lists are named `six.<list>.<hash of the source>`; when a list changes upstream the old rule list is
+- Compiled rule lists are named `Savoia.<list>.<hash of the source>`; when a list changes upstream the old rule list is
   found by that prefix and dropped, so a year of updates is not a year of dead rule lists in WebKit's store.
 - Blocking is per window, not per profile, so a private window blocks exactly like an ordinary one.
 - In a **Debug** build the converter prints a line for every rule it cannot express (a few hundred, from
@@ -212,6 +212,6 @@ Clicking it allows (or blocks again) every site under this one's host — `examp
 
 ## Extensions
 
-Blocking needs no extension, and six has none — `WKWebExtension` is a separate piece of work with a real obstacle
+Blocking needs no extension, and Savoia has none — `WKWebExtension` is a separate piece of work with a real obstacle
 in front of it (`WKWebExtensionTab` requires a `WKWebView`, which `WebPage` does not hand out). What that means and
 what would still work is in [todo.md](todo.md#extensions-wkwebextension).

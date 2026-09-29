@@ -15,7 +15,7 @@ a translation. When a page is not in your language, it offers itself.
 
 ## While it works
 
-A bar appears above the page — not six pixels at the end of a long address, but a
+A bar appears above the page — not Savoia pixels at the end of a long address, but a
 sentence where the page is:
 
 | | |
@@ -36,7 +36,7 @@ translation is not thrown away — it is a toggle, not a stop.
 
 ## What it will not do
 
-- if the system has not got the language, VI says so and where to add it: System
+- if the system has not got the language, Savoia says so and where to add it: System
   Settings › General › Language & Region › Translation Languages;
 - a pair the system does not have at all is reported as such;
 - a page with nothing to translate yet (still loading) says so;
@@ -45,7 +45,7 @@ translation is not thrown away — it is a toggle, not a stop.
 
 ## On Windows and Linux
 
-There is no system translator there, so six brings its own — **Bergamot**, the
+There is no system translator there, so Savoia brings its own — **Bergamot**, the
 engine Firefox translates with. It still runs on the machine: no key, no quota,
 and the page is not sent anywhere.
 
@@ -65,5 +65,5 @@ Russian to German is two hops through English, and a pair like Maltese to French
 does not exist at all — which is what it will tell you.
 
 Two things are missing on both: there is no way to pick the target language yet,
-so six translates into whatever the interface is in; and the wording is English,
+so Savoia translates into whatever the interface is in; and the wording is English,
 because neither build has a string catalogue of its own.

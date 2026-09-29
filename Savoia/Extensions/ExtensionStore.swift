@@ -1,0 +1,592 @@
+#if os(macOS)
+import AppKit
+#endif
+import Foundation
+import Observation
+import WebKit
+
+/// Browser extensions, hosted on `WKWebExtension`.
+///
+/// **One controller per profile.** A profile is an isolated `WKWebsiteDataStore`; its extensions get
+/// storage of their own the same way, through a persistent
+/// `WKWebExtensionController.Configuration(identifier:)` keyed by the profile. A private profile has
+/// no controller at all — private browsing is recorded nowhere, and an extension's storage is a
+/// record.
+///
+/// **What works here and what does not is known, measured, and shown before installing** — see
+/// [docs/extensions.md](../../docs/extensions.md). On macOS, `ExtensionTabAdapter.webView(for:)`
+/// answers from `WebViewResponder`'s own map of live `WKWebView`s, the same one keyboard focus
+/// trusts; the phone has nothing to hand back yet. Every install says what that costs *this*
+/// extension (`ExtensionInstaller.compatibility`), rather than letting someone find out.
+@MainActor
+@Observable
+final class ExtensionStore {
+    /// The runtime of one profile: its controller, the window its strip stands for, and a context per
+    /// enabled extension.
+    @MainActor
+    final class Runtime {
+        let controller: WKWebExtensionController
+        lazy var window = ExtensionWindowAdapter(store: store, profileID: profileID)
+        var contexts: [String: WKWebExtensionContext] = [:]
+        /// One `errorsDidUpdateNotification` subscription per loaded context, dropped with it.
+        var errorObservers: [String: any NSObjectProtocol] = [:]
+        let profileID: Profile.ID
+        unowned let store: ExtensionStore
+
+        init(profileID: Profile.ID, storeIdentifier: UUID, delegate: ExtensionDelegate, store: ExtensionStore) {
+            self.profileID = profileID
+            self.store = store
+            controller = WKWebExtensionController(configuration: .init(identifier: storeIdentifier))
+            controller.delegate = delegate
+        }
+    }
+
+    private let settings: ConfigurationStore
+    @ObservationIgnored private let delegate = ExtensionDelegate()
+    @ObservationIgnored weak var browser: BrowserState?
+
+    private(set) var installed: [InstalledExtension]
+    /// The verdict per extension, worked out when it is loaded (and at install, before it is).
+    private(set) var compatibility: [String: ExtensionCompatibility] = [:]
+    private(set) var errors: [String: String] = [:]
+    /// Bumped whenever an action's icon, badge or enabled state changes, so the top bar redraws.
+    private(set) var actionRevision = 0
+
+    @ObservationIgnored private var runtimes: [Profile.ID: Runtime] = [:]
+    @ObservationIgnored private var adapters: [UUID: ExtensionTabAdapter] = [:]
+    #if os(macOS)
+    /// The toolbar button the next popup points at — the button's own AppKit view (`PopupAnchor`).
+    @ObservationIgnored weak var popupAnchorView: NSView?
+    /// Holds a popup that WebKit did not wrap in a popover of its own (see the delegate).
+    @ObservationIgnored var popupPanel: NSPanel?
+    /// Extension pages open in windows of their own (`openExtensionPage`), held here until closed.
+    @ObservationIgnored var extensionPageWindows: [NSWindow] = []
+    #endif
+
+    init(settings: ConfigurationStore) {
+        self.settings = settings
+        self.installed = settings.installedExtensions
+        delegate.store = self
+    }
+
+    /// Brings up a runtime for every profile that should have one, at launch — an extension's
+    /// background content runs whether or not a page has been built yet, which is what its alarms and
+    /// its rules expect.
+    func start() {
+        guard let browser, !installed.filter(\.isEnabled).isEmpty else { return }
+        for profile in browser.profiles where !profile.isPrivate {
+            _ = runtime(for: profile)
+        }
+    }
+
+    // MARK: What a window gets
+
+    /// The controller a page of this profile is built with — and `nil` for a private profile, which
+    /// deliberately runs no extensions.
+    func controller(for profileID: Profile.ID) -> WKWebExtensionController? {
+        guard !installed.filter(\.isEnabled).isEmpty else { return nil }
+        guard let browser, let profile = browser.profiles.first(where: { $0.id == profileID }), !profile.isPrivate else { return nil }
+        return runtime(for: profile).controller
+    }
+
+    private func runtime(for profile: Profile) -> Runtime {
+        if let existing = runtimes[profile.id] { return existing }
+        let runtime = Runtime(profileID: profile.id, storeIdentifier: profile.dataStoreID, delegate: delegate, store: self)
+        runtimes[profile.id] = runtime
+        runtime.controller.didOpenWindow(runtime.window)
+        runtime.controller.didFocusWindow(runtime.window)
+        for extensionRecord in installed where extensionRecord.isEnabled {
+            Task { await load(extensionRecord, in: runtime) }
+        }
+        return runtime
+    }
+
+    func adapter(for tab: BrowserTab) -> ExtensionTabAdapter {
+        if let existing = adapters[tab.id] { return existing }
+        let adapter = ExtensionTabAdapter(tab: tab, store: self)
+        adapters[tab.id] = adapter
+        return adapter
+    }
+
+    func tabs(in profileID: Profile.ID) -> [ExtensionTabAdapter] {
+        guard let browser else { return [] }
+        return browser.tabs(in: profileID).map { adapter(for: $0) }
+    }
+
+    func activeTab(in profileID: Profile.ID) -> ExtensionTabAdapter? {
+        guard let browser, let tab = browser.selectedTab, tab.profileID == profileID else { return nil }
+        return adapter(for: tab)
+    }
+
+    func window(for profileID: Profile.ID) -> ExtensionWindowAdapter? {
+        runtimes[profileID]?.window
+    }
+
+    // MARK: What the browser tells the extensions
+
+    func noteOpened(_ tab: BrowserTab) {
+        guard let runtime = runtimes[tab.profileID], !runtime.contexts.isEmpty else { return }
+        runtime.controller.didOpenTab(adapter(for: tab))
+    }
+
+    func noteClosed(_ tab: BrowserTab) {
+        guard let adapter = adapters.removeValue(forKey: tab.id) else { return }
+        runtimes[tab.profileID]?.controller.didCloseTab(adapter, windowIsClosing: false)
+    }
+
+    func noteActivated(_ tab: BrowserTab) {
+        guard let runtime = runtimes[tab.profileID], !runtime.contexts.isEmpty else { return }
+        runtime.controller.didActivateTab(adapter(for: tab))
+    }
+
+    /// A window navigated, finished loading or changed its title. Without this an extension's
+    /// `tabs.onUpdated` never fires: WebKit does not watch the app's model, the app tells it.
+    func noteChanged(_ tab: BrowserTab, _ properties: WKWebExtension.TabChangedProperties) {
+        guard let runtime = runtimes[tab.profileID], !runtime.contexts.isEmpty else { return }
+        runtime.controller.didChangeTabProperties(properties, for: adapter(for: tab))
+        actionRevision &+= 1
+    }
+
+    // MARK: Installing
+
+    /// Reads an extension without installing it, for the confirmation dialog: what it is, what it
+    /// asks for, and what will not work.
+    func inspect(_ source: URL) async throws -> (
+        extension: WKWebExtension, compatibility: ExtensionCompatibility,
+        staged: (folder: URL, id: String), crxSignatureSummary: (text: String, isWarning: Bool)?
+    ) {
+        let staged = try ExtensionInstaller.stage(source)
+        let ext = try await WKWebExtension(resourceBaseURL: staged.folder)
+        return (ext, ExtensionInstaller.compatibility(of: ext), staged, ExtensionInstaller.crxSignatureSummary(of: source))
+    }
+
+    /// Remembers a staged extension and loads it into every profile that is running one.
+    func adopt(_ ext: WKWebExtension, staged: (folder: URL, id: String), origin: String) {
+        let record = InstalledExtension(
+            id: staged.id,
+            name: ext.displayName ?? staged.id,
+            version: ext.displayVersion ?? "",
+            isEnabled: true,
+            origin: origin,
+            installedAt: .now)
+        installed.removeAll { $0.id == record.id }
+        installed.append(record)
+        compatibility[record.id] = ExtensionInstaller.compatibility(of: ext)
+        settings.installedExtensions = installed
+        for runtime in runtimes.values {
+            Task { await load(record, in: runtime) }
+        }
+        // A page built before this one arrived has no extension controller in its configuration, so
+        // the extension would not see it — every window builds its page again.
+        start()
+        browser?.rebuildLivePages()
+        log("installed \(record.name) \(record.version)")
+    }
+
+    /// `SAVOIA_EXTENSION=/path/to/unpacked` — installs at launch with no dialog, for development.
+    func installFromEnvironment(_ path: String) async {
+        let source = URL(fileURLWithPath: path, isDirectory: true)
+        do {
+            let (ext, _, staged, _) = try await inspect(source)
+            adopt(ext, staged: staged, origin: source.lastPathComponent)
+        } catch {
+            log("SAVOIA_EXTENSION install failed: \(error.localizedDescription)")
+        }
+    }
+
+    func setEnabled(_ enabled: Bool, for id: String) {
+        guard let index = installed.firstIndex(where: { $0.id == id }), installed[index].isEnabled != enabled else { return }
+        installed[index].isEnabled = enabled
+        settings.installedExtensions = installed
+        let record = installed[index]
+        for runtime in runtimes.values {
+            if enabled {
+                Task { await load(record, in: runtime) }
+            } else {
+                unload(record.id, from: runtime)
+            }
+        }
+        if enabled { start() }
+        browser?.rebuildLivePages()
+    }
+
+    func remove(_ id: String) {
+        guard let record = installed.first(where: { $0.id == id }) else { return }
+        for runtime in runtimes.values { unload(id, from: runtime) }
+        installed.removeAll { $0.id == id }
+        compatibility[id] = nil
+        errors[id] = nil
+        settings.installedExtensions = installed
+        try? FileManager.default.removeItem(at: record.folder)
+        browser?.rebuildLivePages()
+        log("removed \(record.name)")
+    }
+
+    private func load(_ record: InstalledExtension, in runtime: Runtime) async {
+        guard runtime.contexts[record.id] == nil else { return }
+        do {
+            let ext = try await WKWebExtension(resourceBaseURL: record.folder)
+            compatibility[record.id] = ExtensionInstaller.compatibility(of: ext)
+            let context = WKWebExtensionContext(for: ext)
+            // The identifier is what ties an extension to its storage across launches; without it a
+            // persistent controller would hand it a fresh, empty world every time.
+            context.uniqueIdentifier = record.id
+            // Granted at install, when the dialog listed them. Optional permissions asked for later
+            // go through the delegate, which asks.
+            for permission in ext.requestedPermissions {
+                context.setPermissionStatus(.grantedExplicitly, for: permission)
+            }
+            for pattern in ext.requestedPermissionMatchPatterns {
+                context.setPermissionStatus(.grantedExplicitly, for: pattern)
+            }
+            context.hasAccessToPrivateData = false
+            try runtime.controller.load(context)
+            runtime.contexts[record.id] = context
+            errors[record.id] = nil
+            let name = record.name
+            runtime.errorObservers[record.id] = NotificationCenter.default.addObserver(
+                forName: WKWebExtensionContext.errorsDidUpdateNotification, object: context, queue: .main
+            ) { [weak self, weak context] _ in
+                MainActor.assumeIsolated {
+                    guard let self, let context else { return }
+                    self.logErrors(of: context, named: name)
+                }
+            }
+            for tab in tabs(in: runtime.profileID) { runtime.controller.didOpenTab(tab) }
+            if ext.hasBackgroundContent {
+                try? await context.loadBackgroundContent()
+            }
+            actionRevision &+= 1
+            log("loaded \(record.name) in profile \(runtime.profileID)")
+            // Whatever WebKit recorded while loading, before anything was subscribed to hear it.
+            logErrors(of: context, named: name)
+        } catch {
+            errors[record.id] = error.localizedDescription
+            log("\(record.name) failed to load: \(error.localizedDescription)")
+        }
+    }
+
+    /// What WebKit recorded against an extension: a manifest entry it could not use, a rule set it
+    /// could not load. `WKWebExtensionContext.errors` is the only place these live, and nothing
+    /// shows them unless they are written down — the whole list, each time it changes.
+    private func logErrors(of context: WKWebExtensionContext, named name: String) {
+        for error in context.errors {
+            let error = error as NSError
+            let details = error.userInfo.isEmpty ? "" : " \(error.userInfo)"
+            log("\(name) reports \(error.domain) \(error.code): \(error.localizedDescription)\(details)")
+        }
+    }
+
+    private func unload(_ id: String, from runtime: Runtime) {
+        guard let context = runtime.contexts.removeValue(forKey: id) else { return }
+        if let observer = runtime.errorObservers.removeValue(forKey: id) {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        try? runtime.controller.unload(context)
+        actionRevision &+= 1
+    }
+
+    // MARK: Toolbar actions
+
+    /// The buttons this window should show: one per enabled extension that has an action.
+    func actions(for tab: BrowserTab) -> [(record: InstalledExtension, action: WKWebExtension.Action)] {
+        guard let runtime = runtimes[tab.profileID] else { return [] }
+        let adapter = adapter(for: tab)
+        return installed.filter(\.isEnabled).compactMap { record in
+            guard let context = runtime.contexts[record.id], let action = context.action(for: adapter) else { return nil }
+            return (record, action)
+        }
+    }
+
+    #if os(macOS)
+    /// What every enabled extension wants added to this tab's own context menu — `menus` in a
+    /// manifest, or `contextMenus.create` at runtime. WebKit hands back real `NSMenuItem`s, target
+    /// and action already wired to the extension, in whatever order and nesting it built them; Savoia
+    /// only has to find a place for them (`PageContextMenu`).
+    func contextMenuItems(for tab: BrowserTab) -> [NSMenuItem] {
+        guard let runtime = runtimes[tab.profileID] else { return [] }
+        let adapter = adapter(for: tab)
+        return installed.filter(\.isEnabled).flatMap { record in
+            runtime.contexts[record.id]?.menuItems(for: adapter) ?? []
+        }
+    }
+    #endif
+
+    /// A click on one of those buttons: the extension decides what it means — a popup, or a message
+    /// to its background.
+    func performAction(_ record: InstalledExtension, for tab: BrowserTab) {
+        guard let runtime = runtimes[tab.profileID], let context = runtime.contexts[record.id] else { return }
+        context.userGesturePerformed(in: adapter(for: tab))
+        context.performAction(for: adapter(for: tab))
+    }
+
+    #if os(macOS)
+    /// A key an extension bound to itself (`commands` in its manifest) — Focus Mode's ⌘B, say.
+    /// Dynamic, so it cannot be a static menu item the way Savoia's own `⌘` keys are: nobody knows the
+    /// shortcut until the extension is installed. `KeyRouter` tries this only after its own table has
+    /// declined the key, which every `⌘` chord always does — the table is `⌥`/`⌃` alone.
+    ///
+    /// `context.performCommand(for:)` is tried first and is not enough on its own: it answers by the
+    /// character the event carries, and a Russian layout's ⌘B reports «И» — the exact bug
+    /// `KeyBindings.Key.letter` exists to avoid for Savoia's own bindings, here on WebKit's side of the
+    /// fence instead. `matches(_:_:)` below is that same fix, by physical key code, for commands.
+    func performCommand(for event: NSEvent, in profileID: Profile.ID) -> Bool {
+        guard let runtime = runtimes[profileID] else { return false }
+        for context in runtime.contexts.values {
+            if context.performCommand(for: event) { return true }
+            if let command = context.commands.first(where: { matches(event, $0) }) {
+                context.performCommand(command)
+                return true
+            }
+        }
+        return false
+    }
+
+    /// US-ANSI virtual key codes for every letter — a command's `activationKey` is a plain letter
+    /// like "B", declared against that layout regardless of the one actually in use, the same
+    /// contract Savoia's own `KeyCode` letters keep (a narrower table, only what Savoia's bindings need).
+    private static let usLetterKeyCodes: [Character: UInt16] = [
+        "A": 0, "B": 11, "C": 8, "D": 2, "E": 14, "F": 3, "G": 5, "H": 4, "I": 34,
+        "J": 38, "K": 40, "L": 37, "M": 46, "N": 45, "O": 31, "P": 35, "Q": 12,
+        "R": 15, "S": 1, "T": 17, "U": 32, "V": 9, "W": 13, "X": 7, "Y": 16, "Z": 6
+    ]
+
+    private func matches(_ event: NSEvent, _ command: WKWebExtension.Command) -> Bool {
+        guard let key = command.activationKey?.uppercased().first,
+              let code = Self.usLetterKeyCodes[key],
+              event.keyCode == code
+        else { return false }
+        return event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            == command.modifierFlags.intersection(.deviceIndependentFlagsMask)
+    }
+    #endif
+
+    func optionsPageURL(for record: InstalledExtension) -> URL? {
+        guard let profileID = browser?.selectedProfileID, let context = runtimes[profileID]?.contexts[record.id] else { return nil }
+        return context.optionsPageURL
+    }
+
+    /// The Extensions list's "Open Options Page", for the selected profile's copy of the extension.
+    func openOptionsPage(for record: InstalledExtension) {
+        guard let profileID = browser?.selectedProfileID, let context = runtimes[profileID]?.contexts[record.id],
+              let url = context.optionsPageURL else { return }
+        #if os(macOS)
+        openExtensionPage(url, in: context)
+        #else
+        browser?.newTab(url: url)
+        #endif
+    }
+
+    #if os(macOS)
+    /// An extension's own page — its options, its dashboard, a page it opens with `tabs.create` — in a
+    /// window of its own rather than a column.
+    ///
+    /// Not a column, because a column is a `WebPage`, and WebKit will not load an extension's page as a
+    /// main frame into a web view whose configuration does not name that extension
+    /// (`requiredWebExtensionBaseURL`, checked in `WebExtensionURLSchemeHandler`): the load fails with
+    /// `NSURLErrorResourceUnavailable` (-1008), which is what uBlock Origin Lite's dashboard showed as
+    /// "the page did not open". The configuration that does name it is
+    /// `WKWebExtensionContext.webViewConfiguration`, and `WebPage.Configuration` has no way to take
+    /// one. A `WKWebView` built from it does — so the page gets a window, the way the popup already
+    /// gets WebKit's popover. False when the context has no configuration to give.
+    @discardableResult
+    func openExtensionPage(_ url: URL, in context: WKWebExtensionContext) -> Bool {
+        guard let configuration = context.webViewConfiguration else { return false }
+        extensionPageWindows.removeAll { !$0.isVisible }
+        let frame = NSRect(x: 0, y: 0, width: 960, height: 720)
+        let webView = WKWebView(frame: frame, configuration: configuration)
+        let window = NSWindow(contentRect: frame, styleMask: [.titled, .closable, .miniaturizable, .resizable],
+                              backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        window.title = context.webExtension.displayName ?? url.lastPathComponent
+        window.contentView = webView
+        window.center()
+        extensionPageWindows.append(window)
+        webView.load(URLRequest(url: url))
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate()
+        log("opened \(url.lastPathComponent) of \(window.title) in a window of its own")
+        return true
+    }
+    #endif
+
+    #if os(macOS)
+    /// Whether `record` could stand in for the start page — `WKWebExtension.hasOverrideNewTabPage`,
+    /// for the toggle in `ExtensionsView`. Not whether it currently *does*; see
+    /// `overrideNewTabPageURL(for:)` for the one the user actually turned on.
+    func canOverrideNewTabPage(_ record: InstalledExtension) -> Bool {
+        guard let profileID = browser?.selectedProfileID else { return false }
+        return runtimes[profileID]?.contexts[record.id]?.webExtension.hasOverrideNewTabPage ?? false
+    }
+
+    /// The URL to load instead of the start page on a blank new window — the one extension the user
+    /// has allowed to do this (`ConfigurationStore.newTabOverrideExtensionID`), if it is still installed,
+    /// enabled, and still declares the capability. Checked fresh every time rather than trusted from
+    /// the setting alone, because uninstalling or disabling the extension does not clear it.
+    func overrideNewTabPageURL(for profileID: Profile.ID) -> URL? {
+        guard let id = settings.newTabOverrideExtensionID,
+              installed.first(where: { $0.id == id })?.isEnabled == true,
+              let context = runtimes[profileID]?.contexts[id],
+              context.webExtension.hasOverrideNewTabPage
+        else { return nil }
+        return context.overrideNewTabPageURL
+    }
+
+    func isNewTabOverride(_ record: InstalledExtension) -> Bool {
+        settings.newTabOverrideExtensionID == record.id
+    }
+
+    /// Only one extension may stand in for the start page at a time, the same rule every browser
+    /// with this feature keeps — turning it on for one is what turns it off for whichever had it.
+    func setNewTabOverride(_ record: InstalledExtension, _ on: Bool) {
+        settings.newTabOverrideExtensionID = on ? record.id : nil
+    }
+    #endif
+
+    /// Which profile a context belongs to — the delegate is shared by every profile's controller,
+    /// so "which strip is this extension talking about" is a lookup, not the selected profile.
+    /// Whose controller this is — the one question every delegate call can answer exactly, because
+    /// each profile has a controller of its own. Asked by context instead, it used to fall back to the
+    /// selected profile while a context was still loading (it is filed only once `load` returns, and
+    /// WebKit asks for windows during `load`), so a second profile's copy of an extension was handed
+    /// the first profile's tabs — and kept them.
+    func profileID(of controller: WKWebExtensionController) -> Profile.ID? {
+        runtimes.first { $0.value.controller === controller }?.key
+    }
+
+    func noteActionsChanged() {
+        actionRevision &+= 1
+    }
+
+    nonisolated func log(_ message: String) {
+        Log.info(.extensions, message)
+    }
+}
+
+/// Savoia's answers to the extension world.
+@MainActor
+final class ExtensionDelegate: NSObject, WKWebExtensionControllerDelegate {
+    weak var store: ExtensionStore?
+
+    func webExtensionController(_ controller: WKWebExtensionController, openWindowsFor context: WKWebExtensionContext) -> [any WKWebExtensionWindow] {
+        guard let store, let profileID = store.profileID(of: controller), let window = store.window(for: profileID) else { return [] }
+        return [window]
+    }
+
+    func webExtensionController(_ controller: WKWebExtensionController, focusedWindowFor context: WKWebExtensionContext) -> (any WKWebExtensionWindow)? {
+        guard let store, let profileID = store.profileID(of: controller) else { return nil }
+        return store.window(for: profileID)
+    }
+
+    func webExtensionController(_ controller: WKWebExtensionController, openNewTabUsing configuration: WKWebExtension.TabConfiguration, for context: WKWebExtensionContext) async throws -> (any WKWebExtensionTab)? {
+        guard let store, let browser = store.browser else { return nil }
+        #if os(macOS)
+        // An extension opening one of its own pages gets a window, not a column (`openExtensionPage`).
+        // There is no tab to hand back, so `tabs.create` reports none — which is the truth.
+        if let url = configuration.url, url.scheme == context.baseURL.scheme, url.host == context.baseURL.host,
+           store.openExtensionPage(url, in: context) {
+            return nil
+        }
+        #endif
+        let tab = browser.newTab(url: configuration.url)
+        return store.adapter(for: tab)
+    }
+
+    func webExtensionController(_ controller: WKWebExtensionController, openOptionsPageFor context: WKWebExtensionContext) async throws {
+        guard let store, let url = context.optionsPageURL else { return }
+        #if os(macOS)
+        store.openExtensionPage(url, in: context)
+        #else
+        store.browser?.newTab(url: url)
+        #endif
+    }
+
+    /// WebKit builds the popover itself; Savoia only has to say where it points — the toolbar button
+    /// that was clicked.
+    func webExtensionController(_ controller: WKWebExtensionController, presentActionPopup action: WKWebExtension.Action, for context: WKWebExtensionContext) async throws {
+        guard let store else { return }
+        #if os(iOS)
+        // TODO: the phone has no popover to hang this on — it wants a sheet over the strip.
+        store.log("popup for \(action.labelIfAny ?? "an extension") is not presented on this platform")
+        #elseif os(macOS)
+        if let popover = action.popupPopover {
+            // Under the button that was clicked, pointed at from the button's own view (`PopupAnchor`).
+            if let button = store.popupAnchorView, button.window != nil {
+                popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+                return
+            }
+            // Asked for by the extension itself, with no click to point at: under the top of the
+            // window, whichever way its content view happens to be flipped.
+            if let content = NSApp.mainWindow?.contentView {
+                let top = content.isFlipped ? 40 : content.bounds.maxY - 40
+                popover.show(relativeTo: NSRect(x: content.bounds.midX, y: top, width: 1, height: 1), of: content,
+                             preferredEdge: content.isFlipped ? .maxY : .minY)
+                return
+            }
+        }
+        // WebKit usually hands over a popover of its own; when it only hands over the web view, Savoia
+        // puts it in a panel rather than dropping the click on the floor.
+        guard let webView = action.popupWebView else {
+            store.log("popup for \(action.labelIfAny ?? "an extension") could not be presented")
+            return
+        }
+        let frame = NSRect(x: 0, y: 0, width: 380, height: 460)
+        let panel = NSPanel(contentRect: frame, styleMask: [.titled, .closable, .utilityWindow], backing: .buffered, defer: false)
+        panel.title = action.labelIfAny ?? context.webExtension.displayName ?? "Extension"
+        webView.frame = frame
+        webView.autoresizingMask = [.width, .height]
+        panel.contentView?.addSubview(webView)
+        panel.level = .floating
+        panel.center()
+        panel.orderFrontRegardless()
+        store.popupPanel = panel
+        #endif
+    }
+
+    /// Anything the extension did not ask for at install time is asked for now.
+    func webExtensionController(_ controller: WKWebExtensionController, promptForPermissions permissions: Set<WKWebExtension.Permission>, in tab: (any WKWebExtensionTab)?, for context: WKWebExtensionContext) async -> (Set<WKWebExtension.Permission>, Date?) {
+        let names = permissions.map(\.rawValue).sorted().joined(separator: ", ")
+        let allowed = Self.ask(
+            title: "\(context.webExtension.displayName ?? "An extension") wants more access",
+            body: "It is asking for: \(names).",
+            allow: "Allow")
+        return (allowed ? permissions : [], nil)
+    }
+
+    func webExtensionController(_ controller: WKWebExtensionController, promptForPermissionMatchPatterns patterns: Set<WKWebExtension.MatchPattern>, in tab: (any WKWebExtensionTab)?, for context: WKWebExtensionContext) async -> (Set<WKWebExtension.MatchPattern>, Date?) {
+        let hosts = patterns.map(\.description).sorted().joined(separator: ", ")
+        let allowed = Self.ask(
+            title: "\(context.webExtension.displayName ?? "An extension") wants access to sites",
+            body: "It is asking to read and change: \(hosts).",
+            allow: "Allow")
+        return (allowed ? patterns : [], nil)
+    }
+
+    func webExtensionController(_ controller: WKWebExtensionController, didUpdate action: WKWebExtension.Action, forExtensionContext context: WKWebExtensionContext) {
+        store?.noteActionsChanged()
+    }
+
+    private static func ask(title: String, body: String, allow: String) -> Bool {
+        #if os(iOS)
+        // TODO: route this through the same question the page permissions use; until then the phone
+        // grants nothing an extension did not already have at install time.
+        Log.info(.extensions, "denied without asking — \(title)")
+        return false
+        #elseif os(macOS)
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.informativeText = body
+        alert.addButton(withTitle: allow)
+        alert.addButton(withTitle: "Deny")
+        return alert.runModal() == .alertFirstButtonReturn
+        #endif
+    }
+}
+
+// MARK: - What an action calls itself
+
+extension WKWebExtension.Action {
+    /// `label` is no longer optional: an action with nothing of its own to say answers with an empty
+    /// string. Every caller here wants a name to fall back on, so empty stays "no label".
+    var labelIfAny: String? { label.isEmpty ? nil : label }
+}

@@ -1,6 +1,6 @@
 # First launch
 
-VI is a browser with no tabs. A page takes a whole window, windows stand in a row
+Savoia is a browser with no tabs. A page takes a whole window, windows stand in a row
 and scroll sideways, and there are as many rows as you have jobs on. Everything
 else is an ordinary browser: an address, history, bookmarks, downloads,
 extensions.
@@ -34,7 +34,7 @@ sits on its top right corner and is invisible until the pointer is on it.
 ## A new window
 
 `⌘T` opens one to the right of the current one. It opens not on somebody's home
-page but on VI's own **start page**: one field that takes a query and an address
+page but on Savoia's own **start page**: one field that takes a query and an address
 equally.
 
 As you type, completions gather under it, in this order:
@@ -70,7 +70,7 @@ The engine is switched from the chip to the left of the field, or from
 start page, the address bar and the assistant.
 
 ::: tip The query leaves the machine as you type
-That is what a suggestion service is. VI sends them over a session of their own —
+That is what a suggestion service is. Savoia sends them over a session of their own —
 no cookies, no cache, nothing tied to a profile. Beyond that, the start page
 touches the network not at all.
 :::
@@ -94,7 +94,7 @@ Four things keep it out of the way:
   should not fetch a pilaf recipe merely for being the nearest thing to it;
 - **two rows at most**, and they are not always there. Search by meaning answers
   anything — the nearest page is still the nearest page when nothing is near —
-  so for a question about something you never saved, VI shows nothing rather than
+  so for a question about something you never saved, Savoia shows nothing rather than
   the closest thing it has;
 - **a private window has none of it**: nothing is saved from there, and answering
   with your bookmarks in a window opened precisely to leave nothing behind would
@@ -128,12 +128,12 @@ None of this needs the keyboard:
 
 ## Where things are kept
 
-All of it on your machine, in `~/Library/Application Support/org.deffun.six`:
+All of it on your machine, in `~/Library/Application Support/org.deffun.savoia`:
 
 | | |
 |---|---|
 | `state.json` | windows, strips, workspaces, agent chats — the session snapshot |
-| `six.sqlite` | history, bookmarks, site permissions, settings |
+| `savoia.sqlite` | history, bookmarks, site permissions, settings |
 | `Profiles/<name>/` | the profile's bookmarks as files, and the agents' scratchpad |
 | `Blocking/`, `Models/`, `Thumbnails/`, `Screenshots/` | filter lists, the model behind search-by-meaning, window pictures, screenshots |
 

@@ -1,6 +1,6 @@
 # Extensions
 
-VI can install browser extensions — from a folder, a `.zip`, a `.crx` or an
+Savoia can install browser extensions — from a folder, a `.zip`, a `.crx` or an
 `.xpi`. **Configuration ▸ Extensions**
 
 ::: warning Read this before installing
@@ -24,7 +24,7 @@ and the verdict stays on its row afterwards.
 |---|---|
 | the background page and service worker | start, `browser.*` present |
 | `storage`, `alarms`, `cookies` | work |
-| `tabs.query`, `tabs.onUpdated` | work: an extension sees VI's columns with their addresses and titles |
+| `tabs.query`, `tabs.onUpdated` | work: an extension sees Savoia's columns with their addresses and titles |
 | content scripts from the manifest | **run**, the DOM is theirs |
 | dynamically registered scripts | run |
 | `declarativeNetRequest` | **blocks for real** — subresources and navigations alike |
@@ -39,9 +39,9 @@ and the verdict stays on its row afterwards.
 | `tabs.sendMessage` to a content script | the same |
 | `scripting.executeScript`, `scripting.insertCSS` | the same |
 
-It is all one failure, and it is not about VI in general but about the way pages
+It is all one failure, and it is not about Savoia in general but about the way pages
 are drawn here. It was measured once: "Tab not found" from a content script, and
-nothing delivered back. Then WebKit got from VI what it had been missing — and
+nothing delivered back. Then WebKit got from Savoia what it had been missing — and
 these four calls have not been measured since.
 
 ## What does not work
@@ -58,7 +58,7 @@ blocks nothing**, because its logic decides per tab, and a tab is what it could
 not see here. That was measured before the tab-to-frame link existed, and has not
 been repeated since.
 
-That is why [VI's own blocking is native](/en/blocking) and depends on no
+That is why [Savoia's own blocking is native](/en/blocking) and depends on no
 extension. uBOL installs and shows its verdict like any other; it simply does not
 block.
 

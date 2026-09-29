@@ -24,7 +24,7 @@
 
 ## How
 
-- **Private database**, one custom zone (`six`), record types per table. Zones give atomic batches and change
+- **Private database**, one custom zone (`Savoia`), record types per table. Zones give atomic batches and change
   tokens; the default zone doesn't.
 - **`CKSyncEngine`** (macOS 14+): it owns the push/pull loop, batching, retries, account changes and change tokens;
   we implement `nextRecordZoneChangeBatch` (what to send) and `handleEvent` (what came in). Far less code than raw
@@ -33,10 +33,10 @@
   flag; the engine reads the pending rows, and writes fetched records back into the store. SQLite is in place and
   its schema already follows SQLiteData's CloudKit rules, so this is a matter of adding the columns and opting
   tables into its `SyncEngine`.
-- **Portability**: everything CloudKit lives behind a `SyncEngine` protocol in `six/Sync/`; CloudKit is
+- **Portability**: everything CloudKit lives behind a `SyncEngine` protocol in `Savoia/Sync/`; CloudKit is
   Apple-only (there is a JS/REST *CloudKit Web Services* API, but it needs a web sign-in and is not a client SDK for
   Linux). A Linux build gets a no-op engine, or a different backend behind the same protocol.
-- **Requirements**: Developer Program, iCloud container `iCloud.org.deffun.six`, the `iCloud`/CloudKit entitlement
+- **Requirements**: Developer Program, iCloud container `iCloud.org.deffun.savoia`, the `iCloud`/CloudKit entitlement
   and a provisioning profile — the same signing setup [passkeys.md](passkeys.md) needs, so do them together. App
   Sandbox is not required for CloudKit on macOS.
 - **Privacy**: history is sensitive. Mark fields `encryptedValues` (end-to-end, keys in the user's Keychain), and
@@ -74,7 +74,7 @@ Yes, embeddings can live in CloudKit — as data, not as an index:
   `embeddingModel` on the chunk either way so a device can tell which vectors it can trust and re-embed the rest.
 - CloudKit **cannot search** vectors. Retrieval is always local; CloudKit is the transport.
 
-Recommendation for six: SQLite locally (visits, pages, chunks, vectors), CloudKit sync of visits first and chunks
+Recommendation for Savoia: SQLite locally (visits, pages, chunks, vectors), CloudKit sync of visits first and chunks
 + embeddings second, whole-`.db` asset never except as an explicit "back up to iCloud" button.
 
 ## Phone writes, Mac embeds, phone searches
@@ -104,7 +104,7 @@ Details that keep this honest:
 - **Index on the phone** — brute-force cosine over blobs is fine to ~100k chunks × 768 float16 (~150 MB,
   tens of ms on A17/M-series, `vDSP` if needed); `sqlite-vec` (one C file, builds into the iOS target) or USearch
   when it isn't.
-- **Same schema, same container** — one `iCloud.org.deffun.six`, one schema, two targets. Notes, chunks and
+- **Same schema, same container** — one `iCloud.org.deffun.savoia`, one schema, two targets. Notes, chunks and
   vectors are ordinary records well under 1 MB; no assets involved.
 - **If the index is [Wax](https://github.com/christopherkarani/Wax)** ([todo.md](todo.md)) nothing above changes:
   the `.wax` file is a per-device cache rebuilt from the synced records, on the Mac and on the phone alike. Do not

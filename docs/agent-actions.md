@@ -17,7 +17,7 @@ exists, it is switched on **per site**, the way `SitePermissions` is, never by o
 1. **The service's own MCP server**, connected in Apps — not a page at all ([mcp-apps.md](mcp-apps.md)).
 2. **The tools the page declared** — WebMCP ([webmcp.md](webmcp.md)).
 3. **Tools derived from the page's accessibility tree** — a form with its fields, a named control, a field
-   ([accessibility.md](accessibility.md#toward-page-tools-derived-from-the-tree)). Mac only, and only with six
+   ([accessibility.md](accessibility.md#toward-page-tools-derived-from-the-tree)). Mac only, and only with Savoia
    allowed under Accessibility.
 4. **The page's elements one by one** — the DOM snapshot and the acting tools below. Every page has these, on every
    front.
@@ -33,10 +33,10 @@ What is left when none of them works — a canvas (Sheets, Figma, Maps), a page 
 
 `page_snapshot`, `click`, `fill`, `select_option`, `press_key`, `scroll_page`, `wait_for`, all `surfaces: .mcp`: an
 ACP agent gets them through its own permission dialog, and the ⌘E line never gets a button pressed in answer to a
-question. The page half is `six/Tools/PageActionScript.swift`, the Swift half `six/Tools/PageActions.swift`, the
+question. The page half is `Savoia/Tools/PageActionScript.swift`, the Swift half `Savoia/Tools/PageActions.swift`, the
 tools themselves in `BrowserTools.swift`.
 
-- **The script runs in six's own content world** (`WebPage.six`), as the readable-text extractor does
+- **The script runs in Savoia's own content world** (`WebPage.savoia`), as the readable-text extractor does
   ([architecture.md](architecture.md#page-side-scripts)): a page cannot redefine `querySelectorAll` or a getter to
   show the agent a button the person does not see, or reach the registry to aim a click elsewhere. It is also why the
   WebMCP polyfill, which patches `Element.prototype.matches` / `closest` and `HTMLFormElement.prototype.submit` in
@@ -64,7 +64,7 @@ tools themselves in `BrowserTools.swift`.
 ## `run_page_task`: the routes
 
 `/do …` or `do: …` on the ⌘E line (`сделай: …` too), and `run_page_task` over MCP. The loop is
-`six/PageTasks/PageTaskRunner.swift`: snapshot → decide → act → snapshot, with ceilings on steps (40) and on a page
+`Savoia/PageTasks/PageTaskRunner.swift`: snapshot → decide → act → snapshot, with ceilings on steps (40) and on a page
 that stopped changing (3).
 
 At every step `PageTaskRoute.choose` asks what the page offers, in the order above:
@@ -85,8 +85,8 @@ The trace names the route on each step (`via the page's tools (1)`), and the ⌘
 
 ### Two deciders
 
-- **System 1** — `six/PageTasks/SystemOne.swift`, a client of one protocol, `/v1/systemone`, which both TypeSafe's
-  hosted Jev and a local laya-browser server speak; which one is an address in `six://configuration` ▸ Assistant ▸
+- **System 1** — `Savoia/PageTasks/SystemOne.swift`, a client of one protocol, `/v1/systemone`, which both TypeSafe's
+  hosted Jev and a local laya-browser server speak; which one is an address in `savoia://configuration` ▸ Assistant ▸
   Page Tasks. One request asks for the operation and a target for every operation, and only the head for the chosen
   operation is used. It picks elements; it cannot call a page tool, so on a WebMCP page every step is System 2's.
 - **System 2** — the assistant's model: a `LanguageModelSession`, or an **ACP agent** when the ⌘E line is set to
@@ -114,8 +114,8 @@ pays, books, orders, subscribes or deletes, and says what is ready. A prompt cou
 
 The client already speaks `/v1/systemone`, so it is settings, not code: **Fast Model Server**
 `https://api.typesafe.ai/v1/systemone`, **Model** `jev-latest`, a TypeSafe key, **Confidence Threshold** 0.9. For a
-side-by-side run, environment variables override the settings: `SIX_PAGETASK_ENDPOINT`, `SIX_PAGETASK_KEY`,
-`SIX_PAGETASK_MODEL`, `SIX_PAGETASK_THRESHOLD` (an empty endpoint is the model-only baseline). A refused key or an
+side-by-side run, environment variables override the settings: `SAVOIA_PAGETASK_ENDPOINT`, `SAVOIA_PAGETASK_KEY`,
+`SAVOIA_PAGETASK_MODEL`, `SAVOIA_PAGETASK_THRESHOLD` (an empty endpoint is the model-only baseline). A refused key or an
 unreachable endpoint is the trace's first line, not a silent model-only run.
 
 ## The stand
@@ -130,12 +130,12 @@ what a run is checked against — never the agent's account of itself.
 
 ```sh
 python3 scripts/agent-stand/serve.py 8765 &
-open -na <six.app> [--env SIX_WEBMCP=1]
+open -na <Savoia.app> [--env SAVOIA_WEBMCP=1]
 python3 scripts/agent-stand/tasks.py --label "model only"
 ```
 
-`sixmcp.py` finds this checkout's Debug build by the workspace path DerivedData records (the newest `six-*` is often
-another worktree's); `SIX_APP` overrides it. `tasks.py` prints one row per task: steps, seconds, System 2 calls and
+`savoiamcp.py` finds this checkout's Debug build by the workspace path DerivedData records (the newest `Savoia-*` is often
+another worktree's); `SAVOIA_APP` overrides it. `tasks.py` prints one row per task: steps, seconds, System 2 calls and
 prompt characters, and how many steps were left to System 1 — the column that decides whether a fast decider saves
 anything. The first `orders` run asks about the site `127.0.0.1` once.
 
@@ -165,7 +165,7 @@ Untried: Jev live (needs a key) and
 [ShaunSpark/laya-mind2web-browser-agent](https://huggingface.co/ShaunSpark/laya-mind2web-browser-agent) (671
 Mind2Web examples, no server for this protocol) are untried.
 
-By hand, over `six --mcp`, with only a goal and six's tools (Claude Code, `claude -p`, 21 Sep): the stand's flights
+By hand, over `Savoia --mcp`, with only a goal and Savoia's tools (Claude Code, `claude -p`, 21 Sep): the stand's flights
 in 18 turns ($0.40), its form in 11 ($0.19), httpbin.org/forms/post in 14 ($0.22), and live Google Flights, Zurich →
 London, one-way, in 29 turns and 92 s ($0.98). One action with its snapshot is ~0.8 s; a snapshot alone ~0.2 s.
 
@@ -175,7 +175,7 @@ London, one-way, in 29 turns and 92 s ($0.98). One action with its snapshot is ~
   and setting `AXValue` in the `--ax-read` child would press the way VoiceOver does, which matters exactly where the
   tree sees what the DOM walk does not (closed shadow roots, `ElementInternals`).
 - **Real events, for canvases.** Sheets draws its grid in `<canvas>` and mostly ignores `isTrusted: false` events.
-  `NSApp.postEvent` needs no Accessibility and produces trusted events (`six/Input/KeySelfTest.swift`): the keyboard
+  `NSApp.postEvent` needs no Accessibility and produces trusted events (`Savoia/Input/KeySelfTest.swift`): the keyboard
   nearly covers Sheets (arrows, typing, Enter, ⌘C/⌘V); the mouse needs page → window coordinates through the column
   frame, page scroll and the Y flip — the one place to measure rather than reason. Refuse while the window is off
   screen or the row is animating.

@@ -1,0 +1,75 @@
+import Foundation
+import WebKit
+
+/// The relay between the app's frame and Savoia.
+///
+/// It runs in the **shell**, Savoia's own document, and only there (`forMainFrameOnly: true`): the
+/// app's frame is never injected into. A user script is not subject to the document's CSP, which is
+/// why the shell can be served under `default-src 'none'` and still have a relay.
+///
+/// The whole of it is four moves — forward what the frame says, hand back what Savoia answers, and
+/// tell Savoia how big the column is, twice: once on load and again whenever it changes.
+nonisolated enum MCPAppBridge {
+    static let frameID = "savoia-mcp-view"
+    static let handlerName = "savoiaMcpApp"
+
+    /// `host` is the app's own origin — the script is built per app so the relay can name it.
+    static func source(host: String) -> String {
+        """
+    (function () {
+      var expectedHost = "\(host)";
+      var pending = [];
+      function view() {
+        var frame = document.getElementById("\(frameID)");
+        return frame && frame.contentWindow;
+      }
+      function send(payload) {
+        try { webkit.messageHandlers.\(handlerName).postMessage(JSON.stringify(payload)); } catch (error) {}
+      }
+      function flush() {
+        var target = view();
+        if (!target) return;
+        // Addressed, not broadcast: `"*"` would hand Savoia's messages to whatever the app happened to
+        // navigate its own frame to.
+        var origin = "\(MCPAppScheme.content)://" + expectedHost;
+        while (pending.length) target.postMessage(pending.shift(), origin);
+      }
+      function viewport() {
+        send({ savoiaViewport: { width: window.innerWidth, height: window.innerHeight } });
+      }
+      window.addEventListener("message", function (event) {
+        var target = view();
+        // Both halves, the way the reference sandbox does it: the right window, and the origin Savoia
+        // served it from. A frame the app opened inside itself is not the app.
+        if (!target || event.source !== target) return;
+        if (event.origin !== "\(MCPAppScheme.content)://" + expectedHost) return;
+        send({ savoiaMessage: event.data });
+        flush();
+      });
+      window.addEventListener("resize", viewport);
+      window.addEventListener("DOMContentLoaded", viewport);
+      window.addEventListener("load", function () { viewport(); flush(); });
+      window.__savoiaMcpApp = {
+        deliver: function (text) { pending.push(JSON.parse(text)); flush(); }
+      };
+    })();
+    """
+    }
+
+    /// Delivers one JSON-RPC message to the app. A function body, no `await` — see `PageScripts`.
+    static let deliverBody = "window.__savoiaMcpApp.deliver(text);"
+}
+
+/// One per running app: the shell's messages come in here and go to the session on the main actor.
+nonisolated final class MCPAppMessageHandler: NSObject, WKScriptMessageHandler {
+    weak var session: MCPAppSession?
+
+    @MainActor func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
+        // Only the shell talks to Savoia. The app's own frame shares this content controller — every
+        // frame of a page does — so the frame is checked rather than trusted.
+        guard message.frameInfo.isMainFrame, let text = message.body as? String else { return }
+        Task { @MainActor [weak session] in
+            session?.receive(text)
+        }
+    }
+}

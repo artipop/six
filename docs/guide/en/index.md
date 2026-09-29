@@ -4,7 +4,7 @@ layout: home
 titleTemplate: ':title — the guide'
 
 hero:
-  name: VI
+  name: Savoia
   text: The guide
   tagline: 'A browser without tabs. A page is a window on an endless row, there are as many rows as you have jobs on, and a model or an agent is one keystroke away on any of them.'
   actions:
@@ -30,7 +30,7 @@ features:
     link: /en/bookmarks
 ---
 
-VI is a browser for macOS. In the application's own menus it is called `six` —
+Savoia is a browser for macOS. In the application's own menus it is called `Savoia` —
 the name it was built under, which this guide repeats wherever it is on screen.
 
 What follows is what it does, section by section. Start with the

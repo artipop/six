@@ -6,7 +6,7 @@ picture inside the conversation. Here an app is **a window in the row**, level
 with a website: it can be moved, carried to another workspace, left open and come
 back to tomorrow.
 
-It cost VI nothing: every window already has its own content process and its own
+It cost Savoia nothing: every window already has its own content process and its own
 storage, which is a stronger sandbox than an iframe.
 
 ## Server settings
@@ -17,13 +17,13 @@ Open **Configuration ▸ Assistant ▸ MCP**. There is no separate Apps menu.
 - **Browse MCP Catalog…** — a separate window with registry search and the catalogue of servers with interfaces.
 - **Add Server…** — connect by command or URL. Ordinary MCP servers without interfaces are configured here too.
 
-On macOS, the separate `six://apps` page has been removed; configure servers here.
+On macOS, the separate `savoia://apps` page has been removed; configure servers here.
 
 ## Where apps come from
 
 There are many catalogues of MCP servers and not one catalogue of the servers
 that draw something — the registry schema has no field to filter on. The only way
-to know is to connect and look, so **VI builds that list itself**: it walks the
+to know is to connect and look, so **Savoia builds that list itself**: it walks the
 official registry, asks every remote server, and writes down the ones that have
 an interface.
 
@@ -86,7 +86,7 @@ An app inside a window can ask the browser to run a tool of its server. That is
 put to a person — a bar above the column — and the answer is remembered for the
 life of the window.
 
-A tool the server has not declared safe to repeat is never re-run by VI on its
+A tool the server has not declared safe to repeat is never re-run by Savoia on its
 own.
 
 ## What is given to the agent

@@ -1,14 +1,14 @@
 -------------------------------------
 Translated Report (Full Report Below)
 -------------------------------------
-Process:             six [61865]
-Path:                /Users/USER/Library/Developer/Xcode/DerivedData/six-gpnapvnurnoahkexxoekssorhfif/Build/Products/Debug/six.app/Contents/MacOS/six
-Identifier:          org.deffun.six
+Process:             Savoia [61865]
+Path:                /Users/USER/Library/Developer/Xcode/DerivedData/Savoia-gpnapvnurnoahkexxoekssorhfif/Build/Products/Debug/Savoia.app/Contents/MacOS/Savoia
+Identifier:          org.deffun.savoia
 Version:             1.0 (1)
 Code Type:           ARM-64 (Native)
 Role:                Background
 Parent Process:      launchd [1]
-Coalition:           org.deffun.six [7076]
+Coalition:           org.deffun.savoia [7076]
 User ID:             501
 
 Date/Time:           2026-08-26 18:07:55.1294 +0700
@@ -35,17 +35,17 @@ Terminating Process: exc handler [61865]
 
 Thread 0 Crashed::  Dispatch queue: com.apple.main-thread
 0   libswiftCore.dylib            	       0x1a4127d4c _assertionFailure(_:_:file:line:flags:) + 216
-1   six.debug.dylib               	       0x1046b7228 sixApp.init() + 4536 (sixApp.swift:33)
-2   six.debug.dylib               	       0x1046ba7e8 protocol witness for App.init() in conformance sixApp + 28
+1   savoia.debug.dylib               	       0x1046b7228 SavoiaApp.init() + 4536 (SavoiaApp.swift:33)
+2   savoia.debug.dylib               	       0x1046ba7e8 protocol witness for App.init() in conformance SavoiaApp + 28
 3   SwiftUI                       	       0x1c86fc6ec static App.main() + 208
-4   six.debug.dylib               	       0x1046b457c closure #1 in static SixMain.main() + 48 (sixApp.swift:11)
-5   six.debug.dylib               	       0x1044a55fc thunk for @callee_guaranteed () -> (@out A, @error @owned Error) + 24
-6   six.debug.dylib               	       0x1044a5698 partial apply for thunk for @callee_guaranteed () -> (@out A, @error @owned Error) + 40
-7   six.debug.dylib               	       0x1044a56c4 closure #1 in static MainActor.assumeIsolated<A>(_:file:line:) + 28
-8   six.debug.dylib               	       0x1044a26d8 static MainActor.assumeIsolated<A>(_:file:line:) + 424
-9   six.debug.dylib               	       0x1046b452c static SixMain.main() + 152 (sixApp.swift:11)
-10  six.debug.dylib               	       0x1046b459c static SixMain.$main() + 12
-11  six.debug.dylib               	       0x1046c51e8 __debug_main_executable_dylib_entry_point + 12
+4   savoia.debug.dylib               	       0x1046b457c closure #1 in static SavoiaMain.main() + 48 (SavoiaApp.swift:11)
+5   savoia.debug.dylib               	       0x1044a55fc thunk for @callee_guaranteed () -> (@out A, @error @owned Error) + 24
+6   savoia.debug.dylib               	       0x1044a5698 partial apply for thunk for @callee_guaranteed () -> (@out A, @error @owned Error) + 40
+7   savoia.debug.dylib               	       0x1044a56c4 closure #1 in static MainActor.assumeIsolated<A>(_:file:line:) + 28
+8   savoia.debug.dylib               	       0x1044a26d8 static MainActor.assumeIsolated<A>(_:file:line:) + 424
+9   savoia.debug.dylib               	       0x1046b452c static SavoiaMain.main() + 152 (SavoiaApp.swift:11)
+10  savoia.debug.dylib               	       0x1046b459c static SavoiaMain.$main() + 12
+11  savoia.debug.dylib               	       0x1046c51e8 __debug_main_executable_dylib_entry_point + 12
 12  dyld                          	       0x18f6fbe88 start + 6688
 
 Thread 1:
@@ -64,8 +64,8 @@ Thread 0 crashed with ARM Thread State (64-bit):
    far: 0x0000000000000000  esr: 0xf2000001 (Breakpoint) brk 1
 
 Binary Images:
-       0x102094000 -        0x102097fff org.deffun.six (1.0) <a9e2aa6e-cd7a-31d6-acdc-6bc50762ab93> /Users/USER/Library/Developer/Xcode/DerivedData/six-gpnapvnurnoahkexxoekssorhfif/Build/Products/Debug/six.app/Contents/MacOS/six
-       0x104340000 -        0x104fdbfff six.debug.dylib (*) <6a8006cf-da11-347a-8eb8-c037d095ac8d> /Users/USER/Library/Developer/Xcode/DerivedData/six-gpnapvnurnoahkexxoekssorhfif/Build/Products/Debug/six.app/Contents/MacOS/six.debug.dylib
+       0x102094000 -        0x102097fff org.deffun.savoia (1.0) <a9e2aa6e-cd7a-31d6-acdc-6bc50762ab93> /Users/USER/Library/Developer/Xcode/DerivedData/Savoia-gpnapvnurnoahkexxoekssorhfif/Build/Products/Debug/Savoia.app/Contents/MacOS/Savoia
+       0x104340000 -        0x104fdbfff savoia.debug.dylib (*) <6a8006cf-da11-347a-8eb8-c037d095ac8d> /Users/USER/Library/Developer/Xcode/DerivedData/Savoia-gpnapvnurnoahkexxoekssorhfif/Build/Products/Debug/Savoia.app/Contents/MacOS/savoia.debug.dylib
        0x1a3fc7000 -        0x1a455fe2f libswiftCore.dylib (*) <dde3caba-5ed6-3ec8-b0b0-d5c43b95c767> /usr/lib/swift/libswiftCore.dylib
        0x1c7f0d000 -        0x1c97619a7 com.apple.SwiftUI (8.0.84.1.406) <44dcc7da-45bd-3a18-8db9-3f1c8fbcc442> /System/Library/Frameworks/SwiftUI.framework/Versions/A/SwiftUI
        0x18f6ca000 -        0x18f78966f dyld (*) <b6c0f697-046b-3606-96f7-042154b70ab9> /usr/lib/dyld
@@ -124,7 +124,7 @@ TOTAL                            388.0G     3829
 Full Report
 -----------
 
-{"app_name":"six","timestamp":"2026-08-26 18:08:00.00 +0700","app_version":"1.0","slice_uuid":"a9e2aa6e-cd7a-31d6-acdc-6bc50762ab93","build_version":"1","platform":1,"bundleID":"org.deffun.six","share_with_app_devs":0,"is_first_party":0,"bug_type":"309","os_version":"macOS 27.0 (26A5421a)","roots_installed":0,"name":"six","incident_id":"E8BF0475-7CF9-4518-867D-0DCAD09564FA"}
+{"app_name":"Savoia","timestamp":"2026-08-26 18:08:00.00 +0700","app_version":"1.0","slice_uuid":"a9e2aa6e-cd7a-31d6-acdc-6bc50762ab93","build_version":"1","platform":1,"bundleID":"org.deffun.savoia","share_with_app_devs":0,"is_first_party":0,"bug_type":"309","os_version":"macOS 27.0 (26A5421a)","roots_installed":0,"name":"Savoia","incident_id":"E8BF0475-7CF9-4518-867D-0DCAD09564FA"}
 {
   "uptime" : 78000,
   "procRole" : "Background",
@@ -147,18 +147,18 @@ Full Report
   "procLaunch" : "2026-08-26 18:07:54.6166 +0700",
   "procStartAbsTime" : 1885868967503,
   "procExitAbsTime" : 1885878868192,
-  "procName" : "six",
-  "procPath" : "\/Users\/USER\/Library\/Developer\/Xcode\/DerivedData\/six-gpnapvnurnoahkexxoekssorhfif\/Build\/Products\/Debug\/six.app\/Contents\/MacOS\/six",
-  "bundleInfo" : {"CFBundleShortVersionString":"1.0","CFBundleVersion":"1","CFBundleIdentifier":"org.deffun.six"},
+  "procName" : "Savoia",
+  "procPath" : "\/Users\/USER\/Library\/Developer\/Xcode\/DerivedData\/savoia-gpnapvnurnoahkexxoekssorhfif\/Build\/Products\/Debug\/Savoia.app\/Contents\/MacOS\/Savoia",
+  "bundleInfo" : {"CFBundleShortVersionString":"1.0","CFBundleVersion":"1","CFBundleIdentifier":"org.deffun.savoia"},
   "storeInfo" : {"deviceIdentifierForVendor":"29547E76-00CF-5869-AF6F-FA45FC0CECB3","thirdParty":true},
   "parentProc" : "launchd",
   "parentPid" : 1,
-  "coalitionName" : "org.deffun.six",
+  "coalitionName" : "org.deffun.savoia",
   "crashReporterKey" : "FED1EA39-91CE-7A18-640A-84F0A99A76E9",
   "chargingStatus" : {"externalSourceConnected":true,"chargeMode":"chargingWired"},
   "developerMode" : 1,
   "bootProgressRegister" : "0x2f000000",
-  "codeSigningID" : "org.deffun.six",
+  "codeSigningID" : "org.deffun.savoia",
   "codeSigningTeamID" : "",
   "codeSigningFlags" : 570425861,
   "codeSigningValidationCategory" : 10,
@@ -169,21 +169,21 @@ Full Report
   "sip" : "enabled",
   "exception" : {"codes":"0x0000000000000001, 0x00000001a4127d4c","rawCodes":[1,7047642444],"type":"EXC_BREAKPOINT","signal":"SIGTRAP"},
   "termination" : {"flags":0,"code":5,"namespace":"SIGNAL","indicator":"Trace\/BPT trap: 5","byProc":"exc handler","byPid":61865},
-  "os_fault" : {"process":"six"},
+  "os_fault" : {"process":"Savoia"},
   "extMods" : {"caller":{"thread_create":0,"thread_set_state":0,"task_for_pid":0},"system":{"thread_create":0,"thread_set_state":3818,"task_for_pid":72},"targeted":{"thread_create":0,"thread_set_state":0,"task_for_pid":0},"warnings":0},
   "faultingThread" : 0,
-  "threads" : [{"triggered":true,"id":1087220,"threadState":{"x":[{"value":4329453992},{"value":8589934595},{"value":4162},{"value":37},{"value":4329456768},{"value":19},{"value":32},{"value":4333535872},{"value":18446744065119617024},{"value":259},{"value":4329456672},{"value":4329324656},{"value":351508883483654},{"value":7698},{"value":130},{"value":65536},{"value":8589934595},{"value":3},{"value":0},{"value":6137749200},{"value":6137751152},{"value":527023636480},{"value":6137752752},{"value":8411549232,"symbolLocation":0,"symbol":"vm_page_mask"},{"value":8411549216,"symbolLocation":0,"symbol":"mach_task_self_"},{"value":6137752936},{"value":1},{"value":65535},{"value":4333977600}],"flavor":"ARM_THREAD_STATE64","lr":{"value":7047642444},"cpsr":{"value":1610616832},"fp":{"value":6137748960},"sp":{"value":6137748928},"esr":{"value":4060086273,"description":"(Breakpoint) brk 1"},"pc":{"value":7047642444,"matchesCrashFrame":1},"far":{"value":0}},"queue":"com.apple.main-thread","frames":[{"imageOffset":1445196,"symbol":"_assertionFailure(_:_:file:line:flags:)","symbolLocation":216,"imageIndex":2},{"imageOffset":3633704,"sourceLine":33,"sourceFile":"sixApp.swift","symbol":"sixApp.init()","imageIndex":1,"symbolLocation":4536},{"imageOffset":3647464,"sourceFile":"\/<compiler-generated>","symbol":"protocol witness for App.init() in conformance sixApp","symbolLocation":28,"imageIndex":1},{"imageOffset":8320748,"symbol":"static App.main()","symbolLocation":208,"imageIndex":3},{"imageOffset":3622268,"sourceLine":11,"sourceFile":"sixApp.swift","symbol":"closure #1 in static SixMain.main()","imageIndex":1,"symbolLocation":48},{"imageOffset":1463804,"sourceFile":"\/<compiler-generated>","symbol":"thunk for @callee_guaranteed () -> (@out A, @error @owned Error)","symbolLocation":24,"imageIndex":1},{"imageOffset":1463960,"sourceFile":"\/<compiler-generated>","symbol":"partial apply for thunk for @callee_guaranteed () -> (@out A, @error @owned Error)","symbolLocation":40,"imageIndex":1},{"imageOffset":1464004,"sourceFile":"\/<compiler-generated>","symbol":"closure #1 in static MainActor.assumeIsolated<A>(_:file:line:)","symbolLocation":28,"imageIndex":1},{"imageOffset":1451736,"sourceFile":"\/<compiler-generated>","symbol":"static MainActor.assumeIsolated<A>(_:file:line:)","symbolLocation":424,"imageIndex":1},{"imageOffset":3622188,"sourceLine":11,"sourceFile":"sixApp.swift","symbol":"static SixMain.main()","imageIndex":1,"symbolLocation":152},{"imageOffset":3622300,"sourceFile":"\/<compiler-generated>","symbol":"static SixMain.$main()","symbolLocation":12,"imageIndex":1},{"imageOffset":3690984,"sourceFile":"sixApp.swift","symbol":"__debug_main_executable_dylib_entry_point","symbolLocation":12,"imageIndex":1},{"imageOffset":204424,"symbol":"start","symbolLocation":6688,"imageIndex":4}]},{"id":1087240,"frames":[],"threadState":{"x":[{"value":6138310656},{"value":5379},{"value":6137774080},{"value":0},{"value":409604},{"value":18446744073709551615},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0}],"flavor":"ARM_THREAD_STATE64","lr":{"value":0},"cpsr":{"value":4096},"fp":{"value":0},"sp":{"value":6138310656},"esr":{"value":1442840704,"description":"(Syscall)"},"pc":{"value":6705433816},"far":{"value":0}}}],
+  "threads" : [{"triggered":true,"id":1087220,"threadState":{"x":[{"value":4329453992},{"value":8589934595},{"value":4162},{"value":37},{"value":4329456768},{"value":19},{"value":32},{"value":4333535872},{"value":18446744065119617024},{"value":259},{"value":4329456672},{"value":4329324656},{"value":351508883483654},{"value":7698},{"value":130},{"value":65536},{"value":8589934595},{"value":3},{"value":0},{"value":6137749200},{"value":6137751152},{"value":527023636480},{"value":6137752752},{"value":8411549232,"symbolLocation":0,"symbol":"vm_page_mask"},{"value":8411549216,"symbolLocation":0,"symbol":"mach_task_self_"},{"value":6137752936},{"value":1},{"value":65535},{"value":4333977600}],"flavor":"ARM_THREAD_STATE64","lr":{"value":7047642444},"cpsr":{"value":1610616832},"fp":{"value":6137748960},"sp":{"value":6137748928},"esr":{"value":4060086273,"description":"(Breakpoint) brk 1"},"pc":{"value":7047642444,"matchesCrashFrame":1},"far":{"value":0}},"queue":"com.apple.main-thread","frames":[{"imageOffset":1445196,"symbol":"_assertionFailure(_:_:file:line:flags:)","symbolLocation":216,"imageIndex":2},{"imageOffset":3633704,"sourceLine":33,"sourceFile":"SavoiaApp.swift","symbol":"SavoiaApp.init()","imageIndex":1,"symbolLocation":4536},{"imageOffset":3647464,"sourceFile":"\/<compiler-generated>","symbol":"protocol witness for App.init() in conformance SavoiaApp","symbolLocation":28,"imageIndex":1},{"imageOffset":8320748,"symbol":"static App.main()","symbolLocation":208,"imageIndex":3},{"imageOffset":3622268,"sourceLine":11,"sourceFile":"SavoiaApp.swift","symbol":"closure #1 in static SavoiaMain.main()","imageIndex":1,"symbolLocation":48},{"imageOffset":1463804,"sourceFile":"\/<compiler-generated>","symbol":"thunk for @callee_guaranteed () -> (@out A, @error @owned Error)","symbolLocation":24,"imageIndex":1},{"imageOffset":1463960,"sourceFile":"\/<compiler-generated>","symbol":"partial apply for thunk for @callee_guaranteed () -> (@out A, @error @owned Error)","symbolLocation":40,"imageIndex":1},{"imageOffset":1464004,"sourceFile":"\/<compiler-generated>","symbol":"closure #1 in static MainActor.assumeIsolated<A>(_:file:line:)","symbolLocation":28,"imageIndex":1},{"imageOffset":1451736,"sourceFile":"\/<compiler-generated>","symbol":"static MainActor.assumeIsolated<A>(_:file:line:)","symbolLocation":424,"imageIndex":1},{"imageOffset":3622188,"sourceLine":11,"sourceFile":"SavoiaApp.swift","symbol":"static SavoiaMain.main()","imageIndex":1,"symbolLocation":152},{"imageOffset":3622300,"sourceFile":"\/<compiler-generated>","symbol":"static SavoiaMain.$main()","symbolLocation":12,"imageIndex":1},{"imageOffset":3690984,"sourceFile":"SavoiaApp.swift","symbol":"__debug_main_executable_dylib_entry_point","symbolLocation":12,"imageIndex":1},{"imageOffset":204424,"symbol":"start","symbolLocation":6688,"imageIndex":4}]},{"id":1087240,"frames":[],"threadState":{"x":[{"value":6138310656},{"value":5379},{"value":6137774080},{"value":0},{"value":409604},{"value":18446744073709551615},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0},{"value":0}],"flavor":"ARM_THREAD_STATE64","lr":{"value":0},"cpsr":{"value":4096},"fp":{"value":0},"sp":{"value":6138310656},"esr":{"value":1442840704,"description":"(Syscall)"},"pc":{"value":6705433816},"far":{"value":0}}}],
   "usedImages" : [
   {
     "source" : "P",
     "arch" : "arm64",
     "base" : 4329127936,
     "CFBundleShortVersionString" : "1.0",
-    "CFBundleIdentifier" : "org.deffun.six",
+    "CFBundleIdentifier" : "org.deffun.savoia",
     "size" : 16384,
     "uuid" : "a9e2aa6e-cd7a-31d6-acdc-6bc50762ab93",
-    "path" : "\/Users\/USER\/Library\/Developer\/Xcode\/DerivedData\/six-gpnapvnurnoahkexxoekssorhfif\/Build\/Products\/Debug\/six.app\/Contents\/MacOS\/six",
-    "name" : "six",
+    "path" : "\/Users\/USER\/Library\/Developer\/Xcode\/DerivedData\/savoia-gpnapvnurnoahkexxoekssorhfif\/Build\/Products\/Debug\/Savoia.app\/Contents\/MacOS\/Savoia",
+    "name" : "Savoia",
     "CFBundleVersion" : "1"
   },
   {
@@ -192,8 +192,8 @@ Full Report
     "base" : 4365484032,
     "size" : 13221888,
     "uuid" : "6a8006cf-da11-347a-8eb8-c037d095ac8d",
-    "path" : "\/Users\/USER\/Library\/Developer\/Xcode\/DerivedData\/six-gpnapvnurnoahkexxoekssorhfif\/Build\/Products\/Debug\/six.app\/Contents\/MacOS\/six.debug.dylib",
-    "name" : "six.debug.dylib"
+    "path" : "\/Users\/USER\/Library\/Developer\/Xcode\/DerivedData\/savoia-gpnapvnurnoahkexxoekssorhfif\/Build\/Products\/Debug\/Savoia.app\/Contents\/MacOS\/savoia.debug.dylib",
+    "name" : "savoia.debug.dylib"
   },
   {
     "source" : "P",

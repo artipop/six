@@ -1,6 +1,6 @@
 # Tabs instead of the row
 
-Out of the box six shows its window the way every other browser does: a tab
+Out of the box Savoia shows its window the way every other browser does: a tab
 bar at the top, the address field under it, and one page below. The row is the
 same windows laid out another way, and it is one switch away.
 
@@ -61,7 +61,7 @@ A folded group stays folded after a relaunch.
 
 ### Groups by meaning
 
-With **Configuration ▸ Windows ▸ Group Tabs by Meaning** on, six sorts tabs by what
+With **Configuration ▸ Windows ▸ Group Tabs by Meaning** on, Savoia sorts tabs by what
 the page is about — on this Mac, with no network and without the language model
 features:
 

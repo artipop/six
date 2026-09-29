@@ -5,7 +5,7 @@ accessibility knows about it — what a person using VoiceOver hears. Every
 element gets a box in the colour of its kind, and a label: what it is called
 and what can be done with it.
 
-These are the [agent's](/en/agents) eyes, made visible. When an agent asks VI
+These are the [agent's](/en/agents) eyes, made visible. When an agent asks Savoia
 what is on a page, this is the list it gets — numbered buttons, fields, headings
 and regions with their actions. With the overlay on, you can see exactly what it
 was shown.
@@ -50,33 +50,33 @@ press ⟳ again.
 
 ## The permission
 
-To read this tree VI needs the **Accessibility** permission. The first time the
+To read this tree Savoia needs the **Accessibility** permission. The first time the
 overlay is turned on, macOS asks for it. If you said no, the panel has an
-**Open Privacy & Security** button — turn VI on under **Accessibility** there.
+**Open Privacy & Security** button — turn Savoia on under **Accessibility** there.
 
 ::: tip Why this permission
 The page lives in a process of its own, and macOS lets one application read
 another's interface only with this permission — even when the "other" is its
-own page. VI uses it for nothing but this overlay and an agent's questions about
+own page. Savoia uses it for nothing but this overlay and an agent's questions about
 the page.
 
-The tree is read not by the browser window itself but by a second VI process,
+The tree is read not by the browser window itself but by a second Savoia process,
 started while the overlay or an agent is using it and closed after half a
-minute of quiet. The two share one permission. Switching VI on in the list after
+minute of quiet. The two share one permission. Switching Savoia on in the list after
 the overlay first asked needs no restart.
 :::
 
-After VI is updated, macOS may ask for the permission again.
+After Savoia is updated, macOS may ask for the permission again.
 
 ## The tools mark
 
-With **WebMCP** on under `six://configuration` ▸ **Develop**, a page that
+With **WebMCP** on under `savoia://configuration` ▸ **Develop**, a page that
 declared no tools for agents may show a wrench with a spark beside its address.
 It means the page's accessibility tree is good enough to make tools of: at least
 three buttons or fields on screen (links do not count), most of them named.
 Pressing it lists them — a form that can be filled, what can be pressed, where
 text can be typed. Agents get the same list and can call these tools; each call
-waits for your confirmation, since six cannot know what a button does. The [do
+waits for your confirmation, since Savoia cannot know what a button does. The [do
 command](/en/assistant#the-do-command) uses them too, filling such a form in one step.
 
 The overlay is Mac-only for now.

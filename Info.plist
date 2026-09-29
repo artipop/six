@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<!--
-	  What makes macOS treat six as a browser rather than an app that happens to show web pages.
+	  What makes macOS treat Savoia as a browser rather than an app that happens to show web pages.
 	  The generated keys (bundle name, version, principal class) are merged in at build time —
 	  GENERATE_INFOPLIST_FILE stays on, this file only adds what the generator cannot express.
 	-->
@@ -11,11 +11,11 @@
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.productivity</string>
 
-	<!-- The one that matters: claiming http/https as a Viewer is what puts six in
+	<!-- The one that matters: claiming http/https as a Viewer is what puts Savoia in
 	     System Settings › Desktop & Dock › Default web browser. The schemes are build
 	     settings because only the release build should be in that list: a development
-	     build claims six-dev-http/six-dev-https instead, which nothing asks for, so it
-	     never appears as a second "six" beside the real one. Xcode registers every build
+	     build claims savoia-dev-http/savoia-dev-https instead, which nothing asks for, so it
+	     never appears as a second "Savoia" beside the real one. Xcode registers every build
 	     it makes with LaunchServices, and a claim on http from DerivedData outlives the
 	     copy that made it. -->
 	<key>CFBundleURLTypes</key>
@@ -27,12 +27,12 @@
 			<string>Viewer</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>$(SIX_WEB_SCHEME_HTTP)</string>
-				<string>$(SIX_WEB_SCHEME_HTTPS)</string>
+				<string>$(SAVOIA_WEB_SCHEME_HTTP)</string>
+				<string>$(SAVOIA_WEB_SCHEME_HTTPS)</string>
 			</array>
 		</dict>
-		<!-- The share extension's handoff (six/Share/ShareHandoff.swift). A build setting for the
-		     same reason as the web schemes: the development build answers six-dev-share. -->
+		<!-- The share extension's handoff (Savoia/Share/ShareHandoff.swift). A build setting for the
+		     same reason as the web schemes: the development build answers savoia-dev-share. -->
 		<dict>
 			<key>CFBundleURLName</key>
 			<string>Shared from another app</string>
@@ -40,7 +40,7 @@
 			<string>Viewer</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>$(SIX_SHARE_SCHEME)</string>
+				<string>$(SAVOIA_SHARE_SCHEME)</string>
 			</array>
 		</dict>
 		<dict>
@@ -55,7 +55,7 @@
 		</dict>
 	</array>
 
-	<!-- Files a browser is expected to open. Rank Owner only where six is a plausible
+	<!-- Files a browser is expected to open. Rank Owner only where Savoia is a plausible
 	     first choice; the rest stay Alternate so Preview and TextEdit keep their files. -->
 	<key>CFBundleDocumentTypes</key>
 	<array>
@@ -136,14 +136,14 @@
 		</dict>
 	</array>
 
-	<!-- Handoff: a page open on another device is offered to six. -->
+	<!-- Handoff: a page open on another device is offered to Savoia. -->
 	<key>NSUserActivityTypes</key>
 	<array>
 		<string>NSUserActivityTypeBrowsingWeb</string>
 	</array>
 
 	<!-- The web is still partly plaintext; the exemption is for page content only,
-	     not for anything six itself fetches. -->
+	     not for anything Savoia itself fetches. -->
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoadsInWebContent</key>

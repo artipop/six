@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">six</string>
+    <string name="app_name">Savoia</string>
 
     <!-- The strip -->
     <string name="workspace_numbered">Workspace %1$d</string>

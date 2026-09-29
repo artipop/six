@@ -7,7 +7,7 @@
  * selectors (`:has-text()`, `:contains()`, `:xpath()`, `:matches-css()`) no CSS engine knows —
  * they are matched by AdGuard's own library, which is the whole reason this file is 40 KB.
  *
- * six calls it from a content world of its own, so the page can neither see `sixCosmetic` nor
+ * Savoia calls it from a content world of its own, so the page can neither see `savoiaCosmetic` nor
  * replace the DOM methods it uses.
  */
 import { ExtendedCss } from '@adguard/extended-css';
@@ -80,19 +80,19 @@ const insertExtendedCss = (extendedCss) => {
  * Called at document start, before the page has a body: `insertRule` on a `<style>` in `<head>`
  * and ExtendedCss's own observer both handle an empty document and catch up as it fills.
  */
-globalThis.sixCosmetic = (css, extendedCss) => {
+globalThis.savoiaCosmetic = (css, extendedCss) => {
     let applied = 0;
     try {
         insertCss(css);
         applied += css.length;
     } catch (e) {
-        console.error('six: failed to insert CSS', e);
+        console.error('Savoia: failed to insert CSS', e);
     }
     try {
         insertExtendedCss(extendedCss);
         applied += extendedCss.length;
     } catch (e) {
-        console.error('six: failed to insert extended CSS', e);
+        console.error('Savoia: failed to insert extended CSS', e);
     }
     return applied;
 };

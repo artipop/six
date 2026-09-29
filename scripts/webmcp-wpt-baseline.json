@@ -9,7 +9,7 @@
     {
      "status": "Fail",
      "name": "Declarative tool registration is blocked when document.domain is enabled",
-     "message": "promise_rejects_dom: function \"function() { throw e; }\" threw object \"NotAllowedError: the tools permissions policy does not allow this frame\" that is not a DOMException SecurityError: property \"code\" is equal to 0, expected 18get_stack@https://www.six.localhost:8443/resources/testharness.js:4802:30"
+     "message": "promise_rejects_dom: function \"function() { throw e; }\" threw object \"NotAllowedError: the tools permissions policy does not allow this frame\" that is not a DOMException SecurityError: property \"code\" is equal to 0, expected 18get_stack@https://www.savoia.localhost:8443/resources/testharness.js:4802:30"
     }
    ]
   },
@@ -119,7 +119,7 @@
     {
      "status": "Fail",
      "name": "Pseudo-classes :tool-form-active and :tool-submit-active apply correctly during execution and are removed upon completion",
-     "message": "assert_equals: Form should be styled by :tool-form-active expected \"rgb(0, 255, 0)\" but got \"rgba(0, 0, 0, 0)\"@https://six.localhost:8443/webmcp/declarative/executeTool-pseudo-classes.https.html:59:16Asserts runPassassert_true(true, \"Form should match :tool-form-active during submit\")"
+     "message": "assert_equals: Form should be styled by :tool-form-active expected \"rgb(0, 255, 0)\" but got \"rgba(0, 0, 0, 0)\"@https://savoia.localhost:8443/webmcp/declarative/executeTool-pseudo-classes.https.html:59:16Asserts runPassassert_true(true, \"Form should match :tool-form-active during submit\")"
     },
     {
      "status": "Pass",
@@ -509,17 +509,17 @@
     {
      "status": "Fail",
      "name": "modelContext.registerTool rejects with SecurityError when document.domain is enabled",
-     "message": "promise_rejects_dom: function \"function() { throw e; }\" threw object \"NotAllowedError: the tools permissions policy does not allow this frame\" that is not a DOMException SecurityError: property \"code\" is equal to 0, expected 18get_stack@https://www.six.localhost:8443/resources/testharness.js:4802:30"
+     "message": "promise_rejects_dom: function \"function() { throw e; }\" threw object \"NotAllowedError: the tools permissions policy does not allow this frame\" that is not a DOMException SecurityError: property \"code\" is equal to 0, expected 18get_stack@https://www.savoia.localhost:8443/resources/testharness.js:4802:30"
     },
     {
      "status": "Fail",
      "name": "modelContext.getTools rejects with SecurityError when document.domain is enabled",
-     "message": "promise_rejects_dom: function \"function() { throw e; }\" threw object \"NotAllowedError: the tools permissions policy does not allow this frame\" that is not a DOMException SecurityError: property \"code\" is equal to 0, expected 18get_stack@https://www.six.localhost:8443/resources/testharness.js:4802:30"
+     "message": "promise_rejects_dom: function \"function() { throw e; }\" threw object \"NotAllowedError: the tools permissions policy does not allow this frame\" that is not a DOMException SecurityError: property \"code\" is equal to 0, expected 18get_stack@https://www.savoia.localhost:8443/resources/testharness.js:4802:30"
     },
     {
      "status": "Fail",
      "name": "modelContext.executeTool rejects with SecurityError when document.domain is enabled",
-     "message": "promise_rejects_dom: function \"function() { throw e; }\" threw object \"NotAllowedError: the tools permissions policy does not allow this frame\" that is not a DOMException SecurityError: property \"code\" is equal to 0, expected 18get_stack@https://www.six.localhost:8443/resources/testharness.js:4802:30"
+     "message": "promise_rejects_dom: function \"function() { throw e; }\" threw object \"NotAllowedError: the tools permissions policy does not allow this frame\" that is not a DOMException SecurityError: property \"code\" is equal to 0, expected 18get_stack@https://www.savoia.localhost:8443/resources/testharness.js:4802:30"
     }
    ]
   },
@@ -569,7 +569,7 @@
     {
      "status": "Fail",
      "name": "executeTool() rejects when the tool is hosted in another frame tree",
-     "message": "promise_test: Unhandled rejection with value: object \"TypeError: null is not an object (evaluating 'windowB.onload = resolve')\"get_stack@https://six.localhost:8443/resources/testharness.js:4802:30"
+     "message": "promise_test: Unhandled rejection with value: object \"TypeError: null is not an object (evaluating 'windowB.onload = resolve')\"get_stack@https://savoia.localhost:8443/resources/testharness.js:4802:30"
     }
    ]
   },
@@ -624,7 +624,7 @@
     {
      "status": "Fail",
      "name": "toolactivated and toolcancel events are dispatched on window and document.modelContext during tool execution and cancellation",
-     "message": "assert_true: event is trusted expected true got false@https://six.localhost:8443/webmcp/imperative/executeTool-events.https.html:53:14Asserts runPassassert_array_equals([\"activated:slow\"], [\"activated:slow\"])"
+     "message": "assert_true: event is trusted expected true got false@https://savoia.localhost:8443/webmcp/imperative/executeTool-events.https.html:53:14Asserts runPassassert_array_equals([\"activated:slow\"], [\"activated:slow\"])"
     },
     {
      "status": "Pass",
@@ -894,7 +894,7 @@
     {
      "status": "Fail",
      "name": "Tools are scoped to a frame tree, and are not exposed across opener boundaries.",
-     "message": "promise_test: Unhandled rejection with value: object \"TypeError: null is not an object (evaluating 'opened_window.document')\"get_stack@https://six.localhost:8443/resources/testharness.js:4802:30"
+     "message": "promise_test: Unhandled rejection with value: object \"TypeError: null is not an object (evaluating 'opened_window.document')\"get_stack@https://savoia.localhost:8443/resources/testharness.js:4802:30"
     }
    ]
   },
@@ -964,7 +964,7 @@
     {
      "status": "Fail",
      "name": "tools registered with the initial about:blank Document do not survive navigation",
-     "message": "promise_test: Unhandled rejection with value: object \"TypeError: undefined is not an object (evaluating 'iframe.contentWindow.document.modelContext.registerTool')\"get_stack@https://six.localhost:8443/resources/testharness.js:4802:30"
+     "message": "promise_test: Unhandled rejection with value: object \"TypeError: undefined is not an object (evaluating 'iframe.contentWindow.document.modelContext.registerTool')\"get_stack@https://savoia.localhost:8443/resources/testharness.js:4802:30"
     }
    ]
   },

@@ -4,11 +4,11 @@ A microphone beside the agent panel's composer and beside the ⌘E line: press i
 as text before it is sent. Nothing leaves the machine, Russian works as well as English, and **nothing is ever sent
 by itself** — an agent that goes off and does something from a misheard sentence is worse than typing.
 
-macOS only for now. The code is `six/Speech/`, all of it under `#if os(macOS)`, and FluidAudio is linked into the
-`six` target alone.
+macOS only for now. The code is `Savoia/Speech/`, all of it under `#if os(macOS)`, and FluidAudio is linked into the
+`Savoia` target alone.
 
 ACP has no audio channel and is not going to grow one: the agent is a process at the other end of a JSON-RPC pipe, and
-what it takes is a prompt. So recognition is six's problem, entirely, and the agent never learns it was spoken to.
+what it takes is a prompt. So recognition is Savoia's problem, entirely, and the agent never learns it was spoken to.
 
 ## What decides the engine
 
@@ -32,7 +32,7 @@ Fleurs Russian) and **Silero VAD**, both as Core ML, in one package with **no pa
 put exactly one pin into the app's `Package.resolved` and moved nothing else. It does bring a prebuilt binary,
 `NemoTextProcessing.xcframework` (text normalisation, Rust), which is always linked through Xcode.
 
-Nothing goes into the root `Package.swift` or `SixCore`, so the Linux, Windows and root resolved files are untouched.
+Nothing goes into the root `Package.swift` or `SavoiaCore`, so the Linux, Windows and root resolved files are untouched.
 
 ### Why Silero, and not the other three
 
@@ -82,14 +82,14 @@ to `.warning` with the console mirror off before the model loads.
 
 ### The permission
 
-`NSMicrophoneUsageDescription` was "A site you are visiting…", which stopped being true the moment six itself listened;
+`NSMicrophoneUsageDescription` was "A site you are visiting…", which stopped being true the moment Savoia itself listened;
 it is now worded for both. No `NSSpeechRecognitionUsageDescription` — the Speech framework is not used. The sandbox
 and the hardened runtime are both off, so no entitlement is involved; if Release ever turns the hardened runtime on,
 `com.apple.security.device.audio-input` goes with it.
 
 ## How it gets checked
 
-`SIX_SPEECH_SELFTEST=<folder of recordings>` plays each `.wav`/`.m4a`/`.aiff`/`.caf`/`.mp3` in the folder, in name
+`SAVOIA_SPEECH_SELFTEST=<folder of recordings>` plays each `.wav`/`.m4a`/`.aiff`/`.caf`/`.mp3` in the folder, in name
 order, through the same path as the microphone — Silero, drafts, the silence that ends it, the final pass — at the
 pace of speech, then silence, and logs the text, the number of drafts and the process's peak RSS. It is the one place
 the text is logged, because the recordings are the tester's own. Recordings made with `say -v Milena -o x.wav

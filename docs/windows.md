@@ -1,6 +1,6 @@
 # Windows — Win32
 
-six on Windows is a fourth front over the same `TilingLayout`, built with nothing but the Windows
+Savoia on Windows is a fourth front over the same `TilingLayout`, built with nothing but the Windows
 Swift toolchain's own `WinSDK` module: plain Win32 windows, GDI painting. The engine is real
 WebKit — the WebKit2 C API, the same family WebKitGTK's C API descends from — linked against the
 actual Playwright-built `WebKit2.dll` that `../sixty`'s MiniBrowserSwift prototype already proved
@@ -17,10 +17,10 @@ assistant and the agent panel.
 |---|---|
 | toolkit | **Win32** (`WinSDK`), GDI painting for the chrome — no WinUI, no XAML |
 | engine | **real WebKit** (WebKit2 C API), software compositing — see "DPI and scale" |
-| language | Swift, the same source tree — and now the same `SixCore`, not a subset of it |
-| storage | the profiles are real rows in `six.sqlite`, each with its own WebKit data store; the one on screen and every profile's row come back after a relaunch, and history is the Mac's `visits` table |
+| language | Swift, the same source tree — and now the same `SavoiaCore`, not a subset of it |
+| storage | the profiles are real rows in `savoia.sqlite`, each with its own WebKit data store; the one on screen and every profile's row come back after a relaunch, and history is the Mac's `visits` table |
 | built with | `6.3.3+NoAsserts`, and that is not a preference — see below |
-| built in | on the Windows dev machine directly — `scripts/six-windows.ps1` |
+| built in | on the Windows dev machine directly — `scripts/savoia-windows.ps1` |
 | verified | **yes** — built, run, every row mechanic and real page loads exercised by hand |
 
 ## Why Win32 and not WinUI 3
@@ -28,7 +28,7 @@ assistant and the agent panel.
 A rougher prototype of this front already exists in a sibling checkout, `../sixty`, and it went the
 other way: `swift-winrt`-generated bindings over the Windows App SDK, a real `Window`/`Grid`/`Button`
 tree, a working `HelloWindow`. It is real progress and the more native-looking path long term. It
-also needs, before six's own first line compiles: NuGet-fetched Windows App SDK packages, a
+also needs, before Savoia's own first line compiles: NuGet-fetched Windows App SDK packages, a
 `projections.json`-driven codegen step, and the maintainers' own notes that the generated bindings
 are slow to regenerate and easy to dirty in Debug. None of that is something `swift build` alone gets
 through.
@@ -37,7 +37,7 @@ through.
 `CreateWindowExW` / a `GetMessage` loop are there with nothing fetched and nothing generated. That is
 the bar "the build should also pass on Windows" sets, and it is a bar plain Win32 clears today while
 the WinUI path does not yet. The two are not in tension — `sixty`'s WinRT projection is a plausible
-future replacement for `SixUI`'s own chrome rendering once it needs a native look, and nothing here
+future replacement for `SavoiaUI`'s own chrome rendering once it needs a native look, and nothing here
 forecloses it: `StripModel` does not know GDI exists, the way `linux/`'s `BrowserModel` does not know
 GTK exists.
 
@@ -46,7 +46,7 @@ GTK exists.
 The obvious pragmatic choice for a Windows engine is `WebView2` (Chromium/Edge) — Microsoft's own
 embedding API, well documented, no exotic build needed. It was tried first, briefly: the SDK
 downloads as a plain NuGet package and the headers extract cleanly. It was dropped without writing
-any integration code, on a direct steer — six is a WebKit browser on every other front, and matching
+any integration code, on a direct steer — Savoia is a WebKit browser on every other front, and matching
 engines matters more here than matching platform convention. `../sixty/windows/WebKitAdapter`
 already had the harder problem (a real WebKit build that runs on Windows at all) solved, via the
 Playwright-shipped WebKit binary; using it is the smaller task.
@@ -55,8 +55,8 @@ Playwright-shipped WebKit binary; using it is the smaller task.
 
 `windows/Package.swift` depends on the root package the way `linux/Package.swift` does, and that is
 newer than this front is. Its first version had **no package dependencies at all** and took
-`TilingLayout.swift`, `KeyBindings.swift` and `KeyContext.swift` out of `six/` through symlinks in a
-`SixCoreShared` target instead, because depending on `SixCore` pulls in `SQLiteData` → GRDB →
+`TilingLayout.swift`, `KeyBindings.swift` and `KeyContext.swift` out of `Savoia/` through symlinks in a
+`SavoiaCoreShared` target instead, because depending on `SavoiaCore` pulls in `SQLiteData` → GRDB →
 `swift-structured-queries`, and that package would not compile here. On both official Windows
 toolchains it was tried against — the `0.0.0+Asserts` nightly and `6.3.3-RELEASE` — its keyPath
 dynamic-member-lookup subscripts (`Type.self[keyPath: keyPath]`, the mechanism its whole "type-safe
@@ -69,13 +69,13 @@ Assertion failed: (path.size() == 1 && path[0].getKind() == ConstraintLocator::S
 ```
 
 That was read as a Windows compiler bug — [swiftlang/swift#69386](https://github.com/swiftlang/swift/issues/69386),
-open since October 2023 — and the whole `SixCoreShared` arrangement was built to route around it.
+open since October 2023 — and the whole `SavoiaCoreShared` arrangement was built to route around it.
 
 **It is not a Windows bug. It is an assertions bug, and Windows is the only platform where
 swift.org ships an assertions-enabled toolchain.** The tell was there all along in the message: an
 `Assertion failed` exists only in a compiler built without `NDEBUG`. The same assertion fires on
 **macOS** with an open-source toolchain — [swiftlang/swift#82529](https://github.com/swiftlang/swift/issues/82529),
-same file, same predicate, same package — and six's own Mac and Linux builds compile this code every
+same file, same predicate, same package — and Savoia's own Mac and Linux builds compile this code every
 day because Xcode's compiler and swift.org's Linux toolchains are release builds. Every official
 Windows toolchain installs as `<version>+Asserts`, so the platform that looked cursed was only the
 platform that ships the debug compiler.
@@ -89,7 +89,7 @@ swift-6.3.3-RELEASE-windows10.exe OptionsInstallNoAssertsToolchain=1
 ```
 
 It lands at `%LOCALAPPDATA%\Programs\Swift\Toolchains\6.3.3+NoAsserts`, beside `+Asserts` rather
-than over it, and shares the already-installed SDK and runtime. `scripts/six-windows.ps1` defaults
+than over it, and shares the already-installed SDK and runtime. `scripts/savoia-windows.ps1` defaults
 to it and says this if it is missing. Nothing else about the graph changes: same pins as every other
 front, GRDB 7.11.1 / sqlite-data 1.11.0 / structured-queries 0.37.0.
 
@@ -99,7 +99,7 @@ Measured on this machine, all four with the same source and the same SDK:
 |---|---|---|
 | `swift-structured-queries` 0.37.0 alone | crash, four sites | builds, 79 s |
 | `sqlite-data` 1.11.0, `@Table` + `#sql` + `.where {}.select()` | never reached | builds and round-trips real SQLite |
-| `SixCore` | never reached | builds, 0 errors |
+| `SavoiaCore` | never reached | builds, 0 errors |
 | the front | never reached | builds |
 
 `-c release` does not help, and neither does a newer `swift-structured-queries`: the pattern is
@@ -110,8 +110,8 @@ unchanged on its `main`.
 **SQLite.** Windows has no system SQLite — no `sqlite3.h`, no import library — so GRDB's
 `GRDBSQLite` system-library target has nothing to resolve against and the build dies on
 `'sqlite3.h' file not found` before any Swift is reached. This is the same gap the Linux container
-fills with `libsqlite3-dev`. `six-windows.ps1` fetches the amalgamation into
-`%LOCALAPPDATA%\six-tools`, compiles it once with `cl`, and puts the directory on `INCLUDE` and
+fills with `libsqlite3-dev`. `savoia-windows.ps1` fetches the amalgamation into
+`%LOCALAPPDATA%\savoia-tools`, compiles it once with `cl`, and puts the directory on `INCLUDE` and
 `LIB` — which is how a dependency's own modulemap, one this build never sees, finds the header. The
 defines are not free choices: GRDB declares `SQLITE_ENABLE_SNAPSHOT` and `SQLITE_ENABLE_FTS5` as
 Swift flags everywhere but Linux, so its source calls those APIs and the library has to have them.
@@ -120,7 +120,7 @@ Swift flags everywhere but Linux, so its source calls those APIs and the library
 released version of it compiles here: its non-Darwin lock assumes `import Foundation` brings
 `pthread_mutex_t` along, true on Linux and false on Windows. Not a regression — a gap that was never
 filled; [UPSTREAM.md](../UPSTREAM.md) section 4 is the report. The fix is twenty lines of `SRWLOCK`,
-kept as `windows/patches/combine-schedulers-1.2.0-srwlock.patch`. `six-windows.ps1` clones the
+kept as `windows/patches/combine-schedulers-1.2.0-srwlock.patch`. `savoia-windows.ps1` clones the
 package as a **sibling of the repository**, applies the patch, moves the `1.2.0` tag onto the result
 and points SwiftPM's mirror mechanism at it — a sibling and not a copy inside the repo, so it stays
 a real checkout that a remote can be added to and the patch sent upstream. `mirrors.json` is
@@ -226,10 +226,10 @@ gets from `WebPage`'s observation for free.
 
 ## Profiles
 
-A profile here is what it is everywhere else in six: a name, a colour, and its own cookies.
+A profile here is what it is everywhere else in Savoia: a name, a colour, and its own cookies.
 
 The rows come from **the same two tables the Mac reads** — `ProfileIdentity` and `ProfileStorage`,
-through `SixCore`'s own `ProfileStore`, in `%LOCALAPPDATA%\six\six.sqlite`. An empty table is a new
+through `SavoiaCore`'s own `ProfileStore`, in `%LOCALAPPDATA%\savoia\savoia.sqlite`. An empty table is a new
 browser and gets `Personal` and `Work`, the Mac's `Profile.defaults` in the Mac's palette. This is
 the first thing on this platform to open `AppDatabase` in earnest.
 
@@ -241,7 +241,7 @@ by, so a run with invented ids points WebKit at folders named after them and lea
 on disk under names nothing looks up again — every login gone, silently, and the next launch does it
 again. `ProfileStore`'s own comment says the same thing about refusing to empty the table. Linux can
 step over its database because all it loses is history; here the loss is silent and permanent, so this
-front stops with the path in the message, the way `sixApp` does.
+front stops with the path in the message, the way `SavoiaApp` does.
 
 **Which profile was on screen is remembered**, in the settings table under `profile.selected` — a key
 of its own rather than `profile.default`, which is a front *without* a profiles table inventing an id
@@ -264,7 +264,7 @@ row is empty comes up empty — the Mac's rule, so that stepping away and back d
 page where closing the last column had just taken it from.
 
 **Private** is one more menu item: a profile written down nowhere, with the non-persistent data store
-behind it, living until six quits. What it does not have is the Mac's editor — renaming, recolouring
+behind it, living until Savoia quits. What it does not have is the Mac's editor — renaming, recolouring
 and deleting are a text field and eight swatches, and this front has no control that can hold either;
 a new profile names itself `Profile N` and takes the next colour in the palette.
 
@@ -346,7 +346,7 @@ still hands over real pixels. Measuring the profile chip that way put it at clie
 a picture that clearly drew it half again as tall, which reads exactly like "drawn at one size,
 hit-tested at another". It was neither: 15..25 unaware is 22..37 physical, inside the chip's real
 10..48 band, so the clicks landed and the numbers lied. The chrome draws and hit-tests through one
-`chromeLayout()` and cannot disagree with itself, and `SIX_UI_DEBUG=1` prints the scale the window
+`chromeLayout()` and cannot disagree with itself, and `SAVOIA_UI_DEBUG=1` prints the scale the window
 actually has (`scale=1.5`). Call
 `SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)` first thing in anything
 that measures this front, before it reads a rect or moves the cursor.
@@ -381,7 +381,7 @@ hit-testing all follow from the one number they already followed.
 
 **The engine is Bergamot** — Marian compiled to wasm, the same one Firefox translates with — and
 almost none of it is in `windows/`. The page walk, the batching, the state machine, Show Original,
-the model catalogue, the downloads and the engine driver are all `SixCore`, shared with the Linux
+the model catalogue, the downloads and the engine driver are all `SavoiaCore`, shared with the Linux
 front and, above the seam, with the Mac. What this front provides is three things:
 
 - **`StripScript`** — `WKPageCallAsyncJavaScript` wrapped so that the shared page walk can run its
@@ -402,14 +402,14 @@ front and, above the seam, with the Mac. What this front provides is three thing
 (`translations-wasm` and `translations-models`), served from `firefox-settings-attachments.cdn
 .mozilla.net` without authentication. 106 directions, every one with English at one end, so Russian
 to German is two models and one pivot inside the engine. Everything is verified against the SHA-256
-in the record before it is moved into the cache at `%LOCALAPPDATA%\six\Translation\Bergamot`; a
+in the record before it is moved into the cache at `%LOCALAPPDATA%\savoia\Translation\Bergamot`; a
 model is roughly 35 MB and is fetched once. The Emscripten glue the wasm needs is the one piece that
 cannot be downloaded — it is version-locked source that exists nowhere but the Firefox tree — so
-`scripts/bergamot-payload.sh` vendors it into `six/Translation/Payload` as Swift, under the MPL,
+`scripts/bergamot-payload.sh` vendors it into `Savoia/Translation/Payload` as Swift, under the MPL,
 and the Apple targets compile it away.
 
 **The source language is guessed here rather than asked of the system.** There is no
-`NLLanguageRecognizer` on Windows, so `LanguageGuess` in `SixCore` reads it out of the text —
+`NLLanguageRecognizer` on Windows, so `LanguageGuess` in `SavoiaCore` reads it out of the text —
 script first, then the letters a script does not share, then the commonest words — and `<html lang>`
 is checked against it rather than trusted. `LanguageGuessTests` pins thirty-one languages of one
 ordinary sentence each. The target is the setting, or the language the interface is in; there is no
@@ -435,22 +435,22 @@ answer, does not exist in 6.3.3.
 **`FileManager.replaceItemAt` is a `fatalError` on Windows, not a thrown error.** It is the obvious
 call for "verified file, atomic swap" and it took the browser down the first time a model finished
 downloading — `try?` in front of it catches nothing. Remove-if-present plus `moveItem` instead.
-Anything else in six that reaches for it on this front will do the same thing.
+Anything else in Savoia that reaches for it on this front will do the same thing.
 
 **And `AppSupport.logs` had no Windows answer**: `.libraryDirectory` returns an empty array here, so
-the first line six ever logged would have subscripted it. It is `%LOCALAPPDATA%\six\Logs\six.log`
+the first line Savoia ever logged would have subscripted it. It is `%LOCALAPPDATA%\savoia\Logs\savoia.log`
 now, and it is how a translation run is watched — `Log.info(.translation, …)` says what was offered,
 what is being fetched and what was loaded.
 
 ## Where things are
 
 ```
-windows/Package.swift              Depends on the root package by path (named `six` explicitly:
+windows/Package.swift              Depends on the root package by path (named `Savoia` explicitly:
                                     a path dependency takes its identity from the directory, so
                                     the name is pinned here rather than left to whatever the
                                     checkout is called), on sqlite-data, and on
                                     combine-schedulers only to hold it at the version the mirror
-                                    carries. The `SixCoreShared` symlink target it used to carry is
+                                    carries. The `SavoiaCoreShared` symlink target it used to carry is
                                     gone — see above.
 
 windows/patches                    combine-schedulers-1.2.0-srwlock.patch: the twenty lines that
@@ -460,7 +460,7 @@ windows/patches                    combine-schedulers-1.2.0-srwlock.patch: the t
 windows/.swiftpm/configuration     Generated, and gitignored: SwiftPM will only take an absolute
                                     path for a mirror, so this file names one machine's checkout.
 
-windows/Sources/SixUI/Row*        The window, the bar, the input, the live view — and, since
+windows/Sources/SavoiaUI/Row*        The window, the bar, the input, the live view — and, since
                                     translation, StripLoop (the message loop and the main-queue
                                     drain), StripScript (callAsyncJavaScript), StripSandbox (the
                                     off-screen page the wasm engine runs in), StripTranslation and
@@ -494,14 +494,14 @@ windows/vendor/WebKit2             WebKit2.lib/.def/.exp — the import library 
                                         # write a .def with an EXPORTS section, one symbol per line
                                         lib /def:WebKit2.def /out:WebKit2.lib /machine:x64
 
-windows/Sources/SixBrowser         StripModel: TilingLayout plus the tab metadata every column needs,
+windows/Sources/SavoiaBrowser         StripModel: TilingLayout plus the tab metadata every column needs,
                                     the URL a live one is at, and the profiles (read from and written
                                     to the same ProfileStore tables the Mac uses) — no toolkit and no
                                     WebKit2 in it. StripKeyLookup: the same move for
-                                    KeyBindings/KeyContext. Both `@testable import SixCore`, the seam
-                                    linux/Sources/SixBrowser already uses.
+                                    KeyBindings/KeyContext. Both `@testable import SavoiaCore`, the seam
+                                    linux/Sources/SavoiaBrowser already uses.
 
-windows/Sources/SixUI              StripWindow (the Win32 window, message dispatch, and `route` —
+windows/Sources/SavoiaUI              StripWindow (the Win32 window, message dispatch, and `route` —
                                     the key/scroll router in front of the whole queue),
                                     StripFrame (the title bar taken over: WM_NCCALCSIZE, the
                                     hit-testing that gives dragging and resizing back, and the three
@@ -516,18 +516,18 @@ windows/Sources/SixUI              StripWindow (the Win32 window, message dispat
                                     polls what the pages say they are),
                                     AddressBar (a plain Win32 EDIT control, sunk into a drawn pill).
 
-windows/Sources/six-windows        main.swift: declare DPI awareness, create the window, pump
+windows/Sources/savoia-windows        main.swift: declare DPI awareness, create the window, pump
                                     messages, done.
 
-scripts/six-windows.ps1            Build (and optionally run) it.
+scripts/savoia-windows.ps1            Build (and optionally run) it.
 ```
 
 ## Building and running
 
 ```powershell
-./scripts/six-windows.ps1 build   # compile, copy the runtime DLLs next to the .exe
-./scripts/six-windows.ps1 run     # stop what is running, build, launch exactly one
-./scripts/six-windows.ps1 stop    # stop what is running, nothing else
+./scripts/savoia-windows.ps1 build   # compile, copy the runtime DLLs next to the .exe
+./scripts/savoia-windows.ps1 run     # stop what is running, build, launch exactly one
+./scripts/savoia-windows.ps1 stop    # stop what is running, nothing else
 ```
 
 All three are idempotent — `run` twice leaves one window, not two, and none of them care what was
@@ -567,10 +567,10 @@ Two Win32 environment quirks worth knowing if this script is ever revisited:
   `StripWindow.show()` uses `SW_SHOWNORMAL`, which shows the window unconditionally; the script
   launches the built `.exe` with `UseShellExecute = $true` for the same reason.
 
-**A six-windows that has already stopped can go on holding this whole directory**: 0 threads, no
+**A savoia-windows that has already stopped can go on holding this whole directory**: 0 threads, no
 image path left, `taskkill` answering "Access is denied". It has no window and does nothing, but
 Windows will not overwrite a file it still has mapped, so left alone it fails a build in two
-different places — the linker on `six-windows.exe`, `Copy-Item` on `BlocksRuntime.dll`. The script
+different places — the linker on `savoia-windows.exe`, `Copy-Item` on `BlocksRuntime.dll`. The script
 works around both rather than waiting them out: the old `.exe` is renamed aside (renaming works on a
 mapped image where overwriting does not), and a locked DLL is left alone, since it is by definition
 already present and is the same artefact the copy would have written — that is what the
@@ -587,11 +587,11 @@ confirmed working:
   real file on disk, twice, the second run reading what the first wrote. GRDB's own query interface
   was proved separately, without `swift-structured-queries` in the graph at all, in case the
   toolchain answer had not worked out.
-- The profile round-trip, both directions and each read out of `six.sqlite` rather than judged from
-  the chip's repaint. Seeding `profile.selected` with Work brought six up in Work, with the menu's
+- The profile round-trip, both directions and each read out of `savoia.sqlite` rather than judged from
+  the chip's repaint. Seeding `profile.selected` with Work brought Savoia up in Work, with the menu's
   checkmark on Work; clicking Personal in that menu wrote Personal's id to the row, and the next
   launch came up in Personal. `profiles` and `profile_storage` hold the two rows with their data
-  store ids, and `%LOCALAPPDATA%\six\Profiles` holds a folder per profile.
+  store ids, and `%LOCALAPPDATA%\savoia\Profiles` holds a folder per profile.
 
 - Open a column by clicking empty background; focus one by clicking it; close one by clicking its
   "×".
@@ -604,9 +604,9 @@ confirmed working:
 - The focused column's `WKView` loads its start page, navigates, reports its title back through
   `WKPageNavigationClientV3`'s `didFinishNavigation` into `StripModel.setTitle`, renders inside its
   own card, and hit-tests a click where the click looks like it landed — see "DPI and scale".
-- `SIX_URL` overrides the start page, which is how a run gets pointed at a test page without a
+- `SAVOIA_URL` overrides the start page, which is how a run gets pointed at a test page without a
   keyboard.
-- **WebMCP** ([webmcp.md](webmcp.md)): `SIX_WEBMCP_SELFTEST=<file URL of Tests/WebMCP/webmcp.html>`
+- **WebMCP** ([webmcp.md](webmcp.md)): `SAVOIA_WEBMCP_SELFTEST=<file URL of Tests/WebMCP/webmcp.html>`
   drives a page's `registerTool` through the polyfill and back — registration, a call, a timeout
   whose `AbortSignal` reaches the tool, unregistering by `abort()`, and a navigation in the middle of
   a call, and the gate in front of all of it: the site asked about once, a read-only call asking
@@ -615,14 +615,14 @@ confirmed working:
   `LOCALAPPDATA`; a run forgets its own site answer first, so it repeats. It settled two facts on the way: a `file:` page is a secure context in this WebKit,
   and `WKPageCallAsyncJavaScript` runs in the page's world, which is where the polyfill lives. The
   address bar counts the page's tools in a badge (`StripWebMCP`), with no list behind it yet.
-  `SIX_WEBMCP=1` switches WebMCP on without the self-test; so does the Mac's setting, since the
+  `SAVOIA_WEBMCP=1` switches WebMCP on without the self-test; so does the Mac's setting, since the
   settings table is shared.
 - **Typing an address and pressing Enter navigates** — the one thing the earlier pass could not
   confirm. Driving the `EDIT` cross-process with `SendMessageW` reached `navigateFromAddressBar` and
   read back the *old* text, repeatably, while the same `HWND` read from outside showed the new one.
   The shipped mechanism was never at fault, and the way to see that is to stop reaching across a
   process boundary: `Ctrl+L`, real `keybd_event` keystrokes, `Enter`, and the page loads.
-  `[six] navigate: … typed=example.com url=https://example.com` in the `SIX_UI_DEBUG` trace, and
+  `[Savoia] navigate: … typed=example.com url=https://example.com` in the `SAVOIA_UI_DEBUG` trace, and
   Example Domain on screen with the card, the window title and the address field all agreeing.
 - **The profile menu, end to end**: the chip opens the dropdown, `Work` switches to an empty row
   (with the Mac's own "New window / click anywhere, or Ctrl+T" hint, and no address field, because
@@ -644,7 +644,7 @@ Two traps for whoever drives this from a script next, since between them they co
 
 - **`SendKeys` cannot test a shortcut.** It sends letters as `VK_PACKET` (vk=231, scan 0) — a
   Unicode character rather than a key — so nothing that matches on the key itself ever sees it. The
-  `SIX_UI_DEBUG` key trace says so in as many words, which is what it is for. `keybd_event` with a
+  `SAVOIA_UI_DEBUG` key trace says so in as many words, which is what it is for. `keybd_event` with a
   virtual-key code is what a keyboard sends. Related, and now handled in `StripKeyInput.scanCode`:
   synthetic input often carries a zero scan code, and this front matches letters on the scan code
   (the physical key, the same on every layout — AGENTS.md's Russian-layout lesson), so a key with
@@ -669,15 +669,15 @@ matched, so `⌥F4`, `⌥Space` and plain `F10` still behave like system keys.
 ## Known issues
 
 - **Keyboard focus needs asking for explicitly, and does not always win it.** SwiftPM links a plain
-  executable as a console-subsystem app by default, so starting `six-windows.exe` also opens a
+  executable as a console-subsystem app by default, so starting `savoia-windows.exe` also opens a
   console window — and Windows' foreground-lock rules can leave that console holding keyboard focus
   even after `StripWindow.show()` calls `SetForegroundWindow`/`SetFocus` in the row explicitly. In
   practice this resolves itself once a person actually clicks into the row window, so it has not
   blocked verifying anything, but it is not understood well enough to call fixed.
   `/SUBSYSTEM:WINDOWS` + `/ENTRY:mainCRTStartup` (dropping the console outright, the "correct"
   long-term fix) were tried and reverted: a live test showed the window then failing to appear at
-  all, not even in Alt-Tab, for a reason not yet diagnosed. Reproduce that with `SIX_UI_DEBUG=1` set
-  (which gates the `[six] window created, hwnd=…` trace) before trying the flags again.
+  all, not even in Alt-Tab, for a reason not yet diagnosed. Reproduce that with `SAVOIA_UI_DEBUG=1` set
+  (which gates the `[Savoia] window created, hwnd=…` trace) before trying the flags again.
 - **GPU compositing is off**, deliberately, and with a way back. See "DPI and scale".
 - **The chrome's few strings are English only.** "New profile", "Private", "New window" and the
   placeholder card titles do not go through a string catalog, because this front has none —
@@ -686,7 +686,7 @@ matched, so `⌥F4`, `⌥Space` and plain `F10` still behave like system keys.
 - **No Snap Layouts flyout.** On Windows 11, hovering the maximize button of a window that answers
   `HTMAXBUTTON` gets the system's snap-layout menu for free — but only if the window also handles
   `WM_NCHITTEST` fast enough and the OS is 11. This dev machine is Windows 10 19045, where there is
-  nothing to show, so nothing was built for it. If six ever runs on 11, that is the one thing a
+  nothing to show, so nothing was built for it. If Savoia ever runs on 11, that is the one thing a
   custom frame owes a user, and the hit-test already answers correctly.
 - **The private profile is marked by its initial, not by a symbol.** The Mac puts eyeglasses in the
   dot; MDL2 has no obvious equivalent and a wrong guess draws a tofu box, so it says "P" on grey.
@@ -698,12 +698,12 @@ matched, so `⌥F4`, `⌥Space` and plain `F10` still behave like system keys.
 - **The bar's right-hand half.** The Mac's carries downloads, the extension actions, the agent panel
   and the overview; this one has the bookmark button, the translate button, the workspace stepper,
   the full-width toggle and "⋯", because those are the ones whose subsystem exists on this front.
-- **A camera or a microphone for a page.** The engine's gap, not six's — see "Site permissions".
+- **A camera or a microphone for a page.** The engine's gap, not Savoia's — see "Site permissions".
 
 ## Bookmarks, vectors and the embedder
 
 sqlite-vec is in, and it goes in the opposite way round from the Mac. The SQLite this front links is the amalgamation
-`scripts/six-windows.ps1` compiles, built *with* extension loading, so `sqlite-vec.c` compiles as a **loadable**
+`scripts/savoia-windows.ps1` compiles, built *with* extension loading, so `sqlite-vec.c` compiles as a **loadable**
 extension: every SQLite call inside it goes through the `sqlite3_api_routines` table it is handed at init, and
 `sqlite3_vec_init(db, nil, nil)` — which is what `Database.loadSQLiteVecExtension()` does, and what works on Apple,
 where loading is compiled out and those redefinitions vanish — hands it a null table. `Vectors.register()` calls
@@ -712,12 +712,12 @@ reaches the connections opened after it and no others.
 
 The embedder is the same model the Mac runs — `multilingual-e5-small` — reached through transformers.js in a second
 `StripSandbox`, the off-screen page Bergamot already uses. `StripEmbedding` is the whole of the wiring on this side;
-everything else is `SixCore`'s and shared with the GTK front. [bookmarks.md](bookmarks.md) has the model, the install
+everything else is `SavoiaCore`'s and shared with the GTK front. [bookmarks.md](bookmarks.md) has the model, the install
 and the one line that had to be measured (ONNX Runtime dynamically imports its own glue, and a module import from a
 `file:` document is refused however much file access the view has been given).
 
 Measured here, Debug, int8, one wasm thread: 3.5 s to load the model, 0.32–0.36 s to embed a two-passage page, 1.0 s
-for three pages. `SIX_VEC_SELFTEST=1` says whether the vector index exists at all; `SIX_EMBED_SELFTEST=1` saves three
+for three pages. `SAVOIA_VEC_SELFTEST=1` says whether the vector index exists at all; `SAVOIA_EMBED_SELFTEST=1` saves three
 pages — плов in Russian, pilaf in English, a page about reserved domain names — embeds them, asks five questions and
 deletes what it wrote. Both write to the log rather than to stdout, because a `print` from a process whose stdout is a
 file sits in a buffer until it exits.
@@ -748,8 +748,8 @@ Every profile's strip is written down after anything that changes its shape — 
 closed, focused or moved, a page that went somewhere or got a title — rather than on quit, because a
 browser that only saves on quit loses everything to the one crash it was going to have. It goes into
 the `settings` table under `strip.state` as `StripState`: `TilingStrip` itself, the Mac's `Codable`
-unchanged, plus each column's address and title. That type was the Linux front's; it is `SixCore`'s
-now (`six/Persistence/StripState.swift`, compiled away on Apple, where `state.json` does this job), so
+unchanged, plus each column's address and title. That type was the Linux front's; it is `SavoiaCore`'s
+now (`Savoia/Persistence/StripState.swift`, compiled away on Apple, where `state.json` does this job), so
 the two fronts write one shape under one key. `FileSnapshotStore` was the other candidate and lost
 on the same argument Linux made: the database is already open, migrated, and where every other
 preference lives.
@@ -763,15 +763,15 @@ Three things the profiles work had settled, and this keeps:
 - **The private profile is in none of it** — its strip, its addresses and its titles are filtered
   out before anything is written.
 
-A strip whose profile has no row any more is dropped on the way in. `SIX_URL` still means something
+A strip whose profile has no row any more is dropped on the way in. `SAVOIA_URL` still means something
 over a restored row: it opens one more column at that address, which is how a scripted run lands on
 its test page whatever the previous run left. Measured by relaunching three times with a different
-`SIX_URL` each: `[storage] restored 1 columns`, then `2`, each run adding its page beside the ones it
+`SAVOIA_URL` each: `[storage] restored 1 columns`, then `2`, each run adding its page beside the ones it
 found.
 
 ## History
 
-Visits go into the Mac's `visits` table through `SixCore`'s `HistoryStore` — under the column's own
+Visits go into the Mac's `visits` table through `SavoiaCore`'s `HistoryStore` — under the column's own
 profile rather than the one on screen, since a page kept live in another profile can still finish
 loading. A private profile records nothing.
 
@@ -790,14 +790,14 @@ one, `Esc` closes. Empty is the recent pages, one row per address; anything type
 
 Every column the strip is showing, and half a screen either side of it, gets a real `WKView` —
 `TilingLayout.visibleTabIDs`, the set the Mac's `LivePageCache` pins. Everything else lives or dies by
-`LivePages` (about a page per gigabyte, 8…32, `SIX_LIVE_PAGES=n` to pin it): the Mac's rule, moved out
-of the Linux front into `SixCore` so both run the same code. What this front hands it as "all" is every
+`LivePages` (about a page per gigabyte, 8…32, `SAVOIA_LIVE_PAGES=n` to pin it): the Mac's rule, moved out
+of the Linux front into `SavoiaCore` so both run the same code. What this front hands it as "all" is every
 column of every profile, so a hidden view of the workspace above survives while it is in budget; Linux
 hands it the focused workspace, because that is all its strip widget builds.
 
 A view out of sight is hidden, not destroyed, and stepping back to it does not reload. A view past the
 budget is destroyed; its column keeps its place, title and address, and is built again from the
-address when the strip reaches it. Measured with `SIX_LIVE_PAGES=2` on three columns: `[pages]
+address when the strip reaches it. Measured with `SAVOIA_LIVE_PAGES=2` on three columns: `[pages]
 discarded …, 1 of 2 live` on the first step away, and the page back on the step back.
 
 Clicking into a page that is not the focused column focuses its column. WebKit's child `HWND` takes the
@@ -829,7 +829,7 @@ rather than to the overview, so `StripKeyLookup` answers it only while the overv
 
 ## Site permissions
 
-The Mac's `SitePermissions`, out of `SixCore`: the remembered answers (the same `permissions.sites`
+The Mac's `SitePermissions`, out of `SavoiaCore`: the remembered answers (the same `permissions.sites`
 row the Mac writes), the queue per window, the suspended page, the private profile's answers kept in
 memory. What this front adds is where a question comes from and where it is drawn:
 
@@ -850,9 +850,9 @@ memory. What this front adds is where a question comes from and where it is draw
 `navigator.mediaDevices`, `MediaStream` and `RTCPeerConnection` as `undefined`, with
 `WKPreferencesSetMediaDevicesEnabled` on and with the `MediaStreamEnabled` feature key set, both tried.
 So the callback is wiring for the WebKit that is not Playwright's ([todo.md](todo.md)), and
-`SIX_PERMISSION_SELFTEST=1` exercises everything past it: the first page to finish loading in the
+`SAVOIA_PERMISSION_SELFTEST=1` exercises everything past it: the first page to finish loading in the
 focused column asks for the camera and the microphone through `StripModel.requestMedia` — the call the
-callback makes — and the answer is logged under `[browser]`. `SIX_MOCK_CAPTURE=1` turns WebKit's mock
+callback makes — and the answer is logged under `[browser]`. `SAVOIA_MOCK_CAPTURE=1` turns WebKit's mock
 devices on, for an engine that has MediaStream to mock.
 
 ## The page's own dialogs
@@ -871,7 +871,7 @@ opened — the browser that quietly cannot upload a file, which the Mac's `PageD
   waits (`waitingDialogs`). A column closed or discarded with a question up answers it Cancel, and so does closing
   the browser — `StripWebView.destroy` holds a Cancel for every listener it still owes, because the page's
   JavaScript is suspended inside each one.
-- **The file picker** is `GetOpenFileNameW` — `SixStripOpenFiles` in `CStripInterop`, linked against `comdlg32` —
+- **The file picker** is `GetOpenFileNameW` — `SavoiaStripOpenFiles` in `CStripInterop`, linked against `comdlg32` —
   opened one turn of the main queue after WebKit's callback rather than inside it, with the input's `accept`
   extensions as the first filter and everything as the second. **A folder (`webkitdirectory`) is refused for now:**
   that picker is COM's `IFileOpenDialog`.
@@ -885,9 +885,9 @@ opened the picker as "This page is asking for a file", and choosing a file came 
 `WebKit2WebViewWindowClass` child, so none of it needed the foreground, and reading a control's text from outside
 takes `WM_GETTEXT` — `GetWindowText` answers empty for another process's `EDIT`, which looked like a missing default.
 
-**Test pages want a throwaway `LOCALAPPDATA`.** The row comes back after a relaunch and `SIX_URL` adds a column to
+**Test pages want a throwaway `LOCALAPPDATA`.** The row comes back after a relaunch and `SAVOIA_URL` adds a column to
 it, so a test page from the last run is restored beside this run's and asks its questions too — two pages' dialogs
-interleaved, which read as dialogs arriving in the wrong order. Starting `six-windows.exe` directly with
+interleaved, which read as dialogs arriving in the wrong order. Starting `savoia-windows.exe` directly with
 `LOCALAPPDATA` pointed at a fresh scratch folder gives it an empty database and an empty row; the script cannot do
 this for you, because it finds the toolchain through the same variable.
 
@@ -916,7 +916,7 @@ purpose goes behind with the focus left on the page being read, and both land ri
   for what a column can show (http, https, file, about, data, blob), and the rest is
   [Links to other apps](#links-to-other-apps).
 
-Measured in an isolated run (`SIX_UI_DEBUG=1`, stderr to a file): a plain click on a page whose script called
+Measured in an isolated run (`SAVOIA_UI_DEBUG=1`, stderr to a file): a plain click on a page whose script called
 `window.open('about:blank')` put a new column in front titled from the opener's script, the opener read
 `w.opener === window` as true, and `w.close()` four seconds later took the column away — `popup=true opener=true`
 on the page that was left, and `a page opened a window` / `a page closed its own window` in the log. A pointer moved
@@ -930,7 +930,7 @@ physical pixels down a page that was not that tall. WebKit reports nothing past 
 ## Downloads
 
 The transfer is WebKit's, which is the one place this front is simpler than the Mac. There, SwiftUI's `WebPage` has
-no download delegate, so six rebuilds the request — cookies, referrer, user agent — and runs it through `URLSession`
+no download delegate, so Savoia rebuilds the request — cookies, referrer, user agent — and runs it through `URLSession`
 ([links.md](links.md#downloads)). The C API has downloads: `StripWebView`'s navigation client answers "download"
 instead of "show" for `<a download>` (`WKNavigationActionShouldPerformDownload`) and for a response that is a file — an
 attachment, or a type the page cannot show — and the `WKDownloadRef` that comes back through
@@ -940,7 +940,7 @@ has got, and how it ended.
 
 - **Where.** The user's Downloads folder by `SHGetKnownFolderPath`, not `%USERPROFILE%\Downloads`, which is only
   where it starts out. The call is made from Swift: declared in `WinSDK.Shell`, it is invisible to a C header in a
-  module of its own, whatever that header includes. `SIX_DOWNLOADS=<folder>` stands in front of it, so a test run does
+  module of its own, whatever that header includes. `SAVOIA_DOWNLOADS=<folder>` stands in front of it, so a test run does
   not fill the real one. The name is the server's suggestion, made safe for Windows (no `\ / : * ? " < > |`, no
   trailing dot), and the Mac's `report 2.pdf` rule against both the files there and the ones other downloads are about
   to write. A `data:` link with no `download` attribute is suggested the tail of its own address by WebKit —
@@ -958,7 +958,7 @@ has got, and how it ended.
   rows are not written down for the next launch, since a restored row could offer nothing. A file small enough to
   arrive in one piece finishes without a single `didWriteData`, so the size of a finished row is read off the file.
 
-Measured in an isolated run with `SIX_DOWNLOADS` pointed at a scratch folder: two clicks on a
+Measured in an isolated run with `SAVOIA_DOWNLOADS` pointed at a scratch folder: two clicks on a
 `<a download="hello.txt">` link left `hello.txt` and `hello 2.txt`, nine bytes each; a middle click on a
 `data:application/octet-stream` link opened a column behind that became a download, closed itself, and left one page;
 a picture of the bar (`PrintWindow`, from a per-monitor-aware process) showed the arrow with its dot, and a posted
@@ -969,9 +969,9 @@ click on it opened the list with both rows, "Done · 12 B" and "Done · 9 B", th
 **A page that did not open says so.** Left alone, a failed provisional navigation left the column exactly as it was —
 blank, or the previous page — and silent about why, which is the report the Mac's `PageFailureView` was written
 against. `StripWebView.handleFailedNavigation` puts the Mac's words in its place with `WKPageLoadAlternateHTMLString`:
-"This page didn't open", the host, "six could not reach this address.", **Try Again** (a `location.replace` back to
+"This page didn't open", the host, "Savoia could not reach this address.", **Try Again** (a `location.replace` back to
 the unreachable address), and the system's own sentence with its domain and code, demoted to the bottom. The call is
-the one meant for it — the page is six's, the back-forward item and the address stay the unreachable one — and the
+the one meant for it — the page is Savoia's, the back-forward item and the address stay the unreachable one — and the
 page's `<title>` is the host, so the card still says where it was going. `color-scheme` and system colours let it
 follow Windows' light or dark. There is no certificate offer, because this front has no `CertificateStore` yet.
 
@@ -990,14 +990,14 @@ What is **not** a failure, and the two things measured to get there:
 A real failure measured for each kind: an address on a port WebKit refuses (`127.0.0.1:9`, `WebKitErrorDomain` 103,
 "Not allowed to use restricted network port") and one where nothing listens (`127.0.0.1:65530`, `CurlErrorDomain`
 7) both put the page up, titled `127.0.0.1`. The error page is not a visit and is not offered for translation
-(`isShowingFailure`), and the sandbox views never get one (`showsFailures`): their pages are six's own programs, and
+(`isShowingFailure`), and the sandbox views never get one (`showsFailures`): their pages are Savoia's own programs, and
 a failure there is their driver's to see. The log keeps the domain and the code, never the address.
 
 **The loading line** is the Mac's `LoadingLine`: two pixels in the profile's colour, never shorter than a sliver,
 under the address field for the window being read and along the foot of the card's header for every other one.
 `isLoading` comes from the navigation client (started → finished or failed), the progress from
 `WKPageGetEstimatedProgress` on the page-state timer that already polls titles, in steps of a twentieth so a page
-trickling in repaints a handful of times. Measured against a local server that sent a page in twelve pieces over six
+trickling in repaints a handful of times. Measured against a local server that sent a page in twelve pieces over Savoia
 seconds: a picture of the bar half-way through shows the line about half the field's width, and one after shows none.
 
 **Stop.** While the page being read is loading, the bar's reload button draws a cross and stops the load
@@ -1010,13 +1010,13 @@ repaints on. The cancel a stop causes comes back through `didFailProvisionalNavi
 The menu over a page is **WebKit's**, and on this port that is a real menu. Read off the one a right-click put up
 (`MN_GETHMENU` on the `#32768` window, then the menu's own strings): over a link it offers Open Link, Open Link in New
 Window, Download Linked File and Copy Link; over plain text on a fresh page, Reload and nothing else. The Mac had to
-throw WebKit's menu away and build its own ([links.md](links.md#the-context-menu-is-sixs)), because in a SwiftUI
+throw WebKit's menu away and build its own ([links.md](links.md#the-context-menu-is-savoias)), because in a SwiftUI
 `WebView` two of those four are dead — they go to a UI client and a download delegate that API has no seat for. Here
 they are alive: Open Link in New Window reaches `createNewPage` ([A second window](#a-second-window)), and Download
 Linked File reaches the navigation client's `contextMenuDidCreateDownload`, which hands it to `StripDownloads` like any
 other download.
 
-So the menu stays WebKit's, and six adds the one item of the Mac's it lacks: **Open Link Behind**, right after Open
+So the menu stays WebKit's, and Savoia adds the one item of the Mac's it lacks: **Open Link Behind**, right after Open
 Link in New Window. It goes in through `getContextMenuFromProposedMenu` (`WKPageContextMenuClientV2`), which hands over
 WebKit's items and the hit test the menu was opened on; the link is read then, because by the time an item is chosen
 the pointer has moved. Its tag is above `kWKContextMenuItemBaseApplicationTag`, so WebKit hands the choice back
@@ -1035,7 +1035,7 @@ yet; and its **This Window** submenu, the column's own commands.
 ## Links to other apps
 
 `mailto:`, `magnet:`, `tel:`, whatever an app claimed. Which addresses these are is `ExternalScheme` — the Mac's list,
-moved into `SixCore` for this (`six/Browser/ExternalScheme.swift`), because a second copy of an allowlist is a second
+moved into `SavoiaCore` for this (`Savoia/Browser/ExternalScheme.swift`), because a second copy of an allowlist is a second
 chance to let a scheme through. It needed the two MCP-app scheme names with it, so `MCPAppScheme` is now declared in
 `MCPAppTypes.swift`, the wire half, and extended in `MCPAppScheme.swift`, where the WebKit-facing handler stays.
 

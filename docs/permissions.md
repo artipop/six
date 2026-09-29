@@ -5,11 +5,11 @@ ask for (camera, microphone, motion sensors) and the four dialogs a page can put
 file picker). They share a file's worth of thinking because they share a cause — a `WebPage` left alone answers both
 kinds of question by itself, and both of its answers are wrong for a browser.
 
-## The default six replaced
+## The default Savoia replaced
 
 `WebPage.Configuration.deviceSensorAuthorization` defaults to `WKPermissionDecision.prompt`. That is not "nothing
 works": WebKit puts up a permission popover of its own, the user answers it, and `getUserMedia()` resolves. Camera and
-microphone worked in six before any of this existed.
+microphone worked in Savoia before any of this existed.
 
 What the default cannot do is *remember*. Nothing is written down, so the same site asks on every load, and there is
 nowhere to go and take an answer back. That is the whole reason `SitePermissions` exists: deciding the request
@@ -43,7 +43,7 @@ a strip of twenty windows the page that wants the camera is one column of twenty
 answer for it would be a browser mistaking a page for itself.
 
 It is a sibling of the web view in the column's stack rather than something drawn over it, which is also how it
-escapes the problem behind [`HostedOverlay`](../six/Views/HostedOverlay.swift): SwiftUI drawn over a `WKWebView` never
+escapes the problem behind [`HostedOverlay`](../Savoia/Views/HostedOverlay.swift): SwiftUI drawn over a `WKWebView` never
 sees the mouse, and a permission bar whose buttons cannot be clicked is worse than no bar.
 
 While the bar is up the page's `getUserMedia()` is suspended inside the decision closure. So a question that can never
@@ -66,26 +66,26 @@ every question queued for it with a no (`SitePermissions.forget(_:)`, called fro
 Both read `tab.livePage`, never `tab.page`. A title bar is drawn for every column in the strip, and reaching for the
 page would build one for each of them just to ask whether the camera is on (see `BrowserTab.page`).
 
-`six://configuration` ▸ **Privacy** ▸ Site Permissions lists every site with a remembered answer, across profiles, with a switch per device
+`savoia://configuration` ▸ **Privacy** ▸ Site Permissions lists every site with a remembered answer, across profiles, with a switch per device
 and an `×` that makes the site ask again.
 
 ## macOS is asking too
 
 Granting here is not the end of it. The camera and the microphone are behind TCC, and the system's own prompt — the
 one `NSCameraUsageDescription` and `NSMicrophoneUsageDescription` fill in, in
-[`InfoPlist.xcstrings`](../six/InfoPlist.xcstrings) — comes **first**, before six's bar, and comes once for the app
+[`InfoPlist.xcstrings`](../Savoia/InfoPlist.xcstrings) — comes **first**, before Savoia's bar, and comes once for the app
 rather than once per site. Measured, not assumed: on the first `getUserMedia({audio: true})` of a fresh install the
-system asks "Разрешить приложению «six» доступ к микрофону?", and only once that is answered does WebKit call the
-decision closure and six's own bar appear. So the very first request a user ever makes costs two answers, and every
+system asks "Разрешить приложению «Savoia» доступ к микрофону?", and only once that is answered does WebKit call the
+decision closure and Savoia's own bar appear. So the very first request a user ever makes costs two answers, and every
 one after it costs at most one.
 
-six is not sandboxed ([build.md](build.md)), so there are no `com.apple.security.device.*` entitlements in play; the
+Savoia is not sandboxed ([build.md](build.md)), so there are no `com.apple.security.device.*` entitlements in play; the
 usage strings and a signed bundle are the whole requirement. If either string were missing the request would
 be denied with no prompt at all, which is why they are there and why they are localized.
 
 ## Screen sharing, which WebKit asks for by itself
 
-`getDisplayMedia()` needs no delegate and no question of six's own. When the UI delegate does not implement the
+`getDisplayMedia()` needs no delegate and no question of Savoia's own. When the UI delegate does not implement the
 private `_webView:requestDisplayCapturePermissionForOrigin:…`, WebKit goes straight to macOS's content-sharing picker
 (`SCContentSharingPicker`, presented from its GPU process) and hands the page whatever the person picked. Measured
 before a line of code was written for it: a `video:Screen` track came back, and `ScreenCaptureKitCaptureSource::stop`
@@ -94,7 +94,7 @@ every browser asks this one every time.
 
 The page has to have focus. From a window of an app that is not in front, WebKit refuses with `InvalidStateError:
 Document is not fully active or does not have focus` before any picker appears, which is also why a call made over
-`six --mcp` only works while six is the front app.
+`Savoia --mcp` only works while Savoia is the front app.
 
 What `WebPage` leaves out is that sharing is *happening*: it publishes `cameraCaptureState` and
 `microphoneCaptureState` and nothing for the screen. `DisplayCapture` reads it from the `WKWebView` underneath,
@@ -128,7 +128,7 @@ answer about every site unreadable — the same trap `location` set below.
   (`WKContextGetGeolocationManager`, `WKGeolocationManagerSetProvider`, `WKGeolocationPositionCreate` — WebKit's
   exports carry nothing else about location). Measured with the permission half built (`e64dd24`, taken back out
   after it): the bar came up, "Allow" was saved, and the page got `TIMEOUT` — or, asked without a timeout, waited
-  forever — while `locationd` logged nothing from six or WebKit for the whole minute. With nothing answering the
+  forever — while `locationd` logged nothing from Savoia or WebKit for the whole minute. With nothing answering the
   delegate WebKit refuses at once, which is kinder than an "Allow" that leads nowhere.
 
   What that attempt taught, for whoever builds the SPI half. The proxy stood in front of `WebPage`'s own
@@ -175,9 +175,9 @@ Two things differ, and both are WebKitGTK's shape rather than a decision:
 The signal is wired by hand rather than through adwaita's signal machinery. `permission-request` is
 `gboolean (*)(WebKitWebView*, WebKitPermissionRequest*, gpointer)` and adwaita's handler types have no case for
 that shape — and here the half that would be wrong is the *return value*, which is what tells WebKitGTK whether
-six took the request or it should fall back to its own denial.
+Savoia took the request or it should fall back to its own denial.
 
-`SIX_MOCK_CAPTURE=1` turns on `WebKitSettings:enable-mock-capture-devices`, which is how this is tested: without a
+`SAVOIA_MOCK_CAPTURE=1` turns on `WebKitSettings:enable-mock-capture-devices`, which is how this is tested: without a
 device `getUserMedia` is refused before anyone is asked, and a container has neither a camera nor PulseAudio.
 
 WebKitGTK does offer what the Apple build cannot — `WebKitGeolocationPermissionRequest`, screen sharing through

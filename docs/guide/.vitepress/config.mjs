@@ -1,6 +1,6 @@
 import {defineConfig} from 'vitepress'
 
-// The VI user guide as a site — the browser this repository builds, described
+// The Savoia user guide as a site — the browser this repository builds, described
 // for the person using it rather than for the person changing it. Everything
 // else in `docs/` is the second kind and stays out of the publication: the
 // VitePress root is this folder, so nothing above it can be reached.
@@ -13,20 +13,17 @@ import {defineConfig} from 'vitepress'
 // application itself speaks both (see docs/localization.md), so a guide that
 // spoke one would be describing buttons the reader cannot find.
 //
-// **The product is called VI here and `six` in the application.** That is not a
-// slip: the name on deffun's shelf is a Roman numeral, beside XCIII and XXVI,
-// and the name in the menu bar is the one the app was built under. Where a page
-// quotes the interface — "Set six as Default Browser…", the folder under
-// Application Support — it says `six`, because that is what is on the screen.
+// The site is still published under /docs/vi/, the address the deffun landing page links
+// to from the time the product was called VI.
 
 const ru = {
     label: 'Русский',
     lang: 'ru-RU',
-    titleTemplate: ':title — руководство VI',
-    description: 'Руководство пользователя VI: лента окон вместо вкладок, блокировка рекламы, ассистент и агенты.',
+    titleTemplate: ':title — руководство Savoia',
+    description: 'Руководство пользователя Savoia: лента окон вместо вкладок, блокировка рекламы, ассистент и агенты.',
 
     themeConfig: {
-        siteTitle: 'VI · Руководство',
+        siteTitle: 'Savoia · Руководство',
 
         nav: [
             {text: 'Начало', link: '/start'},
@@ -96,7 +93,7 @@ const ru = {
         lastUpdatedText: 'Обновлено',
 
         footer: {
-            message: 'Руководство пользователя VI',
+            message: 'Руководство пользователя Savoia',
             copyright: '© 2026 deffun',
         },
 
@@ -112,11 +109,11 @@ const en = {
     label: 'English',
     lang: 'en-US',
     link: '/en/',
-    titleTemplate: ':title — the VI guide',
-    description: 'The VI user guide: a row of windows instead of tabs, blocking, the assistant and the agents.',
+    titleTemplate: ':title — the Savoia guide',
+    description: 'The Savoia user guide: a row of windows instead of tabs, blocking, the assistant and the agents.',
 
     themeConfig: {
-        siteTitle: 'VI · Guide',
+        siteTitle: 'Savoia · Guide',
 
         nav: [
             {text: 'Start', link: '/en/start'},
@@ -176,7 +173,7 @@ const en = {
         outline: {level: [2, 3], label: 'On this page'},
 
         footer: {
-            message: 'The VI user guide',
+            message: 'The Savoia user guide',
             copyright: '© 2026 deffun',
         },
 
@@ -189,7 +186,7 @@ const en = {
 }
 
 export default defineConfig({
-    title: 'VI',
+    title: 'Savoia',
 
     // The product is a screen, so the screen theme is the one a reader arrives
     // in — the same decision the landing page and the other two guides make.
@@ -213,7 +210,7 @@ export default defineConfig({
     outDir: '../../../xciii/site/dist/docs/vi',
 
     head: [
-        ['link', {rel: 'icon', href: '/docs/vi/favicon.svg'}],
+        ['link', {rel: 'icon', type: 'image/png', href: '/docs/vi/favicon.png'}],
     ],
 
     markdown: {

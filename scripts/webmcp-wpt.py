@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""Runs web-platform-tests' webmcp/ suite in a running dev six, through `six --mcp`.
+"""Runs web-platform-tests' webmcp/ suite in a running dev Savoia, through `Savoia --mcp`.
 
-    ./scripts/webmcp-wpt.py --install-ca             # once, with the dev six quit
-    open -na <Debug six.app> --env SIX_WEBMCP=1      # or Develop ▸ WebMCP on
+    ./scripts/webmcp-wpt.py --install-ca             # once, with the dev Savoia quit
+    open -na <Debug Savoia.app> --env SAVOIA_WEBMCP=1      # or Develop ▸ WebMCP on
     ./scripts/webmcp-wpt.py                          # the whole suite, against the baseline
     ./scripts/webmcp-wpt.py imperative/getTools      # files whose path contains any argument
     ./scripts/webmcp-wpt.py --write-baseline         # after a change that should move the numbers
 
-The suite is a sparse clone of wpt in ~/Library/Caches/six-wpt, served by wpt's own `wpt serve`
+The suite is a sparse clone of wpt in ~/Library/Caches/savoia-wpt, served by wpt's own `wpt serve`
 under .localhost rather than web-platform.test, so no hosts file is needed: *.localhost resolves
-to loopback by itself. six.localhost is the test page, www1.six.localhost and six-alt.localhost
+to loopback by itself. savoia.localhost is the test page, www1.savoia.localhost and savoia-alt.localhost
 are the other origins, and the machine's LAN address is the one non-secure origin. Not plain
 localhost: get-host-info then takes 127.0.0.1 as the remote host, which no certificate here
 names. The certificates come from a CA name-constrained to those hosts, which `--install-ca`
@@ -28,19 +28,19 @@ import sys
 import time
 import urllib.request
 
-CACHE = os.path.expanduser("~/Library/Caches/six-wpt")
+CACHE = os.path.expanduser("~/Library/Caches/savoia-wpt")
 WPT = "https://github.com/web-platform-tests/wpt.git"
 SPARSE = ["webmcp", "resources", "common", "tools", "interfaces", "fonts", "docs", ".well-known"]
 BASELINE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "webmcp-wpt-baseline.json")
-DEV = os.path.expanduser("~/Library/Application Support/org.deffun.six.dev")
+DEV = os.path.expanduser("~/Library/Application Support/org.deffun.savoia.dev")
 CONFIG = {
-    "browser_host": "six.localhost",
-    "alternate_hosts": {"alt": "six-alt.localhost"},
+    "browser_host": "savoia.localhost",
+    "alternate_hosts": {"alt": "savoia-alt.localhost"},
     "server_host": "localhost",
     "bind_address": False,
     "check_subdomains": False,
     "ports": {"http": [8000, 8001], "https": [8443, 8444], "ws": [], "wss": [], "h2": [], "webtransport-h3": []},
-    "ssl": {"type": "openssl", "openssl": {"duration": 365, "force_regenerate": False, "base_path": "six-certs"}},
+    "ssl": {"type": "openssl", "openssl": {"duration": 365, "force_regenerate": False, "base_path": "savoia-certs"}},
 }
 
 
@@ -50,8 +50,8 @@ def fetch(update):
     elif update:
         subprocess.run(["git", "-C", CACHE, "pull", "-q", "--depth", "1"], check=True)
     subprocess.run(["git", "-C", CACHE, "sparse-checkout", "set", *SPARSE], check=True)
-    os.makedirs(os.path.join(CACHE, "six-certs"), exist_ok=True)
-    json.dump(CONFIG, open(os.path.join(CACHE, "six-config.json"), "w"), indent=1)
+    os.makedirs(os.path.join(CACHE, "savoia-certs"), exist_ok=True)
+    json.dump(CONFIG, open(os.path.join(CACHE, "savoia-config.json"), "w"), indent=1)
     return subprocess.run(["git", "-C", CACHE, "rev-parse", "--short", "HEAD"],
                           capture_output=True, text=True).stdout.strip()
 
@@ -68,8 +68,8 @@ def serve():
     """Starts `wpt serve` unless one is already answering, and returns the process it started."""
     if answering("http://localhost:8000/resources/testharness.js"):
         return None
-    log = open(os.path.join(CACHE, "six-serve.log"), "w")
-    process = subprocess.Popen(["./wpt", "serve", "--config", "six-config.json"], cwd=CACHE,
+    log = open(os.path.join(CACHE, "savoia-serve.log"), "w")
+    process = subprocess.Popen(["./wpt", "serve", "--config", "savoia-config.json"], cwd=CACHE,
                                stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
     for _ in range(240):
         if answering("http://localhost:8000/resources/testharness.js"):
@@ -79,10 +79,10 @@ def serve():
 
 
 def install_ca():
-    """Adds the stand's CA to the dev build's trust list. The dev six must not be running."""
-    if subprocess.run(["pgrep", "-f", "Debug/six.app/Contents/MacOS/six"], capture_output=True).stdout:
-        sys.exit("quit the dev six first: it keeps the trust list in memory and would write it back")
-    ca = os.path.join(CACHE, "six-certs", "cacert.pem")
+    """Adds the stand's CA to the dev build's trust list. The dev Savoia must not be running."""
+    if subprocess.run(["pgrep", "-f", "Debug/Savoia.app/Contents/MacOS/Savoia"], capture_output=True).stdout:
+        sys.exit("quit the dev Savoia first: it keeps the trust list in memory and would write it back")
+    ca = os.path.join(CACHE, "savoia-certs", "cacert.pem")
     if not os.path.exists(ca):
         process = serve()
         if process:
@@ -91,7 +91,7 @@ def install_ca():
     name = "wpt-localhost.pem"
     with open(ca, "rb") as source, open(os.path.join(DEV, "Certificates", name), "wb") as target:
         target.write(source.read())
-    db = sqlite3.connect(os.path.join(DEV, "six.sqlite"))
+    db = sqlite3.connect(os.path.join(DEV, "savoia.sqlite"))
     row = db.execute("select value from settings where key = 'trust.certificates'").fetchone()
     enabled = set(json.loads(row[0])) if row else set()
     enabled.add("file:" + name)
@@ -112,13 +112,13 @@ def address(rel):
     if rel.endswith("non-secure.html"):
         return f"http://{lan_address()}:8000/{rel}"
     if ".https." in rel:
-        return f"https://six.localhost:8443/{rel}"
-    return f"http://six.localhost:8000/{rel}"
+        return f"https://savoia.localhost:8443/{rel}"
+    return f"http://savoia.localhost:8000/{rel}"
 
 
-class Six:
+class Savoia:
     def __init__(self, app):
-        self.p = subprocess.Popen([app + "/Contents/MacOS/six", "--mcp"], stdin=subprocess.PIPE,
+        self.p = subprocess.Popen([app + "/Contents/MacOS/Savoia", "--mcp"], stdin=subprocess.PIPE,
                                   stdout=subprocess.PIPE, text=True, bufsize=1)
         self.n = 0
         self.rpc("initialize", {"protocolVersion": "2025-06-18", "capabilities": {},
@@ -131,7 +131,7 @@ class Six:
         while True:
             line = self.p.stdout.readline()
             if not line:
-                raise RuntimeError("six --mcp closed; is a dev six running?")
+                raise RuntimeError("Savoia --mcp closed; is a dev Savoia running?")
             message = json.loads(line)
             if message.get("id") == self.n:
                 if "error" in message:
@@ -162,7 +162,7 @@ return JSON.stringify({done: !!summary, harness, rows, modelContext: typeof docu
 
 
 def newest_app():
-    apps = glob.glob(os.path.expanduser("~/Library/Developer/Xcode/DerivedData/six-*/Build/Products/Debug/six.app"))
+    apps = glob.glob(os.path.expanduser("~/Library/Developer/Xcode/DerivedData/Savoia-*/Build/Products/Debug/Savoia.app"))
     return max(apps, key=os.path.getmtime) if apps else None
 
 
@@ -174,19 +174,19 @@ def test_files(only):
     return [f for f in files if not only or any(o in f for o in only)]
 
 
-def run_one(six, window, rel, timeout):
+def run_one(savoia, window, rel, timeout):
     source = open(os.path.join(CACHE, rel), encoding="utf-8").read()
     crashtest = rel.endswith(".html") and "testharness.js" not in source
-    six.call("navigate", window_id=window, url=address(rel))
+    savoia.call("navigate", window_id=window, url=address(rel))
     state, started = None, time.time()
     while time.time() - started < timeout:
         time.sleep(0.5)
         try:
-            state = six.js(window, READ)
+            state = savoia.js(window, READ)
         except Exception:
             continue
         if state["modelContext"] == "undefined" and ".https." in rel:
-            sys.exit("document.modelContext is undefined on a secure page: launch six with SIX_WEBMCP=1, "
+            sys.exit("document.modelContext is undefined on a secure page: launch Savoia with SAVOIA_WEBMCP=1, "
                      "or turn on Develop ▸ WebMCP — or the page did not load (--install-ca?)")
         if state["done"] or (crashtest and time.time() - started > 3):
             break
@@ -214,7 +214,7 @@ def compare(results, baseline):
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("only", nargs="*", help="run the files whose path contains any of these")
-    parser.add_argument("--app", default=newest_app(), help="the six.app whose --mcp relay to use")
+    parser.add_argument("--app", default=newest_app(), help="the Savoia.app whose --mcp relay to use")
     parser.add_argument("--timeout", type=float, default=45, help="seconds to wait for one file")
     parser.add_argument("--update", action="store_true", help="pull the suite again first")
     parser.add_argument("--install-ca", action="store_true", help="trust the stand's CA in the dev build, then stop")
@@ -227,12 +227,12 @@ def main():
         return install_ca()
     server = serve()
     try:
-        six = Six(args.app)
-        opened = six.call("open_window", url="http://six.localhost:8000/webmcp/")
+        savoia = Savoia(args.app)
+        opened = savoia.call("open_window", url="http://savoia.localhost:8000/webmcp/")
         window = re.search(r"window ([0-9A-Fa-f-]{36})", opened).group(1)
         results, passed, total = {}, 0, 0
         for rel in test_files(args.only):
-            harness, rows = run_one(six, window, rel, args.timeout)
+            harness, rows = run_one(savoia, window, rel, args.timeout)
             ok = sum(1 for r in rows if r["status"] == "Pass")
             passed, total = passed + ok, total + max(len(rows), 1)
             print(f"{ok:3}/{len(rows):<3} {rel}" + ("" if harness == "OK" else f"  [{harness}]"), flush=True)

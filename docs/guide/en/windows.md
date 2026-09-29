@@ -15,8 +15,8 @@ the list, and neither is one that never showed anything.
 
 The last window can be closed too. The row is then empty — **New Window** in the
 middle of the screen with "or ⌘T" under it, exactly what any empty workspace
-shows. VI does not put a start page nobody asked for where the closed window
-stood, and an empty row survives quitting: close everything and leave, and VI
+shows. Savoia does not put a start page nobody asked for where the closed window
+stood, and an empty row survives quitting: close everything and leave, and Savoia
 comes back just as empty.
 
 The `×` sits on the window's own top right corner. It is mostly over the gap, so
@@ -34,7 +34,7 @@ row of a dozen windows should not be a row of a dozen crosses.
 | right-click ▸ **Download Linked File** | download it without opening |
 
 ::: warning `⇧`-click and the middle button do nothing
-And that is not an omission. WebKit hands `⇧`- and `⌘⇧`-clicks somewhere VI
+And that is not an omission. WebKit hands `⇧`- and `⌘⇧`-clicks somewhere Savoia
 cannot answer from, and a middle click arrives indistinguishable from a plain
 one. So "open it and take me there" lives in the context menu, next to "open
 behind".
@@ -54,13 +54,13 @@ window to the right, behind; `Ctrl` + `Shift` + click opens it and takes you the
 A window a page opens itself comes forward, as on the Mac, and stays connected to
 the page that opened it — so a "Sign in with…" window can report back and close
 itself when it is done. A link to another app (`mailto:` and the like) is handed
-to it only after you say so: VI asks "Open this link in *Mail*?", naming the app
+to it only after you say so: Savoia asks "Open this link in *Mail*?", naming the app
 Windows would use — or says that Windows will ask which one, or that no app on the
 computer opens such links. A page that tries it without a click is simply refused.
 
 ## The page's context menu
 
-It is entirely VI's own, because two of its link items could not be repaired in
+It is entirely Savoia's own, because two of its link items could not be repaired in
 anybody else's:
 
 | on a link | always |
@@ -78,7 +78,7 @@ Image, Copy Image, Look Up and the spelling suggestions. It is a trade: without
 its own menu, those two link items would not work at all.
 
 **On Windows** the menu is WebKit's own, and there both of those link items do
-work, so VI only adds to it. Over a link you get **Open Link**, **Open Link in New
+work, so Savoia only adds to it. Over a link you get **Open Link**, **Open Link in New
 Window**, **Open Link Behind**, **Download Linked File** and **Copy Link**.
 Elsewhere on a page it is WebKit's usual menu — on a plain page, just **Reload**.
 **Open Link Beside** and **This Window** are not there yet.
@@ -94,7 +94,7 @@ that has stopped, **Show in Finder** when it is done, and a context menu per row
 open, copy the address, remove from the list. Removing a row never touches the
 file.
 
-**Resume** picks a transfer up where it left off: six asks the server for the
+**Resume** picks a transfer up where it left off: Savoia asks the server for the
 missing bytes rather than for the file again, so the ninety per cent that went
 down with the network stays where it is. A download that died on its own behaves
 the same as one you stopped. When the server will not do that, the button is
@@ -108,7 +108,7 @@ the screen looks like a click that did nothing.
 A download belongs to the browser, not to the window that started it: closing the
 window does not stop the transfer.
 
-Unfinished downloads survive a relaunch: the row is still there after six is
+Unfinished downloads survive a relaunch: the row is still there after Savoia is
 quit, saying **Interrupted** with the file's name and size, and the button offers
 to fetch it again. It cannot pick up from the middle across a restart — the bytes
 already downloaded were in a temporary folder the system is entitled to empty, so
@@ -147,7 +147,7 @@ and any other app that takes links. The same is in the page's context menu
 (**Share**, and **Share Link** over a link) and in the phone's `…` menu. A start
 page or a document has nothing to share, so the button is greyed out there.
 
-**Taking a page from another app.** VI is in every app's Share menu: Safari,
+**Taking a page from another app.** Savoia is in every app's Share menu: Safari,
 Mail, Finder. Pick it, and a sheet comes up over that app and asks where the page
 goes:
 
@@ -155,28 +155,28 @@ goes:
 - the workspace: each row shows its first windows' titles, the one open now is
   marked **Current**, and the last one, **New Workspace**, gives the page a row of
   its own;
-- **Open** opens the page as a new window on that workspace and brings VI
+- **Open** opens the page as a new window on that workspace and brings Savoia
   forward;
 - **Add to Bookmarks** saves the page to that workspace's profile without opening
-  anything or bringing VI forward;
+  anything or bringing Savoia forward;
 - the hand button is **Open in Private Window**.
 
 What can be sent besides a link:
 
-| what | what VI offers |
+| what | what Savoia offers |
 |---|---|
 | a link, a page from Safari | Open, Add to Bookmarks |
 | text that is just an address | the same as a link |
 | any other text | **Search**, with your search engine |
 | a PDF, HTML, web archive, image or plain-text file | Open |
 
-VI is not offered for any other kind of file.
+Savoia is not offered for any other kind of file.
 
-macOS registers extensions like this switched off, so VI switches itself into the
+macOS registers extensions like this switched off, so Savoia switches itself into the
 Share menu — once, at the first launch that finds it off. Turning it back off, and
 on again, is where everything else is: **Configuration ▸ General ▸ Sharing ▸ Show
-six in the Share Menu**. It is the same switch as the one in System Settings,
-without the hunt for it; and if you switch it off yourself, VI leaves it off.
+Savoia in the Share Menu**. It is the same switch as the one in System Settings,
+without the hunt for it; and if you switch it off yourself, Savoia leaves it off.
 
 Taking pages from other apps is Mac-only for now.
 
@@ -188,10 +188,10 @@ move to the workspace above or below, **move to another profile**
 window's title bar; there are no title bars any more — the page runs edge to edge
 — so it hangs off the page.
 
-## What VI tells sites it is
+## What Savoia tells sites it is
 
 Safari's own string — the Safari installed on this machine, version number and
 all. It is not a disguise: the engine, the JavaScript and the quirks really are
 that Safari's. Naming ourselves in the same string is exactly what makes
-Aviasales and Yandex answer "your browser is out of date", so VI does not name
+Aviasales and Yandex answer "your browser is out of date", so Savoia does not name
 itself there. Nothing beyond the string is faked.

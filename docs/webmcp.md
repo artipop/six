@@ -1,6 +1,6 @@
 # WebMCP
 
-A page can offer agents tools of its own, and six can call them. This follows
+A page can offer agents tools of its own, and Savoia can call them. This follows
 [agent-actions.md](agent-actions.md) and [accessibility.md](accessibility.md), where an agent looks at a page from
 outside — its text, its accessibility tree, clicks. WebMCP is the page saying **itself** what it can do and handing
 over the functions for it.
@@ -52,13 +52,13 @@ interface ModelContext : EventTarget {
 - **Who is trying it**: Google I/O 2026 named trial participants — Expedia, Booking.com, Shopify, Credit Karma,
   TurboTax, Redfin, Etsy, Instacart, Target. Who has actually shipped is unconfirmed.
 
-The consequence for six: **there will be no native WebMCP in the engine** — not in WebKit on the Mac, WebKitGTK on
-Linux or WebKit on Windows — while WebKit is opposed. What six offers is its own polyfill and its own agent side. In
+The consequence for Savoia: **there will be no native WebMCP in the engine** — not in WebKit on the Mac, WebKitGTK on
+Linux or WebKit on Windows — while WebKit is opposed. What Savoia offers is its own polyfill and its own agent side. In
 return it is one implementation on every front, and it waits for nobody's release.
 
-## Why six wants it
+## Why Savoia wants it
 
-An agent in six has four ways to understand a page, and WebMCP is the best of them where it exists:
+An agent in Savoia has four ways to understand a page, and WebMCP is the best of them where it exists:
 
 1. **The service's own MCP server**, connected in Apps (`<server>__<tool>`). Best of all, but only where a server
    exists and has been connected.
@@ -81,12 +81,12 @@ self-test's window — is shared. That is the main frame alone. A front that als
 the channel (`WebMCPHost.request`) and can run code in one given frame (`WebMCPFrame`) gets the frames: the Mac does,
 Windows and Linux do not yet, and the polyfill tells the two apart by whether `postMessage` answers.
 
-- `six/WebMCP/`, in `SixCore` and so on every front: `WebMCPScript` (the polyfill and the call bodies),
+- `Savoia/WebMCP/`, in `SavoiaCore` and so on every front: `WebMCPScript` (the polyfill and the call bodies),
   `WebMCPRegistry` (the channel's messages and the window → tools registry agents read), `WebMCPHost` (calls in
   flight, the gate, the "an agent is calling" mark), `WebMCPBroker` (every frame's documents, who sees what, the
   `tools` policy, calls between frames), `WebMCPPage`, `WebMCPSelfTest`.
-- The bridges: `six/WebMCP/WebMCPStore.swift` (Apple), `windows/Sources/SixUI/StripWebMCP.swift` (Windows),
-  `linux/Sources/SixWebKitCore/PageChannels.swift` with `linux/Sources/SixBrowser/WebMCP.swift` (Linux).
+- The bridges: `Savoia/WebMCP/WebMCPStore.swift` (Apple), `windows/Sources/SavoiaUI/StripWebMCP.swift` (Windows),
+  `linux/Sources/SavoiaWebKitCore/PageChannels.swift` with `linux/Sources/SavoiaBrowser/WebMCP.swift` (Linux).
 - Agents get `list_page_tools` and `call_page_tool` in the catalog, over MCP. The ⌘K assistant gets the focused
   window's `readOnlyHint` tools as tools of its own (`WebMCPModelTool`), with their JSON Schema translated into a
   `DynamicGenerationSchema`, and its session is rebuilt when that set changes.
@@ -94,13 +94,13 @@ Windows and Linux do not yet, and the polyfill tells the two apart by whether `p
   button, its tooltip counting the tools, pulsing while a call runs, and the list behind it on a click. On Windows a
   badge with the count, lit while a call runs.
 
-Off by default, behind `six://configuration` ▸ Develop ▸ WebMCP.
+Off by default, behind `savoia://configuration` ▸ Develop ▸ WebMCP.
 
 ### The polyfill
 
-A user script in the **page's** world at document start, main frame only. In the page's world rather than six's for
+A user script in the **page's** world at document start, main frame only. In the page's world rather than Savoia's for
 the reason console capture lives there ([devtools.md](devtools.md)): the page has to reach `document.modelContext`,
-or there is nothing to declare. It is the second deliberate exception to "everything of six's in six's world".
+or there is nothing to declare. It is the second deliberate exception to "everything of Savoia's in Savoia's world".
 
 - It defines `document.modelContext`, and `navigator.modelContext` as the same object for first-trial sites — only
   when neither exists yet, so a polyfill the page brought (`@mcp-b/global`) keeps its own.
@@ -138,7 +138,7 @@ Two separate questions, both through the same queue and the same bar as the came
 third kind of question rather than a second queue, so each front's permission bar draws it with no new UI):
 
 - **The site, once.** The first call to a site asks "may agents use the tools this site offers them?". The answer is
-  remembered per profile and origin, shown in `six://configuration` ▸ Privacy ▸ Site Permissions and taken back from
+  remembered per profile and origin, shown in `savoia://configuration` ▸ Privacy ▸ Site Permissions and taken back from
   there. It is asked at the first call, not when a page declares tools: a page whose tools nobody calls has asked for
   nothing.
 - **The call, every time**, unless the page marked the tool `readOnlyHint` — and always for `consequentialHint`. The
@@ -159,18 +159,18 @@ in [permissions.md](permissions.md).
 - **Styling by `:tool-form-active` and `:tool-submit-active`.** `matches()` and `closest()` know them; a style sheet
   does not, because WebKit's CSS parser drops a rule with a pseudo-class it has never heard of, and nothing a page
   script can do brings it back.
-- **File inputs** in declarative forms: Chromium keeps them behind a flag pending a privacy review, and so does six —
+- **File inputs** in declarative forms: Chromium keeps them behind a flag pending a privacy review, and so does Savoia —
   there is no flag.
 - **Frames on Windows and Linux.** Their bridges inject into the main frame and do not answer the channel, so there the
   polyfill keeps to its own document, as it did before frames were built.
 - **`document.domain`.** The draft refuses the API where `document.domain` is enabled; WebKit has no origin-keyed
   agent clusters (`window.originAgentCluster` does not exist), so there `document.domain` is always enabled and the
-  rule would refuse everything. six does not apply it.
-- **An opened window.** `window.open` hands the page no window in six ([Frames](#frames-what-webkit-allows-measured)),
+  rule would refuse everything. Savoia does not apply it.
+- **An opened window.** `window.open` hands the page no window in Savoia ([Frames](#frames-what-webkit-allows-measured)),
   so nothing about tools across an opener boundary can be tested, or needs to be.
 - **The initial `about:blank` of an iframe with a `src`** gets no polyfill: WebKit does not run user scripts in it,
   and the page reaches it before it navigates. The wpt test for it says Chrome gets it wrong too.
-- **Not native.** The IDL is followed as far as `idlharness` checks it, but the events six dispatches are the page's
+- **Not native.** The IDL is followed as far as `idlharness` checks it, but the events Savoia dispatches are the page's
   own and `isTrusted` is false. The page sees the polyfill and can replace it — with an engine that opposes WebMCP there
   is no other way.
 - **Input is not checked against `inputSchema`** before a call.
@@ -180,13 +180,13 @@ in [permissions.md](permissions.md).
   there is no mark in its bar.
 - **The ⌘K assistant gets only some tools**: `readOnlyHint` ones whose schema translates (an object of strings,
   numbers, booleans, enums and arrays of those). The rest stay with ACP agents through `call_page_tool`.
-- **Limits of six's own, not in the draft**: at most 100 tools a document, descriptions up to 4,000 characters,
+- **Limits of Savoia's own, not in the draft**: at most 100 tools a document, descriptions up to 4,000 characters,
   schemas up to 64 KB.
 - **`navigator.modelContext`** stays for Chrome's first-trial sites; when the trial ends (156), see who still calls
   it and remove it.
 
-What not to do: wait for WebKit, or turn six into a bridge for someone else's agent — MCP-B's page → extension →
-external client path is not needed when six **is** the MCP server (`six --mcp`), and page tools leave through
+What not to do: wait for WebKit, or turn Savoia into a bridge for someone else's agent — MCP-B's page → extension →
+external client path is not needed when Savoia **is** the MCP server (`Savoia --mcp`), and page tools leave through
 `call_page_tool` with the rest of the catalog and its permissions, not around them.
 
 ## Declarative forms
@@ -204,9 +204,9 @@ line, and the submission follows wpt's `webmcp/declarative`.
   `required` lists the required names, and is there even when empty.
 - **A call** checks every argument before it touches anything — a name the form does not have, a value the control
   would refuse — then fills the fields with the native setters and fires `input` and `change` where a value changed,
-  then `toolactivated`. With `toolautosubmit` six submits: the `submit` event carries `agentInvoked`, a handler that
+  then `toolactivated`. With `toolautosubmit` Savoia submits: the `submit` event carries `agentInvoked`, a handler that
   cancels it answers with `respondWith(promise)`, one that does not lets the form navigate and the call answers
-  `null`. Without it six focuses the submit button and waits for the person to press it — which is what makes a form
+  `null`. Without it Savoia focuses the submit button and waits for the person to press it — which is what makes a form
   without `toolautosubmit` safe to offer. A reset, the form's removal before it was submitted, or the caller's abort
   ends the call.
 - **Keeping up.** A `MutationObserver` on the document re-reads the forms when a tool attribute or a control changes,
@@ -219,14 +219,14 @@ line, and the submission follows wpt's `webmcp/declarative`.
 ## Compatibility: web-platform-tests
 
 wpt has the suite Chromium moved its own tests into, [`webmcp/`](https://github.com/web-platform-tests/wpt/tree/master/webmcp),
-and `scripts/webmcp-wpt.py` runs it in a running dev six over `six --mcp`, on wpt's own `wpt serve` — the stand is
-described in [test-suites.md](test-suites.md#the-shared-stand): `six.localhost` and its subdomains with no hosts file,
+and `scripts/webmcp-wpt.py` runs it in a running dev Savoia over `Savoia --mcp`, on wpt's own `wpt serve` — the stand is
+described in [test-suites.md](test-suites.md#the-shared-stand): `savoia.localhost` and its subdomains with no hosts file,
 a second and a cross-site origin, the LAN address as the non-secure one, and a CA of its own trusted by the dev build
 only.
 
 ```sh
-./scripts/webmcp-wpt.py --install-ca          # once, with the dev six quit
-open -na <Debug six.app> --env SIX_WEBMCP=1
+./scripts/webmcp-wpt.py --install-ca          # once, with the dev Savoia quit
+open -na <Debug Savoia.app> --env SAVOIA_WEBMCP=1
 ./scripts/webmcp-wpt.py                       # everything, and what moved against the baseline
 ./scripts/webmcp-wpt.py imperative/getTools   # only paths containing an argument
 ./scripts/webmcp-wpt.py --write-baseline      # after a change that should move the numbers
@@ -253,21 +253,21 @@ Every frame test in the suite needs the polyfill in frames other than the main o
 of them. Measured on 2026-09-27, macOS 27, dev build, with a throwaway probe (a user script in every frame of the
 page's world, a `WKScriptMessageHandlerWithReply`, and `WKWebView.callAsyncJavaScript(_:in: WKFrameInfo, contentWorld:)`
 through `WebViewResponder.webView(for:)`), on a stand page holding a same-origin iframe, two cross-origin ones
-(`www1.six.localhost`, one with `allow="tools"`), a `srcdoc`, a static `about:blank` and one created from script:
+(`www1.savoia.localhost`, one with `allow="tools"`), a `srcdoc`, a static `about:blank` and one created from script:
 
 - **A `forMainFrameOnly: false` user script reaches every one of them** — cross-origin frames included, `srcdoc`, the
   static `about:blank`, and an `about:blank` iframe created by `appendChild`, where it has already run when
   `appendChild` returns. The parent does not have to install anything into a same-origin child itself.
 - **The reply handler answers in every frame.** `postMessage` returns a promise there, and each frame got its own
   answer; `message.frameInfo` names the frame's own origin (`about:blank` and `srcdoc` inherit the parent's), which
-  is the origin six should trust rather than anything the page says.
+  is the origin Savoia should trust rather than anything the page says.
 - **Running code in one particular frame works**, cross-origin frames too, from the `WKFrameInfo` its message
   carried. A frame that has gone answers `WKErrorDomain` 12, "Target frame could not be found" — the navigated-away
   case, for free. `WebPage.callJavaScript(in:)` takes a `WebPage.FrameInfo`, which only navigation and dialog
   callbacks hand out, so the `WKWebView` is the way in; it exists once a pane has shown the window.
-- **WebKit has no `document.featurePolicy` or `permissionsPolicy`.** The `tools` policy has to be six's own
+- **WebKit has no `document.featurePolicy` or `permissionsPolicy`.** The `tools` policy has to be Savoia's own
   computation.
-- **`window.open` hands the page no window.** Without a gesture WebKit's popup blocking answers `null`; with one six
+- **`window.open` hands the page no window.** Without a gesture WebKit's popup blocking answers `null`; with one Savoia
   opens a new column that is not scripting-connected to its opener (docs/links.md). The two tests that script an
   opened window — `exposedTo-window-open` and `executeTool-across-trees` — cannot pass until that changes, and the
   same gap breaks any site whose sign-in popup answers through `window.opener`. That is a browser matter, not a
@@ -277,10 +277,10 @@ through `WebViewResponder.webView(for:)`), on a stand page holding a same-origin
 
 - The polyfill runs in every frame. Each document has a random token and knows its place in the frame tree — indices
   into `frames` from the top, worked out at document start, before any script of that document has run. Every
-  message answers with the frame's `WKFrameInfo` (`WebMCPFrameHandle`), and the origin six uses is the frame's own
+  message answers with the frame's `WKFrameInfo` (`WebMCPFrameHandle`), and the origin Savoia uses is the frame's own
   from there, never the page's word.
 - The channel is a reply handler, so `getTools` and `executeTool` from any frame are one request to Swift and one
-  answer. `WebMCPBroker`, in `SixCore`, keeps every document of a window by token and place: a new document at a
+  answer. `WebMCPBroker`, in `SavoiaCore`, keeps every document of a window by token and place: a new document at a
   place replaces whatever was there and everything below it, and `pagehide` says a document is going.
 - Who sees what: a document sees every tool of its own origin, in any frame, and every tool whose `exposedTo` names
   its origin; `getTools({fromOrigins})` keeps the first kind always and the second kind only from the origins
@@ -290,7 +290,7 @@ through `WebViewResponder.webView(for:)`), on a stand page holding a same-origin
   is passed on to the tool's signal; a caller or a target that goes away ends the call on the other side.
 - The `tools` policy: the top document may; a subframe may when its parent may and the parent's container for it
   allows the child's origin — `'self'` (the parent's origin) with no `tools` directive, else what the directive
-  lists: nothing for the `src` origin, `*`, `'self'`, `'src'`, `'none'`, origins. The container is read in six's
+  lists: nothing for the `src` origin, `*`, `'self'`, `'src'`, `'none'`, origins. The container is read in Savoia's
   own world (`WebMCPBroker.allowQuery`), matched to the child by `contentWindow === frames[i]`, so the page cannot
   answer for it. A frame that may not gets `NotAllowedError` from all three operations.
 - A detached frame's `document.defaultView` is `null`, and a tool whose `window` is closed is gone: every operation
@@ -305,8 +305,8 @@ through `WebViewResponder.webView(for:)`), on a stand page holding a same-origin
 
 ## What has been checked
 
-- **Mac.** Both schemes build. `SIX_WEBMCP_SELFTEST` against `Tests/WebMCP/webmcp.html`: 22 checks, `PASS`.
-  `WebMCPTests` pass with the rest of `SixCore`'s tests. wpt as above.
+- **Mac.** Both schemes build. `SAVOIA_WEBMCP_SELFTEST` against `Tests/WebMCP/webmcp.html`: 22 checks, `PASS`.
+  `WebMCPTests` pass with the rest of `SavoiaCore`'s tests. wpt as above.
 - **Windows, real WebKit.** The same self-test, 22 checks, `PASS`; the badge seen in a `PrintWindow` capture. `file:`
   is a secure context in that WebKit, and `WKPageCallAsyncJavaScript` runs in the page's world.
 - The self-test covers: a declaration with annotations and schema, `add(2,3)` → `5`,
@@ -317,12 +317,12 @@ through `WebViewResponder.webView(for:)`), on a stand page holding a same-origin
   can be run back to back.
 
 - **Live pages** (2026-09-27, dev build): all fourteen of Chrome Labs' demos
-  (`googlechromelabs.github.io/webmcp-tools/demos/`) declare their tools in six — 41 between them, imperative and
+  (`googlechromelabs.github.io/webmcp-tools/demos/`) declare their tools in Savoia — 41 between them, imperative and
   declarative, React, Angular and plain pages — and `list_page_tools` lists what the page's own `getTools()` returns.
   Called from inside the page: the pizza maker's `set_pizza_size` answered, the doors' and order tracking's forms
   submitted and answered `null`, and an argument outside a form's `enum` was refused before anything was filled.
-- **`@mcp-b/global` 5.1.0** on a stand page: it takes six's `document.modelContext` for a native one and wraps it, as
-  its README says, and a tool registered through the wrapper reaches six and is listed to agents.
+- **`@mcp-b/global` 5.1.0** on a stand page: it takes Savoia's `document.modelContext` for a native one and wraps it, as
+  its README says, and a tool registered through the wrapper reaches Savoia and is listed to agents.
 
 ### Not checked
 
@@ -336,34 +336,34 @@ through `WebViewResponder.webView(for:)`), on a stand page holding a same-origin
 
 **Mac:**
 
-1. `six://configuration` ▸ Develop ▸ WebMCP on;
+1. `savoia://configuration` ▸ Develop ▸ WebMCP on;
 2. open `file:///…/Tests/WebMCP/webmcp.html`: a wrench in the address field, its tooltip saying 4, a click listing
    them with the read-only and consequential marks;
-3. `six --mcp` → `list_page_tools`, then `call_page_tool` with `name: add`, `arguments: {"a":2,"b":3}` — the bar asks
+3. `Savoia --mcp` → `list_page_tools`, then `call_page_tool` with `name: add`, `arguments: {"a":2,"b":3}` — the bar asks
    about the site, and `5` comes back after the answer;
 4. `call_page_tool` with `name: forget_slow` — a bar with the tool's name and arguments, on every call;
 5. ⌘K: ask for something that needs `add` — the assistant has it as its own tool and does not have `slow`, which is
    not read-only;
 6. the same in a private window: no tools at all;
-7. `SIX_WEBMCP_SELFTEST=file:///…/webmcp.html` on launching the dev build — the report goes to
-   `~/Library/Logs/org.deffun.six.dev/six.log`.
+7. `SAVOIA_WEBMCP_SELFTEST=file:///…/webmcp.html` on launching the dev build — the report goes to
+   `~/Library/Logs/org.deffun.savoia.dev/savoia.log`.
 
 **Windows:**
 
 ```powershell
-./scripts/six-windows.ps1 build      # stops every running six-windows, other sessions' included
-$env:SIX_WEBMCP_SELFTEST = "file:///C:/Users/Artem/sources/six/Tests/WebMCP/webmcp.html"
-.\windows\.build\x86_64-unknown-windows-msvc\debug\six-windows.exe
+./scripts/savoia-windows.ps1 build      # stops every running savoia-windows, other sessions' included
+$env:SAVOIA_WEBMCP_SELFTEST = "file:///C:/Users/Artem/sources/Savoia/Tests/WebMCP/webmcp.html"
+.\windows\.build\x86_64-unknown-windows-msvc\debug\savoia-windows.exe
 ```
 
-The report is in `%LOCALAPPDATA%\six\Logs\six.log`, the line `webmcp self-test`, ending in `PASS`. By hand:
-`SIX_WEBMCP=1` instead, and the same page shows a 4 in the address bar.
+The report is in `%LOCALAPPDATA%\savoia\Logs\savoia.log`, the line `webmcp self-test`, ending in `PASS`. By hand:
+`SAVOIA_WEBMCP=1` instead, and the same page shows a 4 in the address bar.
 
 **Linux** (in the container, [linux.md](linux.md)):
 
 ```sh
-./scripts/six-linux.sh build
-SIX_WEBMCP_SELFTEST=file:///work/Tests/WebMCP/webmcp.html ./scripts/six-linux.sh up
+./scripts/savoia-linux.sh build
+SAVOIA_WEBMCP_SELFTEST=file:///work/Tests/WebMCP/webmcp.html ./scripts/savoia-linux.sh up
 ```
 
 **wpt**: `./scripts/webmcp-wpt.py`, above.

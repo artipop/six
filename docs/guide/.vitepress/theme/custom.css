@@ -212,7 +212,7 @@
    focused one in the middle, its neighbours cropped by the edges — which is
    what says "the row goes on" — and the workspaces as pips down the right.
 
-   The same drawing is on the deffun landing's VI card (site/styles.css there);
+   The same drawing is on the deffun landing's Savoia card (site/styles.css there);
    it is a dozen rectangles in CSS rather than an image, so it follows the theme
    with no second file and stays sharp on a 5K panel.
    --------------------------------------------------------------------------- */

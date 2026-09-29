@@ -6,9 +6,9 @@ with what the Linux front gets from the same work. Written on 2026-09-12 against
 "has / has not" below was checked in code, not only read in a doc. It lives in the repository because the first
 version of it lived in a conversation and was lost with it.
 
-**The rule for Linux.** Anything that lands in `SixCore`, or is a callback the engine already has, is nearly free
+**The rule for Linux.** Anything that lands in `SavoiaCore`, or is a callback the engine already has, is nearly free
 on Linux — WebKitGTK has a direct counterpart for every C API the Windows front uses. So a block is written
-shared-first: the model in `SixCore`, proved on Windows, and the Linux wiring written beside it and built in a
+shared-first: the model in `SavoiaCore`, proved on Windows, and the Linux wiring written beside it and built in a
 session that is about Linux (the container is on the Mac; AGENTS.md says why that is not a habit).
 
 Sizes are rough: **S** an afternoon, **M** a day or two, **L** a week, **XL** more.
@@ -18,7 +18,7 @@ Sizes are rough: **S** an afternoon, **M** a day or two, **L** a week, **XL** mo
 A WebKit that is not Playwright's, and the DPI shim that goes away with it. Playwright deletes the
 `/ intrinsicDeviceScaleFactor` from `WebView::onSizeEvent`, so `StripWebView.installScaleShim` divides `WM_SIZE` by
 the scale; its WebCore has MediaStream compiled out, so no page can ask for the camera or the microphone however
-finished six's side of that is; and GPU compositing is off. build.webkit.org builds Windows green and hands nobody a
+finished Savoia's side of that is; and GPU compositing is off. build.webkit.org builds Windows green and hands nobody a
 binary ([todo.md](todo.md#windows-a-webkit-that-is-not-playwrights)). Everything below works on the current engine.
 
 ## Built already, on Windows
@@ -35,7 +35,7 @@ site permissions (wired, engine-blocked — see 0).
 What makes it a browser rather than a row of pages: **downloads** (the Mac's `DownloadsView`, resume, the row that
 survives a relaunch — [links.md](links.md)); **the page's own dialogs** — `alert`, `confirm`, `prompt`, the file
 picker; **a second window** — `target=_blank`, `window.open`, `⌘`/middle-click opening a column beside; **the
-context menu on a link** (open beside, copy address — six took the Mac's over for exactly this); **a failed load**
+context menu on a link** (open beside, copy address — Savoia took the Mac's over for exactly this); **a failed load**
 as a page that says so (`PageFailureView`) rather than a blank card; **the load line** (`LoadingLine`).
 
 - **Windows:** **the dialogs are done** (2026-09-12): alert, confirm, prompt and the file picker, measured end to
@@ -50,7 +50,7 @@ as a page that says so (`PageFailureView`) rather than a blank card; **the load 
   `LoadingLine` under the address and across the other cards ([windows.md](windows.md#a-failed-load-and-the-loading-line)).
   **The link's context menu is done** (2026-09-13): WebKit's own, alive here where the Mac's was dead, with Open Link
   Behind added and Download Linked File handed to the downloads ([windows.md](windows.md#the-context-menu)); Open Link
-  Beside and This Window wait for the split and the column commands. **Links to other apps are done** (2026-09-13): `ExternalScheme` moved into `SixCore` (with
+  Beside and This Window wait for the split and the column commands. **Links to other apps are done** (2026-09-13): `ExternalScheme` moved into `SavoiaCore` (with
   `MCPAppScheme`'s two names split out of its WebKit file), and on Windows every route to such an address asks
   first, names the app, and refuses a page that tries it without a click
   ([windows.md](windows.md#links-to-other-apps)). The Mac and iOS builds of that move are unbuilt here. And
@@ -59,7 +59,7 @@ as a page that says so (`PageFailureView`) rather than a blank card; **the load 
 - **Linux:** the same list: `WebKitDownload`, `script-dialog`, `run-file-chooser`, `decide-policy`,
   `context-menu` — [todo.md](todo.md#linux-what-the-third-front-still-owes-the-first) calls them one-to-one onto
   `PageDialogQueue` and the navigation decider.
-- **Shared:** the download rows and their persistence are not Apple (`six/Browser/Downloads` carries the model);
+- **Shared:** the download rows and their persistence are not Apple (`Savoia/Browser/Downloads` carries the model);
   the "open beside" decision is `TilingLayout`'s already.
 
 ### 2. Blocking — L, both fronts
@@ -69,7 +69,7 @@ the page, the shield and its per-site allowlist ([blocking.md](blocking.md)).
 
 - **Windows:** `WKUserContentExtensionStoreRef` is in the headers — the C spelling of `WKContentRuleListStore`.
 - **Linux:** `WebKitUserContentFilterStore`, which takes the same JSON.
-- **Shared:** `FilterListStore`, `RuleConversion` and `AdvancedRules` would move into `SixCore`. **The risk is the
+- **Shared:** `FilterListStore`, `RuleConversion` and `AdvancedRules` would move into `SavoiaCore`. **The risk is the
   graph, not the code:** SafariConverterLib would join the root manifest and so the Linux and Windows resolved
   files — read "Three fronts, one dependency graph" in AGENTS.md before touching a manifest for this.
 
@@ -94,11 +94,11 @@ the page, the shield and its per-site allowlist ([blocking.md](blocking.md)).
 The Mac's start page — the field, your own pages first (`PersonalSuggestions`: history and bookmarks), suggestions
 ([start-page.md](start-page.md)) — and `ConfigurationPageView`: search engine, translation target, embedding model,
 bookmark refresh, blocking lists. Both fronts start on DuckDuckGo and have no settings surface; the values are
-already in `ConfigurationStore`, which is `SixCore`'s.
+already in `ConfigurationStore`, which is `SavoiaCore`'s.
 
 ### 6. Highlights and the selection verbs — M
 
-`HighlightScript` is Foundation-only JavaScript, the same case `ReadablePage` was: into `SixCore`, through
+`HighlightScript` is Foundation-only JavaScript, the same case `ReadablePage` was: into `SavoiaCore`, through
 `PageScriptRunner`. Then the ⌘E line at a selection (`AnchoredAssistantLine`) for **highlight** and **translate selection** — both are
 key-table rows the fronts drop today. The highlights table is the Mac's ([deep-research.md](deep-research.md)).
 
@@ -122,13 +122,13 @@ Carrying a window to another row, renaming a workspace, the removal dialog (`Wor
 
 ### 10. Localization — M, both fronts
 
-Both are English only. Worth trying before gettext: `SixCore` reading `Localizable.xcstrings` (it is JSON) at run
+Both are English only. Worth trying before gettext: `SavoiaCore` reading `Localizable.xcstrings` (it is JSON) at run
 time, so all three fronts share one catalogue and the Russian the Mac already has.
 
 ### 11. The AI layer — XL
 
 The `⌘E` assistant and the verbs at a selection ([assistant.md](assistant.md)), the ACP agent panel
-([agents.md](agents.md)), `six --mcp` and `BrowserTools` ([mcp.md](mcp.md)), MCP apps, deep research. The most
+([agents.md](agents.md)), `Savoia --mcp` and `BrowserTools` ([mcp.md](mcp.md)), MCP apps, deep research. The most
 portable code in the repository — Foundation, child processes, JSON-RPC — minus Foundation Models, which is
 Apple's: the model choice collapses to ACP, the vendored `ClaudeAPI` and OpenAI-compatible. Linux has `Process`
 natively; so does Foundation on Windows.
@@ -141,7 +141,7 @@ The capture is the half that matters, and it matters once 11 exists.
 ### 13. Certificates — M, unscoped
 
 Extra certificate authorities ([certificates.md](certificates.md)): on the Mac a trust evaluation per challenge.
-Where each engine lets six decide server trust has not been looked at yet.
+Where each engine lets Savoia decide server trust has not been looked at yet.
 
 ## Blocked, not owed
 
@@ -153,6 +153,6 @@ Where each engine lets six decide server trust has not been looked at yet.
 ## Linux's own
 
 - **Everything bookmarks-and-vectors is written and unrun** there, today's readable text and Markdown copy
-  included: the first Linux session should run `SIX_EMBED_SELFTEST=1` and star a page.
+  included: the first Linux session should run `SAVOIA_EMBED_SELFTEST=1` and star a page.
 - **The strip clamps at its ends** — the outermost columns sit against the edge instead of centring
   ([linux.md](linux.md#where-it-is-behind-the-mac)).

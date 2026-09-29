@@ -2,7 +2,7 @@
 
 What happens when a link is clicked, right-clicked, ⌘-clicked or asked for as a file. One page, because in a SwiftUI
 `WebPage` browser these are all the same problem: WebKit's own answer to them goes to a delegate this API has no seat
-for, so six has to answer them itself.
+for, so Savoia has to answer them itself.
 
 ## What the SwiftUI API gives, and what it doesn't
 
@@ -15,7 +15,7 @@ Everything below follows from that.
 | a `target=_blank` link, `window.open` | `decidePolicy(for:preferences:)`, `target == nil`, then the UI client | the policy call was answered `.allow` and the UI client never existed → nothing |
 | ⌘-click | `decidePolicy(for:preferences:)` — `modifierFlags` carries the ⌘ | answered `.allow` → the page was simply replaced |
 | middle click | `decidePolicy(for:preferences:)`, and nothing in the action tells it from a plain click | it replaces the page, and still does |
-| ⇧-click, ⌘⇧-click | straight to the UI client, no policy call | nothing, and nothing six can do about it |
+| ⇧-click, ⌘⇧-click | straight to the UI client, no policy call | nothing, and nothing Savoia can do about it |
 | **Open Link in New Window** (context menu) | straight to the UI client, no policy call | nothing |
 | **Download Linked File** (context menu) | straight to a download delegate, no policy call | nothing |
 | `<a download>`, ⌥-click | `decidePolicy(for:preferences:)`, `shouldPerformDownload` | answered `.allow` → the file was displayed, or nothing |
@@ -27,16 +27,16 @@ loss: it *does* reach the decider, but nothing in the action says which button w
 despite the name, is 1 for every activation the mouse drove — left, middle, plain or modified — and 0 for
 everything else, so a middle click and an ordinary one are the same event. Reading it as the middle button is
 what once made every plain click open a window of its own. Everything else is a navigation
-action, and `TabNavigationDecider` in [`BrowserTab.swift`](../six/Browser/BrowserTab.swift) cancels it and
-hands the request back to `BrowserState`. The menu items six replaces; the shift-clicks it cannot.
+action, and `TabNavigationDecider` in [`BrowserTab.swift`](../Savoia/Browser/BrowserTab.swift) cancels it and
+hands the request back to `BrowserState`. The menu items Savoia replaces; the shift-clicks it cannot.
 
-`SIX_LINKS_TRACE=1` narrates every one of these decisions on stderr.
+`SAVOIA_LINKS_TRACE=1` narrates every one of these decisions on stderr.
 
-## The context menu is six's
+## The context menu is Savoia's
 
 Because the two items cannot be repaired in place, and `webViewContextMenu` — the one hook there is — **replaces**
-WebKit's menu rather than adding to it, six builds the whole menu
-([`PageContextMenu.swift`](../six/Views/PageContextMenu.swift)):
+WebKit's menu rather than adding to it, Savoia builds the whole menu
+([`PageContextMenu.swift`](../Savoia/Views/PageContextMenu.swift)):
 
 | on a link | always |
 |---|---|
@@ -60,34 +60,34 @@ the two link items working at all.
 
 - ⌘-click puts it there **behind**: the strip grows to the right and the focus stays on the page
   being read, and the strip leans over for a moment to show what arrived (above). There is no modifier for "and
-  take me there" — every shift-click is swallowed before six is asked — so the going-there version lives in the
+  take me there" — every shift-click is swallowed before Savoia is asked — so the going-there version lives in the
   context menu, as Open Link in New Window next to Open Link Behind.
 - A page that opened the window itself (`window.open`, a `_blank` link clicked plainly) comes **forward**, because it
   was opened to be looked at.
 - A link that is not the web — `magnet:`, `mailto:`, `tel:`, a custom scheme — goes to the system, not into a
-  column. `ExternalScheme` in [`ExternalScheme.swift`](../six/Browser/ExternalScheme.swift) — `SixCore`'s, so the
+  column. `ExternalScheme` in [`ExternalScheme.swift`](../Savoia/Browser/ExternalScheme.swift) — `SavoiaCore`'s, so the
   Windows front asks the same list ([windows.md](windows.md#links-to-other-apps)) — holds the one rule, and all
   three routes ask it: the decider (a link clicked **in place** — WebKit does call the decider for `magnet:`, and a
   `.allow` there is a click that does nothing at all, silently), the column a `target=_blank` would have opened, and
   the address bar. It is an allowlist of what a window can show — http(s), file, about, data, blob, javascript,
-  `six:`, the extension and MCP-app schemes — because the schemes to hand off are unbounded by definition.
+  `Savoia:`, the extension and MCP-app schemes — because the schemes to hand off are unbounded by definition.
   A page that navigates *itself* to a scheme nothing on the machine claims is dropped without a word: Telemost's
   join page tries `telemost://` to wake its desktop app and carries on in the browser, and handing that to the
   system put up macOS's "no application to open the URL" alert on every call. Only a clicked link (`linkActivated`)
   still gets that alert, where it is the answer to something the person did.
   The address bar asks LaunchServices first: `magnet:?xt=…` is an address on a machine with a torrent client and a
   search query on one without, which is also what keeps «note: buy milk» a search. The tools do not ask — an agent
-  that names a scheme six cannot show gets a search, not the power to launch whatever app registered it.
+  that names a scheme Savoia cannot show gets a search, not the power to launch whatever app registered it.
 
 WebKit's own popup blocking still runs first: a `window.open` with no user gesture behind it never reaches the
 decider, so an ad that opens itself does not get a column.
 
 ## Downloads
 
-`WKDownload` needs a delegate the SwiftUI API has no seat for, so six does the transfer itself —
-[`Downloads.swift`](../six/Browser/Downloads.swift), one `DownloadStore` for the app.
+`WKDownload` needs a delegate the SwiftUI API has no seat for, so Savoia does the transfer itself —
+[`Downloads.swift`](../Savoia/Browser/Downloads.swift), one `DownloadStore` for the app.
 
-That costs one thing and buys another. The request has to be rebuilt: six carries over the profile's cookies (from
+That costs one thing and buys another. The request has to be rebuilt: Savoia carries over the profile's cookies (from
 `WKWebsiteDataStore.httpCookieStore`, filtered by domain, path and `secure`, or a site that only serves a file to a
 signed-in session serves the sign-in page instead), the page's address as `Referer`, and Safari's user agent. In
 return a download is an ordinary object — the strip can show it, cancel it and reveal it.
@@ -104,7 +104,7 @@ Copy Address and Remove from List. Removing a row never touches the file.
 ### Picking one up again
 
 `URLSession` hands back a small blob — 8 KB for a 40 MB file, and it holds the temporary file's path and the
-validators the server gave, not the bytes — whenever a download stops with a chance of carrying on. six keeps it on
+validators the server gave, not the bytes — whenever a download stops with a chance of carrying on. Savoia keeps it on
 the row and starts the next task from it, which asks for the rest with a `Range` header rather than for the whole
 file again.
 
@@ -113,7 +113,7 @@ on a background queue, so the row goes to *Stopped* at once and grows its resume
 **died on its own** — the case that actually matters — carries the same blob in the error's
 `NSURLSessionDownloadTaskResumeData`, which is read in `didCompleteWithError`.
 
-A server that will not honour a range request gives nothing back, and then there is no resuming: six keeps the
+A server that will not honour a range request gives nothing back, and then there is no resuming: Savoia keeps the
 request as it was actually sent instead — cookies, referrer and all — and the button says **Try Again** rather than
 **Resume**, because starting over is what it will do. Both are one click, and neither sends the user back to find
 the page and the link a second time.
@@ -130,7 +130,7 @@ bytes, so the rest of the row needs no arithmetic.
 Resume data does not survive one, and cannot: it points at a partial file in a temporary directory the system is
 entitled to empty, so a *Resume* restored from a file would be a button that fails. What survives is the row.
 
-The unfinished downloads — running, stopped or failed, whichever they were when six was quit — are written into the
+The unfinished downloads — running, stopped or failed, whichever they were when Savoia was quit — are written into the
 session snapshot and come back as **Interrupted**, saying what the file was called and how big it was, with a
 **Try Again** that fetches it from the beginning. Finished ones are not kept: the file is in the Downloads folder
 and nothing about it was lost.
@@ -161,8 +161,8 @@ the focus, usually past the edge of the screen. Both are clicks that appear to d
 different answers, because they are different problems.
 
 **A download flies.** A short arc from the click to the button, and the button bounces when it catches
-one — [`Flights.swift`](../six/Browser/Flights.swift) for the model,
-[`FlightsOverlay.swift`](../six/Views/FlightsOverlay.swift) for the drawing. Two things it has to get
+one — [`Flights.swift`](../Savoia/Browser/Flights.swift) for the model,
+[`FlightsOverlay.swift`](../Savoia/Views/FlightsOverlay.swift) for the drawing. Two things it has to get
 right: the origin is the *pointer*, read at the moment the download is decided (`NavigationAction`
 carries no point, and by the time the first byte arrives the mouse has moved on), and the target is
 read a beat later, because on the first download the button does not exist yet — it comes into being

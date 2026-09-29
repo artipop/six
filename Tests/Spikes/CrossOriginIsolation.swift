@@ -45,9 +45,9 @@ final class Handler: NSObject, WKURLSchemeHandler {
 
 let handler = Handler()
 let configuration = WKWebViewConfiguration()
-configuration.setURLSchemeHandler(handler, forURLScheme: "six-spike")
+configuration.setURLSchemeHandler(handler, forURLScheme: "savoia-spike")
 let webView = WKWebView(frame: .init(x: 0, y: 0, width: 400, height: 300), configuration: configuration)
-let target = CommandLine.arguments.dropFirst().first ?? "six-spike://server/"
+let target = CommandLine.arguments.dropFirst().first ?? "savoia-spike://server/"
 webView.load(URLRequest(url: URL(string: target)!))
 
 var polls = 0

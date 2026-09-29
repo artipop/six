@@ -1,23 +1,23 @@
 #!/bin/sh
-# Vendors Bergamot's JavaScript glue into six/Translation/Payload/, as Swift.
+# Vendors Bergamot's JavaScript glue into Savoia/Translation/Payload/, as Swift.
 #
 #   ./scripts/bergamot-payload.sh [ref]
 #
 # Bergamot is delivered in two halves and only one of them is downloadable at run time. The
 # `.wasm` — 4.9 MB of Marian compiled by Emscripten — is a record in Mozilla's Remote Settings
-# and six fetches it like Firefox does, on demand and into the cache. The other half is the
+# and Savoia fetches it like Firefox does, on demand and into the cache. The other half is the
 # glue Emscripten generates beside it: `loadBergamot(Module)`, the embind bindings, the heap.
 # That is *source*, it is version-locked to the wasm it was generated with, and it is nowhere
 # public but the Firefox tree — so it is vendored here rather than downloaded, the same bargain
 # blocking-payload.sh makes with AdGuard's scriptlets.
 #
-# The output is committed, so building six needs no network and no Node at all. Run this only
+# The output is committed, so building Savoia needs no network and no Node at all. Run this only
 # when the pinned wasm version moves; the version the glue belongs to is written beside it, and
 # `BergamotStore` refuses a wasm record that does not match.
 set -eu
 
 root=$(cd "$(dirname "$0")/.." && pwd)
-out="$root/six/Translation/Payload"
+out="$root/Savoia/Translation/Payload"
 ref=${1:-main}
 repo=https://api.github.com/repos/mozilla-firefox/firefox/contents
 dir=toolkit/components/translations/bergamot-translator
@@ -62,7 +62,7 @@ cp "$work/LICENSE" "$out/BERGAMOT-LICENSE"
 // (blob $blob), under the MPL 2.0 — the licence is beside this file as BERGAMOT-LICENSE.
 //
 // It is Swift only so that it can be written to disk on a front that has no resource bundle to
-// read it out of. \`BergamotRuntime\` drops it beside the wasm in six's cache and the sandbox page
+// read it out of. \`BergamotRuntime\` drops it beside the wasm in Savoia's cache and the sandbox page
 // loads it from there; nothing here is ever parsed by Swift.
 //
 // The payload itself is Linux and Windows only — those are the fronts that translate with Bergamot,
