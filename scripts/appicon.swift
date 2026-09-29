@@ -1,133 +1,71 @@
 #!/usr/bin/env swift
+// The app icon from docs/logo.png: the Mac sizes, an opaque square for the 1024 slot, and the same set
+// under an orange DEV band for the development build.
+//
+//   swift scripts/appicon.swift docs/logo.png Savoia/Assets.xcassets/AppIcon.appiconset Savoia/Assets.xcassets/AppIcon-Dev.appiconset
 import AppKit
-import Foundation
+import CoreGraphics
 
-// Savoia's icon, drawn rather than painted: the window you are reading, with its neighbours barely on
-// screen either side. That is what a tiling strip looks like from inside it — one column centred, the
-// rest of the strip continuing past both edges — and it is what no other browser's icon says. At 16 pt
-// the detail goes and the silhouette stays: a bright card between two slivers.
-//
-//   swift scripts/appicon.swift <AppIcon.appiconset> [<AppIcon-Dev.appiconset>]
-//
-// The second folder, if given, gets the same icon under an amber DEV ribbon — the development
-// build's, so the two can be told apart in the dock (docs/build.md).
+let args = CommandLine.arguments
+let logo = NSImage(contentsOfFile: args[1])!
+var rect = CGRect(origin: .zero, size: logo.size)
+let source = logo.cgImage(forProposedRect: &rect, context: nil, hints: nil)!
+let W = CGFloat(source.width), H = CGFloat(source.height)
+// The white body inside the drawn shadow, for iOS, which masks the corners itself.
+let body = CGRect(x: W * 0.088, y: H * 0.080, width: W * 0.830, height: H * 0.830)
 
-func draw(_ pixels: Int, development: Bool) -> NSBitmapImageRep {
-    let size = CGFloat(pixels)
-    // Straight into a bitmap of the exact pixel size: an NSImage with `lockFocus` renders at the
-    // screen's backing scale and comes out twice as big on a Retina Mac, which actool rejects.
-    let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: pixels, pixelsHigh: pixels,
-                               bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
-                               colorSpaceName: .calibratedRGB, bytesPerRow: 0, bitsPerPixel: 0)!
-    rep.size = NSSize(width: size, height: size)
-    NSGraphicsContext.saveGraphicsState()
-    NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
-    let context = NSGraphicsContext.current!.cgContext
-    context.setShouldAntialias(true)
-
-    let inset = size * 0.05
-    let body = CGRect(x: inset, y: inset, width: size - inset * 2, height: size - inset * 2)
-    let radius = body.width * 0.235
-    let shape = NSBezierPath(roundedRect: body, xRadius: radius, yRadius: radius)
-
-    let top = NSColor(calibratedRed: 0.49, green: 0.38, blue: 0.95, alpha: 1)
-    let bottom = NSColor(calibratedRed: 0.20, green: 0.13, blue: 0.50, alpha: 1)
-    NSGradient(starting: top, ending: bottom)!.draw(in: shape, angle: -90)
-
-    context.saveGState()
-    shape.addClip()
-
-    // The focused window, and its neighbours cut off by the icon's own edge — a strip does not stop at
-    // the screen, and the pair running out of frame is the one thing that says so. The two are kept
-    // bright and the gaps wide because at 32 px this is three shapes or it is one white blob.
-    // Plain cards, no title bar on the focused one: a band across the top of it reads as a notch, not
-    // as a window, and the shape says window well enough on its own.
-    func card(x: CGFloat, width: CGFloat, height: CGFloat, alpha: CGFloat) {
-        let rect = CGRect(x: x, y: body.midY - height / 2, width: width, height: height)
-        let corner = min(width, height) * 0.17
-        let path = NSBezierPath(roundedRect: rect, xRadius: corner, yRadius: corner)
-        NSColor(calibratedWhite: 1, alpha: alpha).setFill()
-        path.fill()
+func render(_ size: Int, dev: Bool, opaque: Bool) -> Data {
+    let s = CGFloat(size)
+    let ctx = CGContext(data: nil, width: size, height: size, bitsPerComponent: 8, bytesPerRow: 0,
+                        space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                        bitmapInfo: opaque ? CGImageAlphaInfo.noneSkipLast.rawValue : CGImageAlphaInfo.premultipliedLast.rawValue)!
+    ctx.interpolationQuality = .high
+    if opaque {
+        let crop = source.cropping(to: CGRect(x: body.minX, y: H - body.maxY, width: body.width, height: body.height))!
+        ctx.draw(crop, in: CGRect(x: 0, y: 0, width: s, height: s))
+        let whole = CGRect(x: 0, y: 0, width: s, height: s)
+        ctx.addRect(whole)
+        ctx.addPath(CGPath(roundedRect: whole.insetBy(dx: s * 0.01, dy: s * 0.01), cornerWidth: s * 0.2, cornerHeight: s * 0.2, transform: nil))
+        ctx.setFillColor(NSColor(srgbRed: 0.980, green: 0.973, blue: 0.965, alpha: 1).cgColor)
+        ctx.fillPath(using: .evenOdd)
+    } else {
+        ctx.draw(source, in: CGRect(x: 0, y: 0, width: s, height: s))
     }
-
-    let sliverWidth = body.width * 0.22
-    let sliverShown = body.width * 0.105
-    card(x: body.minX - (sliverWidth - sliverShown), width: sliverWidth,
-         height: body.height * 0.50, alpha: 0.44)
-    card(x: body.maxX - sliverShown, width: sliverWidth,
-         height: body.height * 0.50, alpha: 0.44)
-
-    context.setShadow(offset: CGSize(width: 0, height: -size * 0.014), blur: size * 0.055,
-                      color: NSColor(calibratedWhite: 0, alpha: 0.42).cgColor)
-    card(x: body.midX - body.width * 0.185, width: body.width * 0.37,
-         height: body.height * 0.68, alpha: 1)
-    context.setShadow(offset: .zero, blur: 0, color: nil)
-
-    if development {
-        let amber = NSColor(calibratedRed: 1.0, green: 0.63, blue: 0.09, alpha: 1)
-        let band = NSBezierPath()
-        band.move(to: NSPoint(x: size * 0.30, y: 0))
-        band.line(to: NSPoint(x: size, y: size * 0.70))
-        band.line(to: NSPoint(x: size, y: size * 0.38))
-        band.line(to: NSPoint(x: size * 0.62, y: 0))
-        band.close()
-        amber.setFill()
-        band.fill()
-        if pixels >= 64 {
-            let attributes: [NSAttributedString.Key: Any] = [
-                .font: NSFont.systemFont(ofSize: size * 0.125, weight: .heavy),
-                .foregroundColor: NSColor(calibratedRed: 0.13, green: 0.09, blue: 0.02, alpha: 1),
-                .kern: size * 0.012,
-            ]
-            let text = NSAttributedString(string: "DEV", attributes: attributes)
-            context.translateBy(x: size * 0.665, y: size * 0.175)
-            context.rotate(by: .pi / 4)
-            text.draw(at: NSPoint(x: -text.size().width / 2, y: -text.size().height / 2))
+    if dev {
+        ctx.saveGState()
+        if !opaque {
+            let inset = s * 0.088
+            let path = CGPath(roundedRect: CGRect(x: inset, y: s * 0.09, width: s - 2 * inset, height: s - 2 * inset),
+                              cornerWidth: s * 0.18, cornerHeight: s * 0.18, transform: nil)
+            ctx.addPath(path); ctx.clip()
         }
+        ctx.translateBy(x: s * 0.70, y: s * 0.26)
+        ctx.rotate(by: .pi / 4)
+        let band = CGRect(x: -s, y: -s * 0.075, width: 2 * s, height: s * 0.15)
+        ctx.setFillColor(NSColor(srgbRed: 1.0, green: 0.62, blue: 0.10, alpha: 1).cgColor)
+        ctx.fill(band)
+        if size >= 64 {
+            let font = NSFont.systemFont(ofSize: s * 0.095, weight: .heavy)
+            let text = NSAttributedString(string: "DEV", attributes: [.font: font, .foregroundColor: NSColor.black, .kern: s * 0.01])
+            let line = CTLineCreateWithAttributedString(text)
+            let bounds = CTLineGetBoundsWithOptions(line, .useOpticalBounds)
+            ctx.textPosition = CGPoint(x: -bounds.width / 2, y: -bounds.height / 2 - bounds.minY)
+            CTLineDraw(line, ctx)
+        }
+        ctx.restoreGState()
     }
-    context.restoreGState()
-
-    // The sheen: a soft highlight over the top third, which is what keeps a flat gradient from
-    // reading as a sticker next to the system's own icons.
-    context.saveGState()
-    shape.addClip()
-    let sheen = NSGradient(colors: [NSColor(calibratedWhite: 1, alpha: 0.18),
-                                    NSColor(calibratedWhite: 1, alpha: 0)])!
-    sheen.draw(in: CGRect(x: body.minX, y: body.midY, width: body.width, height: body.height / 2), angle: -90)
-    context.restoreGState()
-
-    NSColor(calibratedWhite: 1, alpha: 0.16).setStroke()
-    shape.lineWidth = max(1, size * 0.006)
-    shape.stroke()
-
-    NSGraphicsContext.restoreGraphicsState()
-    return rep
+    let rep = NSBitmapImageRep(cgImage: ctx.makeImage()!)
+    return rep.representation(using: .png, properties: [:])!
 }
 
-func write(to folder: URL, development: Bool) {
-    try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-    var entries: [[String: String]] = []
-    for base in [16, 32, 128, 256, 512] {
-        for scale in [1, 2] {
-            let pixels = base * scale
-            let name = "icon_\(base)x\(base)\(scale == 2 ? "@2x" : "").png"
-            guard let png = draw(pixels, development: development).representation(using: .png, properties: [:]) else { continue }
-            try! png.write(to: folder.appendingPathComponent(name))
-            entries.append(["idiom": "mac", "scale": "\(scale)x", "size": "\(base)x\(base)", "filename": name])
-        }
+let mac: [(String, Int)] = [
+    ("icon_16x16.png", 16), ("icon_16x16@2x.png", 32), ("icon_32x32.png", 32), ("icon_32x32@2x.png", 64),
+    ("icon_128x128.png", 128), ("icon_128x128@2x.png", 256), ("icon_256x256.png", 256),
+    ("icon_256x256@2x.png", 512), ("icon_512x512.png", 512), ("icon_512x512@2x.png", 1024),
+]
+for (folder, dev) in [(args[2], false), (args[3], true)] {
+    for (name, size) in mac {
+        try! render(size, dev: dev, opaque: false).write(to: URL(fileURLWithPath: folder).appending(path: name))
     }
-    // One 1024 for the phone, which takes a single size and masks it itself.
-    if let png = draw(1024, development: development).representation(using: .png, properties: [:]) {
-        try! png.write(to: folder.appendingPathComponent("icon_1024.png"))
-        entries.append(["idiom": "universal", "platform": "ios", "size": "1024x1024", "filename": "icon_1024.png"])
-    }
-    let contents: [String: Any] = ["images": entries, "info": ["author": "xcode", "version": 1]]
-    let data = try! JSONSerialization.data(withJSONObject: contents, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
-    try! data.write(to: folder.appendingPathComponent("Contents.json"))
-    print("wrote \(entries.count) images to \(folder.lastPathComponent)")
+    try! render(1024, dev: dev, opaque: true).write(to: URL(fileURLWithPath: folder).appending(path: "icon_1024.png"))
 }
-
-let arguments = CommandLine.arguments
-guard arguments.count >= 2 else { fatalError("usage: appicon.swift <AppIcon.appiconset> [<AppIcon-Dev.appiconset>]") }
-write(to: URL(fileURLWithPath: arguments[1]), development: false)
-if arguments.count >= 3 { write(to: URL(fileURLWithPath: arguments[2]), development: true) }
