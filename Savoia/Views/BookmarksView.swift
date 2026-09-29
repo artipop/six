@@ -55,7 +55,7 @@ struct BookmarksView: View {
                             .contentShape(Rectangle())
                             .onTapGesture(count: 2) { open(hit.bookmark) }
                             .contextMenu {
-                                Button("Open in New Window") { open(hit.bookmark) }
+                                Button("Open in New Tab") { open(hit.bookmark) }
                                 Button("Copy Address") {
                                     Platform.copy(hit.bookmark.url.absoluteString)
                                 }

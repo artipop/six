@@ -1,579 +1,149 @@
-# The tiling layout
+# Tabs and groups
 
-There are no tabs and no sidebar.
+The window is a tab bar along the top, a toolbar under it with the address field, and the page in front filling the
+rest (`Savoia/Views/TabStripView.swift`, `TabPageView.swift`). Underneath is `TilingLayout`, the model the scrollable
+row used to draw — the row itself lives on the `dev` branch now, and the names here are the model's:
 
-- A page is a **column**: a full-height window that is nothing but the page, edge to edge inside a rounded card.
-  Everything that used to be drawn on it — the lock, the shield, the address, the title — is in the top bar, for the
-  focused window only, because a row of a dozen windows does not want a dozen address fields. The `×` is the one
-  thing that stayed with the window: it sits on the card's top right corner, invisible until the pointer is on it.
-- Columns sit left to right on an endlessly scrollable **row**. One row is a **workspace**.
-- Workspaces are stacked **vertically**; exactly one is on screen. Each profile has its own stack.
-- A workspace can be **named** (double-click its plate in the overview). Naming is optional; an unnamed one is just
-  "Workspace N". An unnamed workspace disappears the moment its last window does — A named one is
-  **asked about** first: *Delete the workspace "X"?*, once, at that moment, and it goes or stands by the answer.
-
-*The interface calls it the row; the code calls it a strip — `TilingStrip`, `allStrips`, `strip.state`, the
-`StripState` JSON, the Kotlin beside it and the golden geometry those two agree on. That name is a wire format shared
-with the Linux and Android fronts, so it stays where it is and the rename stopped at the words a person reads. Every
-`strip` below is the type, every "row" the thing on screen.*
-
-*`TilingLayout` is the one file two front ends share. It has no platform in it — `CGFloat`, `CGRect`,
-`CGSize` and nothing else — so the GTK front computes its columns from the same `columnFrames()` and
-inherits the same promises. Those promises are the repository's first tests
-(`Tests/SavoiaCoreTests/TilingLayoutGeometryTests.swift`), written against the intent stated below rather
-than against the numbers it happens to produce, because that is what would silently desynchronise the
-two. See [linux.md](linux.md).*
+| the model | the tab bar |
+|---|---|
+| a column | a tab, or two tabs side by side |
+| a named workspace | a tab group, coloured, labelled with the workspace's name |
+| an unnamed workspace | tabs with no group |
+| the focused column | the tab in front |
+| the spare empty workspace at the end | nothing — it is not a group |
 
 ## Model — `Savoia/Tiling/TilingLayout.swift`
 
 ```
 TilingStrip     workspaces: [TilingWorkspace], focus: Int      // one per profile
-TilingWorkspace name: String, columns: [TilingColumn], focus: Int, viewOffset: CGFloat
-TilingColumn    tabID: UUID                                 // points at a BrowserTab
+TilingWorkspace name, columns: [TilingColumn], focus, collapsed, blend, color
+TilingColumn    tabID, second?, pane, pinned                  // points at one BrowserTab, or two
 ```
 
 Every mutation goes through `mutate { }`, which runs `normalize` afterwards, so the invariants hold by construction:
+exactly one empty workspace is kept at the end, empty ones in between are dropped unless they are named, pinned
+columns stand first in their workspace, a blend whose parent stopped being a group is re-pointed or dropped, and every
+group has a colour. `visibleTabIDs` is the focused column's tabs — what `LivePageCache` pins and builds.
 
-- **Dynamic workspaces.** Exactly one empty workspace is kept at the bottom; empty ones in between are dropped, unless
-  they are named. The trailing workspace keeps its identity across the prune, so focus survives it.
-- Column focus stays in range, and `viewOffset` stays clamped.
+A tab moving between workspaces is un-animated (`TilingLayout.unanimated`): a `WebPage` allows exactly one `WebView`,
+and an animated move builds the second before the first has let go, which traps in `makeViewProvider`.
 
-**An empty row is a state, not an accident.** Closing the last window of a profile leaves the strip empty and opens
-nothing in its place: the workspace draws its own offer — **New Window**, and `or ⌘T` under it — and that is the same
-thing a workspace further down has always shown when it was emptied. The window `⌘W` used to conjure up was one
-nobody had asked for, and it made the first workspace behave unlike every other. The same rule holds for a profile
-switched to with an empty row (`selectProfile`) and for a relaunch that restores one (`BrowserState.init`); only a
-browser with nothing to restore opens the first window itself, and so does a profile just created.
+## A named group that runs out of tabs
 
-### A row is drawn by identity, never by its number
+A named workspace is a tab group, and naming is not something only a person does: `workspaceIndex(named:createIfMissing:)`
+is called by every deep-research run (named after the question) and by the MCP tools (`open_window(workspace: "notes")`),
+so a browser that answers questions for a living would silt up with empty groups carrying last week's questions.
 
-`WorkspaceView` looks its own place in the strip up by `workspace.id` and draws nothing when the strip no longer has
-it. That is not defensive tidiness: a row is removed with an animation, so it stays in the view tree for the length
-of its transition, and by then the index it was built with names the row that moved up into its place. A dying row
-that read the strip by that number drew the *next* row's windows — and a window is a `WebView` over a `WebPage`, of
-which WebKit allows exactly one, so the second view trapped in `makeViewProvider` (`EXC_BREAKPOINT`) and took the
-browser down. Closing the last window of workspace 1 while workspace 2 still held any was enough, every time.
+The rule is now the same for every named workspace, whoever the name came from, and the difference is a question:
 
-It is the same trap `TilingLayout.unanimated` was written for, from the other side: there a window changed rows, here a
-row went out from under a window. Anything that draws a page from a *position* in the strip has to resolve that
-position at the moment it draws, against the strip as it is now.
-
-### A named workspace that runs out of windows
-
-Naming used to make a row immortal — the rule, and fine for as long as naming one was something only a person did.
-It isn't: `workspaceIndex(named:createIfMissing:)` is called by every deep-research run (named after the question) and
-by the MCP tools (`open_window(workspace: "notes")`), so a browser that answers questions for a living silts up with
-empty rows carrying last week's questions.
-
-The rule is now the same for every named row, whoever the name came from, and the difference is a question:
-
-- `askBeforeRemoving` runs wherever a column leaves a row — `removeColumn`, both `moveColumn`s, `commitColumnDrag` —
-  and queues a `TilingWorkspaceRemoval` (workspace id, name, profile) when that row is left empty *and* named. An
-  unnamed row is never queued: it disappears as it always has, silently, a dozen times a day.
-- `workspaceToRemove` is the head of the queue and what the front draws (`WorkspaceRemovalDialog`, on both the Mac's
-  `ContentView` and `PhoneContentView`). `removeWorkspace(_:)` is yes, `keepWorkspace(_:)` is no, and dismissing the
+- `askBeforeRemoving` runs wherever a column leaves a workspace — `removeColumn`, `moveColumn`, `placeTab`, `split` —
+  and queues a `TilingWorkspaceRemoval` (workspace id, name, profile) when that workspace is left empty *and* named. An
+  unnamed workspace is never queued: it disappears as it always has, silently, a dozen times a day.
+- `workspaceToRemove` is the head of the queue and what `WorkspaceRemovalDialog` draws on `ContentView`. `removeWorkspace(_:)` is yes, `keepWorkspace(_:)` is no, and dismissing the
   dialog any other way is a no — never an unanswered question read as consent.
-- A **queue** and not one at a time: closing a profile or clearing a row can empty several rows, and a question that
+- A **queue** and not one at a time: closing a profile or clearing a workspace can empty several workspaces, and a question that
   overwrote another would delete a workspace nobody was asked about. `removeProfile` drops the questions belonging to
-  a profile being deleted whole, and `prunePendingRemovals` (after every `mutate`) drops any whose row has been filled
+  a profile being deleted whole, and `prunePendingRemovals` (after every `mutate`) drops any whose workspace has been filled
   again or has gone — a question is only worth asking while it is still true.
 
-Asking is deliberately a *transition* and not part of `normalize`: normalize cannot tell a row that has become empty
+Asking is deliberately a *transition* and not part of `normalize`: normalize cannot tell a workspace that has become empty
 from one that was made a moment ago, and every caller of `workspaceIndex(named:createIfMissing:)` creates a named
-empty row and fills it on the next line. Nothing about the stored shape changed, so `state.json` is unaffected and
-Android — which has the model ported line for line but no dialog yet — keeps a named empty row standing, as every
-front did before this. The plate's **Delete Workspace** (overview, right-click a name) is the way out for a row that
-was already standing empty before the question existed.
-
-## Geometry
-
-**Everything here is a fraction of the viewport, never a pixel count** — the layout has to read the same on a laptop
-and on a 5K panel. Gaps are `gapFraction` (1 % of the width), the vertical space between workspaces is
-`workspaceGapFraction` (2 % of the height). The absolute numbers left in the file are floors (`minimumGap`, the 280 pt
-minimum column) that only matter in a tiny window. Control metrics — title bar heights, button sizes, corner radii —
-deliberately stay in points, since text and controls don't scale with the screen either.
-
-**There is one width.** `columnWidth` is the viewport less its outer gaps, so exactly one window fits on the screen and
-the next one starts a screen away. Preset column widths — halves, two thirds, a row of mixed widths — went,
-along with the compact-width toggle that widened one window against the rest: a browser window at two thirds of a
-screen is a page with a hole beside it, and choosing between four fractions of one is a decision nobody asked for.
-What is left is which of two ways a window is shown, and a row narrower than the viewport is centred instead of
-pinned left.
-
-The focused column is **centred** by default , so both neighbours peek in by the same
-amount; while centring is in the row may scroll until the first/last column reaches the middle, which is what lets
-every column get there. `⌥C` turns it off, and focus then moves the view as little as possible — `scrollFocusIntoView`
-scrolls only until the focused column is fully visible. The choice persists in `UserDefaults`.
-
-Offsets are stored per workspace but the geometry that produced them is global, so a row that was laid out at another
-viewport — the other profile's, or one restored from `state.json` — would come back scrolled off centre. `recenterStrips`
-puts every row back under its focused window whenever the viewport or `⌥C` changes, and switching `activeProfileID`
-does the same for the row coming on screen.
-
-Only columns of the workspace on screen, within one viewport-width of it, get a real `WebView`; the rest render as
-cards (`ColumnPlaceholder`), so a long row stays cheap. Whether a column *has* a page to mount at all is a separate
-question and the live-page budget's — see [architecture.md](architecture.md#live-pages): the row pins what is on
-screen and builds only the focused window, once the focus has settled, so walking the row loads the window you stop
-at rather than every window you pass. In the overview nothing is mounted and nothing is built; every window there is a
-card, and a card is its title in the row and the last picture of the page in the overview.
-
-Restricting live views to the *current* workspace is not only about cost: a web view is a real AppKit view, SwiftUI's
-clipping does not reach it, and one parked a screen above still answers the mouse over the top bar — which is how
-clicking a button up there could fly you to the workspace above. Off screen, it must not exist. The neighbours come
-back while a gesture is peeking at them (`verticalPreview != 0`).
-
-The same is true of everything else a workspace off screen contains, which is the other half of that bug: cards and
-their shadows reach into the top bar's band too — how far depends on the window's size, since the gaps are fractions of
-the viewport — and that is enough to take a click off a button there, intermittently. So a workspace that is not the
-current one answers nothing at all (`allowsHitTesting`), unless the overview is open and it really is on screen; and
-the top bar is `zIndex`-ed in front of the row, since they are siblings in a stack and the row is hit-tested after
-it.
-
-## Gestures — `Savoia/Tiling/TilingScrollMonitor.swift`
-
-*This section is AppKit's. The GTK front reaches the same gestures through a
-`GtkEventControllerScroll` in the capture phase, where the boundaries of a gesture are explicit
-rather than inferred — which is one of the few places the second front had an easier time.*
-
-
-A local `NSEvent` monitor sees scroll events before WebKit does. It acts on them when `⌥` is held, when the overview is
-open, or — unmodified — when the pointer is over the layout's own chrome. "Chrome" is decided by hit-testing the event
-point: anything inside a `WKWebView`, `NSScrollView` or `NSTextView` keeps its own scrolling, everything else (title
-bars, gaps, background) drives the layout.
-
-Without `⌥` the pointer must also be **inside the row** (`stripFrame`, published by the view in SwiftUI's window
-coordinates and flipped in the monitor, which measures from the bottom of the window). The top bar is chrome too, and
-letting it drive the layout made clicking one of its buttons a gamble: a hair of finger travel on a trackpad switched
-the workspace under the cursor. Held `⌥` still works anywhere — then it is an explicit layout gesture.
-
-Vertical is **one workspace per gesture**: deltas accumulate into a rubber-band preview (`verticalPreview`), crossing
-the threshold commits the switch, and the rest of the gesture — trackpad momentum included — is swallowed, so a flick
-never skips two. Discrete mouse wheels have no gesture phase and are throttled by time instead.
-
-**The band is a fraction of the way to the next window, not a distance the hand moved.** It was the
-hand's own points scaled by 0.35, so the whole of a 55 pt push showed as 19 pt of lean and then the
-row jumped a column — and it read as heavy: you push, almost nothing happens, then it teleports. A
-window is a screen wide, so a gesture half-way to the next one moves the row half a screen, and the
-commit is seamless because the band is already a whole window's worth when the focus moves a whole
-window. `previewColumn` and `previewWorkspace` both take that fraction now, and `pushWall` with them —
-1 is a whole window's worth of push and a fully lit edge.
-
-Horizontal is **a window per push, and as many as the hand asks for**: the band below the threshold,
-and crossing it steps and keeps going, with the overshoot carried into the
-next step rather than thrown away — discarding it made each step longer than the one before, which is felt as the row
-getting heavier the further you push. It was one window per gesture too, and that was the vertical rule applied to
-something it does not fit: a row is a row of windows a few inches long, and having to lift your fingers between every
-two of them reads as the row being stuck rather than as it being careful. Momentum is still swallowed whole, so a
-flick lands where it was aimed. A gesture that has stepped along the row also stops being able to switch a workspace
-(`steppedColumns`) — the hand does not stay on the line, and a workspace arriving out of the drift is the one mistake
-here you cannot undo by pushing back.
-
-The row then has no free resting position — `panStrip` refuses to move it at all, so no gesture
-can leave a window sitting half-way. With centring off (`⌥C`) horizontal scrolling pans the row freely, and on
-release focus snaps to the column nearest the middle and scrolls it fully into view. The overview
-pans freely too, whatever centring says — there is no focused window being kept anywhere up there.
-
-**A pan moves the strip under the finger, and getting that right took two corrections.** The hand's
-distance is a distance on the *screen*; the strip is moved in the canvas's own points; and the
-overview draws that canvas at `overviewScale`. Handed through unscaled, a hundred points of finger
-moved the strip twenty-two. And it panned from the **stored** offset rather than the one being drawn:
-those two come apart whenever the range of valid offsets changes under a stored one — entering the
-overview is exactly that, since it shows far more of the row than the window does — so the first
-push spent itself eating the difference and moved nothing at all. `panStrip` divides by the scale and
-starts from `clampOffset`, and both are measured in `TilingLayoutGestureTests`.
-
-Tuning lives at the top of the file: `threshold` (55 pt), `minimumCommitInterval` (0.28 s), `idleReset` (0.25 s).
-
-## The ends of the row
-
-A row is finite in both directions and a stack of workspaces is finite in one, so every gesture that
-walks them has a way of asking for something that is not there. It used to be answered with nothing at
-all: the strip did not move, the key gave nothing back, and the honest reading of that is *the gesture
-was lost*, not *there is nothing that way*.
-
-`TilingLayout` answers instead. The edge that was pushed into lights up — `wall` says which of the four
-it is, `wallGlow` how brightly (0…1) — and the row still does not move, because that is the thing
-being said. Two ways in:
-
-- **`hitWall(edge)`** — a step that had nowhere to go (`focusColumn`, `focusWorkspace`). Full
-  brightness, held for a beat, then half a second of fading.
-- **`pushWall(edge, by:)`** — a gesture leaning on that edge, from `previewColumn` / `previewWorkspace`
-  and from a free pan that clamped. The light follows the finger and lets go with it, un-animated,
-  because it *is* the finger's position; it reaches full at `wallPush` (19 pt — `threshold` through
-  the rubber band's 0.35, which is the whole travel a gesture has before it commits).
-
-**A push does not outlive the hand.** The light is released by a zero arriving from the gesture, and a
-monitor can fail to send one: `TilingScrollMonitor.resetGesture` — the pause long enough to count as a
-new gesture, a finger resting mid-scroll — zeroed its accumulator without telling the layout, and
-`endGesture` could not clean up after it because the accumulator it tests was already zero. So the
-edge stayed lit in a row that had not reached its end, which is what it was reported as. Two answers,
-both kept: `resetGesture` now releases the band the way `endGesture` does, and `pushWall` arms a
-watchdog — another push cancels it, silence for 400 ms puts the light out. The first is the bug; the
-second is the class of bug, and costs one task.
-
-The rubber band gives less at a wall, too: `wallResistance` (0.4) of what it would give where there is
-a window behind the edge. That is the other half of the sentence, and the half a hand feels rather
-than sees. Both live in the model rather than in the view, so a second front end draws the same
-answer — [linux.md](linux.md).
-
-Deliberately not a bounce and not a sound. A bounce is the row moving, and the one thing that has to
-stay true here is that it did not. The drawing is `StripWalls` in `TilingStripView`: a band of the
-profile's colour along that edge, 5.5 % of the viewport deep, fading out towards both corners so it
-reads as light caught on an edge rather than as a border the window grew.
-
-## ⌃Tab — the order the windows were looked at
-
-The row is where windows *are*; `WindowSwitcher` is where they have *been*. The window you want next
-is usually the one you just came from, and in a row of a dozen that one can be six windows away in
-either direction — so `⌥←` / `⌥→` walk the row and `⌃Tab` walks the memory, the same division as
-`⌥Tab` and the workspace keys in any tiling WM.
-
-**How far it reaches is the opening key's to say.** `⌃Tab` opens the ring over every window of the profile, every
-workspace (`BrowserState.tabOrder`); `⌃⇧Tab` over the row on screen only (`rowOrder`), which with the tabs up is the
-group in front. Once it is open they are forward and back. It used to be the row and nothing else, on the argument that
-flying out of a workspace is a bigger move than a key looks; in use the window you just left is as often in the next
-workspace, and the row-only ring is one modifier away. Opening with `⌃⇧Tab` used to mean "the other way round" — on a
-ring ordered by memory, the window looked at longest ago, which is not a step anyone takes on purpose.
-
-- Recency is taken in `BrowserState.syncSelection`, the one place every focus change ends, so a row
-  walked with `⌥→` is a row whose windows have been looked at. This run only, like the list `⌘⇧T`
-  reopens from.
-- The ring is fixed when the switch opens and does not reorder while it is held — a list that resorted
-  itself under the key would move the window you were aiming at — and it wraps, because a ring has no
-  ends to hit. Windows never focused this run (restored from the snapshot) follow in row order.
-- **A stop is a window, and there is no other kind.** Every window in the row is a card, drawn at the
-  width that window has where it stands: a whole card, or half of one where it is sharing a column.
-  Landing on a card focuses that window.
-
-  It was a *column* for a while, with the column under the focus excepted so its halves could still be
-  walked between, and each step of that was reported as a thing that looked wrong — the halves drawn
-  as the same picture twice, then a stranger standing between them, then the same split drawn two
-  entirely different ways depending on where the focus was, because two kinds of stop have to be drawn
-  two ways. The exception was buying one behaviour, and memory gives it for nothing: the half you used
-  last comes first because that is what recency means, so ⌃Tab still takes you back to the other half
-  when the other half is where you were.
-- **Windows of one column are drawn together and in row order.** The one thing the ring asks the row
-  (`group`, `TilingLayout.columnID(of:)`): a column's cards arrive as a group, at the place the first of
-  them falls in memory. Keeping their order without keeping them together let a window used between
-  them be *drawn* between them, which the row itself cannot do. Measured by `KeySelfTest`, which dumps
-  the ring from each half in turn — `[half: C63D] *[half: 26EB]` and `*[half: C63D] [half: 26EB]`, the
-  same order both times with only the `*` moving.
-- **The row is walked by memory and drawn along the row**, so `WindowSwitcher` keeps two orders:
-  `walk` is what ⌃Tab moves through, `ring` is what is drawn. The highlight therefore sometimes moves
-  *left* on a forward press, which is right: the key names a window, and the card for it is where the
-  window is.
-- **The arrows walk the row; `⌃Tab` walks the memory.** They were one action until the row started
-  being drawn along the row, and then an arrow answering by recency would have moved the highlight
-  the other way from the one it points. `walkRow` against `step`, and `KeyBindings` sends the two keys
-  to different actions. The row is laid out by measuring the cards rather than counting equal steps,
-  since they are no longer all one width; for a ring of equal widths that is the number it always was.
-- **The open ring outranks the caret.** An arrow belongs to a focused field while there is text to walk
-  over (`KeyBinding.yieldsToCaret(in:)`) — except while the ring is up, where nothing else in the
-  window is being looked at. Without the exception `⌃→` over a ring opened while the address field had
-  the caret walked the *caret*, and read as an arrow that did nothing at all: measured with the caret
-  where a launched window puts it, `card 1 → 2 → 1`. The decision lives in `SavoiaCore` rather than in
-  `KeyRouter`, because it had been two lines there and a copy of them in `KeySelfTest`, and the
-  exception was missing from both.
-- A row with **one** window on it opens a ring of one. The key has to answer: a press that gives
-  nothing back cannot be told from a key that is not bound, or from a browser that has stopped
-  listening, and this one is held down, so the nothing would last as long as the hand does. Only an
-  empty row refuses, and there the screen is already saying so in the middle.
-- One **row's** windows only: the focused workspace's columns, not the whole strip and certainly not
-  another profile. A workspace is a place you went to on purpose and a profile is a browsing world with
-  a history and logins of its own; a key that flew you out of either would be doing something much
-  bigger than it looks, and `⌥↑` / `⌥↓` already move between workspaces while saying where they go.
-- Nothing is loaded while it is walked: the cards are the pictures the overview already takes
-  (`rememberViewState` for the window being read, `loadPictureIfNeeded` for the rest). The flight
-  happens once, on `⌃` coming up, through `selectTab` and the usual switch animation.
-
-The keys come through `KeyRouter` for the reason the `⌥` bindings do — a first-responder `WKWebView`
-answers a key equivalent before the menu bar sees it — and for a second reason besides: the ring is
-held open by a modifier, and only a `flagsChanged` ever says a modifier was let go of. While it is
-open the ring's own bindings answer first — `Tab`, `⌃←` / `⌃→`, `↩` to fly now, `⎋` to let go — and
-any other key ends the pass and is passed on, so nothing can leave the switcher standing (the app
-losing focus mid-press, most of all). The panel is `WindowSwitcherOverlay`,
-mounted on `ContentView` over the top bar as well as the row, and it answers no mouse: it exists only
-while a key is held, and a target that vanishes when you let go of a key is not a target.
-
-## Clicking
-
-A window that isn't focused is a target, not a page: the first click flies to it (and centres it) instead of reaching
-the page. The catcher has to be an AppKit view — `WKWebView` is a real `NSView` and takes the click before any SwiftUI
-overlay above it can — so `ClickCatcher` is an `NSViewRepresentable` laid over the web view of every unfocused column.
-Title bars are SwiftUI and keep their own buttons working, so a background window's close or back button still takes
-one click.
-
-### The keyboard follows the focus
-
-The row's focus and AppKit's **first responder** are two different things, and they could disagree: `⌥→` moved the
-accent border, the address field and everything else keyed off the selection, while the keys went on arriving in the
-`WKWebView` a click had last given them to. So the arrow keys scrolled the window you had walked away from, and text
-went into its text field. In a row that is nearly invisible — the window you left is off the edge a moment later —
-and in a split it is not: one half is visibly highlighted while what you type lands in the other, which is how it was
-reported.
-
-`WebViewResponder` closes it. SwiftUI has no handle on the `WKWebView` inside a `WebView` and there is no route from
-a `WebPage` to it either, so every pane leaves one: a zero-size AppKit view mounted beside its own web view, which
-finds it **by frame** — the pane's handle is given the pane's size, so its web view is the one whose middle lands
-inside it. Walking the view tree for the nearest ancestor holding exactly one web view is the obvious way and it does
-not work: SwiftUI mounts a `.background` in a layer of its own, and the first ancestor with any web view under it is
-usually the one that has all of them.
-
-Two things it deliberately does not do. It never takes the keyboard **off a text field** — `⌘L` and the `⌘E` line are
-reached by keystroke and left by keystroke, and a row that walked into the page under them would eat the next thing
-typed (the same test the key router uses). And for a window with no page to give it to — a card, a start page, which
-is SwiftUI and has no web view at all — it takes the keys off whatever had them rather than leaving them with a
-window the row is no longer looking at.
-
-Measured by `KeySelfTest.splitKeyboard`, which needs a setup of its own and says why: two windows with real pages,
-because a split of two start pages has nothing for a first responder to be, and the first version of the check
-measured exactly that. Each line prints who holds the keys and whether that agrees with the row —
-`keys WebPageWebView 702pt 8FCCFAD6 (agrees)` — and a click on the other half has to carry it there.
-
-**The other half of a split is an unfocused window like any other**, so the rule holds there too: the first click
-lands the focus on it and the second reaches the page. It is the one place the rule can be argued with — both halves
-are on screen, live and readable, which is not the case the rule was written for — and it stands anyway, because
-what makes the click cheap is what would make it wrong to skip: the address field, ⌘W, ⌘L and the assistant all
-speak for the focused window, and a page that answered a click without becoming the focused one would leave every
-one of them pointing at its neighbour.
-
-## Filling the window
-
-Two ways of showing a window, and the whole of what there is to choose:
-
-| | | |
-|---|---|---|
-| — | **the row** | the ordinary one: a window is the screen less its outer gaps, in a card with corners |
-| `⌥W` | **full width** | the page fills the window under the top bar — no gaps, no card, no corners. Also the button in the top bar beside the profile, and View ▸ Full Width |
-
-There were three. The third was a *fullscreen* (`TilingFill.screen`) that took the top bar with it and gave the page
-every edge, with a bar of its own hiding at the top of the screen and `⎋` to leave. It went, and the whole apparatus
-went with it — the mode, `⌥⇧F`, `showsFullscreen`, `FullscreenBar`, `exitFullscreen`. It was a second answer to the
-question full width already answers, the difference between the two being one 40-point bar; it cost the address
-field, and the only ways back were a key and a pointer thrown at the top of the screen. macOS fullscreen (the green
-button) still does the thing people actually want from the word.
-
-A page's own `requestFullscreen` — the button in a video player — is a third thing again, and the one place where
-WebKit does not do it for you. `WebView.ElementFullscreenBehavior` defaults to `.automatic`, which on macOS means
-*off*: the same default `WKPreferences.isElementFullscreenEnabled` has always had, the one Safari sets for itself.
-Left alone, `video.requestFullscreen()` is rejected and the player's button does nothing at all — no error, no
-window, nothing to see. The row's `WebView` says `.webViewElementFullscreenBehavior(.enabled)`, and so does the
-phone strip's. What WebKit then opens is a window of its own, with its own `⎋`; `KeyEvents` already knows to keep
-its hands off it, by the class name.
-
-Turning it on is only half of it, and the other half is a WebKit bug Savoia has to reach around. With the modifier
-alone the page does go fullscreen — `fullscreenState` reaches `inFullscreen`, the sound plays, the timer runs — and
-draws **nothing**: a black screen the size of the display, given back unharmed on `⎋`. Twenty-five lines reproduce
-it with no Savoia in them, and the same page in a `WKWebView` behind an `NSViewRepresentable` is perfect, so what
-differs is how the view is *held*. SwiftUI's `WebView` hosts it under Auto Layout; WebKit's fullscreen controller
-moves it into a window of its own and sizes it by frame, where it arrives with no constraints, is laid out at
-nothing, and leaves the backdrop showing. `PageElementFullscreen` swaps the hold for the duration —
-`translatesAutoresizingMaskIntoConstraints` and an autoresizing mask from `enteringFullscreen` until the state
-comes back — and hands the view to Auto Layout again after, because leaving it flipped is its own regression: the
-row goes on laying out with constraints the view no longer answers to. The write-up and the repro are in
-[UPSTREAM.md](../UPSTREAM.md).
-
-Full width is `TilingFill.window` on the layout — a mode, not per-window state. `fillsViewport` is what the geometry
-asks, and it is false while the overview is open, so the overview keeps its gaps and title bars and the mode returns
-when it closes. The row goes on working underneath: `⌥←` `⌥→` walk from window to window and the next one arrives
-filled too, so a workspace reads like a stack of pages.
-
-The geometry is the ordinary one with two overrides: `gap` (and with it `outerGap`) is 0, and `columnWidth` is the
-whole viewport rather than the viewport less those gaps. So the difference between the two is a gap and a corner
-radius, never a fraction of the page. Every column being exactly one screen wide is what makes the alignment fall out
-for free: centred or not, the resolved offset of the focused column lands on a whole multiple of the viewport. Changing
-the mode changes every width, so `setFill` re-centres every row, as `⌥C` and a resize do.
-
-Switching is deliberately **not** animated, unlike everything else the layout does. Every switch resizes every live
-page, and a web view changing size costs a hitch you can see — around 50 ms with three columns live. Running that
-through the 0.34 s spring spreads the stutter over the whole animation instead of getting it over with: measured over
-Savoia switches, 20 dropped frames animated against 5 instant. (The neighbours stay live on purpose, so stepping to the
-next full window shows a page rather than a card; that is what makes the third resize worth paying for.)
-
-Leaving: the same key again, View ▸ Full Width, the right-click menu, or the button in the top bar. `⎋` deliberately
-does not — full width is ordinary browsing, where a page's own `⎋` is worth more; the only thing `⎋` leaves is the
-overview, and that one does come through the scroll monitor's key monitor rather than SwiftUI, because a page holds
-the first responder and a key press would never reach the view hierarchy. WebKit's own full-screen window (a video
-playing) is left alone, so `⎋` there still belongs to the video. Closing the last window of the workspace leaves full
-width too — a blank wall with no chrome is a trap.
-
-**Controls over a page have to be AppKit.** SwiftUI drawn over a `WKWebView` never sees the mouse (the reason
-`ClickCatcher` exists), and with the window filled there is nothing *but* page under them. So the step chevrons are
-hosted in `NSHostingView` (`HostedOverlay`) — which must be frame-driven (`sizingOptions = []`,
-`translatesAutoresizingMaskIntoConstraints = true`), or it publishes its size into the window's constraints and the
-update passes never settle.
-
-The chevrons stand in the **gap beside the focused window** (`focusedColumnFrame`), not against the edge of the screen
-where the neighbour peeking in is, and they are as narrow as that gap — a button wide enough to read comfortably is a
-button covering the page next to it. Nothing is drawn there at rest, in either mode: the row is windows and gaps, and
-a chevron parked in every gap is chrome charged against every window in it. Invisible is not absent: a SwiftUI
-button at zero opacity still answers the mouse, which is what makes the sliver its own hover target.
-
-All of that is the **peek**, and it is a pointer idea: it is asked for by resting somewhere and answered by the row
-leaning over. A finger has nowhere to rest — it is touching or it is not — so the whole arrangement has a switch,
-`BrowserState.peeksAtEdges` (`savoia://configuration` ▸ Windows ▸ Peek at the Edges, stored in the settings table). Off, there is no lean and no promise: the
-slivers are simply drawn where they stand, at a little under half, and do their job on the way in — which is what the
-row did before the peek existed, and the only thing that works without a pointer. It defaults on for macOS and off
-everywhere else, and it is chrome rather than geometry, so it lives in `BrowserState` and not in `TilingLayout`: a second
-front end inherits nothing it has to agree with.
-
-Both jobs are **one button**, which matters for one case: walking the chevron to the end of the row leaves the
-pointer resting on a button that has just become a `+`. Two views would make that an exit and an entry, and the entry
-would arm the `+` under a hand that never moved — the last click of a run would open a window nobody asked for. One
-view keeps its identity and changes face inside the open curtain: the chevron goes, the promise arrives, and the hand
-that is resting there watches it happen rather than having to leave and come back. It used to let go of the peek
-instead, and the curtain shut on exactly the moment it was there to show. Only the **click** waits now
-(`armsAt`, 0.35 s — the tail of a run of clicks, and nothing a hand that meant it would ever notice).
-
-What counts as "the end of the row" is `canFocusColumn`, and that question changed with it: **a split is one stop and
-not two.** Stepping into a column's other half was the tiling-WM answer, but in this row both halves are on screen
-side by side, so the step moved nothing and the key read as dead — and asked at an edge, it left a row whose last
-column was a split standing with a chevron on both sides, leaning the strip over empty canvas, with no `+` anywhere to
-grow from. The other half is one click away on the window itself, which is the shorter way to it in any case.
-
-What answers the mouse and what gets drawn are two different things. What is drawn is the glyph, and only the glyph —
-no plate, border or shadow under it, because the row has already leaned aside to answer and anything around the
-glyph is a second, smaller answer sitting on top of the real one. It follows the peek rather than the pointer: a `+`
-that arrived under a hand that never moved is disarmed, and drawing it would offer a window the next click would not
-open. The **target** runs the whole height of the window beside it while the
-lane is a gap — background costs nothing, and a target you cannot see
-has to be one you cannot miss along the edge you are sweeping — and shrinks to a band around the middle once the
-window is filled and the lane is over the page. It also reaches the **edge of the viewport exactly**, half a lane and
-not one point more: with the window maximised the row's edge is the screen's, and throwing the pointer at the wall is
-how you find a sliver you cannot see. A target starting one point in is a target that wall never hits.
-
-At either end of the row the chevron gives way to a button that opens a window, and the one at the near end opens it
-*before* the focused one (`TilingPlacement`) — the row has no other way of growing backwards.
-
-Resting on **either** button leans the whole row aside (`edgeHover`, `edgeLean`) to show what is over there. For the
-chevron that is the next window itself. For the `+` there is no window yet, so what stands in the room the lean opens
-up is a **promise of the page that would be there** (`NewColumnGhost`): the start page's own wash of the profile's
-colour, its wordmark and the field under it, sketched in the band the lean actually reveals and at the height the
-wordmark really rests at. It used to be an outline with **New Window** written up its edge, and the word was the
-problem twice over — it had to be read before it meant anything, and it was a sentence about the browser rather than
-a picture of the page, which is the one thing the rest of the interface is careful not to do. Where the row peeks,
-the `+` itself is not drawn at all: the curtain is already showing the page, and a mark in the lane on top of that is
-the same answer said twice, smaller and a beat earlier. With peeks off there is no curtain, so the lane draws the `+`
-like any other glyph.
-
-**The promise is laid out at rest.** Both ends of the row always hold the place a window would open in
-(`newColumnFrame(at:)`, which asks nothing about the pointer), flush against the edge of the screen and invisible,
-and only its opacity answers the hover (`showsNewColumn(at:)`). Mounted when the lean began — which is what it used
-to do — it was a view being *inserted*, and an inserted view has no previous geometry to interpolate from: it arrived
-at the leaned position in the frame the pointer landed, a whole spring before the row got there. Two motions at two
-times, in a gesture that is supposed to be one: that is the "double peek" it was reported as. Everything the peek
-moves now runs on the one spring — `peekAnimation`, shortened from 0.55 s to 0.4 s, because a lean still arriving
-after the hand has stopped reads as a second event rather than a late first one.
-
-Three decisions hold it together. The lean goes exactly as far as the glance a window opening behind gets
-(`peekAmount`, a fraction of the viewport) — one distance for all of them, because they are the same sentence, *there is
-something over here*. It is deliberately *not* `horizontalPreview`: that band belongs to the scroll gesture, and a peek
-held by the mouse has to survive one arriving. And `focusedColumnFrame` deliberately does not include it, so the button
-does not slide out from under the pointer holding it.
-
-## Two windows in one column
-
-`⌥S` takes the window next along into the one you are reading: they share the column, side by side, and the row is
-one column shorter. `⌥S` again puts them back. Also **View ▸ Split**, the strip's context menu, the window's own
-menu, and — in the overview — one window dropped onto another.
-
-The rule everything else follows from is that **a column is still one screen's worth of row**. A split changes what
-is inside a column and nothing about where columns are: the two halves fill exactly the width one window would have
-had, so the strip is as long as it was, the offsets still land, and every promise `columnFrames()` makes is
-untouched. The gap between the halves (`paneGap`) is deliberately *half* the one between columns — at the same width
-a split would read as two windows standing next to each other, and proximity is the whole of what says otherwise.
-
-A tiling window manager splits a column the other way: its windows stack vertically. That is right for terminals and wrong for pages —
-a web page is tall, and two half-height ones are two pages nobody can read. Two is the ceiling for the same kind of
-reason: three pages at a third of a screen each are three unreadable pages, and wanting more than two things at once
-is the question the row already answers.
-
-**The two halves are windows, not panes of one window.** Each has its own border, its own `×`, its own progress
-line; `⌘W` closes one and leaves the other filling the column. But the row walks columns, not halves: `⌥←` / `⌥→`
-step over the pair as one stop, and the half being read is the one the hand clicked — a column keeps it while the
-focus goes away and comes back. `⌥⇧→` inside a split swaps the two halves, because one place along, inside a column, is the other side of
-it.
-
-**But the pair moves as one thing.** `⌥⇧↑` / `⌥⇧↓` take the whole column to the next workspace, and a card carried
-across the overview carries both halves whichever one the pointer took hold of — they arrive still side by side,
-with the focus on the half that had it. Both used to take the focused half alone and leave its neighbour standing,
-which is the reading "a half is a window" leads to and the wrong one: two pages put side by side is an arrangement
-somebody made on purpose, and a gesture that said *move this* and quietly meant *and take this pair apart* undid it
-in passing, a workspace away, with no way back but making it again. Taking them apart is `⌥S`, which is one key and
-leaves both where they can be seen. The one place a single window still travels on its own is an agent's
-`move_window` over MCP, because there a window is what was named.
-
-Both halves are *built*, and that is the one thing the live-page budget had to be told
-([`LivePageCache.setVisible`](../Savoia/Browser/LivePageCache.swift) takes a column and not a window): a split showing
-a card in one half is a split that did not happen.
-
-### The width changes in one step, and that is deliberate
-
-A split changes how wide two **live** pages are, and WebKit lays a page out again at every width an animation passes
-through. Animated, ⌥S walked two pages through eight widths in a tenth of a second — 1412, 1386, 938, 867, 773, 733,
-709, 702 on a 5K panel — and at each step the page was laid out wider than the box it was in, which is a horizontal
-scrollbar you can watch appear and go. Un-animated it is one resize, and the site takes its narrow layout at once.
-The fill modes gave up their animation for the same reason ([above](#filling-the-window)); `BrowserState`'s
-`plainLayoutChange` is where the split says so.
-
-The animation was not in the layout, and finding that took three wrong fixes. `TilingLayout.unanimated` did nothing,
-and neither did taking the split out of `animateLayout`: it was **`.animation(.easeOut, value: isFocused)` on the
-card**. A value-scoped animation animates *every* change in the subtree it is attached to when its value changes, and
-⌥S is the only thing in the row that moves the focus and changes a window's width in the same breath. It lives on
-the border it was written for now. The frame is pinned against an ambient animation at the call site as well
-(`.animation(nil, value: frame.size)`), for the menu items that carry one; the **offset** keeps its animation,
-because that is the row scrolling and it is about motion.
-
-### Making one with the pointer
-
-In the overview, a window let go over the **middle half** of another joins it; over the quarter at either end, or in
-the space between, it stands beside it as it always did (`TilingLayout.joinFraction`). By the time the cards are
-centred on each other they are all but on top of one another, which is what a person means by putting one window on
-another. It lands on the side it was held over, and a column that is already two is not a target.
-
-A **pair** in the hand has no such answer — two is the ceiling, and a third and a fourth window is what joining
-would make — so it only ever stands beside what it is held over. The card is the two windows drawn side by side at
-the spacing they have in the row, under one shadow, because a pair drawn as two cards would be promising a drop
-that could put them down apart.
-
-The threshold is **wider to leave than to enter** (`joinRelease`). The two answers are a relayout of the whole row
-apart, so a hand resting on the line between them flipped it back and forth with every tremor: one threshold is a
-switch nobody can hold still.
-
-Two things say what will happen before it does. The row opens the gap — the window being joined shows its other half,
-empty, because the window that would fill it is in the air — and `DropSlot` draws the place itself: the profile's
-colour, exactly the rectangle the window is about to occupy, taken from `arrangement` so it cannot disagree with the
-row under it. The gap alone was not enough, which is worth knowing: a gap is the *absence* of a thing, and half a
-column's absence beside a window reads as easily as a window that happens to be narrow. The outline is drawn **above
-the carried card** and as a border with no fill, because a drop that joins has the pointer over the target's middle —
-the card is sitting on top of its own destination and twice as wide as it, so an outline underneath is one you cannot
-trust to be there.
-
-### The identity a column keeps
-
-`TilingColumn` has an `id` of its own, and that is not decoration. A split that loses a half is the same column with
-one window left in it; a half taken out into a column of its own is a column that has just arrived. The view tree
-has to be able to tell those apart, because a window is a `WebView` over a `WebPage`, of which WebKit allows exactly
-one — identified by the window it held, as it was when it could only hold one, every split and unsplit looked like a
-column leaving and another arriving, which is the trap `unanimated` exists for. It is why splitting is done inside
-it, and why a column carried across the overview keeps its id all the way to the drop: `TilingColumnDrag` holds the
-column itself, both halves and identity included, and the row it left simply does not have it until the drop.
-
-A column written before splits existed is a `tabID` and nothing else, so it decodes with the other halves at their
-defaults; a relaunch after an update finds the row it left.
+empty workspace and fills it on the next line. "Close Group" clears the name before closing the tabs, because closing the
+group *is* the answer to the question.
+
+## The tab bar
+
+A group is a *named* workspace (`TabGroup.isGroup`); an unnamed one is tabs with no group, so two unnamed workspaces
+side by side read as one run of plain tabs. "Add Tab to New Group" opens the name field straight away, and a new
+group closed with the field empty keeps "Workspace N" as its name, or it would stop being a group the moment it was
+made; emptying a name that was there is "Ungroup". `⌘T` and the bar's + are `newTabAtEnd` — the last workspace when
+that has no name, the spare one otherwise — and a tab dropped on the bare bar goes the same place (`moveTabToEnd`).
+"Remove from Group" puts the tab at the front of the ungrouped workspace just after the group, or in a new one of its
+own; the last tab of a group ungroups it instead, so no named workspace is left to ask about. The colour is kept on
+the workspace, so a group does not change colour when the one before it is closed.
+
+A **pinned** tab is its column's `TilingColumn.pinned` (optional, so older files read as unpinned). The column stays in
+its workspace — `normalize` only keeps it first there — but the tab bar takes it out of that group (`TabGroup.tabIDs`
+leaves it out) and draws every pinned tab of the profile as an icon at the bar's left edge, outside the scrolling part
+(`BrowserState.pinnedTabIDs`, which `tabOrder` also puts first). Folding, "Close Group", "Close Other Tabs" and
+`TabSorter` pass over them.
+
+A group **folds** up to its label (`TilingWorkspace.collapsed`, optional so an older session file reads as every group
+open). A group cannot fold over the tab in front: the neighbouring tab is shown first, and if every other tab is folded
+away too a new tab is opened at the end — Chrome's answer to the same question. `⌘⇧[` `⌘⇧]` and `⌘1…⌘9` skip folded
+groups; the ring does not.
+
+**Picking several tabs** is Chrome's on a Mac: `⌘`-click adds or removes one, `⇧`-click takes the run from the last
+tab clicked without `⇧` (`BrowserState.clickTab`, `pickedTabs`). The tab in front is always among them, and anything
+that moves it without a click starts the pick again from there (`syncSelection`). The tab menu, opened on a picked
+tab, acts on all of them: `moveTabsToNewGroup`, `moveTabs(_:toGroup:)`, `closeTabs`. `⌃` is not the modifier because a
+`⌃`-click on a Mac is the secondary click.
+
+Dragging carries one tab, and it is AppKit's (`TabDragSource`, in `TabBarMouse.swift`): the tab bar lies in the band
+the hidden title bar still owns, and a drag there moved the whole window, so SwiftUI's `.draggable` never started. The
+view takes the left button's click and drag and lets the right button, `⌃`-click, the scroll wheel and the tab's ×
+fall through to SwiftUI. While the tab bar is on screen the window is not movable at all (`WindowMover`), and the
+bar's bare background moves it by hand and zooms it on a double-click, honouring `AppleActionOnDoubleClick`.
+
+The verbs are `TilingLayout.placeTab` — one tab to a column index in a workspace, by workspace id, the focus following
+it — `placeTabInNewWorkspace` for "Add Tab to New Group", and `setCollapsed`. The File and View menus read the model
+when they are about to be used; a focused value would change with every click and have SwiftUI fill the File menu in
+again, after which ⌘W belonged to the system's Close and quit Savoia (AGENTS.md).
+
+## Two tabs side by side
+
+Two picked tabs are **shown side by side** — `showSideBySide`, which is `TilingLayout.split(tabID:with:in:)`: the
+second tab joins the first's column from wherever it was, another group included — and taken apart with `separate`,
+which puts the right half into a column of its own just after it. Two is the ceiling. `TabbedWindowView` draws the
+column's halves in one `ForEach` keyed by tab, so a tab joining or leaving a pair keeps its view. The half that has
+the keyboard is underlined; the other half is a target, not a page — the first click on it selects it
+(`TabPageView`'s `ClickCatcher`, an AppKit view because `WKWebView` takes the click before any SwiftUI overlay).
+Both halves are built by the live-page budget, and closing one leaves the other filling the column.
+
+The width changes in one step (`BrowserState.plainLayoutChange`): WebKit lays a live page out again at every width an
+animation passes through, and animated, two pages walked through eight widths in a tenth of a second with a
+horizontal scrollbar at each.
+
+**The keyboard follows the selection.** The selection and AppKit's first responder are two different things:
+everything keyed off the selection — the address field, `⌘W`, the assistant — follows it, while the keys would go on
+arriving in the `WKWebView` a click had last given them to. `WebViewResponder` closes it: each pane leaves a zero-size
+AppKit view beside its own web view, which finds it by frame, and `ContentView` hands the keyboard to the selected
+tab's. It never takes the keyboard off a text field.
+
+## ⌃Tab — the order the tabs were looked at
+
+The tab bar is where tabs *are*; `WindowSwitcher` is where they have *been*. `⌃Tab` opens the ring over every tab of
+the profile, every group, folded ones included (`BrowserState.tabOrder`); `⌃⇧Tab` over the group in front
+(`groupOrder`). Once it is open they are forward and back.
+
+- Recency is taken in `BrowserState.syncSelection`, the one place every focus change ends. This run only, like the
+  list `⌘⇧T` reopens from.
+- The ring is fixed when the switch opens and does not reorder while it is held, and it wraps. Tabs never focused this
+  run follow in tab-bar order. One tab opens a ring of one: the key has to answer.
+- `WindowSwitcher` keeps two orders: `walk` is what ⌃Tab moves through, `ring` is what is drawn; the arrows
+  (`walkCards`) move along the drawn order.
+- **The open ring outranks the caret** (`KeyBinding.yieldsToCaret(in:)`), so `⌃→` over a ring opened from the address
+  field moves the card, not the caret.
+- Nothing is loaded while it is walked: the cards are the pictures `PageThumbnails` keeps. The flight happens once, on
+  `⌃` coming up, through `selectTab`.
+
+The keys come through `KeyRouter`: a first-responder `WKWebView` answers a key equivalent before the menu bar sees it,
+and the ring is held open by a modifier, which only a `flagsChanged` says was let go of. Any key that is not the
+ring's ends the pass and is passed on. The panel is `WindowSwitcherOverlay`, over the tab bar as well, and it answers
+no mouse.
 
 ## Picture-in-picture
 
-`⌥⇧P`, View ▸ Picture in Picture, the same item in a window's own menu, and the button in WebKit's media controls:
+`⌥⇧P`, View ▸ Picture in Picture, the same item in the page's context menu, and the button in WebKit's media controls:
 the video leaves the page for a small window floating above every other application, and the page it left goes on
-being an ordinary window in the row. Scroll away from it, step to the workspace below, switch profiles — the player
-stays where it was put and keeps playing. That is the whole point of it, and it is why it needs Savoia's help twice.
+being an ordinary tab. Switch tabs, fold the group, switch profiles — the player stays where it was put and keeps
+playing. That is the whole point of it, and it is why it needs Savoia's help twice.
 
 **Turning it on.** WebKit has the feature and hands the new API no switch for it. The preference is real —
 `WKPreferencesSetAllowsPictureInPictureMediaPlayback` is exported by the framework on macOS — but the only public way
 to set it is `WKWebViewConfiguration.allowsPictureInPictureMediaPlayback`, which is declared for iOS alone, and
 `WebPage.Configuration` has no field for it at all. Off is the default, and off is silent in exactly the way element
-fullscreen was ([above](#filling-the-window)): no button in the media controls,
+fullscreen was: no button in the media controls,
 `video.webkitSupportsPresentationMode('picture-in-picture')` false, and `video.requestPictureInPicture()` rejecting
 with `NotSupportedError — The video element does not support the Picture-in-Picture mode`. Measured on a plain
 `<video>` through Savoia's own MCP server, the day after the fullscreen fix landed: `{"pip": false, "fs": true}`.
@@ -588,10 +158,9 @@ lookup the keyboard, extensions and screen sharing use — so the preference is 
 rather than when the page is built. It used to be `Mirror` into the page's `lazy` storage: that worked, and was a
 second way in whose failure the type checker never sees.
 
-**Keeping it alive.** A column far from the viewport loses its live `WebView` (`isLive`, above), and further out its
-page (`LivePageCache`). Losing the view turns out not to matter: the floating player is a window of WebKit's, not a
-subview, and it goes on playing while the column that owns it is unmounted — measured by scrolling to a window in
-another profile entirely and asking the page what its presentation mode was. Losing the *page* would take the video
+**Keeping it alive.** A tab that is not in front loses its `WebView`, and eventually its page (`LivePageCache`).
+Losing the view does not matter: the floating player is a window of WebKit's, not a subview, and it goes on playing
+while the tab that owns it is unmounted. Losing the *page* would take the video
 off the screen the user is looking at, so `keepAliveReason` asks `isInPictureInPicture` before anything else. The
 "playing media" guard that was already there does not cover it: a floating player paused for a moment is still a
 window somebody put on their screen on purpose.
@@ -624,142 +193,10 @@ This is what Safari gets, for the same reason — the whole path is WebKit's. Ch
 mini-players because they draw them, and drawing one is not something a browser built on `WebPage` can do: there is no
 way to take a `<video>` out of a page and into a window of one's own. So the two asks this produced — that the player
 travel with the browser on ⌘Tab, and that it sit under the top bar rather than over it — are not bugs with a fix here.
-The other feature of the same name is the answer if they matter enough: any Savoia window as a floating always-on-top
-panel — a floating layer, Savoia's own `NSPanel` and therefore Savoia's to parent and to place. It is not built;
-it is in [todo.md](todo.md).
+The other feature of the same name is the answer if they matter enough: any tab as a floating always-on-top panel —
+Savoia's own `NSPanel` and therefore Savoia's to parent and to place. It is not built; it is in [todo.md](todo.md).
 
-## Overview
-
-`⌥O` zooms the whole canvas out and opens the vertical spacing so neighbouring workspaces read as separate screens.
-The scale adapts: enough to show the focused row end to end, never more than `overviewBaseScale` (0.5 — a short
-row shouldn't shrink for nothing) and never past `minimumOverviewScale` (0.22), where a long row starts scrolling
-instead of turning microscopic. Scrolling sideways pans the row freely there; `visibleWidth` (the viewport divided by
-the scale) is what every offset is measured against, so the same clamping code serves both modes. Leaving the overview
-puts the row back under the focused window.
-
-A web page is a card there (`ColumnPlaceholder`) with its last picture, and one click on any window focuses it and
-leaves the overview. Each card carries a title bar **over** its top — the site's own icon (`SiteIcons`) and the
-window's title, lying on the picture rather than taking a row of the card for itself, so a card that has no bar to
-carry (a start page, one of Savoia's own) is not a card whose page begins at a different height — and a × on its top corner (`OverviewCloseButtons`), which is the one way the mouse has of closing a
-window whatever its fill. Neither shrinks with the row: the × is drawn outside the scaled canvas like the workspace
-plates, and the title bar divides its own sizes by `overviewScale`, because how far the canvas is scaled depends on
-how many windows are in the row and an icon that was a different size in every row would be no mark at all. Every row ends with the place a new window would take (`NewWindowPlace`, `TilingLayout.appendFrame`): ⌘T and
-the row's `+` open beside the focus, which in a view of every row at once is somewhere else, so without it the
-pointer had no way to make a window from up here. It is drawn the way the row's own `+` draws its promise — the
-start page in miniature (`StartPageSketch`) — in the half of the place that is on screen. The row is laid out at
-`overviewWidth`, its windows plus a column's worth of slack, so the windows keep the middle and half the place shows
-past the right edge; an empty row has no row to stand at the end of, and there the place is centred instead. Savoia's own pages — configuration, MCP apps — are cards too, with no
-picture, and they stay cards until the zoom back in has finished (`BrowserState.isLeavingOverview`, cleared by the
-exit animation's `.removed` completion). They are SwiftUI, but a form's text fields and steppers are AppKit views,
-and laid out under a scale that is still animating they never settle: each frame of the zoom was a run of SwiftUI's
-"maximum length doesn't satisfy min <= max" faults, about a hundred per open or close, and a crash on 2026-09-17 —
-the configuration page open, the overview opened and closed quickly — was AppKit's layout giving up in the same place
-("more Update Constraints in Window passes than there are views in the window", then an `NSGenericException`). The
-crash itself was not reproduced by a scripted run; the faults were, and with the cards they are gone — zero over 300
-toggles and workspace jumps 40–400 ms apart. `.logicallyComplete` was not enough: the spring's tail still moved the
-scale after it, and a few faults came back each time the page did.
-
-### Carrying a window
-
-A window can be picked up in the overview and carried along its row or onto another workspace. The gesture belongs to
-the **canvas**, not to the card (`OverviewPointerLayer`): up there every window is a picture at a place the layout
-already knows, so which one is under the pointer is arithmetic against `columnFrames()`, and a gesture that is not
-attached to a card survives the card being carried out of the row that was drawing it. The layer sits in the row's
-own coordinate space (`TilingStripView.canvasSpace`, the canvas *before* the overview scales it, which is the space the
-frames are already in), and offers the mouse only the cards themselves (`CardsShape`) — a click between two windows
-still reaches what is under it, the row's own `+` included. `canvasPlaces()` is where both the pointer and the close
-badges read the cards from, so the two cannot disagree about where a card is.
-
-Nothing in the row moves until the drop. Until then `arrangement(workspaceAt:)` is what each row draws: the carried
-window out of the row it came from and holding a place open in the row it would land in, with the card itself drawn
-above every row at `carriedCardFrame` — where it was lifted from, plus how far the pointer has gone, so it stays under
-the pointer exactly. Only the shuffle is animated; animating the card would mean it never quite catches up.
-
-Where it would land is counted against the row **as it is**, not as it is being drawn: one window has gone past another
-when their middles have crossed, which is a fixed line. Measuring against the shuffled row instead moves that line
-towards the card every time it moves — the window to the right slides into the gap and its middle arrives under the
-pointer at once, and the drop target flips back and forth for a pixel of travel. The focus goes with the window on the
-drop: a window put in another row that left the view behind in the old one is a window you have just lost.
-
-## Tabs instead of the row
-
-`InterfaceStyle.tabs` — the default until someone chooses otherwise (Configuration ▸ Windows ▸ Show Windows As, or
-View ▸ Show Tabs; the key is `interface.style` in the settings table) draws the same strip the way every other browser draws a window: a tab bar in the title-bar
-band, a toolbar under it with the address field, and the one page in front filling the rest
-(`Savoia/Views/TabStripView.swift`). **It is a second view of the strip and not a second model**, which is the whole of
-the design and the reason switching loses nothing:
-
-| the row | the tab bar |
-|---|---|
-| a window | a tab |
-| a split column | two tabs side by side; whichever is focused is the page shown |
-| a named workspace | a tab group, coloured, labelled with the workspace's name |
-| an unnamed workspace | tabs with no group |
-| the focused column | the tab in front |
-| the spare empty row at the bottom | nothing — it is not a group |
-
-A group is a *named* workspace (`TabGroup.isGroup`); an unnamed one is tabs with no group, as in any browser before
-anybody groups anything, so two unnamed rows side by side read as one run of plain tabs. "Add Tab to New Group" opens
-the name field straight away, and a new group closed with the field empty keeps "Workspace N" as its name, or it would
-stop being a group the moment it was made; emptying a name that was there is "Ungroup". `⌘T` and the bar's + are
-`newTabAtEnd` — the last row when that has no name, the spare row otherwise — and a tab dropped on the bare bar goes
-the same place (`moveTabToEnd`). "Remove from Group" puts the tab at the front of the ungrouped row just after the
-group, or in a new row of its own; the last tab of a group ungroups it instead, so no named row is left to ask about.
-Folding is only for groups: `TilingWorkspace.isFolded` is `isCollapsed` and named. The colour is read off the workspace's id rather
-than its position, so a group does not change colour when the one before it is closed.
-
-A **pinned** tab is its column's `TilingColumn.pinned` (optional, so older files read as unpinned). The column stays
-in whatever row it stood in — `normalize` only keeps it first there — but the tab bar takes it out of that row's group
-(`TabGroup.tabIDs` leaves it out) and draws every pinned tab of the profile as an icon at the bar's left edge, outside
-the scrolling part (`BrowserState.pinnedTabIDs`, which `tabOrder` also puts first). Folding, "Close Group", "Close
-Other Tabs" and `TabSorter` pass over them. Pins per group are a possible second mode, not built.
-
-What the row does not have is a group **folded** up to its label. That lives on the workspace
-(`TilingWorkspace.collapsed`, optional so an older session file reads as every group open) and the row ignores it, so a
-group folded here is still folded when the tabs come back. A group cannot fold over the tab in front: the neighbouring
-tab along the row is shown first, and if every other tab is folded away too a new tab is opened in the spare row at
-the bottom — a tab with no group — which is Chrome's answer to the same question. `⌘⇧[` `⌘⇧]` and
-`⌘1…⌘9` skip folded groups; the ring does not.
-
-**Picking several tabs** is Chrome's on a Mac: `⌘`-click adds or removes one, `⇧`-click takes the run from the last
-tab clicked without `⇧` (`BrowserState.clickTab`, `pickedTabs`). The tab in front is always among them, and anything
-that moves it without a click — a key, a new tab — starts the pick again from there (`syncSelection`). The tab menu,
-opened on a picked tab, acts on all of them: `moveTabsToNewGroup`, `moveTabs(_:toGroup:)`, `closeTabs`. `⌃` is not
-the modifier because a `⌃`-click on a Mac is the secondary click and opens the menu before any gesture hears it.
-Dragging still carries one tab, and it is AppKit's
-(`TabDragSource`, in `TabBarMouse.swift`): the tab bar lies in the band the hidden title bar still owns, and a drag
-there moved the whole window, so SwiftUI's `.draggable` never started. The view takes the left button's click and drag,
-starts the session with the tab's id as plain text, and lets the right button, `⌃`-click, the scroll wheel and the
-tab's × fall through to SwiftUI. Answering no to `mouseDownCanMoveWindow` on it was not enough by itself, so while the
-tab bar is on screen the window is not movable at all (`WindowMover` sets `isMovable` and puts it back when the bar
-goes), and the bar's bare background moves it by hand and zooms it on a double-click, honouring
-`AppleActionOnDoubleClick`. The page under the tab bar has no title strip while it loads —
-the tab above it already says the same thing. Two picked tabs can be **shown side by side** — `showSideBySide`, which is
-`split(_:with:)` and so the row's own split, the second tab joining the first's column from wherever it was — and taken
-apart again with `separate`. `TabbedWindowView` draws the column's two halves under the bar in one `ForEach` keyed by
-tab, so a tab joining or leaving a split keeps its view: switching between one `ColumnView` and an `HStack` of two
-would build a second `WebView` over a page that still has one. An empty window has no `+` in the bar; the window's own
-New Tab is under it.
-
-The verbs are `TilingLayout.placeTab` — one window to a column index in a row, by workspace id, the focus following it;
-half of a split dragged away leaves the other half in its column — `placeTabInNewWorkspace` for "Add Tab to New
-Group", and `setCollapsed`. `BrowserState` wraps them with the rules above, and `closeGroup` clears the name before
-closing the tabs, because closing the group *is* the answer to the question a named row asks when it empties.
-
-**The keys.** `KeyContext.showsTabs` switches off every row whose action is about the row
-(`KeyAction.answersInTabs`), so `⌥←` is word movement again and `⌥W` types «∑». The ⌃Tab ring stays, as on the row:
-`⌃Tab` over every tab of every group, `⌃⇧Tab` over the group in front — with a split's two halves as two cards,
-because the tab bar draws them as two tabs. The View menu swaps Full Width / Split / Overview for Show Next / Previous Tab and `⌘1…⌘9`,
-and File says "tab" instead of "window", both read off `browser.showsTabs`. It used to be a focused value, and that was
-worse than it looked: the value changes with every click and every return to Savoia, and each change had SwiftUI fill the
-File menu in again — after which ⌘W belonged to the system's Close and quit Savoia (`SavoiaApp`, AGENTS.md). A menu that
-reads the model is filled in when it is about to be used, which is always after the face has changed.
-`toggleSplit`, `toggleFullWindow` and `toggleOverview` also refuse with the tabs up, for anything that reaches them
-another way. `SAVOIA_KEY_SELFTEST` prints a `tabs` column.
-
-**The swap is a frame of nothing.** Both faces draw the pages, and a `WebPage` allows exactly one `WebView` — the trap
-`TilingLayout.unanimated` is written up for. `ContentView.swapFace` takes the old face down, waits 32 ms with neither on
-screen, then puts the new one up, so the new `WebView` can never be built while the old one still holds the page.
+## Groups by meaning
 
 **Sorted by meaning** (`TabSorter`, `TabTopics`, `ConfigurationStore.sortsTabsByMeaning`, off by default and
 outside the AI switch). A web tab that finishes loading is embedded — its title with the site's name taken off, plus
@@ -768,9 +205,9 @@ own e5, with `query:` on both sides. Only a tab opened since the sorter last loo
 site, is placed; a tab restored at launch is only noted. `TabTopics.classify` then asks how far the best group is
 *ahead*: of the second group, of the tab's median similarity to every tab (`background`), and of its nearest
 ungrouped tab (`loose`). Ahead by `joins` (0.035) it goes in, focus following (`placeTab`); two groups within `tie`
-of each other and both `betweenLead` ahead of the rest put it in the row between them. Ahead of the other groups and
+of each other and both `betweenLead` ahead of the rest put it in the workspace between them. Ahead of the other groups and
 its `background` by `near` (0.035, the same as `joins`) and kept out only by a loose tab no more than `betweenLead`
-nearer, it goes into a row right after the group (`.near`). Ungrouped tabs are clustered average-linkage over how much closer two are than
+nearer, it goes into a workspace right after the group (`.near`). Ungrouped tabs are clustered average-linkage over how much closer two are than
 either usually is to *every* tab, and three or more become a group.
 
 **Rows between groups** (`TilingWorkspace.blend`, `TilingBlend`). The near verdict exists because of `loose`: four
@@ -794,27 +231,25 @@ two strays) and `=live` (the same with Wikipedia pages in a new profile, through
 | Qwen 2.5 1.5B | 2/4 | 0/2 | 2/2 |
 | Gemma 3 1B | 0/4, everything to football | — | 0/2 |
 
-`=compare` with `near` at 0.035: held-out 8/12, strays 5/5, between 1/2 — as before it. A blend row is a group in the tab bar whether or not it is named: its title is its parents'
-names («Ужин · Спорт», «≈ Ужин») until the namer answers, which it is asked once the row has two tabs. The blend
-belongs to the row, not the tab, so a tab dragged in takes its colour and one dragged out loses it. Its menu merges
+`=compare` with `near` at 0.035: held-out 8/12, strays 5/5, between 1/2 — as before it. A blend workspace is a group in the tab bar whether or not it is named: its title is its parents'
+names («Ужин · Спорт», «≈ Ужин») until the namer answers, which it is asked once the workspace has two tabs. The blend
+belongs to the workspace, not the tab, so a tab dragged in takes its colour and one dragged out loses it. Its menu merges
 it into a parent or makes it a group of its own. In `normalize`, a blend whose parent stops being a group (ungrouped,
 closed) stands next to the other parent; with neither left it is ungrouped tabs, or a group of its own if the person
-named it. A session saved with the old per-column `lean` has it moved to the row.
+named it. A session saved with the old per-column `lean` has it moved to the workspace.
 
 **Colours** (`GroupColor`). OKLCH, mixed with lightness and chroma linear and the hue the short way round, then the
 chroma cut back into sRGB: red and yellow give orange, blue and yellow green, where an RGB mix goes through grey.
 The palette starts with blue, red and yellow so the first three groups' mixes are the secondaries. A group is given
-the first palette entry no other group has, kept on the row (`TilingWorkspace.color`), so closing one does not
-recolour the rest; a row next to one group is that colour faded towards a pale neutral by its weight. Groups saved
-before this had a colour taken from their id and are given one from the palette on the next change. The row itself
-does not show group colours yet.
+the first palette entry no other group has, kept on the workspace (`TilingWorkspace.color`), so closing one does not
+recolour the rest; a group next to one group is that colour faded towards a pale neutral by its weight.
 
 **Names and the local model.** A new group is named at once by c-TF-IDF over its tabs' text (or the host), then
 renamed in the background, unless the person has renamed it meanwhile. With the AI switch on, the assistant's own
 choice answers: a language model through `AssistantSettings.namingSession`, or an ACP agent through `AgentErrands` —
 a second connection to the same agent, a fresh session per question in `Agents/Errands` inside Savoia's folder, tools
 refused, so nothing lands in the person's chat (Claude Code: 9 s for the first name, spawn included, 4 s after).
-Otherwise, and when that fails, the **local model** (`LocalLanguageModel`, `LocalModelChoice`, Configuration ▸ Windows):
+Otherwise, and when that fails, the **local model** (`LocalLanguageModel`, `LocalModelChoice`, Configuration ▸ Tabs):
 Gemma 3 1B by default, Qwen 2.5 1.5B, or Gemma 4 E2B, through MLXLLM from the `mlx-swift-lm` package the embedder
 already uses. It is loaded for the question and let go a minute after the last one. The answer has to be in the
 interface's script (a title's own words excepted), or the c-TF-IDF name stays. The examples are earlier chat turns,
@@ -856,10 +291,10 @@ are alike for being long, hence the 120 characters), and a background taken over
 four recipes cluster, because half the loose tabs were the recipes. What it gets wrong: a Russian title on a mostly
 English topic stays out (e5-small keeps languages apart on short text).
 
-The person wins. The sorter remembers the row it last put or saw each tab in (in memory); a tab found anywhere else
+The person wins. The sorter remembers the workspace it last put or saw each tab in (in memory); a tab found anywhere else
 was moved by hand and is left alone until it goes to another site, a split is never touched, and a group it made
 that was ungrouped marks its tabs the same way.
 
-What the tab bar does **not** have yet: tabs from several profiles side by side (it shows the profile on screen,
-like the row), dragging a tab out into a group of its own (the tab menu's "Add Tab to New Group" does that), and
-group colours chosen by hand.
+What the tab bar does **not** have yet: tabs from several profiles side by side (it shows the profile on screen),
+dragging a tab out into a group of its own (the tab menu's "Add Tab to New Group" does that), and group colours
+chosen by hand.

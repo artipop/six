@@ -32,9 +32,9 @@ question, profile, workspace id, document tab id, source window ids, running fla
 `BrowserState.research` and so in the snapshot (`isRunning` is reset on relaunch; nothing survives a turn). Then it
 sends the preset to the agent session the panel uses.
 
-That workspace is not permanent, and deliberately: closing its last window asks whether to delete it
-([layout.md](layout.md#a-named-workspace-that-runs-out-of-windows)) — the same question any named workspace gets. A
-browser that starts a named workspace per question and keeps every empty one is a browser whose overview fills up with
+That group is not permanent, and deliberately: closing its last tab asks whether to delete it
+([layout.md](layout.md#a-named-group-that-runs-out-of-tabs)) — the same question any named group gets. A
+browser that starts a named group per question and keeps every empty one is a browser whose tab bar fills up with
 last week's questions; asking is what keeps the record and the clutter apart, since only the person who ran it knows
 which of the two a finished run is.
 
@@ -50,8 +50,8 @@ belongs to a run is a **follow-up**: the follow-up preset points the agent at `r
 
 ## Document windows
 
-`BrowserTab.content` is `.web(WebPage)` or `.document(TextDocument)` (`Savoia/Documents/`). A document is a column like
-any other — widths, focus, moving between workspaces, the overview and persistence all work unchanged. `tab.page`
+`BrowserTab.content` is `.web(WebPage)` or `.document(TextDocument)` (`Savoia/Documents/`). A document is a tab like
+any other — focus, side by side, moving between groups and persistence all work unchanged. `tab.page`
 exists for both kinds: for a document it is a non-persistent `WebPage` that renders the preview and produces the
 HTML and PDF export.
 

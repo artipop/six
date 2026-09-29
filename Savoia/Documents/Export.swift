@@ -76,16 +76,6 @@ enum Exporter {
 
     /// ⌘⇧S: the panel, with the formats the window can be saved as.
     static func saveAs(_ tab: BrowserTab, listingIn downloads: DownloadStore? = nil) async {
-        #if os(iOS)
-        // No panel on the phone: the file lands in the app's own Documents folder, which is what
-        // `UIFileSharingEnabled` puts in front of the Files app.
-        let folder = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let served = await servedType(of: tab)
-        let format = Format.formats(for: tab, served: served)[0]
-        let type = format == .original ? served ?? .data : format.type
-        let url = folder.appending(path: suggestedName(for: tab) + "." + (type.preferredFilenameExtension ?? "txt"))
-        if (try? await write(tab, to: url, as: format)) != nil { downloads?.record(url, from: tab.currentURL) }
-        #elseif os(macOS)
         let served = await servedType(of: tab)
         let panel = NSSavePanel()
         let types = Format.formats(for: tab, served: served).map { $0 == .original ? served ?? .data : $0.type }
@@ -105,7 +95,6 @@ enum Exporter {
             alert.messageText = "Couldn't save \(url.lastPathComponent)"
             alert.runModal()
         }
-        #endif
     }
 
     private static func suggestedName(for tab: BrowserTab) -> String {

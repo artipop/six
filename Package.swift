@@ -1,39 +1,15 @@
 // swift-tools-version: 6.0
 import PackageDescription
 
-// The Linux entry point, and the place tests live.
+// The place tests live. This package does not replace `Savoia.xcodeproj` — it reads the same files
+// where they lie: a file belongs to `SavoiaCore` by being listed in `sources:` rather than by being
+// moved, and `xcodebuild` ignores this manifest entirely.
 //
-// This package does not replace `Savoia.xcodeproj` — it reads the same files where they lie. A target
-// names its members in `sources:`, the way the iOS target names its exclusions in
-// `membershipExceptions`, so a file belongs to a module by being listed rather than by being moved.
-// `xcodebuild -project Savoia.xcodeproj` ignores this manifest entirely.
-//
-// `SavoiaCore` grows one directory at a time, and every addition has to keep `swift build` green on
-// **Linux**, which is the only reason the package exists — building on macOS proves nothing the
-// project didn't already know.
-//
-// `Package.resolved` here is **seeded from the app's own**
-// (Savoia.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved) and that is load-bearing
-// three times over. A database written by one build is opened by the other, so they had better agree
-// on the library that wrote it. sqlite-data 1.11.0 does not compile against structured-queries 0.38,
-// so a free resolve picks a set that does not build at all. And newer swift-sharing (2.10.0) and
-// combine-schedulers (1.2.1) are Linux regressions — `package import Foundation.NSData` in one,
-// `pthread_mutex_t` under a bare `import Foundation` in the other — arriving through SQLiteData,
-// which depends on Sharing unconditionally.
-//
-// **So `swift package update` is a Linux-breaking command here.** Re-seed from the app instead, and
-// let the project's own graph move first. See docs/storage.md.
-//
-// And `swift build`/`swift test` are quietly the same command: they resolve first, and a resolve on
-// macOS rewrites this file — the `originHash` changes and the pins nothing on this platform needs
-// (OpenCombine, which only Linux pulls in) are dropped, so the next Linux build resolves from
-// scratch. Pass **`--disable-automatic-resolution`** to every one of them:
+// `Package.resolved` here is seeded from the app's own and must agree with it on GRDB, sqlite-data
+// and swift-structured-queries (docs/storage.md). `swift build` and `swift test` resolve first and
+// rewrite it, so pass **`--disable-automatic-resolution`** to every one of them:
 //
 //   swift test --disable-automatic-resolution
-//
-// It builds from the pins as written and fails loudly if they cannot satisfy the manifest, which is
-// exactly the promise this file is here to make. `--skip-update` is not it: that only skips the
-// fetch, and still writes.
 let package = Package(
     name: "savoia",
     platforms: [.macOS("26.0")],
@@ -42,10 +18,8 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/pointfreeco/sqlite-data", from: "1.11.0"),
-        // No sqlite-vec here. Vectors are out of scope for the Linux phase, and its `CSQLiteVec`
-        // reads the system SQLite headers while adwaita-swift's `meta-sqlite` vendors 3.51 — Clang
-        // refuses two definitions of `sqlite3_api_routines` in one compilation. `AppDatabase` asks
-        // for it with `#if canImport`, so the app keeps it and this build does without.
+        // No sqlite-vec here: `AppDatabase` asks for it with `#if canImport`, so the app keeps it
+        // and the tests do without.
     ],
     targets: [
         .target(
@@ -55,110 +29,43 @@ let package = Package(
             ],
             path: "Savoia",
             sources: [
-                // Geometry: no platform at all, and the piece a second front end reuses whole.
                 "Tiling/TilingLayout.swift",
-                // The keyboard, minus the window system. A binding is a key's name, the modifiers a
-                // hand can hold, where it may answer and what it does — and `KeyBindingsTests` reads
-                // docs/hotkeys.md and checks the table against it in both directions, which is the
-                // only thing that has ever stopped that file drifting. Turning an `NSEvent` into
-                // those values is `Input/KeyEvents.swift`, and that one stays in the app.
                 "Input/KeyBindings.swift",
                 "Input/KeyContext.swift",
-                // Where Savoia lives, and the versioned JSON snapshot beside the database.
                 "Data/AppSupport.swift",
                 "Data/FormerName.swift",
-                // What Savoia says happened. Here rather than in the app because the files that have
-                // the most to say when something goes wrong — the snapshot, the settings, the
-                // profiles table — are all in this target. `os.Logger` is behind `canImport(os)`;
-                // the file half is Foundation and Dispatch, which both fronts have.
                 "Data/Log.swift",
                 "Persistence/SnapshotStore.swift",
                 "Persistence/StatePersistence.swift",
-                // The row as the fronts without a snapshot leave it, in the settings table. It
-                // was Linux's own until Windows needed the same thing, and two copies of a
-                // `Codable` both fronts write under one key is two chances to disagree about it.
-                "Persistence/StripState.swift",
                 "Data/AppDatabase.swift",
                 "Data/ConfigurationStore.swift",
                 "Bookmarks/Bookmark.swift",
-                // Saving a page and making it findable by meaning, for the three fronts that are
-                // not the Mac. Everything that decides whether a search works — how a page is cut
-                // into passages, what a row in the `vec0` table looks like, what a vector is
-                // stamped with — because a bookmark saved on Windows is one a Mac reads, re-embeds
-                // and ranks, and two implementations of that is two chances to disagree about it.
-                // `BookmarkStore` keeps the halves that are Apple's: the off-screen `WKWebView`
-                // that re-reads a page, and the Markdown copy written beside it.
                 "Bookmarks/TextChunker.swift",
                 "Bookmarks/VectorIndex.swift",
                 "Bookmarks/Embedder.swift",
                 "Bookmarks/BookmarkIndexer.swift",
                 "Bookmarks/BookmarkSelfTest.swift",
-                // What a saved page *says*, rather than what it is called. The extractor is a
-                // JavaScript function body and every front can run one, so it is here beside the
-                // passages it feeds; only the Mac's `WebPage` door into it stays in the app.
                 "Bookmarks/ReadablePage.swift",
-                // …and the Markdown copy it becomes, written the same way by every front.
                 "Bookmarks/BookmarkFile.swift",
-                // The embedder those fronts run, which is E5 through transformers.js in a
-                // `PageSandbox` — the same bargain Bergamot makes, for the same reason, over the
-                // same seam. `ContextualEmbedder` and `MLXEmbedder` stay in the app: one is
-                // NaturalLanguage and the other is Metal.
                 "Bookmarks/Embedding/EmbeddingCatalog.swift",
                 "Bookmarks/Embedding/EmbeddingStore.swift",
                 "Bookmarks/Embedding/EmbedderDriver.swift",
                 "Bookmarks/Embedding/WebEmbedder.swift",
-                // The ⌃Tab ring. Two orders over a list of ids and nothing else — no window, no
-                // picture, no key — and the order is the whole of the feature: which stop is next in
-                // memory, and where each is drawn so that two halves of one column stay together and
-                // in the order they stand in. That got out twice by eye and is arithmetic, so it
-                // lives where it can be tested, and a second front inherits the ring rather than
-                // reinventing its order.
                 "Browser/WindowSwitcher.swift",
-                // Which group a tab belongs to by meaning: vectors in, a verdict out. The model and
-                // the moving stay in each front.
                 "Tabs/TabTopics.swift",
                 "Tabs/GroupColor.swift",
                 "Browser/SearchEngine.swift",
-                // A page Savoia owns and nobody sees, for running something that is a program written
-                // for a JavaScript engine rather than a library Savoia could link. Bergamot below is
-                // the first user; an on-device embedder is the next one.
                 "Browser/PageSandbox.swift",
-                // Domain names as they are written: the ACE form is what every platform's URL type
-                // hands back, and deciding when it is safe to show the name behind it is the same
-                // decision on all of them.
                 "Browser/IDN.swift",
-                // Which addresses are somebody else's app's to open. The list is the same on every
-                // front, and a second copy of an allowlist is a second chance to let a scheme through;
-                // opening one is each platform's own call.
                 "Browser/ExternalScheme.swift",
                 "Browser/History.swift",
-                // How many columns keep a real page. The Mac's `LivePageCache` imports WebKit and
-                // stays in the app; this is its rule — the budget, the pins, the eviction order —
-                // without the engine, for the two fronts whose engines are C APIs.
-                "Browser/LivePages.swift",
-                // Who the profiles are. The row and the table are plain values and plain SQL, and
-                // the reason they exist at all — that the identity every other table is keyed by
-                // must not live in a file that can fail to decode — is the same on every front.
                 "Browser/ProfileStore.swift",
-                // What a site was allowed. The decision, the queue and the suspension are the same
-                // on both platforms; only the type the request arrives as differs, and that part
-                // stays behind `#if canImport(WebKit)`.
                 "Browser/SitePermissions.swift",
-                // Translation. The engine is a seam — `Translation.framework` is Apple's, Linux
-                // would use Bergamot and Android ML Kit — but the vocabulary, the JavaScript and
-                // the batching are the same feature on every front, so they live here and are
-                // built on Linux to prove it. `AppleTranslator` and the views are not.
                 "Translation/TranslationSegment.swift",
                 "Translation/TranslationBatch.swift",
                 "Translation/TranslationScript.swift",
                 "Translation/PageTranslator.swift",
                 "Translation/TranslationSettings.swift",
-                // …and the engine those two fronts translate with, which is Bergamot: Marian
-                // compiled to wasm, the same one Firefox uses, running in an off-screen page of
-                // Savoia's own. All of it is here rather than in `linux/` or `windows/` because it is
-                // one feature on two fronts — only the four lines that call a function in a page
-                // are per platform. The 100 kB of Emscripten glue in `Payload` is the exception
-                // that proves it: that file is the one thing an Apple build compiles away.
                 "Translation/LanguageGuess.swift",
                 "Translation/Payload/BergamotGlue.swift",
                 "Translation/Bergamot/Checksum.swift",
@@ -167,21 +74,12 @@ let package = Package(
                 "Translation/Bergamot/BergamotDriver.swift",
                 "Translation/Bergamot/BergamotRuntime.swift",
                 "Translation/Bergamot/BergamotTranslator.swift",
-                // The wire, and only the wire. JSON-RPC's own two types, the shape of an MCP
-                // server's answers, and the registry that lists servers: text in, values out, no
-                // window and no process. What Savoia *does* with an app — the scheme handler, the
-                // session, the store — is WebKit and AppKit and stays in the app target. This much
-                // is the same conversation on any platform, and it is the half worth a test.
                 "ACP/ACPJSON.swift",
                 "ACP/AgentModels.swift",
                 "ACP/JSONRPCError.swift",
                 "MCP/Client/MCPAppTypes.swift",
                 "MCP/Client/MCPRegistry.swift",
                 "MCP/Client/MCPOAuth.swift",
-                // WebMCP: a page declaring tools of its own for agents (docs/webmcp.md). The
-                // polyfill is JavaScript in a string, the registry is plain values and the calls
-                // are one main-actor class, and none of it knows which engine it runs in — the
-                // bargain translation makes, so each front owes a bridge and nothing more.
                 "WebMCP/WebMCPRegistry.swift",
                 "WebMCP/WebMCPBroker.swift",
                 "WebMCP/WebMCPForms.swift",
@@ -189,11 +87,6 @@ let package = Package(
                 "WebMCP/WebMCPHost.swift",
                 "WebMCP/WebMCPPage.swift",
                 "WebMCP/WebMCPSelfTest.swift"
-                //
-                // `ConfigurationStore` is in only because it was untangled first: it used to decode Savoia
-                // subsystems' types out of the settings table, so taking it would have dragged most
-                // of the browser behind it. Each typed accessor now lives beside the type it
-                // decodes, and what is left here knows only keys and strings.
             ],
             swiftSettings: [.swiftLanguageMode(.v5)]
         ),

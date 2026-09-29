@@ -2,7 +2,7 @@
 
 Savoia's assistant is not a chat. It is one line, `⌘E`, and it comes up where you
 are already pointing: under selected text, beside the field your caret is in,
-and at the bottom of the row when nothing on the page is pointed at. It never
+and at the bottom of the window when nothing on the page is pointed at. It never
 comes up by itself.
 
 Only conversations with [agents](/en/agents) have a history: they are kept, and
@@ -31,7 +31,7 @@ When an agent answers, `/` also finds your earlier conversations with it — see
 [Conversations on the ⌘E line](/en/agents#conversations-on-the-⌘e-line).
 
 Scrolling with the pointer on the line or its answer scrolls what is under them —
-the page or the chat — rather than switching workspaces.
+the page or the chat.
 
 If the chosen model cannot answer, the line says so in place of the actions: a
 missing key comes with a **Set Up…** button that opens the settings, and `⏎`
@@ -111,8 +111,8 @@ socket external agents drive the browser through is closed.
 Bookmark search and page translation keep working: neither is a model talking to
 you — one is search, the other is a translator.
 
-You are asked once, on the first launch, in a window in the row —
-`savoia://welcome`. Answer "Yes, use them" and the next step, in the same window,
+You are asked once, on the first launch, in a tab —
+`savoia://welcome`. Answer "Yes, use them" and the next step, in the same tab,
 is who answers: On-Device, Claude Code, Codex or API Key (Anthropic or an
 OpenAI-compatible server) — set up on the spot: an agent shows whether its adapter
 is installed, a key shows the key and endpoint fields. "Done" points the `⌘E`
@@ -162,7 +162,7 @@ Profiles**.
 ## The research command
 
 `research: …` on the `⌘E` line, or `/research` and the question after it, starts
-[deep research](/en/research): a workspace of sources and a document the agent
+[deep research](/en/research): a group of sources and a document the agent
 writes into.
 
 ## The do command

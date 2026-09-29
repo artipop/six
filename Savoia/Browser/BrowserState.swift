@@ -21,7 +21,7 @@ final class BrowserState {
     /// The app-wide budget for live `WebPage`s — one queue across every profile and every workspace,
     /// which is what makes stepping out of a workspace and back cheap. See `LivePageCache`.
     let pages = LivePageCache()
-    /// The pictures of the windows, kept as files so the overview is not blank after a relaunch.
+    /// The pictures of the tabs, kept as files so the ⌃Tab ring is not blank after a relaunch.
     @ObservationIgnored let thumbnails = PageThumbnails()
     /// The sites' own little pictures, by host.
     let siteIcons = SiteIcons()
@@ -86,20 +86,12 @@ final class BrowserState {
     /// Windows that were closed, oldest first — what ⌘⇧T puts back. Observed rather than ignored so
     /// the menu item can go grey the moment the last one is used up.
     private var closedWindows: [ClosedWindow] = []
-    /// Whether the strip's edge buttons wait to be found or stand on the screen (`ConfigurationStore`).
-    /// Chrome rather than geometry, so it lives here and not in `TilingLayout`: it changes nothing a
-    /// second front end would have to agree with, only whether this one asks for a peek.
-    var peeksAtEdges = ConfigurationStore.peeksByDefault
-    /// The row, or a tab bar over one page (`InterfaceStyle`). Here and not in `TilingLayout` for
-    /// the reason `peeksAtEdges` is: it is how this front draws the strip, not a fact about the strip.
-    private(set) var interfaceStyle: InterfaceStyle = .tabs
     /// Tabs picked together in the tab bar with ⌘ and ⇧ — what the tab menu acts on when it is
     /// opened on one of them. The tab in front is always among them; anything that moves it
     /// elsewhere without a click starts the pick again from there (`syncSelection`).
     private(set) var pickedTabs: Set<UUID> = []
     /// Where a ⇧-click's range starts: the tab last clicked without ⇧.
     @ObservationIgnored private var pickAnchor: UUID?
-    var showsTabs: Bool { interfaceStyle == .tabs }
     @ObservationIgnored private let settings: ConfigurationStore
     /// Who the profiles are, in the database beside the history and the bookmarks that are keyed by
     /// them. Not the snapshot: see `ProfileStore` for what the snapshot losing them used to cost.
@@ -125,10 +117,6 @@ final class BrowserState {
         self.blocker = blocker
         self.devTools = devTools
         self.permissions = permissions
-        layout.centersFocus = settings.centersFocus
-        layout.setFill(settings.fill)
-        peeksAtEdges = settings.peeksAtEdges
-        interfaceStyle = settings.interfaceStyle
         // Who the profiles are comes from the table; what was open comes from the snapshot. The two
         // used to be one file, and the day it would not decode the profiles were born again with new
         // data stores behind them — every login in every profile, gone (`ProfileStore`).
@@ -150,9 +138,8 @@ final class BrowserState {
         if let snapshot { restore(snapshot) }
         research = (snapshot?.research ?? []).filter { run in tabs.contains { $0.id == run.documentTabID } }
         for i in research.indices { research[i].isRunning = false } // nothing survives a relaunch mid-turn
-        // A browser that has been used before comes back as it was left, an empty row included: the
-        // strip offers "New Window" and waits, the same as it does the moment the last window is
-        // closed. Only a browser with nothing to restore opens the first window itself.
+        // A browser that has been used before comes back as it was left, with no tabs included. Only a
+        // browser with nothing to restore opens the first tab itself.
         if layout.hasColumns || snapshot != nil { syncSelection() } else { newTab() }
         thumbnails.prune(keeping: Set(tabs.map(\.id))) // windows closed in a launch that never cleaned up
         trackVisibleWindows()
@@ -300,10 +287,8 @@ final class BrowserState {
 
     // MARK: Live pages
 
-    /// Keeps the live-page budget pointed at what the strip is showing. Every layout change — focus,
-    /// workspace, scroll, resize, overview, a new window — moves `visibleTabIDs`, and this follows it
-    /// without the views having to say anything: building and discarding pages is the model's job,
-    /// and doing it from a view body would be mutating state in the middle of drawing it.
+    /// Keeps the live-page budget pointed at the tab on screen, without the views having to say
+    /// anything: building and discarding pages is the model's job, not a view body's.
     private func trackVisibleWindows() {
         withObservationTracking {
             _ = layout.visibleTabIDs
@@ -316,38 +301,9 @@ final class BrowserState {
         }
     }
 
-    /// True while the overview is up, so entering it can be told from moving around inside it.
-    @ObservationIgnored private var showingOverview = false
-
     private func refreshLivePages() {
         let visible = layout.visibleTabIDs
-        // On the way into the overview every window on screen has just become a card. Its picture was
-        // taken before the overview opened (`toggleOverview`): by now its web view is gone.
-        if layout.isOverview, !showingOverview {
-            // The rest of the strip is about to be drawn as cards: the ones with no picture in memory
-            // — never shown this launch, or dropped for the budget — read theirs off disk. Only this
-            // profile's: the overview shows one strip, and the others are not on screen to be drawn.
-            for tab in tabs(in: selectedProfileID) { tab.loadPictureIfNeeded() }
-        }
-        showingOverview = layout.isOverview
-        // Each window's own width, so the picture taken of it is the shape of the column it fills —
-        // or of the half of it, which is where a split's pictures come out narrow and right rather
-        // than wide and stretched.
-        if let workspace = layout.focusedWorkspace {
-            let frames = layout.columnFrames(workspace)
-            for (index, column) in workspace.columns.enumerated() where frames.indices.contains(index) {
-                let panes = layout.paneFrames(column, in: frames[index])
-                for (pane, id) in column.tabIDs.enumerated() where visible.contains(id) && panes.indices.contains(pane) {
-                    tabsByID[id]?.displaySize = panes[pane].size
-                }
-            }
-        }
-        // Only the focused window is loaded. Everything else on screen is pinned — a neighbour that
-        // still has its page goes on showing it — but nothing is built for walking past it, and the
-        // overview builds nothing at all. The focused *column*, because both halves of a split are
-        // the window you are looking at.
-        let building = layout.isOverview ? [] : (layout.focusedWorkspace?.focusedColumn?.tabIDs ?? [])
-        pages.setVisible(visible, building: building) { [weak self] id in self?.tabsByID[id] }
+        pages.setVisible(visible, building: Array(visible)) { [weak self] id in self?.tabsByID[id] }
     }
 
     // MARK: Snapshot
@@ -761,12 +717,9 @@ final class BrowserState {
             return
         }
         let opened = newTab(url: url, in: tab.profileID, workspace: nil, activate: !background)
-        // Remembered so the column can be taken back — and this one handed the focus back — if the
+        // Remembered so the tab can be taken back — and this one handed the focus back — if the
         // link turns out to be a file. See `closeIfOnlyCarriedALink`.
         opened.openedFrom = tab.id
-        // Only for the ones that go behind: a window that comes forward takes the eye with it and
-        // needs no announcing. The one that does not is otherwise invisible — see `TilingLayout.peek`.
-        if background { layout.peek() }
     }
 
 
@@ -825,7 +778,6 @@ final class BrowserState {
     /// first byte arrives the mouse has moved on. Nil when the pointer is not in Savoia's window at all:
     /// a download an agent asked for has nowhere to fly from.
     private static var clickInWindow: CGPoint? {
-        #if os(macOS)
         // Not `keyWindow`: a download can be asked for from a menu or a popover, and while the app is
         // not the active one there is no key window at all.
         guard let window = NSApp.windows.first(where: { $0.isVisible && $0.canBecomeMain }),
@@ -837,9 +789,6 @@ final class BrowserState {
         let point = content.convert(inWindow, from: nil)
         guard content.bounds.contains(point) else { return nil }
         return point
-        #elseif os(iOS)
-        return nil
-        #endif
     }
 
     // MARK: Documents
@@ -925,7 +874,7 @@ final class BrowserState {
 
     // MARK: Apps
 
-    /// Opens an MCP app — a window of the strip drawing a tool's result with the server's own HTML.
+    /// Opens an MCP app — a tab drawing a tool's result with the server's own HTML.
     /// Same placement rules as `newTab`; see [mcp-apps.md](../../docs/mcp-apps.md).
     @discardableResult
     func newApp(_ session: MCPAppSession, in profileID: Profile.ID? = nil, workspace: Int? = nil,
@@ -1040,7 +989,7 @@ final class BrowserState {
     /// lands, which is what asking for it in a profile that keeps history means.
     ///
     /// The focus follows the window. Every other move leaves something to look at; this one would
-    /// take the column out of the row and leave the person in front of the profile it left, with
+    /// take the tab out of its group and leave the person in front of the profile it left, with
     /// nothing on screen to say where it went.
     ///
     /// The one window that will not go is a document about to enter a private profile: its text is a
@@ -1176,15 +1125,8 @@ final class BrowserState {
         withAnimation(TilingLayout.switchAnimation) {
             layout.removeColumn(tabID: id)
         }
-        // Nothing left to fill the screen with: a filled mode would be a blank wall with no way back.
-        if layout.fill != .tiled, layout.focusedWorkspace?.isEmpty != false { layout.setFill(.window) }
         guard wasActive else { return }
-        // And nothing is opened in its place, not even when that was the last window of the profile.
-        // An empty row is a state the strip already draws — the row offers "New Window" in the
-        // middle of the screen — and the window ⌘W conjured up instead was one nobody had asked for,
-        // standing where the one just closed had stood. It also made the first row behave unlike
-        // every other: emptying a row further down leaves the windows above it, so the profile is not
-        // empty, so that row got the offer while the top one got a start page.
+        // Nothing is opened in its place, not even for the last tab of the profile.
         syncSelection()
     }
 
@@ -1276,121 +1218,56 @@ final class BrowserState {
         }
     }
 
-    // MARK: layout operations
+    // MARK: Side by side
 
-    /// ⌥S. The window next along comes in beside the one being read, or the pair goes back to being
-    /// two windows in the row (`TilingLayout.toggleSplit`).
-    ///
-    /// Deliberately not through `animateLayout`. Every other layout verb moves windows about at a
-    /// fixed width; this one *changes* the width of two live pages, and WebKit lays a page out again
-    /// at every width an animation passes through — measured at three interim layouts over a third
-    /// of a second, each of them a page briefly wider than the box it is in, which is a horizontal
-    /// scrollbar you can see. The fill modes gave up their animation for the same reason
-    /// (docs/layout.md). `TilingLayout.toggleSplit` refuses an animation from the inside as well, for
-    /// the menu items that carry one of their own.
-    func toggleSplit() {
-        // Not with the tabs up, where a split would be two tabs becoming one page with nothing on
-        // screen to say so. The menu hides the item then, but a menu decides that from the focused
-        // value, and with nothing focused in the window it falls back to the row's items.
-        guard !showsTabs else { return }
-        plainLayoutChange { layout.toggleSplit() }
-    }
-
-    /// Two named windows into one column, or the ⌥S toggle when only one is named. What
-    /// `split_window` calls; the answer is whether the strip changed.
+    /// Two tabs into one column, or a pair taken apart when only one is named. What `split_window`
+    /// calls; the answer is whether anything changed.
     @discardableResult
     func split(_ id: BrowserTab.ID, with other: BrowserTab.ID?) -> Bool {
         guard let window = tab(id) else { return false }
         guard let other, let second = tab(other) else {
-            selectTab(id)
-            var changed = false
-            plainLayoutChange { changed = layout.toggleSplit() }
-            return changed
+            guard layout.columnMates(of: id).count > 1 else { return false }
+            separate(id)
+            return true
         }
-        // One strip at a time: a column is a place on one profile's row, and two windows from
-        // different profiles have no column they could share.
+        // Two tabs from different profiles have no column they could share.
         guard second.profileID == window.profileID else { return false }
         var changed = false
         plainLayoutChange { changed = layout.split(tabID: id, with: other, in: window.profileID) }
         return changed
     }
 
-    /// A link opened as the other half of the window it was clicked in, rather than as a column of
-    /// its own behind it. The window is made first and split into place, so it arrives the same way
-    /// every other window does and the strip does not have to be told twice.
+    /// A link opened as the other half of the tab it was clicked in. A tab that is already half of a
+    /// pair has no room, so the link opens behind instead.
     @discardableResult
     func openBeside(_ url: URL, from tab: BrowserTab) -> BrowserTab? {
-        guard let place = layout.location(ofTabID: tab.id, in: tab.profileID) else { return nil }
-        // A column that is already two has nowhere to put a third, so the link opens the way a
-        // ⌘-click opens it: a window of its own, behind, with the row leaning over to show it.
-        let column = layout.strip(for: tab.profileID).workspaces[place.workspace].columns[place.index]
-        guard !column.isSplit else {
+        guard layout.columnMates(of: tab.id).count == 1 else {
             openInNewWindow(url, from: tab, background: true)
             return nil
         }
-        // Around the window it was clicked in, whether or not that was the window in front: the new
-        // one opens beside the focused column, so the focus goes there first and comes back.
+        let opened = newTab(url: url, in: tab.profileID, workspace: nil, activate: false)
+        plainLayoutChange { layout.split(tabID: tab.id, with: opened.id, in: tab.profileID) }
         selectTab(tab.id)
-        let opened = newTab(url: url, in: tab.profileID, on: .right)
-        plainLayoutChange {
-            layout.focus(tabID: tab.id)
-            layout.toggleSplit()
-        }
         return opened
-    }
-
-    func focusColumn(_ delta: Int) { animateLayout { layout.focusColumn(delta) } }
-    func focusColumnEdge(last: Bool) { animateLayout { layout.focusColumnEdge(last: last) } }
-    func moveColumn(_ delta: Int) { animateLayout { layout.moveColumn(delta) } }
-    func focusWorkspace(_ delta: Int) { animateLayout { layout.focusWorkspace(delta) } }
-    func focusWorkspace(at index: Int) { animateLayout { layout.focusWorkspace(at: index) } }
-    /// ⌥⇧↑/↓ in the layout's two changes, with the rows drawn once between them: first the window in
-    /// its new row with the row still where it was, then the slide to it as an update of its own.
-    func moveColumnToWorkspace(_ delta: Int) {
-        layout.verticalPreview = 0
-        layout.horizontalPreview = 0
-        guard let landed = layout.carryColumn(toWorkspace: delta) else { return }
-        Task { @MainActor in
-            // A timer and not the next job on the main queue: that one can still run before the run
-            // loop gets round to drawing, and the two changes would be one update again.
-            try? await Task.sleep(for: .milliseconds(16))
-            animateLayout { layout.focusWorkspace(id: landed) }
-        }
     }
 
     // MARK: Flying between windows (⌃Tab)
 
     /// One step along the ⌃Tab ring, opening it on the first press.
     ///
-    /// **How far the ring reaches is decided by the key that opens it.** `⌃Tab` opens it over every
-    /// window of the profile — every workspace, every group — and `⌃⇧Tab` over the row in front of
-    /// you only (with the tabs up, the group the tab in front is in). Once it is open the two keys
-    /// are forward and back, as they always were. It used to be one row and nothing else, on the
-    /// argument that flying out of a workspace is a bigger move than a key looks; in use the window
-    /// you were just in is as often in the next workspace as in this one, and the row-only ring is
-    /// still one key away. Never another profile: that is a browsing world of its own.
-    ///
-    /// Opening with `⌃⇧Tab` used to mean "the other way round the ring", which on a ring ordered by
-    /// memory is the window you looked at longest ago — the one step nobody takes on purpose.
-    ///
-    /// Nothing moves while the ring is being walked: the cards are pictures, and the flight happens
-    /// once, on the key coming up (`endWindowSwitch`). Walking it live would load a page per window
-    /// passed, and the row's whole economy is that you get the page where you land.
+    /// `⌃Tab` opens it over every tab of the profile, `⌃⇧Tab` over the group in front; once it is open
+    /// the two keys are forward and back. Nothing moves while the ring is walked: the cards are
+    /// pictures, and the flight happens once, on the key coming up (`endWindowSwitch`).
     func stepWindowSwitch(_ delta: Int) {
         let opening = !switcher.isOpen
         if opening {
             var opened = false
             withAnimation(.smooth(duration: 0.18)) {
-                // With the tabs up a tab is a card of its own, split or not: the tab bar draws the two
-                // halves of a column as two tabs, and the ring follows what is on screen.
-                let tabs = showsTabs
-                opened = switcher.open(delta > 0 ? tabOrder() : rowOrder, current: selectedTabID,
-                                       group: { [layout] in tabs ? $0 : layout.columnID(of: $0) ?? $0 })
+                // A tab is a card of its own, paired or not, as the tab bar draws it.
+                opened = switcher.open(delta > 0 ? tabOrder() : groupOrder, current: selectedTabID, group: { $0 })
             }
             guard opened else { return }
-            // The pictures the cards are drawn from: the window being read is drawn now, while it
-            // still has a page to draw, and the ones whose picture was dropped for the memory budget
-            // read theirs back off disk — the same two moves the overview makes on its way in.
+            // The pictures the cards are drawn from: the tab in front now, the rest off disk.
             selectedTab?.rememberViewState(force: true)
             for id in switcher.ring { tabsByID[id]?.loadPictureIfNeeded() }
         }
@@ -1399,20 +1276,10 @@ final class BrowserState {
         withAnimation(.smooth(duration: 0.2)) { switcher.step(opening ? 1 : delta) }
     }
 
-    /// Whether that window is half of a column, and so drawn at half a card's width.
-    ///
-    /// The whole of what the ring has to ask about the row, now that a stop is a window and nothing
-    /// else: a card is one window, at the width that window has where it stands.
-    func ringCardIsHalfWide(_ tabID: UUID) -> Bool {
-        !showsTabs && layout.columnMates(of: tabID).count > 1
-    }
-
-    /// The arrows, while the ring is up: one card along the row as it is drawn. ⌃Tab's own step is
-    /// through memory (`stepWindowSwitch`), and the two have not been the same thing since the row
-    /// started being drawn along the row.
+    /// The arrows, while the ring is up: one card along, as the cards are drawn.
     func walkWindowSwitch(_ delta: Int) {
         guard switcher.isOpen else { return }
-        withAnimation(.smooth(duration: 0.2)) { switcher.walkRow(delta) }
+        withAnimation(.smooth(duration: 0.2)) { switcher.walkCards(delta) }
     }
 
     /// ⌃ came up: fly to the window the ring landed on.
@@ -1420,64 +1287,17 @@ final class BrowserState {
         var landing: UUID?
         withAnimation(.smooth(duration: 0.16)) { landing = switcher.commit() }
         guard let id = landing, id != selectedTabID else { return }
-        exitOverview() // the ring names one window, and the overview is the view that shows every one
         selectTab(id)
     }
 
-    /// ⎋, or anything else that means the pass is off. The row never moved, so there is nothing to
-    /// put back.
+    /// ⎋, or anything else that means the pass is off. Nothing moved, so there is nothing to put back.
     func cancelWindowSwitch() {
         withAnimation(.smooth(duration: 0.16)) { switcher.cancel() }
     }
 
-    /// The windows in the row you are looking at, left to right — the focused workspace's columns
-    /// and nothing else; with the tabs up, the same workspace as a group. What `⌃⇧Tab` opens the
-    /// ring over (`stepWindowSwitch`); `⌃Tab` opens it over `tabOrder()`, every row of the strip.
-    private var rowOrder: [UUID] {
-        // Every window, both halves of a split included: the ring collapses them to one stop itself
-        // (`WindowSwitcher.open`), and it can only pick the half you were last in if it has been
-        // handed both.
-        return layout.focusedWorkspace?.columns.flatMap(\.tabIDs) ?? []
-    }
-
-    // MARK: Carrying a window across the overview
-
-    /// Picked up. Deliberately un-animated from here on: the card follows the pointer, and a card that
-    /// eases towards the pointer is a card that is never quite under it. What *is* animated is the gap
-    /// the rest of the row opens up, and the views do that off the target the drag is reporting.
-    func beginColumnDrag(tabID: BrowserTab.ID) {
-        layout.beginColumnDrag(tabID: tabID)
-    }
-
-    func updateColumnDrag(translation: CGSize) {
-        layout.updateColumnDrag(translation: translation)
-    }
-
-    /// Let go. The window lands where the gap was, and the focus goes with it — a window dropped into
-    /// another row that left the view behind in the old one would be a window you have just lost.
-    func endColumnDrag() {
-        var moved = false
-        withAnimation(TilingLayout.switchAnimation) { moved = layout.commitColumnDrag() }
-        if moved { syncSelection() }
-    }
-
-    func cancelColumnDrag() {
-        withAnimation(TilingLayout.switchAnimation) { layout.cancelColumnDrag() }
-    }
-
-    /// Free strip panning is driven directly by the trackpad, so it is deliberately un-animated.
-    func panStrip(by delta: CGFloat) {
-        layout.panStrip(by: delta)
-    }
-
-    func endStripPan() {
-        guard !layout.isOverview else { return } // the overview scrolls freely, nothing to snap to
-        animateLayout { layout.snapFocusToView() }
-    }
-
-    func toggleCenterFocus() {
-        animateLayout { layout.setCentersFocus(!layout.centersFocus) }
-        settings.centersFocus = layout.centersFocus
+    /// The tabs of the group in front, in the order the tab bar draws them — what `⌃⇧Tab` opens over.
+    private var groupOrder: [UUID] {
+        layout.focusedWorkspace?.columns.flatMap(\.tabIDs) ?? []
     }
 
     var isAIEnabled: Bool { settings.isAIEnabled }
@@ -1507,89 +1327,6 @@ final class BrowserState {
         sorter.sortEverything(in: self)
     }
 
-    func togglePeeksAtEdges() {
-        peeksAtEdges.toggle()
-        settings.peeksAtEdges = peeksAtEdges
-        // Turned off with the strip mid-lean — the pointer is resting on a button that is about to
-        // stop taking peeks, and nothing would ever tell it to let go.
-        if !peeksAtEdges { withAnimation(TilingLayout.peekAnimation) { layout.edgeHover = 0 } }
-    }
-
-    /// The overview has been asked for and is waiting on the pictures of the windows on screen.
-    @ObservationIgnored private var overviewOpening = false
-
-    /// The overview has closed and the canvas is still zooming back in. Savoia's own pages stay cards
-    /// until it is done: they hold AppKit controls, and those laid out under a scale on its way
-    /// somewhere never settle (`ColumnView`, where the card is chosen).
-    private(set) var isLeavingOverview = false
-    @ObservationIgnored private var overviewExits = 0
-
-    /// Opening waits, for a moment at most, for the windows on screen to have their pictures taken.
-    ///
-    /// The overview shows every window as a card, so its web view is unmounted the moment the flag
-    /// flips — and a page with no view is laid out at WebKit's default 1024×768. A picture taken after
-    /// that is a 1024-wide page in the corner of a column-wide rectangle: measured from full window,
-    /// 1440×757 asked for, 1024×768 there. Tiled windows got away with it only because their width
-    /// did not change on the way in, so the detached page kept the layout it had. So the pictures are
-    /// taken first, while the pages are still on screen at their own size, and the overview opens
-    /// when they are in — or after `pictureWait`, since a web content process that does not answer
-    /// must not be able to hold the overview shut.
-    func toggleOverview() {
-        // The overview is a picture of the row, and with the tabs up there is no row to take one of.
-        guard !showsTabs else { return }
-        TilingLayout.trace("toggleOverview (was \(layout.isOverview ? "open" : "closed"))")
-        if layout.isOverview {
-            exitOverview()
-            return
-        }
-        guard !overviewOpening else { return }
-        overviewOpening = true
-        let pictures = layout.visibleTabIDs.compactMap { tabsByID[$0]?.rememberViewState(force: true) }
-        guard !pictures.isEmpty else { return openOverview() }
-        Task { @MainActor [weak self] in
-            for picture in pictures { await picture.value }
-            self?.openOverview()
-        }
-        Task { @MainActor [weak self] in
-            try? await Task.sleep(for: Self.pictureWait)
-            self?.openOverview()
-        }
-    }
-
-    /// Snapshots measured at 4–100 ms; a hundred and fifty is still a key press, not a wait.
-    private static let pictureWait: Duration = .milliseconds(150)
-
-    /// Whichever comes first, the pictures or the wait; the other finds nothing left to open, even
-    /// when the overview has been opened and closed again in between.
-    private func openOverview() {
-        guard overviewOpening else { return }
-        overviewOpening = false
-        withAnimation(TilingLayout.switchAnimation) {
-            layout.isOverview = true
-            layout.recenterStrips() // the overview has its own widths, and a filled window's are not them
-        }
-    }
-
-    func exitOverview() {
-        TilingLayout.trace("exitOverview (isOverview \(layout.isOverview))")
-        guard layout.isOverview else { return }
-        layout.cancelColumnDrag() // a window in the hand is put back where it was, not carried out
-        isLeavingOverview = true
-        overviewExits += 1
-        let exit = overviewExits
-        withAnimation(TilingLayout.switchAnimation, completionCriteria: .removed) {
-            layout.isOverview = false
-            // Free overview scrolling leaves the offset anywhere, and a row going back to a filled
-            // window changes every width on the way out.
-            layout.recenterStrips()
-        } completion: { [weak self] in
-            // Only the latest exit's: one interrupted by opening again and closing again must not
-            // end the second one's zoom early.
-            guard let self, exit == self.overviewExits else { return }
-            self.isLeavingOverview = false
-        }
-    }
-
     /// The focused window's video into the floating player, or back out of it.
     ///
     /// Not disabled when there is no video to float: whether a page has one is a question only the
@@ -1600,70 +1337,15 @@ final class BrowserState {
         selectedTab?.togglePictureInPicture()
     }
 
-    /// The page fills the window under the top bar; the layout's own controls stay where they are.
-    func toggleFullWindow() {
-        guard !showsTabs else { return } // the tab bar always fills; see `toggleSplit`
-        setFill(layout.fill == .window ? .tiled : .window)
-    }
-
-    private func setFill(_ value: TilingFill) {
-        guard value != layout.fill else { return }
-        // An empty workspace has no page to show edge to edge, and hiding the chrome over nothing only
-        // takes away the way back.
-        guard value == .tiled || layout.focusedWorkspace?.isEmpty == false else { return }
-        // Deliberately not animated. Every switch resizes every live page, and a web view changing
-        // size costs a hitch you can see (~50 ms with three of them live); running that through a
-        // 0.34 s spring spreads the stutter across the whole animation instead of getting it over
-        // with. Measured over Savoia switches: 20 dropped frames animated against 5 instant.
-        layout.verticalPreview = 0
-        layout.horizontalPreview = 0
-        if value != .tiled { layout.isOverview = false }
-        layout.setFill(value)
-        settings.fill = value
-        syncSelection()
-    }
-
-    /// A layout change that must land in one step, because it changes how wide a live page is.
-    /// `toggleSplit` has the account; `setFill` is the other one, and predates this by a long way.
+    /// A change that must land in one step, because it changes how wide a live page is.
     private func plainLayoutChange(_ body: () -> Void) {
-        layout.verticalPreview = 0
-        layout.horizontalPreview = 0
         body()
-        syncSelection()
-    }
-
-    private func animateLayout(_ body: () -> Void) {
-        withAnimation(TilingLayout.switchAnimation) {
-            layout.verticalPreview = 0
-            layout.horizontalPreview = 0
-            body()
-        }
         syncSelection()
     }
 
     // MARK: The tab bar
 
-    /// Changes which face the window wears. Nothing about the strip moves: the overview is put away
-    /// because the tab bar has none, the ring because it was drawn over the old face, and a strip
-    /// left focused on its spare empty row is pointed at a tab instead, since a tab bar has no empty
-    /// place to be standing in.
-    func setInterfaceStyle(_ style: InterfaceStyle) {
-        guard style != interfaceStyle else { return }
-        cancelWindowSwitch()
-        if style == .tabs {
-            if layout.isOverview {
-                layout.cancelColumnDrag()
-                layout.isOverview = false
-                layout.recenterStrips()
-            }
-        }
-        interfaceStyle = style
-        settings.interfaceStyle = style
-        if style == .tabs { selectTabIfNone() }
-    }
-
-    /// The tabs in the order the row draws them: row by row, window by window, a split's two halves
-    /// side by side. `skippingCollapsed` leaves out the tabs of a folded group — the ones ⌃Tab and
+    /// The tabs in the order the tab bar draws them: group by group, a pair's two halves side by side. `skippingCollapsed` leaves out the tabs of a folded group — the ones ⌃Tab and
     /// ⌘1…⌘9 cannot see — except the group the selected tab is in, which is never folded away from
     /// under it.
     func tabOrder(skippingCollapsed: Bool = false) -> [UUID] {
@@ -1715,10 +1397,11 @@ final class BrowserState {
     }
 
     /// ⌘T with the tabs up: a new tab at the very end, outside every group.
-    func newTabAtEnd() {
-        guard let index = ungroupedEnd() else { newTab(); return }
+    @discardableResult
+    func newTabAtEnd() -> BrowserTab {
+        guard let index = ungroupedEnd() else { return newTab() }
         if let last = layout.workspaces[index].columns.last { layout.focus(tabID: last.focusedTabID) }
-        newTab(url: nil, in: selectedProfileID, workspace: index, activate: true)
+        return newTab(url: nil, in: selectedProfileID, workspace: index, activate: true)
     }
 
     func moveTabToEnd(_ id: UUID) {
@@ -1790,7 +1473,7 @@ final class BrowserState {
         selectTabIfNone()
     }
 
-    /// A tab dropped on a place in the row: `index` is a window position in the group it landed in.
+    /// A tab dropped on a place in the tab bar: `index` is a window position in the group it landed in.
     func placeTab(_ id: UUID, inGroup group: UUID, at index: Int) {
         guard let tab = tab(id), tab.profileID == selectedProfileID else { return }
         layout.placeTab(id, in: tab.profileID, workspace: group, at: index)
@@ -1884,8 +1567,8 @@ final class BrowserState {
         selectTab(front)
     }
 
-    /// "Show Side by Side": two picked tabs as the two halves of one column — a split, the same
-    /// one ⌥S makes on the row. The second joins the first wherever it was, another group included.
+    /// "Show Side by Side": two picked tabs as the two halves of one column. The second joins the
+    /// first wherever it was, another group included.
     func showSideBySide(_ first: UUID, _ second: UUID) {
         let front = selectedTabID
         split(first, with: second)
@@ -1896,20 +1579,18 @@ final class BrowserState {
     /// tab of its own just after it.
     func separate(_ id: UUID) {
         guard layout.columnMates(of: id).count > 1 else { return }
-        selectTab(id)
-        plainLayoutChange { _ = layout.toggleSplit() }
+        plainLayoutChange { layout.separate(tabID: id) }
     }
 
     func closeTabs(_ ids: [UUID]) {
         for id in ids { closeTab(id) }
     }
 
-    /// The tab bar always has one in front while there are any. The row can stand on its spare
-    /// empty row with nothing focused; a tab bar has no such place, and would show nothing.
+    /// The tab bar always has one in front while there are any.
     func selectTabIfNone() {
-        guard showsTabs, selectedTab == nil else { return }
+        guard selectedTab == nil else { return }
         // The nearest group with a tab in it, looking back first: a group closed at the end of the
-        // row leaves the one before it in front, the way closing the last tab does.
+        // bar leaves the one before it in front, the way closing the last tab does.
         let rows = layout.workspaces
         let here = layout.focusedWorkspaceIndex
         let nearest = (0...here).reversed().compactMap { rows.indices.contains($0) ? rows[$0] : nil }
@@ -1922,13 +1603,12 @@ final class BrowserState {
     /// The focused column is the selected tab — everything else (assistant, agent panel, ⌘L) keys off it.
     private func syncSelection() {
         selectedTabID = layout.focusedTabID
-        if showsTabs, selectedTab == nil { selectTabIfNone() }
+        if selectedTab == nil { selectTabIfNone() }
         if let id = selectedTabID, !pickedTabs.contains(id) {
             pickedTabs = [id]
             pickAnchor = id
         }
-        // Every way the focus can move ends here, which is why the ⌃Tab order is taken here and not
-        // in `selectTab`: a row walked with ⌥→ is a row whose windows have been looked at.
+        // Every way the focus can move ends here, which is why the ⌃Tab order is taken here.
         switcher.note(selectedTabID)
     }
 }

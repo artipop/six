@@ -18,14 +18,12 @@ extension KeySelfTest {
         guard let window = testWindow else { return note("alert: FAIL no window") }
         window.makeKeyAndOrderFront(nil)
         try? await Task.sleep(for: .seconds(2))
-        let originalStyle = browser.interfaceStyle
         let originalTab = browser.selectedTabID
         let original = class_getInstanceMethod(NSResponder.self, #selector(NSResponder.noResponder(for:)))!
         let observed = class_getInstanceMethod(NSResponder.self, #selector(NSResponder.savoia_alertNoResponder(for:)))!
         method_exchangeImplementations(original, observed)
         defer {
             method_exchangeImplementations(original, observed)
-            browser.setInterfaceStyle(originalStyle)
             if let originalTab { browser.selectTab(originalTab) }
         }
         var failures = 0
@@ -77,15 +75,13 @@ extension KeySelfTest {
             ("Down scrolls", "<div style='height:30000px'>tall</div>", "", 125, "\u{F701}", [], 1, "scrollY > 0"),
             ("Left moves the caret", "<input id=f value=hello>", "f.focus(); f.setSelectionRange(5,5)", 123, "\u{F702}", [], 1, "f.selectionStart === 4")
         ]
-        for style in [InterfaceStyle.tabs, .row] {
-            browser.setInterfaceStyle(style)
-            try? await Task.sleep(for: .milliseconds(800))
+        pages: do {
             let tab = browser.newTab(url: URL(string: "about:blank"))
             try? await Task.sleep(for: .milliseconds(1200))
             guard let web = WebViewResponder.shared.webView(for: tab.id) else {
-                check(false, "\(style): no web view")
+                check(false, "no web view")
                 browser.closeTab(tab.id, remembering: false)
-                continue
+                break pages
             }
             for item in cases {
                 do {
@@ -128,8 +124,8 @@ extension KeySelfTest {
                         works = snapshot?["works"] as? Bool == true
                         if works { break }
                     }
-                    check(works && AlertObservation.count == 0, "\(style) \(item.name): alerts=\(AlertObservation.count), \(state)")
-                } catch { check(false, "\(style) \(item.name): \(error)") }
+                    check(works && AlertObservation.count == 0, "\(item.name): alerts=\(AlertObservation.count), \(state)")
+                } catch { check(false, "\(item.name): \(error)") }
             }
             await alertBrowserControls(browser, tab: tab, in: window, check: check)
             browser.closeTab(tab.id, remembering: false)
@@ -140,7 +136,6 @@ extension KeySelfTest {
 
     private static func alertBrowserControls(_ browser: BrowserState, tab: BrowserTab, in window: NSWindow,
                                              check: (Bool, String) -> Void) async {
-        let style = browser.interfaceStyle
         func focus(_ id: UUID) async {
             browser.selectTab(id)
             try? await Task.sleep(for: .milliseconds(450))
@@ -157,39 +152,31 @@ extension KeySelfTest {
             try? await Task.sleep(for: .milliseconds(500))
         }
 
-        // A second live page also exercises detaching and reattaching the web view in tab mode.
+        // A second live page also exercises detaching and reattaching the web view.
         let neighbor = browser.newTab(url: URL(string: "about:blank"))
         defer { browser.closeTab(neighbor.id, remembering: false) }
         await focus(tab.id)
         await focus(neighbor.id)
         await press(48, "\t", .control)
-        check(browser.switcher.isOpen, "\(style) Control-Tab opens the switcher")
+        check(browser.switcher.isOpen, "Control-Tab opens the switcher")
         let destination = browser.switcher.selection
         await press(36, "\r", .control)
         check(!browser.switcher.isOpen && destination != nil && browser.selectedTabID == destination,
-              "\(style) Return confirms the switcher")
+              "Return confirms the switcher")
         browser.cancelWindowSwitch()
         await focus(neighbor.id)
-        if style == .row {
-            await press(123, "\u{F702}", .option)
-            check(browser.selectedTabID == tab.id, "row Option-Left still handles WebKit's returned key")
-            await focus(neighbor.id)
-            _ = try? await neighbor.page.callJavaScript("document.body.innerHTML = '<input id=f value=hello>'; f.focus(); f.setSelectionRange(5,5)")
-            await press(123, "\u{F702}", [.control, .option])
-            check(browser.selectedTabID == tab.id, "row reserved Control-Option-Left still leaves a page field")
-        }
         await focus(tab.id)
         do {
             _ = try await tab.page.callJavaScript("document.body.innerHTML = '<input id=f value=hello>'; f.focus(); f.setSelectionRange(5,5)")
             await press(123, "\u{F702}", .option)
             let caret = (try await tab.page.callJavaScript("return f.selectionStart")) as? Int
-            check(browser.selectedTabID == tab.id && caret == 0, "\(style) Option-Left moves the page caret")
+            check(browser.selectedTabID == tab.id && caret == 0, "Option-Left moves the page caret")
             _ = try await tab.page.callJavaScript("document.body.innerHTML = 'short'; window.downs = 0; document.onkeydown = () => downs++")
             AlertObservation.count = 0
             await press(36, "\r")
             let downs = (try await tab.page.callJavaScript("return downs")) as? Int
-            check(downs == 1 && AlertObservation.count == 0, "\(style) reattached page still receives Return silently")
-        } catch { check(false, "\(style) page caret / reattachment: \(error)") }
+            check(downs == 1 && AlertObservation.count == 0, "reattached page still receives Return silently")
+        } catch { check(false, "page caret / reattachment: \(error)") }
 
         // AppKit must still consider a window's default button before quieting the unhandled key.
         let actions = AlertNativeActions()
@@ -201,7 +188,7 @@ extension KeySelfTest {
         window.defaultButtonCell = defaultButton.cell as? NSButtonCell
         try? await Task.sleep(for: .milliseconds(300))
         await press(36, "\r")
-        check(actions.submissions == 1, "\(style) Return still reaches the native default button beside the page")
+        check(actions.submissions == 1, "Return still reaches the native default button beside the page")
         window.defaultButtonCell = originalDefault
         defaultButton.removeFromSuperview()
 
@@ -215,25 +202,25 @@ extension KeySelfTest {
             try? await Task.sleep(for: .milliseconds(100))
         }
         guard NSApp.isActive && window.isKeyWindow else {
-            check(false, "\(style) could not activate the browser for menu keys")
+            check(false, "could not activate the browser for menu keys")
             return
         }
         await focus(tab.id)
-        note("alert: \(style) before Command-L: active=\(NSApp.isActive), key=\(window.isKeyWindow), responder=\(String(describing: window.firstResponder)), sheet=\(window.attachedSheet != nil)")
+        note("alert: before Command-L: active=\(NSApp.isActive), key=\(window.isKeyWindow), responder=\(String(describing: window.firstResponder)), sheet=\(window.attachedSheet != nil)")
         await press(37, "l", .command)
         guard let field = window.firstResponder as? NSTextView else {
-            check(false, "\(style) Command-L focuses the address field")
+            check(false, "Command-L focuses the address field")
             return
         }
-        check(true, "\(style) Command-L focuses the address field")
+        check(true, "Command-L focuses the address field")
         field.selectAll(nil)
         field.insertText("about:blank#alert", replacementRange: NSRange(location: NSNotFound, length: 0))
         AlertObservation.count = 0
         await press(49, " ")
-        check(field.string == "about:blank#alert " && AlertObservation.count == 0, "\(style) Space types in the native address field")
+        check(field.string == "about:blank#alert " && AlertObservation.count == 0, "Space types in the native address field")
         await press(36, "\r")
         check(tab.currentURL?.absoluteString == "about:blank#alert" && AlertObservation.count == 0,
-              "\(style) Return submits the native address field")
+              "Return submits the native address field")
     }
 
     private static func alertNativeSheet(in window: NSWindow, check: (Bool, String) -> Void) async {

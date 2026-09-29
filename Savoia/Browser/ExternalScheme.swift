@@ -1,8 +1,4 @@
-#if os(macOS)
 import AppKit
-#elseif os(iOS)
-import UIKit
-#endif
 import Foundation
 
 /// The addresses Savoia does not open itself: `magnet:`, `mailto:`, `tel:`, whatever an installed app
@@ -39,14 +35,7 @@ enum ExternalScheme {
     /// magnet link on a machine with no torrent client.
     @discardableResult
     static func open(_ url: URL) -> Bool {
-        #if os(macOS)
         return NSWorkspace.shared.open(url)
-        #elseif os(iOS)
-        UIApplication.shared.open(url)
-        return true
-        #else
-        return false
-        #endif
     }
 
     /// Does an app actually claim this scheme? Asked before the address bar treats typed text as an

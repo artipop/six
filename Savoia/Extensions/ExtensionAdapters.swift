@@ -1,8 +1,4 @@
-#if os(macOS)
 import AppKit
-#elseif os(iOS)
-import UIKit
-#endif
 import Foundation
 import WebKit
 
@@ -111,19 +107,11 @@ final class ExtensionWindowAdapter: NSObject, WKWebExtensionWindow {
     }
 
     func frame(for context: WKWebExtensionContext) -> CGRect {
-        #if os(macOS)
         NSApp.mainWindow?.frame ?? screenFrame(for: context)
-        #elseif os(iOS)
-        screenFrame(for: context) // the phone's window is the screen
-        #endif
     }
 
     func screenFrame(for context: WKWebExtensionContext) -> CGRect {
-        #if os(macOS)
         NSScreen.main?.visibleFrame ?? CGRect(x: 0, y: 0, width: 1440, height: 900)
-        #elseif os(iOS)
-        Platform.screenBounds
-        #endif
     }
 
     func focus(for context: WKWebExtensionContext) async throws {

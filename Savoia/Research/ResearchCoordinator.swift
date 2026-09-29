@@ -51,7 +51,7 @@ final class ResearchCoordinator {
         let profile = browser.selectedProfile
         let name = uniqueWorkspaceName(ResearchRun.workspaceName(for: question), in: profile.id)
         guard let index = browser.layout.workspaceIndex(named: name, in: profile.id, createIfMissing: true) else {
-            return .failed(String(localized: "Couldn't create a workspace"))
+            return .failed(String(localized: "Couldn't create a group"))
         }
         let documentTab = browser.newDocument(text: ResearchPreset.initialText(question: question), in: profile.id, workspace: index, activate: true)
         documentTab.document?.showsPreview = true

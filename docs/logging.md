@@ -74,7 +74,7 @@ read by the shell that started it — and routing it through a log file would be
 | | |
 |---|---|
 | `Savoia/Data/Log.swift` | `Log`, the categories, and `LogFile` — the queue, the handle, the rotation |
-| `AppSupport.logs` | `~/Library/Logs/<bundle id>` on Apple, `$XDG_STATE_HOME/savoia` on Linux |
+| `AppSupport.logs` | `~/Library/Logs/<bundle id>` |
 | `ConfigurationPageView` → Develop ▸ Log | the path, Reveal in Finder, Open Console |
 
 `Log` is in **SavoiaCore**, listed in `Package.swift`, because the files with the most to say when something goes wrong —

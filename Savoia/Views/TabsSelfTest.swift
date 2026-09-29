@@ -1,16 +1,11 @@
 #if os(macOS)
 import SwiftUI
 
-/// `SAVOIA_TABS_SELFTEST=1` — the tab bar' verbs run against the real browser, and the two faces
-/// swapped back and forth with live pages on screen, saying what each step left behind.
-///
-/// The swap is the part worth a harness: both faces build a `WebView` over the page in front, and
-/// WebKit allows one. A swap that ever built the second before the first let go traps in
-/// `makeViewProvider` and takes the browser with it — so the run ends with "survived", or not at all.
-/// It works on the dev profile's real strip and cleans up the one tab and group it makes.
+/// `SAVOIA_TABS_SELFTEST=1` — the tab bar's verbs run against the real browser, saying what each step
+/// left behind. It works on the dev profile's real tabs and cleans up what it makes.
 enum TabsSelfTest {
-    /// Every menu item that answers ⌘W, with what it would do — the key once closed the whole window
-    /// with the tabs up, and quit Savoia with it.
+    /// Every menu item that answers ⌘W, with what it would do — the key once closed the whole window,
+    /// and quit Savoia with it.
     static func menuForCommandW(_ say: (String) -> Void) {
         // SwiftUI fills its menus in when they are about to be shown; ask for that first, or this
         // reads whatever they held the last time.
@@ -33,7 +28,7 @@ enum TabsSelfTest {
         }
     }
 
-    /// Whether the View menu carries the tab bar's items — it follows the face, not the focus.
+    /// Whether the View menu carries the tab bar's items.
     static func menuForTabs(_ say: (String) -> Void) {
         let items = NSApp.mainMenu?.items.flatMap { $0.submenu?.items ?? [] } ?? []
         let next = items.contains { $0.keyEquivalent == "]" && $0.keyEquivalentModifierMask.contains(.shift) }
@@ -43,12 +38,8 @@ enum TabsSelfTest {
 
     static func run(_ browser: BrowserState) async {
         func say(_ line: String) { Log.info(.ui, "tabs selftest: \(line)") }
-        browser.setInterfaceStyle(.row)
         try? await Task.sleep(for: .milliseconds(600))
-        say("menu on the row:"); menuForCommandW(say); menuForTabs(say)
-        browser.setInterfaceStyle(.tabs)
-        try? await Task.sleep(for: .milliseconds(600))
-        say("menu with the tabs up:"); menuForCommandW(say); menuForTabs(say)
+        say("menu:"); menuForCommandW(say); menuForTabs(say)
         if ProcessInfo.processInfo.environment["SAVOIA_CMDW_PROBE"] != nil {
             NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: nil, queue: nil) { note in
                 let stack = Thread.callStackSymbols.prefix(40).joined(separator: "\n")
@@ -97,48 +88,16 @@ enum TabsSelfTest {
             TabGroup.all(in: browser).map { "\($0.title)\($0.isCollapsed ? "▸" : "")×\($0.tabIDs.count)" }
                 .joined(separator: " ")
         }
-        let started = browser.interfaceStyle
         // Put back at the end: dropping a tab into a group opens it, and these are the dev profile's
         // own groups, folded by a person.
         let folded = browser.layout.workspaces.filter(\.isCollapsed).map(\.id)
         let probe = browser.newTab(url: URL(string: "https://example.com/?tabs-selftest"))
         try? await Task.sleep(for: .seconds(2))
 
-        for round in 1...3 {
-            browser.setInterfaceStyle(.tabs)
-            try? await Task.sleep(for: .milliseconds(700))
-            say("round \(round) tabs: selected \(browser.selectedTab?.title ?? "nil"), live \(probe.hasLivePage)")
-            browser.setInterfaceStyle(.row)
-            try? await Task.sleep(for: .milliseconds(700))
-            say("round \(round) row: selected \(browser.selectedTab?.title ?? "nil"), live \(probe.hasLivePage)")
-        }
-        // Faster than a frame of nothing takes: the second call lands while the first swap is still
-        // waiting, and must win.
-        browser.setInterfaceStyle(.tabs)
-        browser.setInterfaceStyle(.row)
-        browser.setInterfaceStyle(.tabs)
-        try? await Task.sleep(for: .milliseconds(700))
-        say("rapid swap ended on \(browser.interfaceStyle.rawValue), selected \(browser.selectedTab?.title ?? "nil")")
-
         say("groups: \(groups())")
         guard let group = browser.moveTabToNewGroup(probe.id) else { return say("no new group") }
         browser.layout.rename(workspaceAt: browser.layout.workspaces.firstIndex { $0.id == group } ?? 0, to: "selftest")
         say("new group: \(groups()), selected is probe \(browser.selectedTabID == probe.id)")
-
-        // The ring on the row: ⌃Tab reaches every workspace, ⌃⇧Tab the row on screen.
-        browser.setInterfaceStyle(.row)
-        try? await Task.sleep(for: .milliseconds(300))
-        func rows(_ ids: [UUID]) -> Int {
-            Set(ids.compactMap { id in browser.layout.workspaces.firstIndex { $0.columns.contains { $0.holds(id) } } }).count
-        }
-        browser.stepWindowSwitch(1)
-        say("row ⌃Tab ring: \(browser.switcher.ring.count) cards from \(rows(browser.switcher.ring)) workspaces")
-        browser.cancelWindowSwitch()
-        browser.stepWindowSwitch(-1)
-        say("row ⌃⇧Tab ring: \(browser.switcher.ring.count) cards from \(rows(browser.switcher.ring)) workspaces")
-        browser.cancelWindowSwitch()
-        browser.setInterfaceStyle(.tabs)
-        try? await Task.sleep(for: .milliseconds(300))
 
         browser.toggleGroup(group)
         say("fold the group in front: \(groups()), selected is probe \(browser.selectedTabID == probe.id)")
@@ -169,7 +128,7 @@ enum TabsSelfTest {
         if let end { browser.closeTab(end, remembering: false) }
         browser.selectTab(probe.id)
 
-        // Nameless again before it empties, or the row would stay behind asking whether to keep it.
+        // Nameless again before it empties, or the group would stay behind asking whether to keep it.
         browser.layout.rename(workspaceAt: browser.layout.workspaces.firstIndex { $0.id == group } ?? 0, to: "")
         let order = browser.tabOrder()
         if order.count > 1, let first = TabGroup.all(in: browser).first {
@@ -208,9 +167,8 @@ enum TabsSelfTest {
 
         browser.closeTab(probe.id, remembering: false)
         for id in folded { browser.layout.setCollapsed(true, workspace: id) }
-        browser.setInterfaceStyle(started)
         try? await Task.sleep(for: .milliseconds(300))
-        say("cleaned up: \(groups()), back on \(browser.interfaceStyle.rawValue) — survived")
+        say("cleaned up: \(groups())")
     }
 }
 #endif

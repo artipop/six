@@ -2,16 +2,10 @@
 import AppKit
 
 /// The half of the keyboard that is AppKit's: an `NSEvent` and an `NSWindow`, turned into the four
-/// plain values `KeyBindings` is written in terms of. Everything above this file is portable, and
-/// the GTK front's equivalent is one file of the same size.
+/// plain values `KeyBindings` is written in terms of.
 
 extension KeyModifiers {
-    /// The modifiers a hand is on, and only those.
-    ///
-    /// `deviceIndependentFlagsMask` is not that set. macOS puts `.function` **and** `.numericPad` on
-    /// every arrow key and `.capsLock` on everything while Caps Lock is down, so an equality test
-    /// against `.option` was false for `⌥→` and had always been false — `⌥W` answered, `⌥→` never
-    /// had, and the report that finally arrived was "option + arrow doesn't always work".
+    /// The modifiers a hand is on, and only those — not `deviceIndependentFlagsMask`.
     init(_ flags: NSEvent.ModifierFlags) {
         self.init()
         if flags.contains(.control) { insert(.control) }
@@ -36,13 +30,11 @@ extension KeyBinding {
 }
 
 extension KeyContext {
-    init(event: NSEvent, isSwitching: Bool, isOverview: Bool, showsTabs: Bool = false) {
+    init(event: NSEvent, isSwitching: Bool) {
         let window = Self.window(of: event)
         self.init(window: window,
                   field: window == .main ? Self.field(in: event.window) : nil,
-                  isSwitching: isSwitching,
-                  isOverview: isOverview,
-                  showsTabs: showsTabs)
+                  isSwitching: isSwitching)
     }
 
     private static func window(of event: NSEvent) -> Window {

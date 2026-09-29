@@ -4,12 +4,8 @@ import WebKit
 
 /// The one place a key press is decided.
 ///
-/// It runs on a local `NSEvent` monitor because it has to: the menu bar is asked only after the key
-/// window's view hierarchy has had its say, and a focused `WKWebView` says yes to `⌥←`. A monitor
-/// runs before all of it. What is new is not the monitor — the scroll monitor had one bolted to its
-/// side — but that there is exactly one, that it consults a table rather than a chain of `if`s, and
-/// that it works out what the keyboard is pointed at (`KeyContext`) instead of guessing from the
-/// first responder.
+/// A local `NSEvent` monitor, because the menu bar is asked only after the key window's view
+/// hierarchy has had its say, and a focused `WKWebView` answers first.
 ///
 /// **A key can arrive here twice.** Most of the table is `.pageFirst`: while a page has the keyboard
 /// the key is let through to it, and WebKit, when the page did not want it — no `preventDefault`, no
@@ -18,20 +14,15 @@ import WebKit
 /// page leaves alone. That second delivery passes through this monitor too, measured, and it is the
 /// one Savoia answers. A key the page kept never comes back, and nothing here waits for it.
 ///
-/// `SAVOIA_UI_DEBUG=1` prints a line per key: the chord, the context, and who took it. "⌥→ doesn't
-/// always work" was three sessions of pressing things; it is now one line of output.
+/// `SAVOIA_UI_DEBUG=1` prints a line per key: the chord, the context, and who took it.
 @MainActor
 final class KeyRouter {
-    /// The table's actions, performed. Returns false when the action had nothing to do — `⎋` outside
-    /// the overview, `⌥⇧H` on a start page — and then the key goes on to whatever else wanted it.
+    /// The table's actions, performed. Returns false when the action had nothing to do — `⌥⇧H` on a
+    /// start page — and then the key goes on to whatever else wanted it.
     var perform: (KeyAction) -> Bool = { _ in false }
     var isSwitching: () -> Bool = { false }
-    var isOverview: () -> Bool = { false }
-    /// The tab bar is up instead of the row (`KeyAction.answersInTabs`).
-    var showsTabs: () -> Bool = { false }
     /// A key an installed extension bound to itself — dynamic, so it is asked about only once the
-    /// table above has had nothing to say, which every `⌘` chord always does (`KeyBindings` is
-    /// `⌥`/`⌃` alone; see `ExtensionStore.performCommand(for:in:)`).
+    /// table above has had nothing to say (`ExtensionStore.performCommand(for:in:)`).
     var performExtensionCommand: (NSEvent) -> Bool = { _ in false }
 
     /// The key last let through to a page, to know it again if WebKit sends it back. By timestamp
@@ -70,8 +61,7 @@ final class KeyRouter {
     }
 
     private func handle(_ event: NSEvent) -> NSEvent? {
-        let context = KeyContext(event: event, isSwitching: isSwitching(), isOverview: isOverview(),
-                                 showsTabs: showsTabs())
+        let context = KeyContext(event: event, isSwitching: isSwitching())
         if let offered = offeredToPage, offered.timestamp == event.timestamp, offered.keyCode == event.keyCode {
             offeredToPage = nil
             return handBack(event, context)
@@ -90,10 +80,8 @@ final class KeyRouter {
             offeredToPage = (event.timestamp, event.keyCode)
             return passThrough(event, context, why: "offered to the page first")
         }
-        // A row key while the ring is up means the pass is over: land first, then do what was asked.
-        // Without this a switch could be left standing by anything that took `⌃` away without a
-        // `flagsChanged` — the app losing focus mid-press, most of all.
-        if binding.scope == .row, context.isSwitching { _ = perform(.landSwitcher) }
+        // A window key while the ring is up means the pass is over: land first, then do what was asked.
+        if binding.scope == .window, context.isSwitching { _ = perform(.landSwitcher) }
         guard perform(binding.action) else {
             return passThrough(event, context, why: "\(binding.action) had nothing to do")
         }
@@ -108,7 +96,7 @@ final class KeyRouter {
         guard let binding = KeyBindings.all.first(where: { $0.precedence == .pageFirst && $0.matches(event, in: context) }) else {
             return passThrough(event, context, why: "the page handed it back, and nothing here wants it now")
         }
-        if binding.scope == .row, context.isSwitching { _ = perform(.landSwitcher) }
+        if binding.scope == .window, context.isSwitching { _ = perform(.landSwitcher) }
         guard perform(binding.action) else {
             return passThrough(event, context, why: "the page handed it back, and \(binding.action) had nothing to do")
         }

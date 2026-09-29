@@ -20,14 +20,14 @@ const ru = {
     label: 'Русский',
     lang: 'ru-RU',
     titleTemplate: ':title — руководство Savoia',
-    description: 'Руководство пользователя Savoia: лента окон вместо вкладок, блокировка рекламы, ассистент и агенты.',
+    description: 'Руководство пользователя Savoia: вкладки и группы, блокировка рекламы, ассистент и агенты.',
 
     themeConfig: {
         siteTitle: 'Savoia · Руководство',
 
         nav: [
             {text: 'Начало', link: '/start'},
-            {text: 'Лента', link: '/layout'},
+            {text: 'Вкладки', link: '/tabs'},
             {text: 'Приватность', link: '/blocking'},
             {text: 'Агенты', link: '/agents'},
             {text: 'Клавиши', link: '/hotkeys'},
@@ -38,9 +38,8 @@ const ru = {
                 text: 'Начало',
                 items: [
                     {text: 'Первый запуск', link: '/start'},
-                    {text: 'Лента и рабочие столы', link: '/layout'},
-                    {text: 'Вкладки вместо ленты', link: '/tabs'},
-                    {text: 'Окна, ссылки и загрузки', link: '/windows'},
+                    {text: 'Вкладки и группы', link: '/tabs'},
+                    {text: 'Вкладки, ссылки и загрузки', link: '/windows'},
                     {text: 'Конфигурация', link: '/configuration'},
                     {text: 'Горячие клавиши', link: '/hotkeys'},
                 ],
@@ -117,7 +116,7 @@ const en = {
 
         nav: [
             {text: 'Start', link: '/en/start'},
-            {text: 'The row', link: '/en/layout'},
+            {text: 'Tabs', link: '/en/tabs'},
             {text: 'Privacy', link: '/en/blocking'},
             {text: 'Agents', link: '/en/agents'},
             {text: 'Keys', link: '/en/hotkeys'},
@@ -128,9 +127,8 @@ const en = {
                 text: 'Getting started',
                 items: [
                     {text: 'First launch', link: '/en/start'},
-                    {text: 'The row and workspaces', link: '/en/layout'},
-                    {text: 'Tabs instead of the row', link: '/en/tabs'},
-                    {text: 'Windows, links and downloads', link: '/en/windows'},
+                    {text: 'Tabs and groups', link: '/en/tabs'},
+                    {text: 'Tabs, links and downloads', link: '/en/windows'},
                     {text: 'Configuration', link: '/en/configuration'},
                     {text: 'Keyboard shortcuts', link: '/en/hotkeys'},
                 ],

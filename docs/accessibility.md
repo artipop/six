@@ -19,7 +19,7 @@ The user-facing account is
 | `Savoia/Views/DerivedToolsButton.swift` | the mark for them in the address field, beside WebMCP's; `AddressBar` holds the reading |
 | `Savoia/Accessibility/AccessibilityOverlay.swift` | the model (`AccessibilityOverlay.shared`), placing the snapshot over the web view, the outline for a model, and the SwiftUI layer |
 | `Savoia/Input/WebViewResponder.swift` | `webView(for:)` — the pane's `WKWebView`, which is the only way to know where on screen a `WebPage` is |
-| `Savoia/Views/TilingStripView.swift` | mounts `AccessibilityOverlayView` over the focused pane |
+| `Savoia/Views/TabPageView.swift` | mounts `AccessibilityOverlayView` over the tab in front |
 | `Savoia/Views/MacCommands.swift` | the View menu toggle |
 | `Savoia/Tools/BrowserTools.swift` | `get_accessibility_tree` (`surfaces: .mcp`) |
 

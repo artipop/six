@@ -6,8 +6,8 @@ from another app to Savoia.
 ## Out: the share button
 
 `ShareLink` over the page's own address (`BrowserTab.shareableURL`), in three places: beside the bookmark star in the
-top bar (`ShareButton` in [`ContentView.swift`](../Savoia/Views/ContentView.swift)), as **Share** and **Share Link** in the
-page's context menu ([`PageContextMenu.swift`](../Savoia/Views/PageContextMenu.swift)), and in the phone's `…` menu. A start
+toolbar (`ShareButton` in [`ContentView.swift`](../Savoia/Views/ContentView.swift)), and as **Share** and **Share Link** in the
+page's context menu ([`PageContextMenu.swift`](../Savoia/Views/PageContextMenu.swift)). A start
 page, a `savoia://` page and a document have no address anybody else can open, so the button is greyed out there. It is
 greyed out and not hidden, so the bar does not shift between a page and a start page.
 
@@ -126,8 +126,5 @@ What none of those can show is a person pressing the buttons in the sheet. That 
 
 ## Not built
 
-- **iOS.** The phone shares out (the `…` menu) but takes nothing in. An iOS extension cannot open its containing app
-  with a URL, and it has no temporary exceptions, so both halves of the channel above would need an App Group, and an
-  App Group needs a team ([todo.md](todo.md#sharing-into-savoia-on-ios)).
 - **Images and files by value.** Photos shares an image as data, not as a file. Savoia would have to write it somewhere
   first, and the extension's container is not a place anything should outlive the sheet.

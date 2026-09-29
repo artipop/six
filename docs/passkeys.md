@@ -49,7 +49,6 @@ absent from the page or fails, which is what Savoia most likely does today.
   - the sheet is anchored to the *window*; a passkey request from a column that is a placeholder card (no live
     `WebView`, see [layout.md](layout.md)) or from an agent-driven background window must be surfaced — focus that
     column first, or refuse with a clear message in the transcript;
-  - the overview (⌥O) must not swallow the sheet;
   - profiles: passkeys live in iCloud Keychain, not in the `WKWebsiteDataStore`, so they are *not* per profile. That
     matches Safari and is fine; document it.
 

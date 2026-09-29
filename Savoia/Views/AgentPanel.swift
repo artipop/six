@@ -368,7 +368,7 @@ struct ResearchSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             Text(existing == nil ? "Deep research" : "Follow-up").font(.headline)
             if let existing {
-                Text("Continues \"\(existing.question)\" in this workspace's document.")
+                Text("Continues \"\(existing.question)\" in this group's document.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

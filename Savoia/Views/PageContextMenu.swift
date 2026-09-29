@@ -21,11 +21,10 @@ import WebKit
 extension View {
     @ViewBuilder
     func pageContextMenu(for tab: BrowserTab, in browser: BrowserState, showsPageCommands: Bool = true) -> some View {
-        #if os(macOS)
         webViewContextMenu { info in
             if let url = info.linkURL {
                 Button("Open Link") { browser.openLink(url, in: tab) }
-                Button("Open Link in New Window") { browser.openInNewWindow(url, from: tab, background: false) }
+                Button("Open Link in New Tab") { browser.openInNewWindow(url, from: tab, background: false) }
                 // "Behind" rather than "in the Background": in a strip the window is not behind
                 // anything, it is the next column along, and the focus simply does not go there.
                 Button("Open Link Behind") { browser.openInNewWindow(url, from: tab, background: true) }
@@ -63,9 +62,12 @@ extension View {
             Button("Paste") { send("paste:") }
             Button("Select All") { send("selectAll:") }
             Divider()
-            // The window's own commands. They used to live on its title bar; the page runs edge to
-            // edge now, so the page's menu is where the mouse can still reach them.
-            Menu("This Window") { ColumnMenu(tab: tab).environment(browser) }
+            // About this tab, whichever one the menu was opened on.
+            Button("Picture in Picture") { tab.togglePictureInPicture() }
+            if browser.profiles.count > 1 {
+                Menu("Move to Profile") { MoveToProfileItems(tab: tab).environment(browser) }
+            }
+            Button("Close Tab") { browser.closeTab(tab.id) }
             // Whatever an installed extension asked to add here — `menus` in its manifest, or
             // `contextMenus.create` at runtime. Below Savoia's own items, the way a browser's own
             // context menu items sit above an extension's contributions in every other one too.
@@ -74,11 +76,6 @@ extension View {
                 ExtensionMenuItems(items: items)
             }
         }
-        #elseif os(iOS)
-        // A phone has no context menu on a page: the long press is WebKit's own, and there is no
-        // `webViewContextMenu` there to take it over.
-        self
-        #endif
     }
 }
 

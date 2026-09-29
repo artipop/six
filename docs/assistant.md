@@ -146,16 +146,6 @@ The picked chat is `AssistantStore.continuedChat`: a chip in the field (↗ open
 takes it off), the answer strip shows its last question and answer, and the next question goes on in it with its own
 agent. It lasts for the summons, like the fresh chat a summons starts ([agents.md](agents.md#history)).
 
-**A scroll on the line belongs to what is under it.** The line stands over the strip without being part of it, and
-where it is not a scrolling answer it is neither a page nor a list, so `TilingScrollMonitor` took it for layout chrome
-and switched workspaces — with the pointer on the question, or on the Copy row under an answer. Both of its places
-report their frame to `TilingScrollMonitor.overlays` (the bottom one from `AssistantBar`, the anchored one from outside
-its hosting view, where `.global` is still the window's), and a scroll inside one is handed to the front-most
-`WKWebView` or `NSScrollView` under the pointer, or spent. Only the line: the curtains at the ends of the row are
-hosted over pages too, and a swipe there is meant for the row. A synthetic wheel posted into the app's queue did not reach
-the monitor (tried: a `CGEvent` scroll through `NSApp.postEvent`, no trace line), so this one is checked by hand:
-`SAVOIA_UI_DEBUG=1` prints `scroll on the ⌘E line → <view>` for every event handed on.
-
 **Away means out of the key-view loop.** The bottom line stays mounted while it is away and was
 only transparent, so Tab on a start page landed in it and showed it. Its controls are disabled while
 it is away, and a summons focuses on the next pass of the main queue, once there is something enabled

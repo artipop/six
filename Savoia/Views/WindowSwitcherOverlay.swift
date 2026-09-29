@@ -1,18 +1,9 @@
 #if os(macOS)
 import SwiftUI
 
-/// What ⌃Tab shows while it is held: the windows in the row in front of you, as pictures, in the
-/// order they were last looked at, with the one you would land on in the middle.
-///
-/// It is a row of its own, and drawn like one on purpose — cards in a row, the chosen one full size
-/// between two neighbours peeking in at the edges — because that is the vocabulary the whole browser
-/// already speaks. What it is *not* is the overview: the overview is where the windows are, laid out
-/// in the workspaces they belong to; this is where they have been, and the two orders have nothing to
-/// do with each other.
-///
-/// Nothing here answers the mouse. The panel exists only for as long as ⌃ is held, and a target that
-/// disappears the moment you let go of a key is not a target — the pointer's way to another window is
-/// the row itself, or the overview.
+/// What ⌃Tab shows while it is held: the tabs as pictures, in the order they were last looked at,
+/// with the one you would land on in the middle. Nothing here answers the mouse: the panel exists
+/// only for as long as ⌃ is held.
 struct WindowSwitcherOverlay: View {
     @Environment(BrowserState.self) private var browser
 
@@ -28,20 +19,14 @@ struct WindowSwitcherOverlay: View {
         }
     }
 
-    /// Sizes are fractions of the window, as everywhere in the row: three windows and a bit across
-    /// the middle half of the screen, each card the shape of the window it stands for.
+    /// Sizes are fractions of the window: three cards and a bit across the middle half of the screen.
     @ViewBuilder
     private func panel(in size: CGSize) -> some View {
         let switcher = browser.switcher
         let width = size.width * 0.52
         let card = CGSize(width: width * 0.3, height: width * 0.3 * (size.height / max(1, size.width)))
         let gap = card.width * 0.09
-        // A card is as wide as the thing it stands for: a whole column, or half of one. The row's
-        // own arithmetic, in miniature — and the reason the row can no longer be laid out by
-        // counting equal steps.
-        let widths = switcher.ring.map { id in
-            browser.ringCardIsHalfWide(id) ? (card.width - card.width * 0.02) / 2 : card.width
-        }
+        let widths = switcher.ring.map { _ in card.width }
         let total = widths.reduce(0, +) + gap * CGFloat(max(0, widths.count - 1))
         let lead = widths.prefix(switcher.index).reduce(0) { $0 + $1 + gap }
         let centre = lead + (widths.indices.contains(switcher.index) ? widths[switcher.index] : 0) / 2
@@ -54,14 +39,10 @@ struct WindowSwitcherOverlay: View {
                     }
                 }
             }
-            // The chosen card in the middle of the panel: the row slides under it, the way the row
-            // slides under the focused window. Measured rather than counted, because the cards are
-            // no longer all one width — with equal widths this is exactly the old `-(index - (n-1)/2)
-            // * step`.
+            // The chosen card in the middle of the panel, the cards sliding under it.
             .offset(x: total / 2 - centre)
             .frame(width: width, alignment: .center)
-            // The row runs past both ends of the panel; it fades out there rather than being cut,
-            // so what is off the end reads as more windows and not as a clipped picture.
+            // The cards run past both ends of the panel and fade out there rather than being cut.
             .mask {
                 LinearGradient(stops: [
                     .init(color: .clear, location: 0),
@@ -106,15 +87,7 @@ struct WindowSwitcherOverlay: View {
     }
 }
 
-/// One stop in the ring: **one window**, at the width that window has in the row — a whole card, or
-/// half of one where it is sharing its column.
-///
-/// It drew the whole column for a while, both halves side by side, and that had to go: a stop that
-/// was half a column drew one page while a stop that was a whole one drew two with a seam between
-/// them, so the same split looked like two narrow windows from inside it and like one wide window
-/// with a stripe down the middle from anywhere else. One rule instead — a card is a window — and the
-/// pair is still recognisable as a pair, because the two cards are drawn next to each other in the
-/// order they stand in (`WindowSwitcher.open`), which is what it looks like in the row anyway.
+/// One stop in the ring: one tab.
 private struct WindowCard: View {
     let tab: BrowserTab
     let size: CGSize

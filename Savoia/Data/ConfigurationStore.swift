@@ -11,14 +11,6 @@ nonisolated struct Setting: Sendable {
     var value: String
 }
 
-/// The window as a row of full-height windows, or as a tab bar over the one page in front — the
-/// way every other browser draws it. Two views of one strip, never two strips: a tab is a window, a
-/// tab group is a workspace, and its name is the workspace's name.
-nonisolated enum InterfaceStyle: String, Sendable, CaseIterable {
-    case row
-    case tabs
-}
-
 /// What stands at the top of Savoia's own pages — the start page, its sketch in a glance, the welcome
 /// window: the name, the app's icon, or nothing.
 nonisolated enum PageLogo: String, Sendable, CaseIterable {
@@ -48,15 +40,10 @@ final class ConfigurationStore {
         case pageTaskEndpoint = "pagetask.endpoint"
         case pageTaskModel = "pagetask.model"
         case pageTaskThreshold = "pagetask.threshold"
-        case centersFocus = "layout.centersFocus"
-        case fill = "layout.fill"
-        case peeksAtEdges = "layout.peeksAtEdges"
         /// Tabs put into groups by what they are about (`TabSorter`).
         case sortsTabsByMeaning = "tabs.sortByMeaning"
         case localModel = "local.model"
         case tabSorting = "tabs.sortMethod"
-        /// The row, or a tab bar over one page (`InterfaceStyle`).
-        case interfaceStyle = "interface.style"
         /// The name on Savoia's own pages and the mark above the start page's field (`PageLogo`).
         case pageName = "pages.name"
         case pageLogo = "pages.logo"
@@ -92,8 +79,7 @@ final class ConfigurationStore {
         case defaultProfile = "profile.default"
         /// The profile that was on screen when Savoia was last closed. Distinct from `defaultProfile`
         /// above, which is a front *without* a profiles table inventing an id to key its history by;
-        /// this one names a row that exists. On the Mac it lives in the state snapshot, the way
-        /// `stripState` below does, and for the same reason a front without a snapshot keeps it here.
+        /// this one names a row that exists. On the Mac it lives in the state snapshot.
         /// A private profile is never written: it is not in the table, and coming back into one
         /// after a relaunch would be a private session that outlived the process.
         case selectedProfile = "profile.selected"
@@ -105,10 +91,6 @@ final class ConfigurationStore {
         case mcpSharedServers = "mcpApps.shared"
         /// The servers the user added (a JSON array of `MCPServerDefinition`).
         case mcpCustomServers = "mcpApps.servers"
-        /// The strip as it was left: workspaces, columns, and the address each column was on.
-        /// On the Mac this lives in the state snapshot beside the database; a front without one
-        /// keeps it here, where it is migrated and backed up with everything else.
-        case stripState = "strip.state"
         /// The certificate bundles Savoia trusts on top of the system's, by id (a JSON array). Empty
         /// until somebody switches one on; see `CertificateStore`.
         case trustedCertificates = "trust.certificates"
@@ -136,42 +118,10 @@ final class ConfigurationStore {
 
     // MARK: Typed settings
 
-    /// Centre the focused column; on by default.
-    var centersFocus: Bool {
-        get { self[.centersFocus].map { $0 == "1" } ?? true }
-        set { self[.centersFocus] = newValue ? "1" : "0" }
-    }
-
     /// Off by default: it moves tabs, and it loads the embedding model.
     var sortsTabsByMeaning: Bool {
         get { self[.sortsTabsByMeaning] == "1" }
         set { self[.sortsTabsByMeaning] = newValue ? "1" : "0" }
-    }
-
-    /// Tiled or full-window, whichever the user last chose — so an empty workspace losing its last
-    /// window and being rebuilt fresh does not quietly answer this itself. Full window until anyone
-    /// has chosen otherwise.
-    var fill: TilingFill {
-        get { self[.fill].flatMap(TilingFill.init(rawValue:)) ?? .window }
-        set { self[.fill] = newValue.rawValue }
-    }
-
-    /// Whether the strip's edge buttons wait to be found or stand on the screen. A peek is a pointer
-    /// idea: it is asked for by resting somewhere, and answered by the strip leaning over. A finger
-    /// has nowhere to rest — it is either touching or not — so on a touch screen the buttons are drawn
-    /// where they are and do their job on the way in, the way they did before the peek existed.
-    var peeksAtEdges: Bool {
-        get { self[.peeksAtEdges].map { $0 == "1" } ?? Self.peeksByDefault }
-        set { self[.peeksAtEdges] = newValue ? "1" : "0" }
-    }
-
-    /// Which of the two faces the window wears. Nothing in the strip depends on it: the tabs are the
-    /// row's windows and their groups are its workspaces, so switching back and forth loses nothing.
-    /// Tabs until anyone has chosen otherwise: it is the face a person arriving from another browser
-    /// already knows, and the row is one switch away.
-    var interfaceStyle: InterfaceStyle {
-        get { self[.interfaceStyle].flatMap(InterfaceStyle.init(rawValue:)) ?? .tabs }
-        set { self[.interfaceStyle] = newValue.rawValue }
     }
 
     /// Stored as typed, an empty name included: snapping back to the default the moment the field
@@ -187,12 +137,6 @@ final class ConfigurationStore {
         get { self[.pageLogo].flatMap(PageLogo.init(rawValue:)) ?? .name }
         set { self[.pageLogo] = newValue == .name ? nil : newValue.rawValue }
     }
-
-    #if os(macOS)
-    static let peeksByDefault = true
-    #else
-    static let peeksByDefault = false
-    #endif
 
     /// Where the fast decider for page tasks lives, and which model to ask it for. Both are
     /// addresses rather than secrets, so they live here; the key sits beside the other keys in

@@ -16,7 +16,6 @@ struct TilingLayoutProfileMoveTests {
 
     private func layout() -> TilingLayout {
         let layout = TilingLayout()
-        layout.updateViewport(CGSize(width: 1600, height: 1000))
         return layout
     }
 

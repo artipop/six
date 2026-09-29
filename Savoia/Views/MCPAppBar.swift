@@ -4,7 +4,7 @@ import SwiftUI
 /// own column, above the app itself.
 ///
 /// The same arrangement as `PermissionBar`, and for the same reasons — a sibling of the web view in
-/// the column's stack rather than a sheet, so the other nineteen windows of the strip are not
+/// the column's stack rather than a sheet, so the other nineteen tabs are not
 /// stopped to answer for this one, and so the buttons see the mouse.
 ///
 /// Asked once per tool. The answer holds for the life of the window: see

@@ -162,7 +162,7 @@ root, leaving a bundle that looked imported and vouched for nothing.
 
 Read out of the DER by hand (`CertificateValidity`, ~30 lines of ASN.1: step into two SEQUENCEs, skip up to four
 fields, read two `UTCTime`/`GeneralizedTime` values). `SecCertificateCopyValues` would answer it in one call and is
-macOS-only; Savoia runs on the phone too, and one code path that works everywhere is worth thirty lines. Nothing here
+macOS-only, and the thirty lines keep the reading in one code path that does not care which. Nothing here
 decides anything — the dates are for the line under the name, and `Security` does the judging. Checked against
 `openssl x509 -dates` on all four published certificates, GOST included.
 

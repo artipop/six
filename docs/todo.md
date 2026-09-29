@@ -35,32 +35,18 @@ that opens the guide — the page for the pane in front of you, in the interface
 help book bundled with the app, or the guide's built pages shipped as resources and opened in a
 window of Savoia's own.
 
-## The ring's arrows are three keys, and only on the Mac
+## The ring's arrows are three keys
 
-`⌃⇧←` / `⌃⇧→` walk the row of cards while the ring is held open. The `⇧` is a tax, not a design: macOS
+`⌃⇧←` / `⌃⇧→` walk the cards while the ring is held open. The `⇧` is a tax, not a design: macOS
 owns plain `⌃←` and `⌃→` for Mission Control's *Move left/right a space* (symbolic hotkeys 79 and 80,
 enabled by default), and the WindowServer takes them before any application's event monitor — so the
 two keys a person would reach for cannot be had at all on a default Mac. The binding matches any
 modifiers, so one extra key is enough to get the event delivered, and `⇧` is the one already under the
 hand from `⌃⇧Tab`.
 
-**It is a Mac problem only.** The table is `SavoiaCore`'s and the other fronts read the same rows;
-nothing on Linux or Windows takes `⌃←`, so the bare arrows work there and the documented chord is
-wrong for them. Three keys to page a carousel is a bad answer wherever it is written down, and
+Three keys to page a carousel is a bad answer wherever it is written down, and
 another one has not been found yet: the ring is held open *by* `⌃`, so every key it can answer is a
 `⌃` chord, and the arrows are the only pair that says "the card over there" without being learned.
-
-## Linux and Windows: the row's `Alt` keys are the browser's own
-
-The Mac offers every `⌥` key to the page first and keeps a `⌃⌥` copy of the row's navigation that nothing else
-wants ([hotkeys.md](hotkeys.md)). The other fronts have neither, and
-the conflict is sharper there: `Alt+←` / `Alt+→` are Back and Forward in every browser on both platforms, `Alt+Home`
-is the home page, and `Alt`+letter opens a menu on Windows. The Windows front reads `KeyBindings` through
-`StripKeyLookup`, so it takes them first as the Mac used to; the GTK front binds `<Alt>Left` and friends by hand in
-`BrowserContent.swift`. `⌃⌥` is no answer on Windows, where `Ctrl+Alt` is AltGr. What is: the same page-first order
-(WebKitGTK's `key-press-event` return value and WebKit2's unhandled-key callback both say whether the page took a
-key), and a reserved chord of each platform's own — `Super` is the window manager's on both, so it is a real choice
-and not a transcription.
 
 ## Popups: a window the page can script
 
@@ -200,74 +186,6 @@ missed:
 Built on the Mac: a microphone beside the agent panel's composer and the ⌘E line, FluidAudio's Parakeet TDT v3 with
 Silero in front of it on the Neural Engine. What is left — Apple's `SpeechAnalyzer` as the engine that downloads
 nothing, a Settings section with the model's Delete, a key, the phone — is at the end of [speech.md](speech.md).
-
-## Windows: a WebKit that is not Playwright's
-
-The Windows front runs the WebKit that `playwright install webkit` puts on the machine, and takes whatever
-revision the installed Playwright pins — `webkit-2359` at the time of writing. Three separate reasons to want a
-different build, and they are worth keeping apart:
-
-- **A newer one** was the original hope, and is now known to be pointless on its own: the cause is a patch
-  Playwright applies to every build it ships ([windows.md](windows.md)).
-- **An unpatched one, and this is now the whole reason** — the `../sixty` session guessed that Playwright's
-  patching for headless automation might be causing the bug, and reading the patch confirmed it exactly.
-  `browser_patches/webkit/patches/bootstrap.diff` deletes the `/ intrinsicDeviceScaleFactor` from
-  `WebView::onSizeEvent`, which is precisely the division `StripWebView.installScaleShim` puts back from outside.
-  So any non-Playwright build — CI or self-built — makes the shim, the divided creation rect and probably the
-  compositing preference all unnecessary. A *newer Playwright* build never will; they all carry the patch.
-- **One with MediaStream in it**, found while wiring site permissions: Playwright's WebCore is built without
-  it — `JSMediaStream`, `JSMediaDevices` and `UserMediaRequest` are absent from `WebCore.dll`, and a page reads
-  `navigator.mediaDevices` as `undefined` whatever the preferences say. The UI client, the bar and the list are
-  built and wait on the engine ([windows.md](windows.md#site-permissions)).
-
-**Neither is available right now**, and both routes have been checked rather than guessed at:
-
-- Playwright's own newest is not newer. `webkit-2360` — one past the pinned `2359`, from
-  `https://cdn.playwright.dev/dbazure/download/playwright/builds/webkit/<rev>/webkit-win64.zip` — behaves
-  identically, and `2361`+ return 400. Re-probe that URL pattern rather than re-deriving it; revisions just
-  increment.
-- **build.webkit.org builds Windows fine. What it does not do is hand anyone a binary.** Worth stating carefully,
-  because "the CI is dead" is the wrong summary and leads to the wrong next step. Checked directly against the
-  buildbot API on 2026-09-08:
-
-  | builder | id | latest runs |
-  |---|---|---|
-  | `Windows-64-bit-Debug-Build` | 1189 | running **today**, four times this morning — and red every time |
-  | `Windows-64-bit-Release-Build` | 1192 | not failing: four green in a row, but the newest is 2026-05-22, ~109 days back. It stopped being scheduled, it did not break |
-  | `WinCairo-64-bit-*-Build` | 731 / 729 | last ran 2024-09-13 |
-  | `Apple-Win-10-*-Build` | 67 / 56 | last ran 2023-02-07 |
-
-  So a green Windows Release build exists — `313706@main`, from May — and the problem is fetching it. The archive
-  bucket is not public: `archives.webkit.org` returns 403 for both the object and a listing. The only way in is the
-  presigned URL a build's own `generate-s3-url` step logs, and those expire about 30 minutes after they are
-  generated, which rules out anything from May and makes a fresh one a watch-and-grab job. `../sixty` ran a cron
-  watch for a green build and gave up.
-
-  **The Debug builder is not a way around that**, which is the first thing anyone asks. Its pipeline stops dead:
-  `compile-webkit` fails and the build ends there, so `archive-built-product`, `generate-s3-url` and
-  `upload-file-to-s3` never run and no zip is ever produced — nothing to fetch, expired URL or not. Only the
-  Release builder has ever reached those steps (its last green run uploaded `WebKitBuild/release.zip`). And it has
-  been red a long time: 1600 consecutive failures, as far back as the API was paged, to 2026-08-03. Even green it
-  would be the wrong artifact — a Debug WebKit links the debug CRT, which is not redistributable and wants Visual
-  Studio present, on top of being assert-heavy and far larger and slower.
-
-  So there is one thing to watch, not two: **the Release builder being scheduled again**. That is what produces a
-  fresh build whose presigned URL is still live. The recipe is the second option in
-  [dev.to: Running the latest Safari WebKit on Windows](https://dev.to/dustinbrett/running-the-latest-safari-webkit-on-windows-33pb),
-  which is where Artem got it, with his warning that the CI links have moved since.
-- A self-hosted build on a cloud VM is the remaining idea. Nobody has costed it.
-
-Trying a build is otherwise cheap, since nothing here pins the engine: `savoia-windows.ps1 -WebKitDir <folder>` points
-at any DLL set. The chore is `windows/vendor/WebKit2/WebKit2.lib` — see [windows.md](windows.md) for regenerating it.
-`../sixty` already has `windows/scripts/update-playwright-webkit.ps1` on a daily scheduled task watching for a newer
-Playwright; point at that rather than writing a second one.
-
-The cross-checkout write-up lives at `../sixty/windows/WEBKIT_WINDOWS_NOTES.md` — toolchain traps, the CI detail
-above, both fronts' DPI findings, and Artem's reference links:
-[the survey](https://fujii.github.io/2019/07/05/webkit-on-windows/),
-[running WebKit on Windows](https://schepp.dev/posts/running-webkit-on-windows/) and its
-[HN thread](https://news.ycombinator.com/item?id=30280404), and
-[qt-ultralight-browser](https://github.com/niutech/qt-ultralight-browser) for the QtWebKit route.
 
 ## Developer tools: the half Chrome's devtools MCP has and Savoia does not
 
@@ -433,7 +351,7 @@ their chunks and vectors (`Savoia/Data/`, `Savoia/Bookmarks/`, [architecture.md]
   the row at once and replaces its title-only passage with the page's a moment later. The Markdown copy is written
   beside the row there as well (`BookmarkFile`). What is still owed is somewhere to *see* the library — Windows has no
   bookmarks window, and Linux's `BookmarksSheet` searches titles and addresses only — and the hourly refresh, which
-  needs an off-screen page with the profile's cookies. Both are item 4 of [parity.md](parity.md).
+  needs an off-screen page with the profile's cookies.
 - **Linux build of the data layer.** ~~Verify early~~ — done, and it builds: GRDB, SQLiteData, sqlite-vec
   and the `@Table` macros all compile on Swift 6.3.3/aarch64, as do `AppDatabase`, `ConfigurationStore`, `History`
   and `Bookmark`. No fallback needed. What it costs is two pins: `swift-sharing` 2.10.0 and
@@ -449,75 +367,6 @@ Linux Swift), LMDB/RocksDB (everything built on top), Couchbase Lite (its own sy
 writes), libSQL / Turso (native vectors, but not the system `sqlite3`, young Swift SDK), ObjectBox (closed core, no
 Linux), PGlite (WASM runtime, data unreachable from `Savoia --mcp`), Qdrant / Milvus / Weaviate / Chroma (server
 clients, nothing embedded).
-
-## iOS: the data layer travels, the embedder is the question
-
-What a port needs to know, so that nothing built now has to be undone ([sync.md](sync.md) has the phone-as-thin-client
-flow this leans on).
-
-**Goes as it is.** There is no custom SQLite: the iOS `libsqlite3` is used the way the macOS one is, and sqlite-vec is a
-C file compiled into the app and entered per connection (`sqlite3_vec_init` from `prepareDatabase`) — the one way that
-works when the system library has extension loading compiled out, which iOS has too. sqlite-vec-data declares
-iOS 16 / tvOS / watchOS and builds the C with NEON on ARM; GRDB and SQLiteData are native there; the schema, the `vec0`
-tables and a copied `savoia.sqlite` work unchanged. Statically compiled C is fine for the App Store — nothing is loaded
-dynamically. `WebPage` exists on iOS 26, so `ReadablePage` and the refresh path port too; the hourly refresh becomes a
-`BGProcessingTask` on Wi-Fi and power.
-
-**Decide: which model, and for what.**
-
-- The cheap path, and the one the architecture was built for: **the Mac indexes, the phone searches.** Chunks and
-  vectors sync through CloudKit (one record per chunk, 384 float32 = 1.5 KB); the phone writes them into its own
-  `vec0` and never embeds a page. It still has to embed the *query*, and that must be the **same model**
-  (`multilingual-e5-small`) or the spaces don't line up — a query is a few milliseconds on an A17, so the model's only
-  cost on the phone is its size.
-- Size: `mlx-swift` runs on iOS 17+, but 470 MB of fp32 weights is a lot to ship or download to a phone. Take an
-  fp16 (~235 MB) or 4-bit (~70 MB) conversion from `mlx-community`, or quantise once on the Mac; the model id in
-  every vector means a quantised query model against fp32 passage vectors is a measurable choice, not a guess.
-- `NLContextualEmbedding` (Apple, iOS 17+, no download) is the no-MLX fallback and stays per-script, i.e. not
-  cross-lingual — already rejected on the Mac for that reason; on the phone it would only make sense if the Mac
-  used it too.
-- Embedding *pages* on the phone (a bookmark saved on the go) is the open question: run e5-small in an
-  `NSExtension`/background task with a passage budget, or mark the bookmark *pending* and let the Mac embed it when
-  it syncs. Start with the latter.
-
-## Linux: what the third front still owes the first
-
-Built and measured; see [linux.md](linux.md) for the whole picture. What is left, in the order it is missed:
-
-- **Page scripting.** `PageScripts` and `PageControllers` are the two places Savoia already abstracted WebKit, and both
-  land on WebKitGTK without strain: `call_async_javascript_function` takes the same function body, arguments and
-  isolated-world name as `callJavaScript(_:arguments:contentWorld:)`. Everything downstream waits on it — highlights,
-  the readable copy, the DevTools capture the agent tools read. It should also be the first place the Linux build ends
-  up *ahead*: WebKitGTK awaits a returned Promise, and the Apple API does not, which is why every page script on the
-  Mac is written synchronously and polled from Swift.
-- **Blocking.** `WebKitUserContentFilterStore` compiles the same content-blocker JSON as `WKContentRuleList`, so the
-  SafariConverterLib output already in `FilterListStore` needs no changes. Wiring, not design ([blocking.md](blocking.md)).
-- **The strip clamps at its ends.** `resolvedOffset` centres the focused column; the Mac places columns absolutely in
-  a container that does not scroll, so the first and last centre like any other. On Linux the strip is a real
-  `GtkScrolledWindow` and its adjustment clamps, so the outermost columns sit against the edge. Either the canvas
-  grows half a viewport of slack at each end, or the front stops using the adjustment and places the canvas itself.
-- **Downloads, dialogs and navigation policy.** `WebKitDownload`, `script-dialog`, `run-file-chooser` and
-  `decide-policy` map one-to-one onto what `PageDialogQueue` and the navigation decider already do
-  ([links.md](links.md)).
-- **The assistant, ACP and MCP.** The most portable code in the repository — Foundation, child processes, JSON-RPC
-  over stdio — with no front to talk to yet. `ModelChoice` collapses to ACP plus the vendored `ClaudeAPI`, because
-  FoundationModels is Apple's.
-- **Extensions**, when Igalia exposes `WebExtensionContext` and `WebExtensionController`. The install dialog and the
-  compatibility verdict port today, because `WebKitWebExtension` already parses a manifest.
-- **Find-in-page**, which WebKitGTK gives away (`WebKitFindController`) and Savoia does in the page's own JavaScript.
-  Favicons the Mac now reads through the page itself (`SiteIcons`), which ports as it stands — the script is
-  portable and only the store is per-front — or WebKitGTK's `WebKitFaviconDatabase` does it for nothing.
-
-## Sharing into Savoia on iOS
-
-The Mac takes pages in through a share extension that reads one file and opens one URL ([sharing.md](sharing.md)).
-Neither half is available on iOS. An extension there cannot open its containing app (the responder-chain trick that
-does it is private API, and App Review has refused it), and a sandbox on iOS has no temporary exceptions that would
-let it read the row from the app's container. Both halves become an **App Group**: the app writes
-`share-targets.json` into the group container, and the extension leaves the request there for the app to pick up
-on its next activation, or on a Darwin notification while it runs. An App Group needs a developer team, and this
-machine signs ad hoc. The wire (`ShareRequest`, `ShareTargets`) is already portable Foundation, so once a team exists
-this is a target, an entitlement and a queue.
 
 ## Tab groups by meaning: a classifier instead of cosines
 

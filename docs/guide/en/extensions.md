@@ -7,8 +7,7 @@ Savoia can install browser extensions — from a folder, a `.zip`, a `.crx` or a
 It all comes down to one thing: WebKit could not map a page's frame back to a
 tab, so a content script could neither message its own extension nor hear from
 it. On the Mac that link exists now, but it has not been measured again — so the
-honest word for such extensions here is "should work", not "works". On iPhone and
-iPad there is no link at all.
+honest word for such extensions here is "should work", not "works".
 
 An extension whose content script is self-contained (a stylesheet, a script
 carrying its own data, anything that acts on the page and reports to nobody)
@@ -24,18 +23,18 @@ and the verdict stays on its row afterwards.
 |---|---|
 | the background page and service worker | start, `browser.*` present |
 | `storage`, `alarms`, `cookies` | work |
-| `tabs.query`, `tabs.onUpdated` | work: an extension sees Savoia's columns with their addresses and titles |
+| `tabs.query`, `tabs.onUpdated` | work: an extension sees Savoia's tabs with their addresses and titles |
 | content scripts from the manifest | **run**, the DOM is theirs |
 | dynamically registered scripts | run |
 | `declarativeNetRequest` | **blocks for real** — subresources and navigations alike |
 | the action popup | works; its button lives in the top bar |
-| an extension's settings page and its other pages | open **in a window of their own**, not as a column in the row |
+| an extension's settings page and its other pages | open **in a window of their own**, not as a tab |
 
 ## What has not been measured again
 
 | | |
 |---|---|
-| `runtime.sendMessage` from a content script | should work on the Mac, not on iPhone or iPad |
+| `runtime.sendMessage` from a content script | should work |
 | `tabs.sendMessage` to a content script | the same |
 | `scripting.executeScript`, `scripting.insertCSS` | the same |
 

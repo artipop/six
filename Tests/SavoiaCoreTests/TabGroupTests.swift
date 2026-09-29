@@ -12,7 +12,6 @@ struct TabGroupTests {
 
     private func layout() -> TilingLayout {
         let layout = TilingLayout()
-        layout.updateViewport(CGSize(width: 1600, height: 1000))
         return layout
     }
 
@@ -145,20 +144,8 @@ struct TabGroupTests {
         return row?.action
     }
 
-    @Test func theRowsKeysAreOffWithTheTabsUp() {
-        let tabs = KeyContext(window: .main, showsTabs: true)
-        #expect(action(KeyChord(.option, .rightArrow), in: tabs) == nil)
-        #expect(action(KeyChord(.option, .upArrow), in: tabs) == nil)
-        #expect(action(KeyChord(.option, .w), in: tabs) == nil)
-        #expect(action(KeyChord(.option, .o), in: tabs) == nil)
-        #expect(action(KeyChord([.control, .option], .leftArrow), in: tabs) == nil)
-        #expect(action(KeyChord([], .escape), in: tabs) == nil)
-        // …and in the row they are exactly where they were.
-        #expect(action(KeyChord(.option, .rightArrow), in: KeyContext(window: .main)) == .focusColumn(1))
-    }
-
-    @Test func thePagesVerbsAndControlTabStayWithTheTabsUp() {
-        let tabs = KeyContext(window: .main, showsTabs: true)
+    @Test func thePagesVerbsAndControlTabAreBound() {
+        let tabs = KeyContext(window: .main)
         #expect(action(KeyChord(.control, .tab), in: tabs) == .stepSwitcher(1))
         #expect(action(KeyChord([.control, .shift], .tab), in: tabs) == .stepSwitcher(-1))
         #expect(action(KeyChord([.option, .shift], .t), in: tabs) == .translateSelection)
@@ -166,9 +153,9 @@ struct TabGroupTests {
         #expect(action(KeyChord(KeyBindings.copyAddressChord, .c), in: tabs) == .copyAddress)
     }
 
-    /// The ring works over the tab bar as it does over the row: once it is open its own keys answer.
-    @Test func theRingKeepsItsKeysWithTheTabsUp() {
-        let ring = KeyContext(window: .main, isSwitching: true, showsTabs: true)
+    /// Once the ring is open its own keys answer.
+    @Test func theRingKeepsItsKeys() {
+        let ring = KeyContext(window: .main, isSwitching: true)
         #expect(action(KeyChord(.control, .tab), in: ring) == .stepSwitcher(1))
         #expect(action(KeyChord(.control, .rightArrow), in: ring) == .walkSwitcher(1))
         #expect(action(KeyChord(.control, .returnKey), in: ring) == .landSwitcher)

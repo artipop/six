@@ -1,6 +1,16 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Loaded Tabs" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Загруженные вкладки"
+          }
+        }
+      }
+    },
     "Start Page" : {
       "localizations" : {
         "ru" : {
@@ -503,12 +513,12 @@
         }
       }
     },
-    "Open as a Window" : {
+    "Open as a Tab" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Открыть окном"
+            "value" : "Открыть вкладкой"
           }
         }
       }
@@ -519,16 +529,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Другие сессии"
-          }
-        }
-      }
-    },
-    "Row" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Лента"
           }
         }
       }
@@ -593,26 +593,6 @@
         }
       }
     },
-    "Show Tabs" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Показывать вкладки"
-          }
-        }
-      }
-    },
-    "Show Windows As" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Показывать окна как"
-          }
-        }
-      }
-    },
     "Shown Side by Side" : {
       "localizations" : {
         "ru" : {
@@ -659,6 +639,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Вкладки"
+          }
+        }
+      }
+    },
+    "Tabs gather into groups, and two tabs can stand side by side. ⌃Tab goes back to the tab you were just in." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вкладки собираются в группы, две вкладки можно поставить рядом. ⌃Tab возвращает на вкладку, где вы только что были."
           }
         }
       }
@@ -1413,16 +1403,6 @@
         }
       }
     },
-    "Workspaces are tab groups. The row's ⌥ keys are off." : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Рабочие столы становятся группами вкладок. Клавиши ленты с ⌥ выключены."
-          }
-        }
-      }
-    },
     "· %@" : {
       "localizations" : {
         "ru" : {
@@ -1495,16 +1475,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ — рекомендуется для этого Mac"
-          }
-        }
-      }
-    },
-    "%@ (empty)" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ (пусто)"
           }
         }
       }
@@ -1975,58 +1945,6 @@
         }
       }
     },
-    "%lld windows" : {
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld window"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld windows"
-                }
-              }
-            }
-          }
-        },
-        "ru" : {
-          "variations" : {
-            "plural" : {
-              "few" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld окна"
-                }
-              },
-              "many" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld окон"
-                }
-              },
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld окно"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld окна"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "• %@" : {
       "localizations" : {
         "ru" : {
@@ -2043,16 +1961,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Строка ⌘E"
-          }
-        }
-      }
-    },
-    "A browser with a row instead of tabs: a page is a full-height window, the windows stand side by side, and the row scrolls. ⌥← and ⌥→ move along it; ⌥↑ and ⌥↓ move between workspaces." : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Браузер с лентой вместо вкладок: страница — это окно во всю высоту, окна стоят рядом, а лента прокручивается вбок. ⌥← и ⌥→ перемещают по ней, ⌥↑ и ⌥↓ — между рабочими столами."
           }
         }
       }
@@ -2633,16 +2541,6 @@
         }
       }
     },
-    "Centre the Focused Window" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Центрировать активное окно"
-          }
-        }
-      }
-    },
     "Certificate" : {
       "localizations" : {
         "ru" : {
@@ -2863,16 +2761,6 @@
         }
       }
     },
-    "Close Window (⌘W)" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Закрыть окно (⌘W)"
-          }
-        }
-      }
-    },
     "Command" : {
       "localizations" : {
         "ru" : {
@@ -2969,12 +2857,12 @@
         }
       }
     },
-    "Continues \"%@\" in this workspace's document." : {
+    "Continues \"%@\" in this group's document." : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Продолжит «%@» в документе этого рабочего стола."
+            "value" : "Продолжит «%@» в документе этой группы."
           }
         }
       }
@@ -3049,12 +2937,12 @@
         }
       }
     },
-    "Couldn't create a workspace" : {
+    "Couldn't create a group" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Не удалось создать рабочий стол"
+            "value" : "Не удалось создать группу"
           }
         }
       }
@@ -3129,22 +3017,22 @@
         }
       }
     },
-    "Delete the workspace “%@”?" : {
+    "Delete the group “%@”?" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Удалить рабочий стол «%@»?"
+            "value" : "Удалить группу «%@»?"
           }
         }
       }
     },
-    "Delete Workspace" : {
+    "Delete Group" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Удалить рабочий стол"
+            "value" : "Удалить группу"
           }
         }
       }
@@ -3510,16 +3398,6 @@
         }
       }
     },
-    "First Window" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Первое окно"
-          }
-        }
-      }
-    },
     "Fix Spelling and Grammar" : {
       "localizations" : {
         "ru" : {
@@ -3636,16 +3514,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Из %@. Автор не проверяется, а расширение может читать и изменять страницы, к которым у него есть доступ."
-          }
-        }
-      }
-    },
-    "Full Width" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Во всю ширину"
           }
         }
       }
@@ -4020,12 +3888,12 @@
         }
       }
     },
-    "Its last window has been closed. If you keep it, it stays as an empty workspace with its name." : {
+    "Its last tab has been closed. If you keep it, it stays as an empty group with its name." : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "В нём закрылось последнее окно. Если его оставить, он останется пустым рабочим столом со своим именем."
+            "value" : "В ней закрылась последняя вкладка. Если её оставить, она останется пустой группой со своим именем."
           }
         }
       }
@@ -4110,16 +3978,6 @@
         }
       }
     },
-    "Last Window" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Последнее окно"
-          }
-        }
-      }
-    },
     "Let Agents Read Page Console and Network" : {
       "localizations" : {
         "ru" : {
@@ -4186,16 +4044,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "слушает на %@"
-          }
-        }
-      }
-    },
-    "Loaded Windows" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Загруженные окна"
           }
         }
       }
@@ -4350,52 +4198,12 @@
         }
       }
     },
-    "Move Left" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Сдвинуть влево"
-          }
-        }
-      }
-    },
-    "Move Right" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Сдвинуть вправо"
-          }
-        }
-      }
-    },
     "Move to Profile" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Перенести в профиль"
-          }
-        }
-      }
-    },
-    "Move to Workspace Above" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Перенести на стол выше"
-          }
-        }
-      }
-    },
-    "Move to Workspace Below" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Перенести на стол ниже"
           }
         }
       }
@@ -4500,72 +4308,12 @@
         }
       }
     },
-    "New Window" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Новое окно"
-          }
-        }
-      }
-    },
-    "New window (⌘T)" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Новое окно (⌘T)"
-          }
-        }
-      }
-    },
-    "New window in this workspace" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Новое окно в этом рабочем столе"
-          }
-        }
-      }
-    },
-    "New window on the left" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Новое окно слева"
-          }
-        }
-      }
-    },
-    "New Window in the Row" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Новое окно на ленте"
-          }
-        }
-      }
-    },
     "Next Match (⏎)" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Следующее совпадение (⏎)"
-          }
-        }
-      }
-    },
-    "Next window (⌥→)" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Следующее окно (⌥→)"
           }
         }
       }
@@ -4800,12 +4548,12 @@
         }
       }
     },
-    "Open in New Window" : {
+    "Open in New Tab" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Открыть в новом окне"
+            "value" : "Открыть в новой вкладке"
           }
         }
       }
@@ -4840,12 +4588,12 @@
         }
       }
     },
-    "Open Link in New Window" : {
+    "Open Link in New Tab" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Открыть ссылку в новом окне"
+            "value" : "Открыть ссылку в новой вкладке"
           }
         }
       }
@@ -4930,26 +4678,6 @@
         }
       }
     },
-    "Overview" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Обзор"
-          }
-        }
-      }
-    },
-    "Overview (⌥O)" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Обзор (⌥O)"
-          }
-        }
-      }
-    },
     "Page Links" : {
       "localizations" : {
         "ru" : {
@@ -4966,16 +4694,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Вставить"
-          }
-        }
-      }
-    },
-    "Show Neighbours When Hovering Beside the Window" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Показывать соседние окна при наведении сбоку от окна"
           }
         }
       }
@@ -5062,16 +4780,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Прошлую сессию продолжить не удалось; новая сессия с %@ · %@"
-          }
-        }
-      }
-    },
-    "Previous window (⌥←)" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Предыдущее окно (⌥←)"
           }
         }
       }
@@ -5382,16 +5090,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Переименовать…"
-          }
-        }
-      }
-    },
-    "Reopen Closed Window" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Открыть закрытое окно"
           }
         }
       }
@@ -6072,16 +5770,6 @@
         }
       }
     },
-    "Split" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Разделить"
-          }
-        }
-      }
-    },
     "Split Window" : {
       "localizations" : {
         "ru" : {
@@ -6302,16 +5990,6 @@
         }
       }
     },
-    "Layout" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Лента"
-          }
-        }
-      }
-    },
     "The translation was interrupted" : {
       "localizations" : {
         "ru" : {
@@ -6444,18 +6122,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Сертификат этого сайта выдан удостоверяющим центром «%@». Этот центр есть в списке, но ему не доверяют, пока вы его не включите. На сайты с сертификатами других центров это не влияет."
-          }
-        }
-      }
-    },
-    "This Window" : {
-      "comment" : "The name of the menu that appears when you right-click a page in a browser.",
-      "isCommentAutoGenerated" : true,
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Это окно"
           }
         }
       }
@@ -6796,16 +6462,6 @@
         }
       }
     },
-    "Windows" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Окна"
-          }
-        }
-      }
-    },
     "Work" : {
       "localizations" : {
         "ru" : {
@@ -6816,52 +6472,12 @@
         }
       }
     },
-    "Workspace %lld" : {
+    "Group %lld" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Рабочий стол %lld"
-          }
-        }
-      }
-    },
-    "Workspace Above" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Рабочий стол выше"
-          }
-        }
-      }
-    },
-    "Workspace above (⌥↑)" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Рабочий стол выше (⌥↑)"
-          }
-        }
-      }
-    },
-    "Workspace Below" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Рабочий стол ниже"
-          }
-        }
-      }
-    },
-    "Workspace below (⌥↓)" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Рабочий стол ниже (⌥↓)"
+            "value" : "Группа %lld"
           }
         }
       }
@@ -7519,16 +7135,6 @@
         }
       }
     },
-    "A browser with a rail instead of tabs: a page is a full-height window, the windows stand side by side, and the rail scrolls. ⌥← and ⌥→ move along it; ⌥↑ and ⌥↓ move between workspaces." : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Браузер с рельсом вместо вкладок: страница — это окно во всю высоту, окна стоят рядом, рельс прокручивается вбок. ⌥← и ⌥→ ходят по нему, ⌥↑ и ⌥↓ — между рабочими столами."
-          }
-        }
-      }
-    },
     "A site is checked against the system's certificate authorities first. These are only consulted for a site the system has already turned down." : {
       "localizations" : {
         "ru" : {
@@ -7565,16 +7171,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Панель агента (⌘⇧A)"
-          }
-        }
-      }
-    },
-    "An app is a window on the rail, drawn by the server that answered the tool call. The registry does not say which servers carry one, so Savoia asks them." : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Приложение — это окно на ленте, нарисованное сервером, который ответил на вызов инструмента. Реестр не говорит, у каких серверов оно есть, поэтому Savoia спрашивает их сам."
           }
         }
       }
@@ -7760,16 +7356,6 @@
         }
       }
     },
-    "Its last window has been closed. Kept, it stays on the rail with its name and nothing in it." : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "На нём закрылось последнее окно. Если оставить, он останется в ленте — с именем и пустой."
-          }
-        }
-      }
-    },
     "Larger — 1.1 GB" : {
       "localizations" : {
         "ru" : {
@@ -7806,16 +7392,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Выключено — нажмите, чтобы страница снова видела и слышала"
-          }
-        }
-      }
-    },
-    "New Window on the Rail" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Новое окно на ленте"
           }
         }
       }
@@ -7870,42 +7446,12 @@
         }
       }
     },
-    "On, nothing is drawn in the gaps beside the focused window until the pointer arrives, and the rail leans over to show what is on that side. Off, the buttons stand where they are and do their job on the way in — which is the only thing that works without a pointer to rest." : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Включено — в промежутках рядом с активным окном ничего не нарисовано, пока туда не придёт указатель, и лента наклоняется, показывая, что с этой стороны. Выключено — кнопки стоят на своих местах и срабатывают по пути к ним; только так это и работает там, где указателю негде замереть."
-          }
-        }
-      }
-    },
-    "On, the window you are reading sits in the middle of the screen and both neighbours peek in by the same amount. Off, the rail moves as little as it can — ⌥C." : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Включено — окно, которое вы читаете, стоит посередине экрана, и оба соседа заглядывают одинаково. Выключено — лента сдвигается настолько мало, насколько может (⌥C)."
-          }
-        }
-      }
-    },
     "Passed to the ACP agent as ANTHROPIC_MODEL. Blank leaves the agent on whatever it picks for itself." : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Передаётся ACP-агенту как ANTHROPIC_MODEL. Пусто — агент выбирает сам."
-          }
-        }
-      }
-    },
-    "Peek at the Edges" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Подглядывать у краёв"
           }
         }
       }
@@ -8124,16 +7670,6 @@
         }
       }
     },
-    "The Rail" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Лента"
-          }
-        }
-      }
-    },
     "Then attach from Safari: Develop › %@ › Savoia" : {
       "localizations" : {
         "ru" : {
@@ -8180,16 +7716,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Доверие остаётся внутри Savoia — ничто другое на устройстве его не получает, а выключатель забирает его обратно."
-          }
-        }
-      }
-    },
-    "Unload Background Windows Now" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Выгрузить фоновые окна сейчас"
           }
         }
       }

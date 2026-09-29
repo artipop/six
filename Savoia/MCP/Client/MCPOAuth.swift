@@ -20,7 +20,7 @@ import Foundation
 ///    as the fallback so many real providers work).
 /// 4. Savoia registers itself if the server allows it (RFC 7591) — there is no client id to hardcode
 ///    when the servers are not known in advance.
-/// 5. The authorization page opens in a window of the strip, with PKCE and a `resource` parameter.
+/// 5. The authorization page opens in a tab, with PKCE and a `resource` parameter.
 /// 6. The redirect lands on a loopback port Savoia is listening on, and the code is exchanged.
 ///
 /// The `resource` parameter is not optional politeness: it is what binds the token to *this* server,

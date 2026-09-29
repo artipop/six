@@ -44,12 +44,12 @@ same machine as the person reading it.
 
 ## Tools
 
-Vocabulary is the product's: a *window* (page) in a *workspace* (row) of a *profile*. Everything defaults to what
+Vocabulary: a *window* is a tab, a *workspace* is a tab group (unnamed: loose tabs), both in a *profile*. Everything defaults to what
 is on screen — the current profile, its focused workspace, its focused window. Workspaces are addressed by name or
 1-based index; a name that doesn't exist is created (the trailing empty workspace gets the name). A workspace created
 this way is not permanent: when its last window closes, Savoia asks the person at the screen whether to delete it — the
 same question every named workspace gets, whoever named it
-([layout.md](layout.md#a-named-workspace-that-runs-out-of-windows)).
+([layout.md](layout.md#a-named-group-that-runs-out-of-tabs)).
 
 | tool | what it does |
 |---|---|
@@ -60,9 +60,9 @@ same question every named workspace gets, whoever named it
 | `get_page_content` | title, URL and `innerText` of a window (waits for loading; `max_chars`, default 20 000) |
 | `get_page_links` | `text — URL` lines of the page's links (`max_links`) |
 | `summarize_page` | summary from the assistant's own model (⌘E's choice: on-device / PCC / Claude); `focus` narrows it |
-| `focus_window` | switch to the window's profile and workspace and scroll to it |
+| `focus_window` | switch to the window's profile and select its tab |
 | `move_window` | move a window to another workspace of its profile |
-| `split_window` | put two windows side by side in one column — `with` names the second, which moves in beside `window_id`; without it, the window next along comes in, or a column that is already two goes back to being two windows. A column holds at most two ([layout.md](layout.md#two-windows-in-one-column)) |
+| `split_window` | show two windows side by side — `with` names the second, which moves in beside `window_id`; without it, a window that is already side by side goes back to being a tab of its own. At most two ([layout.md](layout.md#two-tabs-side-by-side)) |
 | `move_window_to_profile` | move a window to another profile — the same page, reopened with that profile's cookies and extensions ([architecture.md](architecture.md#moving-a-window-to-another-profile)) |
 | `close_window` | close a window |
 | `list_console_messages` | what a window's page logged since it last navigated (`level`, `limit`); listed only while `savoia://configuration` ▸ Assistant ▸ Access to Page Console and Network is on — see [devtools.md](devtools.md) |

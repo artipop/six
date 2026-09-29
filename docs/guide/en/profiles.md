@@ -1,10 +1,10 @@
 # Profiles and private windows
 
 A profile is a separate person behind one browser: its own cookies and sign-ins,
-its own history, its own bookmarks, its own extensions and **its own stack of
-workspaces**. Switching profiles swaps the whole row.
+its own history, its own bookmarks, its own extensions and **its own tabs and
+groups**. Switching profiles swaps all the tabs at once.
 
-The profile button is on the left of the top bar, with its name and colour. A
+The profile button is on the right of the bar under the tabs, with its name and colour. A
 click opens the list:
 
 - a click on a row switches to that profile;
@@ -22,23 +22,21 @@ old name is orphaned.
 | cookies, local storage, caches | an isolated WebKit data store |
 | history | its own; `⌘Y` shows the current profile's |
 | bookmarks | its own `Profiles/<name>/Bookmarks/` folder |
-| workspaces | its own stack |
+| tabs and groups | its own |
 | extensions | its own controller and storage |
 | the agents' working directory | `Profiles/<name>/Scratchpad` by default |
 
 Blocking, certificates and filter lists are shared: they are what the **browser**
 trusts and blocks, not what the person sitting in it does.
 
-## Moving a window to another profile
+## Moving a tab to another profile
 
-Right-click the page ▸ **This Window ▸ Move to Profile** ▸ the profile's name. On
-the phone the same item is in the `⋯` menu.
+Right-click the page ▸ **Move to Profile** ▸ the profile's name.
 
-The window goes to the other profile's row and the row follows it there: this
-is the one move that would otherwise leave nothing to look at — the column would
-simply be gone from the row. It is the same window and not a copy: the same
-address, the same title, the same back and forward history, the same picture in
-the overview. `⌘⇧T` will not offer it back, because nothing was closed.
+The tab goes to the other profile and the browser follows it there: otherwise
+there would be nothing left to look at. It is the same tab and not a copy: the
+same address, the same title, the same back and forward history. `⌘⇧T` will not
+offer it back, because nothing was closed.
 
 The page does load again, though, and with **somebody else's cookies**. That is
 the whole point: the same link, shown by a different person behind this browser.
@@ -51,13 +49,12 @@ the whole point: the same link, shown by a different person behind this browser.
 | highlights | every profile has its own: the old ones go, the new profile's appear |
 | filled-in forms, unsent input | lost — the page loads from scratch |
 
-A window moves out of a private profile the same way — and from that moment the
+A tab moves out of a private profile the same way — and from that moment the
 page is in the history of the profile it arrived in. That is exactly what asking
 for it in a profile that keeps history means.
 
-The workspace the window left asks nothing, even when that was its last window
-and it has a name: nothing was closed. The named empty row stays standing — its
-own context menu deletes it.
+The group the tab left asks nothing, even when that was its last tab: nothing was
+closed. The named empty group stays standing — its own menu deletes it.
 
 A document cannot be moved into a private profile, and the item is disabled: the
 document's text is a file on disk, rewritten a second after every keystroke, and

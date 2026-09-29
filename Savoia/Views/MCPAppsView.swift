@@ -644,9 +644,6 @@ struct BuiltInPageView: View {
 
     var body: some View {
         switch page {
-        #if os(iOS)
-        case .apps: MCPAppsView()
-        #endif
         #if os(macOS)
         case .configuration: ConfigurationPageView(tab: tab)
         case .welcome: WelcomePage(tab: tab)

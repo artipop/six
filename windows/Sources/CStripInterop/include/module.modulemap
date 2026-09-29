@@ -1,4 +1,0 @@
-module CStripInterop {
-    header "CStripInterop.h"
-    export *
-}

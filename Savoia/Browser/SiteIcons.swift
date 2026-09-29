@@ -1,14 +1,9 @@
-#if os(macOS)
 import AppKit
-#elseif os(iOS)
-import UIKit
-#endif
 import Foundation
 import WebKit
 
-/// The little picture a site draws itself with, kept by host. Savoia had favicons on no front
-/// ([todo.md](../../docs/todo.md)), and the overview is where that showed: a card with no
-/// screenshot yet was a globe and a line of text.
+/// The little picture a site draws itself with, kept by host: in the tab bar, and on a card or a
+/// placeholder with no screenshot yet.
 ///
 /// **The page fetches it, not Savoia.** A `URLSession` asking `https://host/favicon.ico` is a second
 /// visit to that site from outside the profile it belongs to — no cookies of its own, none of the
@@ -22,7 +17,7 @@ final class SiteIcons {
     static let folder: URL = AppSupport.folder("SiteIcons")
 
     /// What the views read; `missing` is what stops a host with none being looked for on disk again
-    /// on every frame of the overview.
+    /// on every frame.
     private var images: [String: PlatformImage] = [:]
 
     @ObservationIgnored private var missing: Set<String> = []

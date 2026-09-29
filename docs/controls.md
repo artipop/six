@@ -1,36 +1,33 @@
 # Controls
 
-Nothing needs the keyboard: every layout operation has a mouse equivalent. `⌥` is the layout's modifier.
+Every mouse control, and the keyboard in short.
 
 ## Mouse
 
 | | |
 |---|---|
-| click a window | focuses it and scrolls it into view — the first click on a background window never reaches the page |
-| the gaps beside the focused window | nothing is drawn there until the pointer arrives; sweep into one and the row leans over to show the window on that side, with a `‹` or `›` fading in to say so. Click to step to it. (Configuration ▸ Windows ▸ **Peek at the Edges**, off, draws them where they stand instead and drops the lean — the only thing that works without a pointer, so it is the default off macOS.) Step to the last window and the sliver becomes the `+` below — under a pointer that has not moved, so it lets go of the peek and does nothing until you hover it again. The sliver is as narrow as the gap it stands in, runs its full height, and follows the focused window as the row scrolls; with the window filled there is no gap left, so it shrinks to a band and waits at the edge of the screen — where throwing the pointer against the wall finds it |
-| the gap at either end of the row | where the row runs out there is no arrow — the same sweep leans it over to show the window that *would* open there, outlined, with a `+` in the lane: after the last one, or, at the near end, **before the first**, which is the only way the row grows backwards. Click anywhere in that sliver of gap to open it; move off and it all goes back |
-| `⌃`/`⌄` beside the workspace pips | one workspace up/down |
-| click a workspace pip | jump to that workspace |
-| ⌘-click a link | opens it in a new window right of this one, **behind** — the focus stays on the page you are reading, and the row leans right for a moment to show what arrived. To go there instead, the context menu's Open Link in New Window: WebKit swallows every shift-click before Savoia sees it, and a middle click cannot be told from a plain one ([links.md](links.md)) |
-| right-click a page | Savoia's own menu: on a link, Open Link / in New Window / Behind / Download Linked File / Copy Link; always Back, Forward, Reload and the clipboard. WebKit's menu could not be repaired in place — [links.md](links.md) has why |
-| the download ring (top bar) | there once something has been downloaded: what is coming in, Stop, and Show in Finder when it is done. A download flies there from the click, so it is clear both that it started and where it went ([links.md](links.md)) |
-| right-click a page → This Window | close, full width, move left/right, move to the workspace above/below, move to another profile ([what that rebuilds](architecture.md#moving-a-window-to-another-profile)). It used to hang off the window's title bar; the page runs edge to edge now, so it hangs off the page |
-| the full-width button (top left, beside the profile) | one button, two states: the page keeps its gaps and its rounded corners, or takes the whole window (`⌥W`). It was a mode picker with a menu of eight things hanging off it; the two switches in that menu are settings and are on `savoia://configuration`, and moving a window is what the page's own right-click menu is for |
-| right-click the background | new window, new document, workspace up/down, overview, full width, settings |
-| scroll over a gap or the background | one window sideways / one workspace up-down per gesture — over a page or a panel, scrolling stays the page's, and over the top bar it does nothing (its buttons would be a gamble otherwise). Push at an end of the row and the edge lights up in the profile's colour while the rubber band stiffens: there is nothing that way, which is why nothing moved |
-| the address field (top bar) | one field, for the window you are reading, with back/forward/reload beside it, and the lock, the shield, the camera light and the highlighter with it. `⌘L` puts the caret in it. A window has no title bar of its own at all: it is a page from edge to edge |
-| the bookmark star (top bar) | against the right edge of the address field, because it is about that page and not about the row — and gone with the field on an empty workspace, where there is no page to be about: save the focused page — filled when it is saved; again to remove. `⌘⌥B` lists and searches them, and what is saved comes back as rows under the start page's field ([start-page.md](start-page.md)) |
-| overview button (top right) | zoom out to all workspaces; scroll sideways to run along a row, click a window to open it |
-| double-click a workspace name (overview) | rename it; right-click the name to rename, clear it, or delete an empty workspace outright. A named workspace that runs out of windows asks first — *Delete the workspace "X"?* — and stands if you keep it; an unnamed one goes without asking, as it always has |
-| drag a window (overview) | carry it along its row to reorder it, or up and down onto another workspace — including the empty one at the bottom, which is how a workspace gets made. The row it came from closes up, a gap opens where it would land, and the focus goes with it when it is let go |
+| click a tab | brings it to the front. `⌘`-click adds it to the picked tabs or takes it out, `⇧`-click picks the run from the last tab clicked; the tab menu then acts on every picked tab |
+| drag a tab | along the bar, onto another group's label, or onto the empty end of the bar to take it out of its group (`TabDragSource`, AppKit's, because the bar lies in the hidden title bar's band) |
+| click a group's label | fold the group up to it, and again to open it |
+| right-click a group's label | New Tab in Group, Rename Group…, Collapse / Expand Group, Ungroup, Close Group; for a group between two, Merge into … and Make Separate Group |
+| right-click a tab | New Tab to the Right, Add Tab to New Group, Move Tab to Group, Remove from Group, Pin / Unpin Tab, Show Side by Side (two picked), Stop Showing Side by Side, Close Other Tabs |
+| the empty part of the tab bar | moves the window; a double-click zooms it, honouring `AppleActionOnDoubleClick` |
+| the other half of a pair | the first click selects it; the second reaches the page |
+| ⌘-click a link | opens it in a new tab **behind** — the focus stays on the page you are reading. To go there instead, the context menu's Open Link in New Tab: WebKit swallows every shift-click before Savoia sees it, and a middle click cannot be told from a plain one ([links.md](links.md)) |
+| right-click a page | Savoia's own menu: on a link, Open Link / in New Tab / Behind / Beside / Download Linked File / Copy Link; always Back, Forward, Reload, the clipboard, Picture in Picture, Move to Profile ([what that rebuilds](architecture.md#moving-a-tab-to-another-profile)) and Close Tab. WebKit's menu could not be repaired in place — [links.md](links.md) has why |
+| the download ring (toolbar) | there once something has been downloaded: what is coming in, Stop, and Show in Finder when it is done. A download flies there from the click ([links.md](links.md)) |
+| the address field (toolbar) | one field, for the tab in front, with back/forward/reload beside it, and the lock, the shield, the camera light and the highlighter with it. `⌘L` puts the caret in it |
+| the bookmark star (toolbar) | against the right edge of the address field: save the page — filled when it is saved; again to remove. `⌘⌥B` lists and searches them, and what is saved comes back as rows under the start page's field ([start-page.md](start-page.md)) |
 | the lock / globe in the address field | once a site has been answered about the camera, the microphone or the motion sensors: flip an answer, forget the site, or open the whole list ([permissions.md](permissions.md)) |
 | the red camera / mic / screen in the address field | one per device, only while the page is actually using it — click to mute that device, click again to bring it back |
-| `×` on a window's top right corner | close that window. It sits on the corner itself — mostly over the gap, so the page keeps its clicks — and it is invisible until the pointer is on it, so a row of a dozen windows is not a row of a dozen crosses |
-| the engine chip on the start page | DuckDuckGo or Google — for queries and for the suggestions; also under Configuration ▸ General ▸ Search Engine |
-| the profile button (top left) | which profile you are in, by name. It opens onto the list: click one to switch (each has its own row), or unfold a row to rename it, pick its colour and delete it. New Profile at the bottom, and Private Window when there isn't one |
+| the engine chip on the start page | the search engine — for queries and for the suggestions; also under Configuration ▸ General ▸ Search Engine |
+| the profile button (toolbar, right) | which profile you are in, by name. It opens onto the list: click one to switch, or unfold a row to rename it, pick its colour and delete it. New Profile at the bottom, and Private Window when there isn't one |
+
+A named group that runs out of tabs asks first — *Delete the group "X"?* — and stands if you keep it; an unnamed one
+goes without asking ([layout.md](layout.md#a-named-group-that-runs-out-of-tabs)).
 
 ## Keyboard
 
-Every binding is in [hotkeys.md](hotkeys.md). In short: `⌥` + arrows / scroll move around the row, `⌥W` `⌥O` `⌥C`
-change how a window is shown, `⌃Tab` held flies to a window by how recently it was used rather than by
-where it stands, and `⌘T` `⌘W` `⌘L` `⌘E` `⌘D` `⌘⌥B` `⌘Y` `⌘,` are the browser's.
+Every binding is in [hotkeys.md](hotkeys.md). In short: `⌘T` `⌘W` `⌘⇧T` `⌘⇧]` `⌘⇧[` `⌘1`…`⌘9` for tabs, `⌃Tab` held
+flies to a tab by how recently it was used rather than by where it stands, `⌥⇧T` `⌥⇧H` `⌥⇧P` are about the page, and
+`⌘L` `⌘E` `⌘D` `⌘⌥B` `⌘Y` `⌘,` are the browser's.

@@ -12,11 +12,9 @@ than at the filter lists. Buttons like **Set Up…** in the
 `⌘E` line open the section they mean rather than the top of the page, and the
 address follows you as you move between sections.
 
-Configuration here is a **page**, not a window of its own. It opens as a column
-of the row, beside the thing it is about: you can look at a site and read what
-that site is allowed at the same time — a configuration window would cover
-exactly what it describes. The column keeps its place across a relaunch, it has
-an address, and it moves and closes like any other window.
+Configuration here is a **page**, not a window of its own. It opens as a tab, it
+has an address, it keeps its place across a relaunch, and it can stand beside a
+site and close like any other tab.
 
 ::: tip Where this came from
 Savoia used to have thirteen menus, five of them one feature each with a switch
@@ -32,8 +30,7 @@ menus is what a menu is for: things you do, with a key beside them.
 chip on the left of the field on the start page.
 
 **Start page** — what stands above the field: the **Name** (which can be
-changed), the app's **Icon**, or **None**. The same goes for a window's
-miniature when peeking and in the overview.
+changed), the app's **Icon**, or **None**.
 
 **Translation** — the language pages are translated into (`⌘⇧L`). The list is
 whichever languages macOS has a model for.
@@ -47,28 +44,16 @@ build never offers: it is a second application wearing the same face, and links
 from the whole machine would go into a browser that is about to be killed and
 built again.
 
-## Windows
-
-**Show Windows As** — **Row** or **Tabs**: workspaces become tab groups and the
-row's `⌥` keys are switched off. More in [Tabs instead of the row](tabs.md).
+## Tabs
 
 **Group Tabs by Meaning** — a new tab goes into the group it is about by itself,
-and three alike tabs with no group become a group. More in [Groups by
-meaning](tabs.md#groups-by-meaning).
+and three alike tabs with no group become a group. **Sort By** and **Local
+Model** are there too. More in [Groups by meaning](tabs.md#groups-by-meaning).
 
-**Centre the focused window** (`⌥C`) — the window you are reading sits in the
-middle and both neighbours peek in by the same amount. Off, the row moves as
-little as it can.
-
-**Show Neighbours When Hovering Beside the Window** — the row leaning over when the pointer rests in a gap.
-That is a pointer idea: it is asked for by resting somewhere. A finger has
-nowhere to rest, so the switch is off on the phone and the arrows are simply
-drawn where they stand.
-
-**Loaded windows** — how many windows are holding a live page right now, and a
-button to unload the background ones. The number cannot be changed: how many
-separate processes a particular Mac will carry is not a thing a person can know,
-so Savoia works it out from the machine's memory and adjusts as the pressure moves.
+**Loaded Tabs** — how many tabs are holding a live page right now, and **Free
+Memory**. The number cannot be changed: how many separate processes a particular
+Mac will carry is not a thing a person can know, so Savoia works it out from the
+machine's memory and adjusts as the pressure moves.
 
 ## Privacy
 

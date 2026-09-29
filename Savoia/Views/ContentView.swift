@@ -18,42 +18,19 @@ struct ContentView: View {
     /// Every key Savoia answers itself, in one place — see `KeyRouter` for why it is a monitor and not
     /// a menu, and `KeyBindings` for the table it walks.
     @State private var keys = KeyRouter()
-    /// The address field lives in the top bar now, so the focus that ⌘L moves lives beside it —
-    /// above the strip, which no longer has one.
+    /// The focus ⌘L moves into the address field.
     @FocusState private var addressFocus: UUID?
     @State private var showAgentPanel = false
     @State private var showHistory = false
     @State private var showBookmarks = false
     @State private var confirmClearHistory = false
-    /// The face on screen, which trails `BrowserState.interfaceStyle` by one frame with nothing drawn
-    /// in between (`swapFace`). `nil` until the window first appears, and then it reads the setting.
-    @State private var face: InterfaceStyle?
-    @State private var hasFace = false
-
     var body: some View { contentBody }
 
     private var contentBody: AnyView {
-        let shown = hasFace ? face : browser.interfaceStyle
-        let stack = AnyView(VStack(spacing: 0) {
-            switch shown {
-            case .row:
-                TopBar(addressFocus: $addressFocus)
-                    // In front of the row, not behind it. They are siblings in a stack, so the row
-                    // is drawn — and hit-tested — after the bar; anything of the row's that reaches
-                    // up into the bar's band would take the click off its buttons.
-                    .zIndex(1)
-                TilingStripView().modifier(AssistantBarOverlay())
-            case .tabs:
-                TabbedWindowView(addressFocus: $addressFocus).modifier(AssistantBarOverlay())
-            case nil:
-                Color(nsColor: .windowBackgroundColor)
-            }
-        })
-        return AnyView(stack
+        AnyView(TabbedWindowView(addressFocus: $addressFocus).modifier(AssistantBarOverlay())
         .ignoresSafeArea(.container, edges: .top)
         .modifier(FlightsOverlayModifier())
-        // Over the top bar as well as over the row: while ⌃ is held nothing else in the window is
-        // being looked at.
+        // Over the tab bar as well: while ⌃ is held nothing else in the window is being looked at.
         .modifier(WindowSwitcherOverlayModifier())
         // Mounted once, on the root, because Savoia is a `Window` and not a `WindowGroup`. It draws
         // nothing: it only carries the `.translationTask` that can ask for a language download.
@@ -64,7 +41,6 @@ struct ContentView: View {
         .tint(browser.selectedProfile.color)
         .navigationTitle(browser.selectedTab?.title ?? "Savoia")
         .focusedSceneValue(\.focusAddressBar, FocusAddressBarAction {
-            browser.exitOverview()
             addressFocus = browser.selectedTabID
         })
         .focusedSceneValue(\.toggleAgentPanel, settings.isAIEnabled
@@ -81,7 +57,7 @@ struct ContentView: View {
             if let tab = browser.selectedTab { browser.find.show(tab.id) }
         })
         .clearHistoryDialog(isPresented: $confirmClearHistory)
-        // A named workspace has just run out of windows and wants an answer (`TilingLayout`).
+        // A named group has just run out of tabs and wants an answer (`TilingLayout`).
         .workspaceRemovalDialog()
         // The one part the switch reaches that is not a view: the watcher Savoia puts in every page to
         // know what is selected, which exists for ⌘E. The socket deliberately stays up — see
@@ -90,23 +66,14 @@ struct ContentView: View {
             browser.pageFocus?.isEnabled = enabled
             if !enabled { showAgentPanel = false }
         }
-        // The row's focus and AppKit's first responder are two different things, and they used to
-        // be able to disagree: ⌥→ moved the border and the address field while the keys went on
-        // arriving in the page you had walked away from. Invisible in a row, where that window is
-        // off the edge a moment later — and impossible to miss in a split, where one half is
-        // highlighted and your typing lands in the other. `WebViewResponder` has the account.
+        // The selected tab and AppKit's first responder are two different things; in a side-by-side
+        // pair they can disagree (`WebViewResponder`).
         .onChange(of: browser.selectedTabID) { _, id in WebViewResponder.shared.focus(id) }
-        .onChange(of: browser.interfaceStyle) { _, style in swapFace(to: style) }
-        .onAppear {
-            face = browser.interfaceStyle
-            hasFace = true
-            browser.selectTabIfNone()
-        }
+        .onAppear { browser.selectTabIfNone() }
         .onAppear(perform: startKeyRouter)
         .onDisappear { keys.stop() }
         .task {
-            // The first launch has one question, and it is asked as a window in the row rather
-            // than a sheet over it (`WelcomePage`).
+            // The first launch has one question, and it is asked as a tab rather than a sheet (`WelcomePage`).
             if !settings.hasAnsweredWelcome { browser.openBuiltIn(.welcome) }
         }
         .task {
@@ -139,7 +106,7 @@ private struct AssistantBarOverlay: ViewModifier {
 
     func body(content: Content) -> some View {
         content.overlay(alignment: .bottom) {
-            if !browser.layout.isOverview, settings.isAIEnabled {
+            if settings.isAIEnabled {
                 AssistantBar(place: .bottom)
                     .padding(.horizontal, 16)
                     .padding(.bottom, 12)
@@ -158,19 +125,6 @@ private struct WindowSwitcherOverlayModifier: ViewModifier {
 }
 
 extension ContentView {
-    /// One face goes, a frame of nothing, then the other. The two draw the same pages, and a page is
-    /// a `WebPage` WebKit allows exactly one `WebView` over — built for the new face before the old
-    /// one has let go, the second view traps in `makeViewProvider` (`TilingLayout.unanimated` has the
-    /// account). A frame with neither is how that cannot happen.
-    private func swapFace(to style: InterfaceStyle) {
-        face = nil
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(32))
-            guard browser.interfaceStyle == style else { return }
-            face = style
-        }
-    }
-
     private var agentPanelPresentation: Binding<Bool> {
         Binding(
             get: { showAgentPanel && settings.isAIEnabled },
@@ -218,7 +172,6 @@ extension ContentView {
 #if DEBUG
         case "alert": await KeySelfTest.alertOnly(browser)
 #endif
-        case "page": await KeySelfTest.pageOnly(browser)
         case "assistant": await KeySelfTest.assistantOnly(browser, assistant, pageFocus, agentSession)
         case "chats": await KeySelfTest.chatsOnly(browser, assistant, agentSession)
         case .some:
@@ -228,39 +181,20 @@ extension ContentView {
         }
     }
 
-    /// The table's actions, turned into calls. This is the view that has all of them in one place —
-    /// the row, the ring, the page being read and the highlights — which is why the router is
-    /// installed here and not down in the strip, where the ⌥ keys used to live: half the table was
-    /// out of that view's reach, and that is how `⌥⇧T` and `⌥⇧H` ended up as menu items a focused
-    /// page could swallow.
+    /// The table's actions, turned into calls — here, because this view has the tabs, the ring, the
+    /// page being read and the highlights all in one place.
     private func startKeyRouter() {
         keys.isSwitching = { browser.switcher.isOpen }
-        keys.isOverview = { browser.layout.isOverview }
-        keys.showsTabs = { browser.showsTabs }
         keys.performExtensionCommand = { event in
             guard let extensions = browser.extensions else { return false }
             return extensions.performCommand(for: event, in: browser.selectedProfileID)
         }
         keys.perform = { action in
             switch action {
-            case .focusColumn(let step): browser.focusColumn(step)
-            case .moveColumn(let step): browser.moveColumn(step)
-            case .focusColumnEdge(let last): browser.focusColumnEdge(last: last)
-            case .focusWorkspace(let step): browser.focusWorkspace(step)
-            case .moveColumnToWorkspace(let step): browser.moveColumnToWorkspace(step)
-            case .toggleFullWidth: browser.toggleFullWindow()
-            case .toggleSplit: browser.toggleSplit()
-            case .toggleOverview: browser.toggleOverview()
-            case .toggleCenterFocus: browser.toggleCenterFocus()
             case .stepSwitcher(let step): browser.stepWindowSwitch(step)
             case .walkSwitcher(let step): browser.walkWindowSwitch(step)
             case .landSwitcher: browser.endWindowSwitch()
             case .cancelSwitcher: browser.cancelWindowSwitch()
-            case .leaveOverview:
-                // The one action that can decline: outside the overview `⎋` is the page's own, and
-                // the start page's field clears itself with it.
-                guard browser.layout.isOverview else { return false }
-                browser.exitOverview()
             case .translateSelection:
                 guard let tab = browser.selectedTab else { return false }
                 browser.translateSelection(of: tab)
@@ -353,7 +287,7 @@ extension ContentView {
             return say("usage: SAVOIA_FIND_SELFTEST=\"query:https://example.com\"")
         }
         let query = String(spec[..<split.lowerBound])
-        // A fresh window rather than whatever the strip already had focused: the selftest must not
+        // A fresh tab rather than whatever was selected: the selftest must not
         // depend on the last-open window being an ordinary page — `load` is a no-op on Savoia's own
         // pages (`BrowserTab.isWebPage`), which is exactly what a restored `savoia://settings` window
         // is one launch out of every few.
@@ -603,17 +537,10 @@ extension ContentView {
     }
 }
 
-/// The bar in the (hidden) title bar area — the window's one piece of chrome, and now the only one.
-///
-/// Left: which profile you are in, and how the layout is showing the strip. Middle: the focused
-/// window's address, with the star against its trailing edge — the two things that are about the
-/// page you are reading, because that band of the window was empty and an address field is exactly
-/// the shape of it. Right: everything about the strip rather than the page — what is downloading,
-/// where in the stack of workspaces you are, the overview, the agent.
 /// The two panels that are opened from a menu item: each one is a focused value the menu reaches
 /// across the scene, and a sheet that answers it.
 ///
-/// There were Savoia. Filter lists, extensions, site permissions and certificates were the other four,
+/// There were six. Filter lists, extensions, site permissions and certificates were the other four,
 /// and every one of them was a settings screen wearing a sheet — a thing that covers the window it
 /// is describing so that it can describe it. They are sections of `savoia://settings` now. History and
 /// bookmarks stay sheets because they are not settings: they are a search over everything, asked in
@@ -633,70 +560,6 @@ private struct Panels: ViewModifier {
             .sheet(isPresented: $history) { HistoryView() }
             .focusedSceneValue(\.showBookmarks, FocusAddressBarAction { bookmarks = true })
             .sheet(isPresented: $bookmarks) { BookmarksView() }
-    }
-}
-
-private struct TopBar: View {
-    var addressFocus: FocusState<UUID?>.Binding
-    @Environment(BrowserState.self) private var browser
-
-    var body: some View {
-        let layout = browser.layout
-        HStack(spacing: 8) {
-            Color.clear.frame(width: 68, height: 1) // room for the window buttons
-            ProfileMenuButton()
-            Spacer(minLength: 8)
-            // Against the field, not out with the row's buttons. The star is about the page whose
-            // address is right there — it fills for that page and ⌘D toggles it — and every browser
-            // that has one keeps it at the end of the address field for exactly that reason. Out on
-            // the right it sat among the things that describe the *strip*, and read as one of them.
-            //
-            // Which is also why it comes and goes with the field rather than outliving it. On an
-            // empty workspace there is no focused window, the field is not drawn, and a star left
-            // behind on its own is a control about nothing — greyed out, in the middle of the bar,
-            // beside a page that says "New Window".
-            if let tab = browser.selectedTab {
-                AddressBar(tab: tab, addressFocus: addressFocus)
-                    .frame(maxWidth: addressWidth)
-                BookmarkButton(tab: tab)
-                ShareButton(tab: tab)
-            }
-            Spacer(minLength: 8)
-            DownloadsButton()
-            ExtensionActionBar()
-            WorkspaceStepper()
-            Button { browser.toggleOverview() } label: {
-                Image(systemName: layout.isOverview ? "rectangle.grid.1x2.fill" : "rectangle.grid.1x2")
-            }
-            .buttonStyle(.borderless)
-            .help("Overview (⌥O)")
-        }
-        .padding(.horizontal, 10)
-        .frame(height: 40)
-        .background(.bar)
-        // The focused page's progress, along the bottom edge of the bar that carries its address —
-        // where the hairline under a window's title bar used to be, before the description moved up
-        // here and the window became the page. It replaces the divider rather than sitting beside
-        // it: two lines a point apart is a border with a bug in it.
-        .overlay(alignment: .bottom) {
-            if let tab = browser.selectedTab, !tab.isDocument, tab.isLoading {
-                LoadingLine(progress: tab.estimatedProgress, accent: accent(of: tab))
-            } else {
-                Divider()
-            }
-        }
-        .animation(.easeOut(duration: 0.2), value: browser.selectedTab?.isLoading)
-    }
-
-    private func accent(of tab: BrowserTab) -> Color {
-        browser.profiles.first { $0.id == tab.profileID }?.color ?? .accentColor
-    }
-
-    /// A share of the window rather than a number of points: on a 5K panel a fixed field is a slot in
-    /// the middle of nowhere, and on a laptop it crowds out the buttons on either side. The floor and
-    /// the ceiling are the two places where a share stops being sensible.
-    private var addressWidth: CGFloat {
-        max(280, min(760, browser.layout.viewport.width * 0.4))
     }
 }
 
@@ -754,50 +617,4 @@ struct ShareButton: View {
     }
 }
 
-/// The workspace indicator with a chevron on each side, so the vertical stack is reachable by mouse.
-private struct WorkspaceStepper: View {
-    @Environment(BrowserState.self) private var browser
-
-    var body: some View {
-        let layout = browser.layout
-        HStack(spacing: 6) {
-            Button { browser.focusWorkspace(-1) } label: { Image(systemName: "chevron.up") }
-                .disabled(!layout.canFocusWorkspace(-1))
-                .help("Workspace above (⌥↑)")
-            WorkspacePips()
-            Button { browser.focusWorkspace(1) } label: { Image(systemName: "chevron.down") }
-                .disabled(!layout.canFocusWorkspace(1))
-                .help("Workspace below (⌥↓)")
-        }
-        .buttonStyle(.borderless)
-        .font(.caption)
-    }
-}
-
-/// Vertical position in the workspace stack — a workspace indicator, laid out horizontally.
-private struct WorkspacePips: View {
-    @Environment(BrowserState.self) private var browser
-
-    var body: some View {
-        let layout = browser.layout
-        HStack(spacing: 4) {
-            ForEach(Array(layout.workspaces.enumerated()), id: \.element.id) { index, workspace in
-                let current = index == layout.focusedWorkspaceIndex
-                Capsule()
-                    .fill(current ? AnyShapeStyle(browser.selectedProfile.color) : AnyShapeStyle(.quaternary))
-                    .frame(width: current ? 20 : 8, height: 6)
-                    .overlay {
-                        if workspace.isEmpty && !current {
-                            Capsule().strokeBorder(.tertiary, lineWidth: 1)
-                        }
-                    }
-                    .onTapGesture { browser.focusWorkspace(at: index) }
-                    .help(workspace.isEmpty
-                          ? String(localized: "\(layout.title(at: index)) (empty)")
-                          : "\(layout.title(at: index)) · \(String(localized: "\(workspace.columns.count) windows"))")
-            }
-        }
-        .animation(TilingLayout.switchAnimation, value: layout.focusedWorkspaceIndex)
-    }
-}
 #endif

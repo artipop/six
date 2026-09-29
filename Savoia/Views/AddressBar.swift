@@ -3,13 +3,8 @@ import SwiftUI
 import Translation
 import WebKit
 
-/// The address field, in the top bar — one of them, for the window you are reading.
-///
-/// Every column used to carry its own, under a title bar of its own: a strip of a dozen windows is a
-/// dozen address fields, eleven of them for a page nobody is looking at, each one too narrow to show
-/// more than a host. All of it — the lock, the shield, the camera, the title — is here now, and a
-/// window is a page from edge to edge with nothing drawn on it. There is only ever one window you are
-/// reading, and this describes that one.
+/// The address field, in the toolbar under the tabs — one of them, for the tab you are reading: the
+/// lock, the shield, the camera, the title.
 struct AddressBar: View {
     let tab: BrowserTab
     var addressFocus: FocusState<UUID?>.Binding
@@ -158,7 +153,7 @@ struct AddressBar: View {
             if isEditing, text != filled { suggestions.update(for: text, context: context) }
         }
         // Under the field and over the page, from the field's own leading edge. The top bar is in
-        // front of the row (`ContentView`), which is what lets this hang below the bar at all.
+        // front of the page (`TabbedWindowView`), which is what lets this hang below the bar at all.
         .overlay(alignment: .topLeading) {
             let rows = rows
             if !rows.isEmpty {

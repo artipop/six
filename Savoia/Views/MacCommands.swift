@@ -14,13 +14,8 @@ import WebKit
 /// anything new, and the one the rest of the app cites by name: a menu item is a verb with a key
 /// beside it; everything else is a setting.
 
-/// The window in front, and how the row is showing it.
-///
-/// The ⌥ bindings that walk the row are deliberately *not* here — they live in `KeyBindings`, which
-/// `KeyRouter` walks on a key monitor that sees a key before the focused web view does. A menu item
-/// cannot: WebKit takes `⌥←` and `⌥→` for word movement and the layout key never arrives. The `⌥`
-/// items that *are* here are here for display and for the pointer — the router answers the key first
-/// and swallows it, so the item's own action never runs.
+/// The tab in front. The `⌥⇧` items are here for display and for the pointer: `KeyRouter` answers
+/// their keys before a focused page can, so the item's own action never runs from the keyboard.
 struct ViewCommands: Commands {
     let browser: BrowserState
     let assistant: AssistantStore
@@ -34,8 +29,7 @@ struct ViewCommands: Commands {
             // pressed most often by, and Savoia had none — the button in the address bar was the whole
             // of it. They are `⌘`, so they are menu items and not `KeyBindings` rows, and measuring
             // says that is enough: posted into a window whose focused `WKWebView` is first
-            // responder, `⌘R` reloads and `⌘[` walks back (`KeySelfTest.menuKeys`). WebKit takes
-            // `⌥←` and does not take these.
+            // responder, `⌘R` reloads and `⌘[` walks back (`KeySelfTest.menuKeys`).
             //
             // **Nothing here greys out, and that is not laziness.** `.disabled` is decided when this
             // body is built, and what it would be decided on — `canGoBack`, `isLoading` — changes
@@ -66,53 +60,15 @@ struct ViewCommands: Commands {
 
             Divider()
 
-            // The one switch here that is a setting and not a verb, and the exception is on
-            // purpose: the two faces are tried against each other, and a setting four clicks deep is
-            // not how anything gets tried.
-            Toggle("Show Tabs", isOn: Binding(
-                get: { browser.showsTabs },
-                set: { browser.setInterfaceStyle($0 ? .tabs : .row) }
-            ))
-
-            Divider()
-
-            // The row's own verbs while there is a row, and the tab bar's own keys while there is
-            // one of those. Read off the model and not off a focused value: SwiftUI fills a menu
-            // in when it is about to be used, so the face is right whenever it is looked at, and a
-            // focused value changed with every click and every return to Savoia — rebuilding the
-            // File menu under ⌘W at exactly the moment it was pressed (`SavoiaApp`).
-            if browser.showsTabs {
-                Button("Show Next Tab") { browser.selectAdjacentTab(1) }
-                    .keyboardShortcut("]", modifiers: [.command, .shift])
-                Button("Show Previous Tab") { browser.selectAdjacentTab(-1) }
-                    .keyboardShortcut("[", modifiers: [.command, .shift])
-                ForEach(1..<10) { position in
-                    Button(position == 9 ? String(localized: "Last Tab") : String(localized: "Tab \(position)")) {
-                        browser.selectTab(atPosition: position)
-                    }
-                    .keyboardShortcut(KeyEquivalent(Character("\(position)")))
+            Button("Show Next Tab") { browser.selectAdjacentTab(1) }
+                .keyboardShortcut("]", modifiers: [.command, .shift])
+            Button("Show Previous Tab") { browser.selectAdjacentTab(-1) }
+                .keyboardShortcut("[", modifiers: [.command, .shift])
+            ForEach(1..<10) { position in
+                Button(position == 9 ? String(localized: "Last Tab") : String(localized: "Tab \(position)")) {
+                    browser.selectTab(atPosition: position)
                 }
-            } else {
-                Toggle("Full Width", isOn: Binding(
-                    get: { browser.layout.fill == .window },
-                    set: { _ in browser.toggleFullWindow() }
-                ))
-                .keyboardShortcut("w", modifiers: .option)
-                // A toggle and not two items, because it is one key: what ⌥S does depends on what the
-                // window in front of you already is, and the tick says which of the two it is about to
-                // do. Like every other row here it is never greyed out — a `Commands` body is not
-                // rebuilt when the layout changes under it — so in a row with one window it does
-                // nothing, and the row's own end-of-the-line light says so.
-                Toggle("Split", isOn: Binding(
-                    get: { browser.layout.isSplit },
-                    set: { _ in browser.toggleSplit() }
-                ))
-                .keyboardShortcut("s", modifiers: .option)
-                Toggle("Overview", isOn: Binding(
-                    get: { browser.layout.isOverview },
-                    set: { _ in browser.toggleOverview() }
-                ))
-                .keyboardShortcut("o", modifiers: .option)
+                .keyboardShortcut(KeyEquivalent(Character("\(position)")))
             }
 
             Divider()
@@ -139,8 +95,7 @@ struct ViewCommands: Commands {
             Button("Picture in Picture") { browser.togglePictureInPicture() }
                 .keyboardShortcut("p", modifiers: [.option, .shift])
             // ⌥⌘A, a menu key and not a `KeyBindings` row: a `⌘` key reaches the menu past a focused
-            // page (`KeySelfTest.menuKeys`), and the table is shared with the fronts that have no
-            // accessibility tree to draw. A toggle, with the same caveat about its tick as Full Width.
+            // page (`KeySelfTest.menuKeys`).
             Toggle("Accessibility Overlay", isOn: Binding(
                 get: { AccessibilityOverlay.shared.isOn },
                 set: { AccessibilityOverlay.shared.isOn = $0 }
@@ -155,8 +110,8 @@ struct ViewCommands: Commands {
             // then, so nothing is listening (`ContentView`). A `.disabled` here would be decided once.
             Button("Ask Assistant…") { assistant.toggleLine(in: browser.selectedTab) }
                 .keyboardShortcut("e")
-            // ⌘⇧E beside it: the conversations the line and the agent panel have had, as a page
-            // in the row (`AgentChatsPage`).
+            // ⌘⇧E beside it: the conversations the line and the agent panel have had, as a tab
+            // (`AgentChatsPage`).
             Button("Chats") { browser.openBuiltIn(.chats) }
                 .keyboardShortcut("e", modifiers: [.command, .shift])
         }

@@ -2,8 +2,8 @@
 
 When a site wants the camera, the microphone or the motion sensors, it asks — and
 the answer is remembered. It does not ask with a sheet over the whole
-application: the question is drawn as a bar **in the window that asked**. A page
-that wants the camera is one column out of twenty, and stopping the other
+application: the question is drawn as a bar **in the tab that asked**. A page
+that wants the camera is one tab out of twenty, and stopping the other
 nineteen to answer for it would be a browser mistaking a page for itself.
 
 An answer is filed **per site and per profile**. The camera and the microphone
@@ -41,33 +41,12 @@ prompt comes **first** — once for the whole application, not once per site. So
 the very first request you ever make costs two answers, and every one after it at
 most one.
 
-## On Windows and Linux
-
-The question is the same there — a bar in the window that asked, with **Block**
-and **Allow** — and the answers go into the same table, per site and per profile.
-The whole list: on Linux, the camera button in the toolbar; on Windows, **⋯ ▸ Site
-permissions** at the right end of the bar. `Delete` on a row forgets the answer,
-and the site asks again.
-
-::: warning On Windows the question does not come yet
-And it is not Savoia. The WebKit the Windows version runs on today (Playwright's
-build) is compiled without the camera and the microphone for pages —
-`navigator.mediaDevices` is not there, so a site has nothing to ask with. The bar,
-the answer and the list are ready, and will work with the first engine that has
-them.
-:::
-
 ## The page's own dialogs
 
 `alert()`, `confirm()`, `prompt()` and the file picker work as everywhere. That
 is worth saying out loud: a browser built on these APIs answers all four with
 "no" by default, which means quietly not being able to upload a file. Here they
 are real.
-
-On Windows a dialog comes up as a small window over the browser, and its title
-says which site is asking; `Enter` answers **OK**, `Esc` answers **Cancel**. A
-second page asking waits its turn. Uploading a whole folder does not work there
-yet: the page is told the choice was cancelled.
 
 ## Screen sharing
 
@@ -77,8 +56,8 @@ asks again next time, as in any browser. While sharing is on, an indicator shows
 in the address field beside the camera and the microphone, and clicking it pauses
 the sharing alone.
 
-A window that is sharing the screen or holding a call is not unloaded from
-memory, even when you scroll the row away from it.
+A tab that is sharing the screen or holding a call is not unloaded from memory,
+even when you switch to another.
 
 ## What is not there yet
 

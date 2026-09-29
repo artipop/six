@@ -1,8 +1,4 @@
-#if os(macOS)
 import AppKit
-#elseif os(iOS)
-import UIKit
-#endif
 import Foundation
 
 // `ExternalScheme` — which addresses are somebody else's app's to open — is in `ExternalScheme.swift`,

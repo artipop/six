@@ -1,8 +1,4 @@
-#if os(macOS)
 import AppKit
-#elseif os(iOS)
-import UIKit
-#endif
 import Foundation
 import Observation
 // For `NavigationAction.modifierFlags`: WebKit declares it in its SwiftUI half, so reading the keys
@@ -31,10 +27,6 @@ enum TabContent {
 /// same idea without an address of its own. Configuration is the case that makes the argument: reading
 /// what a site is allowed while looking at the site is the whole point, and a sheet cannot.
 nonisolated enum BuiltInPage: String, Codable, Sendable, CaseIterable {
-    #if os(iOS)
-    /// iOS has no Assistant settings page, so MCP connections still have their own page there.
-    case apps
-    #endif
     /// Everything that used to be a menu item nobody could find: what Savoia searches with, what it
     /// blocks, what a site is allowed, what the assistant talks to (`ConfigurationPageView`).
     ///
@@ -48,9 +40,8 @@ nonisolated enum BuiltInPage: String, Codable, Sendable, CaseIterable {
     /// The Mac only, like configuration: the phone has no assistant surface for the question to be
     /// about.
     case welcome
-    /// Every conversation with an agent, as a page in the row rather than a list down the side of
-    /// the window (`AgentChatsPage`). A list of chats is a list of things, and the answer to that
-    /// here is a column: it opens beside what you are doing and leaves when you are done with it.
+    /// Every conversation with an agent, as a tab rather than a list down the side of the window
+    /// (`AgentChatsPage`): it opens beside what you are doing and leaves when you are done with it.
     case chats
     /// One conversation, `savoia://chat/<id>` — a window of its own, so two can stand side by side
     /// and one can stay open next to the page it is about (`AgentChatPage`).
@@ -80,9 +71,6 @@ nonisolated enum BuiltInPage: String, Codable, Sendable, CaseIterable {
 
     var title: String {
         switch self {
-        #if os(iOS)
-        case .apps: String(localized: "MCP Apps")
-        #endif
         #if os(macOS)
         case .configuration: String(localized: "Configuration")
         case .welcome: String(localized: "Welcome")
@@ -271,7 +259,7 @@ final class BrowserTab: Identifiable {
     }
 
     /// Reads the window's picture back — from an earlier launch, or from before the memory budget let
-    /// go of it. Called when the overview is about to draw the window as a card.
+    /// go of it. Called when the ⌃Tab ring is about to draw the tab as a card.
     func loadPictureIfNeeded() {
         // Not while the one on disk is of the shape the window used to be: `displaySize` threw the
         // one in memory away for that reason, and reading the same picture back off disk would undo
@@ -285,17 +273,9 @@ final class BrowserTab: Identifiable {
         }
     }
 
-    /// The size the strip last drew this window at, which is the size its picture is taken at.
-    ///
-    /// Not only a number to measure with: a window that has changed *shape* has a picture of the
-    /// shape it used to be, and a card fills its frame from that picture — so half a column's
-    /// picture drawn into a whole column is a wildly cropped slice of the page, and a whole one's
-    /// into a half is the same in the other direction. ⌥S does that to two windows at once, which is
-    /// where it was seen.
-    ///
-    /// So a change of shape drops the picture and asks for another — but only once the size has
-    /// stopped moving. A window being resized walks through a hundred sizes and none of them is
-    /// worth a snapshot; a split settles on one.
+    /// The size this tab was last drawn at, which is the size its picture is taken at. A change of
+    /// shape — two tabs put side by side — drops the picture and asks for another once the size has
+    /// stopped moving.
     @ObservationIgnored private var drawnSize = CGSize(width: 900, height: 700)
     /// The picture in hand, and the one on disk, are of a shape this window no longer is.
     @ObservationIgnored private(set) var pictureIsStale = false
@@ -307,7 +287,7 @@ final class BrowserTab: Identifiable {
             guard newValue.width > 1, newValue.height > 1 else { return }
             let was = drawnSize
             drawnSize = newValue
-            // Shape and not size: the strip redraws every window on every window resize, and a
+            // Shape and not size: every tab is redrawn on every window resize, and a
             // column that is the same rectangle a little larger has a picture that still fits it.
             let before = was.width / was.height
             let after = newValue.width / newValue.height
@@ -831,7 +811,7 @@ final class BrowserTab: Identifiable {
         if let app { return app.title }
         if let builtIn { return pageTitle ?? builtIn.title }
         if let pendingApp { return pendingApp.toolTitle }
-        if showsStartPage { return String(localized: "New Window") }
+        if showsStartPage { return String(localized: "New Tab") }
         if let live = livePage, !live.title.isEmpty { return live.title }
         if !savedTitle.isEmpty { return savedTitle }
         return currentURL?.host() ?? "New Tab"
@@ -1045,8 +1025,7 @@ final class BrowserTab: Identifiable {
     /// Best effort and rate limited: it costs a round trip to the web content process, and a slightly
     /// stale picture is worth more than none.
     ///
-    /// The task is handed back for the one caller that has to wait for the picture: the overview,
-    /// which takes every web view away the moment it opens (`BrowserState.toggleOverview`).
+    /// The task is handed back for a caller that has to wait for the picture.
     @discardableResult
     func rememberViewState(force: Bool = false) -> Task<Void, Never>? {
         guard let page = livePage, !showsStartPage, !page.isLoading else { return nil }
@@ -1054,13 +1033,11 @@ final class BrowserTab: Identifiable {
         lastThumbnailAt = Date()
         let region = CGRect(origin: .zero, size: displaySize)
         return Task {
-            // Asked alongside the picture and not before it: a window on its way off the strip is
-            // mounted for this turn only, and a round trip in front of the snapshot may not survive.
+            // Asked alongside the picture and not before it: a tab on its way off screen is mounted
+            // for this turn only, and a round trip in front of the snapshot may not survive.
             async let viewport = page.savoia("return [window.scrollY, window.innerWidth, window.innerHeight]")
-            // `afterScreenUpdates: false` takes what is already rendered: a window on its way off the
-            // strip will never get another screen update, and waiting for one returns nothing.
-            // 400 pt wide: a card is never drawn bigger than a column, and in the overview it is drawn
-            // at a fraction of one. Every point here is a megabyte over a strip's worth of windows.
+            // `afterScreenUpdates: false` takes what is already rendered: a tab on its way off screen
+            // will never get another screen update. 400 pt wide: a ring card is never drawn bigger.
             let configuration = WebPage.ExportedContentConfiguration.image(
                 region: .rect(region), snapshotWidth: 400, afterScreenUpdates: false)
             let clock = ContinuousClock()

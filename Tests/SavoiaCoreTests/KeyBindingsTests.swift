@@ -12,9 +12,8 @@ import Testing
 /// indistinguishable from a key you pressed slightly wrong.
 ///
 /// So the doc is read here and asked about, in both directions: every binding has to be written
-/// down somewhere in it, and every key its row and ring tables promise has to resolve to a binding.
-/// The third test is about the table's own order, which is load-bearing — first match wins — and
-/// which is how the ring's `⌃⇧Tab` was silently answered by the row above it during the rewrite.
+/// down somewhere in it, and every key its page and ring tables promise has to resolve to a binding.
+/// The table's own order is load-bearing too — first match wins.
 struct KeyBindingsTests {
 
     // MARK: The documentation
@@ -56,17 +55,17 @@ struct KeyBindingsTests {
         }
     }
 
-    @Test func everyKeyTheRowPromisesIsBound() {
+    @Test func everyKeyThePagePromisesIsBound() {
         let context = KeyContext(window: .main)
-        for chord in chords(in: section("The row")) {
+        for chord in chords(in: section("The page")) {
             #expect(binding(for: chord, in: context) != nil,
-                    "docs/hotkeys.md promises \(chord.label) in the row and nothing answers it")
+                    "docs/hotkeys.md promises \(chord.label) on a page and nothing answers it")
         }
     }
 
     @Test func everyKeyTheRingPromisesIsBound() {
         let context = KeyContext(window: .main, isSwitching: true)
-        for chord in chords(in: section("Flying between windows")) {
+        for chord in chords(in: section("Flying between tabs")) {
             #expect(binding(for: chord, in: context) != nil,
                     "docs/hotkeys.md promises \(chord.label) while the ⌃Tab ring is open and nothing answers it")
         }
@@ -74,38 +73,27 @@ struct KeyBindingsTests {
 
     // MARK: The caret, and the one thing that outranks it
 
-    /// An arrow belongs to the caret while there is text to walk over — and **not** while the ⌃Tab
-    /// ring is open, where nothing else in the window is being looked at. The exception was missing,
-    /// so `⌃→` over a ring opened while the address field had the caret moved the caret and read as
-    /// an arrow that did nothing; the doc has promised the ring answers first since it was written.
+    /// An arrow over an open ring is the ring's, even with the caret in a field with text in it.
     @Test func theRingOutranksTheCaret() {
         let typing = KeyContext.Field(kind: .singleLine, hasTextBefore: true, hasTextAfter: true)
-        let inTheRow = KeyContext(window: .main, field: typing)
         let inTheRing = KeyContext(window: .main, field: typing, isSwitching: true)
-
-        // The row's own ⌥→ steps aside for the caret.
-        let row = binding(for: KeyChord(.option, .rightArrow), in: inTheRow)
-        #expect(row?.yieldsToCaret(in: inTheRow) == true)
-
-        // The ring's does not, and neither does the plain arrow the ring binds.
         let ring = binding(for: KeyChord([], .rightArrow), in: inTheRing)
         #expect(ring != nil)
         #expect(ring?.yieldsToCaret(in: inTheRing) == false)
     }
 
-    /// And with no caret anywhere, nothing yields — the rule is about a field, not about a mood.
+    /// With no caret anywhere, nothing yields.
     @Test func withNoFieldNothingYields() {
         let context = KeyContext(window: .main)
-        let row = binding(for: KeyChord(.option, .rightArrow), in: context)
-        #expect(row?.yieldsToCaret(in: context) == false)
+        let translate = binding(for: KeyChord([.option, .shift], .t), in: context)
+        #expect(translate?.yieldsToCaret(in: context) == false)
     }
 
     // MARK: The table's own order
 
     @Test func noRowIsShadowedByTheOnesAboveIt() {
         for (index, binding) in KeyBindings.all.enumerated() {
-            let context = KeyContext(window: .main, isSwitching: binding.scope == .switcher,
-                                     isOverview: binding.scope == .overview)
+            let context = KeyContext(window: .main, isSwitching: binding.scope == .switcher)
             let reachable = binding.spellings.contains { chord in
                 KeyBindings.all.firstIndex { $0.matches(chord: chord, in: context) } == index
             }
@@ -116,25 +104,11 @@ struct KeyBindingsTests {
 
     // MARK: What a text field keeps
 
-    @Test func aFieldWithTextKeepsEveryArrow() {
-        let empty = KeyContext.Field(kind: .singleLine, hasTextBefore: false, hasTextAfter: false)
-        // The caret at the very start of the text: under the old per-caret rule ⌥← went to the row
-        // from here, which is how holding ⌥← walked the caret home and then changed the window.
-        let atStart = KeyContext.Field(kind: .singleLine, hasTextBefore: false, hasTextAfter: true)
-        // The start page's field is focused the moment a window opens, and it is empty. ⌥← there is
-        // the only way off the window, not word movement across nothing.
-        #expect(KeyBinding.Key.code(.leftArrow).yields(to: empty) == false)
-        #expect(KeyBinding.Key.code(.leftArrow).yields(to: atStart))
-        // ⌥↑ in a one-line field goes to its start — text movement like the rest.
-        #expect(KeyBinding.Key.code(.upArrow).yields(to: atStart))
-        #expect(KeyBinding.Key.code(.home).yields(to: atStart) == false)
-    }
-
-    /// `⌥W` types «∑». In a field that is what the key is for, empty or not.
+    /// `⌥⇧T` types a character. In a field that is what the key is for.
     @Test func aLetterTypedWithOptionAlwaysGoesToTheField() {
         let empty = KeyContext(window: .main, field: .init(kind: .singleLine, hasTextBefore: false, hasTextAfter: false))
-        let fullWidth = binding(for: KeyChord(.option, .w), in: empty)
-        #expect(fullWidth?.yieldsToCaret(in: empty) == true)
+        let translate = binding(for: KeyChord([.option, .shift], .t), in: empty)
+        #expect(translate?.yieldsToCaret(in: empty) == true)
         // ⌘⇧C is reserved, and a field has no claim on it.
         let copy = binding(for: KeyChord(KeyBindings.copyAddressChord, .c), in: empty)
         #expect(copy?.yieldsToCaret(in: empty) == false)
@@ -142,12 +116,10 @@ struct KeyBindingsTests {
 
     // MARK: Who is asked first
 
-    /// The ring, `⌘⇧C` and the `⌃⌥` row are Savoia's whatever has the focus; everything else is offered to it.
-    @Test func onlyTheRingAndTheControlOptionRowAreReserved() {
+    /// The ring and `⌘⇧C` are Savoia's whatever has the focus; the `⌥⇧` verbs are offered to the page.
+    @Test func onlyTheRingAndCopyAddressAreReserved() {
         for binding in KeyBindings.all {
-            let reserved = binding.scope == .switcher || binding.key.keyCode == .tab
-                || (binding.action == .leaveOverview && binding.scope == .row) || binding.action == .copyAddress || binding.modifiers == .exactly([.control, .option])
-                || binding.modifiers == .exactly([.control, .option, .shift])
+            let reserved = binding.scope == .switcher || binding.key.keyCode == .tab || binding.action == .copyAddress
             #expect((binding.precedence == .reserved) == reserved,
                     "\(binding.spellings.map(\.label)) → \(binding.action) is \(binding.precedence)")
         }
@@ -160,27 +132,15 @@ struct KeyBindingsTests {
         }
     }
 
-    /// The `⌃⌥` row is the Mac's: on Windows `Ctrl+Alt` is AltGr, and `StripKeyLookup` reads this table.
-    @Test func theControlOptionRowIsTheMacsAlone() {
-        let hyper = KeyBindings.all.filter { $0.modifiers == .exactly([.control, .option]) }
-        #if os(macOS)
-        #expect(hyper.contains { $0.action == .focusColumn(-1) })
-        #expect(hyper.contains { $0.action == .focusWorkspace(1) })
-        #else
-        #expect(hyper.isEmpty)
-        #endif
-    }
-
     // MARK: The layout the letters are typed on
 
     @Test func aLetterAnswersByPositionAsWellAsByCharacter() {
-        let fullWidth = KeyBindings.all.first { $0.action == .toggleFullWidth }
-        // «ц» is what the key with W on it reports on the Russian layout, and reading only that is
-        // why ⌥W, ⌥O and ⌥C were dead for anyone not typing in Latin.
-        #expect(fullWidth?.key.matches(code: KeyCode.w.rawValue, character: "ц") == true)
-        // And on a layout that moved W somewhere else, the letter still means the letter.
-        #expect(fullWidth?.key.matches(code: 0, character: "W") == true)
-        #expect(fullWidth?.key.matches(code: 0, character: "q") == false)
+        let pictureInPicture = KeyBindings.all.first { $0.action == .pictureInPicture }
+        // «з» is what the key with P on it reports on the Russian layout.
+        #expect(pictureInPicture?.key.matches(code: KeyCode.p.rawValue, character: "з") == true)
+        // And on a layout that moved P somewhere else, the letter still means the letter.
+        #expect(pictureInPicture?.key.matches(code: 0, character: "P") == true)
+        #expect(pictureInPicture?.key.matches(code: 0, character: "q") == false)
     }
 
     private func binding(for chord: KeyChord, in context: KeyContext) -> KeyBinding? {

@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Draws what `FlightStore` has in the air: the arc from a click to the downloads button.
 ///
-/// An overlay over the strip, never hit-testable: it is a picture of an event, not a control. Both
+/// An overlay over the window, never hit-testable: it is a picture of an event, not a control. Both
 /// ends are measured in the window (the click by AppKit against the content view, the button by
 /// SwiftUI in `.global`), and the overlay subtracts its own origin from each, because the top bar is
 /// outside its safe area and the button lives up there.

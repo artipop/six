@@ -21,7 +21,6 @@ struct TilingLayoutWorkspaceNameTests {
 
     private func layout(viewport: CGSize = CGSize(width: 1600, height: 1000)) -> TilingLayout {
         let layout = TilingLayout()
-        layout.updateViewport(viewport)
         return layout
     }
 
@@ -105,9 +104,11 @@ struct TilingLayoutWorkspaceNameTests {
     /// dozen times a day, and there is nothing to lose by it.
     @Test func anUnnamedRowGoesWithoutAQuestion() {
         let layout = layout()
-        layout.insertColumn(tabID: UUID())
+        let first = UUID()
+        layout.insertColumn(tabID: first)
         let window = UUID()
-        layout.moveColumnToWorkspace(1) // a second row, unnamed
+        layout.moveColumn(tabID: first, in: layout.activeProfileID, toWorkspace: 1) // a second group, unnamed
+        layout.focus(tabID: first)
         layout.insertColumn(tabID: window)
 
         layout.removeColumn(tabID: window)

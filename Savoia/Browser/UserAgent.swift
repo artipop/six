@@ -24,12 +24,7 @@ enum UserAgent {
     /// (`DownloadStore`), where a URLSession has no user agent of WebKit's to inherit and a site that
     /// checks would see `Savoia/1.0 CFNetwork/…` instead of the browser that asked for the file.
     static let full: String = {
-        #if os(macOS)
         let platform = "Macintosh; Intel Mac OS X 10_15_7"
-        #elseif os(iOS)
-        let version = ProcessInfo.processInfo.operatingSystemVersion
-        let platform = "iPhone; CPU iPhone OS \(version.majorVersion)_\(version.minorVersion) like Mac OS X"
-        #endif
         return "Mozilla/5.0 (\(platform)) AppleWebKit/\(webKitBuild) (KHTML, like Gecko) \(applicationName)"
     }()
 
@@ -40,15 +35,10 @@ enum UserAgent {
     /// instead of with this file. Safari's major version has tracked macOS's since 26, which is what
     /// the fallback leans on when Safari can't be found or answers with something odd.
     private static let safariVersion: String = {
-        #if os(macOS)
         guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.Safari"),
               let version = Bundle(url: url)?.infoDictionary?["CFBundleShortVersionString"] as? String,
               version.range(of: "^[0-9]+(\\.[0-9]+)*$", options: .regularExpression) != nil
         else { return "\(ProcessInfo.processInfo.operatingSystemVersion.majorVersion).0" }
         return version
-        #elseif os(iOS)
-        // iOS has no readable Safari bundle; its major version is the system's own.
-        return "\(ProcessInfo.processInfo.operatingSystemVersion.majorVersion).0"
-        #endif
     }()
 }

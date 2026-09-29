@@ -2,16 +2,8 @@
 import AppKit
 import WebKit
 
-/// `SAVOIA_KEY_SELFTEST=1`: what the table answers, for every chord in it, in every context there is.
-///
-/// The Mac this is developed on cannot press its own keys — `screencapture` is black and System
-/// Events is refused, so nothing here can be driven from a terminal (see AGENTS.md). The table
-/// itself can be asked, though, and asking it is most of the question: "does `⌥→` work on a start
-/// page" is `KeyBindings` plus a `KeyContext`, and both are values. What is left over — that a local
-/// monitor beats a focused `WKWebView` to the key — is the one thing that was never in doubt.
-///
-/// It prints a matrix, not a verdict: a row per chord, a column per context, and the action each
-/// pair lands on. A binding that used to go quiet somewhere shows up as a gap you can see.
+/// `SAVOIA_KEY_SELFTEST=1`: what the table answers, for every chord in it, in every context there is —
+/// a row per chord, a column per context — and then the same keys posted into the app's own queue.
 enum KeySelfTest {
     static func run() {
         let contexts: [(String, KeyContext)] = [
@@ -20,34 +12,15 @@ enum KeySelfTest {
             ("typed-in field", KeyContext(window: .main, field: .init(kind: .singleLine, hasTextBefore: true, hasTextAfter: true))),
             ("document", KeyContext(window: .main, field: .init(kind: .multiLine, hasTextBefore: true, hasTextAfter: true))),
             ("sheet", KeyContext(window: .elsewhere)),
-            ("ring open", KeyContext(window: .main, isSwitching: true)),
-            ("overview", KeyContext(window: .main, isOverview: true)),
-            ("renaming", KeyContext(window: .main, field: .init(kind: .singleLine, hasTextBefore: true, hasTextAfter: false), isOverview: true)),
-            ("tabs", KeyContext(window: .main, showsTabs: true))
+            ("ring open", KeyContext(window: .main, isSwitching: true))
         ]
         let chords: [(String, NSEvent.ModifierFlags, KeyCode, String)] = [
-            ("⌥←", .option, .leftArrow, ""),
-            ("⌥→", .option, .rightArrow, ""),
-            ("⌥⇧→", [.option, .shift], .rightArrow, ""),
-            ("⌥↑", .option, .upArrow, ""),
-            ("⌥↓", .option, .downArrow, ""),
-            ("⌥Home", .option, .home, ""),
-            ("⌥W", .option, .w, "w"),
-            ("⌥O", .option, .o, "o"),
-            ("⌥C", .option, .c, "c"),
-            // The same three keys under a Russian layout, where `charactersIgnoringModifiers` is what
-            // is printed on the key and not what it means. Reading only that is why these were dead.
-            ("⌥W (ru)", .option, .w, "ц"),
-            ("⌥O (ru)", .option, .o, "щ"),
             ("⌥⇧T", [.option, .shift], .t, "t"),
             ("⌥⇧H", [.option, .shift], .h, "h"),
             ("⌥⇧P", [.option, .shift], .p, "p"),
             ("⌥⇧P (ru)", [.option, .shift], .p, "з"),
             ("⌘⇧C", [.command, .shift], .c, "c"),
             ("⌘⇧C (ru)", [.command, .shift], .c, "с"),
-            ("⌃⌥←", [.control, .option], .leftArrow, ""),
-            ("⌃⌥⇧↓", [.control, .option, .shift], .downArrow, ""),
-            ("⌃⌥O", [.control, .option], .o, "o"),
             ("⌃Tab", .control, .tab, "\t"),
             ("⌃⇧Tab", [.control, .shift], .tab, "\t"),
             ("⌃→", .control, .rightArrow, ""),
@@ -80,15 +53,6 @@ enum KeySelfTest {
 
     private static func label(_ action: KeyAction) -> String {
         switch action {
-        case .focusColumn(let step): return step < 0 ? "focus ←" : "focus →"
-        case .moveColumn(let step): return step < 0 ? "move ←" : "move →"
-        case .focusColumnEdge(let last): return last ? "last" : "first"
-        case .focusWorkspace(let step): return step < 0 ? "ws ↑" : "ws ↓"
-        case .moveColumnToWorkspace(let step): return step < 0 ? "→ws ↑" : "→ws ↓"
-        case .toggleFullWidth: return "full width"
-        case .toggleSplit: return "split"
-        case .toggleOverview: return "overview"
-        case .toggleCenterFocus: return "centre"
         case .translateSelection: return "translate"
         case .highlightSelection: return "highlight"
         case .pictureInPicture: return "picture"
@@ -97,17 +61,11 @@ enum KeySelfTest {
         case .walkSwitcher(let step): return step < 0 ? "card ←" : "card →"
         case .landSwitcher: return "land"
         case .cancelSwitcher: return "cancel"
-        case .leaveOverview: return "leave overview"
         }
     }
 
-    /// The other half, and the half a matrix cannot answer: does a key posted into Savoia's own event
-    /// queue actually reach the router and move the row?
-    ///
-    /// `NSApp.postEvent` needs no Accessibility — it is the app's own queue, and a local monitor is
-    /// exactly what pulls events out of it — so this is as close to a finger on the key as this Mac
-    /// can get. It opens three windows, walks them with `⌥→` / `⌥←`, steps a workspace with `⌥↓`,
-    /// and says after each press which window the row is on.
+    /// The other half: keys posted into Savoia's own event queue (`NSApp.postEvent` needs no
+    /// Accessibility), through the real router. Leaves the tabs as it found them.
     static func live(_ browser: BrowserState) async {
         NSApp.activate()
         var candidate: NSWindow?
@@ -123,135 +81,19 @@ enum KeySelfTest {
         }
         window.makeKeyAndOrderFront(nil)
         note("window \(window.windowNumber) \(type(of: window)) — sheet: \(window.isSheet), parent: \(window.parent != nil)")
-        // Enough windows to have somewhere to walk to, and not one more: this runs against the dev
-        // profile's real row, and a test that left two windows behind on every launch would be a
-        // test that grows a row.
-        let strip = browser.layout.strip(for: browser.selectedProfileID)
-        let here = strip.workspaces.indices.contains(browser.layout.focusedWorkspaceIndex)
-            ? strip.workspaces[browser.layout.focusedWorkspaceIndex].columns.count : 0
-        for _ in 0..<max(0, 3 - here) { _ = browser.newTab() }
+
+        let first = browser.newTabAtEnd()
+        let second = browser.newTabAtEnd()
         try? await Task.sleep(for: .milliseconds(400))
-        note("row: \(row(browser))")
-        // Off the start page's field once the arrows have had their go at it: an `⌥` letter in a field
-        // types its character now («ø» for ⌥O), and the question below is the row's, not the field's.
-        // `KeySelfTestPage` asks the field's.
-        var releasedField = false
-        for (name, flags, code) in [
-            ("⌥→", NSEvent.ModifierFlags.option, KeyCode.rightArrow),
-            ("⌥→", .option, .rightArrow),
-            ("⌥←", .option, .leftArrow),
-            ("⌥↓", .option, .downArrow),
-            ("⌥↑", .option, .upArrow),
-            ("⌥W", .option, .w),
-            ("⌥W (back)", .option, .w),
-            ("⌥O", .option, .o),
-            ("⌥O", .option, .o)
-        ] {
-            if code == .w, !releasedField { _ = window.makeFirstResponder(nil); releasedField = true }
-            post(flags: flags, code: code, in: window)
-            try? await Task.sleep(for: .milliseconds(350))
-            note("\(name) → \(row(browser))")
-        }
+        note("tabs: \(selection(browser))")
 
-        // The ends of the row, where a step has nowhere to go and the edge lights instead
-        // (`TilingLayout.hitWall`). The empty workspace at the bottom is the sharpest case and the one
-        // that was reported: a row with nothing on it is a wall on *both* sides, so ⌥← and ⌥→ in
-        // turn light one edge and then the other, and the light must not travel between them.
-        for (name, flags, code) in [
-            ("⌥↓ (to the empty one)", NSEvent.ModifierFlags.option, KeyCode.downArrow),
-            ("⌥←", .option, .leftArrow),
-            ("⌥→", .option, .rightArrow),
-            ("⌥←", .option, .leftArrow),
-            ("⌥↑ (back)", .option, .upArrow)
-        ] {
-            post(flags: flags, code: code, in: window)
-            // Read while the flash is still lit. `wallGlow` is set to 1 and then to 0 by a task a
-            // beat later — SwiftUI interpolates what is *drawn*, so the stored number is back to
-            // zero long before a step has finished settling, and a reading taken then says nothing.
-            try? await Task.sleep(for: .milliseconds(80))
-            note("\(name) → \(row(browser))")
-            try? await Task.sleep(for: .milliseconds(300))
-        }
-
-        // ⌥S, and then the row walked *through* the pair it makes. A split is the one thing that can
-        // make ⌥→ land twice in the same column, so the interesting lines are the two in the middle:
-        // "window 2/2, half 1/2" and then "half 2/2" without the window number moving. The last press
-        // puts them back in the row, so this leaves it as it found it — and if it ever does not, the
-        // window count on the line after says so.
-        // The page is made first responder by hand once, because a click is the only other way to
-        // do it and this machine cannot click (AGENTS.md). Everything after it is the question: does
-        // the keyboard follow the row's focus, or stay on the page it was given to? The `keys …`
-        // half of each line answers, and its **width** says which pane holds them — half a column or
-        // a whole one.
-        if let page = webView(in: window) { _ = window.makeFirstResponder(page) }
-        // A row of start pages has no page to hand it to, and the caret in a start page's field would
-        // take ⌥S as «ß» — the field's, and not the question here.
-        if window.firstResponder is NSText { _ = window.makeFirstResponder(nil) }
-        // From a known state: this runs against the dev profile's real row, and in a row that
-        // already has a split under the focus the first ⌥S un-splits instead — which reads as the
-        // key doing the opposite of what it says and cost a round of believing it.
-        if browser.layout.isSplit {
-            note("the focused column was already split; putting it back first")
-            browser.toggleSplit()
-            try? await Task.sleep(for: .milliseconds(350))
-        }
-        for (name, flags, code) in [
-            ("⌥S (split)", NSEvent.ModifierFlags.option, KeyCode.s),
-            ("⌥←", .option, .leftArrow),
-            ("⌥→", .option, .rightArrow)
-        ] {
-            post(flags: flags, code: code, in: window)
-            try? await Task.sleep(for: .milliseconds(350))
-            note("\(name) → \(row(browser))")
-        }
-
-        if window.firstResponder is NSText { _ = window.makeFirstResponder(nil) } // a start page's half
-        post(flags: .option, code: .s, in: window)
-        try? await Task.sleep(for: .milliseconds(350))
-        note("⌥S (back) → \(row(browser))")
-
-        await splitKeyboard(browser, in: window)
-
-        // A window crossing workspaces and coming back, with the ring asked about while it stands
-        // over there on its own. The pair is here because it crashed Savoia for as long as it existed
-        // — two `WebView`s over one `WebPage`, the leaving row's removal transition against the
-        // arriving row's build — and a key that takes the browser down is what a key test is for.
-        // It leaves the row as it found it.
-        post(flags: [.option, .shift], code: .downArrow, in: window)
-        try? await Task.sleep(for: .milliseconds(500))
-        note("⌥⇧↓ → \(row(browser))")
-        post(flags: .control, code: .tab, in: window)
-        try? await Task.sleep(for: .milliseconds(350))
-        note("⌃⇥ in a row of one → ring \(browser.switcher.ring.count)")
-        browser.cancelWindowSwitch()
-        post(flags: [.option, .shift], code: .upArrow, in: window)
-        try? await Task.sleep(for: .milliseconds(500))
-        note("⌥⇧↑ → \(row(browser))")
-
-        // ⌃⇥ holds a ring of the windows on *this* row, and showing that it is this row and not
-        // the whole strip needs a window standing somewhere else. It is opened and closed here
-        // rather than carried there with ⌥⇧↓ because setup is not what this is testing — that key
-        // has a line of its own above.
-        //
         // The ring is opened by the key alone — nothing posts a `flagsChanged`, so ⌃ never comes up
-        // and the ring stays open long enough to be read.
-        let elsewhere = browser.newTab(url: nil, in: browser.selectedProfileID,
-                                       workspace: browser.layout.focusedWorkspaceIndex + 1,
-                                       activate: false)
-        try? await Task.sleep(for: .milliseconds(300))
+        // and the ring stays open long enough to be read. The caret is still in the address field,
+        // where an arrow would otherwise be the caret's.
         post(flags: .control, code: .tab, in: window)
         try? await Task.sleep(for: .milliseconds(350))
-        let now = browser.layout.strip(for: browser.selectedProfileID)
-        let inThisRow = now.workspaces.indices.contains(browser.layout.focusedWorkspaceIndex)
-            ? now.workspaces[browser.layout.focusedWorkspaceIndex].columns.count : 0
-        let everywhere = now.workspaces.reduce(0) { $0 + $1.columns.count }
-        note("⌃⇥ → ring \(browser.switcher.ring.count), row \(inThisRow), strip \(everywhere)")
-        // The arrows over that same ring, **with the caret still in the address field** — which is
-        // where a launched window puts it, and the state the whole bug lived in: an arrow belongs to
-        // a caret while there is text to walk over, and the ring being open is the one thing that
-        // outranks that. Measured here rather than after the keyboard has been handed to a page,
-        // because with no field in play the old code passed too and said nothing.
         let ringCard = browser.switcher.index
+        note("⌃⇥ → ring \(browser.switcher.ring.count), lands on \(browser.switcher.selection == first.id ? "the tab before" : "another")")
         post(flags: .control, code: .rightArrow, in: window)
         try? await Task.sleep(for: .milliseconds(250))
         let steppedRight = browser.switcher.index
@@ -259,40 +101,21 @@ enum KeySelfTest {
         try? await Task.sleep(for: .milliseconds(250))
         note("⌃→ ⌃← over the ring, caret in \(keyboard(NSApp.keyWindow ?? NSApp.mainWindow))"
             + " → card \(ringCard) → \(steppedRight) → \(browser.switcher.index)")
-        browser.cancelWindowSwitch()
-        browser.closeTab(elsewhere.id) // the row is left exactly as it was found
+        post(flags: .control, code: .escape, in: window)
+        try? await Task.sleep(for: .milliseconds(250))
+        note("⌃Esc → ring open \(browser.switcher.isOpen), \(selection(browser))")
 
-        await overviewReturn(browser, in: window)
-        await pageFirst(browser, in: window)
+        browser.closeTab(second.id, remembering: false)
+        browser.closeTab(first.id, remembering: false)
+        try? await Task.sleep(for: .milliseconds(300))
         await menuKeys(browser, in: window)
-    }
-
-    /// `↩` in the overview goes into the focused window. The focus is moved one column first, so
-    /// "left the overview" and "left it onto the window the focus was moved to" are two answers and
-    /// not one; `⌥O`, pressed the same way, is the control that says the keys arrive at all.
-    private static func overviewReturn(_ browser: BrowserState, in window: NSWindow) async {
-        let start = browser.selectedTab?.id
-        // The ring above leaves the caret in the address field, where ⌥O types «ø».
-        _ = window.makeFirstResponder(nil)
-        post(flags: .option, code: .o, in: window)
-        try? await Task.sleep(for: .milliseconds(700))
-        let opened = browser.layout.isOverview
-        post(flags: .option, code: .leftArrow, in: window)
-        try? await Task.sleep(for: .milliseconds(500))
-        let moved = browser.selectedTab?.id
-        post(flags: [], code: .returnKey, in: window)
-        try? await Task.sleep(for: .milliseconds(700))
-        note("⌥O → overview \(opened), ⌥← → moved \(moved != start), ↩ (responder \(responder(window))) → overview \(browser.layout.isOverview), on the moved-to window \(browser.selectedTab?.id == moved)")
-        if browser.layout.isOverview { browser.exitOverview() }
-        if let start { browser.selectTab(start) }
-        try? await Task.sleep(for: .milliseconds(500))
     }
 
     /// The `⌘` keys, which are menu items rather than table rows — here for the same doubt the
     /// table was written to settle, pointing the other way.
     ///
     /// A key equivalent is offered to the key window first and to the main menu second, so a focused
-    /// `WKWebView` stands in front of every menu item Savoia has; WebKit keeps `⌥←` exactly that way.
+    /// `WKWebView` stands in front of every menu item Savoia has.
     /// Whether it also keeps `⌘[` and `⌘R` is not a question reading its source answers, so the page
     /// is made first responder **by hand** for the second round — without that this measures only
     /// the easy case, where the address field has the focus and nothing is competing for the key.
@@ -348,34 +171,22 @@ enum KeySelfTest {
         try? await Task.sleep(for: .milliseconds(600))
         note("⌘T (the control) → windows \(before) → \(browser.tabs.count)")
         if let opened = browser.selectedTab, opened.id != tab.id { browser.closeTab(opened.id) }
-        browser.closeTab(tab.id) // as with the row, nothing is left behind
+        browser.closeTab(tab.id)
     }
 
     private static func describe(_ tab: BrowserTab) -> String {
         "\(tab.currentURL?.absoluteString ?? "—"), back \(tab.canGoBack), forward \(tab.canGoForward)"
     }
 
-    /// Who has the keyboard, and — when it is a view — how wide it is. The width is what tells one
-    /// half of a split from the other and from a whole column: the row's focus and AppKit's first
-    /// responder are two different things (`WebViewResponder`), and this is the line that says so.
+    /// Who has the keyboard, and — when it is a page — whose it is (`WebViewResponder`).
     private static func keyboard(_ window: NSWindow?) -> String {
         guard let window else { return "no key window" }
         guard let responder = window.firstResponder else { return "none" }
         let name = String(describing: type(of: responder))
         guard let view = responder as? NSView else { return name }
-        // The width alone cannot tell one half of a split from the other — they are the same width —
-        // so the window that owns the view is named, and whether that is the window the row has the
-        // focus on. "disagrees" is the bug this line was added for.
         let owner = WebViewResponder.shared.owner(of: responder)
         let owned = owner.map { String($0.uuidString.prefix(8)) } ?? "unknown"
         return "\(name) \(Int(view.bounds.width))pt \(owned)"
-    }
-
-    /// Whether the keyboard is where the row's focus is. Silent when no page holds the keyboard at
-    /// all — a text field having it is not a disagreement, it is `⌘L`.
-    private static func agreement(_ focused: UUID?, _ window: NSWindow?) -> String {
-        guard let owner = WebViewResponder.shared.owner(of: window?.firstResponder) else { return "" }
-        return owner == focused ? " (agrees)" : " (DISAGREES)"
     }
 
     private static func responder(_ window: NSWindow) -> String {
@@ -392,147 +203,11 @@ enum KeySelfTest {
         return nil
     }
 
-    /// **Does the keyboard follow the row's focus?** The question a split made worth asking, and
-    /// the one that needs a setup of its own.
-    ///
-    /// Two windows with **real pages**, because this is a question about `WKWebView`s and the
-    /// windows the rest of this test uses have none: Savoia's start page is SwiftUI, so a split of two
-    /// of them has nothing for a first responder to be, and the first version of this measured
-    /// exactly that and reported the window itself holding the keys. And the field is let go of by
-    /// hand, because a launched window hands the keyboard to the address field and
-    /// `WebViewResponder` deliberately never takes it off a text field.
-    ///
-    /// `(agrees)` is the whole answer, and it has to survive the focus moving to the other half —
-    /// which is a *click* on it and not an arrow key any more: a split is one stop in the row, and
-    /// the halves stand side by side where a click reaches either of them. `(DISAGREES)` is the bug
-    /// this was written for — one half highlighted while what you type lands in the other. The two
-    /// windows are closed at the end, so the row is left as it was found.
-    private static func splitKeyboard(_ browser: BrowserState, in window: NSWindow) async {
-        guard let blank = URL(string: "about:blank") else { return }
-        let left = browser.newTab(url: blank)
-        let right = browser.newTab(url: blank)
-        try? await Task.sleep(for: .seconds(1))
-        browser.selectTab(left.id)
-        try? await Task.sleep(for: .milliseconds(300))
-
-        post(flags: .option, code: .s, in: window)
-        try? await Task.sleep(for: .milliseconds(400))
-        note("two pages, ⌥S → \(row(browser))")
-
-        window.makeFirstResponder(nil)
-        WebViewResponder.shared.focus(browser.selectedTabID)
-        try? await Task.sleep(for: .milliseconds(150))
-        note("keyboard handed to the focused half → \(row(browser))")
-
-        // What a click on the other half does, which is how the focus crosses a split now.
-        browser.selectTab(right.id)
-        try? await Task.sleep(for: .milliseconds(400))
-        note("focus to the other half → \(row(browser))")
-        browser.selectTab(left.id)
-        try? await Task.sleep(for: .milliseconds(400))
-        note("back again → \(row(browser))")
-
-        // **⌃Tab, twice over.** The ring stops at the column everywhere except the column you are
-        // standing in, so two answers have to come out of the same key.
-        //
-        // Here, having just been on both halves, one ⌃⇥ has to land on the
-        // other half — the complaint this was written for was that it threw you at the column next
-        // door instead. `ring` counts the windows of this column separately and the rest by column,
-        // so it comes out one *more* than the number of columns.
-        let windows = browser.layout.focusedWorkspace?.columns.flatMap(\.tabIDs).count ?? 0
-        let columns = browser.layout.focusedWorkspace?.columns.count ?? 0
-        post(flags: .control, code: .tab, in: window)
-        try? await Task.sleep(for: .milliseconds(350))
-        let landing = browser.switcher.selection
-        note("⌃⇥ inside a split → ring \(browser.switcher.ring.count), columns \(columns), windows \(windows),"
-            + " lands on \(landing == right.id ? "the other half" : landing == left.id ? "itself" : "another column")")
-        // What the panel is actually showing, card by card. A ring that reads correctly by the
-        // numbers can still put the same picture on the screen twice — which is how the halves of
-        // the focused column arrived, each card drawing the whole pair — and a count cannot say so.
-        note("the cards: " + ringCards(browser))
-        browser.cancelWindowSwitch()
-        try? await Task.sleep(for: .milliseconds(200))
-
-        // The same ring, from the other half. The pair has to be drawn in the same order both times:
-        // in the row those two are always left then right, and a row that swapped them from one
-        // press to the next asked you to read the pair again every time. Only the `*` should move.
-        post(flags: .option, code: .rightArrow, in: window)
-        try? await Task.sleep(for: .milliseconds(350))
-        post(flags: .control, code: .tab, in: window)
-        try? await Task.sleep(for: .milliseconds(350))
-        note("the cards, from the other half: " + ringCards(browser))
-
-        // The arrows, while the ring is up. They walk the row as it is drawn, so the index has to
-        // move by one card and come back — the one thing ⌃Tab's own step cannot be asked, because it
-        // walks memory and lands wherever that stop happens to be drawn.
-        let before = browser.switcher.index
-        post(flags: .control, code: .rightArrow, in: window)
-        try? await Task.sleep(for: .milliseconds(250))
-        let afterRight = browser.switcher.index
-        post(flags: .control, code: .leftArrow, in: window)
-        try? await Task.sleep(for: .milliseconds(250))
-        note("⌃→ then ⌃← over the ring → card \(before) → \(afterRight) → \(browser.switcher.index)")
-        browser.cancelWindowSwitch()
-        try? await Task.sleep(for: .milliseconds(250))
-
-        // And from a window that is *not* in the pair, the same key has to go back to where it came
-        // from — the column, with the half it was last in — rather than into the split's other half.
-        post(flags: .option, code: .leftArrow, in: window)
-        try? await Task.sleep(for: .milliseconds(350))
-        post(flags: .control, code: .tab, in: window)
-        try? await Task.sleep(for: .milliseconds(350))
-        let back = browser.switcher.selection
-        note("⌃⇥ from the window before it → lands on \(back == left.id ? "the half it came from" : "something else"),"
-            + " ring \(browser.switcher.ring.count)")
-        browser.cancelWindowSwitch()
-        try? await Task.sleep(for: .milliseconds(200))
-
-        browser.closeTab(right.id, remembering: false)
-        browser.closeTab(left.id, remembering: false)
-        try? await Task.sleep(for: .milliseconds(300))
-        note("the two pages closed → \(row(browser))")
-    }
-
-    /// Every card in the ring as it is drawn: what it stands for, how wide it is, and what is in it.
-    /// The one thing a card count cannot tell you is whether two of them look the same.
-    private static func ringCards(_ browser: BrowserState) -> String {
-        browser.switcher.ring.enumerated().map { position, id in
-            // The id and not only the title: two windows in one row can be the same page, and a
-            // line of identical titles cannot say whether an order was kept or swapped — which is
-            // the question this was printed for.
-            let name = browser.tab(id)?.title.prefix(10) ?? "?"
-            let width = browser.ringCardIsHalfWide(id) ? "half" : "whole"
-            let chosen = position == browser.switcher.index ? "*" : ""
-            return "\(chosen)[\(width): \(id.uuidString.prefix(4)) \(name)]"
-        }.joined(separator: " ")
-    }
-
-    /// Which window in the row is focused, and how the row is showing it.
-    static func row(_ browser: BrowserState) -> String {
-        let layout = browser.layout
-        let strip = layout.strip(for: browser.selectedProfileID)
-        let workspace = strip.workspaces.indices.contains(layout.focusedWorkspaceIndex)
-            ? strip.workspaces[layout.focusedWorkspaceIndex] : nil
-        let column = workspace.flatMap { $0.focusedColumn?.focusedTabID }
-        let position = workspace.flatMap { space in column.flatMap { id in space.columns.firstIndex { $0.holds(id) } } }
-        // Which half of a split is focused, when the window is sharing its column. A row walked with
-        // ⌥→ reads identically with and without a split until this says otherwise: both are "window
-        // 2 of 3", and only one of them is standing in half a column.
-        let half = workspace.flatMap { space -> String? in
-            guard let index = position, space.columns.indices.contains(index), space.columns[index].isSplit
-            else { return nil }
-            return ", half \(space.columns[index].pane + 1)/2"
-        }
-        // The wall belongs here for the same reason the focus does: it is what the row answered
-        // with, and on an end of the row it is the *only* thing it answered with.
-        let wall = layout.wallGlow > 0.005 ? layout.wall.map { ", wall \($0) \(String(format: "%.2f", layout.wallGlow))" } : nil
-        return "workspace \(layout.focusedWorkspaceIndex + 1)/\(strip.workspaces.count),"
-            + " window \(position.map { $0 + 1 } ?? 0)/\(workspace?.columns.count ?? 0)"
-            + (half ?? "")
-            + ", keys \(keyboard(NSApp.keyWindow ?? NSApp.mainWindow))"
-            + agreement(column, NSApp.keyWindow ?? NSApp.mainWindow)
-            + ", fill \(layout.fill)\(layout.isOverview ? ", overview" : "")"
-            + (wall ?? "")
+    /// Which tab is selected, and who has the keyboard.
+    static func selection(_ browser: BrowserState) -> String {
+        let order = browser.tabOrder()
+        let position = browser.selectedTabID.flatMap { order.firstIndex(of: $0) }
+        return "tab \(position.map { $0 + 1 } ?? 0)/\(order.count), keys \(keyboard(NSApp.keyWindow ?? NSApp.mainWindow))"
     }
 
     static func post(flags: NSEvent.ModifierFlags, code: KeyCode, in window: NSWindow) {
@@ -567,11 +242,8 @@ enum KeySelfTest {
         case .returnKey, .keypadEnter: return "\r"
         case .c: return "c"
         case .h: return "h"
-        case .o: return "o"
-        case .s: return "s"
         case .p: return "p"
         case .t: return "t"
-        case .w: return "w"
         }
         return String(UnicodeScalar(UInt32(scalar)) ?? " ")
     }

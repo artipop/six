@@ -27,16 +27,14 @@ from [`Savoia/Localizable.xcstrings`](../Savoia/Localizable.xcstrings) rather th
 |---|---|
 | [controls.md](controls.md) | every mouse control, and the keyboard in short |
 | [hotkeys.md](hotkeys.md) | every key binding, grouped by where it works |
-| [layout.md](layout.md) | the tiling layout: model, geometry, gestures |
+| [layout.md](layout.md) | tabs and groups: the model underneath, side by side, the ⌃Tab ring, groups by meaning |
 | [start-page.md](start-page.md) | the start page, search and suggestions |
 | [architecture.md](architecture.md) | modules and how state flows |
-| [platforms.md](platforms.md) | the macOS and iOS targets, and what differs |
-| [linux.md](linux.md) | the Linux front on WebKitGTK: the module split, what is built, and what GTK does differently |
 | [extensions.md](extensions.md) | browser extensions: installing from a file, a controller per profile, and the measured boundary of what a `WebPage` browser can host |
 | [links.md](links.md) | links: the context menu Savoia had to take over, ⌘-click, and downloads without `WKDownload` |
-| [sharing.md](sharing.md) | the Share menu both ways: the share button, and the extension that takes a page, text or a file from another app into a workspace or the bookmarks |
+| [sharing.md](sharing.md) | the Share menu both ways: the share button, and the extension that takes a page, text or a file from another app into a tab group or the bookmarks |
 | [blocking.md](blocking.md) | ads and trackers: filter lists, `WKContentRuleList`, the shield and the per-site allowlist |
-| [permissions.md](permissions.md) | site permissions: the camera and microphone per site, the page's own dialogs, what a `WebPage` browser still cannot ask for, and the same questions on Linux |
+| [permissions.md](permissions.md) | site permissions: the camera and microphone per site, the page's own dialogs, and what a `WebPage` browser still cannot ask for |
 | [certificates.md](certificates.md) | extra certificate authorities: the Минцифры CA Savoia ships switched off, what a switch actually does, and importing your own |
 | [bookmarks.md](bookmarks.md) | bookmarks: readable Markdown copies per profile, on-device embeddings, search from the assistant and MCP |
 | [assistant.md](assistant.md) | the assistant: verbs at a selection, at a caret and on the ⌘E line, over Foundation Models |
@@ -48,13 +46,11 @@ from [`Savoia/Localizable.xcstrings`](../Savoia/Localizable.xcstrings) rather th
 | [test-suites.md](test-suites.md) | external test suites Savoia can be run against — wpt where Savoia answers rather than WebKit, extensions, blocking, privacy, MCP, certificates — and the shared stand |
 | [accessibility.md](accessibility.md) | the accessibility overlay and `get_accessibility_tree`: WebKit's accessibility tree as the agent's eyes, read through `AXUIElement` by `Savoia --ax-read` — a second process, because Savoia asking itself deadlocks |
 | [localization.md](localization.md) | the String Catalogs, English and Russian, and the line between what a person reads and what a model reads |
-| [android.md](android.md) | the fourth front end: Kotlin and Compose on the system WebView, what it shares with the Mac and what it deliberately does not |
 | [build.md](build.md) | toolchain, SDK override, sandbox |
-| [deep-research.md](deep-research.md) | deep research: document windows, the run, the writing tools, Save As, highlighted passages |
-| [parity.md](parity.md) | the working list: what the Windows front owes the Mac, block by block, and what Linux takes along |
-| [todo.md](todo.md) | what is planned and not built: geolocation and screen sharing, passkeys, CloudKit sync, SQLite + RAG, floating windows, and what the Linux front still owes |
+| [deep-research.md](deep-research.md) | deep research: document tabs, the run, the writing tools, Save As, highlighted passages |
+| [todo.md](todo.md) | what is planned and not built: geolocation and screen sharing, passkeys, CloudKit sync, SQLite + RAG, floating windows |
 | [passkeys.md](passkeys.md) | plan: WebAuthn / passkeys and password autofill in a third-party WebKit browser |
 | [speech.md](speech.md) | dictation into the agent panel and the ⌘E line, on the device: Parakeet and Silero on the Neural Engine, the self-test, and what is left |
-| [storage.md](storage.md) | plan: where data lives, the portable core and the Apple/Linux adapters behind four protocol seams (diagram) |
+| [storage.md](storage.md) | where data lives, and the core behind four protocol seams (diagram) |
 | [sync.md](sync.md) | plan: CloudKit sync of history and other records; what CloudKit can carry (and vectors) |
 | [webmcp.md](webmcp.md) | plan (in Russian): WebMCP — pages declaring tools for agents through `document.modelContext`, as Savoia's own polyfill since WebKit opposes it |

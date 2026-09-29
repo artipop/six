@@ -3,16 +3,10 @@ import AppKit
 import SwiftUI
 import WebKit
 
-/// Which window's page has the keyboard, as distinct from which window the row has the focus on.
-///
-/// The two used to be able to disagree, and a split is where that stopped being invisible. `⌥→`
-/// moves the row's focus: the accent border steps to the next window and everything keyed off the
-/// selection — the address field, `⌘W`, the assistant — follows it. What did not follow was AppKit's
-/// **first responder**, which stayed on the `WKWebView` it was last given by a click. So the arrow
-/// keys went on scrolling the window you had just walked away from, and text went on arriving in its
-/// text field. In a row that was hard to see, because the window you left is off the edge of the
-/// screen a moment later; two halves of one column are both in front of you, and one of them is
-/// visibly highlighted while your typing lands in the other.
+/// Which tab's page has the keyboard, as distinct from which tab is selected. Everything keyed off
+/// the selection follows it — the address field, `⌘W`, the assistant — but AppKit's first responder
+/// stays on the `WKWebView` it was last given, and with two tabs side by side your typing would land
+/// in the half that is not highlighted.
 ///
 /// SwiftUI has no handle on the `WKWebView` inside a `WebView`, and there is no route from a
 /// `WebPage` to it either, so each pane leaves one here: `WebViewResponder.Handle` is a zero-size

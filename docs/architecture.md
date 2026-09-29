@@ -5,18 +5,18 @@ The entry point is `SavoiaMain`, not the `App`: with `--mcp` the process never t
 `MCPStdioBridge` instead (see [mcp](mcp.md)).
 
 ```
-Savoia/Tiling       TilingLayout (workspaces, columns, geometry, focus/move ops), TilingScrollMonitor (scroll gestures)
+Savoia/Tiling       TilingLayout (tab groups and columns — a tab, or two side by side — focus and moves)
 Savoia/Input       KeyBindings + KeyContext (the table and what has the keyboard — in SavoiaCore, tested against
                 docs/hotkeys.md), KeyEvents (NSEvent → those values), KeyRouter (the one key monitor)
 Savoia/Browser     Profile, BrowserTab (WebPage), LivePageCache (the live-page budget), BrowserState, History, SitePermissions + PageDialogs (camera/microphone per site, the page's own dialogs), SearchEngine, SearchSuggestions, WebSearch
 Savoia/Bookmarks   Bookmark (tables), ReadablePage (page → Markdown), Embedder + MLXEmbedder (multilingual-e5 over MLX), BookmarkStore (files, vec0 index, search)
-Savoia/Views       ContentView (top bar), TilingStripView (the row + overview), ConfigurationPageView (savoia://configuration/<pane>#<tab>), StartPage, AssistantBar, AgentPanel, HistoryView, BookmarksView
+Savoia/Views       ContentView, TabStripView (tab bar + toolbar), TabPageView (a tab's page), ConfigurationPageView (savoia://configuration/<pane>#<tab>), StartPage, AssistantBar, AgentPanel, HistoryView, BookmarksView
 Savoia/Assistant   ModelChoice/AssistantSettings, AssistantStore (streaming), FoundationModelsCompatibility
 Savoia/ACP         ACPJSON, JSONRPCConnection, ACPTypes, ACPAgent (process), ACPClient (actor), AgentSessionStore
 Savoia/Tools       BrowserToolCatalog (the tools, over BrowserState), BrowserModelTool (Foundation Models adapter)
-Savoia/Documents   TextDocument + DocumentStore (Markdown files behind document windows), Markdown (→ HTML for the preview), Export (Save As, File menu)
+Savoia/Documents   TextDocument + DocumentStore (Markdown files behind document tabs), Markdown (→ HTML for the preview), Export (Save As, File menu)
 Savoia/Highlights  Highlight (the selectors), HighlightStore (highlights.json, re-anchoring on load), HighlightScript (the page-side JS)
-Savoia/Research    ResearchRun + ResearchPreset (the snapshot shape and the prompt), ResearchCoordinator (workspace + document + agent)
+Savoia/Research    ResearchRun + ResearchPreset (the snapshot shape and the prompt), ResearchCoordinator (group + document + agent)
 Savoia/MCP         MCPServer + MCPHost (the catalog over a Unix socket), MCPSocket, MCPStdioBridge (`Savoia --mcp`)
 Savoia/Persistence AppStateSnapshot (the Codable shape), SnapshotStore (a versioned JSON file), StatePersistence (autosave)
 Savoia/Data        AppDatabase (the SQLite file, migrations), ConfigurationStore (the settings table)
@@ -24,24 +24,10 @@ Savoia/Vendor      ClaudeForFoundationModels sources
 Savoia/*.xcstrings Localizable + InfoPlist String Catalogs (English source, Russian) — see [localization](localization.md)
 ```
 
-The Linux front is a second set of modules over some of the same files, built by SwiftPM rather than
-Xcode. Its module boundaries are enforced rather than agreed — see [linux.md](linux.md):
-
-```
-Package.swift          SavoiaCore: the files above that are Foundation-only — TilingLayout, Data/, Persistence/,
-                       Bookmark, History, SearchEngine, SitePermissions — plus the two the fronts without a
-                       snapshot share, StripState and LivePages (compiled away on Apple). Listed, not moved.
-linux/  SavoiaWebKitCore  the WebKitGTK interop, no toolkit: NetworkSession, PageRegistry, Thumbnails,
-                       PermissionRequests, Signal
-        SavoiaWebKit      the page as a widget adwaita can place
-        SavoiaBrowser     BrowserModel, PageScript, Translation, Bookmarks — the Linux Savoia/Browser
-        SavoiaUI          the only module that knows what a toolkit is
-```
-
 ## State
 
 `BrowserState` owns the profiles and the flat list of `BrowserTab`s; `TilingLayout` owns where they sit. A tab's
-`content` is `.web` or `.document(TextDocument)` — a document window is a column like any other, with a
+`content` is `.web` or `.document(TextDocument)` — a document is a tab like any other, with a
 `WebPage` of its own that renders the Markdown preview (and exports it); see [deep-research.md](deep-research.md). The
 `WebPage` is not part of the tab's identity: it comes and goes with the live-page budget (below). A tab exists
 because a column points at it — `newTab` appends a tab and inserts a column, `closeTab` removes both. **The focused
@@ -58,16 +44,15 @@ camera?" to `SitePermissions` and suspends the page until the window's own bar i
 `dialogPresenter`, which is what makes `alert()` and `<input type="file">` work at all. See
 [permissions.md](permissions.md).
 
-Views never mutate `TilingLayout` directly; they call `BrowserState`, which wraps the call in the shared animation
-(`animateLayout`). Strip panning is the exception — it follows the trackpad and is deliberately un-animated.
+Views never mutate `TilingLayout` directly; they call `BrowserState`. See [layout.md](layout.md) for the model.
 
 A `Profile` is a name, a colour, a `WKWebsiteDataStore(forIdentifier:)` and an optional working directory for agents
 (otherwise its scratchpad, `Profiles/<name>/Scratchpad` under Application Support). Switching profiles switches `layout.activeProfileID`, which swaps
-the whole workspace stack.
+every tab and group at once.
 
-### Moving a window to another profile
+### Moving a tab to another profile
 
-**This Window ▸ Move to Profile** (the phone's `⋯` menu, `move_window_to_profile` over MCP) is a **rebuild**, not a
+**Move to Profile** in the page's context menu (`move_window_to_profile` over MCP) is a **rebuild**, not a
 re-filing. A page's data store is fixed when the page is built, so `BrowserState.moveTab(_:toProfile:)` takes the
 window apart, builds one against the other profile's store and puts it in the old one's place, keeping its id — the
 same thing `replaceWithApp` does for a restored app that starts running. Everything keyed by that id goes on
@@ -81,10 +66,9 @@ its content controller with the blocker's rules on it (`pageControllers.forget(i
 with a fresh one), its captured console, and its highlights. That is the point of the move — the page comes back as
 the other profile sees it.
 
-Two things the move does that a close does not. The column leaves a strip that may not be the one on screen, so it
-goes through `TilingLayout.removeColumn(tabID:from:)` rather than the active-strip one; and that call asks nothing
-when it empties a named row, because the question a closed window puts up would arrive over the profile the window
-went *to*. The focus follows the window: it is the one move where the row would otherwise just lose a column.
+Two things the move does that a close does not. The column leaves a profile that may not be the one on screen, so it
+goes through `TilingLayout.removeColumn(tabID:from:)`; and that call asks nothing when it empties a named group,
+because the question a closed tab puts up would arrive over the profile the tab went *to*. The focus follows the tab.
 
 The one window that will not go is a document heading for a private profile. Its text is a file under `Documents/`,
 watched and written a second after every keystroke, and a private profile is the one written down nowhere — so
@@ -110,65 +94,56 @@ private profile can still touch is its agent scratchpad, if an agent is asked to
 
 ## Live pages
 
-A `WebPage` is a web content process — a JavaScript heap, a render tree, timers, a compositor. A strip of a hundred
-windows cannot hold a hundred of them, so Savoia does what every browser does and calls by the same name: it **discards**
-the pages it is unlikely to be asked for and builds them again from the address. Discarding is not closing; the window
-stays in the strip with its title, its address, its back/forward stacks, its scroll offset and a picture of itself.
+A `WebPage` is a web content process — a JavaScript heap, a render tree, timers, a compositor. A hundred tabs
+cannot hold a hundred of them, so Savoia does what every browser does and calls by the same name: it **discards**
+the pages it is unlikely to be asked for and builds them again from the address. Discarding is not closing; the tab
+stays where it is with its title, its address, its back/forward stacks, its scroll offset and a picture of itself.
 
-`LivePageCache` is the budget, one queue for the whole app — every profile, every workspace. That is the point: step
-out to another workspace and back and the windows you just left are at the warm end of the queue with their pages
-still on them.
+`LivePageCache` is the budget, one queue for the whole app — every profile, every group. Switch to another tab and
+back and the one you just left is at the warm end of the queue with its page still on it.
 
 - **Building waits for the focus to settle.** `WebPage()` is a web content process being attached —
   measured at 6–250 ms on the main actor, with the load after it — so doing it inside the click that moved the focus
-  is a third of a second of stuck button, and stepping along the strip would pay it at every window passed. The build
+  is a third of a second of stuck button, and walking the tabs with `⌘⇧]` would pay it at every tab passed. The build
   is scheduled one switch animation later (`LivePageCache.settleDelay`, 350 ms) and cancelled if the focus moves
-  again: hold ⌥→ across ten windows and exactly one page is built, the one you stopped at. A window that already has
-  its page is shown at once, with nothing to wait for.
-- **Pinning and building are different things.** `TilingLayout.visibleTabIDs` — the focused workspace's columns inside
-  the viewport plus half a screen of margin — is *pinned*: never an eviction candidate, so the neighbours peeking in at
-  the edges go on showing whatever pages they still have. Only the **focused** window is *built*. Walking down a
-  restored strip loads one page, the one you stopped at, not one per window you passed; and if you were there recently
-  it is still warm and there is nothing to load at all. `BrowserState.refreshLivePages` follows the layout through
+  again. A tab that already has its page is shown at once, with nothing to wait for.
+- **What is on screen is pinned and built.** `TilingLayout.visibleTabIDs` — the tab in front, and its partner when two
+  are side by side — is never an eviction candidate. `BrowserState.refreshLivePages` follows the layout through
   `withObservationTracking`, so no view has to say anything.
-- **The overview builds nothing and mounts nothing.** The whole strip is on screen there, so everything is pinned and
-  everything is a card — a live page in the overview is a page being laid out and composited at a fraction of its size
-  for a picture of itself, a dozen times over, every time the view moves. The pictures are taken on the way in.
 - **The rest is LRU**, `budget` deep. The default is sized from the machine — about one page per gigabyte of RAM,
   clamped to 8…32. Nothing sets it: it was a picker in the Layout menu, under a status line, and how many web
-  content processes a Mac can carry is not a thing a person knows. `savoia://configuration` ▸ Windows shows the number
+  content processes a Mac can carry is not a thing a person knows. `savoia://configuration` ▸ Tabs shows the number
   and offers no way to change it; `SAVOIA_LIVE_PAGES=n` pins it for measuring.
 - **Guards**, the ones Chrome's Memory Saver uses: a page loading (for the last 20 s — plenty of pages never stop
   loading at all), playing audio or video, or holding a draft in a `textarea` or a filled-in password is skipped and
   the next candidate taken. Deliberately *not* "a field whose value differs from its attribute": that calls every
   search results page unsent input.
 - **Memory pressure** takes a third off the budget on `.warning` — not half: on a small machine that band is the
-  normal state rather than an emergency, and it never goes below a workspace's worth — and keeps only what is on
+  normal state rather than an emergency, and it never goes below what is on screen — and keeps only what is on
   screen on `.critical`. It grows back when the pressure lifts — and, because the system reports a transition and
   nothing guarantees the one that says "normal" ever arrives, a reported band expires after ninety seconds by itself.
   A browser that shrank on a warning it heard once and stayed shrunk for the rest of the launch is the bug you cannot
   see; if the pressure is real, growing back is what makes the system say so again.
-- `SAVOIA_LIVE_PAGES=n` pins the budget and `SAVOIA_PAGE_CACHE_DEBUG=1` narrates evictions on stderr. Measured over one real
-  strip of 31 windows, visiting every one: 22 web content processes and 798 MB with the budget out of the way, 6 and
+- `SAVOIA_LIVE_PAGES=n` pins the budget and `SAVOIA_PAGE_CACHE_DEBUG=1` narrates evictions on stderr. Measured over 31 real
+  pages, visiting every one: 22 web content processes and 798 MB with the budget out of the way, 6 and
   287 MB with it in place.
 
-The cards are real pictures of the pages, taken with `WebPage.exported(as: .image(…))` — the same thing Safari's tab
-overview and Chrome's tab switcher show, and the only thing an app that isn't the compositor can show. It is taken
-when a window leaves the screen, on the way into the overview, and once for a window that has never been drawn;
+The ⌃Tab ring's cards are real pictures of the pages, taken with `WebPage.exported(as: .image(…))` — the same thing
+Safari's tab overview and Chrome's tab switcher show. It is taken when a tab leaves the screen, when the ring opens,
+and once for a tab that has never been drawn;
 rate limited to one per window per three seconds, 400 pt wide, `afterScreenUpdates: false` so nothing is re-rendered
-for it. Measured on the same strip: 4–100 ms each, 15 ms median, off the main actor. `LivePageCache.notePicture`
-keeps the newest `budget × 4` (at least 24) in memory and the rest let go of theirs — a decoded bitmap per window is
+for it. Measured on the same pages: 4–100 ms each, 15 ms median, off the main actor. `LivePageCache.notePicture`
+keeps the newest `budget × 4` (at least 24) in memory and the rest let go of theirs — a decoded bitmap per tab is
 memory too, and giving memory back was the point.
 
 The pictures themselves outlive both the page and the launch: `PageThumbnails` writes each one as a PNG under
 `Application Support/org.deffun.savoia/Thumbnails/<window id>.png`, the way Firefox keeps `moz-page-thumbnails` and Safari keeps its
-snapshots, because an overview full of blank cards after a relaunch is exactly the moment they were for. They are read
-back lazily — when the overview opens, for the windows with nothing in memory — never all at once. What bounds the
-folder is the strip: `prune(keeping:)` drops the pictures of windows that no longer exist, at launch and as they
-close, so there is one file per open window and no more.
+snapshots, because a ring of blank cards after a relaunch is exactly the moment they were for. They are read back
+lazily — when the ring opens, for the tabs with nothing in memory — never all at once. `prune(keeping:)` drops the
+pictures of tabs that no longer exist, at launch and as they close, so there is one file per open tab and no more.
 
 Beside them, one file per **host**: `SiteIcons` keeps the site's own icon under
-`Application Support/org.deffun.savoia/SiteIcons/<host>.icon`, which is what a card falls back to when there is no
+`Application Support/org.deffun.savoia/SiteIcons/<host>.icon`, which the tab bar draws, and what a card falls back to when there is no
 picture of the page yet. The page fetches it, not Savoia — a `URLSession` asking `https://host/favicon.ico` would be a
 second visit to that site from outside the profile it belongs to, with none of its cookies and none of its blocking,
 and a private window would make it as readily as any other. A script reads the page's own `<link rel="icon">` tags,
@@ -179,8 +154,7 @@ those bytes go back as they came for ImageIO to decode. A private profile is giv
 
 On the tab side (`BrowserTab`): `page` builds the page on demand — everything that *talks* to a page goes through it
 (tools, assistant, highlights, export) — while `title`, `currentURL`, `isLoading`, `canGoBack` and the rest answer
-without one, because chrome is evaluated for every column in the strip and reaching for `page` there would keep the
-whole strip live. `discard()` is synchronous on purpose: an `await` on the way out is something holding the page while
+without one, because the tab bar is evaluated for every tab and reaching for `page` there would keep every tab live. `discard()` is synchronous on purpose: an `await` on the way out is something holding the page while
 it waits. What the window needs afterwards is taken earlier, by `rememberViewState()`, while the page is still on
 screen and there is still something to draw and someone to ask.
 
@@ -226,7 +200,7 @@ defence: SwiftUI answers an external open — a link from another app, a Handoff
 for a *window*, and a group happily builds a second one, which puts the same `WebPage`s into a second `WebView`;
 WebKit traps and the process dies. A `Window` scene has nowhere to build, so SwiftUI raises the one that is up and
 delivers to it. With that in place the sanctioned modifiers do the rest: `.onOpenURL` for links and files,
-`.onContinueUserActivity(NSUserActivityTypeBrowsingWeb)` for Handoff from an iPhone, and
+`.onContinueUserActivity(NSUserActivityTypeBrowsingWeb)` for Handoff from another device, and
 `handlesExternalEvents(preferring:allowing:)` with `"*"` saying the one window takes everything.
 
 Two things macOS does not do for us, both in `ExternalOpen.swift`. It leaves whatever app was clicked in front, so
@@ -236,7 +210,7 @@ so `resolve(_:)` opens what it points at rather than the file.
 ## Persistence
 
 Everything that makes up a session — the selected profile, every tab (URL, title and the trail it walked to get
-there) and every profile's strip (workspaces with their names, their columns, focus), the downloads that did not
+there) and every profile's groups (workspaces with their names, their columns, focus), the downloads that did not
 finish, plus the agent chats — is one `AppStateSnapshot`,
 written to `~/Library/Application Support/org.deffun.savoia/state.json` — the folder is the bundle identifier, so a Debug
 build writes to `org.deffun.savoia.dev/` and the two never meet (`AppSupport`, and
@@ -250,8 +224,7 @@ because a profile is the identity `visits`, `bookmarks` and every cookie jar are
 lived only in the snapshot, one file that would not decode cost all of it: the app started with `Profile.defaults`,
 minted fresh `WKWebsiteDataStore` identifiers, and the autosave wrote them over the only copy of the old ones a
 second later. Every login in every profile, gone; the site data on disk orphaned rather than deleted. The snapshot
-still *carries* the profiles, for the fronts that have no table of their own, but on the Mac it is never read back:
-an empty table is a new browser. Losing `state.json` now costs a session, which is what a session snapshot should
+still *carries* the profiles, but it is never read back: an empty table is a new browser. Losing `state.json` now costs a session, which is what a session snapshot should
 cost.
 Two tables and not one because of the sync engine that is not written yet: `profiles(id, name, colorHex, ord)` is
 who the profile is, under an id two Macs could agree on, and may one day be named to a `SyncEngine`;
@@ -270,7 +243,7 @@ rather than left to be overwritten by the fresh one.
 `StatePersistence` reads the snapshot under `withObservationTracking`, so any change to anything it touches — a
 page's URL, a column moving, a chat line — schedules a debounced (1 s) write off the main thread; `NSApplication`'s
 `willTerminate` flushes synchronously. On restore, a `BrowserTab` is created with its saved URL but doesn't load until
-it first comes on screen (or a tool looks at it) — relaunching with a hundred windows fires no requests.
+it first comes on screen (or a tool looks at it) — relaunching with a hundred tabs fires no requests.
 That first load — and the one that rebuilds a discarded window — does not start media by itself: `MediaHold` puts a
 script in Savoia's world that pauses any `play` until a trusted click or key press in that frame. `WebPage.Configuration`
 has no `mediaTypesRequiringUserActionForPlayback` on macOS, and one would hold every later navigation too; the script
@@ -298,11 +271,11 @@ no `UNIQUE` elsewhere, columns only ever added — so turning its `SyncEngine` o
 `visits(id, profileID, url, title, visitedAt)` is history:
 each `BrowserTab` feeds `WebPage.navigations` to `BrowserState`, which records the committed URL under the tab's
 profile and fills in the title when the load finishes. `settings(key, value)` holds the preferences (search engine,
-assistant model, `⌥C`, agent model override) behind the typed `ConfigurationStore`; the Anthropic API key stays in
+assistant model, groups by meaning, agent model override) behind the typed `ConfigurationStore`; the Anthropic API key stays in
 `UserDefaults` — a credential has no business in a table that may sync. `HistoryStore` keeps a `revision` that every write
 bumps, so a view reading through it under observation re-queries on change; searching and ranking run in Swift over
 the profile's recent visits because SQLite's `LIKE`/`lower()` are ASCII-only. The **History** menu lists the selected profile's 20 most recent pages
-(a click opens a new window in the strip); ⌘Y opens `HistoryView` — the profile's whole history, searchable, by day.
+(a click opens a new tab); ⌘Y opens `HistoryView` — the profile's whole history, searchable, by day.
 There is no cap any more. Clearing asks whether to drop the profile's site data too (`BrowserState.clearSiteData`: every
 `WKWebsiteDataStore` type — cookies, local storage, IndexedDB, caches — then the profile's open pages reload from origin). Removing a profile
 removes its history.
@@ -345,22 +318,12 @@ for the outcome later.
 
 ## Views
 
-`ContentView` is a top bar plus `TilingStripView`, with the assistant line overlaid at the bottom and the agent panel as
-an `.inspector`. When ⌘E is pressed over a caret or a selection the same line
-hangs on the web view itself instead (`AnchoredAssistantLine`), as a `HostedOverlay` — SwiftUI drawn over a
-`WKWebView` never sees the mouse. The window uses `.hiddenTitleBar` and the top bar reserves 68 pt for the traffic lights.
+`ContentView` is `TabbedWindowView` — the tab bar, the toolbar with the address field, and the page in front
+(`TabPageView`, or two of them side by side) — with the assistant line overlaid at the bottom, the ⌃Tab ring over
+everything, and the agent panel as an `.inspector`. When ⌘E is pressed over a caret or a selection the same line hangs
+on the web view itself instead (`AnchoredAssistantLine`), as a `HostedOverlay` — SwiftUI drawn over a `WKWebView` never
+sees the mouse. The window uses `.hiddenTitleBar`, and the tab bar keeps room for the traffic lights.
 
-`TilingStripView` draws every workspace as a full-size layer offset vertically by `index - focusedIndex`, and every
-column inside it at an absolute offset from `columnFrames`. That is why switching workspaces or scrolling the strip is
-a single animated offset change rather than a view rebuild — the web views are never re-created.
-
-A column only mounts a web view when it is near the screen *and* its window has a live page; otherwise it draws a card:
-its title over the profile's colour in the strip, and the last picture of the page in the overview. Nowhere else — a
-picture in the strip is only ever seen out of the corner of the eye, at the edge of the screen, in the moment before
-the real page arrives, and a stale soft screenshot flashing where a page is about to be is worse than a card that never
-pretended to be one. Off-screen workspaces mount nothing, mid-gesture included: a web view is a real AppKit view that
-SwiftUI's clipping doesn't reach, and building one while a scroll is still deciding where to land is the worst moment
-for the hitch it costs. They also answer no clicks at all (`allowsHitTesting`): a workspace laid out a screen above is
-laid out over the top bar, and its cards and their shadows reach into it far enough to take a click off a button
-there — which is how the overview button stopped working, intermittently, depending on the window's size. The top bar
-sits in front of the strip (`zIndex`) for the same reason.
+The page under the tab bar is drawn in one `ForEach` keyed by tab, so a tab joining or leaving a pair keeps its view: a
+`WebPage` allows exactly one `WebView`, and a second one built over it traps in `makeViewProvider`. A tab with no live
+page yet draws a placeholder with the site's icon and host until its page is built.

@@ -21,7 +21,7 @@ struct WorkspaceRemovalDialog: ViewModifier {
     func body(content: Content) -> some View {
         let pending = browser.layout.workspaceToRemove
         content.confirmationDialog(
-            Text("Delete the workspace “\(pending?.name ?? "")”?"),
+            Text("Delete the group “\(pending?.name ?? "")”?"),
             isPresented: Binding(get: { pending != nil }, set: { shown in
                 // Dismissed by the escape hatch every dialog has — clicking away, ⎋ — which is not an
                 // answer and must not be read as one. Keeping the row is what "no answer" means.
@@ -31,10 +31,10 @@ struct WorkspaceRemovalDialog: ViewModifier {
             titleVisibility: .visible,
             presenting: pending
         ) { pending in
-            Button("Delete Workspace", role: .destructive) { browser.layout.removeWorkspace(pending.id) }
+            Button("Delete Group", role: .destructive) { browser.layout.removeWorkspace(pending.id) }
             Button("Keep It", role: .cancel) { browser.layout.keepWorkspace(pending.id) }
         } message: { _ in
-            Text("Its last window has been closed. If you keep it, it stays as an empty workspace with its name.")
+            Text("Its last tab has been closed. If you keep it, it stays as an empty group with its name.")
         }
     }
 }

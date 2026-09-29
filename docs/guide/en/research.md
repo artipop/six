@@ -1,22 +1,20 @@
 # Deep research
 
-This is what the row was for. An agent is asked to look into a question; it
-opens the sources **side by side**, and writes the answer into a document that
-stands on the same row as its first column — with links back to the very
-sentences that earned them.
+An agent is asked to look into a question; it opens the sources as tabs in one
+group, and writes the answer into a document that stands first in that same
+group — with links back to the very sentences that earned them.
 
 ```
 ┌──────────────┬──────────────┬──────────────┬──────────────┐
-│  Document    │  aviasales   │  tutu.ru     │  s7.ru       │  ← one workspace,
+│  Document    │  aviasales   │  tutu.ru     │  s7.ru       │  ← one group,
 │  (markdown)  │  OVB → ALA   │  OVB → ALA   │  OVB → ALA   │    "Tickets to KZ"
 └──────────────┴──────────────┴──────────────┴──────────────┘
 ```
 
-The workspace *is* the result: it stays open, survives a relaunch, and can be
-come back to. Close the last window on it and Savoia asks whether to delete the
-workspace with the question on it ([more](/en/layout#workspaces-make-themselves)):
-for one run the answer is keep, for another it is delete, and only the person who
-started it knows which.
+The group *is* the result: it stays open, survives a relaunch, and can be come
+back to. Close its last tab and Savoia asks whether to delete the group named after
+the question: for one run the answer is keep, for another it is delete, and only
+the person who started it knows which.
 
 ## Starting a run
 
@@ -24,14 +22,14 @@ On the `⌘E` line: `research: …` and the question, or `/research` — the act
 stands in the line as a chip — then the question and `⏎`. The run is carried out
 by the agent chosen for the line.
 
-A workspace named after the question is created, with a document in it carrying
+A group named after the question is created, with a document in it carrying
 the question as its heading, and the agent is sent the task.
 
-While it runs, a spinner sits beside the document's name in the top bar and says
+While it runs, a spinner sits beside the document's name in the bar under the tabs and says
 what the agent is doing. At the end it reads *done `<time>`*, *stopped* or the
 error.
 
-A question asked while a research workspace is on screen is a **follow-up** and
+A question asked while a research group is in front is a **follow-up** and
 continues the same document.
 
 ::: tip The bounds are words, not numbers in code
@@ -42,19 +40,19 @@ now: it was edited in the agent panel, which is not there for the moment.
 
 ## Documents
 
-A document is a column like any other: the same width, the same focus, the same
-moves between workspaces, the same overview, the same saved session. In the top
-bar, where a page has its address, a document has **Edit the Markdown /
+A document is a tab like any other: it moves between groups, stands beside a
+page, and is kept in the saved session the same way. In the bar under the tabs,
+where a page has its address, a document has **Edit the Markdown /
 Preview**.
 
 | | |
 |---|---|
 | `⌘⇧N` | a new document |
-| **New Document** in the row's or a column's context menu | the same |
+| **File ▸ New Document** | the same |
 | `⌘S` / `⌘⇧S` | save / save as `.md`, `.html` or `.pdf` |
 
 Until it is saved explicitly a document lives in the application's own folder and
-survives a relaunch; closing the window deletes it. **Save As** is for what is
+survives a relaunch; closing the tab deletes it. **Save As** is for what is
 worth keeping.
 
 A link clicked in the preview never navigates the document away: it focuses the
@@ -75,8 +73,8 @@ quoting: a model that retypes a passage mis-types it, and then nothing matches.
 It picks the **numbers** of the paragraphs, and the browser anchors them itself.
 
 A highlight survives the page being closed and reopened, and belongs **to the
-page, not to the window**: it comes back next week whether or not that research
-row still exists. **File ▸ Remove Highlights on This Page** clears one page's.
+page, not to the tab**: it comes back next week whether or not that research
+group still exists. **File ▸ Remove Highlights on This Page** clears one page's.
 
 If a paragraph cannot be found after a reload, an orange highlighter appears
 beside the address with the reason — and the quote and the link in the document

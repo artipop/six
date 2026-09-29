@@ -2,20 +2,10 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// The window as every other browser draws it: a tab bar along the top, a toolbar under it, and
-/// the one page in front filling the rest.
+/// The window: a tab bar along the top, a toolbar under it, and the page in front filling the rest.
 ///
-/// It is a second way of looking at the same strip, and nothing more — that is the whole of the
-/// design. A tab is a window in the row, a tab group is a named workspace (an unnamed one is
-/// ungrouped tabs), and the tab in front is the focused column. So switching between the two faces
-/// loses nothing and converts nothing: the row comes back exactly as it was left, with whatever
-/// was opened, closed, dragged or renamed in the meantime already in it. The one thing the row of
-/// tabs has that the row does not is a group folded up to its name, and that is kept on the
-/// workspace too (`TilingWorkspace.collapsed`), where the row ignores it.
-///
-/// A split column is two tabs here, side by side in the row, and whichever of them is in front is
-/// the page shown. The row's keys are off (`KeyAction.answersInTabs`): with no row on screen,
-/// `⌥←` goes back to being word movement and `⌥W` to typing «∑».
+/// A tab group is a named workspace (an unnamed one is loose tabs), and the tab in front is the
+/// focused column. Two tabs shown side by side are one column, and both halves are drawn.
 struct TabbedWindowView: View {
     var addressFocus: FocusState<UUID?>.Binding
 
@@ -31,8 +21,8 @@ struct TabbedWindowView: View {
     var body: some View {
         VStack(spacing: 0) {
             TabStrip()
-                // In front of the page for the reason the row's top bar is: siblings in a stack are
-                // hit-tested in order, and a web view's reach does not stop at its frame.
+                // In front of the page: siblings in a stack are hit-tested in order, and a web view's
+                // reach does not stop at its frame.
                 .zIndex(2)
             TabToolbar(addressFocus: addressFocus)
                 .zIndex(1)
@@ -46,9 +36,7 @@ struct TabbedWindowView: View {
                             ForEach(shown, id: \.self) { id in
                                 if let tab = browser.tab(id) {
                                     let isFocused = id == browser.selectedTabID
-                                    ColumnView(tab: tab, isFocused: isFocused, isCurrentWorkspace: true,
-                                               side: shown.count > 1 ? (id == shown.first ? .left : .right) : .whole,
-                                               isLive: true, chromeless: true)
+                                    TabPageView(tab: tab, isFocused: isFocused)
                                         // Which half has the keyboard, when there are two.
                                         .overlay(alignment: .top) {
                                             if shown.count > 1, isFocused {
@@ -64,10 +52,6 @@ struct TabbedWindowView: View {
                     }
                 }
                 .frame(width: proxy.size.width, height: proxy.size.height)
-                // The layout's viewport is the page's size either way, so what is measured off it —
-                // the pictures a window keeps of itself, the address field's share of the bar — is
-                // the size the page is actually drawn at.
-                .onChange(of: proxy.size, initial: true) { browser.layout.updateViewport(proxy.size) }
             }
         }
     }
@@ -75,7 +59,7 @@ struct TabbedWindowView: View {
 
 // MARK: - The tab bar
 
-/// The groups and their tabs, left to right, in the band the row's top bar uses.
+/// The groups and their tabs, left to right.
 ///
 /// Tabs share the width the way Chrome's do — each as wide as the row allows up to a ceiling, and
 /// narrower as there are more of them, down to a floor where the row starts to scroll instead. The
@@ -186,9 +170,9 @@ struct TabGroup: Identifiable {
     /// Its own, or its parents' mixed; the workspace's and not its place's, so it stays put.
     var color: GroupColor?
 
-    /// Every row with a window in it, in the strip's order. The spare empty row the row keeps at the
-    /// bottom is not a group, and neither is a named row that has just emptied — the question it is
-    /// asking (`WorkspaceRemovalDialog`) is on screen either way.
+    /// Every workspace with a tab in it, in order. The spare empty one at the end is not a group, and
+    /// neither is a named one that has just emptied — the question it is asking
+    /// (`WorkspaceRemovalDialog`) is on screen either way.
     @MainActor
     static func all(in browser: BrowserState) -> [TabGroup] {
         let layout = browser.layout
@@ -221,7 +205,7 @@ struct TabGroup: Identifiable {
         browser.selectedTabID.map(tabIDs.contains) ?? false
     }
 
-    /// Where a window stands in the row, as the column index `TilingLayout.placeTab` wants.
+    /// Where a tab stands in its group, as the column index `TilingLayout.placeTab` wants.
     func columnIndex(of tabID: UUID) -> Int? {
         columns.firstIndex { $0.holds(tabID) }
     }
@@ -385,7 +369,6 @@ private struct TabItem: View {
                 .foregroundStyle(.secondary)
                 .help("Shown Side by Side")
         }
-        // A start page's title is the row's "New Window"; here it is a tab.
         Text(title)
             .font(.system(size: 12))
             .lineLimit(1)
@@ -608,9 +591,8 @@ private struct NewTabButton: View {
 
 // MARK: - The toolbar
 
-/// What the row's top bar carries about the page, and nothing about the row: the address with its
-/// own back, forward and reload, the star and the share sheet, then downloads, extensions and the
-/// profile.
+/// The toolbar under the tabs: the address with its own back, forward and reload, the star and the
+/// share sheet, then downloads, extensions and the profile.
 private struct TabToolbar: View {
     var addressFocus: FocusState<UUID?>.Binding
     @Environment(BrowserState.self) private var browser

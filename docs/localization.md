@@ -32,14 +32,9 @@ var title: String {
 After a build, fold them into the catalog:
 
 ```sh
-M=$(ls -d ~/Library/Developer/Xcode/DerivedData/Savoia-*/Build/Intermediates.noindex/savoia.build/Debug/savoia.build/Objects-normal/arm64)
-I=$(ls -d ~/Library/Developer/Xcode/DerivedData/Savoia-*/Build/Intermediates.noindex/savoia.build/Debug-iphonesimulator/Savoia-iOS.build/Objects-normal/arm64)
-xcrun xcstringstool sync Savoia/Localizable.xcstrings --stringsdata "$M"/*.stringsdata "$I"/*.stringsdata
+M=$(ls -d ~/Library/Developer/Xcode/DerivedData/Savoia-*/Build/Intermediates.noindex/Savoia.build/Debug/Savoia.build/Objects-normal/arm64)
+xcrun xcstringstool sync Savoia/Localizable.xcstrings --stringsdata "$M"/*.stringsdata
 ```
-
-**Both targets, in one call.** A sync against the Mac's `.stringsdata` alone marks every iOS-only string
-stale — `PhoneContentView`'s menu is the whole of that list — and a sync against the phone's alone does the
-same to the Mac. Build both first, pass both, and the stale set is then exactly the keys the change removed.
 
 (`xcstringstool` comes from the Xcode toolchain — `/Applications/Xcode*.app/Contents/Developer/usr/bin/` — so
 `xcode-select -p` must point at Xcode, not at the Command Line Tools; otherwise call it by its full path.) New keys
@@ -50,7 +45,7 @@ marked stale. Opening the catalog in Xcode does the same thing through the UI.
 
 A literal in the source *is* the key. So a Russian literal in a `Text(...)` does not make the app Russian — it
 makes the key Russian, and an English reader sees Cyrillic while the catalog carries two entries for one field.
-That is what `TextField("Поиск или адрес")` on the phone did until it was found. If a string is worth showing,
+If a string is worth showing,
 it is written in English in the source and translated in the catalog; there is no third option.
 
 ## Names a person is given

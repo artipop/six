@@ -1,19 +1,15 @@
-#if os(macOS)
 import AppKit
-#elseif os(iOS)
-import UIKit
-#endif
 import Foundation
 
 /// The pictures of the pages, on disk — one PNG per window, named by its id.
 ///
 /// A picture outlives the page it was taken of (that is the whole point of `LivePageCache`), and it
-/// should outlive the launch too: opening the overview after a relaunch and finding a wall of blank
-/// cards is exactly the moment the pictures were for. Every browser that shows thumbnails keeps them
+/// should outlive the launch too: a ⌃Tab ring of blank cards after a relaunch is exactly the moment
+/// the pictures were for. Every browser that shows thumbnails keeps them
 /// as files — Firefox's `moz-page-thumbnails`, Safari's snapshots under Caches — for the same reason.
 ///
-/// They are read back lazily, when the overview asks, and never all at once: a strip of a hundred
-/// windows is a hundred files nobody has looked at yet. What bounds the folder is the strip itself —
+/// They are read back lazily, when the ring asks, and never all at once: a hundred tabs are a
+/// hundred files nobody has looked at yet. What bounds the folder is the tabs themselves —
 /// `prune(keeping:)` throws away the pictures of windows that no longer exist, at launch and when a
 /// window closes.
 @MainActor
@@ -27,7 +23,7 @@ final class PageThumbnails {
     }
 
     /// Windows looked up and found to have no picture, so a window that never had one is not looked
-    /// for again every time the overview opens. A picture dropped from memory for the budget is not
+    /// for again every time the ring opens. A picture dropped from memory for the budget is not
     /// in here: reading it back from disk is exactly what the folder is for.
     private var missing: Set<UUID> = []
 

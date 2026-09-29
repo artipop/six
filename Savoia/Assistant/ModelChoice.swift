@@ -22,15 +22,10 @@ enum ModelChoice: String, CaseIterable, Identifiable, Codable {
 
     var id: String { rawValue }
 
-    #if os(macOS)
     static let languageModels: [ModelChoice] = [.onDevice, .privateCloudCompute, .claudeSonnet, .claudeOpus, .openAICompatible]
     static var agents: [ModelChoice] {
         [.claudeCodeAgent, .codexAgent] + (ConfigurationStore.shared?.customAgents.isEmpty == false ? [.customAgent] : [])
     }
-    #elseif os(iOS)
-    static let languageModels: [ModelChoice] = [.onDevice, .privateCloudCompute]
-    static let agents: [ModelChoice] = []
-    #endif
 
     var title: String {
         switch self {
@@ -66,11 +61,7 @@ enum ModelChoice: String, CaseIterable, Identifiable, Codable {
     /// True for the models that are somebody else's server behind a third-party `LanguageModel` —
     /// the ones the executor-ABI probe has to clear before they can be picked at all.
     var isThirdParty: Bool {
-        #if os(macOS)
         self == .claudeSonnet || self == .claudeOpus || self == .openAICompatible
-        #elseif os(iOS)
-        false
-        #endif
     }
 
     /// True when the choice is an agent rather than a language model — an agent answers through a

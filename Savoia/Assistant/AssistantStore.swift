@@ -292,7 +292,7 @@ final class AssistantStore {
     // MARK: The line
 
     /// Where the ⌘E line stands. At a field or a selection when the page has one — the question is
-    /// about that, so it is asked there — and at the bottom of the row otherwise.
+    /// about that, so it is asked there — and at the bottom of the window otherwise.
     enum LinePlace: Equatable {
         case bottom
         /// Hung on this window's `PageFocus.rect`.

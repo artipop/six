@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Savoia's settings, at `savoia://settings`.
 ///
-/// A **page**, for the reason `BuiltInPage` gives: it opens in a column of the row, so the thing a
+/// A **page**, for the reason `BuiltInPage` gives: it opens in a tab, so the thing a
 /// setting is about can stay open beside it. Reading what a site is allowed while looking at the
 /// site is the case that settles the argument — a sheet covers the window it is asking about.
 ///
@@ -31,7 +31,7 @@ struct ConfigurationPageView: View {
         var title: String {
             switch self {
             case .general: String(localized: "General")
-            case .windows: String(localized: "Windows")
+            case .windows: String(localized: "Tabs")
             case .privacy: String(localized: "Privacy")
             case .assistant: String(localized: "Assistant")
             case .extensions: String(localized: "Extensions")
@@ -325,27 +325,13 @@ private struct ShareExtensionRow: View {
 
 // MARK: - Windows
 
-/// How the row behaves — the two switches that used to be in the Layout menu, and are the only two
-/// of it that were settings at all.
+/// Tab groups by meaning, and what the live-page budget is doing.
 private struct WindowConfiguration: View {
     @Environment(BrowserState.self) private var browser
 
     var body: some View {
         Form {
             SwiftUI.Section {
-                Picker("Show Windows As", selection: Binding(
-                    get: { browser.interfaceStyle },
-                    set: { browser.setInterfaceStyle($0) }
-                )) {
-                    Text("Row").tag(InterfaceStyle.row)
-                    Text("Tabs").tag(InterfaceStyle.tabs)
-                }
-                .pickerStyle(.segmented)
-                if browser.showsTabs {
-                    Text("Workspaces are tab groups. The row's ⌥ keys are off.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
                 // Chosen before the switch: turning it on sorts every tab at once.
                 Picker("Sort By", selection: Binding(
                     get: { browser.tabSorting },
@@ -374,23 +360,7 @@ private struct WindowConfiguration: View {
                 ))
             }
 
-            SwiftUI.Section {
-                Toggle("Centre the Focused Window", isOn: Binding(
-                    get: { browser.layout.centersFocus },
-                    set: { _ in browser.toggleCenterFocus() }
-                ))
-            } header: {
-                Text("Layout")
-            }
-
-            SwiftUI.Section {
-                Toggle("Show Neighbours When Hovering Beside the Window", isOn: Binding(
-                    get: { browser.peeksAtEdges },
-                    set: { _ in browser.togglePeeksAtEdges() }
-                ))
-            }
-
-            SwiftUI.Section("Loaded Windows") {
+            SwiftUI.Section("Loaded Tabs") {
                 LoadedWindows()
             }
         }

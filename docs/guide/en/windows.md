@@ -1,36 +1,31 @@
-# Windows, links and downloads
+# Tabs, links and downloads
 
 ## Open, close, bring back
 
 | | |
 |---|---|
-| `⌘T` | a new window right of the focused one |
-| `⌘W` | close the focused one |
-| `⌘⇧T` | put the last closed window back where it stood, showing what it showed |
+| `⌘T` | a new tab — at the end of the bar, outside every group |
+| `⌘W` | close the tab |
+| `⌘⇧T` | put the last closed tab back where it stood, showing what it showed |
 | `⌘L` | the caret in the address field |
-| `⌘⇧N` | a new document — a Markdown column beside the pages ([more](/en/research#documents)) |
+| `⌘⇧N` | a new document — Markdown in a tab ([more](/en/research#documents)) |
 
-`⌘⇧T` remembers ten windows, and only for this run. A private window is not on
-the list, and neither is one that never showed anything.
+`⌘⇧T` remembers ten tabs, and only for this run. A private window is not on the
+list, and neither is a tab that never showed anything.
 
-The last window can be closed too. The row is then empty — **New Window** in the
-middle of the screen with "or ⌘T" under it, exactly what any empty workspace
-shows. Savoia does not put a start page nobody asked for where the closed window
-stood, and an empty row survives quitting: close everything and leave, and Savoia
-comes back just as empty.
-
-The `×` sits on the window's own top right corner. It is mostly over the gap, so
-the page keeps its clicks, and it is invisible until the pointer is on it: a
-row of a dozen windows should not be a row of a dozen crosses.
+The last tab can be closed too. The window then shows **New Tab** in the middle
+with "or ⌘T" under it. Savoia does not put a start page nobody asked for where the
+closed tab stood, and an empty window survives quitting.
 
 ## Links
 
 | | |
 |---|---|
 | a plain click | as everywhere |
-| `⌘` + click | a new window to the right, **behind** — the focus stays on the page you are reading, and the row leans right for a moment to show what arrived |
-| right-click ▸ **Open Link in New Window** | the same, and take me there |
+| `⌘` + click | a new tab **behind** — the focus stays on the page you are reading |
+| right-click ▸ **Open Link in New Window** | a new tab, and take me there |
 | right-click ▸ **Open Link Behind** | the same as `⌘`-click |
+| right-click ▸ **Open Link Beside** | a new tab beside this one — both pages on screen |
 | right-click ▸ **Download Linked File** | download it without opening |
 
 ::: warning `⇧`-click and the middle button do nothing
@@ -41,22 +36,13 @@ behind".
 :::
 
 A link that is not the web — `magnet:`, `mailto:`, `tel:`, a custom scheme —
-goes to the system rather than becoming a window, and it does so wherever it was
-clicked: in place, in a new window, or pasted into the address bar. The address
+goes to the system rather than becoming a tab, and it does so wherever it was
+clicked: in place, in a new tab, or pasted into the address bar. The address
 bar hands one over only when an app on this Mac claims the scheme; with nothing
-to open it, what was typed is a search like anything else. A page that opened a window itself
+to open it, what was typed is a search like anything else. A page that opened a tab itself
 (`window.open`, a `target=_blank` link) comes forward: it was opened to be looked
 at. WebKit's own popup blocking runs before any of this, so an ad that opens
-itself gets no column.
-
-**On Windows** a middle click on a link, or `Ctrl` + click, opens it in a new
-window to the right, behind; `Ctrl` + `Shift` + click opens it and takes you there.
-A window a page opens itself comes forward, as on the Mac, and stays connected to
-the page that opened it — so a "Sign in with…" window can report back and close
-itself when it is done. A link to another app (`mailto:` and the like) is handed
-to it only after you say so: Savoia asks "Open this link in *Mail*?", naming the app
-Windows would use — or says that Windows will ask which one, or that no app on the
-computer opens such links. A page that tries it without a click is simply refused.
+itself gets no tab.
 
 ## The page's context menu
 
@@ -76,12 +62,6 @@ anybody else's:
 The price is what WebKit's menu knew about an element that is not a link: Save
 Image, Copy Image, Look Up and the spelling suggestions. It is a trade: without
 its own menu, those two link items would not work at all.
-
-**On Windows** the menu is WebKit's own, and there both of those link items do
-work, so Savoia only adds to it. Over a link you get **Open Link**, **Open Link in New
-Window**, **Open Link Behind**, **Download Linked File** and **Copy Link**.
-Elsewhere on a page it is WebKit's usual menu — on a plain page, just **Reload**.
-**Open Link Beside** and **This Window** are not there yet.
 
 ## Downloads
 
@@ -115,17 +95,6 @@ already downloaded were in a temporary folder the system is entitled to empty, s
 promising them would be dishonest. Finished downloads are not kept: the file is in
 the folder, and there is nothing to lose.
 
-**On Windows** downloads work the same way in outline: a file lands in
-**Downloads** under the name the server suggested, a second one of the same name
-gets a number, and a window opened only to carry the link closes itself. The
-button is an arrow in the top bar, beside the translate button. It appears with the
-first download, shows a thin bar while something is coming in and a dot when
-something finished that you have not looked at. `Ctrl+J` opens the list too. In
-the list, `Enter` opens a finished file and `Delete` stops a download or takes it
-off the list. Not there yet: resuming a stopped download, **Try Again**, and the
-rows surviving a relaunch — the engine the Windows version runs on has nothing to
-hand a stopped transfer back to.
-
 A window opened only to carry a link that turned out to be a file closes itself
 once the download starts: nothing was in it, and there is nothing to go back to.
 
@@ -144,7 +113,7 @@ A page saves as `.html`, `.pdf` or `.txt`; a document as `.md`, `.html` or
 **Sending a page to another app.** The **Share** button sits to the right of the
 bookmark star. It opens the system's share menu: Mail, Messages, AirDrop, Notes,
 and any other app that takes links. The same is in the page's context menu
-(**Share**, and **Share Link** over a link) and in the phone's `…` menu. A start
+(**Share**, and **Share Link** over a link). A start
 page or a document has nothing to share, so the button is greyed out there.
 
 **Taking a page from another app.** Savoia is in every app's Share menu: Safari,
@@ -155,8 +124,7 @@ goes:
 - the workspace: each row shows its first windows' titles, the one open now is
   marked **Current**, and the last one, **New Workspace**, gives the page a row of
   its own;
-- **Open** opens the page as a new window on that workspace and brings Savoia
-  forward;
+- **Open** opens the page as a new tab in that group and brings Savoia forward;
 - **Add to Bookmarks** saves the page to that workspace's profile without opening
   anything or bringing Savoia forward;
 - the hand button is **Open in Private Window**.
@@ -177,16 +145,6 @@ Share menu — once, at the first launch that finds it off. Turning it back off,
 on again, is where everything else is: **Configuration ▸ General ▸ Sharing ▸ Show
 Savoia in the Share Menu**. It is the same switch as the one in System Settings,
 without the hunt for it; and if you switch it off yourself, Savoia leaves it off.
-
-Taking pages from other apps is Mac-only for now.
-
-## The "This Window" menu
-
-A right-click on the page opens it too: close, full width, move left/right,
-move to the workspace above or below, **move to another profile**
-([what changes](/en/profiles#moving-a-window-to-another-profile)). It used to hang off the
-window's title bar; there are no title bars any more — the page runs edge to edge
-— so it hangs off the page.
 
 ## What Savoia tells sites it is
 

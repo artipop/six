@@ -5,7 +5,7 @@ import Foundation
 import Observation
 import WebKit
 
-/// One running MCP app: a tool's result drawn by the server's own HTML, in a window of the strip.
+/// One running MCP app: a tool's result drawn by the server's own HTML, in a tab of its own.
 ///
 /// The session is the host end of the extension's protocol. It answers the app's `ui/initialize`,
 /// tells it what the tool was called with and what came back, proxies the app's own `tools/call`
@@ -301,8 +301,7 @@ final class MCPAppSession: Identifiable {
             return [:]
 
         case "ui/request-display-mode":
-            // Only inline for now: a window of the row is already the whole of a column, and
-            // filling it is the row's own gesture (⌥W) rather than the app's.
+            // Only inline for now: an app's tab is already the whole of the window.
             return ["mode": .string(displayMode)]
 
         default:

@@ -102,7 +102,7 @@ nonisolated enum MCPTokenStore {
 ///
 /// `MCPOAuth` knows the protocol and touches no state; this knows which server is being signed in
 /// to, where the token is kept, and — because Savoia *is* the browser — opens the authorization page
-/// as a window of the strip rather than handing it to somebody else's.
+/// as a tab rather than handing it to somebody else's.
 @MainActor
 @Observable
 final class MCPAuthorization {

@@ -32,12 +32,12 @@ struct SettingsStoreTests {
 
     @Test func aSecondWriteReachesTheDatabase() throws {
         let (settings, database) = try store()
-        settings[.stripState] = "first"
-        settings[.stripState] = "second"
+        settings[.pageName] = "first"
+        settings[.pageName] = "second"
 
         // Read through a *new* store, because the one that wrote it would answer from its cache —
         // which is what hid the bug.
-        #expect(ConfigurationStore(database: database)[.stripState] == "second")
+        #expect(ConfigurationStore(database: database)[.pageName] == "second")
     }
 
     @Test func aChangedKeyIsUpdatedRatherThanDuplicated() throws {
@@ -57,9 +57,9 @@ struct SettingsStoreTests {
     /// reading an empty string as an answer.
     @Test func clearingRemovesTheRow() throws {
         let (settings, database) = try store()
-        settings[.stripState] = "something"
-        settings[.stripState] = nil
+        settings[.pageName] = "something"
+        settings[.pageName] = nil
 
-        #expect(ConfigurationStore(database: database)[.stripState] == nil)
+        #expect(ConfigurationStore(database: database)[.pageName] == nil)
     }
 }

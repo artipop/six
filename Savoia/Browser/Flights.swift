@@ -5,9 +5,7 @@ import Observation
 ///
 /// A download happens somewhere else: the file is fetched in the background and the only sign is a
 /// small button appearing in the corner of a bar nobody was looking at. The arc answers "did that
-/// work?", and it doubles as the answer to "where did it go?", which is the more useful half. (A
-/// ⌘-click has the same problem and a different answer — the strip leans over to show what arrived;
-/// see `TilingLayout.peek`.)
+/// work?", and it doubles as the answer to "where did it go?", which is the more useful half.
 ///
 /// The store knows where a flight starts. Where the button is on screen is the view's business, so
 /// the button keeps saying (`note`) and a mark reads it when it is made.

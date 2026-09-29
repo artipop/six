@@ -1,9 +1,6 @@
 import SQLiteData
 import SwiftUI
 import WebKit
-#if os(iOS)
-import UIKit
-#endif
 
 /// On the Mac the binary is three things: the browser; with `--mcp`, a stdio MCP server that relays
 /// to the running browser (see `MCPStdioBridge`); and with `--mcp-probe`, a client that connects to
@@ -182,7 +179,6 @@ struct SavoiaApp: App {
         tools.webMCP = webMCP
         webMCP.runSelfTestIfAsked()
         assistant.tools = tools
-        #if os(macOS)
         // The agent layer and the MCP server are local processes talking to local processes. The
         // phone has neither, so the assistant there is the language models and nothing else.
         let agentSession = AgentSessionStore(snapshot: snapshot?.agent, settings: settings)
@@ -221,18 +217,10 @@ struct SavoiaApp: App {
         mcpApps.watchAppearance()
         mcpApps.runSelfTestIfRequested()
         Log.info(.app, "\(mcp.status); state at \(store.url.path)")
-        #elseif os(iOS)
-        Log.info(.app, "state at \(store.url.path)")
-        #endif
         let window = WindowState(snapshot: snapshot?.window)
         // The agent's half of the file is written back untouched where there is no agent, so a phone
         // reading a Mac's state does not throw the transcripts away.
-        #if os(macOS)
         let agentSnapshot = { agentSession.snapshot }
-        #elseif os(iOS)
-        let saved = snapshot?.agent ?? AgentSnapshot(agentID: "", chats: [])
-        let agentSnapshot = { saved }
-        #endif
         let persistence = StatePersistence(store: store) {
             AppStateSnapshot(browser: browser.snapshot, agent: agentSnapshot(), window: window.snapshot)
         }
@@ -255,11 +243,7 @@ struct SavoiaApp: App {
             }
         }
         #endif
-        #if os(macOS)
         let terminating = NSApplication.willTerminateNotification
-        #elseif os(iOS)
-        let terminating = UIApplication.willTerminateNotification
-        #endif
         NotificationCenter.default.addObserver(forName: terminating, object: nil, queue: .main) { _ in
             MainActor.assumeIsolated { persistence.flush(); browser.flushDocuments() }
         }
@@ -298,7 +282,6 @@ struct SavoiaApp: App {
     }
 
     var body: some Scene {
-        #if os(macOS)
         // A `Window`, not a `WindowGroup`: Savoia is one window, and the difference is not cosmetic.
         // A group lets SwiftUI answer an external open — a Handoff tile, a link from another app — by
         // building a second window, which puts the same `WebPage`s into a second `WebView`; WebKit
@@ -348,7 +331,7 @@ struct SavoiaApp: App {
         .defaultSize(width: 1500, height: 950)
         .windowStyle(.hiddenTitleBar)
         .commands {
-            // ⌘, opens `savoia://configuration` in a column, like any other address — see
+            // ⌘, opens `savoia://configuration` in a tab, like any other address — see
             // `ConfigurationPageView` for why configuration is a page and not a window.
             // `CommandGroup(replacing:)` rather than a Button of our own, so it lands where macOS puts
             // Settings in every other app.
@@ -357,18 +340,16 @@ struct SavoiaApp: App {
                     .keyboardShortcut(",")
             }
             CommandGroup(replacing: .newItem) {
-                Button(browser.showsTabs ? "New Tab" : "New Window in the Row") {
-                    if browser.showsTabs { browser.newTabAtEnd() } else { browser.newTab() }
-                }
+                Button("New Tab") { browser.newTabAtEnd() }
                     .keyboardShortcut("t")
-                Button(browser.showsTabs ? "Reopen Closed Tab" : "Reopen Closed Window") { browser.reopenClosedWindow() }
+                Button("Reopen Closed Tab") { browser.reopenClosedWindow() }
                     .keyboardShortcut("t", modifiers: [.command, .shift])
                     .disabled(!browser.canReopenClosedWindow)
                 Button("New Private Window") { browser.newPrivateWindow() }
                     .keyboardShortcut("p", modifiers: [.command, .shift])
                 Button("Close Private Browsing") { browser.closePrivateBrowsing() }
                     .disabled(browser.privateProfile == nil)
-                Button(browser.showsTabs ? "Close Tab" : "Close Window") { browser.closeSelectedTab() }
+                Button("Close Tab") { browser.closeSelectedTab() }
                     .keyboardShortcut("w")
                 Divider()
                 // Safari's home for it, and the only menu that already means "an address".
@@ -397,31 +378,5 @@ struct SavoiaApp: App {
             HistoryCommands(browser: browser)
             BookmarkCommands(browser: browser, bookmarks: bookmarks)
         }
-        #elseif os(iOS)
-        // A `WindowGroup`, because that is the only scene a phone has; it still comes up as one
-        // window, for the same reason the Mac insists on one — the pages are live `WebPage`s and a
-        // second `WebView` over the same one traps in WebKit.
-        WindowGroup {
-            PhoneContentView()
-                .environment(browser)
-                .environment(assistant)
-                .environment(pageFocus)
-                .environment(settings)
-                .environment(bookmarks)
-                .environment(highlights)
-                .environment(blocker)
-                .environment(devTools)
-                .environment(webMCP)
-                .environment(permissions)
-                .environment(certificates)
-                .onOpenURL { url in
-                    if let request = ShareRequest(address: url) { browser.receive(request) } else { browser.newTab(url: url) }
-                }
-                .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
-                    guard let url = activity.webpageURL else { return }
-                    browser.newTab(url: url)
-                }
-        }
-        #endif
     }
 }

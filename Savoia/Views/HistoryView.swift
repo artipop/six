@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// ⌘Y: the selected profile's history, searchable, grouped by day. A click opens the page in a new
-/// window of the strip; ⌫ forgets the row.
+/// tab; ⌫ forgets the row.
 struct HistoryView: View {
     @Environment(BrowserState.self) private var browser
     @Environment(\.dismiss) private var dismiss
@@ -44,7 +44,7 @@ struct HistoryView: View {
                                     .contentShape(Rectangle())
                                     .onTapGesture(count: 2) { open(entry) }
                                     .contextMenu {
-                                        Button("Open in New Window") { open(entry) }
+                                        Button("Open in New Tab") { open(entry) }
                                         Button("Copy Address") {
                                             Platform.copy(entry.url.absoluteString)
                                         }

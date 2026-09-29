@@ -1,8 +1,8 @@
 # Agents
 
 An agent here is Claude Code, Codex or another agent that speaks ACP, running on
-your machine and able to **drive the browser**: open windows into a named
-workspace, read pages, summarize them, move and close windows.
+your machine and able to **drive the browser**: open tabs into a named
+group, read pages, summarize them, move and close tabs.
 
 You talk to an agent through the [`⌘E`](/en/assistant) line: choose it instead
 of a language model, and it is the one that answers there. Every conversation
@@ -93,7 +93,7 @@ one starts and the saved transcript stays above it as a record.
 ## Chats
 
 Every conversation with an agent is on the **Chats** page (`⌘⇧E`, or View ▸
-Chats). It is not a sidebar but a column of the row like any other page: it
+Chats). It is not a sidebar but a tab like any other page: it
 opens beside what you are doing and closes when you have found what you wanted.
 Chats are grouped by day; the search looks through their titles, and **All
 folders** shows the ones from other folders too. **New Chat** opens an empty
@@ -111,14 +111,14 @@ Agent**, and the agent sends its history over.
 
 ## What an agent can do in the browser
 
-The vocabulary is the product's: a **window** (page) in a **workspace** (row)
+In the tools' vocabulary a **window** is a tab and a **workspace** is a tab group
 of a **profile**. Everything defaults to what is on screen.
 
 | | |
 |---|---|
-| look | list workspaces and windows, read a page's text, its links, summarize it |
-| open | search the web; open a window by address or by query — including **behind**, so nothing on screen moves; open a private window |
-| move | focus a window, move it to another workspace, close it |
+| look | list groups and tabs, read a page's text, its links, summarize it |
+| open | search the web; open a tab by address or by query — including **behind**, so nothing on screen moves; open a private window |
+| move | focus a tab, move it to another group, put two side by side, close it |
 | act | a snapshot of the page with its buttons and fields numbered, click, fill a field, choose an option in a list, press a key, scroll, wait for a result — this is how an agent fills in forms and searches for flights by itself |
 | debug | what a page logged, what it requested, a screenshot, run code in the page |
 | write | create a document, write into it section by section, cite a source, highlight the paragraphs that answer a question |

@@ -11,7 +11,7 @@ import SwiftUI
 /// It stands in one of two places (`AssistantStore.LinePlace`), and nowhere until it is asked for.
 /// With a caret in a field or text selected, ⌘E hangs it on that (`AnchoredAssistantLine`): the
 /// question is about the thing, so it is asked next to the thing. With nothing pointed at, it rises
-/// at the bottom of the row. There used to be bars that came up by themselves — one over every
+/// at the bottom of the window. There used to be bars that came up by themselves — one over every
 /// selection, one beside every comment box — and they were an assistant that would not wait to be
 /// asked, over the page's own selection menus and toolbars. The verbs they carried are behind `/`.
 struct AssistantBar: View {
@@ -19,7 +19,7 @@ struct AssistantBar: View {
     /// The window the question is about. Nil at the bottom, where it is whichever is selected.
     var tab: BrowserTab?
     /// Hung below what it points at, the line comes first and the answer opens under it; at the
-    /// bottom of the row, or above a field near the bottom of the page, the other way round.
+    /// bottom of the window, or above a field near the bottom of the page, the other way round.
     var growsDown = false
     /// Beside a field or a selection the verbs come up straight away and the field waits behind
     /// them: what is wanted there is nearly always one of four things, and a row of named verbs says
@@ -45,14 +45,6 @@ struct AssistantBar: View {
     @State private var chosen = 0
     /// Which chat of the `/` list Return would pick; nil while the caret is only in the field.
     @State private var chosenChat: Int?
-    /// Where the line stands in the window, for the scroll monitor (`reportFrame`).
-    @State private var frame: CGRect = .zero
-
-    private func reportFrame() {
-        guard place == .bottom else { return }
-        TilingScrollMonitor.overlays["assistant.line"] = isShown ? frame : nil
-    }
-
     private var isAgent: Bool { assistant.settings.model.agentDefinition != nil }
 
     private var subject: BrowserTab? { tab ?? browser.selectedTab }
@@ -122,11 +114,6 @@ struct AssistantBar: View {
             if assistant.answer == nil, !hasCaret { assistant.lineLostFocus(at: place) }
         }
         .onChange(of: verbs.count) { chosen = min(chosen, max(0, verbs.count - 1)) }
-        // The scroll monitor cannot tell the line from the strip by its views, so it is told where
-        // the line stands — here at the bottom of the row; beside a field `AnchoredAssistantLine`
-        // says it, from outside its own hosting view where `.global` is still the window's.
-        .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }) { frame = $0; reportFrame() }
-        .onChange(of: isShown) { reportFrame() }
         .onChange(of: question) { chosenChat = nil }
     }
 
@@ -412,9 +399,9 @@ struct AssistantBar: View {
     }
 }
 
-/// The line hung on a field or a selection, inside the column and over its page.
+/// The line hung on a field or a selection, over its page.
 ///
-/// A `HostedOverlay` for the reason `ColumnView`'s close badge is one: SwiftUI drawn over a
+/// A `HostedOverlay`, because SwiftUI drawn over a
 /// `WKWebView` never sees the mouse, and this has buttons — the answer's Insert and Copy. The frame
 /// is explicit (a hosting view that sizes itself feeds constraints back into the window), so the
 /// content reports its own height and the frame follows it: a fixed tall frame would leave a clear
@@ -449,13 +436,8 @@ struct AnchoredAssistantLine: View {
                 line(growsDown: below, width: width)
             }
             .frame(width: width, height: height)
-            // Inside the offset, so the frame is where the line is drawn and not where it was laid out.
-            .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }) {
-                TilingScrollMonitor.overlays["assistant.line.\(tab.id)"] = $0
-            }
             .offset(x: x, y: min(max(0, y), max(0, size.height - height)))
         }
-        .onDisappear { TilingScrollMonitor.overlays["assistant.line.\(tab.id)"] = nil }
         // What the line is about, put back in the page as well: the field collapsed its selection
         // to a caret when the keyboard left, and a person looking at a line about "four words" has
         // to be able to see which four. The page kept the nodes; Savoia only kept the text.
@@ -664,7 +646,7 @@ private struct ChatChip: View {
             }
             .help("Remove (⌘⌫)")
             Button(action: open) { Image(systemName: "arrow.up.right") }
-                .help("Open as a Window")
+                .help("Open as a Tab")
         }
         .buttonStyle(.plain)
         .font(.caption)

@@ -6,19 +6,19 @@ titleTemplate: ':title — the guide'
 hero:
   name: Savoia
   text: The guide
-  tagline: 'A browser without tabs. A page is a window on an endless row, there are as many rows as you have jobs on, and a model or an agent is one keystroke away on any of them.'
+  tagline: 'A browser for macOS: tabs sort themselves into groups by meaning, two pages stand side by side, and a model or an agent is one keystroke away on any of them.'
   actions:
     - theme: brand
       text: First launch
       link: /en/start
     - theme: alt
-      text: The row and workspaces
-      link: /en/layout
+      text: Tabs and groups
+      link: /en/tabs
 
 features:
-  - title: A row, not tabs
-    details: A page takes a whole window, windows stand in a row and scroll sideways. Workspaces stack up and down.
-    link: /en/layout
+  - title: Tabs and groups
+    details: Groups gather by meaning on their own and fold up to a label, two tabs stand side by side, and ⌃Tab takes you back to where you were.
+    link: /en/tabs
   - title: Ads never load
     details: Filter lists are compiled into WebKit's own rules, so a blocked request never leaves and nothing runs in the page.
     link: /en/blocking
@@ -30,9 +30,5 @@ features:
     link: /en/bookmarks
 ---
 
-Savoia is a browser for macOS. In the application's own menus it is called `Savoia` —
-the name it was built under, which this guide repeats wherever it is on screen.
-
 What follows is what it does, section by section. Start with the
-[first launch](/en/start): the layout here is unfamiliar, and ten minutes with
-it save all the rest.
+[first launch](/en/start).

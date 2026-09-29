@@ -2,9 +2,8 @@
 
 An MCP server can return not only text but an **interface**: a ready page the
 host shows instead of a tool result and then talks to. In a chat that becomes a
-picture inside the conversation. Here an app is **a window in the row**, level
-with a website: it can be moved, carried to another workspace, left open and come
-back to tomorrow.
+picture inside the conversation. Here an app is **a tab**, level with a website: it
+can be moved, carried to another group, left open and come back to tomorrow.
 
 It cost Savoia nothing: every window already has its own content process and its own
 storage, which is a stronger sandbox than an iframe.
@@ -82,9 +81,9 @@ those, the server's form has an **OAuth client** section:
 
 ## When an app calls a tool
 
-An app inside a window can ask the browser to run a tool of its server. That is
-put to a person — a bar above the column — and the answer is remembered for the
-life of the window.
+An app inside a tab can ask the browser to run a tool of its server. That is
+put to a person — a bar above the page — and the answer is remembered for the
+life of the tab.
 
 A tool the server has not declared safe to repeat is never re-run by Savoia on its
 own.
@@ -92,8 +91,8 @@ own.
 ## What is given to the agent
 
 A shared server's tools reach the agent as **the browser's own**, and then the
-agent opens app windows itself: ask about the weather and get a weather window in
-the row rather than a paragraph. The agent's tool list is live: share a server
+agent opens app tabs itself: ask about the weather and get a weather tab rather
+than a paragraph. The agent's tool list is live: share a server
 or take it back, and it finds out at once.
 
 App windows are visible to the agent like pages: it can list them, read them and

@@ -52,9 +52,8 @@ interface ModelContext : EventTarget {
 - **Who is trying it**: Google I/O 2026 named trial participants — Expedia, Booking.com, Shopify, Credit Karma,
   TurboTax, Redfin, Etsy, Instacart, Target. Who has actually shipped is unconfirmed.
 
-The consequence for Savoia: **there will be no native WebMCP in the engine** — not in WebKit on the Mac, WebKitGTK on
-Linux or WebKit on Windows — while WebKit is opposed. What Savoia offers is its own polyfill and its own agent side. In
-return it is one implementation on every front, and it waits for nobody's release.
+The consequence for Savoia: **there will be no native WebMCP in the engine** while WebKit is opposed. What Savoia offers is its own polyfill and its own agent side, and it waits for nobody's
+release.
 
 ## Why Savoia wants it
 
@@ -78,21 +77,18 @@ is that rule taken literally: the page's own API, declared for the agent.
 page's world, route the channel's messages into `WebMCPHost.receive`, and run a function body in the page's world.
 Everything else — whether WebMCP is on, settling the document after a navigation, the call, the gate, finding the
 self-test's window — is shared. That is the main frame alone. A front that also injects into every frame, answers
-the channel (`WebMCPHost.request`) and can run code in one given frame (`WebMCPFrame`) gets the frames: the Mac does,
-Windows and Linux do not yet, and the polyfill tells the two apart by whether `postMessage` answers.
+the channel (`WebMCPHost.request`) and can run code in one given frame (`WebMCPFrame`) gets the frames, and the polyfill tells a front that does from one that does not by whether `postMessage` answers.
 
 - `Savoia/WebMCP/`, in `SavoiaCore` and so on every front: `WebMCPScript` (the polyfill and the call bodies),
   `WebMCPRegistry` (the channel's messages and the window → tools registry agents read), `WebMCPHost` (calls in
   flight, the gate, the "an agent is calling" mark), `WebMCPBroker` (every frame's documents, who sees what, the
   `tools` policy, calls between frames), `WebMCPPage`, `WebMCPSelfTest`.
-- The bridges: `Savoia/WebMCP/WebMCPStore.swift` (Apple), `windows/Sources/SavoiaUI/StripWebMCP.swift` (Windows),
-  `linux/Sources/SavoiaWebKitCore/PageChannels.swift` with `linux/Sources/SavoiaBrowser/WebMCP.swift` (Linux).
+- The bridge: `Savoia/WebMCP/WebMCPStore.swift`.
 - Agents get `list_page_tools` and `call_page_tool` in the catalog, over MCP. The ⌘K assistant gets the focused
   window's `readOnlyHint` tools as tools of its own (`WebMCPModelTool`), with their JSON Schema translated into a
   `DynamicGenerationSchema`, and its session is rebuilt when that set changes.
-- The mark: on the Mac, `PageToolsButton` — a wrench at the trailing end of the address field beside translation's
-  button, its tooltip counting the tools, pulsing while a call runs, and the list behind it on a click. On Windows a
-  badge with the count, lit while a call runs.
+- The mark: `PageToolsButton` — a wrench at the trailing end of the address field beside translation's
+  button, its tooltip counting the tools, pulsing while a call runs, and the list behind it on a click.
 
 Off by default, behind `savoia://configuration` ▸ Develop ▸ WebMCP.
 
@@ -161,8 +157,6 @@ in [permissions.md](permissions.md).
   script can do brings it back.
 - **File inputs** in declarative forms: Chromium keeps them behind a flag pending a privacy review, and so does Savoia —
   there is no flag.
-- **Frames on Windows and Linux.** Their bridges inject into the main frame and do not answer the channel, so there the
-  polyfill keeps to its own document, as it did before frames were built.
 - **`document.domain`.** The draft refuses the API where `document.domain` is enabled; WebKit has no origin-keyed
   agent clusters (`window.originAgentCluster` does not exist), so there `document.domain` is always enabled and the
   rule would refuse everything. Savoia does not apply it.
@@ -174,10 +168,6 @@ in [permissions.md](permissions.md).
   own and `isTrusted` is false. The page sees the polyfill and can replace it — with an engine that opposes WebMCP there
   is no other way.
 - **Input is not checked against `inputSchema`** before a call.
-- **Windows a page opens itself** (Windows, `openPageWindow`) get no channel: WebKit configures them, not
-  `WebEngine.makeView`.
-- **Linux has no MCP server**, so its page tools are seen only by the self-test and `BrowserModel.pageToolCount`, and
-  there is no mark in its bar.
 - **The ⌘K assistant gets only some tools**: `readOnlyHint` ones whose schema translates (an object of strings,
   numbers, booleans, enums and arrays of those). The rest stay with ACP agents through `call_page_tool`.
 - **Limits of Savoia's own, not in the draft**: at most 100 tools a document, descriptions up to 4,000 characters,
@@ -307,8 +297,6 @@ through `WebViewResponder.webView(for:)`), on a stand page holding a same-origin
 
 - **Mac.** Both schemes build. `SAVOIA_WEBMCP_SELFTEST` against `Tests/WebMCP/webmcp.html`: 22 checks, `PASS`.
   `WebMCPTests` pass with the rest of `SavoiaCore`'s tests. wpt as above.
-- **Windows, real WebKit.** The same self-test, 22 checks, `PASS`; the badge seen in a `PrintWindow` capture. `file:`
-  is a secure context in that WebKit, and `WKPageCallAsyncJavaScript` runs in the page's world.
 - The self-test covers: a declaration with annotations and schema, `add(2,3)` → `5`,
   `document.modelContext === navigator.modelContext`, `getTools()` inside the page, the site asked about at the first
   call and not again, a changing call confirmed, a no stopping the call **before** the page runs it, a timeout through
@@ -326,10 +314,6 @@ through `WebViewResponder.webView(for:)`), on a stand page holding a same-origin
 
 ### Not checked
 
-- **Linux has never been built.** Its first container build has to answer whether `WebKitUserContentManager` and
-  `JSCValue` import as `OpaquePointer`, whether `webkit_user_content_manager_register_script_message_handler` takes
-  the world as its third argument, whether `script-message-received` is (`manager`, `JSCValue*`, `gpointer`), and
-  whether `webkit_web_view_get_user_content_manager` gives each view its own manager.
 - **The ⌘K schema translation (`WebMCPModelTool`)** has not been exercised with a model.
 
 ### How to check it
@@ -347,24 +331,6 @@ through `WebViewResponder.webView(for:)`), on a stand page holding a same-origin
 6. the same in a private window: no tools at all;
 7. `SAVOIA_WEBMCP_SELFTEST=file:///…/webmcp.html` on launching the dev build — the report goes to
    `~/Library/Logs/org.deffun.savoia.dev/savoia.log`.
-
-**Windows:**
-
-```powershell
-./scripts/savoia-windows.ps1 build      # stops every running savoia-windows, other sessions' included
-$env:SAVOIA_WEBMCP_SELFTEST = "file:///C:/Users/Artem/sources/Savoia/Tests/WebMCP/webmcp.html"
-.\windows\.build\x86_64-unknown-windows-msvc\debug\savoia-windows.exe
-```
-
-The report is in `%LOCALAPPDATA%\savoia\Logs\savoia.log`, the line `webmcp self-test`, ending in `PASS`. By hand:
-`SAVOIA_WEBMCP=1` instead, and the same page shows a 4 in the address bar.
-
-**Linux** (in the container, [linux.md](linux.md)):
-
-```sh
-./scripts/savoia-linux.sh build
-SAVOIA_WEBMCP_SELFTEST=file:///work/Tests/WebMCP/webmcp.html ./scripts/savoia-linux.sh up
-```
 
 **wpt**: `./scripts/webmcp-wpt.py`, above.
 

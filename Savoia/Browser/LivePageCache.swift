@@ -41,8 +41,8 @@ final class LivePageCache {
     @ObservationIgnored private var registry: [UUID: WeakTab] = [:]
     /// Windows the layout is showing right now: pinned, and never eviction candidates.
     @ObservationIgnored private var visible: Set<UUID> = []
-    /// The windows that get a page built for them — the focused column's, which is one window
-    /// unless it is split, and nothing at all in the overview.
+    /// The tabs that get a page built for them — the one in front, and its partner when two are
+    /// side by side.
     @ObservationIgnored private var built: Set<UUID> = []
 
     /// How many live pages the app aims to keep. Sized from the machine: about one page per gigabyte
@@ -129,15 +129,9 @@ final class LivePageCache {
 
     /// The windows the layout is showing, and the ones that may be *built*.
     ///
-    /// Pinning and building are deliberately two different things. Everything on screen is pinned —
-    /// nothing it still has is taken away, so the neighbours peeking in at the edges keep showing
-    /// their pages. Only the focused window is built: walking down a restored strip, or flying around
-    /// the overview, must not load a page per window on the way past. You get the page when you land
-    /// on it, and if you were there recently it is still warm and there is nothing to load.
-    ///
-    /// `building` is a column and not a window, which is the one place a split changes this: both
-    /// halves of the window you are looking at are the window you are looking at, and a split with a
-    /// card in one half is a split that did not happen.
+    /// Pinning and building are two different things: what is on screen is pinned, and only what is
+    /// on screen is built — flying through the ⌃Tab ring must not load a page per tab on the way
+    /// past. Two tabs side by side are both built.
     func setVisible(_ ids: Set<UUID>, building: [UUID], resolve: (UUID) -> BrowserTab?) {
         guard ids != visible || Set(building) != built else { return }
         let left = visible.subtracting(ids)
@@ -156,10 +150,8 @@ final class LivePageCache {
     /// Building is not free and it is not asynchronous: `WebPage()` is a web content process being
     /// attached, measured here at 6–250 ms on the main actor, and the load that follows it is more.
     /// Doing that inside the click that moved the focus is a third of a second of stuck button, and
-    /// stepping along the strip with the edge buttons or ⌥→ would pay it at every window on the way
-    /// past. So the focus is allowed to settle first: hold ⌥→ across ten windows and exactly one page
-    /// is built, the one you stopped at. A window that already has its page is shown at once — there
-    /// is nothing to wait for.
+    /// ⌘⇧] held across ten tabs would pay it ten times. So the focus is allowed to settle first, and
+    /// a tab that already has its page is shown at once.
     private func build(_ tabs: [BrowserTab]) {
         buildTask?.cancel()
         buildTask = nil
@@ -180,13 +172,13 @@ final class LivePageCache {
     }
 
     /// How long the focus has to sit still before the window under it is worth building. One switch
-    /// animation (`TilingLayout.switchAnimation` is 0.34 s), so the work lands after the strip settles.
+    /// animation (`TilingLayout.switchAnimation` is 0.34 s), so the work lands after it settles.
     private static let settleDelay = Duration.milliseconds(350)
 
     /// Windows holding a picture of themselves, oldest first.
     @ObservationIgnored private var pictured: [UUID] = []
 
-    /// A window has just drawn itself. The pictures are what the overview is made of, so they outlive
+    /// A tab has just drawn itself. The pictures are what the ⌃Tab ring is made of, so they outlive
     /// the pages by a good margin — but a decoded bitmap per window is real memory too, and the point
     /// of all this was to give memory back. Four windows' worth of pictures per live page, and the
     /// oldest lets go of its.

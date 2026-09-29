@@ -1,39 +1,24 @@
 # First launch
 
-Savoia is a browser with no tabs. A page takes a whole window, windows stand in a row
-and scroll sideways, and there are as many rows as you have jobs on. Everything
-else is an ordinary browser: an address, history, bookmarks, downloads,
-extensions.
-
-Three words describe it, and they are worth learning at once:
-
-| | |
-|---|---|
-| **window** | one page. Not a tab: a window has no title bar, it *is* the page, edge to edge |
-| **row** | a row of windows running to the right. Scrolls endlessly |
-| **workspace** | one whole row. Workspaces stack up; exactly one is on screen |
-
-The row moves sideways, workspaces switch up and down. That is the whole of
-the navigation.
+Savoia is a browser for macOS. Tabs, tab groups, an address, history, bookmarks,
+downloads, extensions — all where you expect them; on top of that, groups by
+meaning, two tabs side by side, the assistant and the agents.
 
 ## What is on screen
 
-At the top, one row for the whole application, and it is about the window you
-are reading: back and forward, the lock, the blocking shield, the address — and
-right against the field, the bookmark star, because it is about that same page.
-No individual window has a title bar of its own — a dozen windows in a row do
-not want a dozen address fields.
+At the top, the tabs: pinned ones as icons at the left edge, then the groups with
+their coloured labels. Under them, a bar about the tab you are reading: back and
+forward, the lock, the blocking shield, the address — and right against the
+field, the bookmark star and the Share button. Further right, the download ring,
+which appears only once something has been downloaded, the extensions' buttons,
+and the profile button with its name and colour.
 
-On the left of that row: the profile button, with its name and colour, and the
-layout button. On the right: the workspace stepper, the overview, and the
-download ring, which appears only once something has been downloaded.
+How groups, pinning and side by side work is on the [Tabs and groups](/en/tabs)
+page.
 
-The `×` that closes a window is the one thing that stayed with the window: it
-sits on its top right corner and is invisible until the pointer is on it.
+## A new tab
 
-## A new window
-
-`⌘T` opens one to the right of the current one. It opens not on somebody's home
+`⌘T` opens one at the end of the bar, outside every group. It opens not on somebody's home
 page but on Savoia's own **start page**: one field that takes a query and an address
 equally.
 
@@ -108,41 +93,23 @@ query that has nothing to do with what you kept. It is harmless — `↩` with
 nothing selected still goes to the search engine.
 :::
 
-## The first ten minutes
-
-The order worth trying:
-
-1. `⌘T` three or four times, open something in each. That is a row.
-2. `⌥←` and `⌥→` walk along it. `⌥` is the layout's modifier.
-3. `⌥↓` goes to the workspace below. It is empty; open something of your own
-   there.
-4. `⌥O` is the overview: everything at once, workspaces stacked. A click opens a
-   window, a drag moves it, a double-click on a workspace's name renames it.
-5. `⌥W` fills the window, gaps and all. Again to leave.
-6. Sweep the pointer into the gap beside the focused window. The row leans over
-   to show what is there: `‹` or `›` if it is a window, the edge of the start
-   page that would open there if there is no window yet — and a click makes one.
-
-None of this needs the keyboard:
-[every operation has a mouse equivalent](/en/layout#with-the-mouse-alone).
-
 ## Where things are kept
 
 All of it on your machine, in `~/Library/Application Support/org.deffun.savoia`:
 
 | | |
 |---|---|
-| `state.json` | windows, strips, workspaces, agent chats — the session snapshot |
+| `state.json` | tabs, groups, agent chats — the session snapshot |
 | `savoia.sqlite` | history, bookmarks, site permissions, settings |
 | `Profiles/<name>/` | the profile's bookmarks as files, and the agents' scratchpad |
-| `Blocking/`, `Models/`, `Thumbnails/`, `Screenshots/` | filter lists, the model behind search-by-meaning, window pictures, screenshots |
+| `Blocking/`, `Models/`, `Thumbnails/`, `Screenshots/` | filter lists, the model behind search-by-meaning, tab pictures, screenshots |
 
-A session survives a relaunch whole: windows come back where they stood, with
+A session survives a relaunch whole: tabs come back where they stood, with
 their addresses and scroll offsets, and agent chats carry on. Video and sound in
-restored windows do not start by themselves — not until the first click on the page.
+restored tabs do not start by themselves — not until the first click on the page.
 
 ## Making it the default browser
 
 **Configuration ▸ General ▸ Make Default Browser…**, or System Settings › Desktop
 & Dock › Default web browser. After that, links from other applications and
-`.html` files from the Finder arrive as windows in the row.
+`.html` files from the Finder arrive as new tabs.

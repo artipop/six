@@ -1,7 +1,4 @@
 import Foundation
-#if os(iOS)
-import UIKit
-#endif
 import Observation
 import WebKit
 
@@ -194,11 +191,7 @@ final class DevToolsStore {
 
     /// What Safari calls this Mac in its Develop menu.
     static var machineName: String {
-        #if os(macOS)
         Host.current().localizedName ?? ProcessInfo.processInfo.hostName
-        #elseif os(iOS)
-        UIDevice.current.name
-        #endif
     }
 
     /// Where `take_screenshot` puts its files.

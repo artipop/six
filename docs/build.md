@@ -11,20 +11,7 @@ brings Swift macros (`@Table`, `#sql`), which Xcode wants trusted once in the UI
 xcodebuild -project Savoia.xcodeproj -scheme Savoia -configuration Debug -skipMacroValidation -skipPackagePluginValidation build
 ```
 
-The iOS target is a second scheme, and it wants a **destination** rather than an SDK:
-
-```sh
-xcodebuild -project Savoia.xcodeproj -scheme Savoia-iOS -configuration Debug \
-  -destination 'generic/platform=iOS Simulator' -skipMacroValidation -skipPackagePluginValidation build
-```
-
-`-sdk iphonesimulator` hands the simulator platform to the SwiftPM macro plugins too. A macro plugin is a host tool,
-so the simulator-linked one cannot be executed (`DYLD_ROOT_PATH not set for simulator program`), the compiler reports
-`StructuredQueriesSQLiteMacros … produced malformed response`, and every `@Table` in the app fails to expand — dozens
-of errors that look like the app's own and are not. Deleting the bad plugins from `Build/Products/Debug-iphonesimulator`
-does not help on its own; the destination is what fixes it.
-
-`-skipPackagePluginValidation` is the same story for build plugins: mlx-swift ships one (`CudaBuild`). mlx-swift
+`-skipPackagePluginValidation` is for build plugins: mlx-swift ships one (`CudaBuild`). mlx-swift
 also compiles Metal shaders, which needs the **Metal Toolchain** component — once,
 `xcodebuild -downloadComponent MetalToolchain` (~840 MB); without it the build stops at `cannot execute tool 'metal'`.
 The first build with MLX takes several minutes (C++ and Metal); after that it is incremental. Debug builds run MLX
@@ -127,40 +114,3 @@ The development build's set carries an orange DEV band, so the two can be told a
 
 App Sandbox is off — the ACP layer spawns `npx` / `claude` / `codex` from the user's toolchain.
 
-## Linux
-
-The Linux front is built by SwiftPM, not Xcode, and in a container rather than on the Mac — see
-[linux.md](linux.md) for what it is and why the packages are split.
-
-```sh
-./scripts/savoia-linux.sh image                # the container image, from linux/Containerfile
-./scripts/savoia-linux.sh up                   # build and run it; prints a noVNC URL to watch it at
-./scripts/savoia-linux.sh core                 # SavoiaCore alone on Linux, without the GTK front
-```
-
-That script is the whole recipe — the image, a long-lived `savoia-live` with the repository mounted live, `container
-exec` to rebuild without restarting, a still screenshot, and the logs. Underneath it, and only ever *inside* the
-container:
-
-```sh
-swift build --package-path linux --disable-automatic-resolution   # the app
-swift build --disable-automatic-resolution                        # SavoiaCore
-swift test  --disable-automatic-resolution                        # and its tests, either platform
-```
-
-The flag belongs on every one of them, on both platforms — [storage.md](storage.md) and the comment at the top of
-`Package.swift` say why, and a run without it rewrites `Package.resolved` into a shape the Linux build cannot use.
-The first command cannot run on the Mac at all: `CWebKitGTK` has no `webkitgtk-6.0` to resolve against there.
-
-It needs GTK 4, libadwaita 1 and WebKitGTK 6.0 development packages plus `pkg-config`; `linux/Containerfile`
-pins the versions that were used and says why each one. On an Apple Silicon Mac the container runs
-natively through Apple's own `container` CLI, so there is no emulation in the loop.
-
-Two SwiftPM notes that cost time once each:
-
-- `swift package update` is a Linux-breaking command. `Package.resolved` is seeded from the app's own
-  graph, and newer swift-sharing and combine-schedulers do not build on Linux — the reasons are
-  written out at the top of `Package.swift`. Re-seed from the app instead.
-- Editing the root `Package.swift` does not invalidate the Linux build plan: llbuild caches the whole
-  description, `swift build` reports success in a tenth of a second, and the file that was added is
-  never compiled. Delete the scratch path's `build.db` after a manifest edit.

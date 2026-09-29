@@ -4,9 +4,7 @@ import SwiftUI
 /// The first window Savoia ever opens, and the one question it has to ask.
 ///
 /// A page and not a sheet, for the reason written on `BuiltInPage`: a browser's answer to "show me
-/// something" is a window in the row. It can be closed, it can be opened again from the menu, and
-/// it teaches the layout in the act of being read — the first thing a new person does here is close
-/// a column.
+/// something" is a tab. It can be closed, and it can be opened again from the menu.
 ///
 /// One question, and one more if the answer is yes: Savoia is built around language models, and
 /// whether they run at all is not a preference to discover in a settings pane three days later. A
@@ -35,7 +33,7 @@ struct WelcomePage: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 PageMark(size: 44, weight: .semibold, color: browser.selectedProfile.color)
-                Text("A browser with a row instead of tabs: a page is a full-height window, the windows stand side by side, and the row scrolls. ⌥← and ⌥→ move along it; ⌥↑ and ⌥↓ move between workspaces.")
+                Text("Tabs gather into groups, and two tabs can stand side by side. ⌃Tab goes back to the tab you were just in.")
                     .font(.title3)
                     .foregroundStyle(.secondary)
                     .padding(.top, 12)
