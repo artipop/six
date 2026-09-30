@@ -83,7 +83,7 @@ ls -td ~/Library/Developer/Xcode/DerivedData/Savoia-*/Build/Products/Debug/Savoi
 
 - Debug is `org.deffun.savoia.dev` ("Savoia dev"), Release is `org.deffun.savoia`. **They coexist and are meant to** — the
   Release one is Artem's real browser with real state. Never kill it; restart only the dev one, by its own id.
-- `pkill -x Savoia` + `open -na <full path>`. Never `open -b <bundleid>`: with several copies registered, LaunchServices
+- `pkill -f "Debug/Savoia.app/Contents/MacOS/Savoia"` + `open -na <full path>`. Never `open -b <bundleid>`: with several copies registered, LaunchServices
   picks whichever it likes and two Savoias on one Application Support directory trap in WebKit.
 - Launch from a non-sandboxed shell (`dangerouslyDisableSandbox`), or the app never initialises. A crash in
   `SavoiaApp.init` leaves no window and no stderr — run the binary directly once, or read `~/Library/Logs/DiagnosticReports/Savoia-*.ips`.
@@ -91,8 +91,8 @@ ls -td ~/Library/Developer/Xcode/DerivedData/Savoia-*/Build/Products/Debug/Savoi
   build, plus the unified log (`/usr/bin/log show --last 1h --info --debug --predicate 'subsystem ==
   "org.deffun.savoia.dev"'` — `log` alone is a zsh builtin and dies with "too many arguments"). Everything that used to
   be an unread `[Savoia] …` on stderr is in both. [docs/logging.md](docs/logging.md).
-- Before believing "it's still not there", check `ps -eo pid,lstart,command | grep MacOS/Savoia`. Three rounds of that
-  once turned out to be a stale Release build being looked at.
+- Before believing "it's still not there", check `ps -eo pid,lstart,command | grep MacOS/Savoia` — the process
+  being looked at is often a stale Release build.
 
 **Screenshots do not work here.** `screencapture` writes black (no Screen Recording for the terminal) and System Events
 is refused (no Accessibility), so synthetic clicks, hover and menu states cannot be captured. Verify through Savoia's own
@@ -139,10 +139,10 @@ rewrite the root file. `xcodebuild` never touches it — the project holds only 
 
 ## Things that have cost hours
 
-- **The SDK override is load-bearing.** The target sets `SDKROOT` to the *Command Line Tools* macOS 27 SDK because
-  Xcode's own SDK has an older Foundation Models executor ABI than the OS and crashes third-party `LanguageModel`s on
-  launch. That is also why `Savoia/Vendor/` exists: a SwiftPM target would ignore the override. Don't move those back to
-  packages until Xcode's SDK matches.
+- **The SDK override is still in the project, and no longer needed.** The target sets `SDKROOT` to the *Command Line
+  Tools* macOS 27 SDK, which is why `Savoia/Vendor/` exists: a SwiftPM target would ignore the override. Release Xcode
+  27.0 ships the same SDK, so removing both is open — a decision, not a fix; don't do it as a side effect of other work.
+  [docs/build.md](docs/build.md#sdk-override).
 - **The app target compiles main-actor-by-default** (`SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`), so anything that
   does not say `nonisolated` is on the main actor — and the compiler complains at the *reader*, not at the
   declaration: a `static let` holding a path becomes a warning inside the detached save three files away. Say
@@ -150,8 +150,8 @@ rewrite the root file. `xcodebuild` never touches it — the project holds only 
   decoding, an extension on `Data` or `Color`), the constants a background closure reads, and every top-level
   declaration of a vendored tree, which was written for a package where nothing is isolated unless it says so. And a
   non-Sendable value cannot cross an isolation line at all: `MainActor.assumeIsolated` handing back an `NSEvent` is a
-  warning, handing back the verdict about it is not. Eighty-seven of these had accumulated by `09dd84c`; a build that
-  prints nothing is the state worth keeping, because a build that prints eighty-seven is one nobody reads.
+  warning, handing back the verdict about it is not. Keep the build warning-free: a build that prints dozens of
+  warnings is one nobody reads.
 - **A share extension is registered by bundle id, and another session's build answers for yours.** The
   copy in the *other* worktree's DerivedData carries the same `org.deffun.savoia.dev.share`, and
   LaunchServices picks one of them — so a rebuild here can change nothing that actually runs, and the
@@ -196,8 +196,8 @@ rewrite the root file. `xcodebuild` never touches it — the project holds only 
   (`TabsSelfTest.menuForCommandW`); without it you are reading what the menu held last time.
 - **A letter binding read from `charactersIgnoringModifiers` is a binding that only Latin layouts have.** `⌥⇧P` reports
   «з» on the Russian layout. Match the key code as well (`KeyBinding.Key.letter`).
-- **`pkill -x Savoia` kills the Release browser** — Artem's real one, with his real state. It is named in the rule above
-  and it is still the easy thing to type. Kill by path: `pkill -f "Debug/Savoia.app/Contents/MacOS/Savoia"`. That kill is
+- **`pkill -x Savoia` kills the Release browser** — Artem's real one, with his real state, and it is the easy thing to
+  type. Kill by path: `pkill -f "Debug/Savoia.app/Contents/MacOS/Savoia"`. That kill is
   by path and not by process, so it also takes down the **other session's** dev Savoia, however they launched it —
   a run of `SAVOIA_KEY_SELFTEST` every few minutes looks from over there like an unexplained SIGKILL at 75–135 s with no
   crash report. Say so before a series of them, and ask before taking the app down if someone needs a long window.
@@ -225,10 +225,10 @@ rewrite the root file. `xcodebuild` never touches it — the project holds only 
   its generated 497-byte `BNDL` plist on top of the real one and leaving copies of `InfoPlist.xcstrings` and
   `Localizable.xcstrings` beside it. Its `CFBundleIdentifier` is `<checkout folder>.SavoiaCore.resources`: SwiftPM takes
   a root package's identity from the directory rather than from the `name:` in the manifest, so the prefix follows
-  whatever the clone happens to be called — it read `savoia-main` where this was first found. The real file is what
+  whatever the clone happens to be called. The real file is what
   makes macOS treat Savoia as a browser at all — the http/https claim, the document types, the camera and microphone
   prompt strings — so committing that diff ships a browser that cannot be made the default and whose permission
-  prompts are blank. It sat dirty for two days once. `git checkout -- Info.plist` and delete the two stray
+  prompts are blank. `git checkout -- Info.plist` and delete the two stray
   catalogues; the tell is that they are byte-identical to the ones in `Savoia/` and all three carry the same timestamp.
 - **Commit messages are prose.** A sentence for the title — what changed, in the voice of the thing that changed
   ("The window that was closed comes back where it stood") — and a body that explains the why, the measurement, and
