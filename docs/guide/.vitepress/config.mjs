@@ -194,8 +194,7 @@ export default defineConfig({
     cleanUrls: false,
 
     // Published under `docs/` of the product's root. `BASE` is that root: `/` on
-    // its own, `/vi/` when deffun (../../../deffun) composes the products — the
-    // address the home page has linked to since the product was called VI.
+    // its own, `/savoia/` when deffun (../../../deffun) composes the products.
     base: `${process.env.BASE ?? '/'}docs/`,
 
     head: [
