@@ -560,6 +560,7 @@ private struct Panels: ViewModifier {
             .sheet(isPresented: $history) { HistoryView() }
             .focusedSceneValue(\.showBookmarks, FocusAddressBarAction { bookmarks = true })
             .sheet(isPresented: $bookmarks) { BookmarksView() }
+            .tabCleanupSheet()
     }
 }
 

@@ -298,3 +298,46 @@ that was ungrouped marks its tabs the same way.
 What the tab bar does **not** have yet: tabs from several profiles side by side (it shows the profile on screen),
 dragging a tab out into a group of its own (the tab menu's "Add Tab to New Group" does that), and group colours
 chosen by hand.
+
+## Tabs left behind
+
+**Offered for closing** (`TabCleaner`, `TabCleanup`, `ConfigurationStore.tabCleanupDays`, Configuration ▸ Tabs ▸ Old
+Tabs, never by default). `BrowserTab.seenAt` is when the tab was last in front — set on both sides of `syncSelection`,
+so the tab leaving the front counts as seen until then — and it is kept in the session file (`TabSnapshot.seenAt`; a
+tab from an older file starts at the launch). Once a period, checked hourly against `tabCleanupLastPass`, the pass
+takes the unpinned web tabs of the profile on screen and the history of the period (the latest visit per address,
+200 at most), embeds title-with-the-site-taken-off with the same e5 and `query:` as the sorter, and asks
+`TabCleanup.abandoned`: a tab not in front for the whole period is offered unless one of these holds —
+
+- a tab of its group was in front within the period (a group is a topic);
+- the nearest page read within the period — a visit, or a tab in front, a shared site adding the sorter's `domain`
+  weight — comes within `kin` (−0.01) of the tab's mean similarity to its three nearest open tabs.
+
+Measured against its own neighbours rather than a median, because a median failed. `SAVOIA_CLEANUP_SELFTEST=small`
+(old tabs on swift, food and football plus two strays, a period of reading about swift and football) on e5-small:
+
+| | read topics kept | food and strays offered |
+|---|---|---|
+| nearest read − median to the open tabs, at 0.02 | 8/8 | 1/6 |
+| the same, at 0.03 (the best with nothing read offered) | 8/8 | 2/6 |
+| nearest read − mean of the three nearest tabs, at −0.01 | 8/8 | 3/6 — borscht, bread, cookies |
+
+The read topics' old tabs scored −0.007 at the lowest, so `kin` has little room either way. What stays is carbonara
+(its nearest read page beat its fellow recipes) and the two strays: a tab with nothing near it has its neighbours
+about as far as anything read, and is not offered — a miss is a tab still open, a false offer is a question the
+person has to read. A median over the history as well was worse still: a period spent on one topic made that
+topic's own old tabs look ordinary.
+
+On e5-base the same fixture separates nothing: the recipes score 0.004–0.016 over their peers, the read topics
+0.001–0.019, so −0.01 offers no read topic and no recipe either — safe, and blind to near topics. Far ones it does
+see: a live pass on the dev profile (test pages on 127.0.0.1 aged 20 days, six swift.org pages read) offered 21 of
+its 25 tabs on e5-base, and none of the swift ones. Fewer than five pages read in the period and nothing is
+offered — a week away is not a week of other interests — and the pass is tried again within the hour rather than
+recorded. The period is the one number: it is how often the pass runs and how long unseen counts as left behind.
+Switching it on starts the clock, so the first offer comes a whole period later; **Look Now** runs the pass at once.
+
+The offer is a sheet (`TabCleanupSheet`) listing the tabs, longest unseen first, each with a checkbox. It comes
+unasked, often while the person is typing, so Return is **Keep All** and closing takes a click — with Close as the
+default, a Return meant for something else closed 24 tabs in testing. Tabs closed or brought to the front since the pass drop out of it
+(`stillOffered`). Closing goes through `closeTabs`, so the tabs are on ⌘⇧T's list like any other — which keeps the
+last ten.

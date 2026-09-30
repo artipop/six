@@ -466,7 +466,7 @@ private struct TabDrop: DropDelegate {
 }
 
 /// The tab's icon: the site's own mark, or the glyph for what kind of window it is.
-private struct TabMark: View {
+struct TabMark: View {
     let tab: BrowserTab
     @Environment(BrowserState.self) private var browser
 

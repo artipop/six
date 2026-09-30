@@ -50,6 +50,10 @@ built again.
 and three alike tabs with no group become a group. **Sort By** and **Local
 Model** are there too. More in [Groups by meaning](tabs.md#groups-by-meaning).
 
+**Old Tabs ▸ Offer to Close** — how often to offer closing tabs not opened for a
+long time whose topic you no longer come across, and **Look Now**. More in [Old
+tabs](tabs.md#old-tabs).
+
 **Loaded Tabs** — how many tabs are holding a live page right now, and **Free
 Memory**. The number cannot be changed: how many separate processes a particular
 Mac will carry is not a thing a person can know, so Savoia works it out from the

@@ -2,7 +2,7 @@ import Foundation
 
 /// `SAVOIA_TOPICS_SELFTEST=1`: the real models on fixed titles; `=grid` also compares e5 sizes and prefixes;
 /// `=batch` is a second batch of one topic arriving together, before and after `near`; `=live` does
-/// the same with real pages in a new profile, through the sorter itself.
+/// the same with real pages in a new profile, through the sorter itself. `SAVOIA_CLEANUP_SELFTEST=1` (or `=small`, `=base`) measures `TabCleanup`.
 enum TabTopicsSelfTest {
     private static let topics: [(String, [String], [String])] = [
         ("swift", [
@@ -235,6 +235,39 @@ enum TabTopicsSelfTest {
 
     /// What `TabSorter.sort` does with tabs that arrive together: one at a time, each measured against
     /// the ones still loose, then the rest clustered.
+    /// Old tabs on every topic, a period spent reading about swift and football: food and the strays are
+    /// what should be offered.
+    static func cleanup(_ embedder: any Embedder) async {
+        func say(_ line: String) { Log.info(.browser, "cleanup selftest: \(line)") }
+        let old = topics.flatMap { topic in topic.1.map { (topic.0 == "food" ? "offer" : "keep", $0) } }
+            + strays.map { ("offer", $0) }
+        let read = topics.filter { $0.0 != "food" }.flatMap(\.2)
+            + ["Swift Testing: parameterized tests", "Реал Мадрид — Барселона: онлайн трансляция"]
+        let texts = old.map(\.1) + read
+        guard let vectors = try? await embedder.embed(texts, as: TabSorter.role) else { return say("embed failed") }
+        let now = Date.now
+        let tabs = zip(old, vectors).map { TabCleanup.Tab(id: UUID(), vector: $1.vector, host: "", seenAt: now.addingTimeInterval(-20 * 86_400)) }
+        let history = vectors.suffix(read.count).map { TabCleanup.Interest(vector: $0.vector, host: "") }
+        let open = tabs.map { TabTopics.Tab(id: $0.id, vector: $0.vector, host: "") }
+        for (tab, (expected, title)) in zip(tabs, old) {
+            let nearest = history.map { TabTopics.cosine(tab.vector, $0.vector) }.max() ?? 0
+            let usual = TabTopics.background(of: open.first { $0.id == tab.id }!, among: open)
+            let peers = open.filter { $0.id != tab.id }.map { TabTopics.cosine(tab.vector, $0.vector) }.sorted(by: >).prefix(3)
+            let kin = peers.reduce(0, +) / Float(max(1, peers.count))
+            say("[\(expected)] \(title.prefix(32)): lead \(String(format: "%.3f", nearest - usual)), over peers \(String(format: "%.3f", nearest - kin))")
+        }
+        for kin in [Float(-0.03), -0.02, -0.01, 0, 0.01] {
+            var thresholds = TabCleanup.Thresholds.standard
+            thresholds.kin = kin
+            let offered = Set(TabCleanup.abandoned(tabs, history: history, since: now.addingTimeInterval(-7 * 86_400),
+                                                   thresholds: thresholds))
+            let right = zip(tabs, old).filter { offered.contains($0.0.id) == ($0.1.0 == "offer") }.count
+            let wrongClosed = zip(tabs, old).filter { offered.contains($0.0.id) && $0.1.0 == "keep" }.count
+            say("kin \(kin): \(right)/\(tabs.count) right, \(wrongClosed) read topics offered")
+        }
+        say("done")
+    }
+
     private static func batch(_ say: (String) -> Void) async {
         let anchors = topics.flatMap { topic in topic.1.map { (topic.0, $0) } }
         let arriving = secondBatch.map { ("food", $0) } + between.map { ("between", $0) } + strays.map { ("none", $0) }

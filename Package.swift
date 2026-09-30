@@ -53,6 +53,7 @@ let package = Package(
                 "Bookmarks/Embedding/WebEmbedder.swift",
                 "Browser/WindowSwitcher.swift",
                 "Tabs/TabTopics.swift",
+                "Tabs/TabCleanup.swift",
                 "Tabs/GroupColor.swift",
                 "Browser/SearchEngine.swift",
                 "Browser/PageSandbox.swift",

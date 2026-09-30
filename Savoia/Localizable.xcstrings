@@ -196,6 +196,24 @@
               }
             }
           }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Close %lld Tab"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Close %lld Tabs"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -8158,6 +8176,204 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Экспериментально: разрешений для отдельных сайтов пока нет."
+          }
+        }
+      }
+    },
+    "Old Tabs" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Старые вкладки"
+          }
+        }
+      }
+    },
+    "Offer to Close" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Предлагать закрыть"
+          }
+        }
+      }
+    },
+    "Tabs not opened for this long, about topics you have stopped reading." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вкладки, которые столько не открывались, на темы, которые вы больше не читаете."
+          }
+        }
+      }
+    },
+    "Look Now" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проверить сейчас"
+          }
+        }
+      }
+    },
+    "Nothing to close" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закрывать нечего"
+          }
+        }
+      }
+    },
+    "Every 3 Days" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Раз в 3 дня"
+          }
+        }
+      }
+    },
+    "Every 2 Weeks" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Раз в 2 недели"
+          }
+        }
+      }
+    },
+    "Every %lld Days" : {
+      "localizations" : {
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Раз в %lld дня"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Раз в %lld дней"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Раз в %lld день"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Раз в %lld дней"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Not opened for a day, and nothing read since is about them." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не открывались больше суток, и ничего из прочитанного с тех пор не о них."
+          }
+        }
+      }
+    },
+    "Not opened for a week, and nothing read since is about them." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не открывались неделю, и ничего из прочитанного с тех пор не о них."
+          }
+        }
+      }
+    },
+    "Not opened for two weeks, and nothing read since is about them." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не открывались две недели, и ничего из прочитанного с тех пор не о них."
+          }
+        }
+      }
+    },
+    "Not opened for a month, and nothing read since is about them." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не открывались месяц, и ничего из прочитанного с тех пор не о них."
+          }
+        }
+      }
+    },
+    "Not opened for %lld days, and nothing read since is about them." : {
+      "localizations" : {
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Не открывались %lld дня, и ничего из прочитанного с тех пор не о них."
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Не открывались %lld дней, и ничего из прочитанного с тех пор не о них."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Не открывались %lld день, и ничего из прочитанного с тех пор не о них."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Не открывались %lld дней, и ничего из прочитанного с тех пор не о них."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Close tabs you have moved on from?" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закрыть вкладки, к которым вы не возвращаетесь?"
+          }
+        }
+      }
+    },
+    "Keep All" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оставить все"
           }
         }
       }

@@ -130,6 +130,7 @@ struct SavoiaApp: App {
         bookmarks.startRefreshSchedule()
         browser.bookmarks = bookmarks
         bookmarks.resumeIndexing()
+        browser.cleaner.start(browser, settings: settings)
         // `SAVOIA_EMBED_SWITCH=base` works the model picker from a terminal, three seconds in. It is the
         // one control in Configuration that nothing here can click — screenshots and synthetic clicks both
         // need permissions this machine does not give (AGENTS.md) — and the half it drives is the live
@@ -141,6 +142,10 @@ struct SavoiaApp: App {
                 Log.info(.embed, "switching to \(switchTo.rawValue)")
                 bookmarks.use(switchTo)
             }
+        }
+        if let mode = ProcessInfo.processInfo.environment["SAVOIA_CLEANUP_SELFTEST"] {
+            let embedder = EmbeddingModelChoice(rawValue: mode).map { MLXEmbedder(choice: $0, modelsDirectory: models) }
+            Task { await TabTopicsSelfTest.cleanup(embedder ?? bookmarks.embedder) }
         }
         if ProcessInfo.processInfo.environment["SAVOIA_EMBED_SELFTEST"] != nil, let mlx = bookmarks.embedder as? MLXEmbedder {
             Task { let report = await mlx.diagnostics(); Log.info(.embed, "selftest:\n\(report)") }

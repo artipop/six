@@ -226,6 +226,8 @@ final class BrowserTab: Identifiable {
     /// by `BrowserState`, which reads it together with `hasCommitted` to take the window back if the
     /// link turns out to be a file, and to put the reader back where they clicked.
     @ObservationIgnored var openedFrom: BrowserTab.ID?
+    /// When the tab was last in front, or opened; what `TabCleaner` measures a tab left behind by.
+    @ObservationIgnored var seenAt = Date()
     /// Has anything ever been shown here? A window whose only navigation became a download never
     /// commits one, and has neither a page to show nor a page to go back to.
     private(set) var hasCommitted = false

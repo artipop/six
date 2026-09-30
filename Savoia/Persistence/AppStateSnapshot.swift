@@ -70,6 +70,8 @@ nonisolated struct TabSnapshot: Codable, Sendable {
     var document: DocumentSnapshot? = nil
     /// An MCP app window: where its server is and what drew it. Absent for every other kind.
     var app: AppWindowSnapshot? = nil
+    /// When it was last in front; absent in files from before it was kept.
+    var seenAt: Date? = nil
 }
 
 /// What the snapshot keeps of an MCP app window.

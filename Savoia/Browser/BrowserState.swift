@@ -78,6 +78,8 @@ final class BrowserState {
     /// ⌘F, per window. `@Observable` itself, like `translation` above.
     @ObservationIgnored let find = PageFinder()
     @ObservationIgnored let sorter = TabSorter()
+    /// `@Observable` itself, like `translation`: its proposal is what the sheet shows.
+    @ObservationIgnored let cleaner = TabCleaner()
     /// Apple's on-device translator. Held by name as well as behind the protocol, because the
     /// hidden `.translationTask` host needs the concrete one — that is the whole point of it.
     @ObservationIgnored let appleTranslator = AppleTranslator()
@@ -336,6 +338,7 @@ final class BrowserState {
     /// that can be brought back with ⌘⇧T are the same window described twice.
     private static func entry(for tab: BrowserTab) -> TabSnapshot {
         var entry = TabSnapshot(id: tab.id, profileID: tab.profileID, url: tab.showsStartPage ? nil : tab.currentURL, title: tab.title)
+        entry.seenAt = tab.seenAt
         // Where it has been, so ⌘[ still works after a relaunch. Bounded: a window read all day
         // accumulates hundreds of addresses, and nobody walks back through hundreds.
         let trail = tab.trail
@@ -396,7 +399,9 @@ final class BrowserState {
         }
         for tab in snapshot.tabs where placed.contains(tab.id) {
             guard let profile = profiles.first(where: { $0.id == tab.profileID }) else { continue }
-            add(makeTab(from: tab, profile: profile))
+            let restored = makeTab(from: tab, profile: profile)
+            if let seenAt = tab.seenAt { restored.seenAt = seenAt }
+            add(restored)
         }
         layout.restore(strips: strips)
         downloads.restore(snapshot.downloads ?? [])
@@ -1602,8 +1607,11 @@ final class BrowserState {
 
     /// The focused column is the selected tab — everything else (assistant, agent panel, ⌘L) keys off it.
     private func syncSelection() {
+        // The tab leaving the front was looked at until now, not since it came there.
+        selectedTab?.seenAt = .now
         selectedTabID = layout.focusedTabID
         if selectedTab == nil { selectTabIfNone() }
+        selectedTab?.seenAt = .now
         if let id = selectedTabID, !pickedTabs.contains(id) {
             pickedTabs = [id]
             pickAnchor = id

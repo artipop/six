@@ -325,7 +325,7 @@ private struct ShareExtensionRow: View {
 
 // MARK: - Windows
 
-/// Tab groups by meaning, and what the live-page budget is doing.
+/// Tab groups by meaning, closing the tabs left behind, and what the live-page budget is doing.
 private struct WindowConfiguration: View {
     @Environment(BrowserState.self) private var browser
 
@@ -360,6 +360,10 @@ private struct WindowConfiguration: View {
                 ))
             }
 
+            SwiftUI.Section("Old Tabs") {
+                TabCleanupRows()
+            }
+
             SwiftUI.Section("Loaded Tabs") {
                 LoadedWindows()
             }
@@ -369,6 +373,42 @@ private struct WindowConfiguration: View {
 
     private func resort() {
         if browser.sortsTabsByMeaning { browser.setSortsTabsByMeaning(true) }
+    }
+}
+
+/// How often the tabs left behind are offered for closing, and a look right now.
+private struct TabCleanupRows: View {
+    @Environment(BrowserState.self) private var browser
+    @Environment(ConfigurationStore.self) private var settings
+    @State private var foundNothing = false
+
+    var body: some View {
+        @Bindable var settings = settings
+        Picker("Offer to Close", selection: $settings.tabCleanupDays) {
+            Text("Never").tag(0)
+            ForEach(TabCleaner.periods, id: \.self) { Text(TabCleaner.title(days: $0)).tag($0) }
+        }
+        .onChange(of: settings.tabCleanupDays) { foundNothing = false }
+        Text("Tabs not opened for this long, about topics you have stopped reading.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        if settings.tabCleanupDays > 0 {
+            HStack {
+                Button("Look Now") {
+                    Task {
+                        let found = await browser.cleaner.look(browser, days: settings.tabCleanupDays, settings: settings)
+                        foundNothing = found == 0
+                    }
+                }
+                .controlSize(.small)
+                .disabled(browser.cleaner.isLooking)
+                if browser.cleaner.isLooking {
+                    ProgressView().controlSize(.small)
+                } else if foundNothing {
+                    Text("Nothing to close").font(.caption).foregroundStyle(.secondary)
+                }
+            }
+        }
     }
 }
 

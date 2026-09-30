@@ -71,6 +71,27 @@ works best with **Gemma 4 E2B**, at 3.6 GB and a few seconds a tab.
 (3.6 GB). Downloaded the first time it is needed, and held in memory only while it
 answers.
 
+### Old tabs
+
+**Configuration ▸ Tabs ▸ Old Tabs ▸ Offer to Close** — how often Savoia looks for tabs
+you have left behind: **Never** (the default), **Daily**, **Every 3 Days**, **Weekly**,
+**Every 2 Weeks** or **Monthly**. The period is also the measure: once a week it looks
+for tabs not opened for a week.
+
+A tab left behind is one that has not been in front for the whole period, and whose
+topic you have not come across in that time — neither in the other tabs you opened
+nor in the history. The topics are compared by the same model that sorts tabs into
+groups, on this Mac, with no network. If any tab of a group was opened, the rest of
+the group is left alone too: a group is a topic. Pinned tabs are never offered.
+
+The tabs found are shown as a list with checkboxes: untick what you want to keep and
+click **Close N Tabs**, or **Keep All**. Savoia closes nothing by itself. If you read
+next to nothing in the period — you were on holiday, say — nothing is offered: there
+is nothing to judge by. It looks at the profile that is open, and never at a private
+one.
+
+**Look Now** runs the same search at once, without waiting for the period.
+
 ## Keys
 
 | | |
