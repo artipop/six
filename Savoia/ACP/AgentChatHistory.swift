@@ -64,8 +64,10 @@ final class AgentSessionCatalog {
         defer { loading.remove(key) }
         do {
             if toolchain.report(for: agent).adapter == .unknown { await toolchain.refresh(agent) }
+            let delegate = SilentDelegate()
+            defer { withExtendedLifetime(delegate) {} }
             let client = try await ACPClient(definition: toolchain.launchDefinition(for: agent),
-                                             delegate: SilentDelegate(), allowsFileAccess: false)
+                                             delegate: delegate, allowsFileAccess: false)
             let deadline = Task {
                 try await Task.sleep(for: .seconds(30))
                 await client.shutdown()
