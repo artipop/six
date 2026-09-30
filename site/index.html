@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VI — браузер для macOS с ИИ-агентами</title>
+<meta name="description" content="VI — браузер для macOS: вкладки собираются в группы по смыслу, две страницы встают рядом, на любой странице можно позвать модель или агента.">
+<meta property="og:title" content="VI — браузер для macOS с ИИ-агентами">
+<meta property="og:description" content="Вкладки, группы по смыслу, две страницы рядом. Реклама не загружается, модель — на устройстве или ваша.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230c0c0e'/><rect x='9' y='7' width='6' height='18' fill='%23e24234'/><rect x='18' y='7' width='6' height='18' fill='%23e9e9ec'/></svg>">
+<link rel="stylesheet" href="/styles.css">
+<!-- The theme is decided before the first paint: app.js is a module and would
+     run too late, showing a light visitor a dark page first. -->
+<script>
+    document.documentElement.dataset.theme = localStorage.getItem('deffun-theme') ||
+        (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+</script>
+</head>
+<body>
+
+<header class="site-header">
+    <div class="wrap">
+        <a class="wordmark" href="%VITE_HOME_URL%">deffun</a>
+        <nav class="nav">
+            <a class="nav-hide" href="#how">Как это работает</a>
+            <a class="nav-hide" href="#facts">Факты</a>
+            <!-- The guide is its own project (docs/guide) and is published under docs/
+                 of the page: `npm run build:all`. -->
+            <a href="%BASE_URL%docs/">Руководство</a>
+            <button class="theme-toggle" type="button" id="theme-toggle" aria-label="Переключить тему">◐</button>
+        </nav>
+    </div>
+</header>
+
+<main id="top">
+
+<!-- ---------------------------------------------------------------- product -->
+<section class="hero" id="product">
+    <div class="wrap">
+        <p class="eyebrow"><span class="num">01</span>Продукт</p>
+        <p class="hero-name">VI</p>
+        <p class="hero-tag mono t-machine">Браузер / <span class="nowrap">ИИ-агенты</span> / macOS</p>
+        <p class="hero-lead">
+            Браузер для&nbsp;macOS. Вкладки собираются в&nbsp;группы по&nbsp;смыслу,
+            две страницы можно поставить рядом. На&nbsp;любой странице можно позвать
+            модель, а&nbsp;агент может сам открывать вкладки и&nbsp;читать страницы.
+        </p>
+        <p>
+            Реклама и&nbsp;трекеры не&nbsp;загружаются: это делает сам движок.<br>
+            Модель&nbsp;— на&nbsp;устройстве, в&nbsp;облаке Apple или ваша.
+        </p>
+        <p class="hero-actions">
+            <a class="btn" href="%BASE_URL%docs/">Руководство</a>
+            <a class="btn btn-ghost" href="#how">Как это работает</a>
+            <span class="note">В&nbsp;разработке&nbsp;— предзаказ пока не&nbsp;открыт</span>
+        </p>
+    </div>
+</section>
+
+<!-- --------------------------------------------------------------------- how -->
+<section id="how">
+    <div class="wrap">
+        <p class="eyebrow"><span class="num">02</span>Как это работает</p>
+        <h2>Вкладки, ассистент и агенты</h2>
+        <div class="cols-3">
+            <div class="card">
+                <h3>Группы по смыслу</h3>
+                <p>
+                    Вкладки складываются в&nbsp;цветные группы по&nbsp;теме. Группу можно
+                    свернуть до метки, а&nbsp;две вкладки поставить рядом.
+                    <kbd>⌃Tab</kbd> возвращает на&nbsp;ту, где вы только что были.
+                </p>
+            </div>
+            <div class="card">
+                <h3>Строка ⌘E</h3>
+                <p>
+                    Ассистент&nbsp;— одна строка. Она появляется под выделенным текстом,
+                    у&nbsp;поля, где стоит курсор, или внизу окна. Сама по&nbsp;себе
+                    не&nbsp;появляется.
+                </p>
+            </div>
+            <div class="card">
+                <h3>Агенты</h3>
+                <p>
+                    Claude Code, Codex или другой агент с&nbsp;поддержкой ACP работает
+                    на&nbsp;вашем компьютере. Он открывает вкладки в&nbsp;нужную группу,
+                    читает и&nbsp;пересказывает страницы.
+                </p>
+            </div>
+        </div>
+        <p class="muted" style="margin-top: 26px;">
+            Подробно, по&nbsp;шагам&nbsp;— в&nbsp;<a href="%BASE_URL%docs/">руководстве</a>.
+        </p>
+    </div>
+</section>
+
+<!-- ------------------------------------------------------------------- facts -->
+<section id="facts">
+    <div class="wrap">
+        <p class="eyebrow"><span class="num">03</span>Факты</p>
+        <h2>Что нужно знать</h2>
+        <dl class="rows">
+            <div>
+                <dt>Реклама</dt>
+                <dd><p>Списки фильтров превращаются в&nbsp;правила самого WebKit.
+                    Заблокированный запрос не&nbsp;уходит, скрипт сайта не&nbsp;выполняется.</p></dd>
+            </div>
+            <div>
+                <dt>Модель на выбор</dt>
+                <dd><p>На&nbsp;устройстве, в&nbsp;облаке Apple или ваша: Claude, Codex.
+                    Страница уходит модели только тогда, когда вы спросили.</p></dd>
+            </div>
+            <div>
+                <dt>Закладки</dt>
+                <dd><p>Закладка&nbsp;— читаемая копия страницы на&nbsp;диске. Её можно
+                    найти по&nbsp;смыслу, а&nbsp;не&nbsp;по&nbsp;заголовку.</p></dd>
+            </div>
+            <div>
+                <dt>Сертификат Минцифры</dt>
+                <dd><p>Сайты под ним открываются, и&nbsp;доверие остаётся внутри
+                    браузера, а&nbsp;не&nbsp;всей системы. Пока вы не&nbsp;включите
+                    сертификат сами, он выключен.</p></dd>
+            </div>
+            <div>
+                <dt>Профили</dt>
+                <dd><p>У&nbsp;каждого профиля свои куки, история, закладки,
+                    расширения, вкладки и&nbsp;группы.</p></dd>
+            </div>
+            <div>
+                <dt>Платформа</dt>
+                <dd><p>macOS 26 и&nbsp;новее.</p></dd>
+            </div>
+        </dl>
+    </div>
+</section>
+
+<!-- ------------------------------------------------------------------- guide -->
+<section id="guide">
+    <div class="wrap">
+        <p class="eyebrow"><span class="num">04</span>Руководство</p>
+        <h2>Первый запуск и все разделы</h2>
+        <p>
+            Вкладки и&nbsp;группы, ассистент, агенты, блокировка рекламы, закладки,
+            профили, перевод страниц&nbsp;— раздел за&nbsp;разделом.
+        </p>
+        <p class="hero-actions">
+            <a class="btn" href="%BASE_URL%docs/">Открыть руководство</a>
+        </p>
+    </div>
+</section>
+
+</main>
+
+<footer class="site-footer">
+    <div class="wrap">
+        <div class="footer-grid">
+            <div>
+                <p class="footer-title">deffun</p>
+                <p>Инструменты для&nbsp;повседневной работы.</p>
+            </div>
+        </div>
+        <p class="copyright mono">© 2026 deffun</p>
+    </div>
+</footer>
+
+<script type="module" src="/app.js"></script>
+</body>
+</html>

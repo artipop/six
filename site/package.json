@@ -1,0 +1,16 @@
+{
+    "name": "vi-site",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "concurrently -k -n site,guide -c cyan,magenta \"vite\" \"npm --prefix ../docs/guide run dev\"",
+        "dev:site": "vite",
+        "build": "vite build",
+        "build:all": "npm run build && npm --prefix ../docs/guide run build && rm -rf dist/docs && cp -R ../docs/guide/.vitepress/dist dist/docs",
+        "preview": "vite preview"
+    },
+    "devDependencies": {
+        "concurrently": "^10.0.5",
+        "vite": "^7.3.6"
+    }
+}
