@@ -235,9 +235,8 @@ and Ollama on this machine, which want no key at all, so an empty one sends no `
 header rather than an empty one. `OPENAI_BASE_URL`, `OPENAI_MODEL` and `OPENAI_API_KEY` name any of
 the three for a single run.
 
-The provider is Apple's own `ChatCompletionsLanguageModel`, vendored into
-`Savoia/Vendor/FoundationModelsUtilities/` for the reason the Claude bridge is (see
-[build.md](build.md)). `AssistantSettings` keeps the endpoint and the model name in the settings
+The provider is Apple's own `ChatCompletionsLanguageModel`, from the
+[foundation-models-utilities](https://github.com/apple/foundation-models-utilities) package. `AssistantSettings` keeps the endpoint and the model name in the settings
 table; the two keys are read from the settings fields or `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` and stored in
 `UserDefaults`, out of the database — **development only**. `FoundationModelsCompatibility` probes the executor ABI at launch and disables
 both remote options with an explanation if the runtime and the SDK diverge.

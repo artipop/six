@@ -1,5 +1,7 @@
 import Foundation
 import FoundationModels
+import ClaudeForFoundationModels
+import FoundationModelsUtilities
 
 /// Which `LanguageModel` backs the assistant. All of them are driven through the same `LanguageModelSession`.
 /// The Mac has two cases the phone does not: Claude through the vendored `LanguageModel`, whose

@@ -20,7 +20,6 @@ Savoia/Research    ResearchRun + ResearchPreset (the snapshot shape and the prom
 Savoia/MCP         MCPServer + MCPHost (the catalog over a Unix socket), MCPSocket, MCPStdioBridge (`Savoia --mcp`)
 Savoia/Persistence AppStateSnapshot (the Codable shape), SnapshotStore (a versioned JSON file), StatePersistence (autosave)
 Savoia/Data        AppDatabase (the SQLite file, migrations), ConfigurationStore (the settings table)
-Savoia/Vendor      ClaudeForFoundationModels sources
 Savoia/*.xcstrings Localizable + InfoPlist String Catalogs (English source, Russian) — see [localization](localization.md)
 ```
 

@@ -17,6 +17,8 @@
 		C4E57E1CA358AD438C0F5731 /* SQLiteVecData in Frameworks */ = {isa = PBXBuildFile; productRef = 82F43A23555A3254647ADAE5 /* SQLiteVecData */; };
 		AC9002010000000000000012 /* savoia-share.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = AC9002010000000000000008 /* savoia-share.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		5A11C0DE0000000000000F01 /* FluidAudio in Frameworks */ = {isa = PBXBuildFile; productRef = 5A11C0DE0000000000000F02 /* FluidAudio */; };
+		5A11C0DE0000000000000C03 /* ClaudeForFoundationModels in Frameworks */ = {isa = PBXBuildFile; productRef = 5A11C0DE0000000000000C02 /* ClaudeForFoundationModels */; };
+		5A11C0DE0000000000000C06 /* FoundationModelsUtilities in Frameworks */ = {isa = PBXBuildFile; productRef = 5A11C0DE0000000000000C05 /* FoundationModelsUtilities */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -49,14 +51,6 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		AC90010100000000000000A0 /* Exceptions for "Savoia" folder in "Savoia" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Vendor/ClaudeForFoundationModels/VENDORED.md,
-				Vendor/FoundationModelsUtilities/VENDORED.md,
-			);
-			target = AC897660303CEC20008426C2 /* Savoia */;
-		};
 		AC900201000000000000000A /* Exceptions for "ShareExtension" folder in "savoia-share" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -78,7 +72,6 @@
 		AC897663303CEC20008426C2 /* Savoia */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				AC90010100000000000000A0 /* Exceptions for "Savoia" folder in "Savoia" target */,
 				AC900201000000000000000B /* Exceptions for "Savoia" folder in "savoia-share" target */,
 			);
 			path = Savoia;
@@ -106,6 +99,8 @@
 				A271466D26DE9D05E6A5B285 /* HuggingFace in Frameworks */,
 				5CD2470091CF7AE5F73D25A5 /* Tokenizers in Frameworks */,
 				5A11C0DE0000000000000F01 /* FluidAudio in Frameworks */,
+				5A11C0DE0000000000000C03 /* ClaudeForFoundationModels in Frameworks */,
+				5A11C0DE0000000000000C06 /* FoundationModelsUtilities in Frameworks */,
 			);
 		};
 		AC9002010000000000000006 /* Frameworks */ = {
@@ -164,6 +159,8 @@
 				E4D3C02313C636C3B360B52A /* Tokenizers */,
 				AD01B10D4E2F7A6390D5C442 /* ContentBlockerConverter */,
 				5A11C0DE0000000000000F02 /* FluidAudio */,
+				5A11C0DE0000000000000C02 /* ClaudeForFoundationModels */,
+				5A11C0DE0000000000000C05 /* FoundationModelsUtilities */,
 			);
 			productName = Savoia;
 			productReference = AC897661303CEC20008426C2 /* Savoia.app */;
@@ -223,6 +220,8 @@
 				F6FD676108E197A94959A73D /* XCRemoteSwiftPackageReference "swift-transformers" */,
 				AD01B10C4E2F7A6390D5C441 /* XCRemoteSwiftPackageReference "SafariConverterLib" */,
 				5A11C0DE0000000000000F03 /* XCRemoteSwiftPackageReference "FluidAudio" */,
+				5A11C0DE0000000000000C01 /* XCRemoteSwiftPackageReference "ClaudeForFoundationModels" */,
+				5A11C0DE0000000000000C04 /* XCRemoteSwiftPackageReference "foundation-models-utilities" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = AC897662303CEC20008426C2 /* Products */;
@@ -428,7 +427,6 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_PACKAGE_NAME = Savoia;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 			};
@@ -465,7 +463,6 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_PACKAGE_NAME = Savoia;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 			};
@@ -615,6 +612,22 @@
 				minimumVersion = 0.17.4;
 			};
 		};
+		5A11C0DE0000000000000C01 /* XCRemoteSwiftPackageReference "ClaudeForFoundationModels" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/anthropics/ClaudeForFoundationModels";
+			requirement = {
+				kind = upToNextMinorVersion;
+				minimumVersion = 0.2.2;
+			};
+		};
+		5A11C0DE0000000000000C04 /* XCRemoteSwiftPackageReference "foundation-models-utilities" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/foundation-models-utilities";
+			requirement = {
+				kind = exactVersion;
+				version = "1.1.0-beta1";
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -662,6 +675,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 5A11C0DE0000000000000F03 /* XCRemoteSwiftPackageReference "FluidAudio" */;
 			productName = FluidAudio;
+		};
+		5A11C0DE0000000000000C02 /* ClaudeForFoundationModels */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5A11C0DE0000000000000C01 /* XCRemoteSwiftPackageReference "ClaudeForFoundationModels" */;
+			productName = ClaudeForFoundationModels;
+		};
+		5A11C0DE0000000000000C05 /* FoundationModelsUtilities */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5A11C0DE0000000000000C04 /* XCRemoteSwiftPackageReference "foundation-models-utilities" */;
+			productName = FoundationModelsUtilities;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

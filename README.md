@@ -103,7 +103,6 @@ Savoia/Assistant   ModelChoice/AssistantSettings (model selection), AssistantSto
 Savoia/ACP         ACPJSON, JSONRPCConnection, ACPTypes, ACPAgent (process), ACPClient (actor), AgentSessionStore (VM)
 Savoia/Tools       BrowserToolCatalog (the tools, over BrowserState), BrowserModelTool (Foundation Models adapter)
 Savoia/MCP         MCPServer + MCPHost (the catalog over a Unix socket), MCPSocket (listener), MCPStdioBridge (`Savoia --mcp`)
-Savoia/Vendor      ClaudeForFoundationModels sources (see note below)
 ```
 
 ## Testing ACP
@@ -130,15 +129,11 @@ requests show up in the transcript; permission buttons answer `session/request_p
 
 ## Notes / caveats
 
-- **Toolchain.** The app is built against the macOS 27 SDK from the *Command Line Tools* beta
-  (`/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk`, build 26A5406c, FoundationModels 2.0.68 — the same
-  revision the OS runtime ships), because the installed Xcode 27A5209h carries an older SDK whose Foundation Models
-  *executor* ABI doesn't match the OS and crashes third-party `LanguageModel`s on launch. `SDKROOT` and a
-  `-plugin-path` for `SwiftUIMacros` are set in the target's build settings; drop both once Xcode's own SDK matches the
-  OS beta. `FoundationModelsCompatibility` still probes the ABI at launch and disables Claude with an explanation if
-  the runtime ever diverges again.
-- `ClaudeForFoundationModels` (`main`; tags predate the beta 5 API changes) is compiled straight into the app target
-  from `Savoia/Vendor/` — SwiftPM targets ignore the project's `SDKROOT` override and would build against Xcode's stale SDK.
+- **Toolchain.** The app builds with the active Xcode's own macOS SDK (Xcode 27.2 beta today) — see
+  [docs/build.md](docs/build.md#sdk). `FoundationModelsCompatibility` probes the Foundation Models executor ABI at
+  launch and disables the remote models with an explanation if the runtime and the SDK diverge.
+- The remote models come from packages: [ClaudeForFoundationModels](https://github.com/anthropics/ClaudeForFoundationModels)
+  and Apple's [foundation-models-utilities](https://github.com/apple/foundation-models-utilities) (`ChatCompletionsLanguageModel`).
 - App Sandbox is off because the ACP layer spawns `npx`/`claude`/`codex` from the user's toolchain.
 - Claude Code refuses to run nested inside another Claude Code session; the ACP layer strips `CLAUDECODE` from the
   agent environment. Choose the agent and its model in Configuration → Assistant → Responses; each agent supplies its own model list.

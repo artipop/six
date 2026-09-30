@@ -29,15 +29,11 @@ Foundation Models *executor* ABI that did not match the OS and crashed third-par
 broke with any Xcode that has no `macosx27.0` SDK of its own: the share extension's Info.plist step looks the SDK up by
 canonical name and stops at `SDK lookup failed for canonical name: macosx27.0`.
 
-The 27.2 SDK adds `Transcript.Entry.data` and `Transcript.Attachment.data` (both `@available(macOS 27.2, *)`); the
-vendored models handle them explicitly, the same way as their `@unknown default`.
-
-`ClaudeForFoundationModels` and Apple's own `ChatCompletionsLanguageModel` (from
-[foundation-models-utilities](https://github.com/apple/foundation-models-utilities)) are vendored into `Savoia/Vendor/`
-and compiled into the app target — a leftover of the pin, since a SwiftPM dependency would have ignored it. Moving them
-back to packages is open. Each vendored tree keeps a `VENDORED.md` saying where it came from and what was
-changed; those notes are excluded from the app target, since two files of that name would otherwise land on the same
-path in `Resources`.
+The remote models are ordinary packages: [ClaudeForFoundationModels](https://github.com/anthropics/ClaudeForFoundationModels)
+(`upToNextMinor` from 0.2.2) and Apple's
+[foundation-models-utilities](https://github.com/apple/foundation-models-utilities) for `ChatCompletionsLanguageModel`
+(exactly `1.1.0-beta1` — a prerelease, which a range would not pick up). Under the pin both were copied into
+`Savoia/Vendor/` and compiled into the app target, because a package target ignored the override.
 Ordinary packages are fine — [SQLiteData](https://github.com/pointfreeco/sqlite-data) (GRDB, StructuredQueries and
 the rest of its tree), [sqlite-vec-data](https://github.com/mhayes853/sqlite-vec-data),
 [mlx-swift-lm](https://github.com/ml-explore/mlx-swift-lm) (`MLXEmbedders`, with mlx-swift underneath),

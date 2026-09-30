@@ -1,6 +1,15 @@
 {
-  "originHash" : "77ad6296ba7821809541aef89e0bf9221164972b670134d111547d483a8f4b2c",
+  "originHash" : "71e96ca8868a2de8862f5fd5b5def1d72028acc8617e616f99d522581375940a",
   "pins" : [
+    {
+      "identity" : "claudeforfoundationmodels",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/anthropics/ClaudeForFoundationModels",
+      "state" : {
+        "revision" : "b309728034c4181e20f56c5dc269f130a7e9866c",
+        "version" : "0.2.2"
+      }
+    },
     {
       "identity" : "combine-schedulers",
       "kind" : "remoteSourceControl",
@@ -26,6 +35,15 @@
       "state" : {
         "revision" : "21493f8dac5a97e65742e6ff26f42f164c2fda0f",
         "version" : "0.17.4"
+      }
+    },
+    {
+      "identity" : "foundation-models-utilities",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/foundation-models-utilities",
+      "state" : {
+        "revision" : "cc3820def1fe016bc6cd49d958cd2f2a29be76a8",
+        "version" : "1.1.0-beta1"
       }
     },
     {

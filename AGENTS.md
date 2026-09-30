@@ -43,7 +43,6 @@ Savoia/MCP           MCPServer + MCPSocket + MCPStdioBridge (`Savoia --mcp`), Cl
 Savoia/Speech        dictation: MicrophoneCapture, ParakeetTranscriber (FluidAudio), DictationStore, the button
 Savoia/Tools         BrowserTools — one catalog, served to the assistant, to ACP agents and over MCP
 Savoia/WebMCP        pages declaring tools for agents: polyfill, registry, calls, WebMCPStore — docs/webmcp.md
-Savoia/Vendor        ClaudeForFoundationModels, FoundationModelsUtilities — compiled into the target, see below
 ```
 
 `SavoiaCore` (root `Package.swift`) is the slice the tests run against: `TilingLayout`, the storage layer, the
@@ -140,15 +139,14 @@ rewrite the root file. `xcodebuild` never touches it — the project holds only 
 ## Things that have cost hours
 
 - **The project builds with the active Xcode's own SDK** (`SDKROOT = macosx`, Xcode 27.2 beta now). It used to pin the
-  *Command Line Tools* `MacOSX27.0.sdk`, which is why `Savoia/Vendor/` exists; that pin fails with any Xcode lacking a
+  *Command Line Tools* `MacOSX27.0.sdk`; that pin fails with any Xcode lacking a
   `macosx27.0` SDK (`SDK lookup failed for canonical name`). `xcode-select -p` must point at an Xcode, not the Command
   Line Tools, or use `DEVELOPER_DIR`. [docs/build.md](docs/build.md#sdk).
 - **The app target compiles main-actor-by-default** (`SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`), so anything that
   does not say `nonisolated` is on the main actor — and the compiler complains at the *reader*, not at the
   declaration: a `static let` holding a path becomes a warning inside the detached save three files away. Say
   `nonisolated` as the code is written, on what is read off the main actor — pure value work (paths, hashing, wire
-  decoding, an extension on `Data` or `Color`), the constants a background closure reads, and every top-level
-  declaration of a vendored tree, which was written for a package where nothing is isolated unless it says so. And a
+  decoding, an extension on `Data` or `Color`), and the constants a background closure reads. And a
   non-Sendable value cannot cross an isolation line at all: `MainActor.assumeIsolated` handing back an `NSEvent` is a
   warning, handing back the verdict about it is not. Keep the build warning-free: a build that prints dozens of
   warnings is one nobody reads.
