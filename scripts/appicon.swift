@@ -12,7 +12,7 @@ var rect = CGRect(origin: .zero, size: logo.size)
 let source = logo.cgImage(forProposedRect: &rect, context: nil, hints: nil)!
 let W = CGFloat(source.width), H = CGFloat(source.height)
 // The white body inside the drawn shadow, for iOS, which masks the corners itself.
-let body = CGRect(x: W * 0.088, y: H * 0.080, width: W * 0.830, height: H * 0.830)
+let body = CGRect(x: W * 0.054, y: H * 0.047, width: W * 0.895, height: H * 0.895)
 
 func render(_ size: Int, dev: Bool, opaque: Bool) -> Data {
     let s = CGFloat(size)
@@ -34,9 +34,9 @@ func render(_ size: Int, dev: Bool, opaque: Bool) -> Data {
     if dev {
         ctx.saveGState()
         if !opaque {
-            let inset = s * 0.088
-            let path = CGPath(roundedRect: CGRect(x: inset, y: s * 0.09, width: s - 2 * inset, height: s - 2 * inset),
-                              cornerWidth: s * 0.18, cornerHeight: s * 0.18, transform: nil)
+            let inset = s * 0.054
+            let path = CGPath(roundedRect: CGRect(x: inset, y: s * 0.047, width: s - 2 * inset, height: s - 2 * inset),
+                              cornerWidth: s * 0.2, cornerHeight: s * 0.2, transform: nil)
             ctx.addPath(path); ctx.clip()
         }
         ctx.translateBy(x: s * 0.70, y: s * 0.26)
