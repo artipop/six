@@ -139,10 +139,10 @@ rewrite the root file. `xcodebuild` never touches it — the project holds only 
 
 ## Things that have cost hours
 
-- **The SDK override is still in the project, and no longer needed.** The target sets `SDKROOT` to the *Command Line
-  Tools* macOS 27 SDK, which is why `Savoia/Vendor/` exists: a SwiftPM target would ignore the override. Release Xcode
-  27.0 ships the same SDK, so removing both is open — a decision, not a fix; don't do it as a side effect of other work.
-  [docs/build.md](docs/build.md#sdk-override).
+- **The project builds with the active Xcode's own SDK** (`SDKROOT = macosx`, Xcode 27.2 beta now). It used to pin the
+  *Command Line Tools* `MacOSX27.0.sdk`, which is why `Savoia/Vendor/` exists; that pin fails with any Xcode lacking a
+  `macosx27.0` SDK (`SDK lookup failed for canonical name`). `xcode-select -p` must point at an Xcode, not the Command
+  Line Tools, or use `DEVELOPER_DIR`. [docs/build.md](docs/build.md#sdk).
 - **The app target compiles main-actor-by-default** (`SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`), so anything that
   does not say `nonisolated` is on the main actor — and the compiler complains at the *reader*, not at the
   declaration: a `static let` holding a path becomes a warning inside the detached save three files away. Say

@@ -68,6 +68,9 @@ nonisolated enum RequestBuilder {
           )
         )
 
+      case .data:
+        break
+
       @unknown default:
         break
       }
@@ -420,6 +423,7 @@ nonisolated enum RequestBuilder {
         switch a.content {
         case .image(let image):
           [try ClaudeImage(cgImage: image.cgImage, orientation: image.orientation).contentBlock]
+        case .data: []
         @unknown default: []
         }
       @unknown default: []

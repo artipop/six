@@ -10,8 +10,10 @@ matches the OS beta.
 
 Local edits: the access level was dropped from every `import` (`public import Foundation`, `private import CoreImage`
 and the rest). Upstream builds in Swift 6 language mode where `AccessLevelOnImport` is on; the app target is Swift 5,
-where the modifier is a hard error. Nothing else is changed — the file is otherwise byte-identical to upstream, and
-should stay that way so the next sync is a copy.
+where the modifier is a hard error. And a `case .data` in the two transcript switches — the macOS 27.2 SDK added
+`Transcript.Entry.data` and `Transcript.Attachment.data`, and the compiler asks for them even beside `@unknown
+default`; both do what the default does. Nothing else is changed, and the file should stay that way so the next sync
+is a copy.
 
 Known gaps, none of which Savoia hits today, all of them upstream's to close:
 

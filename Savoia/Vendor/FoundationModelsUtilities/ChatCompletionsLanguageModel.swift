@@ -441,6 +441,13 @@ public struct ChatCompletionsLanguageModel: Sendable, LanguageModel {
             let imageURL = ChatCompletionsClient.MessageContent.ImageURL(url: dataURL)
             return [ChatCompletionsClient.MessageContent(imageURL: imageURL)]
             #endif
+          case .data:
+            throw LanguageModelError.unsupportedTranscriptContent(
+              LanguageModelError.UnsupportedTranscriptContent(
+                unsupportedContent: [entry],
+                debugDescription: "Data attachment not supported by \(Self.self)."
+              )
+            )
           @unknown default:
             throw LanguageModelError.unsupportedTranscriptContent(
               LanguageModelError.UnsupportedTranscriptContent(
@@ -545,6 +552,9 @@ public struct ChatCompletionsLanguageModel: Sendable, LanguageModel {
             return nil
           }.joined()
           pendingReasoning = (pendingReasoning ?? "") + text
+
+        case .data:
+          continue
 
         @unknown default:
           continue

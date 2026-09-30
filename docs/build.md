@@ -20,18 +20,22 @@ at -O0 like every package dependency — embedding a page is 3–4× slower than
 Files are added to the target automatically (the project uses a synchronized
 file group), so new sources need no project edits.
 
-## SDK override
+## SDK
 
-The target sets `SDKROOT` to the macOS 27 SDK from the **Command Line Tools** beta
-(`/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk`, build 26A5406c, FoundationModels 2.0.68 — the revision the
-OS runtime ships) plus a `-plugin-path` for `SwiftUIMacros`. The installed Xcode carries an older SDK whose Foundation
-Models *executor* ABI doesn't match the OS and crashes third-party `LanguageModel`s on launch. Drop both settings once
-Xcode's own SDK matches the OS.
+The project builds with the active Xcode's own macOS SDK (`SDKROOT = macosx`), currently Xcode 27.2 beta (27B5028f,
+`MacOSX27.2.sdk`) with `MACOSX_DEPLOYMENT_TARGET = 27.0`. Until September 2026 the project pinned `SDKROOT` to the
+Command Line Tools' `MacOSX27.0.sdk` plus a `-plugin-path` for `SwiftUIMacros`, because an earlier Xcode SDK carried a
+Foundation Models *executor* ABI that did not match the OS and crashed third-party `LanguageModel`s on launch. That pin
+broke with any Xcode that has no `macosx27.0` SDK of its own: the share extension's Info.plist step looks the SDK up by
+canonical name and stops at `SDK lookup failed for canonical name: macosx27.0`.
 
-For the same reason `ClaudeForFoundationModels` and Apple's own `ChatCompletionsLanguageModel` (from
+The 27.2 SDK adds `Transcript.Entry.data` and `Transcript.Attachment.data` (both `@available(macOS 27.2, *)`); the
+vendored models handle them explicitly, the same way as their `@unknown default`.
+
+`ClaudeForFoundationModels` and Apple's own `ChatCompletionsLanguageModel` (from
 [foundation-models-utilities](https://github.com/apple/foundation-models-utilities)) are vendored into `Savoia/Vendor/`
-and compiled into the app target: a SwiftPM dependency would ignore the `SDKROOT` override, and both touch the
-Foundation Models executor ABI. Each vendored tree keeps a `VENDORED.md` saying where it came from and what was
+and compiled into the app target — a leftover of the pin, since a SwiftPM dependency would have ignored it. Moving them
+back to packages is open. Each vendored tree keeps a `VENDORED.md` saying where it came from and what was
 changed; those notes are excluded from the app target, since two files of that name would otherwise land on the same
 path in `Resources`.
 Ordinary packages are fine — [SQLiteData](https://github.com/pointfreeco/sqlite-data) (GRDB, StructuredQueries and
@@ -40,18 +44,12 @@ the rest of its tree), [sqlite-vec-data](https://github.com/mhayes853/sqlite-vec
 [swift-huggingface](https://github.com/huggingface/swift-huggingface),
 [swift-transformers](https://github.com/huggingface/swift-transformers) (`Tokenizers`) and
 [SafariConverterLib](https://github.com/AdguardTeam/SafariConverterLib) (`ContentBlockerConverter`, for
-[content blocking](blocking.md)) are normal SwiftPM dependencies of the target and build under the override without
-trouble. SafariConverterLib pins `swift-argument-parser` to exactly 1.5.0 for a command-line target Savoia does not
+[content blocking](blocking.md)) are normal SwiftPM dependencies of the target and build without trouble. SafariConverterLib pins `swift-argument-parser` to exactly 1.5.0 for a command-line target Savoia does not
 link, which pulls the resolved version down from 1.8.2; nothing in the tree needs the newer one. Its converter also
 prints a line per unconvertible rule on stdout in **Debug** builds only (its own `#if DEBUG`), which is a few hundred
 lines at first launch and silence in Release. mlx-swift-lm's `MLXHuggingFace` product is deliberately
 *not* linked: it depends on `MLXFoundationModels`, a third-party `LanguageModel` over the executor ABI.
 
-
-**The override is redundant with release Xcode 27.0 (27A266a), and still there.** Its macOS SDK and the Command
-Line Tools one are the same build, 26A425, with identical `FoundationModels.framework` (checked 27 September 2026).
-Removing `SDKROOT` and the plugin path, and moving `Savoia/Vendor` back to packages, is a decision still to be made, not
-a fix.
 
 ## A DMG to install from
 

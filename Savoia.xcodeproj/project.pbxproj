@@ -327,8 +327,7 @@
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
-				OTHER_SWIFT_FLAGS = "-plugin-path $(DEVELOPER_DIR)/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins";
-				SDKROOT = /Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk;
+				SDKROOT = macosx;
 				SAVOIA_APP_IDENTIFIER = org.deffun.savoia.dev;
 				SAVOIA_SHARE_SCHEME = "savoia-dev-share";
 				SAVOIA_WEB_SCHEME_HTTP = "savoia-dev-http";
@@ -388,8 +387,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 27.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
-				OTHER_SWIFT_FLAGS = "-plugin-path $(DEVELOPER_DIR)/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins";
-				SDKROOT = /Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk;
+				SDKROOT = macosx;
 				SAVOIA_APP_IDENTIFIER = org.deffun.savoia;
 				SAVOIA_SHARE_SCHEME = "savoia-share";
 				SAVOIA_WEB_SCHEME_HTTP = http;
