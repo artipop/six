@@ -12,9 +12,6 @@ import {defineConfig} from 'vitepress'
 // Two locales, page for page: Russian at the root, English under /en/. The
 // application itself speaks both (see docs/localization.md), so a guide that
 // spoke one would be describing buttons the reader cannot find.
-//
-// The site is still published under /docs/vi/, the address the deffun landing page links
-// to from the time the product was called VI.
 
 const ru = {
     label: 'Русский',
@@ -196,19 +193,13 @@ export default defineConfig({
     // depending on where it was uploaded is worse than an ugly address.
     cleanUrls: false,
 
-    // Published beside the other two guides, inside the landing's own dist, so
-    // that a deploy stays one directory. `build:all` in xciii/site runs the
-    // landing first (it empties dist/), then the XCIII guide (it empties
-    // dist/docs), then XXVI and this one, which live inside it.
-    //
-    // The path leaves this repository, which the other two do not have to do:
-    // the guide lives with the browser, the site lives next door. Building it
-    // wants both checkouts side by side under one folder.
-    base: '/docs/vi/',
-    outDir: '../../../xciii/site/dist/docs/vi',
+    // Published under `docs/` of the product's root. `BASE` is that root: `/` on
+    // its own, `/vi/` when deffun (../../../deffun) composes the products — the
+    // address the home page has linked to since the product was called VI.
+    base: `${process.env.BASE ?? '/'}docs/`,
 
     head: [
-        ['link', {rel: 'icon', type: 'image/png', href: '/docs/vi/favicon.png'}],
+        ['link', {rel: 'icon', type: 'image/png', href: `${process.env.BASE ?? '/'}docs/favicon.png`}],
     ],
 
     markdown: {
