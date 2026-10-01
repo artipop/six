@@ -202,15 +202,13 @@ body {
 
 
 /* ---------------------------------------------------------------------------
-   The row, drawn.
+   The window, drawn.
 
-   The home page opens with a picture of the product, because the product is a
-   shape and one paragraph of prose is a poor way to say it: one top bar for the
-   whole application, full-height windows in a row with a gap between them, the
-   focused one in the middle, its neighbours cropped by the edges — which is
-   what says "the row goes on" — and the workspaces as pips down the right.
+   The home page opens with a picture of the product, because one paragraph of
+   prose is a poor way to say what it looks like: the tab bar with its coloured
+   groups and a pinned tab, the address bar under it, and two pages side by side.
 
-   The same drawing is on the landing page (site/styles.css); it is a dozen rectangles in CSS rather than an image, so it follows the theme
+   It is a few dozen boxes in CSS rather than an image, so it follows the theme
    with no second file and stays sharp on a 5K panel.
    --------------------------------------------------------------------------- */
 
@@ -218,25 +216,24 @@ body {
    edge: centred in the full width it floats away from the text it illustrates.
    The paddings below are the default theme's hero paddings at the same
    breakpoints, which is what keeps the two edges lined up. */
-.row-figure {
+.shot-figure {
     max-width: 1152px;
     margin: 0 auto;
     padding: 0 24px 16px;
 }
 
 @media (min-width: 640px) {
-    .row-figure { padding: 0 48px 24px; }
+    .shot-figure { padding: 0 48px 24px; }
 }
 
 @media (min-width: 960px) {
-    .row-figure { padding: 0 64px 32px; }
+    .shot-figure { padding: 0 64px 32px; }
 }
 
-.row {
-    --row-gap: 8px;
-    --row-radius: 10px;
-    /* How much of a neighbour each edge cuts off. */
-    --row-col-peek: 96px;
+.shot {
+    --g-blue: #4f8cf0;
+    --g-orange: #ee7d3a;
+    --g-green: #3fb27f;
 
     border: 1px solid var(--vp-c-divider);
     border-radius: 14px;
@@ -245,113 +242,130 @@ body {
     user-select: none;
 }
 
-.row-bar {
+.shot-tabs {
     display: flex;
     align-items: center;
-    gap: 9px;
+    gap: 12px;
+    padding: 9px 12px;
+    background: var(--vp-c-bg-soft);
+}
+
+.shot-pin {
+    width: 16px;
+    height: 16px;
+    border-radius: 5px;
+    background: var(--vp-c-brand-1);
+    flex: none;
+}
+
+.shot-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--g) 18%, transparent);
+    flex: none;
+}
+
+.shot-group.g-blue { --g: var(--g-blue); }
+.shot-group.g-orange { --g: var(--g-orange); }
+.shot-group.g-green { --g: var(--g-green); }
+
+.shot-group b {
+    width: 26px;
+    height: 12px;
+    border-radius: 6px;
+    background: var(--g);
+}
+
+.shot-group i {
+    width: 44px;
+    height: 12px;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--vp-c-text-1) 14%, transparent);
+}
+
+.shot-group i.on {
+    background: color-mix(in srgb, var(--g) 55%, var(--vp-c-bg));
+}
+
+.shot-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     padding: 9px 12px;
     border-bottom: 1px solid var(--vp-c-divider);
 }
 
-.row-profile {
-    width: 13px;
-    height: 13px;
-    border-radius: 4px;
-    background: var(--vp-c-brand-1);
+.shot-nav {
+    width: 34px;
+    height: 10px;
+    border-radius: 5px;
+    background: var(--vp-c-text-3);
+    opacity: 0.5;
     flex: none;
 }
 
-.row-address {
+.shot-address {
     flex: 1;
-    height: 13px;
+    height: 16px;
     border-radius: 999px;
     background: var(--vp-c-bg-soft);
-    position: relative;
 }
 
-.row-address::before {
-    content: '';
-    position: absolute;
-    left: 8px;
-    top: 3.5px;
-    width: 6px;
-    height: 6px;
-    border-radius: 1px;
-    background: var(--vp-c-text-3);
-}
-
-.row-pips {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
+.shot-profile {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--g-blue);
     flex: none;
 }
 
-.row-pips i {
-    width: 13px;
-    height: 2px;
-    border-radius: 999px;
-    background: var(--vp-c-text-3);
-}
-
-.row-pips i.on {
-    background: var(--vp-c-brand-1);
-}
-
-/* Wider than its frame and pulled out at both ends on purpose: a row that ended
-   inside the picture would be a row of three, not an endless one. */
-.row-strip {
+.shot-pages {
     display: flex;
-    gap: var(--row-gap);
-    padding: var(--row-gap);
-    margin: 0 calc(var(--row-col-peek) * -1);
+    gap: 8px;
+    padding: 8px;
     height: 190px;
 }
 
-.row-col {
+.shot-page {
     flex: 1 0 0;
     min-width: 0;
-    border-radius: var(--row-radius);
+    border-radius: 10px;
     background: var(--vp-c-bg-soft);
     border: 1px solid var(--vp-c-divider);
-    padding: 11px 12px;
+    padding: 12px 14px;
     display: flex;
     flex-direction: column;
     gap: 7px;
-    /* The neighbours are there to be seen, not read. */
-    opacity: 0.45;
 }
 
-.row-col.is-focused {
-    opacity: 1;
-    border-color: var(--vp-c-border);
-}
-
-.row-line {
+.shot-line {
     /* Flex items in a column: without this they are free to shrink and the
        lines lose their heights. */
     flex: none;
     height: 5px;
-    border-radius: 1px;
+    border-radius: 3px;
     background: var(--vp-c-text-3);
     opacity: 0.5;
 }
 
-.row-col.is-focused .row-line:first-child {
+.shot-line.head {
     background: var(--vp-c-brand-1);
     opacity: 1;
     height: 7px;
-    width: 58%;
+    width: 52%;
 }
 
-.row-line.w-90 { width: 90%; }
-.row-line.w-75 { width: 75%; }
-.row-line.w-60 { width: 60%; }
-.row-line.w-40 { width: 40%; }
+.shot-line.w-90 { width: 90%; }
+.shot-line.w-75 { width: 75%; }
+.shot-line.w-60 { width: 60%; }
+.shot-line.w-40 { width: 40%; }
 
 /* The caption under the drawing, at the drawing's left edge, not centred,
    because everything above it starts there. */
-.row-legend {
+.shot-legend {
     margin: 14px 0 0;
     font-size: 13px;
     line-height: 1.7;
@@ -359,8 +373,15 @@ body {
 }
 
 @media (max-width: 640px) {
-    .row-strip {
-        height: 126px;
-        --row-col-peek: 30px;
+    .shot-pages {
+        height: 120px;
+    }
+
+    .shot-group i {
+        width: 30px;
+    }
+
+    .shot-tabs {
+        overflow: hidden;
     }
 }

@@ -1,7 +1,7 @@
 import {h} from 'vue'
 import DefaultTheme from 'vitepress/theme-without-fonts'
 
-import RowFigure from './RowFigure.vue'
+import WindowFigure from './WindowFigure.vue'
 import './custom.css'
 
 // The default theme, repainted from the application's own design and given one
@@ -18,6 +18,6 @@ import './custom.css'
 export default {
     extends: DefaultTheme,
     Layout: () => h(DefaultTheme.Layout, null, {
-        'home-hero-after': () => h(RowFigure),
+        'home-hero-after': () => h(WindowFigure),
     }),
 }
