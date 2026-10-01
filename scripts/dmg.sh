@@ -26,10 +26,29 @@ trap 'rm -rf "$stage"' EXIT
 cp -R "$app" "$stage/Savoia.app"
 ln -s /Applications "$stage/Applications"
 
+# The mounted volume wears the app's icon.
+icons="$stage/Savoia.iconset"
+mkdir "$icons"
+cp "$root"/Savoia/Assets.xcassets/AppIcon.appiconset/icon_*.png "$icons/"
+rm "$icons/icon_1024.png"
+iconutil -c icns "$icons" -o "$stage/.VolumeIcon.icns"
+rm -r "$icons"
+
 echo "==> $dmg"
 mkdir -p "$dist"
 rm -f "$dmg"
-hdiutil create -volname "Savoia $version" -srcfolder "$stage" -fs HFS+ -format UDZO -ov -quiet "$dmg"
+# Written read-write first: the custom-icon flag belongs on the mounted volume, and -srcfolder drops it.
+scratch="$stage.rw.dmg"
+hdiutil create -volname "Savoia $version" -srcfolder "$stage" -fs HFS+ -format UDRW -ov -quiet "$scratch"
+mount=$(hdiutil attach "$scratch" -nobrowse -noverify -noautoopen | sed -n 's/.*\(\/Volumes\/.*\)$/\1/p' | tail -1)
+SetFile -a C "$mount"
+hdiutil detach "$mount" -quiet
+hdiutil convert "$scratch" -format UDZO -o "$dmg" -quiet
+rm -f "$scratch"
+
+# And so does the file.
+swift -e 'import AppKit; NSWorkspace.shared.setIcon(NSImage(contentsOfFile: CommandLine.arguments[1]), forFile: CommandLine.arguments[2])' \
+    "$root/Savoia/Assets.xcassets/AppIcon.appiconset/icon_1024.png" "$dmg" || true
 
 echo
 echo "$dmg"

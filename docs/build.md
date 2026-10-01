@@ -96,13 +96,13 @@ be catching every link on the machine.
 
 ## The icon
 
-Made from [`docs/logo.png`](logo.png) by [`scripts/appicon.swift`](../scripts/appicon.swift):
+Made from [`docs/logo.png`](logo.png) (the light wings icon, copied from the `IconLightWings` image set) by [`scripts/appicon.swift`](../scripts/appicon.swift):
 
 ```sh
-swift scripts/appicon.swift docs/logo.png Savoia/Assets.xcassets/AppIcon.appiconset Savoia/Assets.xcassets/AppIcon-Dev.appiconset
+swift scripts/appicon.swift docs/logo.png Savoia/Assets.xcassets/AppIcon.appiconset Savoia/Assets.xcassets/AppIcon-Dev.appiconset 0.82 0.09
 ```
 
-The icons Configuration ▸ Appearance ▸ App Icon switches between are image sets (`IconLight`, `IconDark`, `IconLightWings`,
+The icons Configuration ▸ Appearance ▸ App Icon switches between are image sets (`IconSky`, `IconLight`, `IconDark`, `IconLightWings`,
 `IconDarkWings`, and `Wings` for the start page), drawn by [`scripts/appicon-variants.swift`](../scripts/appicon-variants.swift)
 from the pictures in `docs/icon-art/`:
 

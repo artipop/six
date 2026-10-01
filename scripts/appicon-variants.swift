@@ -4,7 +4,7 @@
 //
 //   swift scripts/appicon-variants.swift <art folder> Savoia/Assets.xcassets
 //
-// The art folder holds light.png, dark.png (full plates), wings-light.png (one pair of wings, transparent) and
+// The art folder holds sky.png, light.png, dark.png (full plates), wings-light.png (one pair of wings, transparent) and
 // wings-pair.png (light wings on the left, dark on the right, transparent).
 import AppKit
 import CoreGraphics
@@ -127,10 +127,11 @@ func plate(_ image: CGImage, square: CGRect) -> (CGContext) -> Void {
     }
 }
 
-let light = load("light.png"), dark = load("dark.png")
+let light = load("light.png"), dark = load("dark.png"), sky = load("sky.png")
 let wingsLight = load("wings-light.png"), pair = load("wings-pair.png")
 let wingsDark = pair.cropping(to: CGRect(x: pair.width / 2, y: 0, width: pair.width / 2, height: pair.height))!
 
+render("IconSky", fill: plate(sky, square: CGRect(x: 68, y: 73, width: 1122, height: 1122)))
 render("IconLight", fill: plate(light, square: lightPlate))
 render("IconDark", fill: plate(dark, square: darkPlate))
 

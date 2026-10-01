@@ -2,7 +2,7 @@
 // The app icon from docs/logo.png: the Mac sizes, an opaque square for the 1024 slot, and the same set
 // under an orange DEV band for the development build.
 //
-//   swift scripts/appicon.swift docs/logo.png Savoia/Assets.xcassets/AppIcon.appiconset Savoia/Assets.xcassets/AppIcon-Dev.appiconset
+//   swift scripts/appicon.swift docs/logo.png Savoia/Assets.xcassets/AppIcon.appiconset Savoia/Assets.xcassets/AppIcon-Dev.appiconset 0.82 0.09
 import AppKit
 import CoreGraphics
 
@@ -11,8 +11,10 @@ let logo = NSImage(contentsOfFile: args[1])!
 var rect = CGRect(origin: .zero, size: logo.size)
 let source = logo.cgImage(forProposedRect: &rect, context: nil, hints: nil)!
 let W = CGFloat(source.width), H = CGFloat(source.height)
-// The white body inside the drawn shadow, for iOS, which masks the corners itself.
-let body = CGRect(x: W * 0.054, y: H * 0.047, width: W * 0.895, height: H * 0.895)
+// The body inside the drawn shadow, as shares of the picture: for the 1024 slot, which is opaque and masked by the system.
+let share = args.count > 4 ? Double(args[4])! : 0.895
+let margin = args.count > 5 ? Double(args[5])! : 0.054
+let body = CGRect(x: W * margin, y: H * margin, width: W * share, height: H * share)
 
 func render(_ size: Int, dev: Bool, opaque: Bool) -> Data {
     let s = CGFloat(size)
@@ -34,9 +36,9 @@ func render(_ size: Int, dev: Bool, opaque: Bool) -> Data {
     if dev {
         ctx.saveGState()
         if !opaque {
-            let inset = s * 0.054
-            let path = CGPath(roundedRect: CGRect(x: inset, y: s * 0.047, width: s - 2 * inset, height: s - 2 * inset),
-                              cornerWidth: s * 0.2, cornerHeight: s * 0.2, transform: nil)
+            let inset = s * margin
+            let path = CGPath(roundedRect: CGRect(x: inset, y: inset, width: s - 2 * inset, height: s - 2 * inset),
+                              cornerWidth: s * share * 0.225, cornerHeight: s * share * 0.225, transform: nil)
             ctx.addPath(path); ctx.clip()
         }
         ctx.translateBy(x: s * 0.70, y: s * 0.26)

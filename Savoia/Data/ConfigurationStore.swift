@@ -19,8 +19,8 @@ nonisolated enum PageLogo: String, Sendable, CaseIterable {
     case none
 }
 
-/// The icon the Dock shows, switched at run time. `sky` is the one the bundle carries; the others are image sets
-/// drawn from the light and dark plates, and the two `automatic` ones follow the system's appearance.
+/// The icon the Dock shows, switched at run time. The bundle carries the light wings, and the rest are image sets
+/// drawn from the pictures in docs/icon-art; the two `automatic` ones follow the system's appearance.
 nonisolated enum AppIconChoice: String, Sendable, CaseIterable, Identifiable {
     case sky
     case light
@@ -170,8 +170,8 @@ final class ConfigurationStore {
     }
 
     var appIcon: AppIconChoice {
-        get { self[.appIcon].flatMap(AppIconChoice.init(rawValue:)) ?? .sky }
-        set { self[.appIcon] = newValue == .sky ? nil : newValue.rawValue }
+        get { self[.appIcon].flatMap(AppIconChoice.init(rawValue:)) ?? .automaticWings }
+        set { self[.appIcon] = newValue == .automaticWings ? nil : newValue.rawValue }
     }
 
     var pageLogo: PageLogo {
