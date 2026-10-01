@@ -5,14 +5,31 @@
       "layers" : [
         {
           "glass" : false,
-          "image-name" : "light.png",
-          "image-name-specializations" : [
+          "hidden-specializations" : [
+            {
+              "value" : true
+            },
             {
               "appearance" : "dark",
-              "value" : "dark.png"
+              "value" : false
             }
           ],
-          "name" : "picture"
+          "image-name" : "dark.png",
+          "name" : "dark"
+        },
+        {
+          "glass" : false,
+          "hidden-specializations" : [
+            {
+              "value" : false
+            },
+            {
+              "appearance" : "dark",
+              "value" : true
+            }
+          ],
+          "image-name" : "light.png",
+          "name" : "light"
         }
       ],
       "shadow" : {
