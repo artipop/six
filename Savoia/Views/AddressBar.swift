@@ -21,6 +21,7 @@ struct AddressBar: View {
     @State private var filled = ""
     @State private var suggestions = AddressSuggestions()
     @State private var selection: Int?
+    @State private var textSelection: TextSelection?
     @State private var derived: DerivedPageTools?
     @Environment(WebMCPStore.self) private var webMCP
 
@@ -71,7 +72,7 @@ struct AddressBar: View {
             // would read as "allowed on this site", which is a different and narrower thing.
             if isWebPage && blocker.isEnabled { shield }
             captureIndicator
-            TextField("Search or enter address", text: $text)
+            TextField("Search or enter address", text: $text, selection: $textSelection)
                 .textFieldStyle(.plain)
                 .font(.callout)
                 .lineLimit(1)
@@ -140,6 +141,7 @@ struct AddressBar: View {
                 return
             }
             fill(IDN.displayURL(url))
+            textSelection = TextSelection(range: text.startIndex..<text.endIndex)
         }
         .onChange(of: text) { _, value in
             selection = nil
