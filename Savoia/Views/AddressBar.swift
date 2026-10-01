@@ -144,7 +144,12 @@ struct AddressBar: View {
                 return
             }
             fill(IDN.displayURL(url))
-            textSelection = TextSelection(range: text.startIndex..<text.endIndex)
+            selectAll()
+            // The click that gave the focus places its caret after this runs, over the whole selection.
+            Task {
+                try? await Task.sleep(for: .milliseconds(80))
+                if isEditing, typed == filled { selectAll() }
+            }
         }
         .onChange(of: text) { _, value in
             if let previewed, value == previewed { return }
@@ -209,6 +214,10 @@ struct AddressBar: View {
         selection = next < 0 ? nil : min(next, count - 1)
         preview()
         return .handled
+    }
+
+    private func selectAll() {
+        textSelection = TextSelection(range: text.startIndex..<text.endIndex)
     }
 
     /// The selected row goes into the field as a suggestion: what was typed stays, the rest is selected.
