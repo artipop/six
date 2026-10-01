@@ -243,7 +243,7 @@ struct AddressBar: View {
         // `savoia://` address is that it is not one.
         if BuiltInPage.page(for: url) != nil { return url.absoluteString }
         guard let host = url.host(percentEncoded: false) else { return url.absoluteString }
-        let name = IDN.displayHost(host)
+        let name = IDN.displayHost(host) + (url.port.map { ":\($0)" } ?? "")
         let path = readable(url.path(percentEncoded: false))
         return path.isEmpty || path == "/" ? name : name + path
     }
