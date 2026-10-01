@@ -29,8 +29,11 @@ ln -s /Applications "$stage/Applications"
 # The mounted volume wears the app's icon.
 icons="$stage/Savoia.iconset"
 mkdir "$icons"
-cp "$root"/Savoia/Assets.xcassets/AppIcon.appiconset/icon_*.png "$icons/"
-rm "$icons/icon_1024.png"
+source="$root/Savoia/Assets.xcassets/IconLightWings.imageset/IconLightWings.png"
+for size in 16 32 128 256 512; do
+    sips -z $size $size "$source" --out "$icons/icon_${size}x${size}.png" >/dev/null
+    sips -z $((size * 2)) $((size * 2)) "$source" --out "$icons/icon_${size}x${size}@2x.png" >/dev/null
+done
 iconutil -c icns "$icons" -o "$stage/.VolumeIcon.icns"
 rm -r "$icons"
 
@@ -48,7 +51,7 @@ rm -f "$scratch"
 
 # And so does the file.
 swift -e 'import AppKit; NSWorkspace.shared.setIcon(NSImage(contentsOfFile: CommandLine.arguments[1]), forFile: CommandLine.arguments[2])' \
-    "$root/Savoia/Assets.xcassets/AppIcon.appiconset/icon_1024.png" "$dmg" || true
+    "$source" "$dmg" || true
 
 echo
 echo "$dmg"

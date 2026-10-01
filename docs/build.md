@@ -96,25 +96,24 @@ be catching every link on the machine.
 
 ## The icon
 
-Made from [`docs/logo.png`](logo.png) (the light wings icon, copied from the `IconLightWings` image set) by [`scripts/appicon.swift`](../scripts/appicon.swift):
-
-```sh
-swift scripts/appicon.swift docs/logo.png Savoia/Assets.xcassets/AppIcon.appiconset Savoia/Assets.xcassets/AppIcon-Dev.appiconset 0.82 0.09
-```
+The bundle's icon is an Icon Composer document, `Savoia/AppIcon.icon` (and `AppIcon-Dev.icon`, with the DEV band): a
+full-bleed picture for light and one for dark, which `actool` compiles into `Assets.car` and the system draws, quit or
+running, in the appearance it is in. Nothing is written onto the bundle, so the signature holds. `docs/logo.png` is
+the light picture in its masked form, for the README. Both documents come from `scripts/appicon-variants.swift`, below.
 
 The icons Configuration ▸ Appearance ▸ App Icon switches between are image sets (`IconSky`, `IconLight`, `IconDark`, `IconLightWings`,
 `IconDarkWings`, and `Wings` for the start page), drawn by [`scripts/appicon-variants.swift`](../scripts/appicon-variants.swift)
 from the pictures in `docs/icon-art/`:
 
 ```sh
-swift scripts/appicon-variants.swift docs/icon-art Savoia/Assets.xcassets
+swift scripts/appicon-variants.swift docs/icon-art Savoia/Assets.xcassets Savoia
 ```
 
 `AppIconController` hands the chosen one to `NSApplication.applicationIconImage` at launch and when the appearance
-changes; the development build gets its DEV band drawn over it at run time. A quit app is drawn by the Dock from its
-bundle, so the choice is also written onto the bundle as its custom icon (`NSWorkspace.setIcon`, the `Icon\r` file Get Info
-makes) — the light version for the automatic pairs — and removed again when the choice is the icon the bundle carries;
-`app.icon.applied` remembers what was written. A bundle replaced by a new copy loses it, and the next launch writes it again.
+changes (the automatic wings hand it nothing, so the system draws the bundle's own); the development build gets its DEV
+band drawn over it at run time. macOS has no alternate icons for an app that is not running, so a quit Savoia is drawn
+from the bundle — the automatic wings — whatever was chosen. The choice used to be written onto the bundle as a custom
+icon; that broke the seal of a signed bundle, and the controller removes what that left.
 
 The development build's set carries an orange DEV band, so the two can be told apart in the Dock.
 

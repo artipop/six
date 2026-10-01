@@ -1,8 +1,8 @@
 #if os(macOS)
 import AppKit
 
-/// The Dock icon as chosen in Configuration ▸ Appearance ▸ App Icon: handed to the running process, and written onto the
-/// bundle for when it is not running.
+/// The Dock icon as chosen in Configuration ▸ Appearance ▸ App Icon, handed to the running process. macOS has no
+/// alternate icons for a quit app: that one is drawn from the bundle, whatever was chosen.
 @MainActor
 final class AppIconController {
     static let shared = AppIconController()
@@ -22,7 +22,15 @@ final class AppIconController {
         appearance = NSApplication.shared.observe(\.effectiveAppearance) { [weak self] _, _ in
             Task { @MainActor [weak self] in self?.apply() }
         }
+        removeBundleIconLeftOver()
         apply()
+    }
+
+    /// An earlier build wrote the choice onto the bundle as a custom icon, which a signed bundle does not take well.
+    private func removeBundleIconLeftOver() {
+        let path = Bundle.main.bundlePath
+        guard FileManager.default.fileExists(atPath: path + "/Icon\r") else { return }
+        NSWorkspace.shared.setIcon(nil, forFile: path, options: [])
     }
 
     func image(for choice: AppIconChoice) -> NSImage {
@@ -48,29 +56,8 @@ final class AppIconController {
         } onChange: { [weak self] in
             Task { @MainActor [weak self] in self?.apply() }
         }
-        NSApplication.shared.applicationIconImage = image(for: choice)
-        writeToBundle(resting(of: choice))
-    }
-
-    /// What the icon is when Savoia is not running, and nothing can follow the appearance.
-    private func resting(of choice: AppIconChoice) -> AppIconChoice {
-        switch choice {
-        case .automatic: .light
-        case .automaticWings: .lightWings
-        default: choice
-        }
-    }
-
-    /// The Dock draws a quit app from its bundle, so the choice is also set as the bundle's custom icon — the way
-    /// Finder's Get Info does it — and cleared again when the choice is the icon the bundle carries.
-    private func writeToBundle(_ resting: AppIconChoice) {
-        guard let settings else { return }
-        let path = Bundle.main.bundlePath
-        let custom = resting != .lightWings
-        let has = FileManager.default.fileExists(atPath: path + "/Icon\r")
-        guard custom != has || (custom && settings.appIconApplied != resting.rawValue) else { return }
-        let written = NSWorkspace.shared.setIcon(custom ? image(for: resting) : nil, forFile: path, options: [])
-        settings.appIconApplied = custom && written ? resting.rawValue : nil
+        // The bundle's own icon already is the automatic wings, and the system draws it the way it draws any other.
+        NSApplication.shared.applicationIconImage = choice == .automaticWings ? nil : image(for: choice)
     }
 
     private func variant(_ name: String) -> NSImage {

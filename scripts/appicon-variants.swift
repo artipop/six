@@ -2,7 +2,11 @@
 // The alternative app icons, as image sets Settings can switch between at run time: the light and the dark
 // plate as drawn, and the same wings laid over backgrounds sampled from those plates. Also the wings alone.
 //
-//   swift scripts/appicon-variants.swift <art folder> Savoia/Assets.xcassets
+//   swift scripts/appicon-variants.swift <art folder> Savoia/Assets.xcassets Savoia
+//
+// The bundle's own icon is a pair of full-bleed pictures, light and dark, in an Icon Composer document
+// (AppIcon.icon, and AppIcon-Dev.icon with the DEV band): the system draws a quit app from it and picks the
+// appearance itself.
 //
 // The art folder holds sky.png, light.png, dark.png (full plates), wings-light.png (one pair of wings, transparent) and
 // wings-pair.png (light wings on the left, dark on the right, transparent).
@@ -10,7 +14,7 @@ import AppKit
 import CoreGraphics
 
 let args = CommandLine.arguments
-let art = URL(fileURLWithPath: args[1]), catalog = URL(fileURLWithPath: args[2])
+let art = URL(fileURLWithPath: args[1]), catalog = URL(fileURLWithPath: args[2]), sources = URL(fileURLWithPath: args[3])
 
 func load(_ name: String) -> CGImage {
     let image = NSImage(contentsOf: art.appending(path: name))!
@@ -21,7 +25,7 @@ func load(_ name: String) -> CGImage {
 let S = 1024
 let canvas = CGFloat(S)
 let bodySize = canvas * 0.82
-let body = CGRect(x: (canvas - bodySize) / 2, y: (canvas - bodySize) / 2, width: bodySize, height: bodySize)
+var body = CGRect(x: (canvas - bodySize) / 2, y: (canvas - bodySize) / 2, width: bodySize, height: bodySize)
 let radius = bodySize * 0.225
 let srgb = CGColorSpace(name: CGColorSpace.sRGB)!
 
@@ -120,6 +124,70 @@ func render(_ name: String, fill: (CGContext) -> Void) {
     try! contents.write(to: folder.appending(path: "Contents.json"), atomically: true, encoding: .utf8)
 }
 
+/// The picture over the whole canvas, no mask and no shadow, for the bundle's icon document.
+func bleed(_ file: String, document: String, band: Bool, fill: (CGContext) -> Void) {
+    let kept = body
+    body = CGRect(x: 0, y: 0, width: canvas, height: canvas)
+    defer { body = kept }
+    let ctx = CGContext(data: nil, width: S, height: S, bitsPerComponent: 8, bytesPerRow: 0, space: srgb,
+                        bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)!
+    ctx.interpolationQuality = .high
+    fill(ctx)
+    if band {
+        ctx.translateBy(x: canvas * 0.70, y: canvas * 0.26)
+        ctx.rotate(by: .pi / 4)
+        ctx.setFillColor(CGColor(srgbRed: 1.0, green: 0.62, blue: 0.10, alpha: 1))
+        ctx.fill(CGRect(x: -canvas, y: -canvas * 0.075, width: 2 * canvas, height: canvas * 0.15))
+        let font = NSFont.systemFont(ofSize: canvas * 0.095, weight: .heavy)
+        let text = NSAttributedString(string: "DEV", attributes: [.font: font, .foregroundColor: NSColor.black, .kern: canvas * 0.01])
+        let line = CTLineCreateWithAttributedString(text)
+        let bounds = CTLineGetBoundsWithOptions(line, .useOpticalBounds)
+        ctx.textPosition = CGPoint(x: -bounds.width / 2, y: -bounds.height / 2 - bounds.minY)
+        CTLineDraw(line, ctx)
+    }
+    let folder = sources.appending(path: "\(document).icon/Assets")
+    try! FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+    try! NSBitmapImageRep(cgImage: ctx.makeImage()!).representation(using: .png, properties: [:])!
+        .write(to: folder.appending(path: file))
+    let json = """
+    {
+      "fill" : "system-light",
+      "groups" : [
+        {
+          "layers" : [
+            {
+              "glass" : false,
+              "image-name" : "light.png",
+              "image-name-specializations" : [
+                {
+                  "appearance" : "dark",
+                  "value" : "dark.png"
+                }
+              ],
+              "name" : "picture"
+            }
+          ],
+          "shadow" : {
+            "kind" : "none",
+            "opacity" : 0
+          },
+          "translucency" : {
+            "enabled" : false,
+            "value" : 0
+          }
+        }
+      ],
+      "supported-platforms" : {
+        "squares" : [
+          "macOS"
+        ]
+      }
+    }
+
+    """
+    try! json.write(to: sources.appending(path: "\(document).icon/icon.json"), atomically: true, encoding: .utf8)
+}
+
 func plate(_ image: CGImage, square: CGRect) -> (CGContext) -> Void {
     { ctx in
         let crop = image.cropping(to: square)!
@@ -153,6 +221,19 @@ render("IconDarkWings") { ctx in
     glow(ctx, at: CGPoint(x: body.maxX, y: body.minY + body.height * 0.38), radius: body.width * 0.7,
          color: CGColor(srgbRed: 0.97, green: 0.55, blue: 0.27, alpha: 0.55))
     place(ctx, wings: wingsDark, share: 0.80)
+}
+
+for (document, band) in [("AppIcon", false), ("AppIcon-Dev", true)] {
+    bleed("light.png", document: document, band: band) { ctx in
+        gradient(ctx, tl: lightSky.tl, tr: lightSky.tr, bl: lightSky.bl, br: lightSky.br)
+        place(ctx, wings: wingsLight, share: 0.74)
+    }
+    bleed("dark.png", document: document, band: band) { ctx in
+        gradient(ctx, tl: darkSky.tl, tr: darkSky.tr, bl: darkSky.bl, br: darkSky.br)
+        glow(ctx, at: CGPoint(x: body.maxX, y: body.minY + body.height * 0.38), radius: body.width * 0.7,
+             color: CGColor(srgbRed: 0.97, green: 0.55, blue: 0.27, alpha: 0.55))
+        place(ctx, wings: wingsDark, share: 0.74)
+    }
 }
 
 // The wings alone, on transparency, for the start page: the pair drawn for light grounds and for dark ones.
