@@ -109,8 +109,8 @@ back and the one you just left is at the warm end of the queue with its page sti
 - **What is on screen is pinned and built.** `TilingLayout.visibleTabIDs` — the tab in front, and its partner when two
   are side by side — is never an eviction candidate. `BrowserState.refreshLivePages` follows the layout through
   `withObservationTracking`, so no view has to say anything.
-- **The rest is LRU**, `budget` deep. The default is sized from the machine — about one page per gigabyte of RAM,
-  clamped to 8…32. Nothing sets it: it was a picker in the Layout menu, under a status line, and how many web
+- **The rest is LRU**, `budget` deep. The default is sized from the machine — about two pages per gigabyte of RAM,
+  clamped to 16…64. Nothing sets it: it was a picker in the Layout menu, under a status line, and how many web
   content processes a Mac can carry is not a thing a person knows. `savoia://configuration` ▸ Tabs shows the number
   and offers no way to change it; `SAVOIA_LIVE_PAGES=n` pins it for measuring.
 - **Guards**, the ones Chrome's Memory Saver uses: a page loading (for the last 20 s — plenty of pages never stop

@@ -45,9 +45,9 @@ final class LivePageCache {
     /// side by side.
     @ObservationIgnored private var built: Set<UUID> = []
 
-    /// How many live pages the app aims to keep. Sized from the machine: about one page per gigabyte
-    /// of RAM, never fewer than eight (a workspace and its neighbours, with room to step out and back)
-    /// and never more than thirty-two, past which the win is imaginary and the risk of running the
+    /// How many live pages the app aims to keep. Sized from the machine: about two pages per gigabyte
+    /// of RAM, never fewer than sixteen (a workspace and its neighbours, with room to step out and back)
+    /// and never more than sixty-four, past which the win is imaginary and the risk of running the
     /// machine out of memory is not.
     var budget: Int {
         didSet { if budget != oldValue { scheduleTrim() } }
@@ -86,7 +86,7 @@ final class LivePageCache {
 
     static var defaultBudget: Int {
         let gigabytes = Double(ProcessInfo.processInfo.physicalMemory) / 1_073_741_824
-        return min(32, max(8, Int(gigabytes)))
+        return min(64, max(16, Int(gigabytes * 2)))
     }
 
     /// `SAVOIA_LIVE_PAGES=n` overrides the budget, `SAVOIA_PAGE_CACHE_DEBUG=1` narrates evictions on stderr.
@@ -205,7 +205,7 @@ final class LivePageCache {
     private var effectiveBudget: Int {
         switch pressure {
         case .normal: budget
-        case .warning: max(6, budget * 2 / 3)
+        case .warning: max(10, budget * 2 / 3)
         case .critical: 0
         }
     }
