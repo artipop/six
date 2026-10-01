@@ -143,6 +143,7 @@ final class TabSorter {
         let front = browser.selectedTabID
         var moved = false
         let everyone = tabs.compactMap(features(of:))
+        let table = Dictionary(everyone.map { ($0.id, $0) }, uniquingKeysWith: { $1 })
 
         for id in tabs.map(\.id) where due.contains(id) {
             guard let tab = browser.tab(id) else { continue }
@@ -163,7 +164,7 @@ final class TabSorter {
                   let features = features(of: tab) else { continue }
 
             let parents = strip.filter { !$0.name.isEmpty && $0.blend == nil }
-            let groups = parents.map { group($0, in: browser) }
+            let groups = parents.map { group($0, in: browser, known: table) }
             let background = TabTopics.background(of: features, among: everyone)
             let ungrouped = Set(strip.filter { !$0.isGroup }.flatMap { $0.columns.flatMap(\.tabIDs) })
             let loose = everyone.filter { $0.id != id && ungrouped.contains($0.id) }
@@ -193,7 +194,7 @@ final class TabSorter {
             }
         }
 
-        if makeGroups(browser, profileID: profileID) { moved = true }
+        if await makeGroups(browser, profileID: profileID) { moved = true }
         if moved, let front { browser.selectTab(front) }
     }
 
@@ -241,14 +242,14 @@ final class TabSorter {
                              opener: tab.openedFrom)
     }
 
-    private func group(_ row: TilingWorkspace, in browser: BrowserState) -> TabTopics.Group {
-        let members = row.columns.flatMap(\.tabIDs).compactMap(browser.tab).compactMap(features(of:))
+    private func group(_ row: TilingWorkspace, in browser: BrowserState, known: [UUID: TabTopics.Tab]) -> TabTopics.Group {
+        let members = row.columns.flatMap(\.tabIDs).compactMap { known[$0] ?? browser.tab($0).flatMap(features(of:)) }
         return TabTopics.Group(id: row.id, name: nameVectors[row.name], members: members)
     }
 
     // MARK: New groups
 
-    private func makeGroups(_ browser: BrowserState, profileID: UUID) -> Bool {
+    private func makeGroups(_ browser: BrowserState, profileID: UUID) async -> Bool {
         var strip = browser.layout.strip(for: profileID).workspaces
         for row in strip where made.contains(row.id) && !row.isGroup {
             made.remove(row.id)
@@ -260,7 +261,14 @@ final class TabSorter {
             .filter { seen[$0].map { !$0.byHand } == true }
             .compactMap(browser.tab).compactMap(features(of:))
         let everyone = strip.flatMap { $0.columns.flatMap(\.tabIDs) }.compactMap(browser.tab).compactMap(features(of:))
-        let clusters = TabTopics.clusters(loose, context: everyone, weights: weights, thresholds: thresholds)
+        let (weights, thresholds) = (self.weights, self.thresholds)
+        let found = await Task.detached(priority: .utility) {
+            TabTopics.clusters(loose, context: everyone, weights: weights, thresholds: thresholds)
+        }.value
+        guard browser.selectedProfileID == profileID, browser.sortsTabsByMeaning else { return false }
+        strip = browser.layout.strip(for: profileID).workspaces
+        let stillLoose = Set(strip.filter { !$0.isGroup }.flatMap { $0.columns.flatMap(\.tabIDs) })
+        let clusters = found.map { $0.filter(stillLoose.contains) }.filter { $0.count >= thresholds.clusterSize }
         guard !clusters.isEmpty else { return false }
         for cluster in clusters {
             guard let first = cluster.first,
