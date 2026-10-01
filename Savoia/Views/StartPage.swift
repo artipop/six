@@ -69,7 +69,12 @@ struct StartPage: View {
             // grows downward into the empty half of the page, where there is room for it.
             GeometryReader { geometry in
                 VStack(spacing: 14) {
-                    PageMark(size: 46, color: accent)
+                    // The same height whatever stands there — the name, the wings or nothing — so the field stays put.
+                    ZStack {
+                        Color.clear
+                        PageMark(size: 46, color: accent)
+                    }
+                    .frame(height: 46 * 1.6)
                     field
                     list
                     Spacer(minLength: 0)

@@ -59,6 +59,8 @@ focus transitions and observes the cursor API to check that Escape cancels hidin
 
 ## Background
 
+The mark above the field — the name, the wings, or nothing — stands in a band of the same height, so the field is in one place whichever is chosen.
+
 `StartPageBackdrop` draws what lies behind the field, by `StartPageStyle` (`pages.style`, Configuration ▸ Appearance ▸
 Start Page, picked from tiles that are the backdrop itself at small size): **Plain** is the profile's tint fading
 downward; **Glass** is two translucent panes leaning like the wings over a blue-to-orange wash; **Wings** is the
