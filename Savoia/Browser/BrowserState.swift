@@ -1269,7 +1269,8 @@ final class BrowserState {
             var opened = false
             withAnimation(.smooth(duration: 0.18)) {
                 // A tab is a card of its own, paired or not, as the tab bar draws it.
-                opened = switcher.open(delta > 0 ? tabOrder() : groupOrder, current: selectedTabID, group: { $0 })
+                opened = switcher.open(delta > 0 ? tabOrder() : groupOrder, current: selectedTabID,
+                                       byRecency: settings.tabSwitchOrder == .recent, group: { $0 })
             }
             guard opened else { return }
             // The pictures the cards are drawn from: the tab in front now, the rest off disk.
@@ -1278,7 +1279,7 @@ final class BrowserState {
         }
         // The first press always goes to the window before this one: the key that opened the
         // ring has already said how far it reaches, and that is all it said.
-        withAnimation(.smooth(duration: 0.2)) { switcher.step(opening ? 1 : delta) }
+        withAnimation(.smooth(duration: 0.2)) { switcher.step(opening && settings.tabSwitchOrder == .recent ? 1 : delta) }
     }
 
     /// The arrows, while the ring is up: one card along, as the cards are drawn.
@@ -1313,6 +1314,11 @@ final class BrowserState {
     @ObservationIgnored var askAgent: (@MainActor (String) async throws -> String?)?
 
     var sortsTabsByMeaning: Bool { settings.sortsTabsByMeaning }
+
+    var tabSwitchOrder: TabSwitchOrder {
+        get { settings.tabSwitchOrder }
+        set { settings.tabSwitchOrder = newValue }
+    }
 
     var localModel: LocalModelChoice {
         get { settings.localModel }

@@ -50,7 +50,7 @@ Savoia's own fields the letter is typed instead (`KeyBinding.yieldsToCaret(in:)`
 
 | | |
 |---|---|
-| `⌃Tab` | hold `⌃`: every tab of the profile, in every group, folded ones included, as pictures in the order they were last looked at, the one you would land on in the middle. Each press steps one along the ring; letting `⌃` go flies there |
+| `⌃Tab` | hold `⌃`: every tab of the profile, in every group, folded ones included, as pictures in the order they were last looked at, the one you would land on in the middle. Each press steps one along the ring; letting `⌃` go flies there. Settings → Windows → *Control-Tab Switches* can make the order that of the tab bar instead (`⌃⇧Tab` then goes back along it) |
 | `⌃⇧Tab` | opens the same ring over the group in front; once the ring is up, a step the other way |
 | `⌃⇧←` `⌃⇧→` | one card along, the way they are drawn. `⌥` instead of `⇧` does the same: the arrows are bound for **any** modifiers, and the ⇧ is there to get past macOS |
 | `↩` `⌤` | fly now, without waiting for `⌃` to come up |

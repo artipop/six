@@ -96,7 +96,7 @@ one.
 
 | | |
 |---|---|
-| `⌃Tab` | fly between tabs by memory: pictures of every tab of every group, in the order you looked at them; let `⌃` go and you are there |
+| `⌃Tab` | fly between tabs by memory: pictures of every tab of every group, in the order you looked at them; let `⌃` go and you are there. *Control-Tab Switches* in the Windows settings can choose Tab Bar Order instead of Recently Used |
 | `⌃⇧Tab` | the same, over the group you are in |
 | `⌘⇧]` `⌘⇧[` | next / previous tab |
 | `⌘1` … `⌘8` | that tab, `⌘9` the last one |

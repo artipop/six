@@ -621,6 +621,36 @@
         }
       }
     },
+    "Control-Tab Switches" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Control-Tab переключает"
+          }
+        }
+      }
+    },
+    "Recently Used" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "По последним использованным"
+          }
+        }
+      }
+    },
+    "Tab Bar Order" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "По порядку в панели вкладок"
+          }
+        }
+      }
+    },
     "Sort By" : {
       "localizations" : {
         "ru" : {

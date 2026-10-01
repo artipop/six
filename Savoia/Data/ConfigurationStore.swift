@@ -71,6 +71,7 @@ final class ConfigurationStore {
         /// Every how many days tabs left behind are offered for closing (`TabCleaner`); 0 is never.
         case tabCleanupDays = "tabs.cleanupDays"
         case tabCleanupLastPass = "tabs.cleanupLastPass"
+        case tabSwitchOrder = "tabs.switchOrder"
         /// The name on Savoia's own pages and the mark above the start page's field (`PageLogo`).
         case pageName = "pages.name"
         case pageLogo = "pages.logo"

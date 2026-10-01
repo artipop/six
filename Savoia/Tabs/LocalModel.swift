@@ -50,7 +50,27 @@ nonisolated enum TabSortingMethod: String, CaseIterable, Identifiable, Sendable 
     }
 }
 
+/// The order ⌃Tab walks the tabs in.
+nonisolated enum TabSwitchOrder: String, CaseIterable, Identifiable, Sendable {
+    case recent
+    case sequential
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .recent: String(localized: "Recently Used")
+        case .sequential: String(localized: "Tab Bar Order")
+        }
+    }
+}
+
 extension ConfigurationStore {
+    var tabSwitchOrder: TabSwitchOrder {
+        get { self[.tabSwitchOrder].flatMap(TabSwitchOrder.init(rawValue:)) ?? .recent }
+        set { self[.tabSwitchOrder] = newValue.rawValue }
+    }
+
     var tabSorting: TabSortingMethod {
         get { self[.tabSorting].flatMap(TabSortingMethod.init(rawValue:)) ?? .embeddings }
         set { self[.tabSorting] = newValue.rawValue }

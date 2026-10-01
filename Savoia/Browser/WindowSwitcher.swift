@@ -53,14 +53,18 @@ final class WindowSwitcher {
     /// `group` names which ids are drawn together, in the order given, where the first of them falls
     /// in memory.
     @discardableResult
-    func open(_ ids: [UUID], current: UUID?, group: (UUID) -> UUID) -> Bool {
+    func open(_ ids: [UUID], current: UUID?, byRecency: Bool = true, group: (UUID) -> UUID) -> Bool {
         guard !ids.isEmpty else { return false }
         let known = Set(ids)
-        var order = recent.filter { known.contains($0) }
+        var order = byRecency ? recent.filter { known.contains($0) } : []
         order.append(contentsOf: ids.filter { !order.contains($0) })
         if let current, let at = order.firstIndex(of: current) {
-            order.remove(at: at)
-            order.insert(current, at: 0)
+            if byRecency {
+                order.remove(at: at)
+                order.insert(current, at: 0)
+            } else {
+                order = Array(order[at...] + order[..<at])
+            }
         }
         walk = order
 

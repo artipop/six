@@ -386,6 +386,15 @@ private struct WindowConfiguration: View {
                 TabCleanupRows()
             }
 
+            SwiftUI.Section {
+                Picker("Control-Tab Switches", selection: Binding(
+                    get: { browser.tabSwitchOrder },
+                    set: { browser.tabSwitchOrder = $0 }
+                )) {
+                    ForEach(TabSwitchOrder.allCases) { Text($0.title).tag($0) }
+                }
+            }
+
             SwiftUI.Section("Loaded Tabs") {
                 LoadedWindows()
             }
