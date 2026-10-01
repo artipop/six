@@ -22,13 +22,13 @@ nonisolated enum PageLogo: String, Sendable, CaseIterable {
 /// The icon the Dock shows, switched at run time. The bundle carries the light wings, and the rest are image sets
 /// drawn from the pictures in docs/icon-art; the two `automatic` ones follow the system's appearance.
 nonisolated enum AppIconChoice: String, Sendable, CaseIterable, Identifiable {
-    case sky
-    case light
-    case dark
+    case automaticWings
     case lightWings
     case darkWings
     case automatic
-    case automaticWings
+    case light
+    case dark
+    case sky
 
     var id: String { rawValue }
 }
@@ -37,8 +37,6 @@ nonisolated enum AppIconChoice: String, Sendable, CaseIterable, Identifiable {
 nonisolated enum StartPageStyle: String, Sendable, CaseIterable, Identifiable {
     case plain
     case glass
-    case sky
-    case clouds
     case wings
     case aurora
 

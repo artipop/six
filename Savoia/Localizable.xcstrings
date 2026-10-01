@@ -8448,26 +8448,6 @@
         }
       }
     },
-    "Light Wings" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Светлый, крылья"
-          }
-        }
-      }
-    },
-    "Dark Wings" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Тёмный, крылья"
-          }
-        }
-      }
-    },
     "Automatic" : {
       "localizations" : {
         "ru" : {
@@ -8478,32 +8458,12 @@
         }
       }
     },
-    "Automatic Wings" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Автоматически, крылья"
-          }
-        }
-      }
-    },
     "Appearance" : {
       "localizations" : {
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Оформление"
-          }
-        }
-      }
-    },
-    "Clouds" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Облака"
           }
         }
       }
@@ -8524,6 +8484,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Свечение"
+          }
+        }
+      }
+    },
+    "Dawn & Dusk" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Рассвет и закат"
+          }
+        }
+      }
+    },
+    "Dawn" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Рассвет"
+          }
+        }
+      }
+    },
+    "Dusk" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закат"
           }
         }
       }

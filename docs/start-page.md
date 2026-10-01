@@ -61,10 +61,8 @@ focus transitions and observes the cursor API to check that Escape cancels hidin
 
 `StartPageBackdrop` draws what lies behind the field, by `StartPageStyle` (`pages.style`, Configuration ▸ Appearance ▸
 Start Page, picked from tiles that are the backdrop itself at small size): **Plain** is the profile's tint fading
-downward; **Glass** is two translucent panes leaning like the wings over a blue-to-orange wash; **Sky** is the icon's sky
-with banks of cloud along the bottom edge — circles from a fixed sequence, blurred, the underside shaded; **Clouds** is
-the same banks on the profile's tint; **Wings** is the `Wings` image bleeding off a corner; **Glow** is four blurred
-discs of the icon's colours. Every size is a share of the window.
+downward; **Glass** is two translucent panes leaning like the wings over a blue-to-orange wash; **Wings** is the
+`Wings` image bleeding off a corner; **Glow** is four blurred discs of the icon's colours. Every size is a share of the window.
 
 ## Your own pages first
 

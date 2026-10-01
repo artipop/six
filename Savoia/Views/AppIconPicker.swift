@@ -2,17 +2,27 @@
 import SwiftUI
 
 extension AppIconChoice {
+    /// What the picture is — the family — and which of its versions this is.
     var title: String {
         switch self {
+        case .automaticWings, .lightWings, .darkWings: String(localized: "Wings")
+        case .automatic: String(localized: "Dawn & Dusk")
+        case .light: String(localized: "Dawn")
+        case .dark: String(localized: "Dusk")
         case .sky: String(localized: "Sky")
-        case .light: String(localized: "Light")
-        case .dark: String(localized: "Dark")
-        case .lightWings: String(localized: "Light Wings")
-        case .darkWings: String(localized: "Dark Wings")
-        case .automatic: String(localized: "Automatic")
-        case .automaticWings: String(localized: "Automatic Wings")
         }
     }
+
+    var detail: String? {
+        switch self {
+        case .automaticWings, .automatic: String(localized: "Automatic")
+        case .lightWings, .light: String(localized: "Light")
+        case .darkWings, .dark: String(localized: "Dark")
+        case .sky: nil
+        }
+    }
+
+    var label: String { [title, detail].compactMap { $0 }.joined(separator: ", ") }
 }
 
 /// The icons Savoia can wear, as tiles; the chosen one is ringed.
@@ -34,15 +44,20 @@ struct AppIconPicker: View {
                                 RoundedRectangle(cornerRadius: tile * 0.24)
                                     .strokeBorder(Color.accentColor, lineWidth: settings.appIcon == choice ? 2.5 : 0)
                             }
-                        Text(choice.title)
-                            .font(.caption)
-                            .foregroundStyle(settings.appIcon == choice ? .primary : .secondary)
-                            .multilineTextAlignment(.center)
+                        VStack(spacing: 1) {
+                            Text(choice.title)
+                                .font(.caption)
+                                .foregroundStyle(settings.appIcon == choice ? .primary : .secondary)
+                            Text(choice.detail ?? " ")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .multilineTextAlignment(.center)
                     }
                     .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(choice.title)
+                .accessibilityLabel(choice.label)
                 .accessibilityAddTraits(settings.appIcon == choice ? .isSelected : [])
             }
         }

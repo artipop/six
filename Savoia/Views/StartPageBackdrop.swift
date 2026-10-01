@@ -5,16 +5,14 @@ extension StartPageStyle {
         switch self {
         case .plain: String(localized: "Plain")
         case .glass: String(localized: "Glass")
-        case .sky: String(localized: "Sky")
-        case .clouds: String(localized: "Clouds")
         case .wings: String(localized: "Wings")
         case .aurora: String(localized: "Glow")
         }
     }
 }
 
-/// What lies behind the start page's field: the profile's tint, a translucent wash of the icon's colours with the
-/// wings in it, or the sky of the icon with its clouds.
+/// What lies behind the start page's field: the profile's tint, translucent panes washed with the icon's colours,
+/// the icon's wings in a corner, or blurred patches of its blue and orange.
 struct StartPageBackdrop: View {
     let style: StartPageStyle
     let accent: Color
@@ -27,15 +25,6 @@ struct StartPageBackdrop: View {
             LinearGradient(colors: [accent.opacity(0.16), accent.opacity(0.02)], startPoint: .top, endPoint: .bottom)
         case .glass:
             glass
-        case .sky:
-            sky
-        case .clouds:
-            ZStack {
-                LinearGradient(colors: [accent.opacity(0.16), accent.opacity(0.02)], startPoint: .top, endPoint: .bottom)
-                Clouds(light: isDark ? Color(red: 0.55, green: 0.60, blue: 0.75) : .white,
-                       shade: isDark ? Color(red: 0.30, green: 0.34, blue: 0.50) : Color(red: 0.70, green: 0.78, blue: 0.92),
-                       opacity: isDark ? 0.30 : 0.85)
-            }
         case .wings:
             wings
         case .aurora:
@@ -117,21 +106,6 @@ struct StartPageBackdrop: View {
             .blur(radius: area.width * 0.10)
             .position(x: area.width * point.x, y: area.height * point.y)
     }
-
-    private var sky: some View {
-        ZStack {
-            LinearGradient(stops: isDark
-                           ? [.init(color: Color(red: 0.04, green: 0.09, blue: 0.22), location: 0),
-                              .init(color: Color(red: 0.16, green: 0.14, blue: 0.30), location: 0.55),
-                              .init(color: Color(red: 0.62, green: 0.30, blue: 0.20), location: 1)]
-                           : [.init(color: Color(red: 0.25, green: 0.55, blue: 0.93), location: 0),
-                              .init(color: Color(red: 0.62, green: 0.82, blue: 0.98), location: 0.6),
-                              .init(color: Color(red: 0.99, green: 0.90, blue: 0.78), location: 1)],
-                           startPoint: .top, endPoint: .bottom)
-            Clouds(light: isDark ? Color(red: 0.86, green: 0.58, blue: 0.48) : Color(red: 1.0, green: 0.97, blue: 0.88),
-                   shade: isDark ? Color(red: 0.24, green: 0.20, blue: 0.40) : Color(red: 0.60, green: 0.72, blue: 0.92))
-        }
-    }
 }
 
 /// A leaning parallelogram: the shape of one wing.
@@ -147,70 +121,6 @@ private struct GlassPane: Shape {
         path.addLine(to: CGPoint(x: rect.maxX - inset, y: rect.maxY))
         path.closeSubpath()
         return path
-    }
-}
-
-/// Banks of cloud along the bottom edge and a few wisps higher up, as the icon has them. Every size is a share of the
-/// view, and the puffs come from a fixed sequence, so a window resize moves them and does not reshuffle them.
-private struct Clouds: View {
-    let light: Color
-    let shade: Color
-    var opacity = 1.0
-
-    private struct Bank {
-        var x: Double
-        var base: Double
-        var width: Double
-        var height: Double
-        var puffs: Int
-    }
-
-    private static let banks = [
-        Bank(x: 0.10, base: 1.02, width: 0.46, height: 0.20, puffs: 15),
-        Bank(x: 0.86, base: 1.03, width: 0.50, height: 0.28, puffs: 18),
-        Bank(x: 0.50, base: 1.06, width: 0.42, height: 0.10, puffs: 9),
-        Bank(x: 0.04, base: 0.50, width: 0.16, height: 0.07, puffs: 6),
-        Bank(x: 0.97, base: 0.36, width: 0.18, height: 0.06, puffs: 6),
-    ]
-
-    var body: some View {
-        Canvas { context, size in
-            var context = context
-            context.opacity = opacity
-            context.drawLayer { layer in
-                layer.addFilter(.blur(radius: size.width * 0.005))
-                var random = SeededRandom(seed: 7)
-                for bank in Self.banks {
-                    for _ in 0..<bank.puffs {
-                        let across = random.next() - 0.5
-                        let lift = random.next()
-                        let radius = (0.45 + random.next() * 0.55) * bank.height * size.height * 0.62
-                        let x = (bank.x + across * bank.width) * size.width
-                        let y = (bank.base - lift * bank.height * (1 - abs(across) * 1.3)) * size.height
-                        layer.fill(Path(ellipseIn: CGRect(x: x - radius, y: y - radius, width: radius * 2, height: radius * 2)),
-                                   with: .color(light))
-                    }
-                }
-                // Lit from above: the underside of every bank takes the shade, and only where a cloud is.
-                layer.blendMode = .sourceAtop
-                layer.fill(Path(CGRect(origin: .zero, size: size)),
-                           with: .linearGradient(Gradient(colors: [shade.opacity(0), shade.opacity(0.75)]),
-                                                 startPoint: CGPoint(x: 0, y: size.height * 0.66),
-                                                 endPoint: CGPoint(x: 0, y: size.height * 1.02)))
-            }
-        }
-        .allowsHitTesting(false)
-    }
-}
-
-private nonisolated struct SeededRandom {
-    var state: UInt64
-
-    init(seed: UInt64) { state = seed &* 6364136223846793005 &+ 1442695040888963407 }
-
-    mutating func next() -> Double {
-        state = state &* 6364136223846793005 &+ 1442695040888963407
-        return Double(state >> 33) / Double(1 << 31)
     }
 }
 
