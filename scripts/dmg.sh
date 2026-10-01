@@ -43,7 +43,7 @@ rm -f "$dmg"
 # Written read-write first: the custom-icon flag belongs on the mounted volume, and -srcfolder drops it.
 scratch="$stage.rw.dmg"
 hdiutil create -volname "Savoia $version" -srcfolder "$stage" -fs HFS+ -format UDRW -ov -quiet "$scratch"
-mount=$(hdiutil attach "$scratch" -nobrowse -noverify -noautoopen | sed -n 's/.*\(\/Volumes\/.*\)$/\1/p' | tail -1)
+mount=$(diskutil image attach --mountOptions nobrowse "$scratch" | sed -n 's/.*\(\/Volumes\/.*\)$/\1/p' | tail -1)
 SetFile -a C "$mount"
 hdiutil detach "$mount" -quiet
 hdiutil convert "$scratch" -format UDZO -o "$dmg" -quiet
