@@ -22,6 +22,9 @@ struct AddressBar: View {
     @State private var suggestions = AddressSuggestions()
     @State private var selection: Int?
     @State private var textSelection: TextSelection?
+    /// What was typed, as opposed to the row being previewed in the field.
+    @State private var typed = ""
+    @State private var previewed: String?
     @State private var derived: DerivedPageTools?
     @Environment(WebMCPStore.self) private var webMCP
 
@@ -82,7 +85,7 @@ struct AddressBar: View {
                     if let selection, rows.indices.contains(selection) {
                         rows[selection].open(in: tab)
                     } else {
-                        tab.navigate(to: text)
+                        tab.navigate(to: typed)
                     }
                     addressFocus.wrappedValue = nil
                 }
@@ -92,8 +95,8 @@ struct AddressBar: View {
                 // the caret — what every address bar does with it.
                 .onKeyPress(.escape) {
                     guard isEditing else { return .ignored }
-                    if text != filled {
-                        text = filled
+                    if typed != filled {
+                        fill(filled)
                     } else {
                         addressFocus.wrappedValue = nil
                     }
@@ -144,6 +147,9 @@ struct AddressBar: View {
             textSelection = TextSelection(range: text.startIndex..<text.endIndex)
         }
         .onChange(of: text) { _, value in
+            if let previewed, value == previewed { return }
+            previewed = nil
+            typed = value
             selection = nil
             if isEditing, value != filled {
                 suggestions.update(for: value, context: context)
@@ -152,7 +158,7 @@ struct AddressBar: View {
             }
         }
         .onChange(of: settings.searchEngine) { _, _ in
-            if isEditing, text != filled { suggestions.update(for: text, context: context) }
+            if isEditing, typed != filled { suggestions.update(for: typed, context: context) }
         }
         // Under the field and over the page, from the field's own leading edge. The top bar is in
         // front of the page (`TabbedWindowView`), which is what lets this hang below the bar at all.
@@ -184,13 +190,15 @@ struct AddressBar: View {
 
     /// Only while somebody is typing: the field showing the page's own address has nothing to offer.
     private var rows: [AddressSuggestions.Row] {
-        guard isEditing, text != filled else { return [] }
-        return suggestions.rows(for: text, context: context, limits: AddressSuggestions.Limits(rows: 8))
+        guard isEditing, typed != filled else { return [] }
+        return suggestions.rows(for: typed, context: context, limits: AddressSuggestions.Limits(rows: 8))
     }
 
     /// Text Savoia put in the field, as opposed to text somebody typed.
     private func fill(_ value: String) {
         filled = value
+        typed = value
+        previewed = nil
         text = value
     }
 
@@ -199,7 +207,25 @@ struct AddressBar: View {
         guard count > 0 else { return .ignored }
         let next = (selection ?? -1) + delta
         selection = next < 0 ? nil : min(next, count - 1)
+        preview()
         return .handled
+    }
+
+    /// The selected row goes into the field as a suggestion: what was typed stays, the rest is selected.
+    private func preview() {
+        let rows = rows
+        guard let selection, rows.indices.contains(selection) else {
+            previewed = nil
+            text = typed
+            textSelection = TextSelection(insertionPoint: text.endIndex)
+            return
+        }
+        let full = rows[selection].completion
+        previewed = full
+        text = full
+        let tail = full.count > typed.count && full.lowercased().hasPrefix(typed.lowercased())
+            ? full.index(full.startIndex, offsetBy: typed.count) : full.startIndex
+        textSelection = TextSelection(range: tail..<full.endIndex)
     }
 
     /// The whole address once you are typing in it; the host and path at rest, because a query string
