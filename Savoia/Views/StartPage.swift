@@ -55,8 +55,7 @@ struct StartPage: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            LinearGradient(colors: [accent.opacity(0.16), accent.opacity(0.02)],
-                           startPoint: .top, endPoint: .bottom)
+            StartPageBackdrop(style: settings.startPageStyle, accent: accent)
                 // A click anywhere that is not the field, the list or the engine lets go of the
                 // caret. The field takes the keyboard the moment a tab opens, and there has to be a
                 // way to hand the keys back that is not reaching for a different tab.

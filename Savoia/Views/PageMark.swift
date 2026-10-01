@@ -12,13 +12,14 @@ struct PageMark: View {
     let color: Color
 
     @Environment(ConfigurationStore.self) private var settings
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         switch settings.pageLogo {
         case .name:
             if !settings.pageName.isEmpty { name }
         case .icon:
-            if let icon = Self.icon {
+            if let icon {
                 // A share of the type size, so the icon and the name it replaces stand as tall.
                 icon.resizable()
                     .interpolation(.high)
@@ -39,14 +40,14 @@ struct PageMark: View {
             .lineLimit(1)
     }
 
-    private static let icon: Image? = {
+    private var icon: Image? {
         #if os(macOS)
-        return Image(nsImage: NSApplication.shared.applicationIconImage)
+        return Image(scheme == .dark ? "WingsDark" : "Wings")
         #else
         let icons = Bundle.main.infoDictionary?["CFBundleIcons"] as? [String: Any]
         let primary = icons?["CFBundlePrimaryIcon"] as? [String: Any]
         let names = (primary?["CFBundleIconFiles"] as? [String] ?? []).reversed() + ["AppIcon"]
         return names.lazy.compactMap { UIImage(named: $0) }.first.map { Image(uiImage: $0) }
         #endif
-    }()
+    }
 }

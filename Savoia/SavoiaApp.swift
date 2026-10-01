@@ -77,6 +77,9 @@ struct SavoiaApp: App {
         }
         let settings = ConfigurationStore(database: database)
         ConfigurationStore.shared = settings
+        #if os(macOS)
+        AppIconController.shared.start(settings: settings)
+        #endif
         let history = HistoryStore(database: database)
         // The profiles live here now, not in the snapshot beside it: they are the identity the
         // visits, the bookmarks and every cookie jar are keyed by (`ProfileStore`).

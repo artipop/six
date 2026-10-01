@@ -20,6 +20,7 @@ struct ConfigurationPageView: View {
     /// The order is how often you touch them, not how important they are.
     enum Section: String, CaseIterable, Identifiable {
         case general
+        case appearance
         case windows
         case privacy
         case assistant
@@ -31,6 +32,7 @@ struct ConfigurationPageView: View {
         var title: String {
             switch self {
             case .general: String(localized: "General")
+            case .appearance: String(localized: "Appearance")
             case .windows: String(localized: "Tabs")
             case .privacy: String(localized: "Privacy")
             case .assistant: String(localized: "Assistant")
@@ -42,6 +44,7 @@ struct ConfigurationPageView: View {
         var symbol: String? {
             switch self {
             case .general: "gearshape"
+            case .appearance: "paintpalette"
             case .windows: "rectangle.split.3x1"
             case .privacy: "hand.raised"
             case .assistant: nil
@@ -145,6 +148,7 @@ struct ConfigurationPageView: View {
         Group {
             switch section {
             case .general: GeneralConfiguration().settingsFormColumn()
+            case .appearance: AppearanceConfiguration().settingsFormColumn()
             case .windows: WindowConfiguration().settingsFormColumn()
             case .privacy: PrivacyConfiguration(part: part).settingsColumn()
             case .assistant: AssistantPane(part: part).settingsColumn()
@@ -176,6 +180,35 @@ extension View {
     }
 }
 
+// MARK: - Appearance
+
+/// How Savoia looks: the Dock icon and the start page.
+private struct AppearanceConfiguration: View {
+    @Environment(ConfigurationStore.self) private var settings
+
+    var body: some View {
+        @Bindable var settings = settings
+        Form {
+            SwiftUI.Section("App Icon") {
+                AppIconPicker()
+            }
+
+            SwiftUI.Section("Start Page") {
+                Picker("Logo", selection: $settings.pageLogo) {
+                    Text("Name").tag(PageLogo.name)
+                    Text("Icon").tag(PageLogo.icon)
+                    Text("None").tag(PageLogo.none)
+                }
+                if settings.pageLogo == .name {
+                    TextField("Name", text: $settings.pageName)
+                }
+                StartPageStylePicker()
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
+
 // MARK: - General
 
 /// What Savoia searches with, what it does with a page's language, and whether the machine sends it
@@ -191,17 +224,6 @@ private struct GeneralConfiguration: View {
             SwiftUI.Section("Search") {
                 Picker("Search Engine", selection: $settings.searchEngine) {
                     ForEach(SearchEngine.allCases) { Text($0.title).tag($0) }
-                }
-            }
-
-            SwiftUI.Section("Start Page") {
-                Picker("Logo", selection: $settings.pageLogo) {
-                    Text("Name").tag(PageLogo.name)
-                    Text("Icon").tag(PageLogo.icon)
-                    Text("None").tag(PageLogo.none)
-                }
-                if settings.pageLogo == .name {
-                    TextField("Name", text: $settings.pageName)
                 }
             }
 

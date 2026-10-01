@@ -29,9 +29,6 @@ menus is what a menu is for: things you do, with a key beside them.
 **Search engine** — DuckDuckGo, Google, Bing or Yandex. The same choice is the
 chip on the left of the field on the start page.
 
-**Start page** — what stands above the field: the **Name** (which can be
-changed), the app's **Icon**, or **None**.
-
 **Translation** — the language pages are translated into (`⌘⇧L`). The list is
 whichever languages macOS has a model for.
 
@@ -43,6 +40,20 @@ profile, and a button to re-read them all now.
 build never offers: it is a second application wearing the same face, and links
 from the whole machine would go into a browser that is about to be killed and
 built again.
+
+## Appearance
+
+**App icon** — which icon Savoia shows in the Dock: **Sky** (the original),
+**Light**, **Dark**, **Light Wings**, **Dark Wings**, and two **Automatic** ones that
+are light by day and dark under macOS's dark appearance. The icon changes while
+Savoia is running; once it is quit, the original shows again.
+
+**Start page** — what stands above the field: the **Name** (which can be
+changed), the **Icon** (the wings on a transparent ground, light or dark with the appearance), or **None**. The **Background** is picked from tiles:
+**Plain** (the profile's tint), **Glass** (translucent panes washed with the icon's
+colours), **Sky** (a sky with clouds, as in the icon), **Clouds** (clouds on the
+profile's tint), **Wings** (the icon's wings in a corner) and **Glow** (blurred blue
+and orange).
 
 ## Tabs
 

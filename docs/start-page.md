@@ -57,6 +57,15 @@ Focus is mirrored when the native field takes the keyboard, including a click or
 also restores the mouse pointer that AppKit hides during text-field keystrokes. The integration test covers these
 focus transitions and observes the cursor API to check that Escape cancels hiding until the next mouse movement.
 
+## Background
+
+`StartPageBackdrop` draws what lies behind the field, by `StartPageStyle` (`pages.style`, Configuration ▸ Appearance ▸
+Start Page, picked from tiles that are the backdrop itself at small size): **Plain** is the profile's tint fading
+downward; **Glass** is two translucent panes leaning like the wings over a blue-to-orange wash; **Sky** is the icon's sky
+with banks of cloud along the bottom edge — circles from a fixed sequence, blurred, the underside shaded; **Clouds** is
+the same banks on the profile's tint; **Wings** is the `Wings` image bleeding off a corner; **Glow** is four blurred
+discs of the icon's colours. Every size is a share of the window.
+
 ## Your own pages first
 
 The saved rows are `PersonalSuggestions` (`Savoia/Browser/`) over the bookmark index — the same hybrid search the

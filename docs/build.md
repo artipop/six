@@ -102,6 +102,17 @@ Made from [`docs/logo.png`](logo.png) by [`scripts/appicon.swift`](../scripts/ap
 swift scripts/appicon.swift docs/logo.png Savoia/Assets.xcassets/AppIcon.appiconset Savoia/Assets.xcassets/AppIcon-Dev.appiconset
 ```
 
+The icons Configuration ▸ Appearance ▸ App Icon switches between are image sets (`IconLight`, `IconDark`, `IconLightWings`,
+`IconDarkWings`, and `Wings` for the start page), drawn by [`scripts/appicon-variants.swift`](../scripts/appicon-variants.swift)
+from the pictures in `docs/icon-art/`:
+
+```sh
+swift scripts/appicon-variants.swift docs/icon-art Savoia/Assets.xcassets
+```
+
+`AppIconController` hands the chosen one to `NSApplication.applicationIconImage` at launch and when the appearance
+changes; the development build gets its DEV band drawn over it at run time. The Dock shows it only while Savoia runs.
+
 The development build's set carries an orange DEV band, so the two can be told apart in the Dock.
 
 ## Sandbox

@@ -19,6 +19,32 @@ nonisolated enum PageLogo: String, Sendable, CaseIterable {
     case none
 }
 
+/// The icon the Dock shows, switched at run time. `sky` is the one the bundle carries; the others are image sets
+/// drawn from the light and dark plates, and the two `automatic` ones follow the system's appearance.
+nonisolated enum AppIconChoice: String, Sendable, CaseIterable, Identifiable {
+    case sky
+    case light
+    case dark
+    case lightWings
+    case darkWings
+    case automatic
+    case automaticWings
+
+    var id: String { rawValue }
+}
+
+/// What lies behind the field on the start page.
+nonisolated enum StartPageStyle: String, Sendable, CaseIterable, Identifiable {
+    case plain
+    case glass
+    case sky
+    case clouds
+    case wings
+    case aurora
+
+    var id: String { rawValue }
+}
+
 /// Typed access to the settings table, cached in memory. Reads are observable; writes hit the
 /// database at once.
 @MainActor
@@ -50,6 +76,8 @@ final class ConfigurationStore {
         /// The name on Savoia's own pages and the mark above the start page's field (`PageLogo`).
         case pageName = "pages.name"
         case pageLogo = "pages.logo"
+        case startPageStyle = "pages.style"
+        case appIcon = "app.icon"
         case agentModel = "agent.model"
         case agentModels = "agents.models"
         case agentModelCatalogs = "agents.modelCatalogs"
@@ -135,6 +163,16 @@ final class ConfigurationStore {
     }
 
     static let defaultPageName = "Savoia"
+
+    var startPageStyle: StartPageStyle {
+        get { self[.startPageStyle].flatMap(StartPageStyle.init(rawValue:)) ?? .plain }
+        set { self[.startPageStyle] = newValue == .plain ? nil : newValue.rawValue }
+    }
+
+    var appIcon: AppIconChoice {
+        get { self[.appIcon].flatMap(AppIconChoice.init(rawValue:)) ?? .sky }
+        set { self[.appIcon] = newValue == .sky ? nil : newValue.rawValue }
+    }
 
     var pageLogo: PageLogo {
         get { self[.pageLogo].flatMap(PageLogo.init(rawValue:)) ?? .name }
