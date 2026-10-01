@@ -13,7 +13,7 @@ dmg="$dist/savoia-$version.dmg"
 
 echo "==> building Release"
 xcodebuild -project "$root/Savoia.xcodeproj" -scheme Savoia -configuration Release \
-    -skipMacroValidation -skipPackagePluginValidation \
+    -destination 'generic/platform=macOS' -skipMacroValidation -skipPackagePluginValidation \
     -derivedDataPath "$root/dist/DerivedData" \
     build
 
