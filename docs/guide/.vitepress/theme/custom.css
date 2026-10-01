@@ -1,142 +1,134 @@
-/* The guide speaks the product's design language: the values below are the
-   tokens from webapp/src/styles/_tokens.scss, the same ones the landing page
-   carries in site/styles.css — dark is the screen, light is the paper, and the
-   machine speaks in tracked caps while a person speaks in prose.
+/* The guide wears the application's own look: the icon (a red wing in a blue
+   sky), the start page's blue-into-orange backdrops and the system type the
+   interface is set in. Light is the daytime sky, dark the evening one, and the
+   accent is the wing. The tokens match site/styles.css.
 
-   VitePress paints from its own variables, so this file is a translation of
-   the tokens into that vocabulary rather than a second theme. `:root` is the
-   paper here because that is where the default theme keeps its light values;
-   the screen lives under `.dark`, which config.mjs makes the one a reader
-   arrives in. */
+   VitePress paints from its own variables, so this file translates the tokens
+   into that vocabulary rather than being a second theme. `:root` holds the
+   light values because that is where the default theme keeps them; the evening
+   lives under `.dark`, which config.mjs makes the one a reader arrives in.
+
+   Inter stands in for the system font (SF), which a page may not ship; on an
+   Apple device the stack below uses the system font itself. */
 
 @font-face {
-    font-family: 'Roboto Condensed Variable';
+    font-family: 'Inter Variable';
     font-style: normal;
     font-display: swap;
     font-weight: 100 900;
-    src: url(./fonts/roboto-condensed-latin-wght-normal.woff2) format('woff2-variations');
+    src: url(./fonts/inter-latin-wght-normal.woff2) format('woff2-variations');
     unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
         U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
-    font-family: 'Roboto Condensed Variable';
+    font-family: 'Inter Variable';
     font-style: normal;
     font-display: swap;
     font-weight: 100 900;
-    src: url(./fonts/roboto-condensed-cyrillic-wght-normal.woff2) format('woff2-variations');
+    src: url(./fonts/inter-cyrillic-wght-normal.woff2) format('woff2-variations');
     unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
 }
 
-@font-face {
-    font-family: 'JetBrains Mono Variable';
-    font-style: normal;
-    font-display: swap;
-    font-weight: 100 800;
-    src: url(./fonts/jetbrains-mono-latin-wght-normal.woff2) format('woff2-variations');
-    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
-        U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-
-@font-face {
-    font-family: 'JetBrains Mono Variable';
-    font-style: normal;
-    font-display: swap;
-    font-weight: 100 800;
-    src: url(./fonts/jetbrains-mono-cyrillic-wght-normal.woff2) format('woff2-variations');
-    unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
-}
-
-/* --------------------------------------------------------------- the paper */
+/* ---------------------------------------------------------------- the day */
 
 :root {
-    --vp-font-family-base: 'Roboto Condensed Variable', sans-serif;
-    --vp-font-family-mono: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --vp-font-family-base: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter Variable', system-ui, sans-serif;
+    --vp-font-family-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
 
-    --vp-c-bg: #f0ede5;
-    --vp-c-bg-alt: #faf8f4;
-    --vp-c-bg-elv: #faf8f4;
-    --vp-c-bg-soft: #e9e5db;
+    --vp-c-bg: #eef4fd;
+    --vp-c-bg-alt: #ffffff;
+    --vp-c-bg-elv: #ffffff;
+    --vp-c-bg-soft: #e3ecf9;
 
-    --vp-c-text-1: rgba(22, 20, 16, 1);
-    --vp-c-text-2: rgba(22, 20, 16, 0.72);
-    --vp-c-text-3: rgba(22, 20, 16, 0.5);
+    --vp-c-text-1: rgba(16, 24, 44, 1);
+    --vp-c-text-2: rgba(16, 24, 44, 0.74);
+    --vp-c-text-3: rgba(16, 24, 44, 0.66);
 
-    --vp-c-divider: rgba(22, 20, 16, 0.14);
-    --vp-c-border: rgba(22, 20, 16, 0.2);
-    --vp-c-gutter: rgba(22, 20, 16, 0.14);
+    --vp-c-divider: rgba(16, 24, 44, 0.14);
+    --vp-c-border: rgba(16, 24, 44, 0.24);
+    --vp-c-gutter: rgba(16, 24, 44, 0.14);
 
-    --vp-c-brand-1: #b3261e;
-    --vp-c-brand-2: #9a201a;
-    --vp-c-brand-3: #b3261e;
-    --vp-c-brand-soft: rgba(179, 38, 30, 0.14);
+    --vp-c-brand-1: #c8141a;
+    --vp-c-brand-2: #a81016;
+    --vp-c-brand-3: #d91e18;
+    --vp-c-brand-soft: rgba(200, 20, 26, 0.12);
 
-    --vp-c-tip-1: #1b6e4e;
-    --vp-c-tip-soft: rgba(27, 110, 78, 0.14);
-    --vp-c-warning-1: #a87014;
-    --vp-c-warning-soft: rgba(168, 112, 20, 0.14);
+    --vp-c-tip-1: #14704c;
+    --vp-c-tip-soft: rgba(20, 112, 76, 0.14);
+    --vp-c-warning-1: #9c5c08;
+    --vp-c-warning-soft: rgba(156, 92, 8, 0.14);
 
-    --vp-button-brand-bg: #b3261e;
-    --vp-button-brand-hover-bg: #9a201a;
-    --vp-button-brand-active-bg: #9a201a;
+    --vp-button-brand-bg: #d91e18;
+    --vp-button-brand-hover-bg: #b81913;
+    --vp-button-brand-active-bg: #b81913;
     --vp-button-brand-border: transparent;
-    --vp-button-brand-text: #f0ede5;
+    --vp-button-brand-text: #ffffff;
+    --vp-button-brand-hover-text: #ffffff;
+    --vp-button-brand-active-text: #ffffff;
 
-    --vp-code-block-bg: #faf8f4;
+    --vp-code-block-bg: #ffffff;
     --vp-layout-max-width: 1400px;
 
     /* Inline code is a name, not a link: the theme paints it in the brand
-       colour, and a page about `npx` and adapters then reads as a page of red
+       colour, and a page about `⌘E` and agents then reads as a page of red
        words. */
-    --vp-code-color: rgba(22, 20, 16, 0.92);
-    --vp-code-bg: rgba(22, 20, 16, 0.06);
+    --vp-code-color: rgba(16, 24, 44, 0.92);
+    --vp-code-bg: rgba(16, 24, 44, 0.07);
 }
 
-/* -------------------------------------------------------------- the screen */
+/* -------------------------------------------------------------- the evening */
 
 .dark {
-    --vp-c-bg: #0c0c0e;
-    --vp-c-bg-alt: #18181b;
-    --vp-c-bg-elv: #18181b;
-    --vp-c-bg-soft: #18181b;
+    --vp-c-bg: #0d1326;
+    --vp-c-bg-alt: #18213e;
+    --vp-c-bg-elv: #18213e;
+    --vp-c-bg-soft: #18213e;
 
-    --vp-c-text-1: rgba(233, 233, 236, 1);
-    --vp-c-text-2: rgba(233, 233, 236, 0.68);
-    --vp-c-text-3: rgba(233, 233, 236, 0.48);
+    --vp-c-text-1: rgba(234, 239, 250, 1);
+    --vp-c-text-2: rgba(234, 239, 250, 0.72);
+    --vp-c-text-3: rgba(234, 239, 250, 0.54);
 
-    --vp-c-divider: rgba(233, 233, 236, 0.1);
-    --vp-c-border: rgba(233, 233, 236, 0.2);
-    --vp-c-gutter: rgba(233, 233, 236, 0.1);
+    --vp-c-divider: rgba(234, 239, 250, 0.12);
+    --vp-c-border: rgba(234, 239, 250, 0.26);
+    --vp-c-gutter: rgba(234, 239, 250, 0.12);
 
-    --vp-c-brand-1: #e24234;
-    --vp-c-brand-2: #f05a4c;
-    --vp-c-brand-3: #e24234;
-    --vp-c-brand-soft: rgba(226, 66, 52, 0.16);
+    --vp-c-brand-1: #ff6052;
+    --vp-c-brand-2: #ff7a6e;
+    --vp-c-brand-3: #d91e18;
+    --vp-c-brand-soft: rgba(255, 96, 82, 0.16);
 
-    --vp-c-tip-1: #3db887;
-    --vp-c-tip-soft: rgba(61, 184, 135, 0.16);
-    --vp-c-warning-1: #ffb44c;
-    --vp-c-warning-soft: rgba(255, 180, 76, 0.16);
+    --vp-c-tip-1: #50c896;
+    --vp-c-tip-soft: rgba(80, 200, 150, 0.16);
+    --vp-c-warning-1: #ffb85a;
+    --vp-c-warning-soft: rgba(255, 184, 90, 0.16);
 
-    --vp-button-brand-text: #08080a;
+    --vp-button-brand-bg: #d91e18;
+    --vp-button-brand-hover-bg: #b81913;
+    --vp-button-brand-active-bg: #b81913;
+    --vp-button-brand-text: #ffffff;
 
-    --vp-code-block-bg: #101013;
-    --vp-code-color: rgba(233, 233, 236, 0.92);
-    --vp-code-bg: rgba(233, 233, 236, 0.08);
+    --vp-code-block-bg: #111a33;
+    --vp-code-color: rgba(234, 239, 250, 0.92);
+    --vp-code-bg: rgba(234, 239, 250, 0.09);
 }
 
 /* ------------------------------------------------------------------- corners */
 
-/* The XCIII guide squares everything off, because that product draws no
-   corners. This one is the browser, whose window *is* a page inside a rounded
-   card — so the surfaces that stand for a window keep a radius, and only the
-   small typographic ones are squared to keep the family resemblance. */
+/* The application rounds everything: capsules for fields and buttons, 14 points
+   for cards, a smaller radius for what sits inside them. */
 .DocSearch-Button,
-.VPNavBarSearchButton,
-.vp-doc :not(pre) > code,
+.VPNavBarSearchButton {
+    border-radius: 999px;
+}
+
+.vp-doc :not(pre) > code {
+    border-radius: 6px;
+}
+
 .vp-doc div[class*='language-'],
 .vp-doc .custom-block {
-    border-radius: 2px;
+    border-radius: 12px;
 }
 
 /* Buttons. Two things have to be got past, and both are specificity.
@@ -145,34 +137,39 @@
    a bare `.VPButton { border-radius }` rule loses and does nothing. And the
    theme's own rule is scoped, `.VPButton.medium[data-v-93dc4167]`, which an
    attribute selector makes stronger again. Repeating the class matches that
-   weight without naming a hash that changes with every VitePress release.
-
-   (The XCIII guide's copy of this file has the bare rule, and the same silence.
-   It is not fixed from here.) */
+   weight without naming a hash that changes with every VitePress release. */
 .VPButton.medium.medium,
 .VPButton.big.big {
-    border-radius: 4px;
+    border-radius: 999px;
 }
 
 .VPFeature {
-    border-radius: 8px;
+    border-radius: 14px;
 }
 
-/* ------------------------------------------------------------ the two voices */
+/* The sky behind the page, as on the start page: blue at the top left, the warm
+   glow at the top right. */
+body {
+    background-image:
+        radial-gradient(900px 520px at 12% -6%, rgba(21, 130, 240, 0.16), transparent 70%),
+        radial-gradient(800px 480px at 96% 4%, rgba(244, 124, 52, 0.12), transparent 70%);
+    background-repeat: no-repeat;
+}
 
-/* Everything the system names — the sections in the sidebar, the eyebrow over
-   a heading — is the machine talking, and the machine talks in tracked caps. */
+/* ------------------------------------------------------------------- labels */
+
+/* Section names in the sidebar and the outline are small semibold labels, set
+   apart from the page names under them by weight and size. */
 .VPSidebarItem.level-0 > .item > .text,
 .VPDocOutlineItem > .root > .outline-title,
 .VPDocFooter .prev-next .desc {
-    text-transform: uppercase;
-    letter-spacing: 0.16em;
-    font-size: 12px;
-    opacity: 0.8;
+    font-size: 13px;
+    font-weight: 600;
+    opacity: 0.85;
 }
 
 .VPDoc h1 {
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
 }
 
 /* Prose, and the measure a person can actually read. The default theme sets
@@ -188,7 +185,8 @@
 }
 
 .vp-doc blockquote {
-    border-left: 2px solid var(--vp-c-brand-1);
+    border-left: 3px solid var(--vp-c-brand-1);
+    border-radius: 2px;
     padding-left: 16px;
     color: var(--vp-c-text-2);
 }
@@ -197,9 +195,9 @@
     border: 1px solid var(--vp-c-divider);
 }
 
-/* The home page's own heading: the product's name, spaced like a stamp. */
+/* The home page's own heading: the product's name. */
 .VPHero .name {
-    letter-spacing: 0.16em;
+    letter-spacing: -0.03em;
 }
 
 
@@ -212,8 +210,7 @@
    focused one in the middle, its neighbours cropped by the edges — which is
    what says "the row goes on" — and the workspaces as pips down the right.
 
-   The same drawing is on the deffun landing's Savoia card (site/styles.css there);
-   it is a dozen rectangles in CSS rather than an image, so it follows the theme
+   The same drawing is on the landing page (site/styles.css); it is a dozen rectangles in CSS rather than an image, so it follows the theme
    with no second file and stays sharp on a 5K panel.
    --------------------------------------------------------------------------- */
 
@@ -237,12 +234,12 @@
 
 .row {
     --row-gap: 8px;
-    --row-radius: 8px;
+    --row-radius: 10px;
     /* How much of a neighbour each edge cuts off. */
     --row-col-peek: 96px;
 
     border: 1px solid var(--vp-c-divider);
-    border-radius: 10px;
+    border-radius: 14px;
     background: var(--vp-c-bg);
     overflow: hidden;
     user-select: none;
@@ -259,7 +256,7 @@
 .row-profile {
     width: 13px;
     height: 13px;
-    border-radius: 2px;
+    border-radius: 4px;
     background: var(--vp-c-brand-1);
     flex: none;
 }
@@ -352,14 +349,11 @@
 .row-line.w-60 { width: 60%; }
 .row-line.w-40 { width: 40%; }
 
-/* The caption under the drawing: the machine naming the parts, in the voice the
-   rest of the site gives it — and under the drawing's left edge, not centred,
+/* The caption under the drawing, at the drawing's left edge, not centred,
    because everything above it starts there. */
 .row-legend {
     margin: 14px 0 0;
-    font-size: 12px;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
+    font-size: 13px;
     line-height: 1.7;
     color: var(--vp-c-text-3);
 }
@@ -368,9 +362,5 @@
     .row-strip {
         height: 126px;
         --row-col-peek: 30px;
-    }
-
-    .row-legend {
-        letter-spacing: 0.1em;
     }
 }

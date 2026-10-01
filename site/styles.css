@@ -1,43 +1,27 @@
-/* The landing page speaks the product's own design language: the tokens below
-   are the ones from frontend/src/styles/_tokens.scss, kept in the same order and
-   with the same meanings — dark is the screen, light is the paper, and the
-   machine speaks in tracked caps while a person speaks in prose. */
+/* The landing page wears the application's own look. Its sources are the app:
+   the icon (a red wing in a blue sky with warm clouds), the start page's
+   backdrops (blue into orange) and the system type the interface is set in.
+   Light is the daytime sky, dark is the evening one; the accent is the wing.
+   The tokens are kept in the same names as docs/guide/.vitepress/theme/custom.css. */
 
+/* Inter stands in for the system font (SF), which a page may not ship; on an
+   Apple device the stack below uses the system font itself. */
 @font-face {
-    font-family: 'Roboto Condensed Variable';
+    font-family: 'Inter Variable';
     font-style: normal;
     font-display: swap;
     font-weight: 100 900;
-    src: url(fonts/roboto-condensed-latin-wght-normal.woff2) format('woff2-variations');
+    src: url(fonts/inter-latin-wght-normal.woff2) format('woff2-variations');
     unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
         U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
-    font-family: 'Roboto Condensed Variable';
+    font-family: 'Inter Variable';
     font-style: normal;
     font-display: swap;
     font-weight: 100 900;
-    src: url(fonts/roboto-condensed-cyrillic-wght-normal.woff2) format('woff2-variations');
-    unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
-}
-
-@font-face {
-    font-family: 'JetBrains Mono Variable';
-    font-style: normal;
-    font-display: swap;
-    font-weight: 100 800;
-    src: url(fonts/jetbrains-mono-latin-wght-normal.woff2) format('woff2-variations');
-    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
-        U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-
-@font-face {
-    font-family: 'JetBrains Mono Variable';
-    font-style: normal;
-    font-display: swap;
-    font-weight: 100 800;
-    src: url(fonts/jetbrains-mono-cyrillic-wght-normal.woff2) format('woff2-variations');
+    src: url(fonts/inter-cyrillic-wght-normal.woff2) format('woff2-variations');
     unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
 }
 
@@ -47,28 +31,33 @@
    --------------------------------------------------------------------------- */
 
 :root {
-    --canvas-rgb: 12, 12, 14;
-    --surface-rgb: 24, 24, 27;
-    --ink-rgb: 233, 233, 236;
-    --accent-rgb: 226, 66, 52;
-    --accent-ink-rgb: 8, 8, 10;
-    --success-rgb: 61, 184, 135;
-    --warning-rgb: 255, 180, 76;
+    --canvas-rgb: 13, 19, 38;
+    --surface-rgb: 24, 33, 62;
+    --ink-rgb: 234, 239, 250;
+    /* The wing as text and thin lines on the dark canvas. */
+    --accent-rgb: 255, 96, 82;
+    /* The wing as a fill: white text on it is 5:1 in both themes. */
+    --button-rgb: 217, 30, 24;
+    --accent-ink-rgb: 255, 255, 255;
+    --sky-rgb: 21, 130, 240;
+    --glow-rgb: 244, 124, 52;
+    --success-rgb: 80, 200, 150;
+    --warning-rgb: 255, 184, 90;
 
-    --border-subtle: rgba(var(--ink-rgb), 0.1);
-    --border-strong: rgba(var(--ink-rgb), 0.2);
-    --muted: rgba(var(--ink-rgb), 0.62);
+    --border-subtle: rgba(var(--ink-rgb), 0.12);
+    --border-strong: rgba(var(--ink-rgb), 0.26);
+    --muted: rgba(var(--ink-rgb), 0.68);
     --shadow-3: 0 24px 64px -16px rgba(0, 0, 0, 0.7);
 
-    --font-label: 'Roboto Condensed Variable', sans-serif;
+    --font-label: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter Variable', system-ui, sans-serif;
     --font-prose: var(--font-label);
-    --font-mono: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --font-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
 
-    --track-label: 0.16em;
-    --track-title: 0.3em;
+    --track-label: 0;
+    --track-title: -0.025em;
 
-    --radius-sm: 2px;
-    --radius-md: 4px;
+    --radius-sm: 8px;
+    --radius-md: 14px;
     --radius-pill: 999px;
 
     --gutter: 24px;
@@ -78,15 +67,19 @@
 }
 
 :root[data-theme='light'] {
-    --canvas-rgb: 240, 237, 229;
-    --surface-rgb: 250, 248, 244;
-    --ink-rgb: 22, 20, 16;
-    --accent-rgb: 179, 38, 30;
-    --accent-ink-rgb: 240, 237, 229;
-    --success-rgb: 27, 110, 78;
-    --warning-rgb: 168, 112, 20;
+    --canvas-rgb: 238, 244, 253;
+    --surface-rgb: 255, 255, 255;
+    --ink-rgb: 16, 24, 44;
+    --accent-rgb: 200, 20, 26;
+    --button-rgb: 217, 30, 24;
+    --accent-ink-rgb: 255, 255, 255;
+    --sky-rgb: 11, 100, 200;
+    --glow-rgb: 255, 160, 90;
+    --success-rgb: 20, 112, 76;
+    --warning-rgb: 156, 92, 8;
 
-    --shadow-3: 0 16px 48px -12px rgba(28, 26, 22, 0.32);
+    --muted: rgba(var(--ink-rgb), 0.7);
+    --shadow-3: 0 16px 48px -12px rgba(16, 36, 80, 0.28);
 
     color-scheme: light;
 }
@@ -97,7 +90,11 @@
 
 body {
     margin: 0;
-    background: rgb(var(--canvas-rgb));
+    background:
+        radial-gradient(900px 520px at 12% -6%, rgba(var(--sky-rgb), 0.22), transparent 70%),
+        radial-gradient(800px 480px at 96% 4%, rgba(var(--glow-rgb), 0.16), transparent 70%),
+        rgb(var(--canvas-rgb));
+    background-repeat: no-repeat;
     color: rgb(var(--ink-rgb));
     font-family: var(--font-prose);
     font-size: 17px;
@@ -116,7 +113,7 @@ a {
     text-decoration-color: rgba(var(--accent-rgb), 0.7);
 }
 
-/* The machine voice: everything the system names, in tracked caps. */
+/* Labels: what the interface names, in semibold. */
 .t-machine,
 .eyebrow,
 .nav a,
@@ -124,12 +121,12 @@ a {
 .label,
 .footer-title {
     font-family: var(--font-label);
-    text-transform: uppercase;
+    text-transform: none;
     letter-spacing: var(--track-label);
     font-weight: 600;
 }
 
-/* The measured voice: paths, branches, versions, keys, code. */
+/* Paths, versions, keys, code: the system monospace. */
 code,
 kbd,
 .mono {
@@ -139,8 +136,8 @@ kbd,
 }
 
 code {
-    background: rgba(var(--ink-rgb), 0.07);
-    border-radius: var(--radius-sm);
+    background: rgba(var(--ink-rgb), 0.08);
+    border-radius: 6px;
     padding: 0.1em 0.35em;
 }
 
@@ -171,23 +168,13 @@ code {
 }
 
 .wordmark {
-    font-family: var(--font-mono);
     font-weight: 700;
-    font-size: 20px;
-    letter-spacing: 0.12em;
+    font-size: 21px;
+    letter-spacing: -0.01em;
     text-decoration: none;
     color: rgb(var(--ink-rgb));
     display: inline-flex;
     align-items: center;
-    gap: 10px;
-}
-
-.wordmark::before {
-    content: '';
-    width: 10px;
-    height: 18px;
-    background: rgb(var(--accent-rgb));
-    border-radius: 1px;
 }
 
 .nav {
@@ -198,7 +185,7 @@ code {
 }
 
 .nav a {
-    font-size: 12px;
+    font-size: 14px;
     color: var(--muted);
     text-decoration: none;
 }
@@ -212,10 +199,10 @@ code {
     border: 1px solid var(--border-subtle);
     color: var(--muted);
     border-radius: var(--radius-sm);
-    width: 30px;
-    height: 26px;
+    width: 34px;
+    height: 30px;
     cursor: pointer;
-    font-family: var(--font-mono);
+    font-family: var(--font-label);
     font-size: 12px;
     line-height: 1;
 }
@@ -231,13 +218,13 @@ code {
 
 .btn {
     display: inline-block;
-    font-size: 12px;
-    padding: 11px 20px;
-    border-radius: var(--radius-sm);
+    font-size: 15px;
+    padding: 11px 22px;
+    border-radius: var(--radius-pill);
     border: 1px solid transparent;
     cursor: pointer;
     text-decoration: none;
-    background: rgb(var(--accent-rgb));
+    background: rgb(var(--button-rgb));
     color: rgb(var(--accent-ink-rgb));
     transition: opacity 90ms linear;
 }
@@ -266,7 +253,7 @@ section:first-of-type {
 }
 
 .eyebrow {
-    font-size: 11px;
+    font-size: 13px;
     color: rgba(var(--accent-rgb), 1);
     margin: 0 0 18px;
 }
@@ -295,9 +282,7 @@ h2 {
 }
 
 h3 {
-    font-size: 17px;
-    text-transform: uppercase;
-    letter-spacing: var(--track-label);
+    font-size: 18px;
     margin-bottom: 10px;
 }
 
@@ -357,8 +342,20 @@ p {
     margin: 0 0 14px;
 }
 
+.hero-name::before {
+    content: '';
+    display: inline-block;
+    width: 0.8em;
+    height: 0.8em;
+    margin-right: 0.22em;
+    vertical-align: -0.04em;
+    background: url(icon-96.png) center / contain no-repeat;
+}
+
 .hero-tag {
-    font-size: 12px;
+    font-family: var(--font-label);
+    font-weight: 500;
+    font-size: 15px;
     color: var(--muted);
     margin-bottom: 26px;
 }
@@ -412,7 +409,7 @@ p {
 }
 
 .product-tag {
-    font-size: 12px;
+    font-size: 14px;
     color: var(--muted);
     margin: 0;
 }
@@ -442,7 +439,8 @@ p {
     left: 0;
     top: 20px;
     width: 8px;
-    height: 1px;
+    height: 2px;
+    border-radius: 1px;
     background: rgb(var(--accent-rgb));
 }
 
@@ -495,7 +493,7 @@ p {
     margin-top: 56px;
 }
 
-/* A definition row: the machine names it, a person reads the answer. */
+/* A definition row: the term, then its answer. */
 .rows {
     margin: 30px 0 0;
     border-top: 1px solid var(--border-subtle);
@@ -512,9 +510,9 @@ p {
 .rows dt,
 .rows .label {
     font-family: var(--font-label);
-    text-transform: uppercase;
+    text-transform: none;
     letter-spacing: var(--track-label);
-    font-size: 12px;
+    font-size: 13px;
     color: var(--muted);
     margin: 0;
 }
@@ -550,9 +548,9 @@ p {
     border-radius: var(--radius-pill);
     padding: 8px 18px;
     font-family: var(--font-label);
-    text-transform: uppercase;
+    text-transform: none;
     letter-spacing: var(--track-label);
-    font-size: 12px;
+    font-size: 14px;
     color: rgb(var(--accent-rgb));
     margin-bottom: 22px;
 }
@@ -571,9 +569,9 @@ form {
 .field label {
     display: block;
     font-family: var(--font-label);
-    text-transform: uppercase;
+    text-transform: none;
     letter-spacing: var(--track-label);
-    font-size: 11px;
+    font-size: 13px;
     color: var(--muted);
     margin-bottom: 6px;
 }
@@ -640,7 +638,7 @@ textarea:focus {
 }
 
 .footer-title {
-    font-size: 11px;
+    font-size: 13px;
     color: var(--muted);
     margin: 0 0 10px;
 }
@@ -659,9 +657,7 @@ textarea:focus {
 
 .requisites dt {
     font-family: var(--font-label);
-    text-transform: uppercase;
-    letter-spacing: var(--track-label);
-    font-size: 11px;
+    font-size: 13px;
 }
 
 .requisites dd {
@@ -724,14 +720,12 @@ textarea:focus {
    follows the theme without a second file, and it stays sharp on the 5K panel
    this company works on.
 
-   Rounded corners here are not the site's habit — the other two products draw
-   none — they are this product's own signature: a window in the rail is a page
-   inside a rounded card.
+   A window in the rail is a page inside a rounded card, as in the application.
    --------------------------------------------------------------------------- */
 
 .rail {
     --rail-gap: 7px;
-    --rail-radius: 7px;
+    --rail-radius: 10px;
     /* How much of a neighbour is cut off by each edge. It is a length rather
        than a fraction because the frame is the same size on every card. */
     --rail-col-peek: 54px;
@@ -759,7 +753,7 @@ textarea:focus {
 .rail-profile {
     width: 12px;
     height: 12px;
-    border-radius: var(--radius-sm);
+    border-radius: 4px;
     background: rgb(var(--accent-rgb));
     flex: none;
 }

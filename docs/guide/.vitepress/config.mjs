@@ -196,13 +196,13 @@ export default defineConfig({
     title: 'Savoia',
 
     // The product is a screen, so the screen theme is the one a reader arrives
-    // in — the same decision the landing page and the other two guides make.
+    // in — the same decision the landing page makes.
     appearance: 'dark',
     lastUpdated: true,
 
-    // Addresses keep their `.html`, for the reason the XCIII guide states: a
-    // clean URL needs the host to strip the extension, and a guide that 404s
-    // depending on where it was uploaded is worse than an ugly address.
+    // Addresses keep their `.html`: a clean URL needs the host to strip the
+    // extension, and a guide that 404s depending on where it was uploaded is
+    // worse than an ugly address.
     cleanUrls: false,
 
     // Published under `docs/` of the product's root. `BASE` is that root: `/` on
@@ -220,6 +220,7 @@ export default defineConfig({
     locales: {root: ru, en},
 
     themeConfig: {
+        logo: '/favicon.png',
 
         // No repository link and no social icons: this guide is for somebody
         // using the browser, and a source tree answers nothing asked here.
