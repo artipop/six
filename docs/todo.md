@@ -439,3 +439,7 @@ where the next changes will land.
   `remove(ofTypes:for:)`). Clearing a whole profile is the only option today, and it takes every login with it.
 - Per-site user-agent overrides through `WebPage.customUserAgent`, for sites that sniff wrongly even at Safari's
   string.
+- **The one warning left in `scripts/dmg.sh`.** `appintentsmetadataprocessor: Metadata extraction skipped, no
+  AppIntents.framework dependency found` comes from Xcode's own build phase, once per build; the app has no App
+  Intents, so it is harmless. It goes away if Savoia gets any (Shortcuts actions for open-tab and search would be the
+  natural ones), and not before.
