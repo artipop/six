@@ -110,7 +110,7 @@ swift scripts/appicon-variants.swift docs/icon-art Savoia/Assets.xcassets Savoia
 ```
 
 `AppIconController` hands the chosen one to `NSApplication.applicationIconImage` at launch and when the appearance
-changes (the automatic wings hand it nothing, so the system draws the bundle's own); the development build gets its DEV
+changes; the development build gets its DEV
 band drawn over it at run time. macOS has no alternate icons for an app that is not running, so a quit Savoia is drawn
 from the bundle — the automatic wings — whatever was chosen. The choice used to be written onto the bundle as a custom
 icon; that broke the seal of a signed bundle, and the controller removes what that left.

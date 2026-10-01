@@ -56,8 +56,7 @@ final class AppIconController {
         } onChange: { [weak self] in
             Task { @MainActor [weak self] in self?.apply() }
         }
-        // The bundle's own icon already is the automatic wings, and the system draws it the way it draws any other.
-        NSApplication.shared.applicationIconImage = choice == .automaticWings ? nil : image(for: choice)
+        NSApplication.shared.applicationIconImage = image(for: choice)
     }
 
     private func variant(_ name: String) -> NSImage {
