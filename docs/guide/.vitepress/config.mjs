@@ -1,5 +1,9 @@
 import {defineConfig} from 'vitepress'
 
+// Who the guide is published for; deffun's own build is the default. The
+// composing project (../../../deffun) passes the other profiles' names.
+const holder = process.env.PROFILE_NAME ?? 'deffun'
+
 // The Savoia user guide as a site — the browser this repository builds, described
 // for the person using it rather than for the person changing it. Everything
 // else in `docs/` is the second kind and stays out of the publication: the
@@ -90,7 +94,7 @@ const ru = {
 
         footer: {
             message: 'Руководство пользователя Savoia',
-            copyright: '© 2026 deffun',
+            copyright: `© 2026 ${holder}`,
         },
 
         notFound: {
@@ -169,7 +173,7 @@ const en = {
 
         footer: {
             message: 'The Savoia user guide',
-            copyright: '© 2026 deffun',
+            copyright: `© 2026 ${holder}`,
         },
 
         notFound: {
