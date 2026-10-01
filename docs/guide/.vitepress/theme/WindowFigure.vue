@@ -9,45 +9,45 @@ import {useData} from 'vitepress'
 const {lang} = useData()
 
 const legend = computed(() => lang.value.startsWith('ru')
-    ? 'вкладки в цветных группах · закреплённая слева · две страницы рядом'
-    : 'tabs in coloured groups · a pinned one on the left · two pages side by side')
+    ? 'вкладки в цветных группах · адрес и страницы рядом · строка ассистента под ними'
+    : 'tabs in coloured groups · the address field and two pages side by side · the assistant line under them')
 </script>
 
 <template>
-    <div class="shot-figure">
+    <div class="win-figure">
         <!-- Decoration: named by the legend beside it, so there is nothing here
              for a screen reader to gain by walking a dozen empty spans. -->
-        <div class="shot" aria-hidden="true">
-            <div class="shot-tabs">
-                <span class="shot-pin"></span>
-                <span class="shot-group g-blue"><b></b><i class="on"></i><i></i></span>
-                <span class="shot-group g-orange"><b></b><i></i><i></i><i></i></span>
-                <span class="shot-group g-green"><b></b><i></i></span>
+        <div class="win" aria-hidden="true">
+            <div class="win-tabs">
+                <span class="win-dots"><i></i><i></i><i></i></span>
+                <span class="win-group" style="--group: 21, 130, 240"></span>
+                <span class="win-tab on"></span>
+                <span class="win-tab"></span>
+                <span class="win-group" style="--group: 244, 124, 52"></span>
+                <span class="win-tab"></span>
             </div>
-            <div class="shot-bar">
-                <span class="shot-nav"></span>
-                <span class="shot-address"></span>
-                <span class="shot-profile"></span>
+            <div class="win-bar">
+                <span class="win-address"></span>
+                <span class="win-shield"></span>
             </div>
-            <div class="shot-pages">
-                <div class="shot-page">
-                    <span class="shot-line head"></span>
-                    <span class="shot-line w-90"></span>
-                    <span class="shot-line w-75"></span>
-                    <span class="shot-line w-90"></span>
-                    <span class="shot-line w-60"></span>
-                    <span class="shot-line w-40"></span>
+            <div class="win-split">
+                <div class="win-page on">
+                    <span class="win-line head"></span>
+                    <span class="win-line w-90"></span>
+                    <span class="win-line w-75"></span>
+                    <span class="win-line w-90"></span>
+                    <span class="win-line w-60"></span>
                 </div>
-                <div class="shot-page">
-                    <span class="shot-line head"></span>
-                    <span class="shot-line w-75"></span>
-                    <span class="shot-line w-90"></span>
-                    <span class="shot-line w-60"></span>
-                    <span class="shot-line w-90"></span>
-                    <span class="shot-line w-40"></span>
+                <div class="win-page">
+                    <span class="win-line head"></span>
+                    <span class="win-line w-60"></span>
+                    <span class="win-line w-90"></span>
+                    <span class="win-line w-75"></span>
+                    <span class="win-line w-90"></span>
                 </div>
             </div>
+            <div class="win-ask"></div>
         </div>
-        <p class="shot-legend">{{ legend }}</p>
+        <p class="win-legend">{{ legend }}</p>
     </div>
 </template>

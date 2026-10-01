@@ -205,8 +205,9 @@ body {
    The window, drawn.
 
    The home page opens with a picture of the product, because one paragraph of
-   prose is a poor way to say what it looks like: the tab bar with its coloured
-   groups and a pinned tab, the address bar under it, and two pages side by side.
+   prose is a poor way to say what it looks like: a row of tabs with coloured
+   group labels, the address field, two pages side by side and the assistant's
+   one-line field under them. The same drawing is on the landing page.
 
    It is a few dozen boxes in CSS rather than an image, so it follows the theme
    with no second file and stays sharp on a 5K panel.
@@ -216,156 +217,172 @@ body {
    edge: centred in the full width it floats away from the text it illustrates.
    The paddings below are the default theme's hero paddings at the same
    breakpoints, which is what keeps the two edges lined up. */
-.shot-figure {
+.win-figure {
     max-width: 1152px;
     margin: 0 auto;
     padding: 0 24px 16px;
 }
 
 @media (min-width: 640px) {
-    .shot-figure { padding: 0 48px 24px; }
+    .win-figure { padding: 0 48px 24px; }
 }
 
 @media (min-width: 960px) {
-    .shot-figure { padding: 0 64px 32px; }
+    .win-figure { padding: 0 64px 32px; }
 }
 
-.shot {
-    --g-blue: #4f8cf0;
-    --g-orange: #ee7d3a;
-    --g-green: #3fb27f;
-
+.win {
     border: 1px solid var(--vp-c-divider);
     border-radius: 14px;
-    background: var(--vp-c-bg);
+    background: var(--vp-c-bg-alt);
     overflow: hidden;
     user-select: none;
 }
 
-.shot-tabs {
+.win-tabs {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 9px 12px;
-    background: var(--vp-c-bg-soft);
+    gap: 6px;
+    padding: 12px 14px 0;
+    background: color-mix(in srgb, var(--vp-c-text-1) 7%, var(--vp-c-bg));
 }
 
-.shot-pin {
-    width: 16px;
-    height: 16px;
-    border-radius: 5px;
-    background: var(--vp-c-brand-1);
-    flex: none;
-}
-
-.shot-group {
+.win-dots {
     display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 3px;
-    border-radius: 10px;
-    background: color-mix(in srgb, var(--g) 18%, transparent);
-    flex: none;
+    gap: 6px;
+    margin-right: 10px;
+    margin-bottom: 8px;
 }
 
-.shot-group.g-blue { --g: var(--g-blue); }
-.shot-group.g-orange { --g: var(--g-orange); }
-.shot-group.g-green { --g: var(--g-green); }
-
-.shot-group b {
-    width: 26px;
-    height: 12px;
-    border-radius: 6px;
-    background: var(--g);
+.win-dots i {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--vp-c-text-3);
+    opacity: 0.5;
 }
 
-.shot-group i {
-    width: 44px;
-    height: 12px;
-    border-radius: 6px;
-    background: color-mix(in srgb, var(--vp-c-text-1) 14%, transparent);
+/* A group is a coloured label, and its tabs follow it. */
+.win-group {
+    width: 38px;
+    height: 14px;
+    border-radius: 999px;
+    background: rgb(var(--group));
+    margin: 0 2px 8px 6px;
 }
 
-.shot-group i.on {
-    background: color-mix(in srgb, var(--g) 55%, var(--vp-c-bg));
+.win-tab {
+    width: 64px;
+    height: 26px;
+    border-radius: 9px 9px 0 0;
+    background: color-mix(in srgb, var(--vp-c-text-1) 12%, var(--vp-c-bg));
 }
 
-.shot-bar {
+.win-tab.on {
+    background: var(--vp-c-bg-alt);
+}
+
+.win-bar {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 9px 12px;
+    padding: 10px 14px;
     border-bottom: 1px solid var(--vp-c-divider);
 }
 
-.shot-nav {
-    width: 34px;
-    height: 10px;
-    border-radius: 5px;
-    background: var(--vp-c-text-3);
-    opacity: 0.5;
-    flex: none;
-}
-
-.shot-address {
+.win-address {
     flex: 1;
     height: 16px;
     border-radius: 999px;
     background: var(--vp-c-bg-soft);
 }
 
-.shot-profile {
+.win-shield {
     width: 14px;
     height: 14px;
-    border-radius: 50%;
-    background: var(--g-blue);
+    border-radius: 4px;
+    background: var(--vp-c-brand-1);
     flex: none;
 }
 
-.shot-pages {
-    display: flex;
-    gap: 8px;
-    padding: 8px;
-    height: 190px;
+/* Two pages side by side; the one that has the keyboard is marked at the top. */
+.win-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--vp-c-divider);
+    height: 200px;
 }
 
-.shot-page {
-    flex: 1 0 0;
-    min-width: 0;
-    border-radius: 10px;
-    background: var(--vp-c-bg-soft);
-    border: 1px solid var(--vp-c-divider);
-    padding: 12px 14px;
+.win-page {
+    background: var(--vp-c-bg-alt);
+    padding: 16px 16px 0;
     display: flex;
     flex-direction: column;
-    gap: 7px;
+    gap: 8px;
 }
 
-.shot-line {
+.win-page.on {
+    box-shadow: inset 0 3px 0 var(--vp-c-brand-1);
+}
+
+.win-line {
     /* Flex items in a column: without this they are free to shrink and the
        lines lose their heights. */
     flex: none;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--vp-c-text-3);
+    opacity: 0.4;
+}
+
+.win-line.head {
+    height: 9px;
+    width: 55%;
+    opacity: 0.8;
+}
+
+.win-line.w-90 { width: 90%; }
+.win-line.w-75 { width: 75%; }
+.win-line.w-60 { width: 60%; }
+
+/* The assistant's line, over the foot of the pages. */
+.win-ask {
+    position: relative;
+    margin: -30px 16px 16px;
+    height: 24px;
+    border-radius: 999px;
+    background: var(--vp-c-bg);
+    border: 1px solid var(--vp-c-border);
+    box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.35);
+}
+
+.win-ask::before {
+    content: '';
+    position: absolute;
+    left: 12px;
+    top: 9px;
+    width: 40%;
     height: 5px;
     border-radius: 3px;
     background: var(--vp-c-text-3);
-    opacity: 0.5;
+    opacity: 0.6;
 }
 
-.shot-line.head {
-    background: var(--vp-c-brand-1);
-    opacity: 1;
-    height: 7px;
-    width: 52%;
+.win-ask::after {
+    content: '';
+    position: absolute;
+    right: 9px;
+    top: 6px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--vp-button-brand-bg);
 }
-
-.shot-line.w-90 { width: 90%; }
-.shot-line.w-75 { width: 75%; }
-.shot-line.w-60 { width: 60%; }
-.shot-line.w-40 { width: 40%; }
 
 /* The caption under the drawing, at the drawing's left edge, not centred,
    because everything above it starts there. */
-.shot-legend {
+.win-legend {
     margin: 14px 0 0;
     font-size: 13px;
     line-height: 1.7;
@@ -373,15 +390,15 @@ body {
 }
 
 @media (max-width: 640px) {
-    .shot-pages {
-        height: 120px;
+    .win-split {
+        height: 130px;
     }
 
-    .shot-group i {
-        width: 30px;
+    .win-tab {
+        width: 40px;
     }
 
-    .shot-tabs {
+    .win-tabs {
         overflow: hidden;
     }
 }
