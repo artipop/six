@@ -3,9 +3,9 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "dev": "concurrently -k -n site,guide -c cyan,magenta \"vite --mode ${PROFILE:-deffun}\" \"npm --prefix ../docs/guide run dev\"",
-        "dev:site": "vite --mode ${PROFILE:-deffun}",
-        "build": "vite build --mode ${PROFILE:-deffun}",
+        "dev": "concurrently -k -n site,guide -c cyan,magenta \"vite --mode ${PROFILE:-org}\" \"npm --prefix ../docs/guide run dev\"",
+        "dev:site": "vite --mode ${PROFILE:-org}",
+        "build": "vite build --mode ${PROFILE:-org}",
         "build:all": "npm run build && npm --prefix ../docs/guide run build && rm -rf dist/docs && cp -R ../docs/guide/.vitepress/dist dist/docs",
         "preview": "vite preview"
     },
