@@ -111,7 +111,10 @@ swift scripts/appicon-variants.swift docs/icon-art Savoia/Assets.xcassets
 ```
 
 `AppIconController` hands the chosen one to `NSApplication.applicationIconImage` at launch and when the appearance
-changes; the development build gets its DEV band drawn over it at run time. The Dock shows it only while Savoia runs.
+changes; the development build gets its DEV band drawn over it at run time. A quit app is drawn by the Dock from its
+bundle, so the choice is also written onto the bundle as its custom icon (`NSWorkspace.setIcon`, the `Icon\r` file Get Info
+makes) — the light version for the automatic pairs — and removed again when the choice is the icon the bundle carries;
+`app.icon.applied` remembers what was written. A bundle replaced by a new copy loses it, and the next launch writes it again.
 
 The development build's set carries an orange DEV band, so the two can be told apart in the Dock.
 

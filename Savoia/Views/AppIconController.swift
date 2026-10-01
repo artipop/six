@@ -1,8 +1,8 @@
 #if os(macOS)
 import AppKit
 
-/// The Dock icon as chosen in Configuration ▸ Appearance ▸ App Icon. The Dock draws what the process hands it for as long as
-/// it runs; a quit app is back to the bundle's icon.
+/// The Dock icon as chosen in Configuration ▸ Appearance ▸ App Icon: handed to the running process, and written onto the
+/// bundle for when it is not running.
 @MainActor
 final class AppIconController {
     static let shared = AppIconController()
@@ -49,6 +49,28 @@ final class AppIconController {
             Task { @MainActor [weak self] in self?.apply() }
         }
         NSApplication.shared.applicationIconImage = image(for: choice)
+        writeToBundle(resting(of: choice))
+    }
+
+    /// What the icon is when Savoia is not running, and nothing can follow the appearance.
+    private func resting(of choice: AppIconChoice) -> AppIconChoice {
+        switch choice {
+        case .automatic: .light
+        case .automaticWings: .lightWings
+        default: choice
+        }
+    }
+
+    /// The Dock draws a quit app from its bundle, so the choice is also set as the bundle's custom icon — the way
+    /// Finder's Get Info does it — and cleared again when the choice is the icon the bundle carries.
+    private func writeToBundle(_ resting: AppIconChoice) {
+        guard let settings else { return }
+        let path = Bundle.main.bundlePath
+        let custom = resting != .lightWings
+        let has = FileManager.default.fileExists(atPath: path + "/Icon\r")
+        guard custom != has || (custom && settings.appIconApplied != resting.rawValue) else { return }
+        let written = NSWorkspace.shared.setIcon(custom ? image(for: resting) : nil, forFile: path, options: [])
+        settings.appIconApplied = custom && written ? resting.rawValue : nil
     }
 
     private func variant(_ name: String) -> NSImage {

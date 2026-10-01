@@ -46,8 +46,9 @@ built again.
 **App icon** — which icon Savoia shows in the Dock. **Wings** (the default) is the
 red wings on a sky-coloured ground; **Dawn & Dusk** is the larger picture with the
 same wings. Each comes **Automatic** (light by day, dark under macOS's dark
-appearance), **Light** or **Dark**; **Sky** is the previous icon with clouds. The icon
-changes while Savoia is running; once it is quit, the light wings icon shows.
+appearance), **Light** or **Dark**; **Sky** is the previous icon with clouds. Once
+Savoia is quit, the Dock keeps the chosen icon (the light one for the Automatic
+pairs). A new copy of the app brings it back at the first launch.
 
 **Start page** — what stands above the field: the **Name** (which can be
 changed), the **Icon** (the wings on a transparent ground, light or dark with the appearance), or **None**. The **Background** is picked from tiles:

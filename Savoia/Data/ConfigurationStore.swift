@@ -76,6 +76,7 @@ final class ConfigurationStore {
         case pageLogo = "pages.logo"
         case startPageStyle = "pages.style"
         case appIcon = "app.icon"
+        case appIconApplied = "app.icon.applied"
         case agentModel = "agent.model"
         case agentModels = "agents.models"
         case agentModelCatalogs = "agents.modelCatalogs"
@@ -165,6 +166,12 @@ final class ConfigurationStore {
     var startPageStyle: StartPageStyle {
         get { self[.startPageStyle].flatMap(StartPageStyle.init(rawValue:)) ?? .plain }
         set { self[.startPageStyle] = newValue == .plain ? nil : newValue.rawValue }
+    }
+
+    /// The icon written onto the app bundle itself, which is what the Dock shows while Savoia is not running.
+    var appIconApplied: String? {
+        get { self[.appIconApplied] }
+        set { self[.appIconApplied] = newValue }
     }
 
     var appIcon: AppIconChoice {
