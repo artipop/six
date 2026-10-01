@@ -39,6 +39,7 @@ const ru = {
                 text: 'Начало',
                 items: [
                     {text: 'Первый запуск', link: '/start'},
+                    {text: 'Знакомство', link: '/welcome'},
                     {text: 'Вкладки и группы', link: '/tabs'},
                     {text: 'Вкладки, ссылки и загрузки', link: '/windows'},
                     {text: 'Конфигурация', link: '/configuration'},
@@ -51,6 +52,9 @@ const ru = {
                     {text: 'Профили и приватное окно', link: '/profiles'},
                     {text: 'Закладки и история', link: '/bookmarks'},
                     {text: 'Перевод страниц', link: '/translate'},
+                    {text: 'Поиск на странице', link: '/find'},
+                    {text: 'Картинка в картинке', link: '/pip'},
+                    {text: 'Если страница не открылась', link: '/failed'},
                 ],
             },
             {
@@ -128,6 +132,7 @@ const en = {
                 text: 'Getting started',
                 items: [
                     {text: 'First launch', link: '/en/start'},
+                    {text: 'Welcome', link: '/en/welcome'},
                     {text: 'Tabs and groups', link: '/en/tabs'},
                     {text: 'Tabs, links and downloads', link: '/en/windows'},
                     {text: 'Configuration', link: '/en/configuration'},
@@ -140,6 +145,9 @@ const en = {
                     {text: 'Profiles and private windows', link: '/en/profiles'},
                     {text: 'Bookmarks and history', link: '/en/bookmarks'},
                     {text: 'Translating a page', link: '/en/translate'},
+                    {text: 'Finding text on a page', link: '/en/find'},
+                    {text: 'Picture in Picture', link: '/en/pip'},
+                    {text: 'When a page does not open', link: '/en/failed'},
                 ],
             },
             {
