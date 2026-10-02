@@ -25,6 +25,8 @@ nonisolated enum TabTopics {
         /// Ungrouped tabs this far above their usual similarity to everything make a group.
         var cluster: Float = 0.04
         var clusterSize = 3
+        /// Tabs the sorter has to know before it makes a group: the median they are measured against means little below it.
+        var evidence = 8
 
         static let standard = Thresholds()
     }

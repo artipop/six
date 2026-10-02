@@ -262,6 +262,7 @@ final class TabSorter {
             .compactMap(browser.tab).compactMap(features(of:))
         let everyone = strip.flatMap { $0.columns.flatMap(\.tabIDs) }.compactMap(browser.tab).compactMap(features(of:))
         let (weights, thresholds) = (self.weights, self.thresholds)
+        guard everyone.count >= thresholds.evidence else { return false }
         let found = await Task.detached(priority: .utility) {
             TabTopics.clusters(loose, context: everyone, weights: weights, thresholds: thresholds)
         }.value
