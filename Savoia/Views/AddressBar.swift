@@ -25,6 +25,9 @@ struct AddressBar: View {
     /// What was typed, as opposed to the row being previewed in the field.
     @State private var typed = ""
     @State private var previewed: String?
+    @State private var fieldFrame = CGRect.zero
+    @State private var listFrame = CGRect.zero
+    @State private var clickMonitor: Any?
     @State private var derived: DerivedPageTools?
     @Environment(WebMCPStore.self) private var webMCP
 
@@ -53,6 +56,7 @@ struct AddressBar: View {
                 }
                 .help(tab.isLoading ? "Stop" : "Reload")
                 field
+                    .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { fieldFrame = $0 }
                 if let note = tab.highlightNote {
                     // Moved up here with everything else that described the page: the window itself
                     // is a page now, edge to edge, with nothing drawn on it.
@@ -138,6 +142,11 @@ struct AddressBar: View {
             guard webMCP.isEnabled, !browser.isPrivate(tab.profileID), !tab.showsStartPage, !tab.isLoading else { return }
             derived = await DerivedToolsButton.assess(tab)
         }
+        .onChange(of: isEditing, initial: true) { _, editing in
+            watchClicks(editing)
+        }
+        .onDisappear { watchClicks(false) }
+        .onChange(of: rows.isEmpty) { _, empty in if empty { listFrame = .zero } }
         .onChange(of: isEditing) { _, editing in
             guard editing, let url = tab.currentURL else {
                 fill(displayString(for: tab.currentURL))
@@ -169,6 +178,7 @@ struct AddressBar: View {
                     addressFocus.wrappedValue = nil
                 }
                 .fixedSize(horizontal: false, vertical: true)
+                .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { listFrame = $0 }
                 .offset(y: 28)
                 .shadow(color: .black.opacity(0.18), radius: 10, y: 4)
             }
@@ -208,6 +218,24 @@ struct AddressBar: View {
         selection = next < 0 ? nil : min(next, count - 1)
         preview()
         return .handled
+    }
+
+    /// A click anywhere outside the field and its list lets go of the focus, whatever it lands on.
+    private func watchClicks(_ on: Bool) {
+        if !on {
+            if let clickMonitor { NSEvent.removeMonitor(clickMonitor) }
+            clickMonitor = nil
+            return
+        }
+        guard clickMonitor == nil else { return }
+        clickMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { event in
+            MainActor.assumeIsolated {
+                guard let height = event.window?.contentView?.bounds.height else { return }
+                let point = CGPoint(x: event.locationInWindow.x, y: height - event.locationInWindow.y)
+                if !fieldFrame.contains(point), !listFrame.contains(point) { addressFocus.wrappedValue = nil }
+            }
+            return event
+        }
     }
 
     /// The selected row goes into the field as a suggestion: what was typed stays, the rest is selected.
