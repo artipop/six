@@ -1,6 +1,7 @@
 #if os(macOS)
 import AppKit
 #endif
+import CryptoKit
 import Foundation
 import Observation
 import WebKit
@@ -31,10 +32,12 @@ final class ExtensionStore {
         /// One `errorsDidUpdateNotification` subscription per loaded context, dropped with it.
         var errorObservers: [String: any NSObjectProtocol] = [:]
         let profileID: Profile.ID
+        let storeIdentifier: UUID
         unowned let store: ExtensionStore
 
         init(profileID: Profile.ID, storeIdentifier: UUID, delegate: ExtensionDelegate, store: ExtensionStore) {
             self.profileID = profileID
+            self.storeIdentifier = storeIdentifier
             self.store = store
             controller = WKWebExtensionController(configuration: .init(identifier: storeIdentifier))
             controller.delegate = delegate
@@ -229,6 +232,11 @@ final class ExtensionStore {
             // The identifier is what ties an extension to its storage across launches; without it a
             // persistent controller would hand it a fresh, empty world every time.
             context.uniqueIdentifier = record.id
+            // WebKit's default is a new random host every launch, and its compiled rules are cached by a
+            // hash that includes it. Derived from the profile's store id, so a page cannot guess it.
+            let host = SHA256.hash(data: Data("\(runtime.storeIdentifier)/\(record.id)".utf8))
+                .prefix(16).map { String(format: "%02x", $0) }.joined()
+            if let baseURL = URL(string: "webkit-extension://\(host)") { context.baseURL = baseURL }
             // Granted at install, when the dialog listed them. Optional permissions asked for later
             // go through the delegate, which asks.
             for permission in ext.requestedPermissions {
