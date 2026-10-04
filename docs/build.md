@@ -78,6 +78,15 @@ copy on the same Application Support directory traps in WebKit — and opens it 
 launch is in the trace. `xctrace record --launch` is not used for that: given `Savoia.app` it finds the dev build and
 the share extension as well and calls the path ambiguous.
 
+A text summary is written beside the trace, `savoia-<timestamp>.txt` (`scripts/profile-summary.py`, which also runs
+on its own against any Time Profiler trace): CPU by process and by minute, then self and inclusive time per function
+for Savoia's main thread, its other threads, and the WebKit processes, and the hangs Instruments found. A trace of
+every process exports its system frames as bare addresses and `xctrace symbolicate` does not help, since it looks
+for dSYMs; the summary names them with `atos -p`, pointed at the Savoia that was recorded, then at Finder, because
+`atos` names only what the process it is given has loaded. System libraries sit at the same addresses in every
+process until the next reboot and no longer — the reason it is written straight after recording. An `--attach`
+trace has the names already. The summary of a ten-minute trace of every process takes about seven minutes here.
+
 Every process on the Mac is in the trace. Pages run in WebKit's `WebContent`, `GPU` and `Networking` processes,
 which are Apple's and cannot be attached to with SIP on, and their parent is `launchd`, so there is no telling
 Savoia's from Safari's by pid: quit other WebKit apps first, and filter by process in Instruments. `--attach` records

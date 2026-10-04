@@ -6,6 +6,7 @@
 # Every process is recorded, because pages run in WebKit's own processes and those cannot be attached to.
 # --attach records Savoia alone, which is what the per-process templates (Allocations, Leaks) need.
 # --launch starts Savoia once the recording is running, so the trace has the launch in it; quit Savoia first.
+# A text summary lands beside the trace (profile-summary.py).
 # The build needs nothing extra: what dmg.sh makes is signed with get-task-allow and has its dSYM
 # in dist/DerivedData. See docs/build.md.
 set -eu
@@ -47,6 +48,9 @@ fi
 # Ctrl-C ends the recording early and still saves it.
 trap : INT
 xcrun xctrace record --template "$template" $target --time-limit "${seconds}s" --no-prompt --output "$trace" "$@" || true
+
+# Bare addresses in the trace can only be named before the next reboot, so the summary is written now.
+"$root/scripts/profile-summary.py" "$trace" $(pgrep -f "^$app/Contents/MacOS/Savoia\$" | head -1) || true
 
 echo
 echo "$trace"
