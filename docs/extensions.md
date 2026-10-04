@@ -136,12 +136,13 @@ other extension; it simply does not block.
   own the same way, through a persistent `WKWebExtensionController.Configuration(identifier:)` keyed by the
   profile's store id. The context's `uniqueIdentifier` is the installed extension's id, which is what makes an
   extension's storage survive a relaunch.
-- **The context's `baseURL` is fixed per profile and extension**, a hash of the profile's store id and the
-  extension's id. WebKit's default is a new random `webkit-extension://` host on every launch, and that host is
-  inside the translated `declarativeNetRequest` rules whose hash decides whether the compiled list on disk is reused
-  — so it never was. uBlock Origin Lite still changes its rule set once after loading and WebKit keeps one compiled
-  file, so a launch compiles once instead of twice rather than not at all, and the launches alternate: every other
-  one ends on the smaller list it loaded first. What the two lists differ by has not been established.
+- **The context's `baseURL` is left to WebKit**, a new random `webkit-extension://` host on every launch. Fixing it
+  was tried, because that host is inside the translated `declarativeNetRequest` rules whose hash decides whether the
+  compiled list on disk is reused, and so it never is. It does not help: uBlock Origin Lite loads one rule set
+  (104 MB compiled) and changes it to another (132 MB) a few seconds later, WebKit keeps one compiled file and one
+  hash, and with a stable host the two loads overlap — every other launch ended on the smaller list and never built
+  the larger, where a random host always ends on the larger. Two compilations per profile per launch are what
+  correct costs until WebKit caches more than one list.
 - **A profile's extensions load when the profile is first looked at**, not at launch: `start()` brings up the
   profile of the selected tab, and another one follows with its first page or when one of its tabs is selected. A
   rule-set extension costs tens of seconds of CPU per profile to load (WebKit translates and compiles its
