@@ -92,7 +92,7 @@ every process exports its system frames as bare addresses and `xctrace symbolica
 for dSYMs; the summary names them with `atos -p`, pointed at the Savoia that was recorded, then at Finder, because
 `atos` names only what the process it is given has loaded. System libraries sit at the same addresses in every
 process until the next reboot and no longer — the reason it is written straight after recording. An `--attach`
-trace has the names already. The summary of a ten-minute trace of every process takes about seven minutes here.
+trace has the names already. The summary of a ten-minute trace of every process takes about three minutes here, two of them `xctrace export`.
 
 Every process on the Mac is in the trace. Pages run in WebKit's `WebContent`, `GPU` and `Networking` processes,
 which are Apple's and cannot be attached to with SIP on, and their parent is `launchd`, so there is no telling
