@@ -136,6 +136,11 @@ other extension; it simply does not block.
   own the same way, through a persistent `WKWebExtensionController.Configuration(identifier:)` keyed by the
   profile's store id. The context's `uniqueIdentifier` is the installed extension's id, which is what makes an
   extension's storage survive a relaunch.
+- **A profile's extensions load when the profile is first looked at**, not at launch: `start()` brings up the
+  profile of the selected tab, and another one follows with its first page or when one of its tabs is selected. A
+  rule-set extension costs tens of seconds of CPU per profile to load (WebKit translates and compiles its
+  `declarativeNetRequest` rules again on every launch), and three profiles paid that at once. The price is that an
+  extension's background content does not run in a profile nobody has opened since launch.
 - **A private profile runs no extensions at all** — private browsing is recorded nowhere, and an extension's
   storage is a record.
 - **A tab is a column, a window is a profile's strip.** The adapters read the *window* — `tab.currentURL`,

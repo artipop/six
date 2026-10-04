@@ -69,14 +69,11 @@ final class ExtensionStore {
         delegate.store = self
     }
 
-    /// Brings up a runtime for every profile that should have one, at launch — an extension's
-    /// background content runs whether or not a page has been built yet, which is what its alarms and
-    /// its rules expect.
+    /// Brings up the runtime of the profile in front. Another profile's comes up with its first page,
+    /// or when one of its tabs is selected.
     func start() {
-        guard let browser, !installed.filter(\.isEnabled).isEmpty else { return }
-        for profile in browser.profiles where !profile.isPrivate {
-            _ = runtime(for: profile)
-        }
+        guard let tab = browser?.selectedTab else { return }
+        _ = controller(for: tab.profileID)
     }
 
     // MARK: What a window gets
@@ -135,6 +132,7 @@ final class ExtensionStore {
     }
 
     func noteActivated(_ tab: BrowserTab) {
+        _ = controller(for: tab.profileID)
         guard let runtime = runtimes[tab.profileID], !runtime.contexts.isEmpty else { return }
         runtime.controller.didActivateTab(adapter(for: tab))
     }
