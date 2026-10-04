@@ -57,6 +57,12 @@ Builds the Release configuration into `dist/DerivedData` (kept out of the shared
 that go into the image), stages `Savoia.app` next to a symlink to `/Applications`, and writes `dist/savoia-<version>.dmg`.
 The version is `MARKETING_VERSION` read out of the project. Mount it, drag Savoia across, done.
 
+The copy that goes into the image is stripped (`strip -rSTx`) and signed again with the entitlements the build
+had: the binary goes from 92 MB to 49 MB and the app from 100 MB to 59 MB. Xcode strips only on install
+(`DEPLOYMENT_POSTPROCESSING`), and an install build also drops `get-task-allow` whatever
+`CODE_SIGN_INJECT_BASE_ENTITLEMENTS` says, which `scripts/profile.sh --attach` needs — so the script does it by
+hand. The UUID does not change, so the dSYM in `dist/DerivedData` still names everything in a trace.
+
 There is no signing identity on this machine (`security find-identity -v -p codesigning` finds none), so the app is
 signed ad-hoc — the same "Sign to Run Locally" a Debug build gets. That is enough to install and run it *here*:
 a DMG made locally carries no quarantine flag.

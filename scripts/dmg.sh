@@ -26,6 +26,15 @@ trap 'rm -rf "$stage"' EXIT
 cp -R "$app" "$stage/Savoia.app"
 ln -s /Applications "$stage/Applications"
 
+# A plain build leaves the symbol table in the binary, and an install build, which strips it, also drops
+# get-task-allow, which scripts/profile.sh --attach needs. So the copy is stripped and signed again as it was;
+# the names stay in the dSYM beside the build.
+entitlements=$(mktemp)
+codesign -d --entitlements "$entitlements" --xml "$app" 2>/dev/null
+strip -no_code_signature_warning -rSTx "$stage/Savoia.app/Contents/MacOS/Savoia"
+codesign --force --sign - --entitlements "$entitlements" --generate-entitlement-der "$stage/Savoia.app"
+rm -f "$entitlements"
+
 # The mounted volume wears the app's icon.
 icons="$stage/Savoia.iconset"
 mkdir "$icons"
@@ -56,4 +65,4 @@ swift -e 'import AppKit; NSWorkspace.shared.setIcon(NSImage(contentsOfFile: Comm
 echo
 echo "$dmg"
 ls -lh "$dmg" | awk '{print "    " $5}'
-codesign -dv "$app" 2>&1 | sed -n 's/^/    /p'
+codesign -dv "$stage/Savoia.app" 2>&1 | sed -n 's/^/    /p'
