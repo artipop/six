@@ -1,20 +1,28 @@
 #!/bin/sh
 # Records an Instruments trace into dist/profiles while the Release Savoia is running.
 #
-#   ./scripts/profile.sh [--attach | --launch] [seconds] [template]     # 30, "Time Profiler" — `xcrun xctrace list templates`
+#   ./scripts/profile.sh [--attach | --launch] [--no-summary] [seconds] [template]     # 30, "Time Profiler" — `xcrun xctrace list templates`
 #
 # Every process is recorded, because pages run in WebKit's own processes and those cannot be attached to.
 # --attach records Savoia alone, which is what the per-process templates (Allocations, Leaks) need.
 # --launch starts Savoia once the recording is running, so the trace has the launch in it; quit Savoia first.
-# A text summary lands beside the trace (profile-summary.py).
+# A text summary lands beside the trace (profile-summary.py); it takes about as long as the recording did.
 # The build needs nothing extra: what dmg.sh makes is signed with get-task-allow and has its dSYM
 # in dist/DerivedData. See docs/build.md.
 set -eu
 
 root=$(cd "$(dirname "$0")/.." && pwd)
 app=${SAVOIA_APP:-/Applications/Savoia.app}
-mode=${1:-}
-case "$mode" in --attach | --launch) shift ;; *) mode= ;; esac
+mode=
+summary=yes
+while :; do
+    case "${1:-}" in
+    --attach | --launch) mode=$1 ;;
+    --no-summary) summary= ;;
+    *) break ;;
+    esac
+    shift
+done
 seconds=${1:-30}
 template=${2:-Time Profiler}
 
@@ -50,7 +58,9 @@ trap : INT
 xcrun xctrace record --template "$template" $target --time-limit "${seconds}s" --no-prompt --output "$trace" "$@" || true
 
 # Bare addresses in the trace can only be named before the next reboot, so the summary is written now.
-"$root/scripts/profile-summary.py" "$trace" $(pgrep -f "^$app/Contents/MacOS/Savoia\$" | head -1) || true
+if [ -n "$summary" ]; then
+    "$root/scripts/profile-summary.py" "$trace" $(pgrep -f "^$app/Contents/MacOS/Savoia\$" | head -1) || true
+fi
 
 echo
 echo "$trace"

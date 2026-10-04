@@ -12,6 +12,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
 import xml.etree.ElementTree as ET
 
 TOP = 40
@@ -35,10 +36,11 @@ class Samples:
         self.by_minute = collections.defaultdict(collections.Counter)
         self.duration = 0
         stack_index = {}
-        root = None
+        rows = None
         for event, el in ET.iterparse(path, events=("start", "end")):
             if event == "start":
-                root = root if root is not None else el
+                if el.tag == "node":
+                    rows = el
                 continue
             if el.tag != "row":
                 continue
@@ -47,7 +49,7 @@ class Samples:
             process = self.get(el.find("process"), lambda e: e.get("fmt"))
             weight = self.get(el.find("weight"), lambda e: int(e.text) / 1e6)
             stack = self.get(el.find("tagged-backtrace"), self.backtrace)
-            root.clear()
+            del rows[:]
             if None in (time, process, weight):
                 continue
             stack = stack or ()
@@ -79,6 +81,13 @@ class Samples:
 
     def backtrace(self, el):
         return tuple(self.get(f, self.frame) for f in el.findall("frame"))
+
+
+START = time.monotonic()
+
+
+def say(what):
+    print(f"{time.monotonic() - START:5.0f} s  {what}", file=sys.stderr)
 
 
 def name_of(process):
@@ -157,9 +166,9 @@ def hangs(trace, out):
 def main():
     trace = sys.argv[1].rstrip("/")
     with tempfile.NamedTemporaryFile(suffix=".xml") as f:
-        print("exporting samples…", file=sys.stderr)
+        say("exporting samples…")
         export(trace, "time-profile", f.name)
-        print("reading them…", file=sys.stderr)
+        say("reading them…")
         samples = Samples(f.name)
 
     by_process = collections.Counter()
@@ -170,8 +179,9 @@ def main():
 
     ours = [k for k in samples.weight if k[0] == savoia or name_of(k[0]).startswith(WEBKIT)]
     raw = {f for k in ours for f in samples.stacks[k[2]] if f.startswith("0x")}
-    print(f"naming {len(raw)} addresses…", file=sys.stderr)
+    say(f"naming {len(raw)} addresses…")
     names = resolve(raw, pids_to_ask(sys.argv[2:3]))
+    say("writing")
 
     out = [f"{os.path.basename(trace)}: {samples.duration:.0f} s recorded, {total / 1000:.0f} s of CPU",
            f"{len(names)} of {len(raw)} bare addresses named with atos"]

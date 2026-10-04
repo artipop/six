@@ -68,6 +68,7 @@ a DMG made locally carries no quarantine flag.
 ./scripts/profile.sh 60 'System Trace'      # seconds, then any name from `xcrun xctrace list templates`
 ./scripts/profile.sh --launch 60            # starts Savoia under the recording; quit it first
 ./scripts/profile.sh --attach 30 Allocations
+./scripts/profile.sh --no-summary 600       # the trace alone
 ```
 
 It records `/Applications/Savoia.app` (`SAVOIA_APP` names another copy) with `xctrace`, and the trace opens in
