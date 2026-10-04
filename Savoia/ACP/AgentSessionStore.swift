@@ -280,7 +280,9 @@ final class AgentSessionStore {
 
     let toolchain = AgentToolchain()
     let modelDiscovery: AgentModelDiscovery
-    private var sessionModels: AgentModels?
+    private var sessionModels: AgentModels? {
+        didSet { if let sessionModels { modelDiscovery.record(sessionModels, for: agent) } }
+    }
 
     @ObservationIgnored private var client: ACPClient?
     @ObservationIgnored private var delegateBox: DelegateBox?

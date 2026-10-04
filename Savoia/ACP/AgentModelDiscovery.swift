@@ -29,6 +29,16 @@ final class AgentModelDiscovery {
         store.agentModelCatalogs = saved
     }
 
+    /// A live session's list is newer than the saved one, and costs nothing to keep.
+    func record(_ catalog: AgentModels, for agent: ACPAgentDefinition) {
+        guard !catalog.choices.isEmpty, catalogs[agent.id] != catalog else { return }
+        catalogs[agent.id] = catalog
+        errors[agent.id] = nil
+        var saved = store.agentModelCatalogs
+        saved[agent.id] = catalog
+        store.agentModelCatalogs = saved
+    }
+
     func refresh(_ agent: ACPAgentDefinition, toolchain: AgentToolchain, directory: URL) async {
         guard loading.insert(agent.id).inserted else { return }
         errors[agent.id] = nil
