@@ -98,6 +98,41 @@ Savoia's answer. These are the wpt directories worth running; everything else in
 | `print` | printing, which Savoia starts |
 | `webmcp` | scripted — [webmcp.md](webmcp.md) |
 
+### Permissions: what to run next, and against what
+
+Not run yet. The bar is the one `web-extensions/` set: **the same result as the Safari of the same system, file by
+file** — a failure Safari shares is WebKit's, a failure only Savoia has is Savoia's. Counted on wpt `1d99362`; the
+Safari column is 27.0 on wpt.fyi, 2 October 2026 (Technology Preview 253 scores the same in every row but
+`clipboard-apis`).
+
+| wpt directory | test files | without testdriver | Safari 27.0, subtests | testdriver calls the rest make |
+|---|---|---|---|---|
+| `permissions` | 14 | 7 | 150/206 | `set_permission` |
+| `permissions-request`, `permissions-revoke` | 2 | 2 | 8/14 each | — |
+| `permissions-policy` | 111 | 83 | 66/620, 30 files timing out | `bless`, `send_keys`, `click` |
+| `mediacapture-streams` | 57 | 12 | 366/482 | `bless`, `click`, `set_permission` through its helper |
+| `screen-capture` | 15 | 4 | 25/186 | `bless`, `click`, `set_permission` |
+| `mediacapture-handle` | 1 | 1 | 0/5 | — |
+| `geolocation` | 22 | 5 | 94/131, 16 files in error | `set_permission`, WebDriver BiDi emulation |
+| `notifications` | 24 | 8 | 187/345, 14 files in error | `set_permission` |
+| `clipboard-apis` | 58 | 7 | 181/245 | `click`, `set_permission` |
+| `storage-access-api` | 40 | 2 | 117/149 | `delete_all_cookies`, `set_permission` |
+| `idle-detection` | 12 | 1 | 1/63 | `set_permission` |
+
+In that order of work:
+
+1. **The files without testdriver** — about 130 — run on the stand as it is: a sibling of `scripts/webmcp-wpt.py`
+   taking the directories as arguments, which also fetches Safari's run from wpt.fyi
+   (`/api/runs?product=safari&label=stable` → `results_url`, a map from test path to `[passed, total]`) and prints
+   the files where Savoia and Safari differ. The cache already holds these directories.
+2. **`set_permission`, `bless` and `click`** through a `testdriver-vendor.js` for Savoia (above). Safari gets these
+   from `safaridriver`, so until the vendor file exists every test that calls one fails in Savoia for a reason that
+   says nothing about `SitePermissions`.
+3. **By hand, as a cross-check**: [permission.site](https://permission.site/), one button per prompt.
+
+A page API that wants a person is refused over `Savoia --mcp` without reaching Savoia's code (AGENTS.md), so a
+`denied` in step 1 is read against Safari's row before it is believed.
+
 ## Protocols Savoia speaks
 
 | suite | what it measures in Savoia | how to drive it | needs |
