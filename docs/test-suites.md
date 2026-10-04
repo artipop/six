@@ -1,8 +1,9 @@
 # External test suites
 
-Suites written by other people that Savoia can be run against, and which part of Savoia each one would measure. One of
-them is scripted today (WebMCP, [webmcp.md](webmcp.md#compatibility-web-platform-tests)); the rest are the list to
-work through. A suite earns its place by exercising code Savoia owns. Most of the web platform is WebKit's, and a
+Suites written by other people that Savoia can be run against, and which part of Savoia each one would measure. Two of
+them are scripted today (WebMCP, [webmcp.md](webmcp.md#compatibility-web-platform-tests), and wpt's
+`web-extensions/`, [extensions.md](extensions.md#compatibility-web-platform-tests)); the rest are the list to work
+through. A suite earns its place by exercising code Savoia owns. Most of the web platform is WebKit's, and a
 failure there says nothing about Savoia — so each row below names the Savoia code it would put under test.
 
 ## The shared stand
@@ -47,8 +48,8 @@ actually answers, and whether the compatibility verdict tells the truth.
 
 | suite | what it measures in Savoia | how to drive it | needs |
 |---|---|---|---|
-| wpt [`web-extensions/`](https://github.com/web-platform-tests/wpt/tree/master/web-extensions) | `runtime`, `storage`, `alarms`, `idle`, `bookmarks`, `browsingData` through Savoia's extension controller — Savoia test extensions, ~630 lines of `browser.test.runTests` | the page calls `runTestsWithWebExtension(path)`, which installs the extension through testdriver and listens for `browser.test` results | testdriver's `install_web_extension`; a `browser.test` shim prepended to each background script, since WKWebExtension exposes `browser.test` only in WebKit's testing mode |
-| WebKit's own `TestWebKitAPI/Tests/WebKitCocoa/WKWebExtensionAPI*.mm` | the same layer from Apple's side: what `WKWebExtension` is meant to do, per namespace | lift the JavaScript out of the Objective-C and run it through the same shim | the shim above |
+| wpt [`web-extensions/`](https://github.com/web-platform-tests/wpt/tree/master/web-extensions) | `runtime`, `storage`, `alarms`, `idle`, `bookmarks`, `browsingData` through Savoia's extension controller — six test extensions, 44 tests of `browser.test.runTests` | **scripted**: `scripts/web-extensions-wpt.py` installs each extension unmodified with `SAVOIA_EXTENSION`, in a launch and a throwaway home of its own, and reads WebKit's own `browser.test` verdicts from the log — [extensions.md](extensions.md#compatibility-web-platform-tests) | nothing more; the wpt page and testdriver's `install_web_extension` are bypassed, since the extension starts its tests by itself |
+| WebKit's own `TestWebKitAPI/Tests/WebKitCocoa/WKWebExtensionAPI*.mm` | the same layer from Apple's side: what `WKWebExtension` is meant to do, per namespace | lift the JavaScript out of the Objective-C into an extension folder and run it the same way | the lifting |
 | [chrome-extensions-samples](https://github.com/GoogleChrome/chrome-extensions-samples) (MV3) and [mdn/webextensions-examples](https://github.com/mdn/webextensions-examples) | installing, the compatibility verdict, and the obvious behaviour of each sample | install every sample, record the verdict and the errors `[extensions]` logs, then check one visible effect each | a list of expected effects, by hand once |
 | a corpus of real extensions — uBlock Origin Lite, Bitwarden, 1Password, Dark Reader, Grammarly, SponsorBlock, Violentmonkey | whether the verdict matches what works; uBOL is already measured in [unmeasured.md](unmeasured.md) | install, use, write down; semi-manual | Artem for anything with an account |
 | MDN [browser-compat-data](https://github.com/mdn/browser-compat-data) `webextensions/` | not a test: the Safari column is the ceiling of what WKWebExtension can offer, and the checklist to read failures against | read, not run | — |
@@ -114,5 +115,5 @@ Savoia's answer. These are the wpt directories worth running; everything else in
 
 Scripts are to be written in roughly this order, each one a sibling of `scripts/webmcp-wpt.py` sharing its stand:
 AdGuard TestCases and badssl first (no testdriver, and they measure code Savoia wrote from scratch); then the testdriver
-vendor file; then wpt `web-extensions/` with the `browser.test` shim, and the permission and dialog directories;
+vendor file; then the permission and dialog directories (wpt `web-extensions/` is done, and needed neither testdriver nor a shim);
 then PrivacyTests.org's adapter and MCP conformance.

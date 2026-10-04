@@ -1,0 +1,239 @@
+{
+ "wpt": "1d99362",
+ "passed": 21,
+ "total": 44,
+ "results": {
+  "alarms": [
+   {
+    "name": "testAlarmsCreateAndGet",
+    "status": "Pass",
+    "message": ""
+   },
+   {
+    "name": "testAlarmsGetAll",
+    "status": "Pass",
+    "message": ""
+   },
+   {
+    "name": "testAlarmsClear",
+    "status": "Fail",
+    "message": "Promise rejected with an error: \"Invalid call to test.assertTrue(). The 'actualValue' value is invalid, because a boolean is expected.\""
+   },
+   {
+    "name": "testAlarmsClearAll",
+    "status": "Pass",
+    "message": ""
+   },
+   {
+    "name": "testAlarmsOnAlarm",
+    "status": "Pass",
+    "message": ""
+   },
+   {
+    "name": "testAlarmsCreateNames",
+    "status": "Fail",
+    "message": "Promise rejected with an error: \"null is not an object (evaluating 'alarm2.name')\""
+   },
+   {
+    "name": "testAlarmsCreateNameBothWaysError",
+    "status": "Fail",
+    "message": "Promise rejected with an error: \"undefined is not an object (evaluating 'browser.alarms\\n .create(alarmName, {name: alarmName, delayInMinutes: 10})\\n .then')\""
+   },
+   {
+    "name": "testAlarmsErrorCases",
+    "status": "Pass",
+    "message": ""
+   }
+  ],
+  "bookmarks": [
+   {
+    "name": "testBookmarksRootNodeId",
+    "status": "Fail",
+    "message": "Promise rejected with an error: \"browser.bookmarks is not an Object. (evaluating ''ROOT_NODE_ID' in browser.bookmarks')\""
+   },
+   {
+    "name": "testBookmarksCreateAndGet",
+    "status": "Fail",
+    "message": "Promise rejected with an error: \"undefined is not an object (evaluating 'browser.bookmarks.create')\""
+   },
+   {
+    "name": "testBookmarksUpdate",
+    "status": "Fail",
+    "message": "Promise rejected with an error: \"undefined is not an object (evaluating 'browser.bookmarks.create')\""
+   },
+   {
+    "name": "testBookmarksSearch",
+    "status": "Fail",
+    "message": "Promise rejected with an error: \"undefined is not an object (evaluating 'browser.bookmarks.create')\""
+   },
+   {
+    "name": "testBookmarksGetTree",
+    "status": "Fail",
+    "message": "Promise rejected with an error: \"undefined is not an object (evaluating 'browser.bookmarks.getTree')\""
+   },
+   {
+    "name": "testBookmarksRemove",
+    "status": "Fail",
+    "message": "Promise rejected with an error: \"undefined is not an object (evaluating 'browser.bookmarks.create')\""
+   },
+   {
+    "name": "testBookmarksErrorCases",
+    "status": "Pass",
+    "message": ""
+   }
+  ],
+  "browsingData": [
+   {
+    "name": "testBrowsingDataSettings",
+    "status": "Fail",
+    "message": "Promise rejected with an error: \"undefined is not an object (evaluating 'browser.browsingData.settings')\""
+   },
+   {
+    "name": "testBrowsingDataRemove",
+    "status": "Fail",
+    "message": "Promise rejected with an error: \"undefined is not an object (evaluating 'browser.browsingData.remove')\""
+   },
+   {
+    "name": "testBrowsingDataRemoveCache",
+    "status": "Fail",
+    "message": "Promise rejected with an error: \"undefined is not an object (evaluating 'browser.browsingData.removeCache')\""
+   },
+   {
+    "name": "testBrowsingDataRemoveCookies",
+    "status": "Fail",
+    "message": "Promise rejected with an error: \"undefined is not an object (evaluating 'browser.browsingData.removeCookies')\""
+   },
+   {
+    "name": "testBrowsingDataRemoveDownloads",
+    "status": "Fail",
+    "message": "Promise rejected with an error: \"undefined is not an object (evaluating 'browser.browsingData.removeDownloads')\""
+   },
+   {
+    "name": "testBrowsingDataRemoveHistory",
+    "status": "Fail",
+    "message": "Promise rejected with an error: \"undefined is not an object (evaluating 'browser.browsingData.removeHistory')\""
+   },
+   {
+    "name": "testBrowsingDataRemoveLocalStorage",
+    "status": "Fail",
+    "message": "Promise rejected with an error: \"undefined is not an object (evaluating 'browser.browsingData.removeLocalStorage')\""
+   },
+   {
+    "name": "testBrowsingDataErrorCases",
+    "status": "Pass",
+    "message": ""
+   }
+  ],
+  "idle": [
+   {
+    "name": "testIdleQueryState",
+    "status": "Fail",
+    "message": "Promise rejected with an error: \"undefined is not an object (evaluating 'browser.idle.queryState')\""
+   },
+   {
+    "name": "testIdleSetDetectionInterval",
+    "status": "Fail",
+    "message": "Promise rejected with an error: \"undefined is not an object (evaluating 'browser.idle.setDetectionInterval')\""
+   },
+   {
+    "name": "testIdleOnStateChanged",
+    "status": "Fail",
+    "message": "Promise rejected with an error: \"undefined is not an object (evaluating 'browser.idle.onStateChanged')\""
+   },
+   {
+    "name": "testIdleQueryStateErrorCases",
+    "status": "Pass",
+    "message": ""
+   },
+   {
+    "name": "testIdleSetDetectionIntervalErrorCases",
+    "status": "Pass",
+    "message": ""
+   }
+  ],
+  "runtime": [
+   {
+    "name": "browserRuntimeGetURLErrorCases",
+    "status": "Pass",
+    "message": ""
+   },
+   {
+    "name": "browserRuntimeGetURLNormalCases",
+    "status": "Pass",
+    "message": ""
+   },
+   {
+    "name": "browserRuntimeGetPlatformInfo",
+    "status": "Pass",
+    "message": ""
+   },
+   {
+    "name": "browserRuntimeGetVersion",
+    "status": "Pass",
+    "message": ""
+   },
+   {
+    "name": "testBrowserRuntimeOnEnabled",
+    "status": "Fail",
+    "message": "Promise rejected with an error: \"Invalid call to test.assertEq(). Assertion Failed: `browser.runtime.onEnabled` should be an object. webkit-extension:\\/\\/ecf59dc7-edf8-4c0d-87fa-efe9c86e9e64\\/background.js:52.\""
+   },
+   {
+    "name": "testBrowserRuntimeOnExtensionLoaded",
+    "status": "Fail",
+    "message": "Promise rejected with an error: \"Invalid call to test.assertEq(). Assertion Failed: `browser.runtime.onExtensionLoaded` should be an object. webkit-extension:\\/\\/ecf59dc7-edf8-4c0d-87fa-efe9c86e9e64\\/background.js:84.\""
+   }
+  ],
+  "storage": [
+   {
+    "name": "testStorageOnChanged",
+    "status": "Pass",
+    "message": ""
+   },
+   {
+    "name": "testStorageGetBytesInUse",
+    "status": "Pass",
+    "message": ""
+   },
+   {
+    "name": "testStorageSetAndGetKeys",
+    "status": "Pass",
+    "message": ""
+   },
+   {
+    "name": "testStorageGetAll",
+    "status": "Pass",
+    "message": ""
+   },
+   {
+    "name": "testStorageGetWithDefault",
+    "status": "Pass",
+    "message": ""
+   },
+   {
+    "name": "testStorageRemove",
+    "status": "Pass",
+    "message": ""
+   },
+   {
+    "name": "testStorageSetAccessLevelTrustedContexts",
+    "status": "Fail",
+    "message": "Promise rejected with an error: \"area.setAccessLevel is not a function. (In 'area.setAccessLevel({accessLevel: 'TRUSTED_CONTEXTS'})', 'area.setAccessLevel' is undefined)\""
+   },
+   {
+    "name": "testStorageSetAccessLevelTrustedAndUntrustedContexts",
+    "status": "Fail",
+    "message": "Promise rejected with an error: \"area.setAccessLevel is not a function. (In 'area.setAccessLevel({accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS'})', 'area.setAccessLevel' is undefined)\""
+   },
+   {
+    "name": "testStorageClear",
+    "status": "Pass",
+    "message": ""
+   },
+   {
+    "name": "testStorageErrorCases",
+    "status": "Pass",
+    "message": ""
+   }
+  ]
+ }
+}

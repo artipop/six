@@ -34,6 +34,7 @@ ExtensionAdapters    a column as WKWebExtensionTab, a profile's strip as WKWebEx
 ```
 
 `SAVOIA_EXTENSION=/path/to/unpacked` installs one at launch with no dialog, for development.
+`SAVOIA_EXTENSION_TESTING=1` gives extensions WebKit's `browser.test` — [below](#compatibility-web-platform-tests).
 
 ## What works, measured
 
@@ -91,6 +92,43 @@ before the extensions load, two profiles), none. Two other WebKit messages remai
 returned by tabsForWebExtensionContext: does not contain the active tab". Savoia writes each extension's
 `WKWebExtensionContext.errors` to its own log now (`[extensions] <name> reports …`), so which extension a recorded
 error belongs to is no longer a guess.
+
+## Compatibility: web-platform-tests
+
+wpt's [`web-extensions/`](https://github.com/web-platform-tests/wpt/tree/master/web-extensions) is six test
+extensions, 44 tests. `scripts/web-extensions-wpt.py` runs them unmodified and compares with
+`scripts/web-extensions-wpt-baseline.json`; it needs no running Savoia and does not touch the dev build's state,
+because each extension gets a launch of its own in a throwaway home (`CFFIXED_USER_HOME`).
+
+| extension | Savoia | Safari 27.0 | Safari TP 253 | Chrome 157 | Firefox 159 |
+|---|---|---|---|---|---|
+| `runtime` | 4/6 | 4/6 | 4/6 | 6/6 | 4/6 |
+| `storage` | 8/10 | 8/10 | 10/10 | 10/10 | 8/10 |
+| `alarms` | 5/8 | 5/8 | 7/8 | 7/8 | 6/8 |
+| `idle` | 2/5 | 2/5 | 2/5 | 5/5 | 5/5 |
+| `bookmarks` | 1/7 | 1/7 | 1/7 | 7/7 | 6/7 |
+| `browsingData` | 1/8 | 1/8 | 1/8 | 8/8 | 8/8 |
+| | **21/44** | 21/44 | 25/44 | 43/44 | 37/44 |
+
+Measured 2026-10-04 on macOS 27.2 against wpt `1d99362`; the other columns are wpt.fyi's runs of 2–3 October.
+Savoia equals the Safari of the same system file by file, so every failure is inside WebKit's `browser.*` and none
+is Savoia's to fix: `browser.idle`, `browser.bookmarks` and `browser.browsingData` do not exist (the one or two
+tests that pass in each are the ones any exception satisfies), `runtime.onEnabled` and `runtime.onExtensionLoaded`
+are missing, `storage.<area>.setAccessLevel` is missing, `alarms.clear()` resolves to nothing instead of `true`,
+and `alarms.create()` neither takes an options-only call nor returns a promise. Technology Preview already passes
+`setAccessLevel` and two more of `alarms`, so those arrive with a system update — a run that prints `NEW PASS` is
+how it will be noticed ([api-watch.md](api-watch.md)).
+
+`browser.test` exists only in WebKit's testing mode, which is SPI: `SAVOIA_EXTENSION_TESTING=1` sets
+`_testingMode` on every controller and `ExtensionTesting.swift` answers the private delegate methods WebKit then
+calls, writing each as `[extensions] test {…}` in the log. Without the variable nothing is set and nothing calls
+them. On wpt.fyi the same tests reach Safari through `safaridriver`: the test page calls
+`test_driver.install_web_extension`, which is WebDriver's `POST /session/{id}/webextension`, and listens to
+`browser.test.onTestStarted` / `onTestFinished`. The script skips the page — an extension loaded in testing mode
+starts its tests by itself.
+
+Outside testing mode WebKit holds every alarm for at least 30 seconds: one created with `when: now + 1 s` fired at
+30.0 s, where the same test passes in testing mode within a second or two.
 
 ## What does not work, and why it is all one thing
 
