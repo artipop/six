@@ -262,7 +262,16 @@ final class SitePermissions {
         pending.answer = answer
         queues[windowID, default: []].append(
             Question(profileID: profileID, origin: origin, ask: ask, pending: pending))
+        Log.info(.pages, "permission asked: \(origin) \(Self.name(ask)), \(queues[windowID]?.count ?? 0) waiting in \(windowID.uuidString.prefix(8))")
         onQuestionsChanged?()
+    }
+
+    private static func name(_ ask: Ask) -> String {
+        switch ask {
+        case .devices(let asked): asked.map(\.rawValue).joined(separator: "+")
+        case .pageTools: "pageTools"
+        case .pageToolCall(let tool, _): "call \(tool)"
+        }
     }
 
     /// The question this window is showing, if any.
@@ -279,6 +288,7 @@ final class SitePermissions {
             set(allowed, permission, forOrigin: question.origin, profileID: question.profileID)
         }
         question.pending.resume(allowed)
+        Log.info(.pages, "permission \(allowed ? "allowed" : "refused"): \(question.origin) \(Self.name(question.ask))")
         onQuestionsChanged?()
     }
 
@@ -288,6 +298,7 @@ final class SitePermissions {
     func forget(_ windowID: UUID) {
         guard let queue = queues.removeValue(forKey: windowID) else { return }
         for question in queue { question.pending.resume(false) }
+        Log.info(.pages, "permission dropped unanswered: \(queue.map { "\($0.origin) \(Self.name($0.ask))" }.joined(separator: ", "))")
         onQuestionsChanged?()
     }
 

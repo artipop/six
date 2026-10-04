@@ -789,6 +789,8 @@ final class BrowserTab: Identifiable {
             devTools?.noteNavigation(id)
             pageFocus?.noteNavigation(id)
             webMCP?.noteNavigation(id)
+            // So did a question nobody answered: the page that asked is gone.
+            permissions?.forget(id)
             onNavigation?(self, .committed)
         case .finished:
             savedURL = page.url ?? savedURL

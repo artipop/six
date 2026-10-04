@@ -100,7 +100,8 @@ Savoia's answer. These are the wpt directories worth running; everything else in
 
 ### Permissions: what to run next, and against what
 
-Not run yet. The bar is the one `web-extensions/` set: **the same result as the Safari of the same system, file by
+Step 1 is scripted — `scripts/permissions-wpt.py`, results in
+[permissions.md](permissions.md#compatibility-web-platform-tests); steps 2 and 3 are not started. The bar is the one `web-extensions/` set: **the same result as the Safari of the same system, file by
 file** — a failure Safari shares is WebKit's, a failure only Savoia has is Savoia's. Counted on wpt `1d99362`; the
 Safari column is 27.0 on wpt.fyi, 2 October 2026 (Technology Preview 253 scores the same in every row but
 `clipboard-apis`).
@@ -125,6 +126,7 @@ In that order of work:
    taking the directories as arguments, which also fetches Safari's run from wpt.fyi
    (`/api/runs?product=safari&label=stable` → `results_url`, a map from test path to `[passed, total]`) and prints
    the files where Savoia and Safari differ. The cache already holds these directories.
+   **Done**: 150 addresses by wpt's own manifest (a file with variants is several), 121 the same as Safari.
 2. **`set_permission`, `bless` and `click`** through a `testdriver-vendor.js` for Savoia (above). Safari gets these
    from `safaridriver`, so until the vendor file exists every test that calls one fails in Savoia for a reason that
    says nothing about `SitePermissions`.

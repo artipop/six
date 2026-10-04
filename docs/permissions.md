@@ -51,6 +51,11 @@ be answered has to be answered anyway: closing the window, or giving its page ba
 every question queued for it with a no (`SitePermissions.forget(_:)`, called from `BrowserTab.discard()` and
 `close()`). A promise that never lands is a page that never finds out.
 
+A navigation is the third way a question loses its page. Until October 2026 it did not lose its bar: the window
+went on to another address with the previous page's question still drawn over it, and an answer given then was
+filed under the origin that had left. `BrowserTab.apply(.committed)` now calls the same `forget(_:)`. Each question
+is a line in the log when it is asked, answered or dropped (`[pages] permission …`), which is how this was seen.
+
 ## In the title bar
 
 - The **lock (or globe)** becomes a menu once the site has been answered about anything: flip an answer, forget the
@@ -119,6 +124,34 @@ Two consequences worth knowing. The bar draws a sentence now (`Question.prompt` 
 `switch` in `PermissionBar` on the Mac) rather than a list of device names. And a database written by this build is
 one an older build reads badly: `sitePermissions` decodes the list whole, so a row saying `pageTools` makes every
 answer about every site unreadable — the same trap `location` set below.
+
+## Compatibility: web-platform-tests
+
+`scripts/permissions-wpt.py` runs twelve wpt directories — `permissions`, `permissions-request`,
+`permissions-revoke`, `permissions-policy`, `mediacapture-streams`, `screen-capture`, `mediacapture-handle`,
+`geolocation`, `notifications`, `clipboard-apis`, `storage-access-api`, `idle-detection` — in a Debug Savoia it
+launches itself in a throwaway home, and compares every file with the newest stable Safari run on wpt.fyi. The bar
+is Safari's result for the same file, not the absolute number: a failure Safari shares is WebKit's. It prints the
+Safari version of the run beside the system's, since they can differ (27.0 on wpt.fyi against 27.2 here).
+
+Only the files that do not call testdriver are run, 150 addresses of 377; the rest wait for a
+`testdriver-vendor.js` ([test-suites.md](test-suites.md)). On wpt `1d99362`, 4 October 2026, 121 matched Safari and
+29 did not:
+
+| files | what differs | why | state |
+|---|---|---|---|
+| `geolocation/non-secure-contexts.http`, `notifications/permissions-non-secure`, `storage-access-api/hasStorageAccess-insecure` | Savoia failed, Safari passes | the stand: `http://*.localhost` is a secure context. Such files are now served from the Mac's own interface address | rerun, all match |
+| 14 × `permissions-policy/experimental-features/unload-*` | Savoia times out, Safari fails at once | the helper opens a window with `window.open`, which answers `null` without a gesture ([todo.md](todo.md#popups-a-window-the-page-can-script)); the `null` is measured, that it is the whole cause is not | not fixed |
+| 5 × `permissions-policy/payment-*`, `reporting/payment-reporting` | Safari passes the "allowed" cases, Savoia fails them | `PaymentRequest` and `ApplePaySession` are `undefined` in Savoia — measured. The likely cause is that WebKit hides Apple Pay from an app that injects user scripts, which Savoia does on every page; that part is reasoning, not a run | not established |
+| `mediacapture-streams/idlharness.https.window`, `overconstrained_error`, `MediaStreamTrack-transfer-video` | Savoia times out | each calls `getUserMedia()` and the bar waits for a person; Safari under automation is granted mock devices | waits for testdriver |
+| `mediacapture-streams/MediaDevices-enumerateDevices-not-allowed-camera` | Savoia passes, Safari fails | not established; possibly 27.2 against 27.0 | — |
+| `permissions-policy/experimental-features/focus-without-user-activation-focused-frame-descendant` | one subtest of seven | not established; Savoia is not the front app during a run | — |
+| `permissions-policy/reporting/geolocation-reporting` | Savoia times out, Safari errors | geolocation is not built (below) | recorded |
+
+The run found one defect that is Savoia's and is in no test's assertion: the bar outliving its page, above.
+
+Content blocking is on in the throwaway home, as it is in a fresh install. Plain-http files other than the
+non-secure ones still run in a secure context, unlike on wpt.fyi.
 
 ## What a `WebPage` browser still cannot ask for
 
