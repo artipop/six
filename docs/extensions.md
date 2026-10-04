@@ -148,6 +148,14 @@ other extension; it simply does not block.
   rule-set extension costs tens of seconds of CPU per profile to load (WebKit translates and compiles its
   `declarativeNetRequest` rules again on every launch), and three profiles paid that at once. The price is that an
   extension's background content does not run in a profile nobody has opened since launch.
+- **What nothing else deletes is swept at launch** (`ExtensionLeftovers`, off the main actor). WebKit keeps an
+  extension's storage under `~/Library/WebKit/<bundle id>/WebExtensions/<profile's store id>/<extension id>` and
+  never removes it: not when the profile is deleted, not when the extension is, and a rule list being compiled when
+  Savoia quits stays behind as a `ContentRuleListXXXXXX` of 30–130 MB. The sweep removes the folders of store ids
+  no profile has, of extension ids not installed, those unfinished files older than this launch, and unpacked
+  extensions that are no longer installed. Two guards, because a failed read looks the same as nothing being there:
+  it does nothing when no extension is installed, and leaves WebKit's folder alone unless at least one folder in it
+  answers to a current profile.
 - **A private profile runs no extensions at all** — private browsing is recorded nowhere, and an extension's
   storage is a record.
 - **A tab is a column, a window is a profile's strip.** The adapters read the *window* — `tab.currentURL`,

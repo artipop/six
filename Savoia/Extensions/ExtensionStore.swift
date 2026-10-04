@@ -38,6 +38,7 @@ final class ExtensionStore {
             self.store = store
             controller = WKWebExtensionController(configuration: .init(identifier: storeIdentifier))
             controller.delegate = delegate
+            ExtensionTesting.prepare(controller)
         }
     }
 
@@ -74,6 +75,20 @@ final class ExtensionStore {
     func start() {
         guard let tab = browser?.selectedTab else { return }
         _ = controller(for: tab.profileID)
+    }
+
+    /// Clears out the storage of profiles and extensions that no longer exist, off the main actor.
+    func removeLeftovers() {
+        guard let browser else { return }
+        let stores = Set(browser.profiles.map(\.dataStoreID))
+        let extensions = Set(installed.map(\.id))
+        let unpacked = InstalledExtension.folder
+        let launch = Date.now
+        Task.detached(priority: .utility) { [self] in
+            let freed = ExtensionLeftovers.remove(
+                webKit: ExtensionLeftovers.webKitFolder, unpacked: unpacked, stores: stores, extensions: extensions, before: launch)
+            if freed > 0 { log("removed \(freed / 1_048_576) MB of leftovers") }
+        }
     }
 
     // MARK: What a window gets

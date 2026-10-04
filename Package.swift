@@ -34,6 +34,7 @@ let package = Package(
                 "Input/KeyContext.swift",
                 "Data/AppSupport.swift",
                 "Data/FormerName.swift",
+                "Extensions/ExtensionLeftovers.swift",
                 "Data/Log.swift",
                 "Persistence/SnapshotStore.swift",
                 "Persistence/StatePersistence.swift",

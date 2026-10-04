@@ -164,6 +164,7 @@ struct SavoiaApp: App {
         extensions.browser = browser
         browser.extensions = extensions
         extensions.start()
+        extensions.removeLeftovers()
         // An extension already installed reaches the restored windows the same way it reaches a new
         // install: the page's configuration is fixed when the page is built.
         if !extensions.installed.filter(\.isEnabled).isEmpty { browser.rebuildLivePages() }
