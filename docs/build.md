@@ -61,6 +61,33 @@ There is no signing identity on this machine (`security find-identity -v -p code
 signed ad-hoc — the same "Sign to Run Locally" a Debug build gets. That is enough to install and run it *here*:
 a DMG made locally carries no quarantine flag.
 
+### Profiling the installed build
+
+```sh
+./scripts/profile.sh                        # 30 s of Time Profiler → dist/profiles/savoia-<timestamp>.trace
+./scripts/profile.sh 60 'System Trace'      # seconds, then any name from `xcrun xctrace list templates`
+./scripts/profile.sh --launch 60            # starts Savoia under the recording; quit it first
+./scripts/profile.sh --attach 30 Allocations
+```
+
+It records `/Applications/Savoia.app` (`SAVOIA_APP` names another copy) with `xctrace`, and the trace opens in
+Instruments. Ctrl-C ends a recording before its time is up and
+still saves it; a trace of every process grows by a few megabytes a second. Without a flag Savoia must already be
+running, and is left alone. `--launch` wants it quit — a second
+copy on the same Application Support directory traps in WebKit — and opens it once the recording has started, so the
+launch is in the trace. `xctrace record --launch` is not used for that: given `Savoia.app` it finds the dev build and
+the share extension as well and calls the path ambiguous.
+
+Every process on the Mac is in the trace. Pages run in WebKit's `WebContent`, `GPU` and `Networking` processes,
+which are Apple's and cannot be attached to with SIP on, and their parent is `launchd`, so there is no telling
+Savoia's from Safari's by pid: quit other WebKit apps first, and filter by process in Instruments. `--attach` records
+Savoia's own process alone, which is what the per-process templates (Allocations, Leaks) need.
+
+Nothing is added to the build for either. `xcodebuild build` signs with `com.apple.security.get-task-allow`, which
+is what `--attach` requires — hardened runtime without that entitlement would end it, and the script checks for it.
+Release writes `dwarf-with-dsym`, and Instruments finds the dSYM in `dist/DerivedData` by UUID, so keep that folder
+until the next `dmg.sh`.
+
 Giving the image to someone else is a different matter. Ad-hoc code has no team behind it, so Gatekeeper on their
 machine refuses it outright — they would have to right-click › Open, or `xattr -dr com.apple.quarantine
 /Applications/Savoia.app`. Doing it properly means a Developer ID Application certificate, `ENABLE_HARDENED_RUNTIME`

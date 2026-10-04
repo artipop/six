@@ -63,6 +63,7 @@ swift build --disable-automatic-resolution
 swift test  --disable-automatic-resolution
 
 ./scripts/dmg.sh          # Release → dist/savoia-<version>.dmg
+./scripts/profile.sh      # Instruments trace, all processes, while the Release Savoia runs → dist/profiles
 
 # Vendored JavaScript. Both write committed output, so a normal build needs neither network nor
 # Node; run one only when the upstream version it pins moves.
