@@ -110,6 +110,7 @@ struct ConfigurationPageView: View {
                 .tag(item)
         }
         .listStyle(.sidebar)
+        .environment(\.controlActiveState, .key)
         // A share of the window, like everything else in the layout: a column is a screen wide on a
         // laptop and on a 5K panel, and a 200-point list is a different thing on each.
         .frame(width: sidebarWidth)
