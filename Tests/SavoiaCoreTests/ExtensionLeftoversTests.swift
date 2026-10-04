@@ -62,6 +62,16 @@ struct ExtensionLeftoversTests {
         #expect(found(stores: [UUID()], extensions: ["current"]) == ["Extensions/old"])
     }
 
+    @Test func findsAnExtensionsStorageInEveryProfile() throws {
+        defer { try? FileManager.default.removeItem(at: root) }
+        try layOut()
+        let all = ExtensionLeftovers.storage(of: "current", webKit: webKit)
+        let names = Set(all.map { $0.deletingLastPathComponent().lastPathComponent })
+        #expect(names == [profile.uuidString, gone.uuidString, "not-a-store"])
+        #expect(all.allSatisfy { $0.lastPathComponent == "current" })
+        #expect(ExtensionLeftovers.storage(of: "", webKit: webKit).isEmpty)
+    }
+
     @Test func removesWhatItFoundAndKeepsTheRest() throws {
         defer { try? FileManager.default.removeItem(at: root) }
         try layOut()

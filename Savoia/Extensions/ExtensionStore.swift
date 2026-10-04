@@ -231,6 +231,12 @@ final class ExtensionStore {
         errors[id] = nil
         settings.installedExtensions = installed
         try? FileManager.default.removeItem(at: record.folder)
+        // WebKit keeps the extension's storage in every profile; the launch sweep skips it once nothing is installed.
+        Task.detached(priority: .utility) {
+            for folder in ExtensionLeftovers.storage(of: id, webKit: ExtensionLeftovers.webKitFolder) {
+                try? FileManager.default.removeItem(at: folder)
+            }
+        }
         browser?.rebuildLivePages()
         log("removed \(record.name)")
     }

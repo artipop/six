@@ -31,6 +31,12 @@ nonisolated enum ExtensionLeftovers {
         return found
     }
 
+    /// The storage one extension has in every profile — what uninstalling it leaves behind.
+    static func storage(of extensionID: String, webKit: URL?) -> [URL] {
+        guard !extensionID.isEmpty, let webKit else { return [] }
+        return folders(in: webKit).flatMap(folders(in:)).filter { $0.lastPathComponent == extensionID }
+    }
+
     /// Returns the bytes it freed.
     @discardableResult
     static func remove(

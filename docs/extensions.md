@@ -193,7 +193,8 @@ other extension; it simply does not block.
   no profile has, of extension ids not installed, those unfinished files older than this launch, and unpacked
   extensions that are no longer installed. Two guards, because a failed read looks the same as nothing being there:
   it does nothing when no extension is installed, and leaves WebKit's folder alone unless at least one folder in it
-  answers to a current profile.
+  answers to a current profile. Uninstalling an extension removes its storage in every profile there and then, so
+  the first guard does not strand the last extension's data.
 - **A private profile runs no extensions at all** — private browsing is recorded nowhere, and an extension's
   storage is a record.
 - **A tab is a column, a window is a profile's strip.** The adapters read the *window* — `tab.currentURL`,
