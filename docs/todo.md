@@ -58,9 +58,22 @@ not the `WKWebView` WebKit asked the UI client for — so the opener gets `null`
 while building WebMCP's frames ([webmcp.md](webmcp.md#frames-what-webkit-allows-measured)); two wpt tests there
 fail on it and nothing else.
 
-The work is the UI client's `createWebView`: answer it with a page built from the configuration WebKit passes in,
-and put that page in the new column. Whether SwiftUI's `WebPage` can be made from that configuration at all is the
-first thing to measure.
+The work is the UI client's `createWebView`: answer it with a view built from the configuration WebKit passes in.
+Measured in October 2026:
+
+- **`WebPage` cannot be that view.** It has no initialiser from a `WKWebViewConfiguration`, and its own UI
+  delegate (`WKUIDelegateAdapter`) implements no `createWebView` — which is why WebKit falls back to asking the
+  navigation decider with no target frame.
+- **A delegate in front of `WebPage`'s can.** `ScriptedPopups` (`SAVOIA_POPUPS=1`, a spike) puts a proxy on the
+  opener's `WKWebView` that forwards everything else and answers `createWebView` with a plain `WKWebView` in a bare
+  `NSWindow`; the decider lets a script-opened window through instead of cancelling it. With it wpt's
+  `enumerateDevices-with-navigation` passes, the `unload-*` files give Safari's result, and
+  `requestStorageAccess` goes from 1/4 to 3/4 — the rest of `storage-access-api` then stops at testdriver actions
+  aimed at a frame, which the runner does not carry yet.
+
+What is not decided is where such a window lives. A tab in Savoia is a `WebPage`; this one cannot be, so it is
+either a window of its own, as now, or a second kind of tab drawn through `NSViewRepresentable`, with whatever of a
+tab's features it is given.
 
 ## Save As: web archives
 

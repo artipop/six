@@ -1156,6 +1156,7 @@ private final class TabNavigationDecider: WebPage.NavigationDeciding {
         let behind = action.navigationType == .linkActivated && action.modifierFlags.contains(.command)
         // The other way: no target frame means the frame does not exist yet — `target=_blank`,
         // `window.open`. There is nobody to answer that but the browser.
+        if action.target == nil, !behind, ScriptedPopups.isOn, action.navigationType != .linkActivated { return .allow }
         if action.target == nil || behind {
             onNewWindow?(action.request, behind)
             return .cancel
