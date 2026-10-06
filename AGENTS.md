@@ -205,7 +205,7 @@ rewrite the root file. `xcodebuild` never touches it — the project holds only 
   `getDisplayMedia()` needs the page to have focus and throws `InvalidStateError` while Savoia is not the front app.
   Neither refusal reaches Savoia's own code, so a `denied` from `evaluate_javascript` says nothing about the permission
   code under test. Have Artem click, or send a real click into a throwaway app's window
-  ([docs/todo.md](docs/todo.md#geolocation-and-notifications-webkits-c-api-one-header-for-both)).
+  ([docs/todo.md](docs/permissions.md#geolocation-and-notifications-webkits-c-api-one-header-for-both)).
 
 - **`WebPage.callJavaScript` is a user gesture to WebKit.** After it the page has `userActivation.isActive` and may
   read the clipboard or open a window; a test stand that polled pages with it had every page activated for a whole

@@ -1,11 +1,13 @@
 # 8. Site notifications
 
+**After [7](07-geolocation.md)**, and so after the move to `WKWebView`: the delegate is Savoia's own by then.
+
 Build the Notification API for sites. Web Push is not part of it: `webpushd` demands a private entitlement, and
 that is recorded as out of reach.
 
 ## Read first
 
-[todo.md](../../todo.md#geolocation-and-notifications-webkits-c-api-one-header-for-both). Measured in a throwaway
+[permissions.md](../../permissions.md#geolocation-and-notifications-webkits-c-api-one-header-for-both). Measured in a throwaway
 app: with a persistent data store and a real click, the private delegate method
 `_webView:requestNotificationPermissionForSecurityOrigin:decisionHandler:` is called, the page gets `granted`, and
 `new Notification()` reaches the UI process and goes no further — there is no provider. The provider is installed

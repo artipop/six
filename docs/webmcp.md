@@ -179,6 +179,27 @@ What not to do: wait for WebKit, or turn Savoia into a bridge for someone else's
 external client path is not needed when Savoia **is** the MCP server (`Savoia --mcp`), and page tools leave through
 `call_page_tool` with the rest of the catalog and its permissions, not around them.
 
+### The nine wpt tests left
+
+165 of 174 of wpt's `webmcp/` pass (`scripts/webmcp-wpt.py`, the baseline beside it). The nine left, and what each
+would take — none of it is a polyfill's to do (above):
+
+- **An opened window (2).** `window.open` returns a window now ([links.md](links.md#a-second-window)), in a
+  `WKWebView` of its own. Not re-run since: whether the polyfill is installed in that view, and whether the broker
+  knows it belongs to another frame tree, is the open part.
+- **`document.domain` (4).** The draft refuses the API where `document.domain` is enabled, and WebKit has no
+  origin-keyed agent clusters, so the rule read literally refuses everything. Waits for WebKit to ship
+  `Origin-Agent-Cluster` by default, or for the draft to phrase the rule so it has meaning there.
+- **`isTrusted` on `toolactivated` (1).** Only an event the engine dispatches is trusted. Native WebMCP in WebKit.
+- **An iframe's initial `about:blank` when the iframe has a `src` (1).** WebKit runs no user script there, and the
+  page reaches the document before it navigates. The parent's polyfill could install one into a same-origin child it
+  sees created; wpt's own comment says Chrome fails this one too, so it waits for the test to settle.
+- **Styling by `:tool-form-active` (1).** WebKit's CSS parser drops a rule with a pseudo-class it does not know.
+  Engine work again.
+
+Re-run the suite when wpt moves (`--update`): the declarative section of the draft is still TODO, and its tests are
+where the next changes will land.
+
 ## Declarative forms
 
 `<form toolname tooldescription>` is a tool (`WebMCPForms.swift`, spliced into the polyfill). The draft's section is

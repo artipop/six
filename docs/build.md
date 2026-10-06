@@ -164,3 +164,9 @@ The development build's set carries an orange DEV band, so the two can be told a
 
 App Sandbox is off — the ACP layer spawns `npx` / `claude` / `codex` from the user's toolchain.
 
+## The one warning
+
+`appintentsmetadataprocessor: Metadata extraction skipped, no
+  AppIntents.framework dependency found` comes from Xcode's own build phase, once per build; the app has no App
+  Intents, so it is harmless. It goes away if Savoia gets any (Shortcuts actions for open-tab and search would be the
+  natural ones), and not before.

@@ -4,8 +4,8 @@ Open WebKit's inspector on a tab from Savoia, instead of leaving it to Safari's 
 
 ## Why
 
-The docs said there was no way to open Web Inspector on your own page, and listed it as one of two reasons to build
-WebKit ourselves ([todo.md](../../todo.md#someday-savoias-own-webkit-build), [devtools.md](../../devtools.md)). There
+The docs said there was no way to open Web Inspector on your own page, and once listed it as a reason to build
+WebKit ourselves — which is ruled out ([devtools.md](../../devtools.md)). There
 is no *public* way. There is SPI, and it works on a tab.
 
 ## Measured, 6 October 2026, in a throwaway app — not in Savoia

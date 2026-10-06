@@ -25,16 +25,30 @@ grouping is no worse. Compare on the tabs Artem has open, not on a guess: `SAVOI
 
 ## 3. Why there is no `PaymentRequest` — fifteen minutes
 
-[todo.md](../../todo.md#apple-pay-not-supported-and-why-is-not-known). It is not the region: Safari on the same Mac
-has `PaymentRequest`. Two candidates are left, and one experiment separates them: a twenty-five-line app with a
-bare `WKWebView`, no user script, loading an https page, reading `typeof PaymentRequest`. There → Savoia's user
-scripts hide it, and it can come back for pages that get none. Not there → it is WebKit's limit on an app that is
-not Safari, and that is the end of it. Write the answer into todo.md and the guide either way; build nothing.
+A page in Savoia has no `PaymentRequest` and no `ApplePaySession` — both are `undefined`, so a shop's Apple Pay
+button is absent or dead, and the six wpt files `permissions-policy/payment-*` and `reporting/payment-reporting`
+differ from Safari for that reason. Measured in October 2026 on an https page, with and without the blocker's page
+scripts (`AdvancedRules`), so those are not the cause.
 
-## 4. `AdvancedRules`: on, or gone
+What the cause is was not established, and the investigation was dropped rather than finished. It is not the
+region of the Apple ID, where Apple Pay does not work at all: Safari 27.2 on the same Mac answers
+`typeof PaymentRequest` with `"function"` (Artem, by hand). So it is something about Savoia as an app — a limit
+WebKit puts on one that is not Safari, or the user scripts Savoia still installs. A twenty-five-line app with a
+bare `WKWebView` and no user script tells those two apart.
 
-The blocker's scriptlets and extended CSS are off behind `SAVOIA_ADVANCED_RULES=1` while Artem uses the browser
-without them. **Ask him how it went before touching anything.** Then either the switch goes and they are back, or
-the code, the vendored payload (`Savoia/Blocking/Payload`, `scripts/blocking-payload.sh`) and the claims in
-[blocking.md](../../blocking.md) and the guide go. Until then the guide ([guide/blocking.md](../../guide/blocking.md),
-both languages) describes scriptlets that are not running — if a release is cut first, it has to say so.
+The experiment: that app, an https page, `typeof PaymentRequest`. There → Savoia's user scripts hide it, and it can
+come back for pages that get none. Not there → it is WebKit's limit on an app that is not Safari, and that is the
+end of it. Write the answer into [todo.md](../../todo.md) and the guide either way; build nothing.
+
+## 4. The blocker's page half is a setting, off by default
+
+Decided by Artem on 7 October 2026: scriptlets and extended CSS (`AdvancedRules`) stay in the code and are **off
+unless switched on**. Today that is the environment variable `SAVOIA_ADVANCED_RULES`; make it a switch in
+Configuration ▸ Privacy ▸ Blocking, off for a new install and for an existing one, and drop the variable. The label
+names the thing and the caption a consequence, in English and Russian (AGENTS.md: the interface never narrates
+what Savoia does).
+
+Then the words catch up: [blocking.md](../../blocking.md), AGENTS.md's list of what is built, and the guide
+([guide/blocking.md](../../guide/blocking.md), both languages), which today describes scriptlets as if they ran
+for everyone. Cosmetic rules inside frames ([blocking.md](../../blocking.md#not-built-cosmetic-rules-inside-a-frame))
+stay not built.

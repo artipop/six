@@ -1,6 +1,6 @@
 # 13. Small things — one pass
 
-Six items from [todo.md](../../todo.md), none of them more than an afternoon, none needing a decision that is not
+Seven items from [todo.md](../../todo.md), none of them more than an afternoon, none needing a decision that is not
 written here. Each is its own commit; strings go through the String Catalog in English and Russian, and the guide
 gets a line in both languages where a person would look for it.
 
@@ -17,8 +17,11 @@ gets a line in both languages where a person would look for it.
    Private Cloud Compute are not offered there, though both exist in Configuration ▸ Assistant.
 6. **A Help menu that opens the guide** — the page for the pane in front, in the interface language — and a `?`
    on each configuration pane going to the same place. Online only for now; a bundled copy is a separate question.
+7. **Group Tabs by Meaning off for a new install.** The switch in Configuration (`ConfigurationPageView`, "Group
+   Tabs by Meaning") is on by default today. Off for a home that has never been launched; an existing one keeps
+   what it has — check how the default is read, so that "never set" and "set to on" are told apart.
 
 Take them in this order and stop wherever the session ends: each is finished or not started.
 
 Not in this pass, because each needs a design first: the two switches in Configuration that mean different sizes of
-thing, and the ring's three-key arrows — both described in todo.md with no answer chosen.
+thing, and the ring's three-key arrows — both in [21](../design/21-open-design-questions.md).

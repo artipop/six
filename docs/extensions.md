@@ -242,8 +242,7 @@ trusting the table below. Two routes stayed out on purpose even so:
    nothing (a `nil` `webView(for:)`, the same answer as before the fix) rather than finding the wrong thing.
 3. **A `WKWebView` per tab**, which is what every other WebKit browser with extension support does — and which is
    exactly the thing Savoia exists not to do.
-4. **A WebKit build of Savoia's own**, which would also close the devtools wall and costs accordingly — the price is
-   written down in [todo.md](todo.md#someday-savoias-own-webkit-build).
+4. **A WebKit build of Savoia's own** — ruled out (Artem, October 2026): system WebKit, used as far as it goes.
 
 ## Installing from a file
 

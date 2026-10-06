@@ -218,4 +218,29 @@ Clicking it allows (or blocks again) every site under this one's host — `examp
 
 Blocking needs no extension, and Savoia has none — `WKWebExtension` is a separate piece of work with a real obstacle
 in front of it (`WKWebExtensionTab` requires a `WKWebView`, which `WebPage` does not hand out). What that means and
-what would still work is in [todo.md](todo.md#extensions-wkwebextension).
+what would still work is in [extensions.md](extensions.md).
+
+## Not built: cosmetic rules inside a frame
+
+[Advanced blocking](#the-advanced-rules-what-runs-inside-the-page) is main frame only, and the reason is
+structural rather than lazy. A `WKUserScript`'s source is fixed when it is installed on the content controller,
+which happens before the load starts; the rules that apply to a subframe are the ones for the *subframe's own*
+address, and that is not known until the frame loads. Giving a third-party frame the top document's cosmetic rules
+would hide things inside it for no reason, so it is given none. What blocks inside a frame today is the network
+half, which is per-request and needs nobody's help — so what is missing is scriptlets and extended CSS in frames,
+which is where a certain kind of ad iframe lives.
+
+Three ways it could be closed, none of them free:
+
+- **Ask, then apply.** Inject one small script into every frame (`forMainFrameOnly: false`) that posts its own URL
+  to a `WKScriptMessageHandler`, and have Swift answer with that frame's rules. Cheap and correct for CSS — a frame's
+  cosmetics can arrive a moment late and still work. Useless for **scriptlets**, which have to patch a global before
+  the frame's own scripts run, and a round trip through the main actor is not before.
+- **Ship the lookup to the page.** Inject the engine's answers for every domain the page might frame — which is the
+  whole index — or the engine itself as JavaScript. AdGuard's own extension does the second, in a background script;
+  Savoia would be paying 350 KB and a build of the index per frame.
+- **A `WKURLSchemeHandler`-shaped proxy**, so the rules could be applied to a frame's document before it is parsed:
+  every request of every page carried by Savoia. Not planned.
+
+The first is the only cheap one and it buys the smaller half. Worth doing when a real page is found where the frames
+are the problem; not worth guessing at before that.

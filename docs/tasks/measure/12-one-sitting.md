@@ -23,7 +23,7 @@ leaves that file by being measured, in either direction, and by the page it came
    `WKWebView` of its own, and nobody has checked that the polyfill is installed in it.
    `./scripts/webmcp-wpt.py` (its stand is still under `savoia.localhost`, and it uses the dev build's own home:
    `--install-ca` with the dev Savoia quit, then launch with `SAVOIA_WEBMCP=1`). Update the nine-left list in
-   [todo.md](../../todo.md#webmcp-the-nine-wpt-tests-left) and the baseline.
+   [webmcp.md](../../webmcp.md#the-nine-wpt-tests-left) and the baseline.
 
 ## Windows a page opens
 

@@ -92,6 +92,11 @@ on `Commands`, the letter bindings. Read "Things that have cost hours" before to
 On a branch, `wkwebview`, merged when it is whole: a tab half on each model is not a state `main` should be in,
 and a branch is not a switch. If Artem would rather have it on `main` in steps, ask before starting.
 
+0. **Before anything moves.** Two short things, so the move has less to carry and something to be compared
+   with. The first item of [14](../browser/14-waits-by-the-clock.md): five copies of a loop that waits on
+   `page.isLoading` become one function, so the navigation feed is rewritten in one place and not five. And the
+   output of every self-test named under "Checking it", saved from today's `main` — the wpt baselines are
+   committed, the self-tests' output is not.
 1. **The mapping, written down.** Every `WebPage` member Savoia uses → its `WKWebView` counterpart, and every
    workaround that exists only because of `WebPage` → what replaces it. Start from the lists above, the nine files
    that call `WebViewResponder.shared`, and [api-watch.md](../../api-watch.md). One table, kept in

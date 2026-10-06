@@ -104,6 +104,6 @@ why both now go through [`PageControllers`](../Savoia/Browser/PageControllers.sw
 
 No DOM snapshot with stable element ids, no synthetic clicks and typing, no performance traces, no request
 interception or throttling — the things Chrome's devtools MCP has beyond this. Most of them need the inspector
-protocol, which is why they share a fate with the in-window inspector: see
-[todo.md](todo.md#someday-savoias-own-webkit-build). `evaluate_javascript` covers a
+protocol, which an app cannot reach for its own pages; a build of WebKit of Savoia's own would, and is ruled
+out. The inspector itself can be opened on a tab ([tasks/devtools/22](tasks/devtools/22-web-inspector-in-savoia.md)). `evaluate_javascript` covers a
 surprising amount of it for now ([mcp.md](mcp.md)), and the rest is in [todo.md](todo.md).

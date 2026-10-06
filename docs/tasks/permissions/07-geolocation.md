@@ -1,10 +1,14 @@
 # 7. Geolocation for sites
 
+**After [23](../architecture/23-webpage-or-wkwebview.md) and [22](../devtools/22-web-inspector-in-savoia.md).** On a `WKWebView` of Savoia's own the
+permission question is a method of Savoia's own UI delegate, not of a proxy in front of `WebPage`'s — read what
+follows with that in mind.
+
 Build geolocation in Savoia.
 
 ## Read first
 
-[todo.md](../../todo.md#geolocation-and-notifications-webkits-c-api-one-header-for-both) and
+[permissions.md](../../permissions.md#geolocation-and-notifications-webkits-c-api-one-header-for-both) and
 [permissions.md](../../permissions.md#what-a-webpage-browser-still-cannot-ask-for). In short: the permission
 question is public (`WKUIDelegate` `requestGeolocationPermissionFor`, macOS 27), and the position has to be
 supplied by the app through C functions WebKit exports and the SDK does not declare

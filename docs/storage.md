@@ -2,7 +2,7 @@
 
 *Where data lives, what is portable, and what is an Apple-only adapter behind a protocol. SQLite (SQLiteData over
 GRDB) is built; the diagram is the shape the remaining seams must fit
-([todo.md](todo.md#storage-history-pages-and-retrieval)). Related: [sync.md](sync.md), [passkeys.md](passkeys.md).*
+([todo.md](tasks/storage/19-history-pages.md)). Related: [sync.md](sync.md), [passkeys.md](passkeys.md).*
 
 ```mermaid
 flowchart TB

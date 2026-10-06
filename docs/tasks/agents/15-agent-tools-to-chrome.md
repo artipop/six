@@ -69,7 +69,7 @@ Request headers and bodies, throttling, a device viewport and performance traces
 protocol. A person can have them: the inspector opens on a tab through SPI
 ([22-web-inspector-in-savoia.md](../devtools/22-web-inspector-in-savoia.md)). An agent cannot: nothing there sends a
 protocol message. A `WKURLSchemeHandler`-shaped proxy would give the bodies at the price of carrying every
-request. Say so in [mcp.md](../../mcp.md) and [devtools.md](../../devtools.md), in the table above, and stop.
+request; a WebKit build of Savoia's own is ruled out. Say so in [mcp.md](../../mcp.md) and [devtools.md](../../devtools.md), in the table above, and stop.
 
 ## Done when
 
