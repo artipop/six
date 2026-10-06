@@ -120,10 +120,11 @@ making the mark survive being reopened. Everything is in `Savoia/Highlights/`.
 
 **Choosing them.** Not by asking a model to quote — a model that retypes a passage mis-types it, and then nothing
 matches. `HighlightScript.blocks` lists the page's paragraph-ish elements as a numbered list (text and an XPath);
-the ⌘E model — the on-device model when ⌘E is set to an agent, since "which of these is about X" is within its reach —
-answers with *numbers* and a few words of reason; Savoia anchors those blocks itself. The model never handles the text
-it is marking, so it cannot corrupt it. `blocks: "12, 13"` skips the model; `⌥⇧H` does the same for a selection by
-hand.
+the ⌘E model answers with *numbers* and a few words of reason; Savoia anchors those blocks itself. The model never
+handles the text it is marking, so it cannot corrupt it. When ⌘E is set to an agent there is no model to ask — the
+agent calling the tool is the model — so the numbered list is the tool's answer and the agent calls again with
+`blocks: "12, 13"`; the same happens when the configured model cannot be used now. There is no falling back to
+another model than the one chosen. `⌥⇧H` marks a selection by hand.
 
 **Anchoring.** The script builds a *text index* — every visible text node under `<body>`, in order — and computes
 all three W3C Web Annotation selectors from it, stored together on the `Highlight`:
