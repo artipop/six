@@ -198,10 +198,8 @@ enum ExtensionInstaller {
             // Savoia hosts no native messaging application, and nothing has been tried against one.
             .nativeMessaging: .unchecked,
         ]
-        // On the Mac `WKWebExtensionTab.webView(for:)` answers now, which is what `scripting.*`
-        // and content-script messaging were missing — but the re-test hit a wall one step short of
-        // proving it, so this is "believed fixed" and says so (docs/extensions.md). The phone has
-        // no view-tree walk of its own yet, so there it is simply absent.
+        // `WKWebExtensionTab.webView(for:)` answers with the tab's view, which is what `scripting.*`
+        // and content-script messaging were missing; not measured end to end (docs/extensions.md).
         #if os(macOS)
         table[.scripting] = .unchecked
         #else

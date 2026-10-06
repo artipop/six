@@ -4,8 +4,7 @@ import WebKit
 
 /// Files Savoia is fetching, and the ones it already has.
 ///
-/// WebKit's SwiftUI `WebPage` has no download delegate — `.download` as a navigation policy has
-/// nobody to hand the transfer to — so Savoia does the transfer itself. That costs one thing and buys
+/// Savoia does the transfer itself rather than through `WKDownload`. That costs one thing and buys
 /// another: the request has to be rebuilt (the page's cookies and its address as the referrer, or a
 /// site that only serves a file to a signed-in session serves the sign-in page instead), and in
 /// return a download is an ordinary object the strip can show, cancel and reveal.

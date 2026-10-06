@@ -4,7 +4,7 @@ import Foundation
 ///
 /// It is written as a `library` of helpers plus small entry points, the same shape as
 /// `HighlightScript`, and for the same reason — every entry point needs the same walker. It runs
-/// through `PageScriptRunner`, which on Apple is `WebPage.savoia(_:arguments:)` in Savoia's own
+/// through `PageScriptRunner`, which on Apple runs in Savoia's own
 /// `WKContentWorld` and on Linux will be WebKitGTK's async function call.
 ///
 /// **This file is the contract, not an implementation.** `android.md` counts `HighlightScript` as

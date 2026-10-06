@@ -16,7 +16,7 @@ import Foundation
 /// the rendering, the JavaScript and the quirks really are that Safari's. Naming ourselves in the
 /// same string is what broke it, so we don't.
 enum UserAgent {
-    /// Goes into `WebPage.Configuration.applicationNameForUserAgent`, which WebKit appends to its
+    /// Goes into `WKWebViewConfiguration.applicationNameForUserAgent`, which WebKit appends to its
     /// default string — so this tail is the whole difference from Safari's user agent.
     static let applicationName = "Version/\(safariVersion) Safari/\(webKitBuild)"
 

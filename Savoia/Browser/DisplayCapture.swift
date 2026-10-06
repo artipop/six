@@ -2,12 +2,12 @@
 import ObjectiveC
 import WebKit
 
-/// Screen and window sharing — the one kind of capture `WebPage` says nothing about.
+/// Screen and window sharing — the one kind of capture `WKWebView` publishes nothing public about.
 ///
 /// `getDisplayMedia()` itself needs none of this. With no delegate method to ask, WebKit presents
 /// macOS's own content-sharing picker (`SCContentSharingPicker`, from its GPU process) and the page
 /// gets what the person picked — measured before this file existed, with a `video:Screen` track
-/// back in Savoia as shipped. What `WebPage` does not publish is that it is *happening*: it has
+/// back in Savoia as shipped. What `WKWebView` does not publish is that it is *happening*: it has
 /// `cameraCaptureState` and `microphoneCaptureState` and no third property, so the title bar's
 /// indicator and the live-page budget's "don't discard a call" rule could not see a page sharing
 /// the screen.

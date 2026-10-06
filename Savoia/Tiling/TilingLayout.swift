@@ -7,7 +7,7 @@ import SwiftUI
 /// One tab — or two of them, shown side by side. Two is the ceiling.
 nonisolated struct TilingColumn: Identifiable, Hashable, Sendable, Codable {
     /// The column's own identity, and deliberately not its tab's: a pair that loses a half is the
-    /// same column, and a `WebView` built twice over one `WebPage` traps.
+    /// same column, and a front shows a page's view in one place at a time.
     var id = UUID()
     /// The window on the left, and the only one unless the column is split.
     var tabID: UUID
@@ -195,7 +195,7 @@ final class TilingLayout {
     }
 
     /// Changes made in here are not animated, whatever the caller is animating: a tab moving
-    /// between workspaces would otherwise be built twice over one `WebPage`, which traps in WebKit.
+    /// between workspaces would otherwise be shown twice, and a page's view can be in one place.
     private func unanimated(_ body: () -> Void) {
         withTransaction(Transaction(animation: nil), body)
     }

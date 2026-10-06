@@ -15,8 +15,7 @@ import Foundation
 /// **The function never leaves the page.** `registerTool` keeps `execute` in a closure here and
 /// sends Swift the description. A call is Swift asking the polyfill to start the tool and the
 /// polyfill posting the answer back over the same channel — two moves rather than one, because a
-/// tool is asynchronous and `WebPage.callJavaScript` has never been measured to wait on a promise
-/// (CLAUDE.md: no `await` in its bodies). Posting back works the same on every engine Savoia runs on,
+/// tool is asynchronous, and posting back works the same on every engine Savoia runs on,
 /// so the Windows front's self-test drives exactly the path the Mac takes.
 nonisolated enum WebMCPScript {
     /// The channel's name — different every launch, so a page cannot count on finding it.

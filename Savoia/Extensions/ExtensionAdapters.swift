@@ -6,13 +6,8 @@ import WebKit
 /// should not learn the extension protocol, and WebKit identifies a tab by object identity, so the
 /// store hands out one adapter per window and keeps it (`ExtensionStore.adapter(for:)`).
 ///
-/// **`webView(for:)`, on macOS, through the same door keyboard focus already uses.** `WebPage` hands
-/// out no `WKWebView` of its own, but `WebViewResponder` already has one on file per tab — found by
-/// walking the rendered view tree for `is WKWebView` and matched by frame containment, not by
-/// `Mirror`-ing into `WebPage`'s private storage (which was tried, works, and stays unused: a
-/// property Apple renames next OS is invisible to the type checker). The phone has no equivalent
-/// yet, so it keeps answering `nil`. What this closes, and what stayed closed the other way, is
-/// measured in [docs/extensions.md](../../docs/extensions.md).
+/// `webView(for:)` answers with the tab's own view, when it has one. What that closes is measured
+/// in [docs/extensions.md](../../docs/extensions.md).
 ///
 /// Everything here reads the window rather than its page — `tab.currentURL`, `tab.title` — because
 /// asking `BrowserTab` for its page builds one, and an extension listing tabs must not wake a

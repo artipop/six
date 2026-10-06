@@ -5,9 +5,8 @@ import Foundation
 /// `getSelection` or an input's value getter and hand the model something the person never typed —
 /// the same reason the readable-page extractor and the highlighter live there.
 ///
-/// Function bodies called through `WebPage.savoia(_:arguments:)`, and synchronous: `callJavaScript`
-/// is not `callAsyncJavaScript` and an `await` in the body fails at parse time. Nothing here is
-/// installed in a page ahead of time (docs/page-scripts.md).
+/// Function bodies called through `WKWebView.savoia(_:arguments:)`. Nothing here is installed in a
+/// page ahead of time (docs/page-scripts.md).
 nonisolated enum PageFocusScript {
 
     /// Never read, never posted, never sent anywhere: a password, a one-time code, a card number.

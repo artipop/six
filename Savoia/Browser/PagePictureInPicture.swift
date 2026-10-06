@@ -7,9 +7,8 @@ import WebKit
 /// WebKit's, and the browser's whole job is to turn it on. Turning it on is the problem. The
 /// preference is real and exists on macOS (`WKPreferencesSetAllowsPictureInPictureMediaPlayback` is
 /// exported by the framework), but the only public way to reach it is
-/// `WKWebViewConfiguration.allowsPictureInPictureMediaPlayback`, which is declared for iOS alone, and
-/// `WebPage.Configuration` has no field for it at all. Off is the default, and off is silent in
-/// exactly the way element fullscreen was before `.webViewElementFullscreenBehavior(.enabled)`: no
+/// `WKWebViewConfiguration.allowsPictureInPictureMediaPlayback`, which is declared for iOS alone.
+/// Off is the default, and off is silent: no
 /// button in WebKit's media controls, `video.webkitSupportsPresentationMode('picture-in-picture')`
 /// false, and `video.requestPictureInPicture()` rejecting with `NotSupportedError — The video element
 /// does not support the Picture-in-Picture mode`. Measured on a plain `<video>` through Savoia's own MCP
@@ -25,12 +24,8 @@ import WebKit
 ///   then sees is the low byte of an address, which is whatever the allocator felt like.
 ///   `setValue(_:forKey:)` looks for `set<Key>:` and then `_set<Key>:`, and boxes the number
 ///   properly. With `perform` the preference read back false and stayed false.
-/// * **The `WKWebView` comes from `WebViewResponder`**, the one door Savoia has to it: the view a pane
-///   finds in its own hierarchy, handed to `allowPictureInPicture(on:)` through `onWebViewFound` and
-///   asked for by tab id everywhere else. It used to be `Mirror` into `WebPage`'s lazy storage under
-///   the compiler's own label — that worked, and was a second door with a failure the type checker
-///   never sees. The one door costs timing: the preference is set when a pane first shows the page,
-///   not when the page is built, which is still before anything in it could ask to float.
+/// * **It is set as the tab makes its view** (`BrowserTab.materialize`), before anything in the
+///   page could ask to float.
 ///
 /// **On iOS there is nothing to turn on.** `allowsPictureInPictureMediaPlayback` is public there and
 /// documented as on by default, and `_isPictureInPictureActive` is a macOS `WKWebView`'s, so the

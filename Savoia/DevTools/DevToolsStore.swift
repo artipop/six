@@ -4,7 +4,7 @@ import WebKit
 
 /// Developer tools, in the two shapes they can take in a browser that is not Safari.
 ///
-/// **Web Inspector.** `WebPage.isInspectable` is all it takes: with it on, Safari's Develop menu
+/// **Web Inspector.** `WKWebView.isInspectable` is all it takes: with it on, Safari's Develop menu
 /// lists Savoia and its windows, and the real inspector attaches to them. Off by default, because an
 /// inspectable page is one any other process on the machine can attach to.
 ///

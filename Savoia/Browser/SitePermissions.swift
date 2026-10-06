@@ -53,7 +53,7 @@ enum SitePermission: String, Codable, CaseIterable, Sendable, Identifiable {
 /// What the user answered when a site asked for the camera, the microphone or the motion sensors —
 /// and, while a question is on screen, the question itself.
 ///
-/// **Why Savoia answers at all.** A `WebPage` left alone answers `.prompt`: WebKit puts up a popover of
+/// **Why Savoia answers at all.** A web view left alone answers `.prompt`: WebKit puts up a popover of
 /// its own, the site gets its answer, and nothing is written down — so the same site asks again on
 /// every load, and there is nowhere to take an answer back. Deciding the request ourselves is what
 /// buys the memory and the undo; the bar under the window's title bar is the price.
@@ -140,7 +140,7 @@ final class SitePermissions {
     /// can be closed while its bar is still up, and a continuation resumed twice is a crash.
     ///
     /// A closure rather than the continuation itself, because there are two ways back. Apple's front
-    /// suspends the page inside `deviceSensorAuthorization` and wants the continuation resumed;
+    /// suspends the page inside its UI delegate and wants the continuation resumed;
     /// WebKitGTK keeps the request object and wants a call later. Both are "hand this answer over
     /// once", so both are this.
     fileprivate final class Pending {

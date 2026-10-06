@@ -8,7 +8,7 @@ import Foundation
 ///
 /// In `SavoiaCore` because the script is plain JavaScript and every front can run one: the fronts
 /// that are not the Mac hand it over as a `PageScriptRunner`, the same seam translation walks a
-/// page through, and the Mac's off-screen `WebPage` in `ReadablePage+WebPage.swift`. One script
+/// page through, and the Mac's off-screen web view in `ReadablePage+WebView.swift`. One script
 /// is the point — a page saved on two machines has to be cut into the same passages, and Android's
 /// `ReadablePageScriptTest` reads the literal below out of this file to hold its copy to it.
 nonisolated struct ReadablePage: Decodable, Sendable {

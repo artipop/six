@@ -2,7 +2,7 @@ import SwiftUI
 
 /// What a window shows when the page did not load.
 ///
-/// It used to show nothing. `WebPage` has no error page of its own — the one you know from Safari
+/// It used to show nothing. A web view has no error page of its own — the one you know from Safari
 /// belongs to Safari, not to WebKit — so a failed provisional navigation left the window exactly as
 /// it was: white, titled with the host, and completely silent about why. Reported as "alfabank.ru
 /// doesn't open from a Google search", which is what it looks like from the other side.

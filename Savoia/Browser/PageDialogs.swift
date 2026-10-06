@@ -6,7 +6,7 @@ import WebKit
 /// The four dialogs a page can put up: `alert()`, `confirm()`, `prompt()`, and the file picker
 /// behind `<input type="file">`.
 ///
-/// A `WebPage` with no presenter answers all four itself, and its answer is always no — alerts
+/// A web view whose delegate has no method for them answers all four itself, and its answer is always no — alerts
 /// vanish unseen, `confirm()` returns false, and the file picker never opens. That is not a policy,
 /// it is a browser that quietly cannot upload a file, which is why Savoia presents them.
 ///

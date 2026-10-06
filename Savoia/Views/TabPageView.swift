@@ -69,10 +69,8 @@ struct TabPageView: View {
                 .allowsHitTesting(!capturesClicks)
                 .overlay { if capturesClicks { ClickCatcher(action: activate) } }
         } else if let page = tab.livePage {
-            // Identified by the page: a tab whose page was discarded and built again is showing a
-            // different `WebPage`, and the view has to be built again with it.
+            // A page discarded and built again is another view, and gets another host.
             PageHost(view: page)
-                // WebKit's default is off on macOS, which left YouTube's fullscreen button dead.
                 .id(tab.generation)
                 .onAppear(perform: tab.resumeIfNeeded)
                 .overlay {

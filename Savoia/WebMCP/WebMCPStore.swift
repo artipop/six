@@ -98,8 +98,7 @@ final class WebMCPStore {
         isEnabled ? host.tools(in: windowID) : []
     }
 
-    /// A navigation committed. `WebPage`'s navigation events arrive through an async sequence, late
-    /// enough that the new page has often announced its tools already — which is why this asks the
+    /// A navigation committed. The new page may have announced its tools already, so this asks the
     /// page rather than clearing (`WebMCPHost.pageNavigated`).
     func noteNavigation(_ windowID: UUID) {
         guard isEnabled else { return }
@@ -175,8 +174,8 @@ private final class WebMCPMessageHandler: NSObject, WKScriptMessageHandlerWithRe
     }
 }
 
-/// A frame of a page, reached through the `WKWebView` its message came from: WebPage has no way
-/// to run code in one frame, `callAsyncJavaScript(in:)` does, cross-origin frames included.
+/// A frame of a page, reached through the `WKWebView` its message came from:
+/// `callAsyncJavaScript(in:)` runs code in one frame, cross-origin frames included.
 @MainActor
 private final class WebMCPFrameHandle: WebMCPFrame {
     let frame: WKFrameInfo

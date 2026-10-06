@@ -1,6 +1,6 @@
 import Foundation
 
-/// The page-side half of highlights, run through `WebPage.savoia` (`callJavaScript` in Savoia's own content
+/// The page-side half of highlights, run through `WKWebView.savoia` (`callAsyncJavaScript` in Savoia's own content
 /// world — see `PageScripts.swift`) as function bodies. One library string is prepended to each entry
 /// point; the globals it keeps (`__savoiaHighlight`, `__savoiaRanges`, `__savoiaSheet`) live in that world, out
 /// of the page's sight. Nothing of the page's is touched except the highlight registry (`CSS.highlights`,

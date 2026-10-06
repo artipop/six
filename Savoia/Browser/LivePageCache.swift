@@ -4,7 +4,7 @@ import WebKit
 
 /// How many pages the app keeps live, and which ones.
 ///
-/// A `WebPage` is not a data structure: it is a web content process with a JavaScript heap, a render
+/// A tab's web view is not a data structure: it is a web content process with a JavaScript heap, a render
 /// tree, timers and a compositor of its own — tens to a couple of hundred megabytes each. A strip of
 /// a hundred windows cannot hold a hundred of them, and the ones that are not on screen are paying
 /// for nothing.
@@ -147,7 +147,7 @@ final class LivePageCache {
 
     /// Builds the focused window's page — once the focus has stopped moving.
     ///
-    /// Building is not free and it is not asynchronous: `WebPage()` is a web content process being
+    /// Building is not free and it is not asynchronous: making the view is a web content process being
     /// attached, measured here at 6–250 ms on the main actor, and the load that follows it is more.
     /// Doing that inside the click that moved the focus is a third of a second of stuck button, and
     /// ⌘⇧] held across ten tabs would pay it ten times. So the focus is allowed to settle first, and

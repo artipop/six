@@ -112,7 +112,7 @@ extension String {
 /// Translating a page, from the first look at it to putting it back.
 ///
 /// It knows nothing about WebKit and nothing about Apple: pages arrive as `PageScriptRunner`, words
-/// leave through `PageTranslating`. That is what lets the same machine drive a `WebPage` on the Mac,
+/// leave through `PageTranslating`. That is what lets the same machine drive a `WKWebView` on the Mac,
 /// a `WebKitWebView` on Linux and — once it is Kotlin — a `WebView` on Android.
 ///
 /// The source language is *not* decided here. Detecting it is genuinely per-platform

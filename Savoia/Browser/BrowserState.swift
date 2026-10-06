@@ -18,7 +18,7 @@ final class BrowserState {
 
     /// Scrollable-tiling layout: the focused column here is the selected tab.
     let layout = TilingLayout()
-    /// The app-wide budget for live `WebPage`s — one queue across every profile and every workspace,
+    /// The app-wide budget for live web views — one queue across every profile and every workspace,
     /// which is what makes stepping out of a workspace and back cheap. See `LivePageCache`.
     let pages = LivePageCache()
     /// The pictures of the tabs, kept as files so the ⌃Tab ring is not blank after a relaunch.
@@ -1053,8 +1053,8 @@ final class BrowserState {
         selectedProfileID = profile.id
         layout.activeProfileID = profile.id
         // Unanimated, for the reason `TilingLayout.unanimated` gives: the column leaves one strip and
-        // joins another in the same update, and a removal transition would leave two `WebView`s over
-        // the one `WebPage` this window is about to build — which traps inside WebKit's SwiftUI half.
+        // joins another in the same update, and a removal transition would leave two hosts over
+        // the one web view this window is about to build.
         withTransaction(Transaction(animation: nil)) {
             layout.removeColumn(tabID: id, from: source)
             layout.insertColumn(tabID: id, in: profile.id, focus: true)

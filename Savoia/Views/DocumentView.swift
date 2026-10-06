@@ -2,7 +2,7 @@ import SwiftUI
 import WebKit
 
 /// A document column: the Markdown source in a text editor, or the rendered preview in the tab's
-/// own `WebPage`. The two swap in place — the column stays — and the preview page is also what
+/// own web view. The two swap in place — the column stays — and the preview page is also what
 /// exports the document as HTML or PDF.
 struct DocumentView: View {
     let tab: BrowserTab

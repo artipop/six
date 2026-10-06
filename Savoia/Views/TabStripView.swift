@@ -30,8 +30,8 @@ struct TabbedWindowView: View {
                 Group {
                     if browser.selectedTab != nil {
                         // The tab in front, or both halves of the split it is in. One `ForEach` by tab
-                        // either way, so a tab joining or leaving a split keeps its view — the page
-                        // under it is a `WebPage`, and two views over one of those trap in WebKit.
+                        // either way, so a tab joining or leaving a split keeps its view: a web view
+                        // can be in one host at a time.
                         HStack(spacing: 1) {
                             ForEach(shown, id: \.self) { id in
                                 if let tab = browser.tab(id) {

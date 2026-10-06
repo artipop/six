@@ -49,9 +49,7 @@ struct SavoiaApp: App {
     @State private var blocker: ContentBlocker
     #if os(macOS)
     /// `WKWebExtension` is Apple's API, and iOS could in principle host it (iOS 18.4+) — but nothing
-    /// here has a `WKWebView` per tab to give a content script back its background
-    /// (`docs/extensions.md`), and the phone gained no `WebViewResponder`-style view-tree walk to
-    /// change that. A half-working host with no UI to reach it is worse than none, so it stays a
+    /// has been built or measured on the phone (`docs/extensions.md`). A half-working host with no UI to reach it is worse than none, so it stays a
     /// Mac's — the same call already made for the agent layer and deep research above.
     @State private var extensions: ExtensionStore
     #endif
@@ -291,8 +289,7 @@ struct SavoiaApp: App {
     var body: some Scene {
         // A `Window`, not a `WindowGroup`: Savoia is one window, and the difference is not cosmetic.
         // A group lets SwiftUI answer an external open — a Handoff tile, a link from another app — by
-        // building a second window, which puts the same `WebPage`s into a second `WebView`; WebKit
-        // traps on that. A `Window` scene has nowhere to build, so SwiftUI raises the one that is up.
+        // building a second window, and a tab's web view cannot be in two. A `Window` scene has nowhere to build, so SwiftUI raises the one that is up.
         Window("Savoia", id: "main") {
             ContentView()
                 .environment(browser)

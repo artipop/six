@@ -96,7 +96,7 @@ protocol PageTranslating: AnyObject {
 /// The one thing the state machine needs from a web engine: run this function body in the browser's
 /// own world and hand back what it returned.
 ///
-/// On Apple this is `WebPage.savoia(_:arguments:)` in a line. On Linux it is
+/// On Apple this is `BrowserTab.runScript`, a line over `WKWebView`. On Linux it is
 /// `webkit_web_view_call_async_javascript_function` (`LivePage`), on Windows
 /// `WKPageCallAsyncJavaScript` (`StripScript`) — and `ReadablePage` reads a bookmark's text through
 /// the same seam, so it is not a cost this feature invents.

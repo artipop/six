@@ -2,7 +2,7 @@ import AppKit
 import Foundation
 
 /// The addresses Savoia does not open itself: `magnet:`, `mailto:`, `tel:`, whatever an installed app
-/// has claimed. A `WebPage` asked to load one does nothing at all — no error, no page, no sign that
+/// has claimed. A web view asked to load one does nothing at all — no error, no page, no sign that
 /// the click was even seen — so every route that can produce a URL asks this first and hands the
 /// ones that are not Savoia's to the system: the navigation decider, the address bar, and the column a
 /// `target=_blank` would have opened.

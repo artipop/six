@@ -1,7 +1,7 @@
 import Foundation
 import WebKit
 
-/// Search results for an agent, fetched the way the browser would fetch them: a `WebPage` of its own,
+/// Search results for an agent, fetched the way the browser would fetch them: a web view of its own,
 /// off screen, with no window and no profile behind it.
 ///
 /// The source is DuckDuckGo's HTML endpoint — the no-JavaScript version of the result page, whose

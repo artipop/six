@@ -1,7 +1,7 @@
 import Foundation
 
 /// The page-side half of the acting tools (`page_snapshot`, `click`, `fill`, `select_option`,
-/// `press_key`, `scroll_page`), run through `WebPage.savoia` — Savoia's own content world, so a page cannot
+/// `press_key`, `scroll_page`), run through `WKWebView.savoia` — Savoia's own content world, so a page cannot
 /// redefine `querySelectorAll` or a getter to show the agent a button a person does not see, and
 /// cannot reach the registry below to aim a click somewhere else.
 ///

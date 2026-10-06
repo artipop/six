@@ -409,7 +409,7 @@ final class BrowserTab: Identifiable {
     }
 
     /// Why the last navigation stopped, when it stopped — and nil the rest of the time, which is
-    /// almost always. Set from the navigation feed, cleared by the next load.
+    /// almost always. Set by the navigation delegate, cleared by the next load.
     private(set) var loadFailure: LoadFailure?
 
     /// A load that did not happen, in the terms a person can act on: where it was going, what the
@@ -714,7 +714,7 @@ final class BrowserTab: Identifiable {
             if mediaHold == .loading { mediaHold = .shown }
             hasCommitted = true
             savedURL = page.url ?? savedURL
-            // Redirects and history moves never go through the decider.
+            // Redirects and history moves never ask the delegate for a policy.
             blocker?.note(id, showing: page.url)
             extensions?.noteChanged(self, [.URL, .loading])
             // What was captured belonged to the page being left, and so did what was selected in it
@@ -753,7 +753,7 @@ final class BrowserTab: Identifiable {
     /// What a failed load leaves behind: a sentence, and whether Savoia has an answer to it.
     private func noteFailure(_ error: any Error) {
         let failure = error as NSError
-        // Cancelled is not a failure. `stop()` looks like this, and so does the decider sending a
+        // Cancelled is not a failure. `stop()` looks like this, and so does the delegate sending a
         // request somewhere else — a `target=_blank` link becoming a window of its own, a response
         // becoming a download — which is a navigation that succeeded elsewhere.
         if failure.domain == NSURLErrorDomain, failure.code == NSURLErrorCancelled { return }
