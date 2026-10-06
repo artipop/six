@@ -63,7 +63,7 @@ final class ExtensionTabAdapter: NSObject, WKWebExtensionTab {
     }
 
     func reload(fromOrigin: Bool, for context: WKWebExtensionContext) async throws {
-        _ = tab.page.reload()
+        if fromOrigin { tab.reloadFromOrigin() } else { tab.reload() }
     }
 
     func goBack(for context: WKWebExtensionContext) async throws { tab.goBack() }

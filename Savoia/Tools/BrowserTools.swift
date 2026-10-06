@@ -559,7 +559,7 @@ final class BrowserToolCatalog {
             parameters: [Self.windowID, .init(name: "max_chars", description: "Truncate the listing to this many characters (default 20000).", type: .integer)],
             run: { [unowned self] args in
                 let tab = try self.webTab(args)
-                await Self.waitForLoad(tab)
+                await tab.loadSettled()
                 let (unsupported, blocks) = try await self.pageBlocks(tab)
                 if let unsupported { throw BrowserTool.Failure(message: unsupported) }
                 let limit = max(500, args["max_chars"]?.intValue ?? 20_000)
@@ -648,7 +648,7 @@ final class BrowserToolCatalog {
             surfaces: .mcp,
             run: { [unowned self] args in
                 let tab = try self.actingTab(args)
-                await Self.waitForLoad(tab)
+                await tab.loadSettled()
                 return try await self.snapshotText(tab, args)
             }
         ),
@@ -744,7 +744,7 @@ final class BrowserToolCatalog {
             run: { [unowned self] args in
                 let tab = try self.actingTab(args)
                 guard let goal = args["goal"]?.stringValue, !goal.isEmpty else { throw BrowserTool.Failure(message: "goal is required") }
-                await Self.waitForLoad(tab)
+                await tab.loadSettled()
                 #if os(macOS)
                 let runner = PageTaskRunner(settings: self.assistant, agentSession: self.agentSession, webMCP: self.webMCP)
                 #else
@@ -768,7 +768,7 @@ final class BrowserToolCatalog {
             run: { [unowned self] args in
                 let tab = try self.actingTab(args)
                 let timeout = TimeInterval(min(max(1, args["timeout"]?.intValue ?? 10), 60))
-                await Self.waitForLoad(tab, timeout: timeout)
+                await tab.loadSettled(timeout: timeout)
                 var summary = "The page settled."
                 if let text = args["text"]?.stringValue, !text.isEmpty {
                     let found = await PageActions.wait(for: text, in: tab, timeout: timeout)
@@ -797,7 +797,7 @@ final class BrowserToolCatalog {
 
     private func act(_ args: ACPJSON, _ script: String, _ extra: [String: Any]) async throws -> String {
         let tab = try actingTab(args)
-        if tab.isLoading { await Self.waitForLoad(tab) }
+        await tab.loadSettled()
         var arguments = extra
         arguments["ref"] = args["ref"]?.stringValue ?? ""
         let result: [String: Any]
@@ -1069,7 +1069,7 @@ final class BrowserToolCatalog {
         let tab = try webTab(args)
         guard let raw = args["url"]?.stringValue, let url = URL.fromUserInput(raw) else { throw BrowserTool.Failure(message: "url is required") }
         tab.load(url)
-        await Self.waitForLoad(tab)
+        await tab.loadSettled()
         return "\(Self.describe(tab))" + (tab.isLoading ? " (still loading)" : "")
     }
 
@@ -1207,7 +1207,7 @@ final class BrowserToolCatalog {
 
     private func screenshot(_ args: ACPJSON) async throws -> String {
         let tab = try webTab(args, allowsApps: true)
-        await Self.waitForLoad(tab)
+        await tab.loadSettled()
         // The whole page, not the part on screen — a screenshot of a column is not what was asked for.
         guard let data = try? await tab.page.exported(as: .image(region: .contents, snapshotWidth: 1200)) else {
             throw BrowserTool.Failure(message: "Could not take a picture of this window.")
@@ -1225,7 +1225,7 @@ final class BrowserToolCatalog {
         let tab = try webTab(args)
         guard !tab.showsStartPage else { return "\(Self.describe(tab))\n\nThis window shows Savoia's start page; there is no web page to read." }
         #if os(macOS)
-        await Self.waitForLoad(tab)
+        await tab.loadSettled()
         let placed = try await AccessibilityOverlay.shared.read(tab)
         let limit = min(max(20, args["max_nodes"]?.intValue ?? 400), 2000)
         let derived = DerivedPageTools(placed.nodes)
@@ -1253,7 +1253,7 @@ final class BrowserToolCatalog {
         }
         let limit = max(200, args["max_chars"]?.intValue ?? 20_000)
         guard !tab.showsStartPage else { return "\(Self.describe(tab))\n\nThis window shows Savoia's start page; nothing is loaded yet." }
-        await Self.waitForLoad(tab)
+        await tab.loadSettled()
         let text = await Self.pageText(of: tab.page) ?? ""
         let truncated = text.count > limit ? String(text.prefix(limit)) + "\n…[truncated, \(text.count) characters in total]" : text
         return "\(Self.describe(tab))\n\n\(truncated)"
@@ -1285,7 +1285,7 @@ final class BrowserToolCatalog {
     private func pageLinks(_ args: ACPJSON) async throws -> String {
         let tab = try webTab(args)
         let limit = max(1, args["max_links"]?.intValue ?? 200)
-        await Self.waitForLoad(tab)
+        await tab.loadSettled()
         let script = """
             return Array.from(document.querySelectorAll('a[href]'))
                 .map(a => [a.innerText.trim().replace(/\\s+/g, ' ').slice(0, 120), a.href])
@@ -1300,7 +1300,7 @@ final class BrowserToolCatalog {
     private func summarize(_ args: ACPJSON) async throws -> String {
         let tab = try webTab(args)
         guard !tab.showsStartPage else { throw BrowserTool.Failure(message: "This window shows the start page; nothing to summarize") }
-        await Self.waitForLoad(tab)
+        await tab.loadSettled()
         let limit = assistant.model == .onDevice ? 6_000 : 24_000
         guard let text = await Self.pageText(of: tab.page, limit: limit) else { throw BrowserTool.Failure(message: "The page has no readable text") }
         let session = try assistant.makeSession(instructions: """
@@ -1381,7 +1381,7 @@ final class BrowserToolCatalog {
         let tab = try webTab(args)
         guard let url = tab.currentURL else { throw BrowserTool.Failure(message: "Nothing is loaded in this window") }
         guard !browser.isPrivate(tab.profileID) else { throw BrowserTool.Failure(message: "This window is in private browsing; highlights are not kept there — cite the URL instead") }
-        await Self.waitForLoad(tab)
+        await tab.loadSettled()
         let (unsupported, blocks) = try await pageBlocks(tab)
         if let unsupported { throw BrowserTool.Failure(message: unsupported) }
         guard !blocks.isEmpty else { throw BrowserTool.Failure(message: "The page has no paragraphs to highlight") }
@@ -1465,16 +1465,6 @@ final class BrowserToolCatalog {
     private static func describe(_ tab: BrowserTab) -> String {
         if let document = tab.document { return "\(document.title) <savoia://document/\(document.id.uuidString)> [\(tab.id.uuidString)]" }
         return "\(tab.title) <\(tab.showsStartPage ? "about:start" : tab.currentURL?.absoluteString ?? "")> [\(tab.id.uuidString)]"
-    }
-
-    /// Lets a navigation settle before reading the page, bounded so a spinner never blocks an agent.
-    private static func waitForLoad(_ tab: BrowserTab, timeout: TimeInterval = 15) async {
-        let deadline = Date().addingTimeInterval(timeout)
-        // A fresh `load` flips `isLoading` on a tick later; give it a moment.
-        try? await Task.sleep(for: .milliseconds(150))
-        while tab.isLoading, Date() < deadline {
-            try? await Task.sleep(for: .milliseconds(100))
-        }
     }
 
     static func pageText(of page: WebPage, limit: Int = 200_000) async -> String? {

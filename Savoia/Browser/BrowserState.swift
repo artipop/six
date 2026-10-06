@@ -1095,7 +1095,7 @@ final class BrowserState {
         guard let blocker, let url = tab.currentURL else { return }
         blocker.setAllowed(allowed, for: url)
         blocker.note(tab.id, showing: url)
-        _ = tab.page.reload()
+        tab.reload()
     }
 
     /// `remembering` is false only for a window the browser closes on the user's behalf rather than at

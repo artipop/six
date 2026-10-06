@@ -168,7 +168,7 @@ final class BookmarkStore {
         guard let profile = profile(tab.profileID) else { throw Failure("Unknown profile") }
         guard !profile.isPrivate else { throw Failure("Private browsing keeps no bookmarks") }
         tab.resumeIfNeeded()
-        await Self.waitForLoad(tab)
+        await tab.loadSettled()
         let readable = try await ReadablePage.extract(from: tab.page)
         let existing = bookmark(for: url, in: profile.id)
         return try await store(readable, url: url, fallbackTitle: tab.title, profile: profile, existing: existing, refreshed: existing != nil)
@@ -299,12 +299,7 @@ final class BookmarkStore {
         if let dataStore { configuration.websiteDataStore = dataStore }
         configuration.applicationNameForUserAgent = UserAgent.applicationName
         let page = WebPage(configuration: configuration)
-        page.load(URLRequest(url: url))
-        let deadline = Date().addingTimeInterval(refreshTimeout)
-        try? await Task.sleep(for: .milliseconds(300))
-        while page.isLoading, Date() < deadline {
-            try? await Task.sleep(for: .milliseconds(200))
-        }
+        await page.loadAndSettle(URLRequest(url: url), timeout: refreshTimeout)
         guard !page.isLoading else { throw Failure("Timed out loading \(url.host() ?? url.absoluteString)") }
         try? await Task.sleep(for: .seconds(1))
         return try await ReadablePage.extract(from: page)
@@ -648,14 +643,6 @@ final class BookmarkStore {
             revision += 1
         } catch {
             Log.error(.bookmarks, "write failed: \(error)")
-        }
-    }
-
-    private static func waitForLoad(_ tab: BrowserTab, timeout: TimeInterval = 15) async {
-        let deadline = Date().addingTimeInterval(timeout)
-        try? await Task.sleep(for: .milliseconds(150))
-        while tab.isLoading, Date() < deadline {
-            try? await Task.sleep(for: .milliseconds(100))
         }
     }
 }

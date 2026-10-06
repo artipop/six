@@ -441,6 +441,9 @@ final class BrowserTab: Identifiable {
     /// Committed navigations go here (the profile's history); set by `BrowserState`.
     @ObservationIgnored var onNavigation: ((BrowserTab, NavigationOutcome) -> Void)?
     @ObservationIgnored private var navigationTask: Task<Void, Never>?
+    /// A navigation was asked for and has not ended; `isLoading` rises a tick after the asking.
+    @ObservationIgnored private var awaitsNavigation = false
+    @ObservationIgnored private var loadWaiters: [UUID: CheckedContinuation<Void, Never>] = [:]
 
     enum NavigationOutcome { case committed, finished }
 
@@ -642,6 +645,7 @@ final class BrowserTab: Identifiable {
         if !showsStartPage, isWebPage, let url = page.url { pendingURL = url }
         navigationTask?.cancel()
         navigationTask = nil
+        settleLoads()
         // A question belongs to the page that asked it. This one is going.
         permissions?.forget(id)
         page.stopLoading()
@@ -658,6 +662,7 @@ final class BrowserTab: Identifiable {
     /// The tab is closing: stop the page and the navigation feed for good.
     func close() {
         navigationTask?.cancel()
+        settleLoads()
         onNavigation = nil
         onDocumentLink = nil
         onNewWindow = nil
@@ -736,6 +741,7 @@ final class BrowserTab: Identifiable {
                 let outcome = await Self.observe(page) { [weak self] event in
                     self?.apply(event, of: page)
                 }
+                self?.settleLoads()
                 guard let self, self.livePage === page, !Task.isCancelled else { return }
                 guard case .failed(let error) = outcome else { return }
                 self.noteFailure(error)
@@ -820,6 +826,7 @@ final class BrowserTab: Identifiable {
             savedTitle = page.title
             extensions?.noteChanged(self, [.title, .loading])
             onNavigation?(self, .finished)
+            settleLoads()
             // Only to give a window that has never been drawn something to show. The picture that
             // matters is taken when it leaves the screen; taking one after every load would be the
             // most frequent trigger and the least useful one, since a page that just loaded is a
@@ -863,6 +870,7 @@ final class BrowserTab: Identifiable {
     /// empty one) the window walks the addresses it kept across the discard.
     func goBack() {
         if let item = livePage?.backForwardList.backList.last {
+            awaitsNavigation = true
             _ = livePage?.load(item)
             return
         }
@@ -873,6 +881,7 @@ final class BrowserTab: Identifiable {
 
     func goForward() {
         if let item = livePage?.backForwardList.forwardList.first {
+            awaitsNavigation = true
             _ = livePage?.load(item)
             return
         }
@@ -892,12 +901,14 @@ final class BrowserTab: Identifiable {
     /// would build a web view for a window that is text Savoia is holding.
     func reload() {
         guard canReload else { return }
+        awaitsNavigation = true
         _ = page.reload()
     }
 
     /// The reload that does not believe the cache — everything is asked of the network again.
     func reloadFromOrigin() {
         guard canReload else { return }
+        awaitsNavigation = true
         _ = page.reload(fromOrigin: true)
     }
 
@@ -963,6 +974,7 @@ final class BrowserTab: Identifiable {
         savedState = nil
         let page = beginResume()
         LivePageCache.log("resumed \(title) by its address")
+        awaitsNavigation = true
         _ = page.load(URLRequest(url: url))
     }
 
@@ -975,6 +987,7 @@ final class BrowserTab: Identifiable {
         stateWait = nil
         savedState = nil
         beginResume()
+        awaitsNavigation = true
         view.interactionState = state
         LivePageCache.log("resumed \(title) from its session state")
         // WebKit's own list has these again, so the addresses kept for them would be walked twice.
@@ -1019,7 +1032,33 @@ final class BrowserTab: Identifiable {
         stateWait?.cancel()
         stateWait = nil
         loadStartedAt = Date()
+        awaitsNavigation = true
         _ = page.load(URLRequest(url: url))
+    }
+
+    /// A document's preview, rendered again.
+    func load(html: String, baseURL: URL) {
+        awaitsNavigation = true
+        _ = page.load(html: html, baseURL: baseURL)
+    }
+
+    /// Waits for the navigation under way to end, or for the ceiling.
+    func loadSettled(timeout: TimeInterval = 15) async {
+        guard awaitsNavigation || isLoading else { return }
+        let key = UUID()
+        let ceiling = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(timeout))
+            self?.loadWaiters.removeValue(forKey: key)?.resume()
+        }
+        await withCheckedContinuation { loadWaiters[key] = $0 }
+        ceiling.cancel()
+    }
+
+    private func settleLoads() {
+        awaitsNavigation = false
+        let waiting = loadWaiters
+        loadWaiters = [:]
+        waiting.values.forEach { $0.resume() }
     }
 
     func navigate(to input: String) {

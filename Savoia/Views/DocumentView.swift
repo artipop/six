@@ -49,7 +49,7 @@ struct DocumentView: View {
         let html = Markdown.page(title: document.title, markdown: document.text)
         guard force || html != rendered else { return }
         rendered = html
-        _ = tab.page.load(html: html, baseURL: URL(string: "savoia://document/\(document.id.uuidString)/")!)
+        tab.load(html: html, baseURL: URL(string: "savoia://document/\(document.id.uuidString)/")!)
     }
 
     /// Plain `TextEditor` over the source. The agent writes by section and never touches the section

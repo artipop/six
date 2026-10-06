@@ -119,16 +119,15 @@ enum Exporter {
             case .html:
                 return Data(Markdown.page(title: document.title, markdown: document.text).utf8)
             case .pdf:
-                let page = tab.page
                 let html = Markdown.page(title: document.title, markdown: document.text)
                 // The preview may not be loaded (the editor is showing); load it and wait.
-                _ = page.load(html: html, baseURL: URL(string: "savoia://document/\(document.id.uuidString)/")!)
-                await waitForLoad(page)
-                return try await page.exported(as: .pdf())
+                tab.load(html: html, baseURL: URL(string: "savoia://document/\(document.id.uuidString)/")!)
+                await tab.loadSettled()
+                return try await tab.page.exported(as: .pdf())
             }
         }
         tab.resumeIfNeeded()
-        await waitForLoad(tab.page)
+        await tab.loadSettled()
         switch format {
         case .html:
             let source = (try? await tab.page.savoia("return '<!DOCTYPE html>\\n' + document.documentElement.outerHTML")) as? String ?? ""
@@ -170,14 +169,6 @@ enum Exporter {
         }
         return data
     }
-
-    private static func waitForLoad(_ page: WebPage, timeout: TimeInterval = 15) async {
-        let deadline = Date().addingTimeInterval(timeout)
-        try? await Task.sleep(for: .milliseconds(150))
-        while page.isLoading, Date() < deadline {
-            try? await Task.sleep(for: .milliseconds(100))
-        }
-    }
 }
 
 /// File menu: documents and saving.
@@ -206,7 +197,7 @@ struct FileCommands: Commands {
             Button("Remove Highlights on This Page") {
                 guard let tab = browser.selectedTab, let url = tab.currentURL else { return }
                 highlights.removeAll(for: url)
-                _ = tab.page.reload()
+                tab.reload()
             }
             .disabled(browser.selectedTab.flatMap(\.currentURL).map { highlights.highlights(for: $0).isEmpty } ?? true)
         }

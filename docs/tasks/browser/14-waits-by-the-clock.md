@@ -4,19 +4,11 @@
 for and stay. Five wait a guessed number of milliseconds for something that has an event. This task replaces three
 of them, in this order, and leaves two.
 
-## 1. A load to end — the one with a race in it
+## 1. A load to end — done
 
-Five copies of one loop: `waitForLoad` in `BrowserTools`, `BookmarkStore` and `Export`, `WebSearch.withLoading`,
-`BookmarkStore.read`. Each sleeps 150 ms (300 in `read`) hoping `isLoading` has risen by then, and polls every
-100 ms after. A load that starts later than the head start reads as already finished, and the tool reads the page
-being left — an agent's `navigate` followed by `get_page_content` is exactly that case.
-
-One helper that waits for the navigation to end (`page.navigations`, `.finished` or a failure), with the timeout
-each caller already has as its ceiling. Mind that `BrowserTab` already has the one subscription to
-`page.navigations` (`watchNavigations`), and the feed throws on a failed load — hang the wait on what `apply`
-sees rather than opening a second subscription.
-
-Reproduce the race before fixing it: a page that starts loading 300 ms after `navigate` returns, on the wpt stand.
+`BrowserTab.loadSettled(timeout:)` and `loadAndSettle` for a page that is no tab's; [timers.md](../../timers.md)
+has it. The race was not reproduced on the wpt stand first: the five loops went in one commit ahead of
+[23](../architecture/23-webpage-or-wkwebview.md), which rewrites the feed they hang on.
 
 ## 2. A highlight to be painted
 

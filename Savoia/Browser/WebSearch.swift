@@ -49,18 +49,9 @@ final class WebSearch {
         // Search engines answer in the language the browser asks for, and an agent looking for tickets
         // from Novosibirsk wants the sites a person here would get.
         request.setValue(Self.acceptLanguage, forHTTPHeaderField: "Accept-Language")
-        _ = page.load(request)
-        await withLoading()
+        // Bounded: an agent waits for this, and a hanging search must not become a hanging turn.
+        await page.loadAndSettle(request, timeout: 12)
         return (try? await page.savoia(script)) as? [[String: Any]] ?? []
-    }
-
-    /// Bounded: an agent waits for this, and a hanging search must not become a hanging turn.
-    private func withLoading(timeout: TimeInterval = 12) async {
-        let deadline = Date().addingTimeInterval(timeout)
-        try? await Task.sleep(for: .milliseconds(150))
-        while page.isLoading, Date() < deadline {
-            try? await Task.sleep(for: .milliseconds(100))
-        }
     }
 
     private static func results(from rows: [[String: Any]], limit: Int) -> [Result] {
