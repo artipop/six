@@ -4,8 +4,8 @@ import WebKit
 /// own. The page asked for playback of a video nobody pressed play on this time; the answer is a
 /// pause, until the first real click or key press in that frame.
 ///
-/// `WebPage.Configuration` has no `mediaTypesRequiringUserActionForPlayback` on macOS, and a page
-/// setting would hold every later navigation too; this is one script, on one load.
+/// Not `mediaTypesRequiringUserActionForPlayback`: a configuration is for the life of its view, and
+/// that holds every later navigation too; this is one script, on one load.
 /// It runs in Savoia's world: `play` is a DOM event and reaches every world, and the page can neither
 /// see the listener nor take it down.
 enum MediaHold {
