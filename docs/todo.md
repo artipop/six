@@ -26,8 +26,8 @@ own.
 A window opened with `window.open` has its opener, the page's dialogs, an answer about the camera and the
 microphone, and downloads ([links.md](links.md#a-second-window)). It has no history, translation or ⌘E line. And a
 call that asks nothing of the window and names an address is a tab with no opener, where Safari's tab keeps it —
-a `WebPage` tab cannot. The sign-in through a popup was not yet walked through by hand on a real service, and the
-microphone was only refused on the stand, never granted.
+a `WebPage` tab cannot. Sign in with Google through the popup was walked through by hand on Reddit; the microphone
+was only refused on the stand, never granted.
 
 ## Save As: web archives
 
