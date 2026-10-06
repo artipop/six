@@ -80,6 +80,28 @@ enum TestDriver {
                 }
             ),
             BrowserTool(
+                name: "testdriver_view_state",
+                description: "Where the window's web view is: on file, in which window, and the page's fullscreen state.",
+                parameters: [window],
+                surfaces: .mcp,
+                run: { args in
+                    let tab = try tab(args)
+                    let view = WebViewResponder.shared.webView(for: tab.id)
+                    let host = view?.window.map { String(describing: type(of: $0)) } ?? "no window"
+                    let state = tab.livePage.map { "\($0.fullscreenState)" } ?? "no page"
+                    return "view \(view == nil ? "not on file" : "on file"), in \(host), superview \(view?.superview == nil ? "none" : "yes"), fullscreen \(state)"
+                }
+            ),
+            BrowserTool(
+                name: "testdriver_close_windows",
+                description: "Closes the windows pages opened by script.",
+                surfaces: .mcp,
+                run: { _ in
+                    ScriptedPopups.closeAll()
+                    return "ok"
+                }
+            ),
+            BrowserTool(
                 name: "testdriver_delete_all_cookies",
                 description: "Removes every cookie of the window's profile.",
                 parameters: [window],

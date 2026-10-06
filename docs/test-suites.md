@@ -11,7 +11,7 @@ failure there says nothing about Savoia — so each row below names the Savoia c
 `scripts/webmcp-wpt.py` already carries the parts every suite here needs, and the next runner should be cut from it
 rather than written again:
 
-- **wpt, served locally without a hosts file.** A sparse clone in `~/Library/Caches/savoia-wpt`, `wpt serve` with
+- **wpt, served locally without a hosts file** (`webmcp-wpt.py`; the permission runner needs one, below). A sparse clone in `~/Library/Caches/savoia-wpt`, `wpt serve` with
   `browser_host` set to `savoia.localhost`: `*.localhost` resolves to loopback by itself, so `www1.savoia.localhost` and
   `savoia-alt.localhost` are the second and cross-site origins, and the Mac's LAN address is a non-secure one. Plain
   `localhost` does not work — `get-host-info.sub.js` then takes `127.0.0.1` as the remote host, and no certificate
@@ -55,18 +55,13 @@ cannot name a cross-origin child, but it can recognise a message from it — and
 `_grantStorageAccessForTesting:`, and since nothing takes a grant back, `prompt` and `denied` are answered as done.
 An action aimed at another *window* is still `not implemented`.
 
-**The stand's names make every host its own site.** Measured in an iframe with no gesture:
-`document.requestStorageAccess()` resolves when the frame is same-origin and is refused for
-`www1.savoia.localhost` under `savoia.localhost`, as it is for a cross-site frame. WebKit seems to treat each
-`*.localhost` host as a registrable domain of its own, so every test of a "same-site" frame runs as a cross-site
-one here, and differs from Safari on `web-platform.test` for that reason alone. Together with `http://*.localhost`
-being a secure context, this is the cost of a stand that needs no hosts file.
-
-Not replaced: `testharnessreport.js`. wptrunner serves its own, which is where it marks the test window; the
-vendor file here says that instead, so the harness and the tests are wpt's files byte for byte.
-
-`postEvent` goes past the WindowServer, so a key the system owns tests green and does nothing in the hand
-(AGENTS.md).
+**This runner's stand is under wpt's own names**, `web-platform.test` and `not-web-platform.test`, from
+`/etc/hosts` (`./scripts/permissions-wpt.py --hosts | sudo tee -a /etc/hosts`, once), with certificates of its own
+beside `webmcp-wpt.py`'s. `*.localhost` needs no hosts file and costs two things, both measured: plain
+`http://*.localhost` is a secure context, and every `*.localhost` host is a site of its own to WebKit —
+`document.requestStorageAccess()` with no gesture is refused in an iframe on `www1.savoia.localhost` under
+`savoia.localhost` exactly as in a cross-site one, and resolves on `www1.web-platform.test`. Tests of non-secure
+contexts and of same-site frames say nothing there.
 
 ## Browser extensions (MV3)
 

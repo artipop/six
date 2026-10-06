@@ -28,6 +28,11 @@ enum ScriptedPopups {
         return true
     }
 
+    /// Between tests: a window one test left open is not the next one's.
+    static func closeAll() {
+        for popup in popups { popup.window.close() }
+    }
+
     fileprivate static func open(_ configuration: WKWebViewConfiguration, features: WKWindowFeatures,
                                  from opener: WKWebView) -> WKWebView {
         let popup = PopupWindow(configuration: configuration, features: features, opener: opener.window)

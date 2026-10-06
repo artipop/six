@@ -207,6 +207,17 @@ rewrite the root file. `xcodebuild` never touches it — the project holds only 
   code under test. Have Artem click, or send a real click into a throwaway app's window
   ([docs/todo.md](docs/todo.md#geolocation-and-notifications-webkits-c-api-one-header-for-both)).
 
+- **`WebPage.callJavaScript` is a user gesture to WebKit.** After it the page has `userActivation.isActive` and may
+  read the clipboard or open a window; a test stand that polled pages with it had every page activated for a whole
+  run, and results that came and went. `BrowserTab.callWithoutGesture` is the call that is not
+  ([docs/page-scripts.md](docs/page-scripts.md)).
+- **A page nobody can see behaves differently, and a sleeping display hides all of them.** `visibilityState` is
+  `hidden`, `requestFullscreen()` is refused with a `TypeError`. A long unattended run crosses the display-sleep
+  timer; `scripts/permissions-wpt.py` holds the display awake with `caffeinate -d`.
+- **`*.localhost` is not a neutral test host.** Plain http there is a secure context, and each host is a site of
+  its own to WebKit, so "non-secure" and "same-site" tests measure nothing. wpt's own names in `/etc/hosts` are the
+  ones Safari is run on ([docs/test-suites.md](docs/test-suites.md)).
+
 ## How we work
 
 - **Ask before reaching for a hand-written integration.** Search for an existing Swift library first and report what

@@ -8,8 +8,10 @@
     ./scripts/permissions-wpt.py --only getusermedia           # files whose address contains this
     ./scripts/permissions-wpt.py --write-baseline              # after a change that should move the numbers
 
-The stand is webmcp-wpt.py's: `wpt serve` under savoia.localhost with a CA of its own, Savoia driven
-through `Savoia --mcp`. Savoia itself is launched here, in a throwaway home (CFFIXED_USER_HOME) that is
+The stand is webmcp-wpt.py's — `wpt serve` with a CA of its own, Savoia driven through `Savoia --mcp` —
+but under wpt's own names, web-platform.test and not-web-platform.test, which have to be in /etc/hosts
+(`--hosts` prints the lines). Under *.localhost plain http is a secure context and every host is a site
+of its own to WebKit, and the tests of non-secure contexts and same-site frames say nothing. Savoia itself is launched here, in a throwaway home (CFFIXED_USER_HOME) that is
 given the CA, so no answer a site was given before reaches the run and the dev build's state is not
 touched. The list of files and their variants is wpt's own manifest.
 
@@ -30,6 +32,7 @@ import os
 import plistlib
 import re
 import shutil
+import socket
 import sqlite3
 import subprocess
 import sys
@@ -54,6 +57,10 @@ SUPPORT = ["resources", "common", "tools", "interfaces", "fonts", "docs", ".well
 RUNS = "https://wpt.fyi/api/runs?product=safari&label=stable&label=master&max-count=1"
 STATUS = {"OK": "O", "Error": "E", "Timeout": "T", "Precondition Failed": "PF", "NO RESULT": "T"}
 
+HOST = "web-platform.test"
+# wpt's default names, on this stand's ports and with certificates of its own beside webmcp-wpt.py's.
+CONFIG = dict(stand.CONFIG, browser_host=HOST, alternate_hosts={"alt": "not-" + HOST},
+              ssl={"type": "openssl", "openssl": {"duration": 365, "force_regenerate": False, "base_path": "savoia-wpt-certs"}})
 VENDOR = os.path.join(CACHE, "savoia-testdriver")
 
 # What wptrunner's executor does with execute_async_script: take one message off the page's queue.
@@ -100,8 +107,8 @@ def fetch(update):
     elif update:
         subprocess.run(["git", "-C", CACHE, "pull", "-q", "--depth", "1"], check=True)
     subprocess.run(["git", "-C", CACHE, "sparse-checkout", "add", *DIRECTORIES, *SUPPORT], check=True)
-    os.makedirs(os.path.join(CACHE, "savoia-certs"), exist_ok=True)
-    json.dump(stand.CONFIG, open(os.path.join(CACHE, "savoia-config.json"), "w"), indent=1)
+    os.makedirs(os.path.join(CACHE, "savoia-wpt-certs"), exist_ok=True)
+    json.dump(CONFIG, open(os.path.join(CACHE, "savoia-wpt-config.json"), "w"), indent=1)
     subprocess.run(["./wpt", "manifest", "-p", "savoia-MANIFEST.json", "--no-download"], cwd=CACHE,
                    check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return subprocess.run(["git", "-C", CACHE, "rev-parse", "--short", "HEAD"],
@@ -127,13 +134,14 @@ def serve():
     probe = "http://localhost:8000/resources/testdriver-vendor.js"
     try:
         served = urllib.request.urlopen(probe, timeout=2).read()
-        if b"__wptrunner_message_queue" not in served:
-            sys.exit("a wpt serve without the testdriver vendor file is already running; stop it first")
+        named = urllib.request.urlopen("http://localhost:8000/common/get-host-info.sub.js", timeout=2).read()
+        if b"__wptrunner_message_queue" not in served or HOST.encode() not in named:
+            sys.exit("another wpt serve is already running on these ports; stop it first")
         return None
     except OSError:
         pass
     log = open(os.path.join(CACHE, "savoia-serve.log"), "w")
-    process = subprocess.Popen(["./wpt", "serve", "--config", "savoia-config.json", "--alias_file", "savoia-aliases.txt"],
+    process = subprocess.Popen(["./wpt", "serve", "--config", "savoia-wpt-config.json", "--alias_file", "savoia-aliases.txt"],
                                cwd=CACHE, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
     for _ in range(240):
         if stand.answering(probe):
@@ -168,23 +176,21 @@ def tests(directories, only):
     return sorted((t for t in found if not only or any(o in t["url"] for o in only)), key=lambda t: t["url"])
 
 
-def lan_address():
-    """This Mac's address on a real interface. The default route may be a VPN's tunnel, which does not loop back."""
-    for interface in ("en0", "en1", "en2", "en3"):
-        found = subprocess.run(["ipconfig", "getifaddr", interface], capture_output=True, text=True).stdout.strip()
-        if found:
-            return found
-    return stand.lan_address()
-
-
 def address(url):
     path = urllib.parse.urlsplit(url).path
-    # http://*.localhost is a secure context; a test of a non-secure one needs a host that is not.
-    if "non-secure" in path or "insecure" in path or ".http." in path:
-        return f"http://{lan_address()}:8000" + url
     if ".https." in path or ".serviceworker." in path:
-        return "https://savoia.localhost:8443" + url
-    return "http://savoia.localhost:8000" + url
+        return f"https://{HOST}:8443" + url
+    return f"http://{HOST}:8000" + url
+
+
+def hosts():
+    """The lines wpt wants in /etc/hosts, and whether they are there."""
+    lines = subprocess.run(["./wpt", "make-hosts-file"], cwd=CACHE, capture_output=True, text=True).stdout
+    try:
+        present = all(socket.gethostbyname(name) == "127.0.0.1" for name in (HOST, "www1." + HOST, "not-" + HOST))
+    except OSError:
+        present = False
+    return lines, present
 
 
 def download(url):
@@ -217,6 +223,8 @@ class Browser:
         self.env = dict(os.environ, CFFIXED_USER_HOME=self.home, SAVOIA_MCP_SOCKET=os.path.join(self.home, "mcp.sock"),
                         SAVOIA_TESTDRIVER="1")
         self.process = None
+        # A sleeping display hides every page, and a hidden page is refused fullscreen and focus.
+        self.awake = subprocess.Popen(["caffeinate", "-d", "-u", "-w", str(os.getpid())])
         # The settings table exists only after a first launch, and the trust list is read at launch.
         self.launch(lambda: self.database() and self.has_settings())
         self.quit()
@@ -249,7 +257,7 @@ class Browser:
     def trust(self):
         support = os.path.dirname(self.database())
         os.makedirs(os.path.join(support, "Certificates"), exist_ok=True)
-        shutil.copy(os.path.join(CACHE, "savoia-certs", "cacert.pem"), os.path.join(support, "Certificates", "wpt-localhost.pem"))
+        shutil.copy(os.path.join(CACHE, "savoia-wpt-certs", "cacert.pem"), os.path.join(support, "Certificates", "wpt-localhost.pem"))
         db = sqlite3.connect(self.database())
         db.execute("insert or replace into settings (key, value) values ('trust.certificates', ?)",
                    (json.dumps(["file:wpt-localhost.pem"]),))
@@ -265,6 +273,7 @@ class Browser:
                 self.process.kill()
 
     def close(self):
+        self.awake.terminate()
         self.quit()
         shutil.rmtree(self.home, ignore_errors=True)
 
@@ -320,6 +329,7 @@ def answer(savoia, window, action, origin, log):
 
 def run_one(savoia, window, test, slack):
     timeout = (60 if test["long"] else 10) + slack
+    savoia.call("testdriver_close_windows")
     savoia.call("navigate", window_id=window, url=address(test["url"]))
     state, started = None, time.time()
     actions, acted = [], False
@@ -391,6 +401,7 @@ def main():
                         help="leave out the files that call testdriver: they use the camera and the system clipboard")
     parser.add_argument("--screen", action="store_true",
                         help="run the files that call getDisplayMedia too; someone has to answer the system's picker")
+    parser.add_argument("--hosts", action="store_true", help="print the lines wpt needs in /etc/hosts, then stop")
     parser.add_argument("--actions", action="store_true", help="print every testdriver action and how it went")
     parser.add_argument("--update", action="store_true", help="pull the suite again first")
     parser.add_argument("--write-baseline", action="store_true", help="save this run as scripts/permissions-wpt-baseline.json")
@@ -399,6 +410,12 @@ def main():
 
     directories = args.directories or DIRECTORIES
     commit = fetch(args.update)
+    lines, present = hosts()
+    if args.hosts:
+        return print(lines, end="")
+    if not present:
+        sys.exit(f"{HOST} does not resolve to this Mac. Add wpt's names to /etc/hosts:\n"
+                 f"    ./scripts/permissions-wpt.py --hosts | sudo tee -a /etc/hosts")
     run, summary, reports = safari()
     listed = tests(directories, args.only)
     runnable = [t for t in listed if not (args.no_testdriver and t["testdriver"]) and (args.screen or not t["picker"])]
@@ -410,7 +427,7 @@ def main():
     try:
         os.environ.update(CFFIXED_USER_HOME=browser.home, SAVOIA_MCP_SOCKET=browser.env["SAVOIA_MCP_SOCKET"])
         savoia = stand.Savoia(args.app)
-        opened = savoia.call("open_window", url="http://savoia.localhost:8000/resources/blank.html")
+        opened = savoia.call("open_window", url=f"http://{HOST}:8000/resources/blank.html")
         window = re.search(r"window ([0-9A-Fa-f-]{36})", opened).group(1)
         for test in runnable:
             harness, rows, actions = run_one(savoia, window, test, args.slack)
@@ -459,6 +476,9 @@ def main():
         # Statuses only: the messages carry ports, stacks and timings, and would move on every run.
         slim = {url: dict(result, rows=[{"name": r["name"], "status": r["status"]} for r in result["rows"]])
                 for url, result in results.items()}
+        # A run of some directories replaces those and keeps the rest.
+        if os.path.exists(BASELINE) and json.load(open(BASELINE))["wpt"] == commit:
+            slim = dict(json.load(open(BASELINE))["results"], **slim)
         json.dump(dict(record, results=slim), open(BASELINE, "w"), indent=1, ensure_ascii=False, sort_keys=True)
         print(f"baseline written to {os.path.relpath(BASELINE)}")
     if args.json:

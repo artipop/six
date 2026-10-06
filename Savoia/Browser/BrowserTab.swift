@@ -554,6 +554,7 @@ final class BrowserTab: Identifiable {
             }
             configuration.webExtensionController = extensions?.controller(for: profileID)
             let decider = TabNavigationDecider()
+            decider.beforeLeaving = { [weak self] in await self?.leaveElementFullscreen() }
             // Before the load, not after: a site on the allowlist must never have the rules applied
             // to it in the first place, and one that isn't must have them from its first request.
             decider.onNavigate = { [weak self] url in
@@ -966,6 +967,18 @@ final class BrowserTab: Identifiable {
         load(url)
     }
 
+    /// A page that navigates while it has the screen is taken out of fullscreen with its view left in
+    /// no window at all, and the tab is blank from then on. Out first, then the navigation.
+    fileprivate func leaveElementFullscreen() async {
+        #if os(macOS)
+        guard let page = livePage, page.fullscreenState != .notInFullscreen else { return }
+        _ = try? await callWithoutGesture("if (document.fullscreenElement) await document.exitFullscreen();", in: .page)
+        for _ in 0..<40 where page.fullscreenState != .notInFullscreen {
+            try? await Task.sleep(for: .milliseconds(50))
+        }
+        #endif
+    }
+
     private func releaseMediaHold() {
         guard mediaHold != nil else { return }
         mediaHold = nil
@@ -1097,6 +1110,8 @@ private final class TabNavigationDecider: WebPage.NavigationDeciding {
     var onNewWindow: ((URLRequest, Bool) -> Void)?
     /// A file rather than a page.
     var onDownload: ((URLRequest, String?) -> Void)?
+    /// Awaited before the main frame is let go anywhere.
+    var beforeLeaving: (() async -> Void)?
 
     /// The site's certificate could not be traced back to anything the system trusts.
     ///
@@ -1162,6 +1177,7 @@ private final class TabNavigationDecider: WebPage.NavigationDeciding {
             return .cancel
         }
         if url.scheme?.hasPrefix("http") == true { onNavigate?(url) }
+        if action.target?.isMainFrame == true { await beforeLeaving?() }
         return .allow
     }
 
