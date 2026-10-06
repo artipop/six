@@ -28,18 +28,30 @@ rather than written again:
 
 Many wpt tests need an action a page cannot take on itself — a click that counts as a user gesture, granting a
 permission, pressing a key, installing an extension. wpt routes those through `resources/testdriver.js`, which a
-browser vendor backs with `testdriver-vendor.js`. A Savoia vendor file that sends each action over a channel to Savoia,
-which carries it out for real, would open most of the rows below at once. The pieces already exist:
+browser vendor backs with `testdriver-vendor.js`.
 
-| testdriver call | what Savoia already has |
-|---|---|
-| `click`, `bless`, `send_keys`, `action_sequence` | `NSApp.postEvent` into the app's own queue (`KeySelfTest`); page-level clicks from agent-actions |
-| `set_permission` | `SitePermissions`, per profile and origin |
-| `install_web_extension` / `uninstall_web_extension` | `ExtensionInstaller` |
-| `set_spc_transaction_mode`, `get_named_cookie`, `delete_all_cookies` | the profile's data store |
+Savoia is driven the way wptrunner drives Safari on wpt's CI, where the page never talks to the browser. The page
+side is wptrunner's own `testdriver-extra.js` and message queue, unmodified, which `scripts/permissions-wpt.py`
+serves as the vendor file through `wpt serve --alias_file`. An action goes into a queue on the test window (a frame
+relays its own there with `postMessage`); the runner takes it off with `evaluate_javascript`, carries it out, and
+posts `testdriver-complete` back. Where wptrunner then sends a WebDriver command, the runner calls a tool that
+Savoia offers over `Savoia --mcp` only when launched with `SAVOIA_TESTDRIVER=1` (`Savoia/Tools/TestDriver.swift`) —
+the counterpart of Safari's *Allow Remote Automation*:
+
+| testdriver call | tool | what it does |
+|---|---|---|
+| `set_permission` | `testdriver_set_permission` | files the answer in `SitePermissions` for the page's origin, as the bar would. A name Savoia keeps no answer for (`geolocation`, `notifications`, `clipboard-write`…) is an error, and the test sees it |
+| `click`, and `bless` through it | `testdriver_click` | an `NSEvent` mouse down and up handed straight to the `WKWebView`, at the element's middle. WebKit counts it as a user gesture — measured: the page gets `click`, and a clipboard write that needs activation succeeds |
+| `delete_all_cookies` | `testdriver_delete_all_cookies` | empties the profile's cookie store |
+
+Everything else is answered `not implemented`, in wptrunner's words. So is an action aimed at another window or
+frame (`context`), which WebDriver does by switching frames.
+
+Not replaced: `testharnessreport.js`. wptrunner serves its own, which is where it marks the test window; the
+vendor file here says that instead, so the harness and the tests are wpt's files byte for byte.
 
 `postEvent` goes past the WindowServer, so a key the system owns tests green and does nothing in the hand
-(AGENTS.md); a gesture WebKit checks through the OS may need a real click instead.
+(AGENTS.md).
 
 ## Browser extensions (MV3)
 

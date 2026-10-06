@@ -614,7 +614,7 @@ final class BrowserToolCatalog {
                 return Self.describeJavaScriptValue(value)
             }
         ),
-    ] + actingTools
+    ] + actingTools + (TestDriver.isOn ? TestDriver.tools(browser: browser) { [unowned self] in try self.tab($0) } : [])
 
     // MARK: Acting on a page
 
