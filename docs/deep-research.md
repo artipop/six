@@ -86,7 +86,7 @@ In `BrowserToolCatalog`, so the ⌘E assistant and MCP get the same ones; the fu
 | `write_document` | `mode: replace` the whole text, `append`, or `section` — replace the body of one `## heading`, keeping the heading, or add the section when the heading is new |
 | `read_document` | the current Markdown and its section list |
 | `cite` | adds `[n]: url "title" — retrieved <date>` (+ the passage as an indented quote) to `## Sources` and returns `[n]`; from a window, a `url`, or a `highlight_id` |
-| `highlight_page` | marks the paragraphs that answer a question; returns each as id, text and a `#:~:text=` link |
+| `highlight_page` | marks the paragraphs that answer a question; returns each as id, text and a `#:~:text=` link. The paragraphs are chosen by the model ⌘E is set to; when that is an agent, or a model that cannot be used now, the numbered paragraphs come back as the result and the calling agent chooses — not an error, and nothing the person is told about |
 | `list_page_blocks` `list_highlights` `remove_highlight` | the numbered paragraphs of a page; the highlights stored for a page; delete one |
 
 `document_id` is optional everywhere: the default is the run's document in the on-screen workspace, else the only

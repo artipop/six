@@ -537,14 +537,15 @@ final class BrowserToolCatalog {
         BrowserTool(
             name: "highlight_page",
             title: String(localized: "Highlight Page"),
-            description: "Marks the paragraphs of a window's page that answer `question` (the browser's own model picks them by "
-                + "number from the page's blocks, so nothing is retyped) and returns each as a highlight: id, the exact text, and a "
-                + "`#:~:text=` link that scrolls to it in any browser. Highlights persist per URL and are painted again when the "
-                + "page is reopened. `blocks` picks paragraphs by number yourself instead (from list_page_blocks).",
+            description: "Marks the paragraphs of a window's page that answer `question` and returns each as a highlight: id, "
+                + "the exact text, and a `#:~:text=` link that scrolls to it in any browser. Paragraphs are chosen by number, so "
+                + "nothing is retyped: by the browser's model when it has one, and otherwise the numbered paragraphs come back "
+                + "for you to choose from — call again with `blocks`. Highlights persist per URL and are painted again when "
+                + "the page is reopened.",
             parameters: [
                 Self.windowID,
                 .init(name: "question", description: "What the passages should answer."),
-                .init(name: "blocks", description: "Comma-separated block numbers to mark directly (skips the model)."),
+                .init(name: "blocks", description: "Comma-separated paragraph numbers to mark."),
                 .init(name: "max", description: "At most this many passages (default 3).", type: .integer),
             ],
             run: { [unowned self] args in try await self.highlightPage(args) }
@@ -1388,7 +1389,14 @@ final class BrowserToolCatalog {
             chosen = raw.split(whereSeparator: { $0 == "," || $0 == " " }).compactMap { Int($0) }.prefix(limit).map { ($0, question) }
         } else {
             guard !question.isEmpty else { throw BrowserTool.Failure(message: "question (or blocks) is required") }
-            chosen = try await chooseBlocks(blocks, question: question, limit: limit)
+            guard let picked = try await chooseBlocks(blocks, question: question, limit: limit) else {
+                // The agent is the model here: it picks, and says nothing of it to the person.
+                let listing = blocks.map { "\($0.n): \($0.text.prefix(300))" }.joined(separator: "\n")
+                return "\(Self.describe(tab))\n\nPick the paragraphs that answer \"\(question)\" — at most \(limit) — and call "
+                    + "highlight_page again with their numbers as `blocks`. This is the ordinary way; do not mention it to the user.\n\n"
+                    + String(listing.prefix(20_000))
+            }
+            chosen = picked
         }
         let valid = chosen.filter { pick in blocks.contains { $0.n == pick.n } }
         guard !valid.isEmpty else { return "\(Self.describe(tab))\n\nNo passage on this page answers \"\(question)\"." }
@@ -1413,30 +1421,22 @@ final class BrowserToolCatalog {
 
     /// The numbered-block pass: the model sees the numbers and the text and answers with numbers.
     /// It never handles the text it is choosing, so it cannot corrupt it.
-    private func chooseBlocks(_ blocks: [PageBlock], question: String, limit: Int) async throws -> [(n: Int, reason: String)] {
-        let budget = assistant.model == .onDevice || assistant.model.isAgent ? 6_000 : 30_000
-        var listing = ""
-        for block in blocks {
-            let line = "\(block.n): \(block.text.prefix(300))\n"
-            if listing.count + line.count > budget { break }
-            listing += line
-        }
+    ///
+    /// The model is the one ⌘E is set to. Nil when that is an agent, or a model that cannot be used
+    /// now: the caller is an agent itself, and picks from the blocks.
+    private func chooseBlocks(_ blocks: [PageBlock], question: String, limit: Int) async throws -> [(n: Int, reason: String)]? {
         let instructions = """
             You pick the numbered paragraphs of a web page that answer a question. Answer with the numbers only, \
             most relevant first, at most \(limit), one per line as `N: reason` where the reason is a few words. \
             Answer `none` if nothing on the page answers it. Never quote the paragraphs.
             """
-        // "Which of these is about X" is within the on-device model's reach, so when ⌘E is set to an agent
-        // (not a language model) or its model isn't usable, that is the fallback.
-        let session: LanguageModelSession
-        if !assistant.model.isAgent, let chosen = try? assistant.makeSession(instructions: instructions) {
-            session = chosen
-        } else {
-            let system = SystemLanguageModel.default
-            guard case .available = system.availability else {
-                throw BrowserTool.Failure(message: "No model to choose passages with: the on-device model is not available (\(system.availability)); pass `blocks` from list_page_blocks instead")
-            }
-            session = LanguageModelSession(model: system, instructions: instructions)
+        guard !assistant.model.isAgent, let session = try? assistant.makeSession(instructions: instructions) else { return nil }
+        let budget = assistant.model == .onDevice ? 6_000 : 30_000
+        var listing = ""
+        for block in blocks {
+            let line = "\(block.n): \(block.text.prefix(300))\n"
+            if listing.count + line.count > budget { break }
+            listing += line
         }
         let response = try await session.respond(to: "Question: \(question)\n\nParagraphs:\n\(listing)")
         var picks: [(n: Int, reason: String)] = []
