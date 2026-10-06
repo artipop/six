@@ -33,7 +33,8 @@ browser vendor backs with `testdriver-vendor.js`.
 Savoia is driven the way wptrunner drives Safari on wpt's CI, where the page never talks to the browser. The page
 side is wptrunner's own `testdriver-extra.js` and message queue, unmodified, which `scripts/permissions-wpt.py`
 serves as the vendor file through `wpt serve --alias_file`. An action goes into a queue on the test window (a frame
-relays its own there with `postMessage`); the runner takes it off with `evaluate_javascript`, carries it out, and
+relays its own there with `postMessage`); the runner takes it off with `evaluate_javascript` — which carries no
+user gesture ([page-scripts.md](page-scripts.md)) — carries it out, and
 posts `testdriver-complete` back. Where wptrunner then sends a WebDriver command, the runner calls a tool that
 Savoia offers over `Savoia --mcp` only when launched with `SAVOIA_TESTDRIVER=1` (`Savoia/Tools/TestDriver.swift`) —
 the counterpart of Safari's *Allow Remote Automation*:

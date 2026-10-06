@@ -226,6 +226,7 @@ extension ContentView {
         // is made from outside, over MCP, after Savoia is up.
         var found: (BrowserTab, PageFocus)?
         for _ in 0..<60 {
+            await pageFocus.refresh(browser.selectedTab)
             if let tab = browser.selectedTab, !pageFocus[tab.id].isEmpty { found = (tab, pageFocus[tab.id]); break }
             try? await Task.sleep(for: .milliseconds(500))
         }

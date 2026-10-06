@@ -610,7 +610,7 @@ final class BrowserToolCatalog {
             run: { [unowned self] args in
                 let tab = try self.tab(args)
                 guard let script = args["script"]?.stringValue else { throw BrowserTool.Failure(message: "script is required") }
-                let value = try await tab.page.callJavaScript(script)
+                let value = try await tab.callWithoutGesture(script, in: .page)
                 return Self.describeJavaScriptValue(value)
             }
         ),

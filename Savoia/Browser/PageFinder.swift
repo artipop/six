@@ -13,6 +13,8 @@ nonisolated struct TabFind: Sendable, Equatable {
     /// — Safari's own habit, and the reason this is a flag rather than the dictionary entry's mere
     /// presence — but stops drawing anything until ⌘F brings it back.
     var isActive = false
+    /// False when the engine only says whether there is a match: the bar then prints no "2 of 5".
+    var isCounted = true
 
     var hasNoMatches: Bool { isActive && !query.isEmpty && count == 0 }
 }
@@ -28,6 +30,10 @@ final class PageFinder {
     /// fires on every keystroke, so a slow answer to an early one must not land after a faster
     /// answer to a later one has already redrawn the page.
     private var tokens: [UUID: Int] = [:]
+
+    /// WebKit's own find — tab, query, backwards → found — when the front has one to offer. With it
+    /// no script runs in the page; kept beside `FindScript` to compare (docs/page-scripts.md).
+    @ObservationIgnored var native: (@MainActor (UUID, String, Bool) async -> Bool)?
 
     private func begin(_ id: UUID) -> Int {
         let token = (tokens[id] ?? 0) + 1
@@ -50,6 +56,7 @@ final class PageFinder {
     func hide(_ page: some PageScriptRunner, id: UUID) {
         guard states[id]?.isActive == true else { return }
         states[id]?.isActive = false
+        guard native == nil else { return }
         Task { _ = try? await page.runScript(FindScript.clear) }
     }
 
@@ -63,6 +70,14 @@ final class PageFinder {
         guard states[id] != nil else { return }
         states[id]?.query = query
         let token = begin(id)
+        if let native {
+            let matched = query.isEmpty ? false : await native(id, query, false)
+            guard isCurrent(id, token) else { return }
+            states[id]?.isCounted = false
+            states[id]?.count = matched ? 1 : 0
+            states[id]?.current = matched ? 1 : 0
+            return
+        }
         let found = await Self.run(FindScript.search, in: page, arguments: ["query": query])
         guard isCurrent(id, token) else { return }
         states[id]?.count = found.count
@@ -72,6 +87,10 @@ final class PageFinder {
     /// ⏎ / ⇧⏎, or the bar's own arrows: the next match, or the previous, wrapping either way.
     func step(_ delta: Int, in page: some PageScriptRunner, id: UUID) async {
         guard let state = states[id], state.count > 0 else { return }
+        if let native {
+            _ = await native(id, state.query, delta < 0)
+            return
+        }
         let found = await Self.run(FindScript.step, in: page, arguments: ["delta": delta])
         states[id]?.current = found.current
     }

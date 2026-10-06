@@ -5,13 +5,10 @@ import Foundation
 /// `getSelection` or an input's value getter and hand the model something the person never typed —
 /// the same reason the readable-page extractor and the highlighter live there.
 ///
-/// Two halves with different shapes. The **watcher** is a user script installed once per window; it
-/// pushes over a message handler, because a selection is an event and polling for one would run
-/// while nothing at all is happening. The **entry points** are function bodies called through
-/// `WebPage.savoia(_:arguments:)` when Savoia actually has something to write, and they are synchronous:
-/// `callJavaScript` is not `callAsyncJavaScript` and an `await` in the body fails at parse time.
+/// Function bodies called through `WebPage.savoia(_:arguments:)`, and synchronous: `callJavaScript`
+/// is not `callAsyncJavaScript` and an `await` in the body fails at parse time. Nothing here is
+/// installed in a page ahead of time (docs/page-scripts.md).
 nonisolated enum PageFocusScript {
-    static let handlerName = "savoiaFocus"
 
     /// Never read, never posted, never sent anywhere: a password, a one-time code, a card number.
     /// The cheapest place to drop a secret is before it is sent, which is here and not in Swift.
@@ -173,44 +170,7 @@ nonisolated enum PageFocusScript {
         }
         """
 
-    /// Installed once per window, at document end.
-    static let source = """
-        (function () {
-            if (window.__savoiaFocusInstalled) return;
-            window.__savoiaFocusInstalled = true;
-        \(reader)
-
-            let last = '';
-            let timer = 0;
-
-            function post(force) {
-                const state = describe();
-                const key = JSON.stringify(state);
-                if (!force && key === last) return;
-                last = key;
-                try { window.webkit.messageHandlers.\(handlerName).postMessage(state); } catch (e) {}
-            }
-
-            function schedule(delay) {
-                if (timer) clearTimeout(timer);
-                timer = setTimeout(function () { timer = 0; post(false); }, delay);
-            }
-
-            document.addEventListener('selectionchange', function () { schedule(140); }, true);
-            document.addEventListener('focusin', function () { schedule(60); }, true);
-            document.addEventListener('mouseup', function () { schedule(60); }, true);
-            document.addEventListener('keyup', function () { schedule(200); }, true);
-            // The rectangle moves with the page even when what it points at has not changed, and a
-            // bar left behind at the old place is worse than no bar.
-            document.addEventListener('scroll', function () { schedule(80); }, true);
-            window.addEventListener('resize', function () { schedule(120); });
-            // A page's own focus leaving for Savoia's chrome must not clear anything: pressing ⌘E
-            // after selecting a paragraph is the ordinary case, and WebKit keeps the selection.
-            schedule(200);
-        })();
-        """
-
-    /// Called from Swift: read the focus now, without waiting for an event.
+    /// What is pointed at, now.
     static let read = reader + """
 
         return describe();

@@ -1,5 +1,9 @@
 # Content blocking
 
+**October 2026: the page half — scriptlets and extended CSS, `AdvancedRules` — is switched off**, back with
+`SAVOIA_ADVANCED_RULES=1`, while the scripts Savoia runs in pages are being cut down ([page-scripts.md](page-scripts.md)).
+The network half is unchanged.
+
 Ads and trackers are dropped by WebKit's own network layer, before a request leaves the content process. No
 extension, no proxy, no script in the page: filter lists are compiled once into a `WKContentRuleList` and handed to
 a page through `WebPage.Configuration.userContentController` before it loads. A blocked request never happens, and

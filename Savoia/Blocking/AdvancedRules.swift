@@ -204,6 +204,9 @@ final class AdvancedRules {
 
     // MARK: What a page is given
 
+    /// Off for now, back with `SAVOIA_ADVANCED_RULES=1` (docs/page-scripts.md).
+    nonisolated static let isOn = ProcessInfo.processInfo.environment["SAVOIA_ADVANCED_RULES"] != nil
+
     /// The user scripts that carry these rules into a page, in the order they must run.
     ///
     /// **Main frame only.** A user script's source is fixed when it is installed, and the rules
@@ -212,7 +215,7 @@ final class AdvancedRules {
     /// things inside it for no reason, so it is given none; what blocks inside a frame is the
     /// network half, which is per-request and needs nobody's help.
     func userScripts(for rules: PageRules) -> [WKUserScript] {
-        guard !rules.isEmpty else { return [] }
+        guard Self.isOn, !rules.isEmpty else { return [] }
         var scripts: [WKUserScript] = []
 
         // The page's own world, first, and at document start: a scriptlet earns its keep by

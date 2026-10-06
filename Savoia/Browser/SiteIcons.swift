@@ -48,12 +48,12 @@ final class SiteIcons {
 
     /// A page has finished loading: ask it for its own icon, once per host per run. A private
     /// window never reaches here — `BrowserState` gives a private profile no `SiteIcons` at all.
-    func refresh(_ page: WebPage) {
+    func refresh(_ page: WebPage, through run: @escaping (String) async throws -> Any?) {
         guard let host = Self.key(page.url?.host()), !asked.contains(host) else { return }
         asked.insert(host)
         guard images[host] == nil else { return }
         Task { [weak self] in
-            guard let data = await Self.ask(page) else { return }
+            guard let data = await Self.ask(run) else { return }
             guard let self, let image = PlatformImage(data: data), image.size.width > 1 else { return }
             self.images[host] = image
             self.missing.remove(host)
@@ -75,11 +75,11 @@ final class SiteIcons {
     /// Starts the script and waits for the window property it fills in. A page may answer at once
     /// or never — a request refused by CORS, a site with no icon — so the wait is short and the
     /// failure silent.
-    private static func ask(_ page: WebPage) async -> Data? {
-        guard (try? await page.callJavaScript(script)) != nil else { return nil }
+    private static func ask(_ run: (String) async throws -> Any?) async -> Data? {
+        guard (try? await run(script)) != nil else { return nil }
         for _ in 0..<20 {
             try? await Task.sleep(for: .milliseconds(150))
-            guard let answer = (try? await page.callJavaScript("return window.__savoiaIcon || null")) as? String
+            guard let answer = (try? await run("return window.__savoiaIcon || null")) as? String
             else { continue }
             guard answer != "none" else { return nil }
             guard let comma = answer.firstIndex(of: ","),

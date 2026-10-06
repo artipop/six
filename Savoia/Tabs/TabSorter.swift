@@ -58,9 +58,9 @@ final class TabSorter {
     }
 
     func pageFinished(_ tab: BrowserTab, in browser: BrowserState) {
-        guard let page = tab.livePage else { return }
+        guard tab.livePage != nil else { return }
         let id = tab.id
-        Task {
+        Task { [weak tab] in
             // Wikipedia and many articles have no description; the first paragraph stands in.
             let script = """
             const m = document.querySelector('meta[name="description"], meta[property="og:description"]');
@@ -71,7 +71,7 @@ final class TabSorter {
             }
             return m ? m.content : "";
             """
-            let description = (try? await page.callJavaScript(script)) as? String ?? ""
+            let description = (try? await tab?.callWithoutGesture(script)) as? String ?? ""
             descriptions[id] = String(description.prefix(300))
             pending.insert(id)
             schedule(browser)

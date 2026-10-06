@@ -798,7 +798,7 @@ final class BrowserTab: Identifiable {
             extensions?.noteChanged(self, [.title, .loading])
             restoreScrollIfNeeded(page)
             onNavigation?(self, .finished)
-            siteIcons?.refresh(page)
+            siteIcons?.refresh(page) { [weak self] in try await self?.callWithoutGesture($0, in: .page) }
             // Only to give a window that has never been drawn something to show. The picture that
             // matters is taken when it leaves the screen; taking one after every load would be the
             // most frequent trigger and the least useful one, since a page that just loaded is a
@@ -1039,7 +1039,7 @@ final class BrowserTab: Identifiable {
         return Task {
             // Asked alongside the picture and not before it: a tab on its way off screen is mounted
             // for this turn only, and a round trip in front of the snapshot may not survive.
-            async let viewport = page.savoia("return [window.scrollY, window.innerWidth, window.innerHeight]")
+            async let viewport = self.callWithoutGesture("return [window.scrollY, window.innerWidth, window.innerHeight]")
             // `afterScreenUpdates: false` takes what is already rendered: a tab on its way off screen
             // will never get another screen update. 400 pt wide: a ring card is never drawn bigger.
             let configuration = WebPage.ExportedContentConfiguration.image(

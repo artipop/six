@@ -17,26 +17,31 @@ showed two things about `WebPage.callJavaScript`.
   `undefined` in Savoia (measured). Whether user scripts are the cause is a guess; the region of the Apple ID is
   another candidate.
 
-The one call known to carry no gesture is `WKWebView._evaluateJavaScriptWithoutUserGesture:completionHandler:`,
-SPI, used today only by `testdriver_evaluate` under `SAVOIA_TESTDRIVER` (`Savoia/Tools/TestDriver.swift`).
+The call that carries none is `BrowserTab.callWithoutGesture` (`PageScripts.swift`): WebKit's
+`_callAsyncJavaScript:arguments:inFrame:inContentWorld:withUserGesture:completionHandler:`, SPI, behind
+`responds(to:)`. It needs the tab's `WKWebView`, which exists only for a page some pane has shown; any other page
+gets the ordinary call. Measured through it: `isActive` false, and a clipboard write with no click is refused.
+
+`hasBeenActive` is still true on every load, on three origins in a row from an empty window, after every call
+Savoia makes at load was moved to the gesture-free one. What sets it has not been found.
 
 ## Runs by itself
 
 | what | when | world | does | decision |
 |---|---|---|---|---|
 | scroll put back — `BrowserTab.restoreScrollIfNeeded` | `.finished`, after a discard or a relaunch | savoia | `window.scrollTo(0, offset)`, once | replace with WebKit's own session state (`interactionState`), if it can be had — below |
-| scroll remembered — `BrowserTab.rememberViewState` | a tab leaving the screen, at most every 3 s | savoia | reads `scrollY` | goes with the one above |
-| site icon — `SiteIcons.ask` | every `.finished` | **page** | starts a fetch, then polls up to 20 times at 150 ms | later: read the `<link rel=icon>` once and fetch it with `URLSession` |
-| description for groups — `TabSorter.pageFinished` | every `.finished` | **page** | reads the meta description or the first paragraph | move to the `savoia` world |
-| highlights — `HighlightStore.apply` | a load of an address that has highlights | savoia | edits the DOM, watches it for 5 s | to be looked at separately |
+| scroll remembered — `BrowserTab.rememberViewState` | a tab leaving the screen, at most every 3 s | savoia | reads `scrollY` | no gesture now; goes with the one above |
+| site icon — `SiteIcons.ask` | every `.finished` | **page** | starts a fetch, then polls up to 20 times at 150 ms | no gesture now; later: read the `<link rel=icon>` once and fetch it with `URLSession` |
+| description for groups — `TabSorter.pageFinished` | every `.finished` | savoia | reads the meta description or the first paragraph | **done**: `savoia` world, no gesture |
+| highlights — `HighlightStore.apply` | a load of an address that has highlights | savoia | edits the DOM, watches it for 5 s | below |
 | unsent input — `BrowserTab.hasUserInput` | the live-page budget choosing what to discard | savoia | reads `textarea` and password fields | stays |
 
 ## Injected ahead of time
 
 | what | where | decision |
 |---|---|---|
-| `AdvancedRules` — the blocker's scriptlets and extended CSS | every page while blocking is on | switched off for now, to see what changes without it |
-| `PageFocus` — the selection and caret for ⌘E | every page | ask on ⌘E instead of listening always |
+| `AdvancedRules` — the blocker's scriptlets and extended CSS | every page while blocking is on | **off for now**, back with `SAVOIA_ADVANCED_RULES=1`. `PaymentRequest` is still `undefined` without them, so they are not why |
+| `PageFocus` — the selection and caret for ⌘E | — | **done**: nothing is installed; `PageFocusStore.refresh` reads the page when ⌘E is pressed. A line hung on a field no longer follows it as the page scrolls |
 | `MediaHold` — holds autoplay | one load after a tab is rebuilt, every frame | stays |
 | DevTools capture, the WebMCP polyfill | only while switched on | stay |
 
@@ -44,9 +49,9 @@ SPI, used today only by `testdriver_evaluate` under `SAVOIA_TESTDRIVER` (`Savoia
 
 | what | decision |
 |---|---|
-| find on page — `FindScript` builds its own ranges and scrolls with `scrollBy({behavior: 'smooth'})` | a second implementation on `WKWebView.find`, beside this one, to compare; the public API gives no "2 of 5" |
+| find on page — `FindScript` builds its own ranges and scrolls with `scrollBy({behavior: 'smooth'})` | `SAVOIA_NATIVE_FIND=1` switches ⌘F to `WKWebView.find`, with no script in the page; the default is still `FindScript`. The public API gives no "2 of 5", so the bar says only when there is nothing |
 | translation, the readable copy for bookmarks, export, the accessibility overlay, going to a highlight | stay; `savoia` world, on demand |
-| agent tools — `page_snapshot`, `click`, `fill`, `scroll_page`, `evaluate_javascript` | run without a gesture |
+| agent tools — `page_snapshot`, `click`, `fill`, `scroll_page`, `evaluate_javascript` | `evaluate_javascript` runs without a gesture. The acting tools still carry one: without it a button that opens a window or starts a video does nothing — undecided |
 
 ## `interactionState`, and what is not known about it
 
@@ -56,3 +61,11 @@ the way Safari restores a tab. It would replace both scroll scripts and the hand
 `WKWebView` behind a tab is reachable through `WebViewResponder`, but only while the tab is on screen, and
 restoring means setting the state on a fresh view instead of loading an address. Whether a `WebPage` survives its
 view being given a state behind its back has not been tried.
+
+## Highlights
+
+The code is whole: `highlight_page`, `list_highlights`, `remove_highlight` and `cite` are in the catalog,
+`HighlightStore.apply` runs on a load, and the research preset still tells the agent to highlight what it cites
+([deep-research.md](deep-research.md)). The one way to start a run is `/research` on the ⌘E line. There is no
+`highlights.json` on the dev Mac under either build, so no highlight has ever been stored there; whether a run
+today produces any has not been tried.

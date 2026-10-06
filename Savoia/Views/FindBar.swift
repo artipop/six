@@ -38,7 +38,7 @@ struct FindBar: View {
                 // exactly the moment to hand it the keyboard — the same trick a sheet uses.
                 .onAppear { isFocused = true }
 
-            if !query.isEmpty {
+            if !query.isEmpty, state.isCounted || state.hasNoMatches {
                 Text(state.hasNoMatches ? String(localized: "No Results") : "\(state.current) of \(state.count)")
                     .font(.caption)
                     .foregroundStyle(state.hasNoMatches ? AnyShapeStyle(.red) : AnyShapeStyle(.secondary))

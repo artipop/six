@@ -17,3 +17,38 @@ extension WebPage {
         try await callJavaScript(functionBody, arguments: arguments, contentWorld: .savoia)
     }
 }
+
+#if os(macOS)
+extension BrowserTab {
+    /// A function body run in the page with no user gesture attached. `callJavaScript` is one to
+    /// WebKit: the page may then open windows, play sound and read the clipboard as if a person had
+    /// clicked (docs/page-scripts.md). Needs the tab's view: a page no pane has shown has none to
+    /// ask, and gets the ordinary call.
+    func callWithoutGesture(_ functionBody: String, arguments: [String: Any] = [:],
+                            in world: WKContentWorld? = nil) async throws -> Any? {
+        resumeIfNeeded()
+        let world = world ?? .savoia
+        guard let view = WebViewResponder.shared.webView(for: id),
+              view.responds(to: #selector(GesturelessCalls.call(_:arguments:in:in:withUserGesture:completionHandler:)))
+        else { return try await page.callJavaScript(functionBody, arguments: arguments, contentWorld: world) }
+        let answer: UncheckedBox<Result<Any?, any Error>> = await withCheckedContinuation { continuation in
+            unsafeBitCast(view, to: GesturelessCalls.self).call(
+                functionBody, arguments: arguments, in: nil, in: world, withUserGesture: false
+            ) { value, error in
+                continuation.resume(returning: UncheckedBox(value: error.map { .failure($0) } ?? .success(value)))
+            }
+        }
+        return try answer.value.get()
+    }
+}
+
+private struct UncheckedBox<Value>: @unchecked Sendable {
+    let value: Value
+}
+
+@objc private protocol GesturelessCalls {
+    @objc(_callAsyncJavaScript:arguments:inFrame:inContentWorld:withUserGesture:completionHandler:)
+    func call(_ functionBody: String, arguments: [String: Any]?, in frame: WKFrameInfo?, in world: WKContentWorld,
+              withUserGesture: Bool, completionHandler: (@MainActor (Any?, (any Error)?) -> Void)?)
+}
+#endif

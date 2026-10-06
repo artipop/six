@@ -113,6 +113,15 @@ struct SavoiaApp: App {
                 browser?.tab(tabID)?.displayCapture = state
             }
         }
+        if ProcessInfo.processInfo.environment["SAVOIA_NATIVE_FIND"] != nil {
+            browser.find.native = { tabID, query, backwards in
+                guard let view = WebViewResponder.shared.webView(for: tabID) else { return false }
+                let configuration = WKFindConfiguration()
+                configuration.backwards = backwards
+                configuration.caseSensitive = false
+                return (try? await view.find(query, configuration: configuration))?.matchFound ?? false
+            }
+        }
         #endif
         blocker.startRefreshSchedule()
         devTools.browser = browser
@@ -179,7 +188,7 @@ struct SavoiaApp: App {
         let assistant = AssistantStore(settings: settings)
         // What the pages have under the cursor. Built with the controllers, like the blocker and
         // devtools, because a window restored at launch starts loading before anything asks.
-        let pageFocus = PageFocusStore(controllers: pageControllers)
+        let pageFocus = PageFocusStore()
         pageFocus.isEnabled = settings.isAIEnabled
         assistant.focus = pageFocus
         browser.pageFocus = pageFocus

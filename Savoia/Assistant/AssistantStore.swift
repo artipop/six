@@ -335,7 +335,11 @@ final class AssistantStore {
     /// second press is how it once rose at the bottom instead of going away: the page had redrawn
     /// what it reports by then, and the place came out different. An answer on screen counts as up.
     func toggleLine(in tab: BrowserTab?) {
-        if line != nil || answer != nil { closeLine() } else { summonLine(at: place(for: tab)) }
+        if line != nil || answer != nil { return closeLine() }
+        Task {
+            await focus?.refresh(tab)
+            summonLine(at: place(for: tab))
+        }
     }
 
     func summonLine(in tab: BrowserTab?) { summonLine(at: place(for: tab)) }

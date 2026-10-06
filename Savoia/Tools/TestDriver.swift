@@ -65,30 +65,6 @@ enum TestDriver {
                 }
             ),
             BrowserTool(
-                name: "testdriver_evaluate",
-                description: "Runs a function body in the page without a user gesture, which evaluate_javascript is; returns the string it returns.",
-                parameters: [window, .init(name: "script", description: "JavaScript function body returning a string.", required: true)],
-                surfaces: .mcp,
-                run: { args in
-                    let tab = try tab(args)
-                    guard let view = WebViewResponder.shared.webView(for: tab.id),
-                          view.responds(to: #selector(GesturelessScripts.evaluate(_:completionHandler:))) else {
-                        throw BrowserTool.Failure(message: "The window's page is not on screen")
-                    }
-                    let script = "(function() {\(args["script"]?.stringValue ?? "")\n})()"
-                    let answer: Result<String, BrowserTool.Failure> = await withCheckedContinuation { continuation in
-                        unsafeBitCast(view, to: GesturelessScripts.self).evaluate(script) { value, error in
-                            if let error {
-                                continuation.resume(returning: .failure(.init(message: error.localizedDescription)))
-                            } else {
-                                continuation.resume(returning: .success(value as? String ?? ""))
-                            }
-                        }
-                    }
-                    return try answer.get()
-                }
-            ),
-            BrowserTool(
                 name: "testdriver_delete_all_cookies",
                 description: "Removes every cookie of the window's profile.",
                 parameters: [window],
@@ -105,9 +81,4 @@ enum TestDriver {
             ),
         ]
     }
-}
-
-@objc private protocol GesturelessScripts {
-    @objc(_evaluateJavaScriptWithoutUserGesture:completionHandler:)
-    func evaluate(_ script: String, completionHandler: (@MainActor (Any?, (any Error)?) -> Void)?)
 }

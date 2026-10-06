@@ -38,39 +38,21 @@ struct PageFocus: Equatable, Sendable {
     var subject: String { kind == .caret ? field : text }
 }
 
-/// Every window's `PageFocus`, kept current by the page itself.
+/// Every window's `PageFocus`, as of the last time it was asked for.
 ///
-/// Pushed, not polled: a script in Savoia's own world (`PageScripts.swift`) posts on `selectionchange`
-/// and on focus moving in or out of a field, and this is what receives it. Polling would have to run
-/// while nothing is happening, which is most of the time.
+/// Asked, not pushed: `refresh` reads the page when ⌘E is pressed. A watcher in every page was a
+/// script running on sites the assistant was never called on (docs/page-scripts.md).
 ///
-/// **Password fields are not read at all** — no content, no caret, no message. That is a rule of the
-/// script rather than of this type, because the cheapest place to drop a secret is before it is sent.
+/// **Password fields are not read at all** — no content, no caret. That is a rule of the script
+/// rather than of this type, because the cheapest place to drop a secret is before it is sent.
 @MainActor
 @Observable
 final class PageFocusStore {
     private var focuses: [UUID: PageFocus] = [:]
-    @ObservationIgnored private var handlers: [UUID: PageFocusMessageHandler] = [:]
-    @ObservationIgnored private let controllers: PageControllers
 
-    /// The assistant switch (`ConfigurationStore.isAIEnabled`), enforced here rather than in the views:
-    /// with it off there is no watcher in the page at all, which is the difference between a
-    /// feature that is hidden and one that is not running. Scripts are read when a page starts
-    /// loading, so switching it back on reaches the pages loaded after it — the ones already open
-    /// stop being watched at once either way, because the handler goes with the switch.
+    /// The assistant switch (`ConfigurationStore.isAIEnabled`): off, no page is read.
     var isEnabled: Bool = true {
-        didSet {
-            guard isEnabled != oldValue else { return }
-            focuses.removeAll()
-            controllers.forEach { windowID, controller in install(in: controller, for: windowID) }
-        }
-    }
-
-    init(controllers: PageControllers) {
-        self.controllers = controllers
-        controllers.onController { [weak self] windowID, controller in
-            self?.install(in: controller, for: windowID)
-        }
+        didSet { if !isEnabled { focuses.removeAll() } }
     }
 
     subscript(windowID: UUID) -> PageFocus {
@@ -79,38 +61,21 @@ final class PageFocusStore {
 
     func forget(_ windowID: UUID) {
         focuses[windowID] = nil
-        handlers[windowID] = nil
     }
 
-    /// A navigation takes the selection with it, and the page will not say so — the script that
-    /// would have is gone with the document it lived in.
+    /// A navigation takes the selection with it.
     func noteNavigation(_ windowID: UUID) {
         guard focuses[windowID] != nil else { return }
         focuses[windowID] = PageFocus()
     }
 
-    private static let scriptName = "assistant-focus"
-
-    private func install(in controller: WKUserContentController, for windowID: UUID) {
-        controller.removeScriptMessageHandler(forName: PageFocusScript.handlerName, contentWorld: .savoia)
-        handlers[windowID] = nil
-        guard isEnabled else {
-            controllers.setUserScripts([], named: Self.scriptName, for: windowID)
-            return
-        }
-        let handler = PageFocusMessageHandler(windowID: windowID, store: self)
-        handlers[windowID] = handler
-        controller.add(handler, contentWorld: .savoia, name: PageFocusScript.handlerName)
-        // Through the registry, never `controller.addUserScript` directly: the blocker's cosmetic
-        // rules are user scripts too, and `removeAllUserScripts()` cannot tell whose is whose.
-        controllers.setUserScripts([WKUserScript(
-            source: PageFocusScript.source,
-            injectionTime: .atDocumentEnd,
-            forMainFrameOnly: true,
-            in: .savoia)], named: Self.scriptName, for: windowID)
+    func refresh(_ tab: BrowserTab?) async {
+        guard isEnabled, let tab, !tab.isDocument, let page = tab.livePage else { return }
+        guard let body = try? await page.savoia(PageFocusScript.read) else { return }
+        receive(body, from: tab.id)
     }
 
-    fileprivate func receive(_ body: Any, from windowID: UUID) {
+    private func receive(_ body: Any, from windowID: UUID) {
         guard isEnabled, let message = body as? [String: Any] else { return }
         var focus = PageFocus()
         focus.kind = PageFocus.Kind(rawValue: message["kind"] as? String ?? "") ?? .none
@@ -135,26 +100,6 @@ final class PageFocusStore {
         if ProcessInfo.processInfo.environment["SAVOIA_UI_DEBUG"] != nil {
             let where_ = focus.rect.integral
             Log.debug(.ui, "focus \(focus.kind.rawValue) editable=\(focus.isEditable) at \(Int(where_.minX)),\(Int(where_.minY)) label=\"\(focus.label)\" text=\"\(focus.subject.prefix(40))\"")
-        }
-    }
-}
-
-/// One per window, because a message has to say which window it came from and the page cannot be
-/// trusted to say so itself.
-private final class PageFocusMessageHandler: NSObject, WKScriptMessageHandler {
-    let windowID: UUID
-    weak var store: PageFocusStore?
-
-    init(windowID: UUID, store: PageFocusStore) {
-        self.windowID = windowID
-        self.store = store
-    }
-
-    func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
-        let body = message.body
-        let windowID = windowID
-        Task { @MainActor [weak store] in
-            store?.receive(body, from: windowID)
         }
     }
 }
