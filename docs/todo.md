@@ -268,10 +268,11 @@ button is absent or dead, and the six wpt files `permissions-policy/payment-*` a
 differ from Safari for that reason. Measured in October 2026 on an https page, with and without the blocker's page
 scripts (`AdvancedRules`), so those are not the cause.
 
-What the cause is was not established, and the investigation was dropped rather than finished. The candidates
-that remain: the region of the Apple ID on the dev Mac, where Apple Pay does not work at all; and a limit WebKit
-puts on an app that is not Safari. The way to tell them apart is a twenty-five-line app with a bare `WKWebView`
-and no user script, and `typeof PaymentRequest` in Safari on the same Mac.
+What the cause is was not established, and the investigation was dropped rather than finished. It is not the
+region of the Apple ID, where Apple Pay does not work at all: Safari 27.2 on the same Mac answers
+`typeof PaymentRequest` with `"function"` (Artem, by hand). So it is something about Savoia as an app — a limit
+WebKit puts on one that is not Safari, or the user scripts Savoia still installs. A twenty-five-line app with a
+bare `WKWebView` and no user script tells those two apart.
 
 ## Blocking: cosmetic rules inside a frame
 
