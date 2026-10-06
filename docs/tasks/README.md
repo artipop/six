@@ -17,7 +17,7 @@ A task's file is deleted by the commit that finishes it; what was learned goes i
 | 12 | [measure/12-one-sitting.md](measure/12-one-sitting.md) | one sitting of measurements: extensions, two WebMCP tests, fullscreen on a real site |
 | 13 | [browser/13-small-things.md](browser/13-small-things.md) | one pass of six small things from the todo |
 | 14 | [browser/14-waits-by-the-clock.md](browser/14-waits-by-the-clock.md) | one pass: three waits by the clock replaced by the event they stand in for, the first of them a race |
-| 23 | [architecture/23-webpage-or-wkwebview.md](architecture/23-webpage-or-wkwebview.md) | whether a tab stays a `WebPage`: the inventory of walls, a seam, a second implementation behind a switch — **decides how 3, 15, 17 and 20 are built, so before them** |
+| 23 | [architecture/23-webpage-or-wkwebview.md](architecture/23-webpage-or-wkwebview.md) | every tab moves from `WebPage` to a `WKWebView` Savoia owns, with no switch between the two, and the workarounds `WebPage` forced are then taken out — **changes how 3, 15, 17, 20 and 22 are built, so before them** |
 | 22 | [devtools/22-web-inspector-in-savoia.md](devtools/22-web-inspector-in-savoia.md) | WebKit's inspector opened on a tab from Savoia, through SPI that was measured to work; numbered last, done before 15 |
 | 15 | [agents/15-agent-tools-to-chrome.md](agents/15-agent-tools-to-chrome.md) | an agent's tools brought up to Chrome's DevTools MCP — upload, dialogs, hover, drag — with as little script in the page as possible |
 | 16 | [bookmarks/16-images-in-bookmarks.md](bookmarks/16-images-in-bookmarks.md) | a bookmark found by the words in its pictures; only if such pages get bookmarked |
