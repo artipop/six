@@ -1,8 +1,8 @@
 # 14. Waits by the clock that have an event — one pass
 
 [timers.md](../../timers.md) sorted every `Task.sleep` in the app by what it stands in for. Most are what a timer is
-for and stay. Five wait a guessed number of milliseconds for something that has an event. This task replaces three
-of them, in this order, and leaves two.
+for and stay. Five wait a guessed number of milliseconds for something that has an event. One is done and one is gone; this task
+replaces the one that is left, and leaves two.
 
 ## 1. A load to end — done
 
@@ -16,10 +16,10 @@ has it. The race was not reproduced on the wpt stand first: the five loops went 
 asking what never anchored. The gesture-free call (`BrowserTab.callWithoutGesture`) is `callAsyncJavaScript` and
 takes an `await`: let `HighlightScript.apply` return a promise that settles when its own five-second watch does.
 
-## 3. Fullscreen to end
+## 3. Fullscreen to end — gone
 
-`BrowserTab.leaveElementFullscreen` polls `fullscreenState` up to 40 times, 50 ms apart, before a navigation is
-allowed. The state is observable (`withObservationTracking`, as `PageElementFullscreen` already uses it).
+`BrowserTab.leaveElementFullscreen` and its forty polls were removed with the workaround they belonged to: a tab's
+own `WKWebView` comes back from fullscreen by itself when the page navigates.
 
 ## Left
 

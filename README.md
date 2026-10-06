@@ -7,8 +7,9 @@ and the iOS, Linux, Windows and Android fronts built on that row, live on the `d
 
 It is a playground for three things:
 
-1. **SwiftUI + WebKit on the macOS 26+ APIs** — `WebView` / `WebPage` (no `NSViewRepresentable`), with several profiles
-   in one window. Each profile is an isolated `WKWebsiteDataStore(forIdentifier:)` and has its own tabs and groups.
+1. **SwiftUI + WebKit on the macOS 26+ APIs** — a SwiftUI interface over a `WKWebView` per tab, with several profiles
+   in one window. It began on SwiftUI's own `WebView` / `WebPage` and left it when most of what a browser needs
+   turned out to start with taking the view anyway ([docs/architecture.md](docs/architecture.md#from-webpage-to-wkwebview)). Each profile is an isolated `WKWebsiteDataStore(forIdentifier:)` and has its own tabs and groups.
    ⌘T / ⌘W / ⌘L.
 2. **Foundation Models (macOS 27) as the single LLM API** — a Dia-style one-line assistant (⌘E) driven by
    `LanguageModelSession`, switchable between the on-device `SystemLanguageModel`, `PrivateCloudComputeLanguageModel`
@@ -25,13 +26,13 @@ It is a playground for three things:
    named group, read and summarize pages, move and close tabs — the same tool catalog the assistant uses.
    With `savoia://settings` ▸ **Develop** ▸ Capture Console and Network on, that catalog also answers what a page logged and what it
    requested (`list_console_messages`, `list_network_requests`, `take_screenshot`) — Chrome's devtools-MCP moves, on
-   WebKit. `WebPage.isInspectable` puts Savoia's pages in Safari's own Develop menu.
+   WebKit. `WKWebView.isInspectable` puts Savoia's pages in Safari's own Develop menu.
    See [docs/mcp.md](docs/mcp.md) and [docs/devtools.md](docs/devtools.md).
 
 Tabs, groups, profiles and agent chats survive a relaunch: one JSON snapshot under Application Support, autosaved
 on change, ACP sessions resumed with `session/load`. See [docs/architecture.md](docs/architecture.md#persistence).
 
-A tab is not a page it holds forever. A `WebPage` is a web content process, so a hundred tabs keep only as many live
+A tab is not a page it holds forever. A web view is a web content process, so a hundred tabs keep only as many live
 as the machine can carry and *discard* the rest, the way Chrome's Memory Saver and Safari's suspended tabs do — the tab
 stays where it is, with its address, its history, its scroll offset and a picture of itself, and builds the same page
 again when you come back to it.
@@ -53,8 +54,7 @@ here belongs to Savoia alone, nothing else on the machine is affected, and switc
 See [docs/certificates.md](docs/certificates.md).
 
 Browser extensions run too, on `WKWebExtension` — installed from a folder, a `.zip`, a `.crx` or an `.xpi`, one
-controller per profile, never in a private window. There is one thing Savoia cannot give them: a tab's `WKWebView`,
-which `WebPage` does not hand out, so a content script runs but cannot message its extension. That boundary is
+controller per profile, never in a private window. An extension's own pages open as tabs. What works is
 measured rather than guessed, and every install says what it costs *that* extension before it runs.
 See [docs/extensions.md](docs/extensions.md).
 
@@ -93,7 +93,7 @@ Full reference: [docs/](docs/) — [controls](docs/controls.md), [hotkeys](docs/
 
 ```
 Savoia/Tiling      TilingLayout — tab groups and columns (a tab, or two side by side), focus and moves
-Savoia/Browser     Profile, BrowserTab (WebPage), BrowserState, SearchEngine + SearchSuggestions
+Savoia/Browser     Profile, BrowserTab (its own WKWebView), BrowserState, SearchEngine + SearchSuggestions
 Savoia/DevTools    DevToolsStore (Web Inspector + capture), PageInstrumentation (the page-world hooks)
 Savoia/Extensions  ExtensionStore (a controller per profile), ExtensionInstaller (+ the compatibility verdict), adapters
 Savoia/Blocking    ContentBlocker (compiles + attaches rules), FilterList/FilterListStore (the lists), RuleConversion

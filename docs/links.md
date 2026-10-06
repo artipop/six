@@ -1,100 +1,87 @@
 # Links, the context menu and downloads
 
-What happens when a link is clicked, right-clicked, ⌘-clicked or asked for as a file. One page, because in a SwiftUI
-`WebPage` browser these are all the same problem: WebKit's own answer to them goes to a delegate this API has no seat
-for, so Savoia has to answer them itself.
+What happens when a link is clicked, right-clicked, ⌘-clicked or asked for as a file. One page, because they all
+arrive at one object: `PageDelegate` ([`PageDelegate.swift`](../Savoia/Browser/PageDelegate.swift)), the navigation
+and UI delegate of a tab's `WKWebView`.
 
-## What the SwiftUI API gives, and what it doesn't
+## Where WebKit sends each one
 
-`WebPage` has a navigation decider (`WebPage.NavigationDeciding`), a dialog presenter and a device-sensor
-authorization block. It has **no UI client** (`WKUIDelegate`) and **no download delegate** (`WKDownloadDelegate`).
-Everything below follows from that.
+Until October 2026 a tab was SwiftUI's `WebPage`, which has a navigation decider and no UI client, and most of this
+page was about what could not be answered. A tab's view is Savoia's own now, with both delegates.
 
-| what the user does | where WebKit sends it | before |
+| what the user does | where WebKit sends it | what Savoia answers |
 |---|---|---|
-| a `target=_blank` link, `window.open` | `decidePolicy(for:preferences:)`, `target == nil`, then the UI client | the policy call was answered `.allow` and the UI client never existed → nothing |
-| ⌘-click | `decidePolicy(for:preferences:)` — `modifierFlags` carries the ⌘ | answered `.allow` → the page was simply replaced |
-| middle click | `decidePolicy(for:preferences:)`, and nothing in the action tells it from a plain click | it replaces the page, and still does |
-| ⇧-click, ⌘⇧-click | straight to the UI client, no policy call | nothing, and nothing Savoia can do about it |
-| **Open Link in New Window** (context menu) | straight to the UI client, no policy call | nothing |
-| **Download Linked File** (context menu) | straight to a download delegate, no policy call | nothing |
-| `<a download>`, ⌥-click | `decidePolicy(for:preferences:)`, `shouldPerformDownload` | answered `.allow` → the file was displayed, or nothing |
-| a response no page can show (a zip, an attachment) | `decidePolicy(for response:)`, `canShowMimeType == false` | answered `.allow` → a blank window |
+| a `target=_blank` link, `window.open` | `decidePolicyFor`, `targetFrame == nil`, then `createWebView` | `.allow`, then a tab that keeps its opener (below) |
+| ⌘-click | `decidePolicyFor` — `modifierFlags` carries the ⌘ | `.cancel`, and the link opens behind, by its address |
+| middle click | `decidePolicyFor`, and nothing in the action tells it from a plain click | it replaces the page |
+| ⇧-click, ⌘⇧-click | the UI client, with no policy call — not measured since the tab has one | whatever `createWebView` makes of it |
+| the context menu | `_webView:getContextMenuFromProposedMenu:forElement:…`, SPI | Savoia's own menu (below) |
+| `<a download>`, ⌥-click | `decidePolicyFor`, `shouldPerformDownload` | `.cancel`, and the request goes to `DownloadStore` |
+| a response no page can show (a zip, an attachment) | `decidePolicyFor` a response, `canShowMIMEType == false` | `.cancel`, and the same |
 
-The two context-menu items and the shift-clicks cannot be caught in a decider at all: WebKit hands them to
-the UI client and to a download delegate, and this API has a seat for neither. The middle click is a third kind of
-loss: it *does* reach the decider, but nothing in the action says which button was pressed. `buttonNumber`,
+The middle click reaches the delegate, but nothing in the action says which button was pressed. `buttonNumber`,
 despite the name, is 1 for every activation the mouse drove — left, middle, plain or modified — and 0 for
 everything else, so a middle click and an ordinary one are the same event. Reading it as the middle button is
-what once made every plain click open a window of its own. Everything else is a navigation
-action, and `TabNavigationDecider` in [`BrowserTab.swift`](../Savoia/Browser/BrowserTab.swift) cancels it and
-hands the request back to `BrowserState`. The menu items Savoia replaces; the shift-clicks it cannot.
+what once made every plain click open a window of its own.
 
-`SAVOIA_LINKS_TRACE=1` narrates every one of these decisions on stderr.
+A navigation the delegate cancels reports nothing afterwards — no failure, no finish — so the delegate tells the tab
+(`BrowserTab.navigationCancelled`), and a tool waiting for the load stops waiting.
+
+`SAVOIA_LINKS_TRACE=1` narrates every one of these decisions in the log.
 
 ## The context menu is Savoia's
 
-Because the two items cannot be repaired in place, and `webViewContextMenu` — the one hook there is — **replaces**
-WebKit's menu rather than adding to it, Savoia builds the whole menu
-([`PageContextMenu.swift`](../Savoia/Views/PageContextMenu.swift)):
+An `NSMenu` built by [`PageContextMenu.swift`](../Savoia/Views/PageContextMenu.swift) and handed to WebKit in place
+of the one it proposed:
 
 | on a link | always |
 |---|---|
-| Open Link | Back / Forward / Reload (Stop while loading) |
-| Open Link in New Window | Cut / Copy / Paste / Select All |
-| Open Link Behind | |
-| Download Linked File | |
-| Copy Link | |
+| Open Link | Back / Forward / Reload (Stop while loading), Save As…, Share |
+| Open Link in New Tab | Cut / Copy / Paste / Select All |
+| Open Link Behind | Picture in Picture |
+| Open Link Beside | Move to Profile, Close Tab |
+| Download Linked File | what the extensions added |
+| Copy Link, Share Link | |
 
 The clipboard items go through the responder chain (`cut:`, `copy:`, `paste:`, `selectAll:`), which is how they reach
-the page's own selection and its text fields — the same route the Edit menu takes.
+the page's own selection and its text fields — the same route the Edit menu takes. A document's preview gets the
+menu without the page commands.
 
-What is lost with WebKit's menu is what `WebView.ActivatedElementInfo` does not describe: it carries a link URL and
-nothing else, so there is no Save Image, no Copy Image, no Look Up and no spelling suggestions. That is the price of
-the two link items working at all.
+The link under the pointer comes from SPI: the delegate method above is handed a `_WKContextMenuElementInfo`, and
+its `hitTestResult.absoluteLinkURL` is the address — measured on a throwaway `WKWebView` with a synthetic right
+click, not yet by hand in Savoia. Public API offers `willOpenMenu(_:with:)`, which hands over WebKit's menu and not
+what was clicked. If the SPI goes, the method is never called and WebKit's own menu shows; its Open Link in New
+Window then arrives at `createWebView` and makes a tab, and its Download Linked File goes nowhere, since Savoia has
+no `WKDownloadDelegate`. The hit test also knows the image under the pointer, which the menu does not use yet: there
+is still no Save Image, Copy Image, Look Up or spelling suggestions.
 
 ## A second window
 
-⌘-click, Open Link in New Window and `target=_blank` all end at
-`BrowserState.openInNewWindow(_:from:background:)` — a column inserted right of the one the link was in.
+⌘-click and the menu's Open Link in New Tab end at `BrowserState.openInNewWindow(_:from:background:)` — a tab
+right of the one the link was in, loaded by its address.
 
-- ⌘-click puts it there **behind**: the strip grows to the right and the focus stays on the page
-  being read, and the strip leans over for a moment to show what arrived (above). There is no modifier for "and
-  take me there" — every shift-click is swallowed before Savoia is asked — so the going-there version lives in the
-  context menu, as Open Link in New Window next to Open Link Behind.
-- A `_blank` link clicked plainly comes **forward**, because it was opened to be looked at.
-- **`window.open` is a window when the page asked something of it.** The decider lets a navigation with no target frame through when it is not a
-  clicked link, and `ScriptedPopups` (`Savoia/Browser/ScriptedPopups.swift`) answers WebKit's `createWebView` with
-  a `WKWebView` built from the configuration it was handed, in an `NSWindow` of its own — the only way the new
-  page gets a `window.opener` and the opener a `WindowProxy`, which is what a sign-in or payment popup reports back
-  through. `WebPage` cannot be that view: it has no initialiser from a `WKWebViewConfiguration`, and its UI
-  delegate answers no `createWebView`, so the answer comes from a delegate placed in front of `WebPage`'s own that
-  forwards everything else. The window shows the page's title, its host (with the scheme when it is not https)
-  and a lock; `window.close()` and ⌘W close it.
+- ⌘-click puts it there **behind**: the focus stays on the page being read. The going-there version lives in the
+  context menu, as Open Link in New Tab next to Open Link Behind.
+- **A window the page asks for is a tab that keeps its opener.** `window.open` — with a size or without, with an
+  address or with one assigned afterwards — and a `_blank` link clicked plainly are answered by
+  `createWebView`: `BrowserState.openPageWindow` puts a tab next to the opener, in **front**, because the page
+  opened it to be looked at, and the tab builds its view on the configuration WebKit handed over
+  (`BrowserTab.open(byPageWith:)`), with its own content controller in it. That configuration is the only way the
+  new page gets a `window.opener` and the opener a `WindowProxy`, which is what a sign-in or payment popup reports
+  back through. `window.close()` closes a tab a page opened, and no other.
 
-  **Which one is a window.** Other browsers split on the features string — none is a tab, a size or a hidden bar
-  is a window — and their tab keeps its opener, which a `WebPage` tab cannot. So the rule here has a second
-  clause: a call that asked nothing (`WKWindowFeatures` all nil: size, position, the three bars, resizing) **and**
-  named an http(s) address is a tab with no opener, `createWebView` answering nil; anything else is the window.
-  The second clause is for `window.open()` with the address assigned afterwards — it can only reach the view
-  WebKit was handed, and a tab would stay blank. Clicked on live sites in October 2026: Sign in with Google (on
-  Reddit) asks 500×550 and Telegram's login widget 550×650, both with the bars off; YouTube's Share to X,
-  Facebook, WhatsApp and Reddit, and a link in vscode.dev, ask nothing — and vscode.dev and YouTube's Share by
-  email open the window empty. Vercel's Continue with GitHub opens nothing at all, it navigates. What the rule
-  costs is a site that opens an unsized window by address and still waits for a message from it.
-  `SAVOIA_NO_POPUPS=1` makes every one a tab, `SAVOIA_ALL_POPUPS=1` every one a window — the wpt stand runs
-  with the second, because the tests open unsized windows by address and talk to them. Each call is one line in
-  the log, with what it asked.
+  It is a tab like any other — history, permissions, downloads, translation, the ⌘E line — where it used to be a
+  bare window (`ScriptedPopups`, gone) that had none of them, and where the rule of which call got a window and
+  which a tab with no opener is gone with it. The size a page asks for is not honoured: Sign in with Google asks
+  500×550 and gets a tab. Measured over `Savoia --mcp`: all three kinds of `window.open` return a window, the
+  child's `postMessage` reaches the opener, the opener reads the child's title, and `window.close()` from the
+  opener removes the tab. A sign-in through such a tab has not been walked by hand since.
 
-  The window answers what a tab answers: the page's dialogs as sheets on it (`PageDialogs`, shared with the
-  tab), the camera and the microphone through `SitePermissions` — the tab's question as a sheet, the answer
-  filed under the same origin and profile, so either one remembers the other's — and a file goes to the
-  downloads, closing a window that was opened only to carry it. The window is its own UI delegate behind the
-  same proxy that answers `createWebView`. What it still does not have: history, translation, the ⌘E line. It
-  is a place to finish a sign-in, not a second browser.
+  If the page budget takes the page of a tab a page opened, it is built again by its address and the two no longer
+  have each other.
 - A link that is not the web — `magnet:`, `mailto:`, `tel:`, a custom scheme — goes to the system, not into a
   column. `ExternalScheme` in [`ExternalScheme.swift`](../Savoia/Browser/ExternalScheme.swift) — holds the one rule, and all
-  three routes ask it: the decider (a link clicked **in place** — WebKit does call the decider for `magnet:`, and a
+  three routes ask it: the delegate (a link clicked **in place** — WebKit does ask the delegate for `magnet:`, and a
   `.allow` there is a click that does nothing at all, silently), the column a `target=_blank` would have opened, and
   the address bar. It is an allowlist of what a window can show — http(s), file, about, data, blob, javascript,
   `Savoia:`, the extension and MCP-app schemes — because the schemes to hand off are unbounded by definition.
@@ -106,12 +93,14 @@ the two link items working at all.
   search query on one without, which is also what keeps «note: buy milk» a search. The tools do not ask — an agent
   that names a scheme Savoia cannot show gets a search, not the power to launch whatever app registered it.
 
-WebKit's own popup blocking still runs first: a `window.open` with no user gesture behind it never reaches the
-decider, so an ad that opens itself does not get a column.
+**Nothing blocks a window a page opens by itself.** `javaScriptCanOpenWindowsAutomatically` is on by default in a
+`WKWebView` on macOS, and measured over `Savoia --mcp` a `window.open` with no user gesture behind it gets its tab —
+as it did before the move, when the note here said otherwise. The preference is Savoia's to set now; it is left on
+because there is nothing yet to let one site through with.
 
 ## Downloads
 
-`WKDownload` needs a delegate the SwiftUI API has no seat for, so Savoia does the transfer itself —
+Savoia does the transfer itself rather than through `WKDownload` —
 [`Downloads.swift`](../Savoia/Browser/Downloads.swift), one `DownloadStore` for the app.
 
 That costs one thing and buys another. The request has to be rebuilt: Savoia carries over the profile's cookies (from

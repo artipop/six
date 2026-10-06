@@ -26,9 +26,9 @@ absent from the page or fails, which is what Savoia most likely does today.
 
 - Open <https://webauthn.io> and <https://passkeys.io> in Savoia; note what `navigator.credentials` does with the
   current signature. Also test `ASWebAuthenticationSession`-free password autofill: does the Passwords app offer
-  anything in our `WebPage`?
-- Check `WebPage.Configuration` / `WKWebViewConfiguration` for anything credential-related in the macOS 27 SDK
-  (`grep -i "credential\|webAuthn\|passkey"` in the WebKit swiftinterface) — the new SwiftUI `WebPage` may expose
+  anything in our web view?
+- Check `WKWebViewConfiguration` for anything credential-related in the macOS 27 SDK
+  (`grep -i "credential\|webAuthn\|passkey"` in the WebKit headers) — it may expose
   more than `WKWebView` did.
 
 ### 1. Paperwork (start now, it is the long pole)
@@ -72,7 +72,7 @@ absent from the page or fails, which is what Savoia most likely does today.
 
 ## Open questions
 
-- Does the macOS 27 `WebPage` API ship any WebAuthn hooks of its own (delegate for the request, so we could at least
+- Does the macOS 27 `WKWebView` API ship any WebAuthn hooks of its own (delegate for the request, so we could at least
   route it to a focused column)? Phase 0 answers this.
 - Whether the conditional-UI autofill works with our custom start page and address field — it targets `<input
   autocomplete="webauthn">` inside the page, so it should, but the field focus dance in `WindowChrome` may interfere.

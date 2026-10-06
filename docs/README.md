@@ -30,11 +30,11 @@ from [`Savoia/Localizable.xcstrings`](../Savoia/Localizable.xcstrings) rather th
 | [layout.md](layout.md) | tabs and groups: the model underneath, side by side, the ⌃Tab ring, groups by meaning |
 | [start-page.md](start-page.md) | the start page, search and suggestions |
 | [architecture.md](architecture.md) | modules and how state flows |
-| [extensions.md](extensions.md) | browser extensions: installing from a file, a controller per profile, and the measured boundary of what a `WebPage` browser can host |
+| [extensions.md](extensions.md) | browser extensions: installing from a file, a controller per profile, and what is measured to work |
 | [links.md](links.md) | links: the context menu Savoia had to take over, ⌘-click, and downloads without `WKDownload` |
 | [sharing.md](sharing.md) | the Share menu both ways: the share button, and the extension that takes a page, text or a file from another app into a tab group or the bookmarks |
 | [blocking.md](blocking.md) | ads and trackers: filter lists, `WKContentRuleList`, the shield and the per-site allowlist |
-| [permissions.md](permissions.md) | site permissions: the camera and microphone per site, the page's own dialogs, and what a `WebPage` browser still cannot ask for |
+| [permissions.md](permissions.md) | site permissions: the camera and microphone per site, the page's own dialogs, and what Savoia still cannot ask for |
 | [certificates.md](certificates.md) | extra certificate authorities: the Минцифры CA Savoia ships switched off, what a switch actually does, and importing your own |
 | [bookmarks.md](bookmarks.md) | bookmarks: readable Markdown copies per profile, on-device embeddings, search from the assistant and MCP |
 | [assistant.md](assistant.md) | the assistant: verbs at a selection, at a caret and on the ⌘E line, over Foundation Models |

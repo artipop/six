@@ -80,8 +80,8 @@ Three tabs, and each of them used to be a window of its own.
 updated) and the sites you asked it to leave alone. The shield in the address
 field opens the same screen. More in [Ads and trackers](/en/blocking).
 
-**Site permissions** — every site you have answered about the camera, the
-microphone or the motion sensors, with a switch for each. More in
+**Site permissions** — every site you have answered about the camera or the
+microphone, with a switch for each. More in
 [Site permissions](/en/permissions).
 
 **Certificates** — the certificate authorities Savoia trusts on top of the system's.

@@ -62,9 +62,9 @@ command as allowed while disabled), once, and does not depend on Savoia being th
 frame: `testdriver_in_context` walks the view's frame tree (`_frames:`, SPI) for the window testdriver gave that
 id and runs there, cross-origin frames included. A click adds up where each frame starts in its parent — a parent
 cannot name a cross-origin child, but it can recognise a message from it — and lands as the same `NSEvent`.
-The frames searched are the tab's and then those of every window a page opened (`ScriptedPopups.views`): a test
-that opens a popup runs testdriver from a frame inside it, and a click aimed there goes to that window's
-`WKWebView`.
+The frames searched are the tab's and then those of every tab its page opened (`BrowserTab.openedFrom`): a test
+that opens a window runs testdriver from a frame inside it, and a click aimed there goes to that tab's
+`WKWebView` — which is in no window while its opener is in front, so such a click does not land.
 `set_permission` for `storage-access` is WebKit's own state and not `SitePermissions`. It goes to
 `WKWebsiteDataStoreSetStorageAccessPermissionForTesting`, the call WebKit's own automation makes for WebDriver's
 Set Permission (`WebAutomationSession::setStorageAccessPermissionState`); it is exported from the C API only, so
@@ -122,7 +122,7 @@ Profiles are isolated `WKWebsiteDataStore`s; history, permissions and certificat
 
 ## Where Savoia answers, not WebKit (wpt)
 
-WebKit asks the application — through a delegate, a `WebPage` callback or a UI Savoia draws — and the result depends on
+WebKit asks the application — through a delegate or a UI Savoia draws — and the result depends on
 Savoia's answer. These are the wpt directories worth running; everything else in wpt is the engine's.
 
 | wpt directory | the Savoia code under test |

@@ -8,7 +8,7 @@ The entry point is `SavoiaMain`, not the `App`: with `--mcp` the process never t
 Savoia/Tiling       TilingLayout (tab groups and columns — a tab, or two side by side — focus and moves)
 Savoia/Input       KeyBindings + KeyContext (the table and what has the keyboard — in SavoiaCore, tested against
                 docs/hotkeys.md), KeyEvents (NSEvent → those values), KeyRouter (the one key monitor)
-Savoia/Browser     Profile, BrowserTab (WebPage), LivePageCache (the live-page budget), BrowserState, History, SitePermissions + PageDialogs (camera/microphone per site, the page's own dialogs), SearchEngine, SearchSuggestions, WebSearch
+Savoia/Browser     Profile, BrowserTab (a `WKWebView` of its own) + PageDelegate, LivePageCache (the live-page budget), BrowserState, History, SitePermissions + PageDialogs (camera/microphone per site, the page's own dialogs), SearchEngine, SearchSuggestions, WebSearch
 Savoia/Bookmarks   Bookmark (tables), ReadablePage (page → Markdown), Embedder + MLXEmbedder (multilingual-e5 over MLX), BookmarkStore (files, vec0 index, search)
 Savoia/Views       ContentView, TabStripView (tab bar + toolbar), TabPageView (a tab's page), ConfigurationPageView (savoia://configuration/<pane>#<tab>), StartPage, AssistantBar, AgentPanel, HistoryView, BookmarksView
 Savoia/Assistant   ModelChoice/AssistantSettings, AssistantStore (streaming), FoundationModelsCompatibility
@@ -27,8 +27,8 @@ Savoia/*.xcstrings Localizable + InfoPlist String Catalogs (English source, Russ
 
 `BrowserState` owns the profiles and the flat list of `BrowserTab`s; `TilingLayout` owns where they sit. A tab's
 `content` is `.web` or `.document(TextDocument)` — a document is a tab like any other, with a
-`WebPage` of its own that renders the Markdown preview (and exports it); see [deep-research.md](deep-research.md). The
-`WebPage` is not part of the tab's identity: it comes and goes with the live-page budget (below). A tab exists
+web view of its own that renders the Markdown preview (and exports it); see [deep-research.md](deep-research.md). The
+web view is not part of the tab's identity: it comes and goes with the live-page budget (below). A tab exists
 because a column points at it — `newTab` appends a tab and inserts a column, `closeTab` removes both. **The focused
 column is the selected tab**: `syncSelection()` copies `layout.focusedTabID` into `selectedTabID` after every layout
 operation, and the assistant, the agent panel and `⌘L` all key off that.
@@ -93,7 +93,7 @@ private profile can still touch is its agent scratchpad, if an agent is asked to
 
 ## Live pages
 
-A `WebPage` is a web content process — a JavaScript heap, a render tree, timers, a compositor. A hundred tabs
+A tab's `WKWebView` is a web content process — a JavaScript heap, a render tree, timers, a compositor. A hundred tabs
 cannot hold a hundred of them, so Savoia does what every browser does and calls by the same name: it **discards**
 the pages it is unlikely to be asked for and builds them again from the address. Discarding is not closing; the tab
 stays where it is with its title, its address, its back/forward list with each entry's scroll offset
@@ -102,7 +102,7 @@ stays where it is with its title, its address, its back/forward list with each e
 `LivePageCache` is the budget, one queue for the whole app — every profile, every group. Switch to another tab and
 back and the one you just left is at the warm end of the queue with its page still on it.
 
-- **Building waits for the focus to settle.** `WebPage()` is a web content process being attached —
+- **Building waits for the focus to settle.** building the view is a web content process being attached —
   measured at 6–250 ms on the main actor, with the load after it — so doing it inside the click that moved the focus
   is a third of a second of stuck button, and walking the tabs with `⌘⇧]` would pay it at every tab passed. The build
   is scheduled one switch animation later (`LivePageCache.settleDelay`, 350 ms) and cancelled if the focus moves
@@ -128,7 +128,7 @@ back and the one you just left is at the warm end of the queue with its page sti
   pages, visiting every one: 22 web content processes and 798 MB with the budget out of the way, 6 and
   287 MB with it in place.
 
-The ⌃Tab ring's cards are real pictures of the pages, taken with `WebPage.exported(as: .image(…))` — the same thing
+The ⌃Tab ring's cards are real pictures of the pages, taken with `WKWebView.takeSnapshot` — the same thing
 Safari's tab overview and Chrome's tab switcher show. It is taken when a tab leaves the screen, when the ring opens,
 and once for a tab that has never been drawn;
 rate limited to one per window per three seconds, 400 pt wide, `afterScreenUpdates: false` so nothing is re-rendered
@@ -188,7 +188,7 @@ string Savoia sends is identical to the Safari installed on the machine — the 
 rather than with this file. It is not a disguise: the engine, the JavaScript and the quirks really are that Safari's.
 Naming ourselves in the same string is what broke it, so we don't.
 
-`WebPage.customUserAgent` can override the string per page, which is where per-site quirks would go if a site ever
+`WKWebView.customUserAgent` can override the string per page, which is where per-site quirks would go if a site ever
 needs a different answer. Nothing that is not in the user agent is faked: `navigator.userAgentData` stays absent (it
 is Chromium's), and a site that insists on it will simply not recognise us.
 
@@ -210,8 +210,8 @@ macOS puts up its own confirmation, as it should — an app cannot promote itsel
 
 The receiving end is the scene itself. `SavoiaApp.body` declares a `Window`, not a `WindowGroup`, and that is the whole
 defence: SwiftUI answers an external open — a link from another app, a Handoff tile — by asking `AppWindowsController`
-for a *window*, and a group happily builds a second one, which puts the same `WebPage`s into a second `WebView`;
-WebKit traps and the process dies. A `Window` scene has nowhere to build, so SwiftUI raises the one that is up and
+for a *window*, and a group happily builds a second one, which would show the same tabs twice — one web view
+cannot be in two windows. A `Window` scene has nowhere to build, so SwiftUI raises the one that is up and
 delivers to it. With that in place the sanctioned modifiers do the rest: `.onOpenURL` for links and files,
 `.onContinueUserActivity(NSUserActivityTypeBrowsingWeb)` for Handoff from another device, and
 `handlesExternalEvents(preferring:allowing:)` with `"*"` saying the one window takes everything.
@@ -258,20 +258,20 @@ page's URL, a column moving, a chat line — schedules a debounced (1 s) write o
 `willTerminate` flushes synchronously. On restore, a `BrowserTab` is created with its saved URL but doesn't load until
 it first comes on screen (or a tool looks at it) — relaunching with a hundred tabs fires no requests.
 That first load — and the one that rebuilds a discarded window — does not start media by itself: `MediaHold` puts a
-script in Savoia's world that pauses any `play` until a trusted click or key press in that frame. `WebPage.Configuration`
-has no `mediaTypesRequiringUserActionForPlayback` on macOS, and one would hold every later navigation too; the script
+script in Savoia's world that pauses any `play` until a trusted click or key press in that frame.
+`mediaTypesRequiringUserActionForPlayback` does hold media on macOS — measured on an autoplaying audio element — but
+a configuration is for the life of its view, so it holds every later navigation too; the script
 is dropped as soon as the next navigation starts, so a reload or a link plays as usual.
 The window itself — frame and fullscreen — is in the snapshot too (`WindowState`, fed by `NSWindow`
 notifications and applied once when the content view lands in its window; a saved frame off every screen is
 ignored). Restore drops anything that doesn't line up (a column whose tab is gone, a tab no column points at).
 
 **Back and forward survive a relaunch, with the scroll offsets.** `TabSnapshot.state` is the tab's
-`WKWebView.interactionState`, read as the snapshot is written and given to the web view when the tab is first shown
-([page-scripts.md](page-scripts.md#scroll-and-history-interactionstate)); `WebPage` hands none out, so it goes
-through the view. Beside it the snapshot still carries `BrowserTab.Trail`'s addresses, 50 steps each way —
-`savedBack` / `savedForward`, walked by `goBack()` when the live page's own list runs out — for a tab that has no
-state or is loaded before it has a web view. Only the API key
-stays in `UserDefaults`; the other settings are in the database (below).
+`WKWebView.interactionState`, read as the snapshot is written and given to the tab's view when it loads again —
+on screen or not ([page-scripts.md](page-scripts.md#scroll-and-history-interactionstate)). There is no list of
+addresses beside it any more: a state over 512 KB is not written, and such a tab comes back at its address with no
+history; `TabSnapshot.back` / `forward` remain in the format for a front whose engine has no session state. Only the
+API key stays in `UserDefaults`; the other settings are in the database (below).
 
 History and settings live in SQLite — `~/Library/Application Support/org.deffun.savoia/savoia.sqlite`, opened by `AppDatabase`
 through [SQLiteData](https://github.com/pointfreeco/sqlite-data) (GRDB + StructuredQueries; `@Table` structs, typed
@@ -279,7 +279,7 @@ queries, `#sql` for the schema). Tables follow SQLiteData's CloudKit rules from 
 no `UNIQUE` elsewhere, columns only ever added — so turning its `SyncEngine` on later is configuration
 ([storage.md](storage.md), [sync.md](sync.md)). `profiles` and `profile_storage` are who the profiles are and where they are kept, above.
 `visits(id, profileID, url, title, visitedAt)` is history:
-each `BrowserTab` feeds `WebPage.navigations` to `BrowserState`, which records the committed URL under the tab's
+each `BrowserTab` reports what its navigation delegate saw to `BrowserState`, which records the committed URL under the tab's
 profile and fills in the title when the load finishes. `settings(key, value)` holds the preferences (search engine,
 assistant model, groups by meaning, agent model override) behind the typed `ConfigurationStore`; the Anthropic API key stays in
 `UserDefaults` — a credential has no business in a table that may sync. `HistoryStore` keeps a `revision` that every write
@@ -297,8 +297,8 @@ search, and how sqlite-vec is loaded into the Apple SQLite.
 ## Page-side scripts
 
 Everything Savoia runs inside a page — the readable-text extractor behind bookmarks and `get_page_content`, the link
-lister, the highlight anchoring — goes through `WebPage.savoia(_:arguments:)`
-(`Savoia/Browser/PageScripts.swift`): `callJavaScript` in a `WKContentWorld` of Savoia's own. This is the arrangement
+lister, the highlight anchoring — goes through `WKWebView.savoia(_:arguments:)`
+(`Savoia/Browser/PageScripts.swift`): `callAsyncJavaScript` in a `WKContentWorld` of Savoia's own. This is the arrangement
 Firefox Reader View and Safari Reader use — the browser's script reads the page from a privileged context, never as a
 guest of the page's own scripts. The DOM is shared, the JavaScript is not:
 
@@ -322,9 +322,9 @@ described as the page's account of itself rather than the browser's. Its result 
 model — that is the task, not an injection — and the defence there is the agent's (permission prompts, treating page
 content as data).
 
-The scripts are plain function bodies — `callJavaScript` runs a function, not an async one, so no `await`; anything
-that has to wait (the highlight re-anchor watching a hydrating page) runs fire-and-forget in the page and Swift asks
-for the outcome later.
+The scripts are function bodies, and `callAsyncJavaScript` runs them as an async function, so one may `await`. The
+ones written when it could not still run fire-and-forget in the page — the highlight re-anchor watching a hydrating
+page — and Swift asks for the outcome later.
 
 ## Views
 
@@ -334,15 +334,18 @@ everything, and the agent panel as an `.inspector`. When ⌘E is pressed over a 
 on the web view itself instead (`AnchoredAssistantLine`), as a `HostedOverlay` — SwiftUI drawn over a `WKWebView` never
 sees the mouse. The window uses `.hiddenTitleBar`, and the tab bar keeps room for the traffic lights.
 
-The page under the tab bar is drawn in one `ForEach` keyed by tab, so a tab joining or leaving a pair keeps its view: a
-`WebPage` allows exactly one `WebView`, and a second one built over it traps in `makeViewProvider`. A tab with no live
+The page under the tab bar is drawn in one `ForEach` keyed by tab, so a tab joining or leaving a pair keeps its view.
+`PageHost` is the one `NSViewRepresentable`: it puts the tab's own `WKWebView` in a plain view and holds it by frame;
+a second host built over the same tab takes the view from the first. A tab with no live
 page yet draws a placeholder with the site's icon and host until its page is built.
 
 ## From `WebPage` to `WKWebView`
 
-The map [task 23](tasks/architecture/23-webpage-or-wkwebview.md) is carried out by. The third column is WebKitGTK's
-name for the same thing; **bold** there is what the Linux front on `dev` already calls
-(`linux/Sources/SavoiaWebKit`, `SavoiaWebKitCore`, `SavoiaBrowser`).
+Savoia was built on SwiftUI's `WebView` / `WebPage` and moved every tab to a `WKWebView` of its own in October 2026
+([task 23](tasks/architecture/23-webpage-or-wkwebview.md)); this is the map the move was made by, kept for the next
+sync of the `dev` branch. The third column is WebKitGTK's name for the same thing; **bold** there is what the Linux
+front on `dev` already calls (`linux/Sources/SavoiaWebKit`, `SavoiaWebKitCore`, `SavoiaBrowser`). The rest of that
+column was written from memory of its API and not compiled.
 
 ### Members
 
@@ -358,7 +361,7 @@ name for the same thing; **bold** there is what the Linux front on `dev` already
 | `decidePolicy(for: NavigationResponse)` | `webView(_:decidePolicyFor: WKNavigationResponse)` | `decide-policy` with `RESPONSE`, `webkit_response_policy_decision_is_mime_type_supported` |
 | `decideAuthenticationChallengeDisposition(for:)` | `webView(_:respondTo:)` | `load-failed-with-tls-errors`, `authenticate` |
 | `WebPage.DialogPresenting` | `WKUIDelegate`: `runJavaScriptAlertPanel…`, `…ConfirmPanel…`, `…TextInputPanel…`, `runOpenPanelWith` | `script-dialog`, `run-file-chooser` |
-| `Configuration.deviceSensorAuthorization` | `WKUIDelegate`: `requestMediaCapturePermissionFor`, `requestDeviceOrientationAndMotionPermissionFor` | **`permission-request`** (**`WebKitUserMediaPermissionRequest`**) |
+| `Configuration.deviceSensorAuthorization` | `WKUIDelegate`: `requestMediaCapturePermissionFor`; the motion question has no delegate method on macOS and is gone | **`permission-request`** (**`WebKitUserMediaPermissionRequest`**) |
 | `cameraCaptureState`, `microphoneCaptureState`, `setCameraCaptureState` | the same on `WKWebView` | `camera-capture-state`, `microphone-capture-state`, `display-capture-state` |
 | `mediaPlaybackState()` | `requestMediaPlaybackState()` | `is-playing-audio` |
 | `fullscreenState` | `fullscreenState` under KVO | `enter-fullscreen`, `leave-fullscreen` |
@@ -369,21 +372,21 @@ name for the same thing; **bold** there is what the Linux front on `dev` already
 | `WebView(page)` | one `NSViewRepresentable` handing out the tab's own view | the widget itself |
 | `.webViewBackForwardNavigationGestures` | `allowsBackForwardNavigationGestures` | `webkit_settings_set_enable_back_forward_navigation_gestures` |
 | `.webViewElementFullscreenBehavior` | `configuration.preferences.isElementFullscreenEnabled` | `webkit_settings_set_enable_fullscreen` |
-| `.webViewContextMenu` | `willOpenMenu(_:with:)` in the subclass | `context-menu` |
+| `.webViewContextMenu` | `_webView:getContextMenuFromProposedMenu:forElement:userInfo:completionHandler:` (SPI), which is where the link under the pointer comes from; an `NSMenu` built by `PageContextMenu` | `context-menu` |
 
 ### Workarounds
 
-| what `WebPage` forced | what replaces it | WebKitGTK |
+| what `WebPage` forced | what became of it | WebKitGTK |
 |---|---|---|
-| `WebViewResponder`'s search of the view tree for a pane's `WKWebView`, and "only while on screen" | `BrowserTab.webView`; the responder keeps the keyboard and nothing else | the widget is the page |
-| `ScriptedPopups`: a proxy `WKUIDelegate` in front of `WebPage`'s own, and an `NSWindow` | `webView(_:createWebViewWith:for:windowFeatures:)` on the tab's own delegate, answered with a tab | `create` |
-| a second window cancelled in the decider and opened again by address | the same delegate; a ⌘-click is still the decider's | `decide-policy` with `NEW_WINDOW_ACTION` |
-| `interactionState` given to the view a pane mounts, a one-second wait for it, and address lists beside it | `interactionState` set as the view is made | `webkit_web_view_get_session_state`, `_restore_session_state` |
-| `callWithoutGesture` falling back to the ordinary call off screen | the SPI call on the tab's view, always | the call there is not a gesture |
-| `PageElementFullscreen`'s swap of the hold, `leaveElementFullscreen` before a navigation | retested on a view held by frame | none |
-| `MediaHold`, a user script | `mediaTypesRequiringUserActionForPlayback`, if it holds on macOS | `webkit_settings_set_media_playback_requires_user_gesture` |
+| `WebViewResponder`'s search of the view tree for a pane's `WKWebView`, and "only while on screen" | gone: `BrowserTab.livePage` is the view; the responder keeps the keyboard and nothing else | the widget is the page |
+| `ScriptedPopups`: a proxy `WKUIDelegate` in front of `WebPage`'s own, and an `NSWindow` | gone: `PageDelegate` answers `createWebView` with a tab built on the configuration WebKit hands over, which keeps the opener | `create` |
+| a `target=_blank` click cancelled in the decider and opened again by address | gone: it is the same `createWebView`; a ⌘-click is still cancelled and opened behind by address | `decide-policy` with `NEW_WINDOW_ACTION` |
+| `interactionState` given to the view a pane mounts, a one-second wait for it, and address lists beside it | gone: the state is set as the tab resumes, on screen or not | `webkit_web_view_get_session_state`, `_restore_session_state` |
+| `callWithoutGesture` falling back to the ordinary call off screen | gone; the ordinary call is left for the SPI being absent | the call there is not a gesture |
+| `PageElementFullscreen`'s swap of the hold, `leaveElementFullscreen` before a navigation | both gone: `PageHost` holds the view by frame, and a navigation out of fullscreen puts the view back by itself | none |
+| `MediaHold`, a user script | **stays**: `mediaTypesRequiringUserActionForPlayback` holds every later navigation in the view too | `webkit_settings_set_media_playback_requires_user_gesture` |
 | picture-in-picture and screen sharing switched on as a pane claims a view | as the view is made | `display-capture-state` |
-| extension pages in a window (`ExtensionStore.openExtensionPage`) | a tab from `WKWebExtensionContext.webViewConfiguration` | none |
-| no automation of a tab | `_controlledByAutomation` on the configuration | `is-controlled-by-automation`, `WebKitAutomationSession` |
-| no web archive | `createWebArchiveData` | `webkit_web_view_save` (MHTML) |
+| extension pages in a window (`ExtensionStore.openExtensionPage`) | gone: a tab built on `WKWebExtensionContext.webViewConfiguration` | none |
+| no automation of a tab | **not turned on**: the flag can be set now, and is a matter for [task 15](tasks/agents/15-agent-tools-to-chrome.md) | `is-controlled-by-automation`, `WebKitAutomationSession` |
+| no web archive | `createWebArchiveData`, in Save As | `webkit_web_view_save` (MHTML) |
 | find reached through the pane's view | `find(_:configuration:)` on the tab's view | `webkit_web_view_get_find_controller` |

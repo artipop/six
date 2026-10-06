@@ -42,35 +42,30 @@ bar hands one over only when an app on this Mac claims the scheme; with nothing
 to open it, what was typed is a search like anything else. A `target=_blank` link
 opens a tab, and it comes forward: it was opened to be looked at.
 
-A window a page opens by script (`window.open`) and asks a size for — signing in
-through another service, a payment — is a window of its own and not a tab: the page's
-title, its address under it, and a lock while the connection is secure. It stays
-connected to the page that opened it, so it can hand a result back and close itself;
-⌘W closes it while it is in front. The page's messages and questions appear on that
-window; **Allow** and **Block** answer a question about the camera and the microphone,
-and the answer is remembered for the site as it is in a tab. A file such a window
-hands over goes to the downloads. When the page asked nothing about the window and
-only named an address — Share, a link in a web app — an ordinary tab opens. WebKit's own popup blocking runs before any of this, so an ad that opens
-itself gets no window.
+A window a page opens by script (`window.open`) — signing in through another
+service, a payment — is a tab too, next to the page that opened it and in front.
+It stays connected to that page, so it can hand a result back and close itself.
+It is a tab like any other: its questions about the camera and the microphone
+appear in it, a file it hands over goes to the downloads, and the size the page
+asked for is not honoured. Nothing stops a page from opening such a tab by
+itself.
 
 ## The page's context menu
 
-It is entirely Savoia's own, because two of its link items could not be repaired in
-anybody else's:
+It is Savoia's own:
 
 | on a link | always |
 |---|---|
 | Open Link | Back / Forward / Reload |
-| Open Link in New Window | Cut / Copy / Paste / Select All |
-| Open Link Behind | This Window ▸ … |
-| Open Link Beside | |
-| Download Linked File | |
-| Copy Link | Share ▸ … |
+| Open Link in New Tab | Cut / Copy / Paste / Select All |
+| Open Link Behind | Picture in Picture |
+| Open Link Beside | Move to Profile ▸ … |
+| Download Linked File | Close Tab |
+| Copy Link | Save As…, Share ▸ … |
 | Share Link ▸ … | |
 
-The price is what WebKit's menu knew about an element that is not a link: Save
-Image, Copy Image, Look Up and the spelling suggestions. It is a trade: without
-its own menu, those two link items would not work at all.
+What it does not have yet is what WebKit's menu knew about an element that is
+not a link: Save Image, Copy Image, Look Up and the spelling suggestions.
 
 ## Downloads
 
@@ -114,8 +109,9 @@ once the download starts: nothing was in it, and there is nothing to go back to.
 | `⌘S` | save — a document that already has a file goes back to it |
 | `⌘⇧S` | save as… |
 
-A page saves as `.html`, `.pdf` or `.txt`; a document as `.md`, `.html` or
-`.pdf`. The folder is remembered. There is no `.webarchive`.
+A page saves as `.html`, `.webarchive` (the page with its pictures and styles,
+in one file), `.pdf` or `.txt`; a document as `.md`, `.html` or `.pdf`. The
+folder is remembered.
 
 ## Sharing
 

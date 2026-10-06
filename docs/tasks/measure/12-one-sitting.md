@@ -19,16 +19,16 @@ leaves that file by being measured, in either direction, and by the page it came
 ## WebMCP
 
 4. **The two wpt tests that needed an opened window.** `window.open` returns a window now
-   ([links.md](../../links.md#a-second-window)), so they may pass — or fail for a new reason: the window is a
-   `WKWebView` of its own, and nobody has checked that the polyfill is installed in it.
+   ([links.md](../../links.md#a-second-window)), so they may pass — or fail for a new reason: the window is a tab
+   with the content controller every tab gets, and nobody has checked that the polyfill answers in it.
    `./scripts/webmcp-wpt.py` (its stand is still under `savoia.localhost`, and it uses the dev build's own home:
    `--install-ca` with the dev Savoia quit, then launch with `SAVOIA_WEBMCP=1`). Update the nine-left list in
    [webmcp.md](../../webmcp.md#the-nine-wpt-tests-left) and the baseline.
 
 ## Windows a page opens
 
-5. **Element fullscreen, then a navigation, on a real video site.** The fix
-   (`BrowserTab.leaveElementFullscreen`) was checked on the wpt stand only. Artem does this one by hand: a video in
+5. **Element fullscreen, then a navigation, on a real video site.** The workaround that left fullscreen first is
+   gone with `WebPage`; that the view comes home by itself was checked on a stand page only. Artem does this one by hand: a video in
    fullscreen, then a link or "next" that navigates — the tab must not go blank.
 
 ## Done when

@@ -22,7 +22,7 @@ site's key handler. With nothing to do they stay quiet.
 
 WebKit sends an unhandled key back through AppKit (`WebViewImpl::doneWithKeyEvent`), and its second
 `keyDown` forwards it to the responder chain. That reached `NSResponder.noResponder(for:)` and rang
-the system alert on a short page. `PageKeyFallback`, installed by `WebViewResponder`, stands **after
+the system alert on a short page. `PageKeyFallback`, installed as a tab registers its view with `WebViewResponder`, stands **after
 the host window** in that chain. It accepts only these unhandled keys, without Command, Control or
 Option, while a `WKWebView` is the first responder. The DOM and the window's default button have
 already had their turns; native fields, sheets and menu shortcuts keep their normal paths.
@@ -107,7 +107,7 @@ lands the flight and goes on to whatever it was meant for — including over a c
 ## Find on page (`⌘F`)
 
 Pushed above the page rather than drawn over it, so the field takes the keyboard. The search is WebKit's own
-(`WKWebView.find`, reached through `WebViewResponder`): no script runs in the page, the match is the page's
+(`WKWebView.find`, on the tab's own view): no script runs in the page, the match is the page's
 selection, and there is no count of matches — the public API gives none.
 
 | | |

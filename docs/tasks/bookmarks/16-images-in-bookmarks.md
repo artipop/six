@@ -31,7 +31,7 @@ the SDK offers and doesn't):
    same time. Remote, keyed, images leave the Mac; a setting, off by default.
 
 PDFs: the model doesn't take them; `PDFPage.string` for the text layer and page renders as images through step 1/2
-when `ReadablePage` learns to read a PDF `WebPage`.
+when `ReadablePage` learns to read a PDF page.
 
 ## Done when
 

@@ -48,7 +48,7 @@ tools themselves in `BrowserTools.swift`.
   name in `KeyboardEvent.key` to a key code of the ANSI layout. A page with no view on screen, and a character
   the table has no key for (anything outside ASCII), still get the scripted events, which are not trusted and
   whose default actions are done by hand.
-- **The script runs in Savoia's own content world** (`WebPage.savoia`), as the readable-text extractor does
+- **The script runs in Savoia's own content world** (`WKWebView.savoia`), as the readable-text extractor does
   ([architecture.md](architecture.md#page-side-scripts)): a page cannot redefine `querySelectorAll` or a getter to
   show the agent a button the person does not see, or reach the registry to aim a click elsewhere. It is also why the
   WebMCP polyfill, which patches `Element.prototype.matches` / `closest` and `HTMLFormElement.prototype.submit` in

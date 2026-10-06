@@ -2,7 +2,8 @@
 
 Every place Savoia executes or injects script in a page, why each one is a liability, and what is to become of it.
 Written in October 2026, after the wpt permission run ([permissions.md](permissions.md#compatibility-web-platform-tests))
-showed two things about `WebPage.callJavaScript`.
+showed two things about a call into a page — `WebPage.callJavaScript` then, `WKWebView.callAsyncJavaScript` since a tab
+became a `WKWebView` of its own.
 
 ## What a call costs
 
@@ -10,7 +11,7 @@ showed two things about `WebPage.callJavaScript`.
   `navigator.userActivation.isActive` is true for about a second, `navigator.clipboard.writeText()` and `readText()`
   resolve, and a `postMessage` or zero-delay timer started from it inherits the same. `hasBeenActive` stays true
   for the life of the document. A call in the `savoia` world does the same as one in the page's: activation
-  belongs to the window and not to the world (measured in a bare `WebPage`, where a load alone, a load with a user
+  belongs to the window and not to the world (measured in a bare `WebPage`, and again in a bare `WKWebView`; where a load alone, a load with a user
   script, and the gesture-free call all leave it false).
 - **A script that moves the page moves it when nobody asked.** Two of them scroll.
 - **A user script on every page is a condition WebKit can see.** `PaymentRequest` and `ApplePaySession` are
@@ -19,18 +20,18 @@ showed two things about `WebPage.callJavaScript`.
 
 The call that carries none is `BrowserTab.callWithoutGesture` (`PageScripts.swift`): WebKit's
 `_callAsyncJavaScript:arguments:inFrame:inContentWorld:withUserGesture:completionHandler:`, SPI, behind
-`responds(to:)`. It needs the tab's `WKWebView`, which a pane finds a moment after it is mounted: a call for a
-page on screen waits for that (`WebViewResponder.awaitedWebView`, a second at most), and a page no pane shows gets
-the ordinary call. Measured through it: `isActive` false, and a clipboard write with no click is refused.
+`responds(to:)`. It runs on the tab's own `WKWebView`, on screen or not; the ordinary call is left only for the
+SPI being absent. Measured through it: `isActive` false, and a clipboard write with no click is refused.
 
 **What activated every page at load** was three calls, found with a page that writes
 `navigator.userActivation` into its own title, read with `list_workspaces` so that nothing is run to read it:
 
 - the offer to translate — `PageTranslator.plan` on every `.finished`, through `BrowserTab.runScript`;
 - any call at `.finished` on a page that loads fast: the load ended before the pane had found the web view (67 ms
-  before, on a local page), and the call fell back to the ordinary one;
+  before, on a local page), and the call fell back to the ordinary one — a fallback that is gone, with the search
+  for the view;
 - the live-page budget asking a page off screen whether a video of it is floating
-  (`WebPage.isInPictureInPicture`).
+  (`WKWebView.isInPictureInPicture`).
 
 All three go without a gesture now, and so do the highlights put back on a load and `hasUserInput`. With them
 `hasBeenActive` is false after a load, after a load of an address that has a highlight (which is painted), in a
@@ -46,7 +47,7 @@ second window opened straight after, and on a page the budget looked at and kept
 | highlights — `HighlightStore.apply` | a load of an address that has highlights | savoia | edits the DOM, watches it for 5 s | no gesture; below |
 | the offer to translate — `BrowserState.offerTranslation` | every `.finished` | savoia | reads the page's language and a sample of its text | stays; no gesture |
 | unsent input — `BrowserTab.hasUserInput` | the live-page budget choosing what to discard | savoia | reads `textarea` and password fields | stays; no gesture |
-| a floating video — `WebPage.isInPictureInPicture` | the same | savoia | reads each `video`'s presentation mode | stays; no gesture |
+| a floating video — `WKWebView.isInPictureInPicture` | the same | savoia | reads each `video`'s presentation mode | stays; no gesture |
 
 ## Injected ahead of time
 
@@ -71,23 +72,20 @@ second window opened straight after, and on a page the budget looked at and kept
 `WKWebView.interactionState` is the back-forward list with each entry's scroll position, restored the way Safari
 restores a tab. It replaced both scroll scripts: nothing reads `scrollY` and nothing calls `scrollTo`.
 
-- **Taken** from the tab's web view (`WebViewResponder`) in `discard()`, and for a live tab as the snapshot is
-  written — synchronously, with no round trip to the page. Only a web view that has been on screen is on file; a
-  page a tool loaded in the background has no state, and neither has one above 512 KB (`history.state` can be
-  megabytes, and the snapshot is rewritten on every change).
+- **Taken** from the tab's web view in `discard()`, and for a live tab as the snapshot is written — synchronously,
+  with no round trip to the page. A state above 512 KB is not written to the snapshot (`history.state` can be
+  megabytes, and the snapshot is rewritten on every change); it is still kept in memory across a discard.
 - **Kept** in `BrowserTab.savedState`, in `Trail` for a move between profiles, and as `TabSnapshot.state` in
   `state.json` — about 1 KB for three entries.
-- **Given** to the fresh web view where a pane finds it (`BrowserTab.webViewFound`, from `onWebViewFound`), in
-  place of loading the address. `WebPage` takes it: `url`, `backForwardList` and `navigations` agree afterwards,
-  and the load arrives as an ordinary `startedProvisionalNavigation`, `committed`, `finished`. To the page it is a
-  `back_forward` navigation.
-- **The addresses stay** (`savedBack` / `savedForward`) for the cases with no web view to give a state to: a
-  waiting tab a tool reads before it is shown, a state that was not taken, a file from before. When the state is
-  given, the addresses WebKit's list has again are dropped from them.
+- **Given** to the view as the tab resumes (`BrowserTab.resumeIfNeeded`), in place of loading the address, on
+  screen or not: a tool that reads a waiting tab gets the page where it was left. The load arrives as an ordinary
+  started, committed, finished. To the page it is a `back_forward` navigation.
+- **No addresses beside it.** The lists of addresses a tab used to keep and walk (`savedBack` / `savedForward`)
+  were for a view that could not be reached; they are gone. A tab with no state — one over the limit after a
+  relaunch, a file from before states were kept — comes back at its address with no history.
 
-A pane's `onAppear` waits a second for the web view and then loads the address. A tool that reads a waiting tab
-which is on screen waits the same way; off screen it loads the address and the state is lost. `focus_window` does
-not resume a tab, so the pane does.
+Measured over `Savoia --mcp`: a tab off screen, after the page budget took its page and after a relaunch, was back
+on its last page with `history.back()` leading to the one before and the scroll at 1500 where it was left.
 
 **Limits, accepted.** WebKit puts the offset back once, at load. Content that is in the document by then is
 restored exactly; content added afterwards — 50 ms after is enough — is not waited for, and the page lands at the

@@ -6,8 +6,9 @@ this file is the part that is neither — how to build it, how to check it, and 
 ## What Savoia is
 
 A macOS browser with tabs, tab groups and two tabs side by side, built on the macOS 26/27 APIs on purpose: SwiftUI
-`WebView`/`WebPage` (no `NSViewRepresentable`), Foundation Models as the single LLM API, ACP for agents, and the
-browser itself as an MCP server. Swift 5 language mode, `@Observable`, `@MainActor`.
+for the interface, a `WKWebView` per tab that Savoia creates itself, Foundation Models as the single LLM API, ACP
+for agents, and the browser itself as an MCP server. A tab was SwiftUI's `WebView`/`WebPage` until October 2026;
+what the move changed is in [docs/architecture.md](docs/architecture.md#from-webpage-to-wkwebview). Swift 5 language mode, `@Observable`, `@MainActor`.
 
 It was called **six** until September 2026: bundle ids, folders and the `six://` scheme were renamed with it,
 and `FormerName` carries the old Application Support, WebKit data, preferences and Keychain items across.
@@ -24,10 +25,10 @@ tab group, a column is one tab or two side by side.
 Savoia/Tiling        TilingLayout — workspaces (tab groups) and columns (a tab, or two side by side), focus and moves
 Savoia/Tabs          TabSorter, TabTopics (groups by meaning), GroupColor, the local language model
 Savoia/Input         KeyBindings + KeyContext (the table, in SavoiaCore), KeyEvents (the AppKit half), KeyRouter, KeySelfTest
-Savoia/Browser       BrowserState, BrowserTab (WebPage), Profile/ProfileStore, History, SearchEngine, LivePageCache,
+Savoia/Browser       BrowserState, BrowserTab (its own WKWebView) + PageDelegate, Profile/ProfileStore, History, SearchEngine, LivePageCache,
                      SitePermissions, CertificateStore, Downloads, IDN, PersonalSuggestions, PageThumbnails, PageFinder,
                      WindowSwitcher (the ⌃Tab ring)
-Savoia/Views         ContentView, TabStripView (tab bar + toolbar), TabPageView (one tab's page), StartPage,
+Savoia/Views         ContentView, TabStripView (tab bar + toolbar), TabPageView (one tab's page), PageHost, StartPage,
                      ConfigurationPageView, AssistantBar, AgentPanel, MCPApps*
 Savoia/Data          AppSupport (the one place that knows the bundle id → folder), AppDatabase, ConfigurationStore,
                      FormerName (moves the state of the browser once called six, on the first launch)
@@ -103,7 +104,7 @@ MCP server instead — that is what it is for:
 ```
 
 `open_window` with a `savoia://` address, `list_workspaces`, `get_page_content`, `evaluate_javascript`,
-`list_console_messages`, `take_screenshot` (only for windows with a real `WebPage`). See [docs/mcp.md](docs/mcp.md).
+`list_console_messages`, `take_screenshot` (only for windows with a web page). See [docs/mcp.md](docs/mcp.md).
 
 **Keys can be pressed, though — `NSApp.postEvent` needs no Accessibility.** It is the app's own queue, and a local
 `NSEvent` monitor is exactly what pulls events out of it, so a synthetic `⌃Tab` goes through the real router and
@@ -163,8 +164,14 @@ rewrite the root file. `xcodebuild` never touches it — the project holds only 
   bare hosting view the remote view never gets a size and never appears: the host app dims and draws
   nothing, and Esc is the only way out. `viewDidAppear` never firing is the tell — an empty sheet still
   appears. [docs/sharing.md](docs/sharing.md).
-- **`WebPage.callJavaScript` is not `callAsyncJavaScript`** — an `await` in the body fails at parse time with a bare
-  "A JavaScript exception occurred". Page scripts stay synchronous; poll from Swift for anything that must wait.
+- **A navigation the delegate cancels reports nothing afterwards** — no failure, no finish. A link that became a
+  download or a tab left `loadSettled` waiting out its whole ceiling until the delegate told the tab
+  (`BrowserTab.navigationCancelled`). Anything that waits on a navigation has to hear about the ones that were refused.
+- **A web view's configuration is fixed when the view is made, and three things depend on which one it was.** A
+  window a page opens keeps its opener only on the configuration `createWebView` hands over; an extension's own
+  page loads only on `WKWebExtensionContext.webViewConfiguration` (-1008 otherwise); and a tab restored in front
+  is built before its extension has loaded. Going from one kind to another is another view
+  (`BrowserTab.materialize`, `extensionLoaded`). [docs/extensions.md](docs/extensions.md#extension-pages-are-tabs).
 - **sqlite-vec on Apple's SQLite** works only per connection (`sqlite3_vec_init` from GRDB's `prepareDatabase`);
   `sqlite3_auto_extension` returns MISUSE. The e5 embedder needs `Pooling(strategy: .mean)` set explicitly.
 - **A dynamic `import()` from a `file:` page is refused by WebKit; a static one is not.** ONNX Runtime loads its own
@@ -207,7 +214,7 @@ rewrite the root file. `xcodebuild` never touches it — the project holds only 
   code under test. Have Artem click, or send a real click into a throwaway app's window
   ([docs/permissions.md](docs/permissions.md#geolocation-and-notifications-webkits-c-api-one-header-for-both)).
 
-- **`WebPage.callJavaScript` is a user gesture to WebKit.** After it the page has `userActivation.isActive` and may
+- **`WKWebView.callAsyncJavaScript` is a user gesture to WebKit.** After it the page has `userActivation.isActive` and may
   read the clipboard or open a window; a test stand that polled pages with it had every page activated for a whole
   run, and results that came and went. `BrowserTab.callWithoutGesture` is the call that is not
   ([docs/page-scripts.md](docs/page-scripts.md)).
@@ -268,10 +275,9 @@ Built: tabs with groups, folding, pinning, picking and two tabs side by side, gr
 profiles with isolated data stores, persistence (a SQLite system of record plus a versioned JSON snapshot), history and
 bookmarks with on-device multilingual embeddings and personal search on the start page, ad/tracker blocking (its
 page half, scriptlets and extended CSS, switched off for now), extra certificate authorities, `WKWebExtension` hosting, site permissions, downloads,
-page translation, find on page (⌘F), windows a page opens with their opener, picture-in-picture, the ⌘E assistant, ACP agents and chats, `Savoia --mcp`, MCP
+page translation, find on page (⌘F), windows a page opens as tabs that keep their opener, extension pages as tabs, Save As with web archives, picture-in-picture, the ⌘E assistant, ACP agents and chats, `Savoia --mcp`, MCP
 apps (SEP-1865) with OAuth, deep research with document tabs and highlights, DevTools capture, dictation, localization.
 
-Not built, with reasons: [docs/todo.md](docs/todo.md) — web archives, bookmark images, the content-script boundary
-`WebPage` cannot cross, geolocation and site notifications, Apple Pay, floating windows, passkeys, CloudKit sync.
+Not built, with reasons: [docs/todo.md](docs/todo.md) — bookmark images, geolocation and site notifications, Apple Pay, floating windows, passkeys, CloudKit sync.
 What is specified and waiting for a session: [docs/tasks/](docs/tasks/README.md). What Savoia is waiting on Apple to make public, and how to notice when it does:
 [docs/api-watch.md](docs/api-watch.md).

@@ -1,13 +1,15 @@
 # Site permissions
 
 What a page is allowed to do with the machine, and who does the asking. Two things live here: the devices a site can
-ask for (camera, microphone, motion sensors) and the four dialogs a page can put up (`alert`, `confirm`, `prompt`, the
-file picker). They share a file's worth of thinking because they share a cause — a `WebPage` left alone answers both
-kinds of question by itself, and both of its answers are wrong for a browser.
+ask for (camera, microphone) and the four dialogs a page can put up (`alert`, `confirm`, `prompt`, the
+file picker). They share a file's worth of thinking because they share a cause — a web view left alone answers both
+kinds of question by itself, and both of its answers are wrong for a browser. Both are methods of a tab's UI
+delegate, `PageDelegate`. The motion sensors were a third device while a tab was SwiftUI's `WebPage`; `WKUIDelegate`
+has that question on iOS only, so on the Mac `SitePermission.motion` is never asked.
 
 ## The default Savoia replaced
 
-`WebPage.Configuration.deviceSensorAuthorization` defaults to `WKPermissionDecision.prompt`. That is not "nothing
+A `WKUIDelegate` that does not answer the media-capture question gets `WKPermissionDecision.prompt`. That is not "nothing
 works": WebKit puts up a permission popover of its own, the user answers it, and `getUserMedia()` resolves. Camera and
 microphone worked in Savoia before any of this existed.
 
@@ -15,7 +17,7 @@ What the default cannot do is *remember*. Nothing is written down, so the same s
 nowhere to go and take an answer back. That is the whole reason `SitePermissions` exists: deciding the request
 ourselves is what buys the memory and the undo, and the bar under the window's title bar is what it costs.
 
-`WebPage.DialogPresenting` is the harsher default. With no presenter, all four dialogs return "no" —
+The dialogs are the harsher default. With no delegate method for them, all four return "no" —
 `alert()` shows nothing, `confirm()` is false, and `<input type="file">` opens no panel and selects nothing. That is
 not a policy, it is a browser that quietly cannot upload a file. `PageDialogs` presents them.
 
@@ -101,9 +103,9 @@ The page has to have focus. From a window of an app that is not in front, WebKit
 Document is not fully active or does not have focus` before any picker appears, which is also why a call made over
 `Savoia --mcp` only works while Savoia is the front app.
 
-What `WebPage` leaves out is that sharing is *happening*: it publishes `cameraCaptureState` and
-`microphoneCaptureState` and nothing for the screen. `DisplayCapture` reads it from the `WKWebView` underneath,
-handed over by `WebViewResponder.onWebViewFound`: `_displayCaptureState` is SPI but KVO-compliant, and
+What `WKWebView` leaves out is that sharing is *happening*: it publishes `cameraCaptureState` and
+`microphoneCaptureState` and nothing public for the screen. `DisplayCapture` reads it from the tab's view as the view
+is made: `_displayCaptureState` is SPI but KVO-compliant, and
 `_setDisplayCaptureState:completionHandler:` mutes it. That drives an indicator of its own beside the camera's, and
 `LivePageCache` now keeps any capturing page alive — which camera and microphone calls had been missing too, since
 only "playing media" protected them, and only when the page happened to be showing a video.
@@ -201,14 +203,13 @@ that; what the one timeout was is not established.
 What the runs turned up that is in no test's assertion:
 
 - **The bar outlived its page** — above; fixed.
-- **`window.open` had no opener** — 47 files timed out on it; a script-opened window is now the view WebKit asked
-  for ([links.md](links.md#a-second-window)).
+- **`window.open` had no opener** — 47 files timed out on it; a script-opened window is now a tab built on the
+  configuration WebKit hands over ([links.md](links.md#a-second-window)).
 - **A page that navigated while in element fullscreen lost its view.** WebKit took it out of fullscreen and left
-  the `WKWebView` in no window: the tab went blank and the page reported `hidden`. It is WebKit and SwiftUI's
-  `WebView` between them — it happens with Savoia's own fullscreen hold switched off. `BrowserTab.leaveElementFullscreen`
-  now runs `document.exitFullscreen()` before a main-frame navigation is allowed, and the view comes home; asking
-  the web view to close its media presentations did not help, and rebuilding the pane around the page trapped in
-  `_WebKit_SwiftUI`.
+  the `WKWebView` in no window: the tab went blank and the page reported `hidden`. That was SwiftUI's `WebView` and
+  WebKit between them, and Savoia left fullscreen by script before a main-frame navigation to get round it. On a
+  tab's own `WKWebView` the view comes home by itself — measured on the stand with a real click into fullscreen and
+  a navigation out — and the workaround is gone.
 - **`evaluate_javascript` was a user gesture** — a first run that polled pages with it had every page activated,
   and clipboard files passed and failed at random ([page-scripts.md](page-scripts.md)).
 
@@ -218,7 +219,7 @@ holds it awake; windows that tests open are closed before the next test. The cli
 clipboard and the capture files use the real camera — `--no-testdriver` leaves both out. Content blocking is on
 in the throwaway home, as it is in a fresh install.
 
-## What a `WebPage` browser still cannot ask for
+## What Savoia still cannot ask for
 
 - **Geolocation.** Half of it is public now, and it is the wrong half. macOS 27 added
   `WKUIDelegate.webView(_:requestGeolocationPermissionFor:initiatedBy:)`, but that only *decides*: the position has
@@ -229,10 +230,9 @@ in the throwaway home, as it is in a fresh install.
   forever — while `locationd` logged nothing from Savoia or WebKit for the whole minute. With nothing answering the
   delegate WebKit refuses at once, which is kinder than an "Allow" that leads nowhere.
 
-  What that attempt taught, for whoever builds the SPI half. The proxy stood in front of `WebPage`'s own
-  `WKUIDelegateAdapter` on the `WKWebView` `WebViewResponder` finds, forwarding everything else through
-  `forwardingTarget(for:)` — and that part worked: `confirm()` and the microphone bar still went through the
-  adapter. The selector has to be built from its string: `#selector` of the `WK_SWIFT_ASYNC_NAME` overload is not
+  What that attempt taught, for whoever builds the SPI half. A tab was a `WebPage` then, and the question was
+  answered by a proxy in front of its delegate; a tab's delegate is Savoia's own `PageDelegate` now, and the method
+  goes there. The selector has to be built from its string: `#selector` of the `WK_SWIFT_ASYNC_NAME` overload is not
   what WebKit sends, so `responds(to:)` said yes and the method was never called. `uiDelegate` is `weak`, so a proxy
   nobody retains is gone the moment it is installed. And taking `SitePermission.location` back out meant deleting the
   dev database's one `location` row first: `sitePermissions` decodes the list whole, so one unknown case forgets
@@ -255,7 +255,7 @@ declare, which a bridging header can declare and any macOS update can change. Th
 
 ## Geolocation and notifications: WebKit's C API, one header for both
 
-Site permissions are built ([permissions.md](#site-permissions)): the camera, the microphone and the motion sensors are
+Site permissions are built ([permissions.md](#site-permissions)): the camera and the microphone are
 asked for per site, remembered per origin and profile, and takeable back, and screen sharing works through the picker
 WebKit presents by itself ([permissions.md](#screen-sharing-which-webkit-asks-for-by-itself)).
 Geolocation and notifications are still missing, and missing the same way: WebKit asks the app for permission through
@@ -276,18 +276,16 @@ What the two share, built once:
   `WKNotificationGetID` — are all in WebKit's exports on this macOS (`dyld_info -exports`). The provider structs are
   versioned (`WKGeolocationProviderV1`, `WKNotificationProviderV0`), and a layout that no longer matches is a crash
   rather than a compile error, so the header pins one version.
-- **The `WKContextRef`.** Both managers hang off the process pool `WebPage` built: `configuration.processPool` of the
-  `WKWebView` that `WebViewResponder` finds. How that object becomes a `WKContextRef` from Swift is the first unproven
+- **The `WKContextRef`.** Both managers hang off the process pool: `configuration.processPool` of a tab's
+  `WKWebView`. How that object becomes a `WKContextRef` from Swift is the first unproven
   step.
-- **The delegate proxy.** Both permission questions are `WKUIDelegate` methods, answered in front of `WebPage`'s own
-  adapter by the forwarding proxy from `e64dd24`, with its two lessons: the selector built from its string, and the
-  proxy retained somewhere, because `uiDelegate` is weak. Forwarding everything else was verified — `confirm()` and
-  the microphone still reached the adapter.
+- **The delegate.** Both permission questions are `WKUIDelegate` methods, and a tab's UI delegate is
+  `PageDelegate`. One lesson from `e64dd24` still applies: the selector built from its string.
 
 **Geolocation.** The permission hook is public (`requestGeolocationPermissionFor:initiatedBy:`, macOS 27); the
 provider is not. Savoia would run `CLLocationManager` itself — `NSLocationWhenInUseUsageDescription` is already in the
 Info.plist — and hand WebKit positions. Without a provider "Allow" led to a page that waited forever
-([permissions.md](#what-a-webpage-browser-still-cannot-ask-for)). First step: a position arriving in a
+([permissions.md](#what-savoia-still-cannot-ask-for)). First step: a position arriving in a
 page at all.
 
 **Notifications.** Measured on 2026-09-15 in a throwaway app, not in Savoia:

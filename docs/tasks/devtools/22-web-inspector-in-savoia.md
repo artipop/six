@@ -18,18 +18,18 @@ is no *public* way. There is SPI, and it works on a tab.
 - **On a bare `WKWebView`**: after `show`, `isConnected`, `isVisible` and `isFront` are true and the inspector has
   its own frontend view. `attach` docks it under the page — the page's view went from 500 to 101 points tall in a
   500-point window. `close` gives the page its full frame back.
-- **On the view a `WebPage` owns**, found in SwiftUI's `WebView` by walking the hierarchy, with the preference set
-  after the view existed: the same, step for step. The page's view stayed in its window with a superview
-  throughout, came back to its full frame after `close`, and `WebPage.url` and `title` were intact.
+- **On the view a `WebPage` owned**, when a tab was one, with the preference set after the view existed: the same,
+  step for step. Not measured again on a tab's own `WKWebView` in `PageHost`, which holds the view by frame — an
+  attached inspector resizes the page's view inside that host.
 
 Not measured: a tab in Savoia's own layout, where the pane has other things stacked over the page (the permission
-bar, the find bar); what an attached inspector does to `WebViewResponder`'s frame matching, to the fullscreen hold,
-to a tab that is discarded while inspected; whether the docked height can be chosen.
+bar, the find bar); what an attached inspector does to `PageHost`'s hold of the view, to
+a tab that is discarded while inspected; whether the docked height can be chosen.
 
 ## What to build
 
 1. `developerExtrasEnabled` on every tab's preferences when Develop is on (`DevToolsStore.isInspectable` is the
-   existing switch), through `WebViewResponder.onWebViewFound`.
+   existing switch), where `BrowserTab.materialize` builds the view.
 2. **Show Web Inspector** in the Develop menu and `⌥⌘I`, on the focused tab: `show`, then `attach` if the tab is
    wide enough — decide by a fraction of the window, not a constant. SPI behind `responds(to:)`.
 3. The measurements listed as not made, each before the code that depends on it.

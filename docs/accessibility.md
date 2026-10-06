@@ -18,7 +18,7 @@ The user-facing account is
 | `Savoia/Accessibility/DerivedPageTools.swift` | whether a reading is good enough to make tools of, and the tools it would make |
 | `Savoia/Views/DerivedToolsButton.swift` | the mark for them in the address field, beside WebMCP's; `AddressBar` holds the reading |
 | `Savoia/Accessibility/AccessibilityOverlay.swift` | the model (`AccessibilityOverlay.shared`), placing the snapshot over the web view, the outline for a model, and the SwiftUI layer |
-| `Savoia/Input/WebViewResponder.swift` | `webView(for:)` — the pane's `WKWebView`, which is the only way to know where on screen a `WebPage` is |
+| `Savoia/Browser/BrowserTab.swift` | `livePage` — the tab's `WKWebView`, which says where on screen the page is |
 | `Savoia/Views/TabPageView.swift` | mounts `AccessibilityOverlayView` over the tab in front |
 | `Savoia/Views/MacCommands.swift` | the View menu toggle |
 | `Savoia/Tools/BrowserTools.swift` | `get_accessibility_tree` (`surfaces: .mcp`) |
@@ -44,7 +44,7 @@ Checked in WebKit's source (`Source/WebKit/UIProcess/mac/WebViewImpl.mm`, Septem
   process. So the NSAccessibility protocol asked in-process stops at a token, and the client API — `AXUIElement` —
   is the one that crosses. macOS allows a process that API only once Privacy & Security ▸ Accessibility lists it,
   **including when the process it asks is itself**: an untrusted call answers `kAXErrorAPIDisabled`.
-- `WebPage` has no accessibility API at all. `WKWebView` has `_retrieveAccessibilityTreeData:` — but it is in
+- `WKWebView` has no public accessibility API for the page. It has `_retrieveAccessibilityTreeData:` — but it is in
   `WKWebViewTestingMac.mm`, WebKit's test SPI, and it returns a dump for layout tests, without the geometry or the
   actions an overlay needs.
 - The first accessibility question the web view is asked (anything but parent and position) runs

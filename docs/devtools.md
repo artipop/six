@@ -5,7 +5,7 @@ Two different things, both off by default: Web Inspector under **Develop**, for 
 
 ## Web Inspector
 
-`WebPage.isInspectable`, and that is the whole of it. **Savoia has no inspector window of its own, and cannot have
+`WKWebView.isInspectable`, and that is the whole of it. **Savoia has no inspector window of its own, and cannot have
 one**: WebKit lets an app declare its pages inspectable, and nothing more — opening an inspector on your own page
 is `_WKInspector`, which is private API. What the switch does is let *Safari's* Web Inspector attach, and that one
 is the real thing — elements, console, network, sources, breakpoints.

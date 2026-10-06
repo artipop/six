@@ -11,7 +11,7 @@ gets a line in both languages where a person would look for it.
    `KeyBindings` and the system's own first (AGENTS.md: `defaults read com.apple.symbolichotkeys`).
 3. **A window whose address is a download re-downloads it on every launch.** `closeIfOnlyCarriedALink` closes the
    window a link opened, not the one somebody typed the address into.
-4. **Per-site user-agent overrides** through `WebPage.customUserAgent`, for sites that sniff wrongly even at
+4. **Per-site user-agent overrides** through `WKWebView.customUserAgent`, for sites that sniff wrongly even at
    Safari's string. A row per site in the same place as permissions; no list of presets.
 5. **Every model from the welcome.** The welcome's provider step knows its own four doors; a custom ACP agent and
    Private Cloud Compute are not offered there, though both exist in Configuration ▸ Assistant.

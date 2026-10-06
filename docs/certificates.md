@@ -43,8 +43,8 @@ It can only give a chain that had *already* failed a second reading.
 
 ## When it fails anyway
 
-`WebPage` has no error page. The one you know from Safari belongs to Safari, and a failed provisional navigation
-leaves a `WebPage` exactly as it was — which in a fresh window is white, titled with the host, and silent. Savoia showed
+A web view has no error page. The one you know from Safari belongs to Safari, and a failed provisional navigation
+leaves a web view exactly as it was — which in a fresh window is white, titled with the host, and silent. Savoia showed
 that for every failure it had, including the one it had an answer to: the browser was carrying Минцифры, had it
 switched off, and could not say so. It was reported as *"alfabank.ru doesn't open from a Google search"*, which is
 what it looks like from the other side.
@@ -70,13 +70,12 @@ provisional navigation, so a window that succeeds after failing simply stops sho
 
 ### The feed that used to die with it
 
-`WebPage.navigations` is a **throwing** `AsyncSequence`, and a failed load throws through it. Written as one
-`for try await` with a `catch {}` at the end — which is how it was — the loop ended at the first bad address, and the
-window stopped observing *every* navigation after that one: no visit written to history, no title kept for the card,
-nothing told to the blocker, no scroll put back, and the previous page's capture never cleared. Measured before the
-fix: a window sent to a site with an untrusted certificate and then to `example.com` left the second visit out of the
-database entirely. `watchNavigations(of:)` now subscribes again after a navigation failure, and only after that one —
-a closed page and a dead content process are the page itself ending.
+While a tab was SwiftUI's `WebPage`, its navigations were a **throwing** `AsyncSequence`, and a failed load threw
+through it: read as one `for try await`, the loop ended at the first bad address and the window stopped observing
+every navigation after that one — a window sent to a site with an untrusted certificate and then to `example.com`
+left the second visit out of the database entirely. A tab's navigations are delegate callbacks now (`PageDelegate`,
+`didFailProvisionalNavigation` among them), and there is no loop to end.
+
 
 ### Where to look
 
@@ -102,13 +101,13 @@ page instrumentation can never see, because the page never ran ([devtools.md](de
 | `BundledCertificates` | the authorities Savoia ships, as base64 DER in the source |
 | `CertificatesView` | the panel: a row per bundle, fingerprints on demand |
 | `PageFailureView` | what a window shows when the load did not happen, and the offer's button |
-| `BrowserTab` → `TabNavigationDecider.decideAuthenticationChallengeDisposition(for:)` | a page's own handshakes |
+| `PageDelegate.webView(_:respondTo:)` | a page's own handshakes |
 | `Downloads` → `Transfers.urlSession(_:task:didReceive:)` | Savoia fetches downloads itself, so they ask separately |
 
 Both call sites reach the store through `CertificateStore.shared`. Anchors are not per-profile and not per-window —
 they are what *Savoia* trusts — and one of the two callers is a `URLSession` delegate that lives off the main actor.
 
-The download half is not an afterthought: `WebPage` has no download delegate, so Savoia rebuilds the request and runs the
+The download half is not an afterthought: Savoia rebuilds the request and runs the
 transfer on a `URLSession` of its own ([links.md](links.md)). Without the second wiring a bank statement would fail to
 download from a site Savoia can perfectly well show.
 

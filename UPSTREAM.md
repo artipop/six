@@ -371,8 +371,11 @@ view.autoresizingMask = [.width, .height]
 ```
 
 Only for the duration. Left on, SwiftUI goes on laying the surrounding view out with constraints the
-view no longer answers to. Savoia does this from `enteringFullscreen` until the state comes back to
-`notInFullscreen` (`Savoia/Browser/PageElementFullscreen.swift`), and the web view itself is reached
-through `Mirror`, because `WebPage` does not hand it out — which is to say the workaround is only
+view no longer answers to. Savoia did this from `enteringFullscreen` until the state came back to
+`notInFullscreen`, on a web view it had to reach past `WebPage` for — which is to say the workaround is only
 available to someone willing to do both of those things.
+
+**Savoia no longer needs it.** Since October 2026 a tab is a `WKWebView` Savoia creates and holds by frame
+(`Savoia/Views/PageHost.swift`), which is the half of the title that was always correct; the report stands for
+whoever is still on SwiftUI's `WebView`.
 

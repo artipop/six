@@ -31,7 +31,7 @@ load · url · title · navigations · siteData"}}
     end
 
     subgraph Apple["Apple-only adapters"]
-        WK["WebKit WebPage / WKWebsiteDataStore"]
+        WK["WebKit WKWebView / WKWebsiteDataStore"]
         FM["MLX · multilingual-e5-small
 (Foundation Models has no embedder)"]
         WAX["Wax · .wax cache
@@ -100,7 +100,7 @@ CloudKit Web Services"]
 
 | seam | Apple | Linux | note |
 |---|---|---|---|
-| Web | `WebPage` (exists) | WebKitGTK / CEF | the most expensive seam; a Linux front is a different UI anyway, so in practice this is "keep the model out of the views", which is already the case |
+| Web | `WKWebView` (exists) | WebKitGTK / CEF | the most expensive seam; a Linux front is a different UI anyway, so in practice this is "keep the model out of the views", which is already the case |
 | Embedder | multilingual-e5-small over MLX (built); `NLContextualEmbedding` as the no-download alternative | the same model over llama.cpp / ONNX | model ids + re-embedding is what is built: every vector carries its model, a query only meets its own |
 | Retrieval | sqlite-vec `vec0` (built) | the same; `sqlite3_auto_extension` works there | on macOS the extension is entered per connection (`sqlite3_vec_init`), since the system SQLite has extension loading compiled out — [bookmarks.md](bookmarks.md#the-index) |
 | Sync | SQLiteData's `SyncEngine` over CloudKit | no-op / own server | without an Apple account a Linux build cannot reach iCloud at all; accept that |

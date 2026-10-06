@@ -6,7 +6,7 @@ The network half is unchanged.
 
 Ads and trackers are dropped by WebKit's own network layer, before a request leaves the content process. No
 extension, no proxy, no script in the page: filter lists are compiled once into a `WKContentRuleList` and handed to
-a page through `WebPage.Configuration.userContentController` before it loads. A blocked request never happens, and
+a page through its `WKWebViewConfiguration.userContentController` before it loads. A blocked request never happens, and
 the site's own scripts cannot see that anything did.
 
 That is most of blocking but not all of it: about a seventh of a filter list cannot be said in WebKit's JSON at
@@ -165,7 +165,7 @@ address that window is showing:
 - otherwise → every enabled list.
 
 `BrowserTab` asks for its controller as it builds its page, and the window's navigation decider reports where it is
-going *before* the request leaves (`TabNavigationDecider.onNavigate`), which is the last moment early enough to
+going *before* the request leaves (`PageDelegate`, as it allows the navigation), which is the last moment early enough to
 matter; committed navigations report again, for redirects and back/forward. Turning the shield off is then a reload,
 not a recompile — verified end to end: a window walked from an allowed site to a blocked one and back picks up the
 right rules on every load.
@@ -216,9 +216,8 @@ Clicking it allows (or blocks again) every site under this one's host — `examp
 
 ## Extensions
 
-Blocking needs no extension, and Savoia has none — `WKWebExtension` is a separate piece of work with a real obstacle
-in front of it (`WKWebExtensionTab` requires a `WKWebView`, which `WebPage` does not hand out). What that means and
-what would still work is in [extensions.md](extensions.md).
+Blocking needs no extension. Extensions are hosted separately, on `WKWebExtension`
+([extensions.md](extensions.md)).
 
 ## Not built: cosmetic rules inside a frame
 

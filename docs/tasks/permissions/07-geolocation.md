@@ -1,23 +1,21 @@
 # 7. Geolocation for sites
 
-**After [23](../architecture/23-webpage-or-wkwebview.md) and [22](../devtools/22-web-inspector-in-savoia.md).** On a `WKWebView` of Savoia's own the
-permission question is a method of Savoia's own UI delegate, not of a proxy in front of `WebPage`'s — read what
-follows with that in mind.
+**After [22](../devtools/22-web-inspector-in-savoia.md).** A tab is a `WKWebView` of Savoia's own, and the
+permission question is one more method of its UI delegate, `PageDelegate`.
 
 Build geolocation in Savoia.
 
 ## Read first
 
 [permissions.md](../../permissions.md#geolocation-and-notifications-webkits-c-api-one-header-for-both) and
-[permissions.md](../../permissions.md#what-a-webpage-browser-still-cannot-ask-for). In short: the permission
+[permissions.md](../../permissions.md#what-savoia-still-cannot-ask-for). In short: the permission
 question is public (`WKUIDelegate` `requestGeolocationPermissionFor`, macOS 27), and the position has to be
 supplied by the app through C functions WebKit exports and the SDK does not declare
 (`WKContextGetGeolocationManager`, `WKGeolocationManagerSetProvider`, `WKGeolocationPositionCreate`). The
 direction is chosen: a bridging header from WebKit's open headers, and a `CLLocationManager` of Savoia's own. The
 last attempt (`e64dd24`, taken back out) got as far as "Allow" and a page that waited forever.
 
-A delegate standing in front of `WebPage`'s own already exists and works —
-`Savoia/Browser/ScriptedPopups.swift`. Use that one; do not add a second proxy.
+The delegate to add the method to is `Savoia/Browser/PageDelegate.swift`, beside the camera and microphone question.
 
 ## Order
 

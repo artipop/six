@@ -1,140 +1,60 @@
-# 23. A tab is a `WKWebView` of Savoia's own
+# 23. A tab is a `WKWebView` of Savoia's own — what is left
 
-Move every tab off SwiftUI's `WebPage` onto a `WKWebView` that Savoia creates, and then take out the workarounds
-`WebPage` made necessary. Decided by Artem on 7 October 2026. **No switch between the two and no second
-implementation kept alive**: the aim is fewer seams, not one more.
+Built on the `wkwebview` branch on 6–7 October 2026: every tab is a `WKWebView` that `BrowserTab` creates, nothing
+imports `WebPage`'s API, and the workarounds it forced are out or have a line saying why they stayed. The map the
+move was made by, and what became of each workaround, is
+[architecture.md](../../architecture.md#from-webpage-to-wkwebview). This file holds what is not finished: a walk by
+hand, two decisions, and the merge.
 
-## Why
+## What was checked, and how
 
-Savoia was built on `WebView`/`WebPage` on purpose. A year in, almost everything added begins with "`WebPage` has no
-way to…, so take the view": the `WKWebView` behind a page is reached through `WebViewResponder`, a walk of the view
-tree that only finds a view while its tab is on screen. Savoia pays for both models — it lives by `WebPage`'s rules
-and works through a `WKWebView` it does not own.
+- The build is free of warnings; `swift build` and `swift test` (254 tests) pass with `SavoiaCore` importing no
+  WebKit — `SitePermissions` lost the two helpers that named WebKit types.
+- `SAVOIA_KEY_SELFTEST` (`1`, `assistant`, `chats`, `alert`), `SAVOIA_TABS_SELFTEST`, `SAVOIA_FIND_SELFTEST`,
+  `SAVOIA_WEBMCP_SELFTEST` and `SAVOIA_TRANSLATE_SELFTEST`, each in a throwaway home, before and after: the same
+  lines, apart from the view's class name, and `alert` going from one failure to none. The translation one says
+  little either way — in a fresh home it lands on the welcome page and finds no plan.
+- Scenarios over `Savoia --mcp` in a throwaway home: navigation and reading, history and scroll across a discard and
+  a relaunch for a tab off screen, the three kinds of `window.open` with a message back to the opener, a clicked
+  `target=_blank`, element fullscreen entered by a real click and left by navigating, every Save As format, and an
+  extension's page through a discard and a relaunch.
+- `./scripts/permissions-wpt.py permissions --no-testdriver`: nothing moved against the baseline. The camera, the
+  microphone and screen sharing were left out on purpose, and `webmcp-wpt.py` was not run.
 
-Waiting does not close the gap. WebKit's source for the API
-(`Source/WebKit/UIProcess/API/Swift/` on github.com/WebKit/WebKit, read on 6 October 2026) has nothing for a
-new-window request, session state, find or icons; what it gains month to month is SPI for Apple's own clients.
-The one thing in it that would have helped, `WebPage.backingWebView`, is SPI on `main` and not in macOS 27.2
-([api-watch.md](../../api-watch.md)).
+## To walk by hand
 
-## What it buys — each row was a wall that was measured
+No test covers these, and nothing here can click, hover or look at the screen:
 
-| what | on `WebPage` | on our own view |
-|---|---|---|
-| `window.open` | a separate `NSWindow` (`ScriptedPopups`) | an ordinary tab with its opener, as in Safari |
-| WebKit's automation, for an agent's tools | lists no page for a `WebPage`'s view ([15](../agents/15-agent-tools-to-chrome.md)) | works — measured on a view made controlled by automation |
-| extension pages, an extension's new-tab page | a window of their own | tabs, from `WKWebExtensionContext.webViewConfiguration` |
-| session state: scroll and history | only once a pane has shown the tab; address lists otherwise | before the tab is shown |
-| a script with no user gesture | a page off screen gets the ordinary call, which is a gesture | always |
-| geolocation, notifications | a delegate placed in front of `WebPage`'s own | our own delegate |
-| element fullscreen | black without a temporary hold, and a workaround for navigating out of it | to be retested; the hold exists because of how SwiftUI's `WebView` holds the view |
-| a web archive in Save As | `WebPage` has no `createWebArchiveData` | `WKWebView` has it |
-| autoplay held after a tab is rebuilt | a user script (`MediaHold`) | `mediaTypesRequiringUserActionForPlayback`, to be checked on macOS |
+- the context menu on a link, on a page and in a document's preview — it is built from SPI
+  (`_webView:getContextMenuFromProposedMenu:forElement:…`), seen only on a throwaway view with a synthetic right
+  click; its Share items; an extension's own items in it;
+- a certificate error and the page for it; a download, and one that a new tab was opened only to carry;
+- a ⌘-click, a `target=_blank`, back and forward by swipe;
+- a video in fullscreen — whether the picture is drawn, which is what the old hold was for — and picture-in-picture;
+- the camera in a call, and screen sharing with its mute;
+- a sign-in through a window the site opens (Sign in with Google, Telegram's widget), now a tab that keeps its
+  opener and no longer a window of the asked size;
+- an extension's popup, its options page and the new-tab override;
+- find, translation, ⌘E on a selection, a discarded tab coming back, a restored tab not starting its video;
+- Save As to a web archive through the panel, and the archive opened again;
+- memory with ten tabs, against `main` — the dev Mac has 8 GB.
 
-What it does **not** change: Apple Pay (cause unknown), Web Push, the inspector's protocol for an agent, the C API
-behind geolocation and notification providers.
+## Two decisions
 
-## What must not be lost: the shape the other fronts share
+- **The automation flag was not set on every tab.** [15](../agents/15-agent-tools-to-chrome.md) has why: a page
+  reads it as `navigator.webdriver`, and a second measurement hung.
+- **A window a page opens by itself is not blocked** — it was not before either, though the docs said so.
+  `javaScriptCanOpenWindowsAutomatically` can be turned off now, and needs a way to let one site through
+  ([links.md](../../links.md#a-second-window)).
 
-The `dev` branch has Linux and Windows fronts on the same code (`linux/Sources/SavoiaBrowser`,
-`SavoiaWebKitCore` over WebKitGTK; `windows/`). What makes that possible is not `WebPage` — those fronts never had
-it — but a line: `SavoiaCore`, the files listed under `sources:` in the root `Package.swift`, builds on Linux and
-knows no engine, and what it needs from a page it asks through narrow protocols a front implements:
-`PageScriptRunner`, `PageSandbox`, `PageTranslating`, `WebMCPPage` / `WebMCPFrame`, `PageFinder.find`, and
-`SitePermissions.decide` in its callback form. **That line is the architecture, and this move must leave it
-exactly where it is.**
+## The other fronts
 
-- Nothing in `SavoiaCore` imports WebKit or names `WKWebView`. `swift build` and `swift test` (with
-  `--disable-automatic-resolution`) pass after every step, as they do now.
-- The protocols keep their shape. What changes is who implements them on the Mac: `BrowserTab` over a `WKWebView`
-  instead of over a `WebPage`.
-- **"Fewer seams" means the ones `WebPage` forced** — the view-tree walk, the proxy delegate, the fallbacks —
-  **not these.** A seam that is a platform boundary stays; a new abstraction over `WKWebView` on the Mac alone is
-  the kind not to add.
-- This move brings the Mac closer to Linux, not further. `WKWebView` and WebKitGTK's `WebKitWebView` are the same
-  engine's two faces, and what is being rebuilt here has a counterpart there: the navigation delegate and
-  `decide-policy` / `load-changed`, `createWebView` and the `create` signal, the permission and dialog delegates
-  and `permission-request` / `script-dialog`, `interactionState` and the session state, the automation flag, the
-  inspector. So where shared code learns something new from this move — a window a page opens, a session state to
-  keep, a find — say it in words both engines have, the way `SitePermissions` takes a list of permissions and an
-  origin rather than a WebKit type.
-- The mapping in step 1 gets a third column, WebKitGTK's name for the same thing, read from
-  `linux/Sources/SavoiaBrowser` and `SavoiaWebKitCore` on `dev` (`git show dev:<path>`). It costs an hour and is
-  what makes the next sync of `dev` a merge rather than a rewrite.
-
-`dev` also keeps the iOS front, which is on `WebPage` too; iOS has `WKWebView` as well, so the same move applies
-there when `dev` is next synced. Not part of this task — but do not write the Mac's tab so that it could only ever
-be AppKit where UIKit would do the same.
-
-## What goes away with `WebPage`, and has to be rebuilt first
-
-- **Observation.** `WebPage` is `@Observable`; `url`, `title`, `isLoading`, progress, the capture and fullscreen
-  states are read straight from it. On `WKWebView` they are KVO, published through `BrowserTab`.
-- **The navigation feed** — `page.navigations` and `apply(_:of:)` — becomes a `WKNavigationDelegate`:
-  the decider (`TabNavigationDecider`), the response policy, the authentication challenge for
-  `CertificateStore`, started, committed, finished, failed.
-- **`WebPage.DialogPresenting`** becomes the `WKUIDelegate` methods `PageDialogs` already answers one layer down:
-  alert, confirm, prompt, the open panel.
-- **`deviceSensorAuthorization`** becomes `requestMediaCapturePermissionFor` and
-  `requestDeviceOrientationAndMotionPermissionFor`, into `SitePermissions` as now.
-- **The three SwiftUI modifiers**: back and forward gestures (`allowsBackForwardNavigationGestures`), element
-  fullscreen (`preferences.isElementFullscreenEnabled`), and the page's context menu (`.pageContextMenu` — today
-  SwiftUI's; on a `WKWebView` it is `willOpenMenu` in a subclass).
-- **`callJavaScript`, `exported(as:)`, `load`, `reload`, the back-forward list, `isInspectable`** have direct
-  counterparts. About 86 call sites name a member of the page; most go through `page.savoia` and
-  `BrowserTab.runScript`, which are the two places to change.
-
-Each of these has a paragraph in AGENTS.md that cost hours — the throwing navigation feed, `⌘W`, the `.disabled`
-on `Commands`, the letter bindings. Read "Things that have cost hours" before touching the part it is about.
-
-## Order
-
-On a branch, `wkwebview`, merged when it is whole: a tab half on each model is not a state `main` should be in,
-and a branch is not a switch. If Artem would rather have it on `main` in steps, ask before starting.
-
-0. **Before anything moves.** Two short things, so the move has less to carry and something to be compared
-   with. The first item of [14](../browser/14-waits-by-the-clock.md): five copies of a loop that waits on
-   `page.isLoading` become one function, so the navigation feed is rewritten in one place and not five. And the
-   output of every self-test named under "Checking it", saved from today's `main` — the wpt baselines are
-   committed, the self-tests' output is not.
-1. **The mapping, written down.** Every `WebPage` member Savoia uses → its `WKWebView` counterpart, and every
-   workaround that exists only because of `WebPage` → what replaces it. Start from the lists above, the nine files
-   that call `WebViewResponder.shared`, and [api-watch.md](../../api-watch.md). One table, kept in
-   [architecture.md](../../architecture.md).
-2. **The tab's view.** `BrowserTab` creates and owns a `WKWebView`; one `NSViewRepresentable` shows it in
-   `TabPageView` and `DocumentView`. Navigation and UI delegates, the KVO, the scripts. At the end of this step
-   the browser works as it did and nothing uses `WebPage`.
-3. **Take the workarounds out, one commit each**, and check each against what it was for:
-   - `WebViewResponder`'s walk of the view tree, and "only while on screen" everywhere it is written;
-   - `ScriptedPopups`' window and its proxy delegate — a script-opened window becomes a tab with its opener
-     ([03-popups.md](../browser/03-popups.md) changes shape, or closes);
-   - the address lists beside `interactionState`, and the wait for a pane to find the view;
-   - `callWithoutGesture`'s fallback to the ordinary call;
-   - the fullscreen hold (`PageElementFullscreen`) and `leaveElementFullscreen` — retest with each removed;
-   - `MediaHold`, if the configuration's own setting does the same;
-   - extension pages in a window of their own (`ExtensionStore.openExtensionPage`).
-4. **What it opens**: Save As to a web archive; the automation flag on every tab, which changes how
-   [15](../agents/15-agent-tools-to-chrome.md) is built.
-5. **The words.** AGENTS.md's first paragraph and "Where things are", README's pitch,
-   [architecture.md](../../architecture.md), [api-watch.md](../../api-watch.md) (most of its rows resolve),
-   [page-scripts.md](../../page-scripts.md), [links.md](../../links.md), [todo.md](../../todo.md), and the tasks
-   this one changes: 3, 15, 17, 20, 22.
-
-Stop and report after step 2, before deleting anything in step 3.
-
-## Checking it
-
-- Every self-test that exists, before and after: `SAVOIA_KEY_SELFTEST` (and `=assistant`, `=chats`),
-  `SAVOIA_TABS_SELFTEST`, `SAVOIA_FIND_SELFTEST`, the translation and topics ones.
-- `./scripts/permissions-wpt.py` against its baseline, and `./scripts/webmcp-wpt.py`. A `REGRESSION` line is a
-  defect; a `NEW PASS` is expected where a window used to be a separate one.
-- By hand, with Artem, because no test covers them: a certificate error and the page for it, a download, a
-  ⌘-click, back and forward by swipe, a video in fullscreen, picture-in-picture, the camera in a call, an
-  extension's popup, the context menu, find, translation, ⌘E on a selection, a discarded tab coming back.
-- The dev Mac has 8 GB: compare memory with ten tabs before and after.
+`SavoiaCore` knows no engine, as before, and the protocols a front implements kept their shape. Two things for the
+next sync of `dev`: `TabSnapshot.back` / `forward` are still in the format and no longer written or read by the Mac,
+and the iOS front there is still on `WebPage` — `PageDelegate` and `BrowserTab.materialize` are where the same move
+starts, with `PageHost`, `PageContextMenu` and the dialogs being the AppKit parts.
 
 ## Done when
 
-`SavoiaCore` is as engine-free as it was and its tests pass, no file imports `WebPage`'s API, the workarounds in step 3 are gone or each has a line saying why it stayed, the
-self-tests and both wpt runs are no worse, the hand list is walked, and the docs describe a browser built on
-`WKWebView`.
+The list above is walked, the two decisions are made or handed to their tasks, and `wkwebview` is merged into
+`main`. This file goes with that commit.

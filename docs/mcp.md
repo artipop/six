@@ -95,7 +95,7 @@ left with.
 
 ## Search
 
-`web_search` (`Savoia/Browser/WebSearch.swift`) fetches results the way the browser would: a `WebPage` of its own, off
+`web_search` (`Savoia/Browser/WebSearch.swift`) fetches results the way the browser would: a web view of its own, off
 screen, with a non-persistent data store — no window, no profile, no cookies of yours. The source is DuckDuckGo's
 HTML endpoint, the no-JavaScript result page, whose markup (`.result__a`, `.result__snippet`) has been stable for
 years and needs no API key; its links go through a redirector, so the real URL is unwrapped from `uddg`. If that

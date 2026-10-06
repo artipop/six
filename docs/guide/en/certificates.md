@@ -42,7 +42,7 @@ it back.
 
 ## When a site does not open
 
-The window used to simply stay white. `WebPage` has no error page of its own —
+The window used to simply stay white. A web view has no error page of its own —
 the one you know from Safari belongs to Safari — so the browser said nothing,
 including in the case where it had the answer: the Ministry's certificates were
 inside it, switched off, with nowhere to say so.

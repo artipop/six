@@ -25,8 +25,10 @@ exactly one empty workspace is kept at the end, empty ones in between are droppe
 columns stand first in their workspace, a blend whose parent stopped being a group is re-pointed or dropped, and every
 group has a colour. `visibleTabIDs` is the focused column's tabs — what `LivePageCache` pins and builds.
 
-A tab moving between workspaces is un-animated (`TilingLayout.unanimated`): a `WebPage` allows exactly one `WebView`,
-and an animated move builds the second before the first has let go, which traps in `makeViewProvider`.
+A tab moving between workspaces is un-animated (`TilingLayout.unanimated`): a tab's web view can be in one host at a
+time, and an animated move builds the second host before the first has let go. That trapped inside WebKit while a
+tab was SwiftUI's `WebPage`; with `PageHost` the second host takes the view and the first is left empty for the
+length of the animation.
 
 ## A named group that runs out of tabs
 
@@ -106,9 +108,8 @@ horizontal scrollbar at each.
 
 **The keyboard follows the selection.** The selection and AppKit's first responder are two different things:
 everything keyed off the selection — the address field, `⌘W`, the assistant — follows it, while the keys would go on
-arriving in the `WKWebView` a click had last given them to. `WebViewResponder` closes it: each pane leaves a zero-size
-AppKit view beside its own web view, which finds it by frame, and `ContentView` hands the keyboard to the selected
-tab's. It never takes the keyboard off a text field.
+arriving in the `WKWebView` a click had last given them to. `WebViewResponder` closes it: each tab registers the
+view it creates, and `ContentView` hands the keyboard to the selected tab's. It never takes the keyboard off a text field.
 
 ## ⌃Tab — the order the tabs were looked at
 
@@ -141,8 +142,7 @@ playing. That is the whole point of it, and it is why it needs Savoia's help twi
 
 **Turning it on.** WebKit has the feature and hands the new API no switch for it. The preference is real —
 `WKPreferencesSetAllowsPictureInPictureMediaPlayback` is exported by the framework on macOS — but the only public way
-to set it is `WKWebViewConfiguration.allowsPictureInPictureMediaPlayback`, which is declared for iOS alone, and
-`WebPage.Configuration` has no field for it at all. Off is the default, and off is silent in exactly the way element
+to set it is `WKWebViewConfiguration.allowsPictureInPictureMediaPlayback`, which is declared for iOS alone. Off is the default, and off is silent in exactly the way element
 fullscreen was: no button in the media controls,
 `video.webkitSupportsPresentationMode('picture-in-picture')` false, and `video.requestPictureInPicture()` rejecting
 with `NotSupportedError — The video element does not support the Picture-in-Picture mode`. Measured on a plain
@@ -152,14 +152,12 @@ So it is SPI: `WKPreferences._setAllowsPictureInPictureMediaPlayback:` to turn i
 for the menu item and the key, `_isPictureInPictureActive` for the question below. All of it lives in
 `Savoia/Browser/PagePictureInPicture.swift`, all of it behind `responds(to:)`, on the terms [todo.md](todo.md) already
 set for SPI here: Savoia is not sandboxed and not on the App Store, so the only risk is a selector going away in a macOS
-update, and the shape that takes is a feature that is quietly not there rather than a crash. The way to the
-`WKWebView` behind a `WebPage`, which the new API does not hand out, is `WebViewResponder`'s — the same view-tree
-lookup the keyboard, extensions and screen sharing use — so the preference is set when a pane first shows the page
-rather than when the page is built. It used to be `Mirror` into the page's `lazy` storage: that worked, and was a
+update, and the shape that takes is a feature that is quietly not there rather than a crash. The preference is set on the tab's own view as
+`BrowserTab.materialize` makes it. It used to be `Mirror` into the page's `lazy` storage: that worked, and was a
 second way in whose failure the type checker never sees.
 
-**Keeping it alive.** A tab that is not in front loses its `WebView`, and eventually its page (`LivePageCache`).
-Losing the view does not matter: the floating player is a window of WebKit's, not a subview, and it goes on playing
+**Keeping it alive.** A tab that is not in front has its view taken off screen, and eventually loses its page (`LivePageCache`).
+Being off screen does not matter: the floating player is a window of WebKit's, not a subview, and it goes on playing
 while the tab that owns it is unmounted. Losing the *page* would take the video
 off the screen the user is looking at, so `keepAliveReason` asks `isInPictureInPicture` before anything else. The
 "playing media" guard that was already there does not cover it: a floating player paused for a moment is still a
@@ -173,7 +171,7 @@ at once. For the same reason the menu item is never greyed out — whether the p
 float is a question only the page can answer, and it changes with every play and pause without telling anyone.
 
 **Where the window sits, and why Savoia cannot move it.** The floating player is not Savoia's window and not WebKit's
-either: `WebPage` → `PIPViewController` → `PIPPanel` all live in Savoia's process, but the thing on the screen is drawn by
+either: `WKWebView` → `PIPViewController` → `PIPPanel` all live in Savoia's process, but the thing on the screen is drawn by
 `/System/Library/CoreServices/PIPAgent.app`, in a process of its own, on CoreGraphics layer 19 — above every ordinary
 window, below the Dock. Savoia's `PIPPanel` sits at level 0 and never appears in the on-screen window list at all; it is
 where the events go, and the agent is where the pixels are. Three things follow, each of them measured rather than
@@ -190,7 +188,7 @@ reasoned:
   where the player went; calling it moves Savoia's invisible `PIPPanel` and leaves the agent's window where it was.
 
 This is what Safari gets, for the same reason — the whole path is WebKit's. Chrome and Firefox place and level their
-mini-players because they draw them, and drawing one is not something a browser built on `WebPage` can do: there is no
+mini-players because they draw them, and drawing one is not something a browser on system WebKit can do: there is no
 way to take a `<video>` out of a page and into a window of one's own. So the two asks this produced — that the player
 travel with the browser on ⌘Tab, and that it sit under the top bar rather than over it — are not bugs with a fix here.
 The other feature of the same name is the answer if they matter enough: any tab as a floating always-on-top panel —

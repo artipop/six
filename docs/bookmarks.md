@@ -168,7 +168,7 @@ Pages change, and so do our models. Two things keep the index honest:
   `indexVersion` (a chunking or pooling change) makes `resumeIndexing()` re-embed everything on the next launch.
 - **Re-reading.** On a schedule (Bookmarks → **Re-read Saved Pages**: never / daily / weekly (default) / monthly) the
   store looks for bookmarks whose last read is older than that — thirty seconds after launch, then hourly — and
-  reloads each one off screen in a `WebPage` of its own with the profile's cookie jar, so a page behind a login is
+  reloads each one off screen in a web view of its own with the profile's cookie jar, so a page behind a login is
   read as the user sees it. One page at a time, two seconds apart, oldest first. The readable text is hashed
   (SHA-256, `contentHash`); the same hash only stamps `refreshedAt`, a different one rewrites the file and the
   chunks and re-embeds. A page that won't load keeps its old copy and records `refreshError` (an orange

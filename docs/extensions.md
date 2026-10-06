@@ -1,17 +1,15 @@
-# Extensions: what a `WebPage` browser can host
+# Extensions: what Savoia can host
 
 Savoia hosts browser extensions on `WKWebExtension` (public API since macOS 15.4): a `WKWebExtensionController` goes
-into `WebPage.Configuration.webExtensionController`, a `WKWebExtensionContext` per extension, and the app answers
+into each tab's `WKWebViewConfiguration.webExtensionController`, a `WKWebExtensionContext` per extension, and the app answers
 for its tabs and windows through `WKWebExtensionTab` / `WKWebExtensionWindow`.
 
-**`WKWebExtensionTab.webView(for:)`, on macOS, answers now.** It wants the live `WKWebView` behind a tab, and
-`WebPage` hands out none of its own — but `WebViewResponder` already had one on file per tab, for keyboard focus. Found by walking the rendered view
-tree for `is WKWebView` and matched by frame containment, not by `Mirror`-ing into `WebPage`'s private storage — a
-different and sturdier bet than the one this page used to reject outright, and confirmed on the wire: `webView(for:)`
-is now called repeatedly by WebKit itself and answers with the right tab's `WKWebView`, at the right URL, where it
-always answered `nil` before.
+**`WKWebExtensionTab.webView(for:)` answers with the tab's own view.** A tab is a `WKWebView` Savoia creates
+([architecture.md](architecture.md#from-webpage-to-wkwebview)), so the answer is `tab.livePage`, whether or not the
+tab has been on screen. When a tab was SwiftUI's `WebPage`, which hands out no view, the method answered `nil`, and
+then with a view found by searching the window; both are history.
 
-**What that closes is not yet re-measured.** The table below is the state *before* this fix, and a fresh MV3 test
+**What that closes is not yet re-measured.** The table below is the state from when the method answered `nil`, and a fresh MV3 test
 extension built to re-run it hit a wall one step short of the tables' own tests — `content_scripts` never fired in
 this environment for a reason that looks environmental rather than about `webView(for:)` (content-script injection
 is WebKit's own static match against a manifest and never calls this method at all), but it means the specific
@@ -51,28 +49,35 @@ ExtensionAdapters    a column as WKWebExtensionTab, a profile's strip as WKWebEx
 | **`scripting.registerContentScripts`** | **works** — dynamically registered scripts run in pages |
 | **`declarativeNetRequest`** | **blocks** — subresources *and* main-frame navigations, static rulesets and dynamic rules alike, including rules conditioned on `initiatorDomains`, `excludedInitiatorDomains` and `requestDomains` |
 | action popup | works — WebKit hands over its own `NSPopover` (and a live `WKWebView` on `webkit-extension://…/popup.html`), which Savoia points at the toolbar button that was clicked, through that button's own AppKit view |
-| extension pages (options, dashboards, `tabs.create` of its own pages) | work, **in a window of their own** — see below |
+| extension pages (options, dashboards, `tabs.create` of its own pages, the new-tab override) | **tabs** — see below |
 | permissions | granted programmatically, or through `promptForPermissions` on the delegate |
 
-### Extension pages get a window, not a column
+### Extension pages are tabs
 
-uBlock Origin Lite's settings button opened `webkit-extension://…/dashboard.html` in a column and got "the page did
-not open": `NSURLErrorResourceUnavailable` (-1008). That error comes from WebKit's `WebExtensionURLSchemeHandler`,
-which loads an extension's page as a main frame only into a web view whose configuration names that extension
-(`requiredWebExtensionBaseURL`). The configuration that does is `WKWebExtensionContext.webViewConfiguration` — what
-WebKit builds the popup's web view from — and `WebPage.Configuration` cannot take one, nor set the base URL; the
-only setter is SPI (`_setRequiredWebExtensionBaseURL:`), and it would have to reach inside `WebPage` before its web
-view exists.
+WebKit loads an extension's page as a main frame only into a web view whose configuration names that extension
+(`requiredWebExtensionBaseURL`, checked in its `WebExtensionURLSchemeHandler`); anywhere else the load fails with
+`NSURLErrorResourceUnavailable` (-1008), which is what uBlock Origin Lite's dashboard showed as "the page did not
+open". The configuration that names it is `WKWebExtensionContext.webViewConfiguration`.
 
-So `ExtensionStore.openExtensionPage` builds a `WKWebView` from the context's configuration in an `NSWindow` of its
-own, for `openOptionsPage`, for "Open Options Page" in the Extensions list, and for `tabs.create` of the extension's
-own pages (which then reports no tab, because there is none). Measured with uBOL Lite: the dashboard loads, its
-background answers `getOptionsPageData`, `windows.getCurrent()` answers, and `tabs.getCurrent()` answers none, which
-the dashboard does not need. The very first open, seconds after installing, showed the page still hidden behind
-uBOL's own `loading` class — not measured further; the next open rendered.
+A tab asks for it: `ExtensionStore.pageConfiguration(for:profileID:)` answers for an address under an extension's
+base, and `BrowserTab.materialize` builds the view on that configuration and leaves it as WebKit made it. A
+configuration is fixed when a view is made, so `load()` into or out of an extension's page gives the tab another
+view. `openOptionsPage`, "Open Options Page" in the Extensions list, `tabs.create` — which now answers with the tab —
+and the new-tab override all end in `newTab(url:)`.
 
-The new-tab override has the same cause and is **not** fixed: it loads the extension's page into an ordinary column,
-which WebKit refuses the same way. [api-watch.md](api-watch.md) has what would let these be columns.
+Two things a tab needs that a throwaway window did not:
+
+- **The base address is the same on every launch.** WebKit's default is `webkit-extension://<a fresh UUID>`, so a
+  restored tab pointed at nothing. Savoia sets `baseURL` to `webkit-extension://<the extension's id>`. An
+  extension page's own storage keeps its origin across launches for the same reason.
+- **A tab restored in front is built before its extension has loaded**, on a plain configuration, and fails with
+  -1008. When the extension has loaded, `BrowserTab.extensionLoaded` builds such a tab again.
+
+Seen with a throwaway extension in a throwaway home: the page its background opened with `tabs.create` is a tab,
+loads, has `browser.runtime`, and loads again after the page budget took it and after a relaunch — behind, and in
+front, where the log shows the first attempt's -1008 before the rebuild. The options page and the new-tab override
+were not opened. When these pages were windows, uBOL Lite's dashboard loaded and its background answered
+`getOptionsPageData`; that has not been repeated in a tab.
 
 ### Each profile's copy of an extension sees only its own tabs
 
@@ -202,8 +207,8 @@ other extension; it simply does not block.
   must not wake a hundred discarded windows. Workspaces are not separate windows; when something actually needs to
   move a tab between windows, that is the moment to map them onto workspaces.
 - **The browser tells the extensions what happened.** WebKit does not watch the app's model: `didOpenTab`,
-  `didCloseTab`, `didActivateTab` and `didChangeTabProperties` are called from `BrowserState` and from the
-  navigation stream — without the last one, `tabs.onUpdated` never fires.
+  `didCloseTab`, `didActivateTab` and `didChangeTabProperties` are called from `BrowserState` and from what the
+  tab's navigation delegate reports — without the last one, `tabs.onUpdated` never fires.
 - **Installing or enabling one rebuilds the live pages.** A page's configuration is fixed when the page is built,
   so a window opened before an extension arrived would never see it (`BrowserState.rebuildLivePages`, the same
   discard-and-build-again the memory budget uses).
@@ -227,22 +232,10 @@ independently arrived at for a type Savoia does not otherwise touch.
 
 ## To revisit
 
-The whole "does not work" table was one missing method, and macOS now answers it — see above, and re-measure before
-trusting the table below. Two routes stayed out on purpose even so:
-
-1. **Apple exposes the backing view** (or a way to associate a `WebPage` with a `WKWebExtensionTab`), which would
-   make `WebViewResponder`'s workaround unnecessary rather than merely working. `WebPage` already exposes
-   `isInspectable`, so there is precedent for lifting something that lives on `WKWebView` up to the new API. Nothing
-   about this exists on bugs.webkit.org today — a search for `WKWebExtension` + `WebPage` finds nothing at all — so
-   the useful move is to file it, with the measurements in this document as the case.
-2. **`Mirror`-ing into `WebPage`'s private storage** — verified to work on this SDK, and not used anywhere in
-   Savoia: picture-in-picture and element fullscreen reached the view that way until they moved onto the same
-   view-tree walk. The two are not the same bet: a property Apple renames or restructures
-   next OS is invisible to the type checker and this fails silently, where the view-tree walk fails by finding
-   nothing (a `nil` `webView(for:)`, the same answer as before the fix) rather than finding the wrong thing.
-3. **A `WKWebView` per tab**, which is what every other WebKit browser with extension support does — and which is
-   exactly the thing Savoia exists not to do.
-4. **A WebKit build of Savoia's own** — ruled out (Artem, October 2026): system WebKit, used as far as it goes.
+The whole "does not work" table was one missing method, and a tab answers it with its own view now — re-measure
+before trusting the table below ([tasks/measure/12](tasks/measure/12-one-sitting.md)). A `WKWebView` per tab is what
+every other WebKit browser with extension support does, and since October 2026 what Savoia does. A WebKit build of
+Savoia's own stays ruled out: system WebKit, used as far as it goes.
 
 ## Installing from a file
 

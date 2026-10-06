@@ -1,6 +1,6 @@
 # Site permissions
 
-When a site wants the camera, the microphone or the motion sensors, it asks — and
+When a site wants the camera or the microphone, it asks — and
 the answer is remembered. It does not ask with a sheet over the whole
 application: the question is drawn as a bar **in the tab that asked**. A page
 that wants the camera is one tab out of twenty, and stopping the other

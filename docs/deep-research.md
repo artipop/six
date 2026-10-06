@@ -50,9 +50,9 @@ belongs to a run is a **follow-up**: the follow-up preset points the agent at `r
 
 ## Document windows
 
-`BrowserTab.content` is `.web(WebPage)` or `.document(TextDocument)` (`Savoia/Documents/`). A document is a tab like
+`BrowserTab.content` is `.web` or `.document(TextDocument)` (`Savoia/Documents/`). A document is a tab like
 any other — focus, side by side, moving between groups and persistence all work unchanged. `tab.page`
-exists for both kinds: for a document it is a non-persistent `WebPage` that renders the preview and produces the
+exists for both kinds: for a document it is a non-persistent web view that renders the preview and produces the
 HTML and PDF export.
 
 - `TextDocument` (`@Observable`): the Markdown, a title read off the first heading (else the first line, else
@@ -102,16 +102,15 @@ section fills in while the sources are being read.
 `⌘S` and `⌘⇧S` both run an `NSSavePanel` (the app is not sandboxed — no bookmarks to keep) with the formats the
 window supports:
 
-- document → `.md` (the source), `.html` (the preview page), `.pdf` (`WebPage.exported(as: .pdf())` of the preview)
-- page → `.html` (`outerHTML`), `.pdf`, `.txt` (the visible text)
+- document → `.md` (the source), `.html` (the preview page), `.pdf` (`WKWebView.pdf()` of the preview)
+- page → `.html` (`outerHTML`), `.webarchive` (`createWebArchiveData`: the page with what it loaded), `.pdf`, `.txt` (the visible text)
 - a page that is not HTML (`document.contentType` — a raw CI log, JSON, an image) → the original first, with the
   extension of its type, then `.pdf` and `.txt`. Text WebKit shows as one `<pre>` is read back from the page, since a
   raw log's signed link expires; anything else is fetched again with the profile's cookies.
 
 The page's context menu carries Save As too, and a saved file is listed in the downloads popover as finished.
 
-The last folder is remembered in `UserDefaults`, the document's file URL on the document. No `.webarchive`:
-`WebPage` has no API for one ([todo.md](todo.md)).
+The last folder is remembered in `UserDefaults`, the document's file URL on the document.
 
 ## Highlighted passages
 
@@ -165,7 +164,7 @@ text inside cross-origin iframes, pages that rewrite their content on every visi
 
 ## Page-side scripts
 
-`ReadablePage`, `BrowserToolCatalog.pageText` and `HighlightScript` all run through `WebPage.savoia` — `callJavaScript`
+`ReadablePage`, `BrowserToolCatalog.pageText` and `HighlightScript` all run through `WKWebView.savoia` — `callAsyncJavaScript`
 in Savoia's own `WKContentWorld`, the way Firefox and Safari run their reader scripts: the page's JavaScript cannot
 tamper with what the extractor reads or see the highlight machinery. Why and what it covers is in
 [architecture.md](architecture.md#page-side-scripts).

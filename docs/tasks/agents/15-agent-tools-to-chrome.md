@@ -39,7 +39,7 @@ Savoia's column is the catalog in `Savoia/Tools/BrowserTools.swift`. Chrome's is
 
 ## What to build, and how each stays out of the page
 
-1. **`upload_file`.** No script at all: the file input opens `WebPage.DialogPresenting`'s file picker, which
+1. **`upload_file`.** No script at all: the file input asks the tab's UI delegate (`PageDelegate`, `runOpenPanelWith`), which
    `PageDialogs` answers. Under an agent's call it is answered with the path the agent gave instead of an
    `NSOpenPanel`. The agent names a file on the person's disk, so this asks, per call, like every acting tool.
 2. **`handle_dialog`.** The same door: a dialog a page raises during an agent's turn is reported in the tool's
@@ -50,7 +50,7 @@ Savoia's column is the catalog in `Savoia/Tools/BrowserTools.swift`. Chrome's is
 4. **`drag`.** Down, dragged, up as real events. HTML drag-and-drop goes through the system's dragging session,
    which may not start from synthetic events — measure on a sortable list and on a file drop zone before promising.
 
-## WebKit's own automation: tried, and it stops at tabs
+## WebKit's own automation: open now, and a decision
 
 Safari's WebDriver runs on `_WKAutomationSession`, and the session answers protocol messages inside the app with no
 safaridriver (`_setMessageToFrontendHandlerForTesting:`, `_dispatchMessageFromRemoteForTesting:`). Measured on
@@ -58,10 +58,18 @@ safaridriver (`_setMessageToFrontendHandlerForTesting:`, `_dispatchMessageFromRe
 `Automation.getBrowsingContexts` lists the page, `evaluateJavaScriptFunction` returns a value with
 `userActivation.isActive` false, `takeScreenshot` returns a PNG and `getAllCookies` the cookies.
 
-**On the view a `WebPage` owns the context list is empty.** The flag is read from the configuration when the view
-is made, `WebPage` makes its own, and the view has no setter. So this door opens only for views Savoia creates
-itself — the windows a page opens (`ScriptedPopups`) — and not for a tab. It is not the way to build these tools;
-it would become one if `WebPage.Configuration` ever carried the flag ([api-watch.md](../../api-watch.md)).
+A tab was a `WebPage` then, which makes its own view, and the door stayed shut. A tab is a `WKWebView` of Savoia's
+own now and `BrowserTab.materialize` writes its configuration, so the flag is one line away.
+[Task 23](../architecture/23-webpage-or-wkwebview.md) was to set it on every tab and did not, for two reasons to
+settle here first:
+
+- **A page can tell.** WebKit's source answers `navigator.webdriver` from the same flag, and a site that reads it
+  treats the visitor as a robot. On every tab that is Artem's whole browsing; it belongs on a tab an agent drives,
+  which means building that tab's view with the flag — the configuration is read when the view is made — and
+  rebuilding it to take the flag off.
+- **It was not reproduced.** A second throwaway `WKWebView`, with the flag set by key on the configuration and no
+  session attached, hung before its first load (7 October 2026). What the first measurement had that this one
+  lacked — a session, a process pool, the order — is the first thing to find out.
 
 ## What is not reachable for an agent, and where to stop
 

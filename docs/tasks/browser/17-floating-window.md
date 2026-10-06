@@ -3,7 +3,7 @@
 Two different features deserve the name, and the first of them is now built.
 
 **Video PiP** — WebKit's own, for `<video>` — is done: `⌥⇧P`, a View menu item, and the button in WebKit's own media
-controls. `WebPage.Configuration` turned out to have no field to allow it in, so it is SPI on the terms above, and the
+controls. Allowing it on macOS is SPI on the terms above, and the
 floating player survives its window being scrolled out of the row, turned into a placeholder card and left behind for
 another profile. What it took, and what was measured, is in [layout.md](../../layout.md#picture-in-picture).
 
@@ -18,11 +18,10 @@ for about the video player that could not be answered.
 
 ## Before building
 
-A floating window cannot hold a `WebPage` tab's view while the tab bar also shows it. Windows a page opens are
-already a `WKWebView` in an `NSWindow` (`Savoia/Browser/ScriptedPopups.swift`), and a page that lost its view by
-navigating out of fullscreen taught what moving a `WebPage`'s view costs
-([permissions.md](../../permissions.md#compatibility-web-platform-tests)). Measure first whether the page's own view
-can be re-parented into a panel and back without the tab going blank.
+A tab's `WKWebView` is Savoia's own and sits in a plain host view (`PageHost`), which takes it from whichever host
+had it before — so moving it into a panel and back is `addSubview` twice. WebKit already does exactly that for
+element fullscreen, and the view comes back ([architecture.md](../../architecture.md#from-webpage-to-wkwebview)).
+Measure first that a page keeps playing and keeps its size across the move, and what the tab bar shows meanwhile.
 
 ## Done when
 

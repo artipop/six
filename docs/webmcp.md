@@ -121,7 +121,7 @@ every navigation of every window, send `notifications/tools/list_changed` consta
 tool set, which is fixed per session.
 
 A call takes two moves: the tool is started, and its answer comes back over the channel with the call's id, so
-nothing depends on whether `WebPage.callJavaScript` waits on a promise (it does not take `await` at all). Around it:
+nothing depends on a call into the page waiting on a promise (it could not when this was written, on `WebPage`). Around it:
 
 - a timeout (30 s by default) and cancellation, through an `AbortController` whose `signal` reaches `execute`;
 - a navigation mid-call is the error "the page went away", not a hang;
@@ -263,7 +263,7 @@ prototypes still can.
 Every frame test in the suite needs the polyfill in frames other than the main one, and a broker that can reach any
 of them. Measured on 2026-09-27, macOS 27, dev build, with a throwaway probe (a user script in every frame of the
 page's world, a `WKScriptMessageHandlerWithReply`, and `WKWebView.callAsyncJavaScript(_:in: WKFrameInfo, contentWorld:)`
-through `WebViewResponder.webView(for:)`), on a stand page holding a same-origin iframe, two cross-origin ones
+on the tab's view), on a stand page holding a same-origin iframe, two cross-origin ones
 (`www1.savoia.localhost`, one with `allow="tools"`), a `srcdoc`, a static `about:blank` and one created from script:
 
 - **A `forMainFrameOnly: false` user script reaches every one of them** — cross-origin frames included, `srcdoc`, the
@@ -274,8 +274,7 @@ through `WebViewResponder.webView(for:)`), on a stand page holding a same-origin
   is the origin Savoia should trust rather than anything the page says.
 - **Running code in one particular frame works**, cross-origin frames too, from the `WKFrameInfo` its message
   carried. A frame that has gone answers `WKErrorDomain` 12, "Target frame could not be found" — the navigated-away
-  case, for free. `WebPage.callJavaScript(in:)` takes a `WebPage.FrameInfo`, which only navigation and dialog
-  callbacks hand out, so the `WKWebView` is the way in; it exists once a pane has shown the window.
+  case, for free.
 - **WebKit has no `document.featurePolicy` or `permissionsPolicy`.** The `tools` policy has to be Savoia's own
   computation.
 - **`window.open` hands the page no window.** Without a gesture WebKit's popup blocking answers `null`; with one Savoia
