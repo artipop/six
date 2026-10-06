@@ -34,6 +34,38 @@ The one thing in it that would have helped, `WebPage.backingWebView`, is SPI on 
 What it does **not** change: Apple Pay (cause unknown), Web Push, the inspector's protocol for an agent, the C API
 behind geolocation and notification providers.
 
+## What must not be lost: the shape the other fronts share
+
+The `dev` branch has Linux and Windows fronts on the same code (`linux/Sources/SavoiaBrowser`,
+`SavoiaWebKitCore` over WebKitGTK; `windows/`). What makes that possible is not `WebPage` — those fronts never had
+it — but a line: `SavoiaCore`, the files listed under `sources:` in the root `Package.swift`, builds on Linux and
+knows no engine, and what it needs from a page it asks through narrow protocols a front implements:
+`PageScriptRunner`, `PageSandbox`, `PageTranslating`, `WebMCPPage` / `WebMCPFrame`, `PageFinder.find`, and
+`SitePermissions.decide` in its callback form. **That line is the architecture, and this move must leave it
+exactly where it is.**
+
+- Nothing in `SavoiaCore` imports WebKit or names `WKWebView`. `swift build` and `swift test` (with
+  `--disable-automatic-resolution`) pass after every step, as they do now.
+- The protocols keep their shape. What changes is who implements them on the Mac: `BrowserTab` over a `WKWebView`
+  instead of over a `WebPage`.
+- **"Fewer seams" means the ones `WebPage` forced** — the view-tree walk, the proxy delegate, the fallbacks —
+  **not these.** A seam that is a platform boundary stays; a new abstraction over `WKWebView` on the Mac alone is
+  the kind not to add.
+- This move brings the Mac closer to Linux, not further. `WKWebView` and WebKitGTK's `WebKitWebView` are the same
+  engine's two faces, and what is being rebuilt here has a counterpart there: the navigation delegate and
+  `decide-policy` / `load-changed`, `createWebView` and the `create` signal, the permission and dialog delegates
+  and `permission-request` / `script-dialog`, `interactionState` and the session state, the automation flag, the
+  inspector. So where shared code learns something new from this move — a window a page opens, a session state to
+  keep, a find — say it in words both engines have, the way `SitePermissions` takes a list of permissions and an
+  origin rather than a WebKit type.
+- The mapping in step 1 gets a third column, WebKitGTK's name for the same thing, read from
+  `linux/Sources/SavoiaBrowser` and `SavoiaWebKitCore` on `dev` (`git show dev:<path>`). It costs an hour and is
+  what makes the next sync of `dev` a merge rather than a rewrite.
+
+`dev` also keeps the iOS front, which is on `WebPage` too; iOS has `WKWebView` as well, so the same move applies
+there when `dev` is next synced. Not part of this task — but do not write the Mac's tab so that it could only ever
+be AppKit where UIKit would do the same.
+
 ## What goes away with `WebPage`, and has to be rebuilt first
 
 - **Observation.** `WebPage` is `@Observable`; `url`, `title`, `isLoading`, progress, the capture and fullscreen
@@ -98,6 +130,6 @@ Stop and report after step 2, before deleting anything in step 3.
 
 ## Done when
 
-No file imports `WebPage`'s API, the workarounds in step 3 are gone or each has a line saying why it stayed, the
+`SavoiaCore` is as engine-free as it was and its tests pass, no file imports `WebPage`'s API, the workarounds in step 3 are gone or each has a line saying why it stayed, the
 self-tests and both wpt runs are no worse, the hand list is walked, and the docs describe a browser built on
 `WKWebView`.
