@@ -2,7 +2,7 @@
 import AppKit
 import SwiftUI
 
-/// ⌘F's bar: a query, a count, and the two arrows that walk the matches — Safari's shape, in the
+/// ⌘F's bar: a query and the two arrows that walk the matches — Safari's shape, in the
 /// place `TranslateBar` and `PermissionBar` already answer the same question with: a sibling of
 /// the web view in the column's stack, not drawn over it, so the field takes the keyboard and its
 /// buttons see the mouse without going through `HostedOverlay`.
@@ -28,21 +28,20 @@ struct FindBar: View {
                 .focused($isFocused)
                 .onSubmit { step(shiftHeld ? -1 : 1) }
                 .onKeyPress(.escape) {
-                    browser.find.hide(tab, id: tab.id)
+                    browser.find.hide(tab.id)
                     return .handled
                 }
                 .onChange(of: query) { _, new in
-                    Task { await browser.find.search(new, in: tab, id: tab.id) }
+                    Task { await browser.find.search(new, id: tab.id) }
                 }
                 // The bar mounts only while it is active (`TabPageView`), so its one appearance is
                 // exactly the moment to hand it the keyboard — the same trick a sheet uses.
                 .onAppear { isFocused = true }
 
-            if !query.isEmpty, state.isCounted || state.hasNoMatches {
-                Text(state.hasNoMatches ? String(localized: "No Results") : "\(state.current) of \(state.count)")
+            if state.hasNoMatches {
+                Text("No Results")
                     .font(.caption)
-                    .foregroundStyle(state.hasNoMatches ? AnyShapeStyle(.red) : AnyShapeStyle(.secondary))
-                    .monospacedDigit()
+                    .foregroundStyle(.red)
                     .fixedSize()
             }
 
@@ -52,7 +51,7 @@ struct FindBar: View {
                 .help("Previous Match (⇧⏎)")
             Button { step(1) } label: { Image(systemName: "chevron.down") }
                 .help("Next Match (⏎)")
-            Button { browser.find.hide(tab, id: tab.id) } label: { Image(systemName: "xmark") }
+            Button { browser.find.hide(tab.id) } label: { Image(systemName: "xmark") }
                 .help("Close (⎋)")
         }
         .controlSize(.small)
@@ -64,8 +63,8 @@ struct FindBar: View {
     }
 
     private func step(_ delta: Int) {
-        guard state.count > 0 else { return }
-        Task { await browser.find.step(delta, in: tab, id: tab.id) }
+        guard state.isFound else { return }
+        Task { await browser.find.step(delta, id: tab.id) }
     }
 
     /// `NSEvent.modifierFlags` rather than a second `onKeyPress`: `onSubmit` already answers plain

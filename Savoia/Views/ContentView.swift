@@ -301,26 +301,26 @@ extension ContentView {
         browser.find.show(tab.id)
         say("shown: isActive=\(browser.find[tab.id]?.isActive ?? false)")
 
-        await browser.find.search(query, in: tab, id: tab.id)
+        await browser.find.search(query, id: tab.id)
         say("search \(query.debugDescription): \(describe(tab))")
 
-        await browser.find.step(1, in: tab, id: tab.id)
+        await browser.find.step(1, id: tab.id)
         say("step +1: \(describe(tab))")
-        await browser.find.step(1, in: tab, id: tab.id)
+        await browser.find.step(1, id: tab.id)
         say("step +1: \(describe(tab))")
-        await browser.find.step(-1, in: tab, id: tab.id)
+        await browser.find.step(-1, id: tab.id)
         say("step -1: \(describe(tab))")
 
-        await browser.find.search("", in: tab, id: tab.id)
+        await browser.find.search("", id: tab.id)
         say("cleared: \(describe(tab))")
 
-        browser.find.hide(tab, id: tab.id)
+        browser.find.hide(tab.id)
         say("hidden: isActive=\(browser.find[tab.id]?.isActive ?? true)")
     }
 
     fileprivate func describe(_ tab: BrowserTab) -> String {
         guard let state = browser.find[tab.id] else { return "no state" }
-        return "count=\(state.count) current=\(state.current)"
+        return "found=\(state.isFound)"
     }
 
     /// `SAVOIA_CRX_SELFTEST=1` — builds a `.crx` from scratch, RSA-signed and separately ECDSA-signed,

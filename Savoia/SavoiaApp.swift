@@ -114,14 +114,12 @@ struct SavoiaApp: App {
                 browser?.tab(tabID)?.displayCapture = state
             }
         }
-        if ProcessInfo.processInfo.environment["SAVOIA_NATIVE_FIND"] != nil {
-            browser.find.native = { tabID, query, backwards in
-                guard let view = WebViewResponder.shared.webView(for: tabID) else { return false }
-                let configuration = WKFindConfiguration()
-                configuration.backwards = backwards
-                configuration.caseSensitive = false
-                return (try? await view.find(query, configuration: configuration))?.matchFound ?? false
-            }
+        browser.find.find = { tabID, query, backwards in
+            guard let view = WebViewResponder.shared.webView(for: tabID) else { return false }
+            let configuration = WKFindConfiguration()
+            configuration.backwards = backwards
+            configuration.caseSensitive = false
+            return (try? await view.find(query, configuration: configuration))?.matchFound ?? false
         }
         #endif
         blocker.startRefreshSchedule()

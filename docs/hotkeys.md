@@ -106,15 +106,16 @@ lands the flight and goes on to whatever it was meant for — including over a c
 
 ## Find on page (`⌘F`)
 
-Pushed above the page rather than drawn over it, so the field takes the keyboard. Matches are painted with the CSS
-Custom Highlight API — nothing is written into the page's DOM.
+Pushed above the page rather than drawn over it, so the field takes the keyboard. The search is WebKit's own
+(`WKWebView.find`, reached through `WebViewResponder`): no script runs in the page, the match is the page's
+selection, and there is no count of matches — the public API gives none.
 
 | | |
 |---|---|
 | typing | searches as you type, case-insensitive, and lands on the first match |
 | `↩` | next match, wrapping to the first past the last |
 | `⇧↩` | previous match, wrapping the other way |
-| `Esc` | close — the query is kept, the highlights are not; `⌘F` again picks up where it left off |
+| `Esc` | close — the query is kept; `⌘F` again picks up where it left off |
 
 ## Bookmarks (`⌘⌥B`)
 

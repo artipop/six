@@ -5,20 +5,18 @@ caret is already in the field: type.
 
 | | |
 |---|---|
-| the **Find** field | matches are highlighted on the page as you type |
-| "2 of 5" | the current match and how many there are; a red **No Results** when there are none |
+| the **Find** field | the page goes to a match and selects it as you type |
+| **No Results** | shown in red when there is no match |
 | `↩` or the ˅ button | **Next Match (⏎)** |
 | `⇧↩` or the ˄ button | **Previous Match (⇧⏎)** |
-| `Esc` or the cross | **Close (⎋)**: the highlighting goes away |
+| `Esc` or the cross | **Close (⎋)** |
 
 After the last match the search wraps to the first, and the other way round.
 
 ## What is searched
 
 - Case does not matter: `savoia` finds "Savoia".
-- The visible text of the page is searched. Hidden elements, form fields, buttons, and text inside video, `canvas` and
-  embedded frames (`iframe`) are skipped.
-- Code inside `<pre>` and `<code>` blocks is found.
+- WebKit itself does the searching, as in Safari: the visible text of the page, embedded frames (`iframe`) included.
 
 ## Each tab has its own search
 
