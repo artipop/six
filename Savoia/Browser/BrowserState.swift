@@ -344,6 +344,7 @@ final class BrowserState {
         let trail = tab.trail
         if !trail.back.isEmpty { entry.back = trail.back.suffix(Self.rememberedSteps) }
         if !trail.forward.isEmpty { entry.forward = Array(trail.forward.prefix(Self.rememberedSteps)) }
+        entry.state = trail.state
         if let document = tab.document {
             entry.document = DocumentSnapshot(id: document.id, title: document.title, modifiedAt: document.modifiedAt,
                                               fileURL: document.fileURL, showsPreview: document.showsPreview)
@@ -430,10 +431,9 @@ final class BrowserState {
         }
         let tab = makeTab(id: saved.id, profile: profile, restoring: saved.url, title: saved.title)
         // The same trail a window handed to another profile is given, from the file instead of from
-        // the window it replaces. Not the scroll offset: it is only read when a window leaves the
-        // screen, so for one that never did it would be an offset from the start of the session.
-        if saved.back?.isEmpty == false || saved.forward?.isEmpty == false {
-            tab.adopt(BrowserTab.Trail(back: saved.back ?? [], forward: saved.forward ?? []))
+        // the window it replaces.
+        if saved.back?.isEmpty == false || saved.forward?.isEmpty == false || saved.state != nil {
+            tab.adopt(BrowserTab.Trail(back: saved.back ?? [], forward: saved.forward ?? [], state: saved.state))
         }
         return tab
     }
@@ -929,7 +929,7 @@ final class BrowserState {
             return current.absoluteString.split(separator: "#", maxSplits: 1).first.map(String.init) == target
         }) {
             selectTab(existing.id)
-            existing.resumeIfNeeded()
+            existing.resumeOnScreen()
             if url.fragment() != nil { existing.load(url) }
             highlights?.scroll(existing, toHighlightMatching: url)
             return

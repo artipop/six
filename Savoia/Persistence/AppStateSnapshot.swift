@@ -62,10 +62,12 @@ nonisolated struct TabSnapshot: Codable, Sendable {
     var title: String
     /// Where the window has been, oldest first, and where it can go forward to — the same trail a
     /// discarded window keeps in memory (`BrowserTab.Trail`), written down so that ⌘[ still works
-    /// after a relaunch. Addresses rather than WebKit's own back-forward list, because `WebPage`
-    /// hands out no `interactionState` to restore one from. Absent in files from before it was kept.
+    /// after a relaunch. Walked when there is no `state`, or no web view on screen to give it to.
+    /// Absent in files from before it was kept.
     var back: [URL]? = nil
     var forward: [URL]? = nil
+    /// `WKWebView.interactionState`: WebKit's back-forward list, each entry with its scroll offset.
+    var state: Data? = nil
     /// A document window: the id of its Markdown file under `Documents/`; the text lives there.
     var document: DocumentSnapshot? = nil
     /// An MCP app window: where its server is and what drew it. Absent for every other kind.

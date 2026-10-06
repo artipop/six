@@ -400,22 +400,10 @@ where the next changes will land.
 ## Smaller things
 
 - A readable maximum width for the default column on ultra-wide displays: 88 % of a 5K panel is a very long line.
-- **WebKit's real back-forward list across a relaunch.** Savoia restores the trail as *addresses*
-  ([architecture.md](architecture.md#persistence)), so ⌘[ after a restart loads the previous page rather than
-  restoring the rendered one — no scroll position, no form state, no cached response. `WKWebView` has had
-  `interactionState` since macOS 12 for exactly this, and `WebPage` exposes nothing equivalent: its
-  `backForwardList` is read-only and its only way in is `load(_ item:)` on an item WebKit already has. This is the
-  same hole as [geolocation](#geolocation-and-notifications-webkits-c-api-one-header-for-both) — a `WKWebView` property
-  that did not make the crossing — and wants the same answer, a Feedback citing `WebPage.isInspectable` as the
-  precedent.
 - A window whose address *is* a download re-downloads it on every launch. Nothing was committed in it, so the
   window comes back pointed at the attachment and asks for it again; `closeIfOnlyCarriedALink` only closes the
   window a link opened, not the one somebody typed the address into. Harmless until this session, easy to see now
   that an unfinished row survives a relaunch.
-- Restoring where a window was scrolled to. The offset is only read when a window leaves the screen
-  (`rememberViewState`), so a window that stayed put all session would come back at the top anyway; doing it properly
-  means reading `window.scrollY` for the visible windows as the snapshot is taken, which is a JavaScript call on the
-  autosave path.
 - Deep research without an agent: a native loop over the ⌘E model for machines with no Claude Code / Codex, and
   exporting a run as one HTML file with its sources inlined ([deep-research.md](deep-research.md)).
 - A way back to the start page after navigating (a "home" affordance, or `⌘⇧H`).

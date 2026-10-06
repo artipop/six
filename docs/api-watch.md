@@ -23,7 +23,7 @@ that is the SDK to read, not Xcode's.
 | **Extension testing mode** | SPI in use, only under `SAVOIA_EXTENSION_TESTING`: `_testingMode` and the `recordTest…` delegate methods — `Savoia/Extensions/ExtensionTesting.swift` | a public testing switch on `WKWebExtensionController` | the SPI goes |
 | **Opening Web Inspector** | Safari can attach; Savoia cannot open it ([devtools.md](devtools.md)) | any public API beyond `isInspectable` | an inspector in Savoia's own window |
 | **Web archives** | Save As has `.html`, `.pdf`, `.txt` | `createWebArchiveData` on `WebPage` | `.webarchive` in Save As |
-| **Back-forward state across launches** | trail restored as addresses | `interactionState` (a `WKWebView` property since macOS 12) on `WebPage` | restore scroll and form state |
+| **Back-forward state across launches** | `interactionState` taken from and given to the `WKWebView` a pane mounts (`WebViewResponder`), addresses otherwise | `interactionState` on `WebPage` | restore a tab before it is shown, and drop the address lists |
 | **Element fullscreen in SwiftUI's `WebView`** | black without the temporary hold — `Savoia/Browser/PageElementFullscreen.swift` | the bug fixed (forums thread 720612); retest with the hold removed | delete the hold |
 
 ## Where changes show up

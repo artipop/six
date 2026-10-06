@@ -109,6 +109,7 @@ struct SavoiaApp: App {
         // sharing — the one capture `WebPage` publishes nothing about — is watched (`DisplayCapture`).
         WebViewResponder.shared.onWebViewFound = { [weak browser] tabID, webView in
             WebPage.allowPictureInPicture(on: webView)
+            browser?.tab(tabID)?.webViewFound(webView)
             ScriptedPopups.install(on: webView)
             DisplayCapture.observe(webView) { [weak browser] state in
                 browser?.tab(tabID)?.displayCapture = state

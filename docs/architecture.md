@@ -58,7 +58,7 @@ same thing `replaceWithApp` does for a restored app that starts running. Everyth
 pointing at the same window: the column, the `⌃Tab` ring, a research run holding it as a source, its picture on
 disk. Nothing is remembered for `⌘⇧T`, because nothing was closed.
 
-What is handed over is `BrowserTab.Trail` — the two lists of addresses the window can walk, the scroll offset and
+What is handed over is `BrowserTab.Trail` — the two lists of addresses the window can walk, WebKit's session state and
 the picture, which is everything a discard already keeps (`discard()` builds the same lists the same way). What is
 deliberately *not* handed over is everything the old profile had given it: its cookies, its extension controller,
 its content controller with the blocker's rules on it (`pageControllers.forget(id)`, so the new page is configured
@@ -96,7 +96,8 @@ private profile can still touch is its agent scratchpad, if an agent is asked to
 A `WebPage` is a web content process — a JavaScript heap, a render tree, timers, a compositor. A hundred tabs
 cannot hold a hundred of them, so Savoia does what every browser does and calls by the same name: it **discards**
 the pages it is unlikely to be asked for and builds them again from the address. Discarding is not closing; the tab
-stays where it is with its title, its address, its back/forward stacks, its scroll offset and a picture of itself.
+stays where it is with its title, its address, its back/forward list with each entry's scroll offset
+(`interactionState`, [page-scripts.md](page-scripts.md#scroll-and-history-interactionstate)) and a picture of itself.
 
 `LivePageCache` is the budget, one queue for the whole app — every profile, every group. Switch to another tab and
 back and the one you just left is at the warm end of the queue with its page still on it.
@@ -154,11 +155,11 @@ those bytes go back as they came for ImageIO to decode. A private profile is giv
 On the tab side (`BrowserTab`): `page` builds the page on demand — everything that *talks* to a page goes through it
 (tools, assistant, highlights, export) — while `title`, `currentURL`, `isLoading`, `canGoBack` and the rest answer
 without one, because the tab bar is evaluated for every tab and reaching for `page` there would keep every tab live. `discard()` is synchronous on purpose: an `await` on the way out is something holding the page while
-it waits. What the window needs afterwards is taken earlier, by `rememberViewState()`, while the page is still on
-screen and there is still something to draw and someone to ask.
+it waits. The picture is taken earlier, by `rememberViewState()`, while the page is still on screen and there is
+still something to draw; the session state is read off the web view in `discard()` itself, which asks nobody.
 
-Back and forward survive: WebKit's own list goes with the page, so the window keeps the URLs and walks them itself
-once a rebuilt page runs out of its own. A window on the start page never builds a page at all — the start page is
+Back and forward survive: the state is given to the rebuilt page's web view when a pane mounts it, and WebKit's own
+list comes back with it. The window also keeps the URLs and walks them itself for a page rebuilt without a state. A window on the start page never builds a page at all — the start page is
 SwiftUI.
 
 ## What Savoia says it is
@@ -251,15 +252,12 @@ The window itself — frame and fullscreen — is in the snapshot too (`WindowSt
 notifications and applied once when the content view lands in its window; a saved frame off every screen is
 ignored). Restore drops anything that doesn't line up (a column whose tab is gone, a tab no column points at).
 
-**Back and forward survive a relaunch, as addresses.** `WebPage` hands out no `interactionState` — the opaque blob
-`WKWebView` has had since macOS 12 for exactly this — so WebKit's own back-forward list cannot be restored into a
-fresh page at all. What Savoia restores instead is `BrowserTab.Trail`, the list of addresses it already keeps for a
-window whose page was discarded and for one handed to another profile: `savedBack` / `savedForward`, walked by
-`goBack()` when the live page's own list runs out. The snapshot carries 50 steps each way per window. A restored
-window is therefore one WebKit knows nothing about, and one whose ⌘[ loads the previous address rather than
-restoring a rendered page — which is what a rebuilt discarded window has always done. The scroll offset is *not*
-restored: it is only read when a window leaves the screen, so for one that never did it would be the offset the
-session started at. Only the API key
+**Back and forward survive a relaunch, with the scroll offsets.** `TabSnapshot.state` is the tab's
+`WKWebView.interactionState`, read as the snapshot is written and given to the web view when the tab is first shown
+([page-scripts.md](page-scripts.md#scroll-and-history-interactionstate)); `WebPage` hands none out, so it goes
+through the view. Beside it the snapshot still carries `BrowserTab.Trail`'s addresses, 50 steps each way —
+`savedBack` / `savedForward`, walked by `goBack()` when the live page's own list runs out — for a tab that has no
+state or is loaded before it has a web view. Only the API key
 stays in `UserDefaults`; the other settings are in the database (below).
 
 History and settings live in SQLite — `~/Library/Application Support/org.deffun.savoia/savoia.sqlite`, opened by `AppDatabase`

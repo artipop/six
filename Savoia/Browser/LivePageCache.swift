@@ -127,6 +127,9 @@ final class LivePageCache {
         liveCount = liveTabs().count
     }
 
+    /// Is the window one of those on screen, whose pane is mounted or about to be?
+    func isOnScreen(_ id: UUID) -> Bool { built.contains(id) }
+
     /// The windows the layout is showing, and the ones that may be *built*.
     ///
     /// Pinning and building are two different things: what is on screen is pinned, and only what is

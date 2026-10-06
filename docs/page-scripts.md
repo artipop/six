@@ -29,8 +29,7 @@ Savoia makes at load was moved to the gesture-free one. What sets it has not bee
 
 | what | when | world | does | decision |
 |---|---|---|---|---|
-| scroll put back — `BrowserTab.restoreScrollIfNeeded` | `.finished`, after a discard or a relaunch | savoia | `window.scrollTo(0, offset)`, once | replace with WebKit's own session state (`interactionState`), if it can be had — below |
-| scroll remembered — `BrowserTab.rememberViewState` | a tab leaving the screen, at most every 3 s | savoia | reads `scrollY` | no gesture now; goes with the one above |
+| the page's size, for its picture — `BrowserTab.rememberViewState` | a tab leaving the screen, at most every 3 s | savoia | reads `innerWidth` and `innerHeight` | stays; no gesture. The scroll offset is no longer read here, nor put back by a script — below |
 | site icon — `SiteIcons.ask` | every `.finished` | **page** | starts a fetch, then polls up to 20 times at 150 ms | no gesture now; later: read the `<link rel=icon>` once and fetch it with `URLSession` |
 | description for groups — `TabSorter.pageFinished` | every `.finished` | savoia | reads the meta description or the first paragraph | **done**: `savoia` world, no gesture |
 | highlights — `HighlightStore.apply` | a load of an address that has highlights | savoia | edits the DOM, watches it for 5 s | below |
@@ -53,14 +52,38 @@ Savoia makes at load was moved to the gesture-free one. What sets it has not bee
 | translation, the readable copy for bookmarks, export, the accessibility overlay, going to a highlight | stay; `savoia` world, on demand |
 | agent tools — `page_snapshot`, `click`, `fill`, `scroll_page`, `evaluate_javascript` | all run without a gesture; `click` is a real mouse event instead ([agent-actions.md](agent-actions.md#the-acting-tools)) |
 
-## `interactionState`, and what is not known about it
+## Scroll and history: `interactionState`
 
-`WKWebView.interactionState` is the back-forward list with each entry's scroll position and form state, restored
-the way Safari restores a tab. It would replace both scroll scripts and the hand-kept lists of addresses
-([architecture.md](architecture.md)). `WebPage` does not hand it out ([api-watch.md](api-watch.md)); the
-`WKWebView` behind a tab is reachable through `WebViewResponder`, but only while the tab is on screen, and
-restoring means setting the state on a fresh view instead of loading an address. Whether a `WebPage` survives its
-view being given a state behind its back has not been tried.
+`WKWebView.interactionState` is the back-forward list with each entry's scroll position, restored the way Safari
+restores a tab. It replaced both scroll scripts: nothing reads `scrollY` and nothing calls `scrollTo`.
+
+- **Taken** from the tab's web view (`WebViewResponder`) in `discard()`, and for a live tab as the snapshot is
+  written — synchronously, with no round trip to the page. Only a web view that has been on screen is on file; a
+  page a tool loaded in the background has no state, and neither has one above 512 KB (`history.state` can be
+  megabytes, and the snapshot is rewritten on every change).
+- **Kept** in `BrowserTab.savedState`, in `Trail` for a move between profiles, and as `TabSnapshot.state` in
+  `state.json` — about 1 KB for three entries.
+- **Given** to the fresh web view where a pane finds it (`BrowserTab.webViewFound`, from `onWebViewFound`), in
+  place of loading the address. `WebPage` takes it: `url`, `backForwardList` and `navigations` agree afterwards,
+  and the load arrives as an ordinary `startedProvisionalNavigation`, `committed`, `finished`. To the page it is a
+  `back_forward` navigation.
+- **The addresses stay** (`savedBack` / `savedForward`) for the cases with no web view to give a state to: a
+  waiting tab a tool reads before it is shown, a state that was not taken, a file from before. When the state is
+  given, the addresses WebKit's list has again are dropped from them.
+
+A pane's `onAppear` waits a second for the web view and then loads the address. A tool that reads a waiting tab
+which is on screen waits the same way; off screen it loads the address and the state is lost. `focus_window` does
+not resume a tab, so the pane does.
+
+**Limits, accepted.** WebKit puts the offset back once, at load. Content that is in the document by then is
+restored exactly; content added afterwards — 50 ms after is enough — is not waited for, and the page lands at the
+bottom of what there was (offset 558 of 6000 on the stand's page). The script it replaced clamped the same way.
+A `textarea`'s text did not come back in the measurement. A scroll made after the last change to the model is in
+the file only after a quit: nothing rewrites the snapshot on scroll.
+
+Checked through `Savoia --mcp` in a throwaway home: `testdriver_discard_pages` gives back every page off screen
+(the budget never goes under ten under memory pressure, so `SAVOIA_LIVE_PAGES=1` alone does not), and
+`SAVOIA_PAGE_CACHE_DEBUG=1` says which way a page resumed.
 
 ## Highlights
 

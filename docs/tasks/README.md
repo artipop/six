@@ -11,7 +11,6 @@ A task's file is deleted by the commit that finishes it; what was learned goes i
 
 | # | task | what it changes |
 |---|---|---|
-| 1 | [browser/01-scroll-interaction-state.md](browser/01-scroll-interaction-state.md) | scroll position kept by WebKit's own session state instead of two scripts |
 | 2 | [browser/02-site-icons.md](browser/02-site-icons.md) | favicons that sometimes do not load; no script in the page for them |
 | 3 | [browser/03-popups.md](browser/03-popups.md) | which `window.open` is a window and which a tab; dialogs and permissions in the window |
 | 7 | [permissions/07-geolocation.md](permissions/07-geolocation.md) | geolocation for sites |

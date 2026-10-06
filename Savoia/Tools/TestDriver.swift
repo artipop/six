@@ -124,6 +124,15 @@ enum TestDriver {
                 }
             ),
             BrowserTool(
+                name: "testdriver_discard_pages",
+                description: "Gives back the page of every window that is not on screen, as the page budget would.",
+                surfaces: .mcp,
+                run: { _ in
+                    browser.pages.discardBackgroundPages()
+                    return "ok"
+                }
+            ),
+            BrowserTool(
                 name: "testdriver_close_windows",
                 description: "Closes the windows pages opened by script.",
                 surfaces: .mcp,

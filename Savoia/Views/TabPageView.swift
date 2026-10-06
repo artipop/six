@@ -77,7 +77,7 @@ struct TabPageView: View {
                 .webViewElementFullscreenBehavior(.enabled)
                 .pageContextMenu(for: tab, in: browser)
                 .id(tab.generation)
-                .onAppear(perform: tab.resumeIfNeeded)
+                .onAppear(perform: tab.resumeOnScreen)
                 .overlay {
                     if isFocused { AccessibilityOverlayView(tab: tab) }
                 }

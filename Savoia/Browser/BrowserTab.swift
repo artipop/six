@@ -242,13 +242,13 @@ final class BrowserTab: Identifiable {
     /// the window keeps the addresses and walks them itself once a rebuilt page runs out of its own.
     @ObservationIgnored private var savedBack: [URL] = []
     @ObservationIgnored private var savedForward: [URL] = []
-    /// Where the page was scrolled to, put back when a discarded window loads again.
-    @ObservationIgnored private var savedScroll: Double = 0
+    /// WebKit's session state of the page that went: its back-forward list, each entry with its scroll offset.
+    @ObservationIgnored private var savedState: Data?
+    @ObservationIgnored private var stateWait: Task<Void, Never>?
     /// A resumed load's media waits for a gesture (`MediaHold`) — in that load's document only. Lifted
     /// when the next navigation starts, once the held one has committed.
     private enum MediaHoldState { case loading, shown }
     @ObservationIgnored private var mediaHold: MediaHoldState?
-    @ObservationIgnored private var pendingScroll: Double?
     /// The page as it last looked. Stands in for it in the strip and while a rebuilt page loads, so
     /// coming back to a discarded window shows the page rather than a white rectangle.
     private(set) var thumbnail: PlatformImage?
@@ -617,16 +617,24 @@ final class BrowserTab: Identifiable {
     func prepareForDisplay() {
         guard !showsStartPage, builtIn == nil, pendingApp == nil else { return }
         materialize()
-        resumeIfNeeded()
+        // With a session state it is the pane that resumes it: there is no web view before one.
+        if savedState == nil { resumeIfNeeded() }
     }
 
-    /// Gives the page back to the system. The window keeps its address, title, history stacks, scroll
-    /// offset and thumbnail, and builds the same page again the next time it is shown — which is what
+    /// Gives the page back to the system. The window keeps its address, title, history stacks, session
+    /// state and thumbnail, and builds the same page again the next time it is shown — which is what
     /// makes this discarding rather than closing. Called by `LivePageCache`, never by the views.
     func discard() {
         guard let page = livePage else { return }
         savedTitle = title
         savedURL = page.url ?? savedURL
+        // A page still waiting for its state has none of its own to take.
+        if pendingURL == nil { savedState = liveState }
+        stateWait?.cancel()
+        stateWait = nil
+        #if os(macOS)
+        WebViewResponder.shared.forget(id)
+        #endif
         savedBack += page.backForwardList.backList.map(\.url)
         savedForward = page.backForwardList.forwardList.map(\.url) + savedForward
         // A document is never waiting on an address: its preview is rendered from the text again by
@@ -643,8 +651,8 @@ final class BrowserTab: Identifiable {
         generation += 1
         // Nothing asynchronous here on purpose: an `await` on the way out means something is holding
         // the page while it waits, and a page that is held is a page that was not given back. The
-        // scroll offset and the picture were taken while the window was still on screen
-        // (`rememberViewState`), which is also the only time they can be taken at all.
+        // picture was taken while the window was still on screen (`rememberViewState`), which is
+        // also the only time it can be taken at all.
     }
 
     /// The tab is closing: stop the page and the navigation feed for good.
@@ -665,7 +673,7 @@ final class BrowserTab: Identifiable {
     // MARK: What survives a move to another profile
 
     /// A window apart from the store its page was built against: where it has been, where it can go
-    /// forward to, how far down it was, and how it last looked.
+    /// forward to, WebKit's session state, and how it last looked.
     ///
     /// A `WebPage`'s data store is fixed when the page is built and WebKit's back-forward list
     /// belongs to that page, so a window cannot be handed another profile's cookies. Moving one
@@ -675,7 +683,7 @@ final class BrowserTab: Identifiable {
     struct Trail {
         var back: [URL] = []
         var forward: [URL] = []
-        var scroll: Double = 0
+        var state: Data?
         var picture: PlatformImage?
     }
 
@@ -684,16 +692,30 @@ final class BrowserTab: Identifiable {
     var trail: Trail {
         Trail(back: savedBack + (livePage?.backForwardList.backList.map(\.url) ?? []),
               forward: (livePage?.backForwardList.forwardList.map(\.url) ?? []) + savedForward,
-              scroll: savedScroll, picture: thumbnail)
+              state: pendingURL == nil ? liveState : savedState, picture: thumbnail)
     }
 
     /// Takes over from the window this one was built to replace. Called before it is first shown: the
-    /// offset goes back into the page when the waiting address loads, as a discarded window's does.
+    /// state goes into the page when the window comes on screen, as a discarded window's does.
     func adopt(_ trail: Trail) {
         savedBack = trail.back
         savedForward = trail.forward
-        savedScroll = trail.scroll
+        savedState = trail.state
         thumbnail = trail.picture
+    }
+
+    /// States above this are not kept: `history.state` can be megabytes, and the snapshot is rewritten on every change.
+    nonisolated private static let stateLimit = 512 * 1024
+
+    /// The state of the page as it stands, which only a web view that has been on screen can give.
+    private var liveState: Data? {
+        #if os(macOS)
+        guard isWebPage, livePage != nil, let view = WebViewResponder.shared.webView(for: id),
+              let state = view.interactionState as? Data, state.count <= Self.stateLimit else { return nil }
+        return state
+        #else
+        return nil
+        #endif
     }
 
     /// The window's one subscription to what its page is doing.
@@ -797,7 +819,6 @@ final class BrowserTab: Identifiable {
             savedURL = page.url ?? savedURL
             savedTitle = page.title
             extensions?.noteChanged(self, [.title, .loading])
-            restoreScrollIfNeeded(page)
             onNavigation?(self, .finished)
             siteIcons?.refresh(page) { [weak self] in try await self?.callWithoutGesture($0, in: .page) }
             // Only to give a window that has never been drawn something to show. The picture that
@@ -915,16 +936,64 @@ final class BrowserTab: Identifiable {
     /// Loads a waiting window's page — a restored one, or one whose page was discarded. Called when
     /// the window comes on screen and by the tools.
     func resumeIfNeeded() {
+        guard stateWait == nil, pendingURL != nil else { return }
+        // On screen the web view is about to be found, and only it can take the state.
+        if savedState != nil, cache?.isOnScreen(id) == true { return awaitWebView() }
+        resumeByAddress()
+    }
+
+    /// A waiting window's pane has appeared.
+    func resumeOnScreen() {
+        guard pendingURL != nil, savedState != nil else { return resumeIfNeeded() }
+        awaitWebView()
+    }
+
+    /// Holds the load for the web view (`webViewFound`), and loads the address if none turns up.
+    private func awaitWebView() {
+        guard stateWait == nil else { return }
+        stateWait = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(1))
+            guard !Task.isCancelled, let self else { return }
+            self.stateWait = nil
+            self.resumeByAddress()
+        }
+    }
+
+    private func resumeByAddress() {
         guard let url = pendingURL else { return }
+        savedState = nil
+        let page = beginResume()
+        LivePageCache.log("resumed \(title) by its address")
+        _ = page.load(URLRequest(url: url))
+    }
+
+    #if os(macOS)
+    /// A pane has found the page's web view: a window waiting with a session state is given it here.
+    func webViewFound(_ view: WKWebView) {
+        guard pendingURL != nil, livePage != nil, let state = savedState else { return }
+        stateWait?.cancel()
+        stateWait = nil
+        savedState = nil
+        beginResume()
+        view.interactionState = state
+        LivePageCache.log("resumed \(title) from its session state")
+        // WebKit's own list has these again, so the addresses kept for them would be walked twice.
+        let back = view.backForwardList.backList.map(\.url)
+        let forward = view.backForwardList.forwardList.map(\.url)
+        if !back.isEmpty, Array(savedBack.suffix(back.count)) == back { savedBack.removeLast(back.count) }
+        if !forward.isEmpty, Array(savedForward.prefix(forward.count)) == forward { savedForward.removeFirst(forward.count) }
+    }
+    #endif
+
+    @discardableResult
+    private func beginResume() -> WebPage {
         pendingURL = nil
         if isWebPage {
             pageControllers?.setUserScripts([MediaHold.script], named: MediaHold.scriptName, for: id)
             mediaHold = .loading
         }
-        let page = materialize()
-        pendingScroll = savedScroll > 0 ? savedScroll : nil
         loadStartedAt = Date()
-        _ = page.load(URLRequest(url: url))
+        return materialize()
     }
 
     func load(_ url: URL) {
@@ -946,8 +1015,9 @@ final class BrowserTab: Identifiable {
         pendingURL = nil
         savedTitle = ""
         savedURL = url
-        pendingScroll = nil
-        savedScroll = 0
+        savedState = nil
+        stateWait?.cancel()
+        stateWait = nil
         loadStartedAt = Date()
         _ = page.load(URLRequest(url: url))
     }
@@ -983,14 +1053,6 @@ final class BrowserTab: Identifiable {
         guard mediaHold != nil else { return }
         mediaHold = nil
         pageControllers?.setUserScripts([], named: MediaHold.scriptName, for: id)
-    }
-
-    private func restoreScrollIfNeeded(_ page: WebPage) {
-        guard let offset = pendingScroll else { return }
-        pendingScroll = nil
-        Task {
-            _ = try? await page.savoia("window.scrollTo(0, offset)", arguments: ["offset": offset])
-        }
     }
 
     // MARK: Eviction guards and the thumbnail
@@ -1035,9 +1097,8 @@ final class BrowserTab: Identifiable {
         }
     }
 
-    /// Takes what the window will need if its page is discarded — where the page is scrolled to, and
-    /// a picture of it — while the page is still on screen, which is the only time either can be had:
-    /// an unmounted web view has nothing to draw and a discarded one has nobody left to ask.
+    /// Takes a picture of the page, which the window will need if the page is discarded, while it is
+    /// still on screen: an unmounted web view has nothing to draw.
     ///
     /// Best effort and rate limited: it costs a round trip to the web content process, and a slightly
     /// stale picture is worth more than none.
@@ -1045,14 +1106,15 @@ final class BrowserTab: Identifiable {
     /// The task is handed back for a caller that has to wait for the picture.
     @discardableResult
     func rememberViewState(force: Bool = false) -> Task<Void, Never>? {
-        guard let page = livePage, !showsStartPage, !page.isLoading else { return nil }
+        // A page still waiting to load has nothing to draw, and asking it would start the load.
+        guard let page = livePage, !showsStartPage, pendingURL == nil, !page.isLoading else { return nil }
         guard force || Date().timeIntervalSince(lastThumbnailAt) > 3 else { return nil }
         lastThumbnailAt = Date()
         let region = CGRect(origin: .zero, size: displaySize)
         return Task {
             // Asked alongside the picture and not before it: a tab on its way off screen is mounted
             // for this turn only, and a round trip in front of the snapshot may not survive.
-            async let viewport = self.callWithoutGesture("return [window.scrollY, window.innerWidth, window.innerHeight]")
+            async let viewport = self.callWithoutGesture("return [window.innerWidth, window.innerHeight]")
             // `afterScreenUpdates: false` takes what is already rendered: a tab on its way off screen
             // will never get another screen update. 400 pt wide: a ring card is never drawn bigger.
             let configuration = WebPage.ExportedContentConfiguration.image(
@@ -1061,7 +1123,6 @@ final class BrowserTab: Identifiable {
             let started = clock.now
             let exported = try? await page.exported(as: configuration)
             let measured = (try? await viewport) as? [Double]
-            if let measured, measured.count == 3 { self.savedScroll = measured[0] }
             guard let data = exported, let image = PlatformImage(data: data), image.size.width > 1 else {
                 LivePageCache.log("no picture of \(self.title)")
                 return
@@ -1073,9 +1134,9 @@ final class BrowserTab: Identifiable {
             // page leaves it shorter than its column, and that picture is fine. The Mac only: on a
             // phone a page with no viewport tag is laid out 980 wide whatever the screen is.
             #if os(macOS)
-            if let measured, measured.count == 3,
-               abs(measured[1] - region.width) > 4 || measured[2] > region.height + 4 {
-                LivePageCache.log("kept the old picture of \(self.title): the page is \(Int(measured[1]))×\(Int(measured[2])), its column \(Int(region.width))×\(Int(region.height))")
+            if let measured, measured.count == 2,
+               abs(measured[0] - region.width) > 4 || measured[1] > region.height + 4 {
+                LivePageCache.log("kept the old picture of \(self.title): the page is \(Int(measured[0]))×\(Int(measured[1])), its column \(Int(region.width))×\(Int(region.height))")
                 return
             }
             #endif

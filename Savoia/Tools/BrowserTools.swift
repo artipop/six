@@ -318,7 +318,8 @@ final class BrowserToolCatalog {
             description: "Brings a window to the front: switches to its profile and selects its tab.",
             parameters: [.init(name: "window_id", description: "Window id from list_workspaces (a prefix is enough).", required: true)],
             run: { [unowned self] args in
-                let tab = try self.tab(args)
+                // Not resumed here: on screen it comes back with its session state.
+                let tab = try self.tab(args, resuming: false)
                 self.browser.selectTab(tab.id)
                 return "Focused \(Self.describe(tab))"
             }
@@ -833,16 +834,16 @@ final class BrowserToolCatalog {
     // MARK: Lookups
 
     /// A tool looking at a window counts as showing it: a restored one starts loading here.
-    private func tab(_ args: ACPJSON) throws -> BrowserTab {
+    private func tab(_ args: ACPJSON, resuming: Bool = true) throws -> BrowserTab {
         guard let raw = args["window_id"]?.stringValue?.trimmingCharacters(in: .whitespaces), !raw.isEmpty else {
             guard let tab = browser.selectedTab else { throw BrowserTool.Failure(message: "No focused window") }
-            tab.resumeIfNeeded()
+            if resuming { tab.resumeIfNeeded() }
             return tab
         }
         let matches = browser.tabs.filter { $0.id.uuidString.lowercased().hasPrefix(raw.lowercased()) }
         guard let tab = matches.first else { throw BrowserTool.Failure(message: "No window with id \(raw); call list_workspaces") }
         guard matches.count == 1 else { throw BrowserTool.Failure(message: "Window id \(raw) is ambiguous") }
-        tab.resumeIfNeeded()
+        if resuming { tab.resumeIfNeeded() }
         return tab
     }
 
