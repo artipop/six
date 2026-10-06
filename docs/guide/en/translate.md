@@ -24,6 +24,9 @@ sentence where the page is:
 | **Translating into `<language>`…** | in progress, with how much of it is done |
 | the error, with its reason | and a **Try Again** button |
 
+What is on screen is translated first, then the page outward from it, up and
+down alike; the top and the bottom of a long page come last.
+
 **Stop** ends it. The bar goes when there is nothing left to say: a finished
 translation is visible in the address field and speaks for itself.
 

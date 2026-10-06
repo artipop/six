@@ -295,14 +295,11 @@ nonisolated enum TranslationScript {
         return out;
     }
 
-    /// Viewport first, then down the page, then what is above the fold. One sort, and the largest
-    /// win there is in how fast the page *feels* translated.
+    /// What is on screen first, then outward from it both ways, nearest first.
     function inReadingOrder(segments) {
-        return segments.sort((a, b) => {
-            const ka = a.y >= -50 ? a.y : 1e9 - a.y;
-            const kb = b.y >= -50 ? b.y : 1e9 - b.y;
-            return ka - kb;
-        });
+        const height = window.innerHeight || 0;
+        const key = y => y < -50 ? height - y : y;
+        return segments.sort((a, b) => key(a.y) - key(b.y));
     }
 
     function strip(segments) {
