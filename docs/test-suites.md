@@ -45,8 +45,22 @@ the counterpart of Safari's *Allow Remote Automation*:
 | `click`, and `bless` through it | `testdriver_click` | an `NSEvent` mouse down and up handed straight to the `WKWebView`, at the element's middle. WebKit counts it as a user gesture — measured: the page gets `click`, and a clipboard write that needs activation succeeds |
 | `delete_all_cookies` | `testdriver_delete_all_cookies` | empties the profile's cookie store |
 
-Everything else is answered `not implemented`, in wptrunner's words. So is an action aimed at another window or
-frame (`context`), which WebDriver does by switching frames.
+Everything else is answered `not implemented`, in wptrunner's words.
+
+**An action aimed at a frame** (`context`, which WebDriver serves by switching to it) is served by finding the
+frame: `testdriver_in_context` walks the view's frame tree (`_frames:`, SPI) for the window testdriver gave that
+id and runs there, cross-origin frames included. A click adds up where each frame starts in its parent — a parent
+cannot name a cross-origin child, but it can recognise a message from it — and lands as the same `NSEvent`.
+`set_permission` for `storage-access` is WebKit's own state and not `SitePermissions`: `granted` goes to
+`_grantStorageAccessForTesting:`, and since nothing takes a grant back, `prompt` and `denied` are answered as done.
+An action aimed at another *window* is still `not implemented`.
+
+**The stand's names make every host its own site.** Measured in an iframe with no gesture:
+`document.requestStorageAccess()` resolves when the frame is same-origin and is refused for
+`www1.savoia.localhost` under `savoia.localhost`, as it is for a cross-site frame. WebKit seems to treat each
+`*.localhost` host as a registrable domain of its own, so every test of a "same-site" frame runs as a cross-site
+one here, and differs from Safari on `web-platform.test` for that reason alone. Together with `http://*.localhost`
+being a secure context, this is the cost of a stand that needs no hosts file.
 
 Not replaced: `testharnessreport.js`. wptrunner serves its own, which is where it marks the test window; the
 vendor file here says that instead, so the harness and the tests are wpt's files byte for byte.

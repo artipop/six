@@ -277,17 +277,27 @@ def js(savoia, window, script):
 def act(savoia, window, action, origin):
     """Carries out one testdriver action and returns its result; raises when it cannot be done."""
     name, params = action["action"], action["params"]
-    if params.get("context") is not None:
-        raise NotImplementedError(f"{name} in another window or frame")
+    context = params.get("context")
+    if isinstance(context, dict):
+        raise NotImplementedError(f"{name} in another window")
+    aimed = {"context": context} if context else {}
+
+    def inside(script):
+        """In the frame the action is aimed at, which wptrunner reaches by switching WebDriver to it."""
+        if context:
+            return json.loads(savoia.call("testdriver_in_context", window_id=window, context=context, script=script))
+        return js(savoia, window, script)
+
     if name == "set_permission":
         wanted = params["permission_params"]
-        savoia.call("testdriver_set_permission", window_id=window, origin=origin,
+        target = inside("return JSON.stringify({origin: location.origin});")["origin"]
+        savoia.call("testdriver_set_permission", window_id=window, origin=target, top=origin,
                     permission=wanted["descriptor"]["name"], state=wanted["state"])
     elif name == "click":
-        point = js(savoia, window, POINT % json.dumps(params["selectors"]))
+        point = inside(POINT % json.dumps(params["selectors"]))
         if "error" in point:
             raise RuntimeError(point["error"])
-        savoia.call("testdriver_click", window_id=window, x=point["x"], y=point["y"])
+        savoia.call("testdriver_click", window_id=window, x=point["x"], y=point["y"], **aimed)
     elif name == "delete_all_cookies":
         savoia.call("testdriver_delete_all_cookies", window_id=window)
     else:

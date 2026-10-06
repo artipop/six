@@ -28,7 +28,7 @@ extension BrowserTab {
     /// clicked (docs/page-scripts.md). Needs the tab's view: a page no pane has shown has none to
     /// ask, and gets the ordinary call.
     func callWithoutGesture(_ functionBody: String, arguments: [String: Any] = [:],
-                            in world: WKContentWorld? = nil) async throws -> Any? {
+                            in world: WKContentWorld? = nil, frame: WKFrameInfo? = nil) async throws -> Any? {
         resumeIfNeeded()
         let world = world ?? .savoia
         guard let view = WebViewResponder.shared.webView(for: id),
@@ -36,7 +36,7 @@ extension BrowserTab {
         else { return try await page.callJavaScript(functionBody, arguments: arguments, contentWorld: world) }
         let answer: UncheckedBox<Result<Any?, any Error>> = await withCheckedContinuation { continuation in
             unsafeBitCast(view, to: GesturelessCalls.self).call(
-                functionBody, arguments: arguments, in: nil, in: world, withUserGesture: false
+                functionBody, arguments: arguments, in: frame, in: world, withUserGesture: false
             ) { value, error in
                 continuation.resume(returning: UncheckedBox(value: error.map { .failure($0) } ?? .success(value)))
             }
