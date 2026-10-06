@@ -18,8 +18,9 @@ A task's file is deleted by the commit that finishes it; what was learned goes i
 | 11 | [browser/11-page-scripts-rest.md](browser/11-page-scripts-rest.md) | one pass: the calls that are still a gesture, the last script on every page, the Apple Pay experiment, `AdvancedRules` on or gone |
 | 12 | [measure/12-one-sitting.md](measure/12-one-sitting.md) | one sitting of measurements: extensions, two WebMCP tests, fullscreen on a real site |
 | 13 | [browser/13-small-things.md](browser/13-small-things.md) | one pass of six small things from the todo |
+| 14 | [browser/14-waits-by-the-clock.md](browser/14-waits-by-the-clock.md) | one pass: three waits by the clock replaced by the event they stand in for, the first of them a race |
 
-7 and 8 share a header and a delegate proxy: one after the other, never in parallel. 11, 12 and 13 are each several small things meant for one session.
+7 and 8 share a header and a delegate proxy: one after the other, never in parallel. 11 to 14 are each several small things meant for one session.
 
 ## Not tasks yet
 
