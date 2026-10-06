@@ -337,3 +337,53 @@ sees the mouse. The window uses `.hiddenTitleBar`, and the tab bar keeps room fo
 The page under the tab bar is drawn in one `ForEach` keyed by tab, so a tab joining or leaving a pair keeps its view: a
 `WebPage` allows exactly one `WebView`, and a second one built over it traps in `makeViewProvider`. A tab with no live
 page yet draws a placeholder with the site's icon and host until its page is built.
+
+## From `WebPage` to `WKWebView`
+
+The map [task 23](tasks/architecture/23-webpage-or-wkwebview.md) is carried out by. The third column is WebKitGTK's
+name for the same thing; **bold** there is what the Linux front on `dev` already calls
+(`linux/Sources/SavoiaWebKit`, `SavoiaWebKitCore`, `SavoiaBrowser`).
+
+### Members
+
+| `WebPage` | `WKWebView` | WebKitGTK |
+|---|---|---|
+| `WebPage(configuration:navigationDecider:dialogPresenter:)` | `WKWebView(frame:configuration:)`, `navigationDelegate`, `uiDelegate` | **`webkit_web_view_new`** and its construct properties |
+| `WebPage.Configuration` — `websiteDataStore`, `userContentController`, `urlSchemeHandlers`, `applicationNameForUserAgent`, `webExtensionController` | `WKWebViewConfiguration`, the same fields; `setURLSchemeHandler(_:forURLScheme:)` | **`network-session`**, **`webkit_web_view_get_user_content_manager`**, `webkit_web_context_register_uri_scheme`, `webkit_settings_set_user_agent_with_application_details`, `web-extension-mode` |
+| `url`, `title`, `isLoading`, `estimatedProgress` (observable) | the same properties under KVO, republished by `BrowserTab` | **`notify::uri`**, **`notify::title`**, **`webkit_web_view_is_loading`**, `notify::estimated-load-progress` |
+| `load(URLRequest)`, `load(html:baseURL:)`, `reload(fromOrigin:)`, `stopLoading()` | `load(_:)`, `loadHTMLString(_:baseURL:)`, `reload()` / `reloadFromOrigin()`, `stopLoading()` | **`webkit_web_view_load_uri`**, `webkit_web_view_load_html`, **`webkit_web_view_reload`** / `_reload_bypass_cache`, `webkit_web_view_stop_loading` |
+| `backForwardList`, `load(item)` | `backForwardList`, `go(to:)`, `canGoBack` / `canGoForward` | **`webkit_web_view_go_back`** / **`_go_forward`**, **`_can_go_back`** / **`_can_go_forward`**, `webkit_web_view_get_back_forward_list`, `_go_to_back_forward_list_item` |
+| `navigations` (a throwing sequence) and `NavigationEvent` | `WKNavigationDelegate`: `didStartProvisionalNavigation`, `didCommit`, `didFinish`, `didFailProvisionalNavigation`, `didFail`, `webViewWebContentProcessDidTerminate` | **`load-changed`** (`STARTED`, `COMMITTED`, `FINISHED`), `load-failed`, `web-process-terminated` |
+| `NavigationDeciding.decidePolicy(for: NavigationAction, preferences:)` | `webView(_:decidePolicyFor:preferences:)`; `targetFrame`, `navigationType`, `modifierFlags`, `shouldPerformDownload` | `decide-policy` with `NAVIGATION_ACTION` / `NEW_WINDOW_ACTION`, `webkit_navigation_action_get_modifiers` |
+| `decidePolicy(for: NavigationResponse)` | `webView(_:decidePolicyFor: WKNavigationResponse)` | `decide-policy` with `RESPONSE`, `webkit_response_policy_decision_is_mime_type_supported` |
+| `decideAuthenticationChallengeDisposition(for:)` | `webView(_:respondTo:)` | `load-failed-with-tls-errors`, `authenticate` |
+| `WebPage.DialogPresenting` | `WKUIDelegate`: `runJavaScriptAlertPanel…`, `…ConfirmPanel…`, `…TextInputPanel…`, `runOpenPanelWith` | `script-dialog`, `run-file-chooser` |
+| `Configuration.deviceSensorAuthorization` | `WKUIDelegate`: `requestMediaCapturePermissionFor`, `requestDeviceOrientationAndMotionPermissionFor` | **`permission-request`** (**`WebKitUserMediaPermissionRequest`**) |
+| `cameraCaptureState`, `microphoneCaptureState`, `setCameraCaptureState` | the same on `WKWebView` | `camera-capture-state`, `microphone-capture-state`, `display-capture-state` |
+| `mediaPlaybackState()` | `requestMediaPlaybackState()` | `is-playing-audio` |
+| `fullscreenState` | `fullscreenState` under KVO | `enter-fullscreen`, `leave-fullscreen` |
+| `callJavaScript(_:arguments:contentWorld:)` | `callAsyncJavaScript(_:arguments:in:contentWorld:)` | **`webkit_web_view_call_async_javascript_function`** |
+| `exported(as: .image(…))` | `takeSnapshot(with:)` | **`webkit_web_view_get_snapshot`** |
+| `exported(as: .pdf())` | `pdf(configuration:)` | `webkit_print_operation_*` |
+| `isInspectable` | `isInspectable` | `webkit_settings_set_enable_developer_extras` |
+| `WebView(page)` | one `NSViewRepresentable` handing out the tab's own view | the widget itself |
+| `.webViewBackForwardNavigationGestures` | `allowsBackForwardNavigationGestures` | `webkit_settings_set_enable_back_forward_navigation_gestures` |
+| `.webViewElementFullscreenBehavior` | `configuration.preferences.isElementFullscreenEnabled` | `webkit_settings_set_enable_fullscreen` |
+| `.webViewContextMenu` | `willOpenMenu(_:with:)` in the subclass | `context-menu` |
+
+### Workarounds
+
+| what `WebPage` forced | what replaces it | WebKitGTK |
+|---|---|---|
+| `WebViewResponder`'s search of the view tree for a pane's `WKWebView`, and "only while on screen" | `BrowserTab.webView`; the responder keeps the keyboard and nothing else | the widget is the page |
+| `ScriptedPopups`: a proxy `WKUIDelegate` in front of `WebPage`'s own, and an `NSWindow` | `webView(_:createWebViewWith:for:windowFeatures:)` on the tab's own delegate, answered with a tab | `create` |
+| a second window cancelled in the decider and opened again by address | the same delegate; a ⌘-click is still the decider's | `decide-policy` with `NEW_WINDOW_ACTION` |
+| `interactionState` given to the view a pane mounts, a one-second wait for it, and address lists beside it | `interactionState` set as the view is made | `webkit_web_view_get_session_state`, `_restore_session_state` |
+| `callWithoutGesture` falling back to the ordinary call off screen | the SPI call on the tab's view, always | the call there is not a gesture |
+| `PageElementFullscreen`'s swap of the hold, `leaveElementFullscreen` before a navigation | retested on a view held by frame | none |
+| `MediaHold`, a user script | `mediaTypesRequiringUserActionForPlayback`, if it holds on macOS | `webkit_settings_set_media_playback_requires_user_gesture` |
+| picture-in-picture and screen sharing switched on as a pane claims a view | as the view is made | `display-capture-state` |
+| extension pages in a window (`ExtensionStore.openExtensionPage`) | a tab from `WKWebExtensionContext.webViewConfiguration` | none |
+| no automation of a tab | `_controlledByAutomation` on the configuration | `is-controlled-by-automation`, `WebKitAutomationSession` |
+| no web archive | `createWebArchiveData` | `webkit_web_view_save` (MHTML) |
+| find reached through the pane's view | `find(_:configuration:)` on the tab's view | `webkit_web_view_get_find_controller` |
