@@ -229,6 +229,8 @@ final class BrowserTab: Identifiable {
     @ObservationIgnored var onPageClose: ((BrowserTab) -> Void)?
     @ObservationIgnored private(set) var isOpenedByPage = false
     @ObservationIgnored private var openerConfiguration: WKWebViewConfiguration?
+    /// The live page was built on an extension's configuration (`ExtensionStore.pageConfiguration`).
+    @ObservationIgnored private var showsExtensionPage = false
     /// A link to save rather than to show. Set by `BrowserState`, which hands it to `DownloadStore`.
     @ObservationIgnored var onDownload: ((BrowserTab, URLRequest, String?) -> Void)?
     /// A fresh window shows Savoia's own start page instead of loading someone's home page. The first
@@ -504,8 +506,11 @@ final class BrowserTab: Identifiable {
         if let livePage { return livePage }
         let started = LivePageCache.debugging ? ContinuousClock.now : nil
         defer { if let started { LivePageCache.log("built \(title) in \(started.duration(to: .now))") } }
+        // An extension's own page loads only into a view built on that extension's configuration.
+        let ofExtension = isWebPage ? (pendingURL ?? savedURL).flatMap { extensions?.pageConfiguration(for: $0, profileID: profileID) } : nil
+        showsExtensionPage = ofExtension != nil
         // A window a page opened keeps its opener only on the configuration WebKit handed over.
-        let configuration = openerConfiguration ?? WKWebViewConfiguration()
+        let configuration = openerConfiguration ?? ofExtension ?? WKWebViewConfiguration()
         openerConfiguration = nil
         let kind: PageDelegate.Kind
         if isDocument {
@@ -518,6 +523,8 @@ final class BrowserTab: Identifiable {
             configuration.userContentController = app.contentController
             configuration.setURLSchemeHandler(app.schemeHandler, forURLScheme: MCPAppScheme.shell)
             configuration.setURLSchemeHandler(app.schemeHandler, forURLScheme: MCPAppScheme.content)
+        } else if showsExtensionPage {
+            kind = .web
         } else {
             kind = .web
             configuration.websiteDataStore = dataStore ?? .nonPersistent()
@@ -890,6 +897,7 @@ final class BrowserTab: Identifiable {
 
     @discardableResult
     private func beginResume() -> WKWebView {
+        savedURL = pendingURL ?? savedURL
         pendingURL = nil
         if isWebPage {
             pageControllers?.setUserScripts([MediaHold.script], named: MediaHold.scriptName, for: id)
@@ -920,6 +928,11 @@ final class BrowserTab: Identifiable {
         savedURL = url
         savedState = nil
         loadStartedAt = Date()
+        // Into or out of an extension's own page is another configuration, and so another view.
+        if livePage != nil, showsExtensionPage != (extensions?.pageConfiguration(for: url, profileID: profileID) != nil) {
+            releasePage()
+            generation += 1
+        }
         awaitsNavigation = true
         page.load(URLRequest(url: url))
     }
@@ -932,6 +945,14 @@ final class BrowserTab: Identifiable {
         awaitsNavigation = true
         loadStartedAt = Date()
         return page
+    }
+
+    /// An extension has loaded: a view showing one of its pages on a plain configuration is built again.
+    func extensionLoaded() {
+        guard isWebPage, livePage != nil, !showsExtensionPage, let url = loadFailure?.url ?? currentURL,
+              extensions?.pageConfiguration(for: url, profileID: profileID) != nil else { return }
+        loadFailure = nil
+        load(url)
     }
 
     /// A document's preview, rendered again.

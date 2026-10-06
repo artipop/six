@@ -60,8 +60,6 @@ final class ExtensionStore {
     @ObservationIgnored weak var popupAnchorView: NSView?
     /// Holds a popup that WebKit did not wrap in a popover of its own (see the delegate).
     @ObservationIgnored var popupPanel: NSPanel?
-    /// Extension pages open in windows of their own (`openExtensionPage`), held here until closed.
-    @ObservationIgnored var extensionPageWindows: [NSWindow] = []
     #endif
 
     init(settings: ConfigurationStore) {
@@ -250,6 +248,8 @@ final class ExtensionStore {
             // The identifier is what ties an extension to its storage across launches; without it a
             // persistent controller would hand it a fresh, empty world every time.
             context.uniqueIdentifier = record.id
+            // WebKit's own base address is random per launch, and a restored tab would point at nothing.
+            if let base = URL(string: "webkit-extension://\(record.id.lowercased())") { context.baseURL = base }
             // Granted at install, when the dialog listed them. Optional permissions asked for later
             // go through the delegate, which asks.
             for permission in ext.requestedPermissions {
@@ -277,6 +277,8 @@ final class ExtensionStore {
             }
             actionRevision &+= 1
             log("loaded \(record.name) in profile \(runtime.profileID)")
+            // A tab restored at one of its pages was built before there was a context to build it on.
+            for tab in browser?.tabs(in: runtime.profileID) ?? [] { tab.extensionLoaded() }
             // Whatever WebKit recorded while loading, before anything was subscribed to hear it.
             logErrors(of: context, named: name)
         } catch {
@@ -389,45 +391,15 @@ final class ExtensionStore {
     func openOptionsPage(for record: InstalledExtension) {
         guard let profileID = browser?.selectedProfileID, let context = runtimes[profileID]?.contexts[record.id],
               let url = context.optionsPageURL else { return }
-        #if os(macOS)
-        openExtensionPage(url, in: context)
-        #else
         browser?.newTab(url: url)
-        #endif
     }
 
-    #if os(macOS)
-    /// An extension's own page — its options, its dashboard, a page it opens with `tabs.create` — in a
-    /// window of its own rather than a column.
-    ///
-    /// Not a column, because a column is a `WebPage`, and WebKit will not load an extension's page as a
-    /// main frame into a web view whose configuration does not name that extension
-    /// (`requiredWebExtensionBaseURL`, checked in `WebExtensionURLSchemeHandler`): the load fails with
-    /// `NSURLErrorResourceUnavailable` (-1008), which is what uBlock Origin Lite's dashboard showed as
-    /// "the page did not open". The configuration that does name it is
-    /// `WKWebExtensionContext.webViewConfiguration`, and `WebPage.Configuration` has no way to take
-    /// one. A `WKWebView` built from it does — so the page gets a window, the way the popup already
-    /// gets WebKit's popover. False when the context has no configuration to give.
-    @discardableResult
-    func openExtensionPage(_ url: URL, in context: WKWebExtensionContext) -> Bool {
-        guard let configuration = context.webViewConfiguration else { return false }
-        extensionPageWindows.removeAll { !$0.isVisible }
-        let frame = NSRect(x: 0, y: 0, width: 960, height: 720)
-        let webView = WKWebView(frame: frame, configuration: configuration)
-        let window = NSWindow(contentRect: frame, styleMask: [.titled, .closable, .miniaturizable, .resizable],
-                              backing: .buffered, defer: false)
-        window.isReleasedWhenClosed = false
-        window.title = context.webExtension.displayName ?? url.lastPathComponent
-        window.contentView = webView
-        window.center()
-        extensionPageWindows.append(window)
-        webView.load(URLRequest(url: url))
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate()
-        log("opened \(url.lastPathComponent) of \(window.title) in a window of its own")
-        return true
+    /// The configuration an extension's own page has to be built with — its options, its dashboard,
+    /// its new-tab page. WebKit refuses such a page as a main frame anywhere else (-1008).
+    func pageConfiguration(for url: URL, profileID: Profile.ID) -> WKWebViewConfiguration? {
+        guard let contexts = runtimes[profileID]?.contexts.values else { return nil }
+        return contexts.first { url.scheme == $0.baseURL.scheme && url.host == $0.baseURL.host }?.webViewConfiguration
     }
-    #endif
 
     #if os(macOS)
     /// Whether `record` could stand in for the start page — `WKWebExtension.hasOverrideNewTabPage`,
@@ -499,25 +471,13 @@ final class ExtensionDelegate: NSObject, WKWebExtensionControllerDelegate {
 
     func webExtensionController(_ controller: WKWebExtensionController, openNewTabUsing configuration: WKWebExtension.TabConfiguration, for context: WKWebExtensionContext) async throws -> (any WKWebExtensionTab)? {
         guard let store, let browser = store.browser else { return nil }
-        #if os(macOS)
-        // An extension opening one of its own pages gets a window, not a column (`openExtensionPage`).
-        // There is no tab to hand back, so `tabs.create` reports none — which is the truth.
-        if let url = configuration.url, url.scheme == context.baseURL.scheme, url.host == context.baseURL.host,
-           store.openExtensionPage(url, in: context) {
-            return nil
-        }
-        #endif
         let tab = browser.newTab(url: configuration.url)
         return store.adapter(for: tab)
     }
 
     func webExtensionController(_ controller: WKWebExtensionController, openOptionsPageFor context: WKWebExtensionContext) async throws {
         guard let store, let url = context.optionsPageURL else { return }
-        #if os(macOS)
-        store.openExtensionPage(url, in: context)
-        #else
         store.browser?.newTab(url: url)
-        #endif
     }
 
     /// WebKit builds the popover itself; Savoia only has to say where it points — the toolbar button
