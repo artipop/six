@@ -28,6 +28,8 @@ enum ScriptedPopups {
         return true
     }
 
+    static var views: [WKWebView] { popups.map(\.view) }
+
     /// Between tests: a window one test left open is not the next one's.
     static func closeAll() {
         for popup in popups { popup.window.close() }

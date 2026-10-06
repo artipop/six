@@ -130,45 +130,72 @@ answer about every site unreadable — the same trap `location` set below.
 `scripts/permissions-wpt.py` runs twelve wpt directories — `permissions`, `permissions-request`,
 `permissions-revoke`, `permissions-policy`, `mediacapture-streams`, `screen-capture`, `mediacapture-handle`,
 `geolocation`, `notifications`, `clipboard-apis`, `storage-access-api`, `idle-detection` — in a Debug Savoia it
-launches itself in a throwaway home, and compares every file with the newest stable Safari run on wpt.fyi. The bar
-is Safari's result for the same file, not the absolute number: a failure Safari shares is WebKit's. It prints the
-Safari version of the run beside the system's, since they differ (27.0 on wpt.fyi against 27.2 here). testdriver
-is carried the way wptrunner carries it to Safari ([test-suites.md](test-suites.md#what-unlocks-most-of-the-rest-testdriver)).
+launches itself in a throwaway home, and compares every file with one stable Safari run on wpt.fyi: the run the
+baseline names (`safari.run` in the JSON). The bar is Safari's result for the same file, not the absolute number: a
+failure Safari shares is WebKit's. It prints the Safari version of the run beside the system's, since they differ
+(27.0 on wpt.fyi against 27.2 here). testdriver is carried the way wptrunner carries it to Safari
+([test-suites.md](test-suites.md#what-unlocks-most-of-the-rest-testdriver)).
 
-On wpt `1d99362`, 6 October 2026, baseline in `scripts/permissions-wpt-baseline.json`: 377 addresses, 21 left out,
-356 run, **309 the same as Safari, 47 not**.
+**The run is pinned because Safari moves between its own runs.** `--newest-safari` compares with the newest one
+and prints what moved in Safari apart from what moved in Savoia; `--safari-run <id>` names one; either with
+`--write-baseline` re-pins, and every row of the baseline is then restamped with that run, the rows of directories
+not run too. The pinned run is 5 October 2026 (wpt.fyi run `5068288941096960`, wpt `564b9b1eb1`) and not the one
+after it: on 6 October nineteen of these files timed out in Safari that had finished the day before — eight in
+`storage-access-api`, seven in `clipboard-apis`, four in `screen-capture` — and a timeout is nothing to compare with.
+
+On wpt `1d99362`, 6 October 2026, baseline in `scripts/permissions-wpt-baseline.json`, one full run: 377 addresses,
+21 left out, 356 run, **331 the same as Safari, 25 not**.
 
 | directory | run | same | differ |
 |---|---|---|---|
 | `permissions`, `-request`, `-revoke` | 22 | 22 | 0 |
-| `permissions-policy` | 117 | 104 | 13 |
+| `permissions-policy` | 117 | 105 | 12 |
 | `mediacapture-streams` | 52 | 47 | 5 |
 | `mediacapture-handle` | 1 | 1 | 0 |
 | `geolocation` | 22 | 22 | 0 |
-| `notifications` | 29 | 27 | 2 |
-| `clipboard-apis` | 61 | 52 | 9 |
-| `storage-access-api` | 40 | 26 | 14 |
+| `notifications` | 29 | 29 | 0 |
+| `clipboard-apis` | 61 | 57 | 4 |
+| `storage-access-api` | 40 | 40 | 0 |
 | `idle-detection` | 12 | 8 | 4 |
 
 The 21 left out call `getDisplayMedia()` — all of `screen-capture` and six files of `mediacapture-streams`. The
 system's sharing picker waits for a person, the page needs focus, and Savoia is not in front during a run; with
 `--screen` they run, for whoever will sit and answer.
 
-The 47, by cause:
+The 25, by cause:
 
 | files | what differs | why | state |
 |---|---|---|---|
-| 8 in `storage-access-api`: `requestStorageAccess`, `-cross-site-iframe`, `-nested-cross-site-iframe`, `-cross-origin-iframe-navigation-relax`, four `storage-access-beyond-cookies.*` | Savoia finishes, Safari's row is a timeout | Safari's run of 6 October timed out where its run of the 5th had not; the comparison is with one run of Safari, and Safari moves between runs | nothing to do |
-| 6 in `storage-access-api`: `-cross-origin-iframe-navigation`, `-cross-site-sibling-iframes`, `-sandboxed-iframe-allow-storage-access`, `-web-socket`, `storage-access-permission`, `beyond-cookies.thirdPartyBlobStorage` | Savoia fails or times out | 30 testdriver actions there name a frame the runner did not find (`no such frame`) — likely a frame in a window the test opened, which the runner does not search; not established per file | open, the runner's |
-| 7: `permissions-policy/payment-*`, `reporting/payment-reporting` | Safari passes the "allowed" cases | `PaymentRequest` and `ApplePaySession` are `undefined` in Savoia — measured, and still so with the blocker's page scripts off. Why is not established: the region of the Apple ID, or what WebKit gives an app that is not Safari | open |
-| 7: `clipboard-copy-selection-line-break` (4), `paste-on-detaching-iframe`, two `focus-without-user-activation-disabled-*` | Savoia fails | they call `action_sequence` or `send_keys`, which the runner answers `not implemented` | testdriver gap |
+| 6: `permissions-policy/payment-*` (5), `reporting/payment-reporting` | Safari passes the "allowed" cases | `PaymentRequest` and `ApplePaySession` are `undefined` in Savoia — measured, and still so with the blocker's page scripts off. Why is not established: the region of the Apple ID, or what WebKit gives an app that is not Safari | open |
 | 4: `idle-detection-*-permissions-policy*` | Savoia times out with no result, Safari errors | not established; neither passes | open |
-| 3: clipboard files where Safari's row is a crash | — | nothing to compare with | — |
+| 3: `async-unsanitized-standard-html-read-fail`, `clipboard-read-enabled-by-permissions-policy`, `readText-granted` | Safari's row is a crash | nothing to compare with | — |
 | 4: `GUM-deny`, `MediaDevices-SecureContext`, `enumerateDevices-per-origin-ids`, `focus-…-target-frame-state-ignored` | Savoia passes more than Safari | Safari's own report says why for one: "Unable to set permission to denied for this test" — safaridriver cannot, the runner can | — |
-| 2: `notifications/instance`, `getnotifications-across-processes` | both are harness errors, one row apart | notifications are not built (below) | recorded |
 | `MediaStreamTrack-getCapabilities` | four `facingMode` subtests | the real camera of this Mac against CI's mock devices; reasoning | — |
 | `reporting/geolocation-reporting` | Savoia times out, Safari errors | geolocation is not built (below) | recorded |
+| `focus-…-focused-frame-descendant` | one subtest, "B should be able to delegate focus to child C", fails; it passed in the baseline before | the file calls no testdriver and nothing it runs was changed; it failed three runs of three with the terminal in front. Reasoning, not measured: a page's focus follows the window's | open |
 | 5 others: `clipboard-read-enabled-on-self-origin`, `enumerateDevices-with-navigation`, `focus-…-click-handler`, `picture-in-picture-report-only`, `payment-extension-allowed-…` | one subtest or a status | not established | open |
+
+What closed the rest, October 2026:
+
+- **Seven files that press keys** — `clipboard-copy-selection-line-break` (four addresses), `paste-on-detaching-iframe`,
+  two `focus-without-user-activation-disabled-*` — give Safari's result since `send_keys` and `action_sequence` are
+  real key events ([test-suites.md](test-suites.md#what-unlocks-most-of-the-rest-testdriver)).
+- **Six files in `storage-access-api`** that were put down to a frame the runner could not find. Measured file by
+  file, that was the cause of one:
+
+  | file | what it was |
+  |---|---|
+  | `-cross-origin-iframe-navigation`, `-cross-site-sibling-iframes`, `-sandboxed-iframe-allow-storage-access`, `storage-access-permission` | every action succeeded and `requestStorageAccess()` still answered false or `NotAllowedError`: `set_permission` went to `_grantStorageAccessForTesting:`, which is not the permission. It goes to WebKit's automation call now |
+  | `beyond-cookies.thirdPartyBlobStorage` | two actions named a frame inside a window the test opened; the runner searches those windows now |
+  | `-web-socket` | no result at all: the stand had no `wss` port for `{{ports[wss][0]}}` and no `/echo-cookie` handler |
+
+  All six give Safari's result. `prompt` and `denied` are no longer answered as done without doing anything: they
+  go to the same call with `granted` false. That it takes a grant back was not measured apart from these files.
+- **Eight in `storage-access-api` and two in `notifications`** were Safari's own run of 6 October; against the 5th
+  they are the same.
+
+`MediaDevices-getUserMedia` timed out once in the full run and finished, the same as Safari, alone twice after it;
+the baseline holds the second.
 
 What the runs turned up that is in no test's assertion:
 
@@ -188,8 +215,7 @@ And about the stand itself: under `*.localhost` plain http is a secure context a
 own, so it runs on wpt's names from `/etc/hosts`; a display that goes to sleep hides every page, so the runner
 holds it awake; windows that tests open are closed before the next test. The clipboard files write to the system
 clipboard and the capture files use the real camera — `--no-testdriver` leaves both out. Content blocking is on
-in the throwaway home, as it is in a fresh install. Parts of the baseline were run against Safari's run of
-5 October and parts against the 6th.
+in the throwaway home, as it is in a fresh install.
 
 ## What a `WebPage` browser still cannot ask for
 

@@ -801,9 +801,11 @@ final class BrowserToolCatalog {
         arguments["ref"] = args["ref"]?.stringValue ?? ""
         let result: [String: Any]
         do {
-            result = script == PageActionScript.click
-                ? try await PageActions.click(tab, arguments: arguments)
-                : try await PageActions.run(tab, script, arguments: arguments)
+            result = switch script {
+            case PageActionScript.click: try await PageActions.click(tab, arguments: arguments)
+            case PageActionScript.press: try await PageActions.press(tab, arguments: arguments)
+            default: try await PageActions.run(tab, script, arguments: arguments)
+            }
         } catch let failure as PageActions.Failure {
             throw BrowserTool.Failure(message: failure.message)
         }

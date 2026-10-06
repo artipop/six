@@ -7,6 +7,7 @@
     ./scripts/permissions-wpt.py permissions screen-capture    # only these directories
     ./scripts/permissions-wpt.py --only getusermedia           # files whose address contains this
     ./scripts/permissions-wpt.py --write-baseline              # after a change that should move the numbers
+    ./scripts/permissions-wpt.py --newest-safari               # against Safari's newest run, and what moved in it
 
 The stand is webmcp-wpt.py's — `wpt serve` with a CA of its own, Savoia driven through `Savoia --mcp` —
 but under wpt's own names, web-platform.test and not-web-platform.test, which have to be in /etc/hosts
@@ -20,8 +21,10 @@ and message queue, served as /resources/testdriver-vendor.js, and this script ta
 the queue, carries it out through tools Savoia offers only under SAVOIA_TESTDRIVER, and posts the
 result back. An action Savoia has no tool for is answered "not implemented", as wptrunner does.
 
-Safari's results are the newest stable run on wpt.fyi; the files where Savoia and Safari differ are
-printed subtest by subtest.
+Safari's results are one run on wpt.fyi, the one the baseline names: Safari moves between its own
+runs, and a comparison with the newest would move with it. `--newest-safari` takes the newest stable
+run instead and prints what moved in Safari apart from what moved in Savoia. The files where Savoia
+and Safari differ are printed subtest by subtest.
 """
 
 import argparse
@@ -53,13 +56,16 @@ DIRECTORIES = ["permissions", "permissions-request", "permissions-revoke", "perm
                "clipboard-apis", "storage-access-api", "idle-detection"]
 SUPPORT = ["resources", "common", "tools", "interfaces", "fonts", "docs", ".well-known", "cookies", "bluetooth",
            "reporting", "webrtc", "webauthn", "page-visibility", "feature-policy", "media", "images",
-           "service-workers/service-worker/resources", "html/browsers/browsing-the-web/remote-context-helper"]
+           "service-workers/service-worker/resources", "html/browsers/browsing-the-web/remote-context-helper",
+           "websockets/handlers"]
 RUNS = "https://wpt.fyi/api/runs?product=safari&label=stable&label=master&max-count=1"
+RUN = "https://wpt.fyi/api/runs/%d"
 STATUS = {"OK": "O", "Error": "E", "Timeout": "T", "Precondition Failed": "PF", "NO RESULT": "T"}
 
 HOST = "web-platform.test"
 # wpt's default names, on this stand's ports and with certificates of its own beside webmcp-wpt.py's.
 CONFIG = dict(stand.CONFIG, browser_host=HOST, alternate_hosts={"alt": "not-" + HOST},
+              ports=dict(stand.CONFIG["ports"], ws=[8666], wss=[8667]),
               ssl={"type": "openssl", "openssl": {"duration": 365, "force_regenerate": False, "base_path": "savoia-wpt-certs"}})
 VENDOR = os.path.join(CACHE, "savoia-testdriver")
 
@@ -84,6 +90,25 @@ element.scrollIntoView({block: 'center', inline: 'center'});
 const box = element.getBoundingClientRect();
 return JSON.stringify({x: Math.round(box.left + box.width / 2), y: Math.round(box.top + box.height / 2), origin: location.origin});
 """
+
+FOCUS = r"""
+let root = document, element = null;
+for (const selector of %s) {
+    element = root.querySelector(selector);
+    if (!element) return JSON.stringify({error: 'no element matches ' + selector});
+    root = element.shadowRoot || element;
+}
+if (document.activeElement !== element) element.focus();
+return JSON.stringify({});
+"""
+
+# WebDriver's code points for the keys that are not characters, as KeyboardEvent.key names them.
+KEYS = {"\ue003": "Backspace", "\ue004": "Tab", "\ue006": "Enter", "\ue007": "Enter", "\ue008": "Shift",
+        "\ue009": "Control", "\ue00a": "Alt", "\ue00c": "Escape", "\ue00d": " ", "\ue00e": "PageUp",
+        "\ue00f": "PageDown", "\ue010": "End", "\ue011": "Home", "\ue012": "ArrowLeft", "\ue013": "ArrowUp",
+        "\ue014": "ArrowRight", "\ue015": "ArrowDown", "\ue017": "Delete", "\ue03d": "Meta", "\ue050": "Shift",
+        "\ue051": "Control", "\ue052": "Alt", "\ue053": "Meta"}
+MODIFIERS = {"Shift", "Control", "Alt", "Meta"}
 
 READ = TAKE + r"""
 const summary = document.querySelector('#summary');
@@ -198,13 +223,27 @@ def download(url):
     return json.loads(gzip.decompress(data) if data[:2] == b"\x1f\x8b" else data)
 
 
-def safari():
-    """The newest stable Safari run on wpt.fyi: what it is, its summary, and where its per-file reports live."""
-    run = download(RUNS)[0]
+def safari(pinned=None):
+    """One stable Safari run on wpt.fyi — the pinned one, or the newest: what it is, its summary, and
+    where its per-file reports live."""
+    run = download(RUN % pinned) if pinned else download(RUNS)[0]
     cached = os.path.join(CACHE, f"savoia-safari-{run['id']}.json")
     if not os.path.exists(cached):
         json.dump(download(run["results_url"]), open(cached, "w"))
     return run, json.load(open(cached)), run["results_url"].replace("-summary_v2.json.gz", "")
+
+
+def named(run):
+    return (f"Safari {run['browser_version']} on macOS {run['os_version']}, wpt {run['revision']}, "
+            f"{run['time_start'][:10]} (wpt.fyi run {run['id']})")
+
+
+def safari_moves(urls, before, after):
+    """The files Safari itself answers differently in two of its runs."""
+    def text(row):
+        return "absent" if row is None else f"{row['s']} {row['c'][0]}/{row['c'][1]}"
+    return [f"SAFARI     {url} — {text(before.get(url))} → {text(after.get(url))}"
+            for url in urls if before.get(url) != after.get(url)]
 
 
 def system_safari():
@@ -283,7 +322,15 @@ def js(savoia, window, script):
     return savoia.js(window, script)
 
 
-def act(savoia, window, action, origin):
+def key(savoia, window, value, action, held):
+    """One key going down or up, with the modifiers already down held."""
+    name = KEYS.get(value, value)
+    savoia.call("testdriver_key", window_id=window, key=name, action=action, modifiers="+".join(sorted(held)))
+    if name in MODIFIERS:
+        (held.add if action == "down" else held.discard)(name)
+
+
+def act(savoia, window, action, origin, held):
     """Carries out one testdriver action and returns its result; raises when it cannot be done."""
     name, params = action["action"], action["params"]
     context = params.get("context")
@@ -309,15 +356,61 @@ def act(savoia, window, action, origin):
         savoia.call("testdriver_click", window_id=window, x=point["x"], y=point["y"], **aimed)
     elif name == "delete_all_cookies":
         savoia.call("testdriver_delete_all_cookies", window_id=window)
+    elif name == "send_keys":
+        focused = inside(FOCUS % json.dumps(params["selectors"]))
+        if "error" in focused:
+            raise RuntimeError(focused["error"])
+        down = set()
+        for value in params["keys"]:
+            if value == "\ue000":
+                for modifier in sorted(down):
+                    key(savoia, window, modifier, "up", down)
+            elif KEYS.get(value) in MODIFIERS:
+                key(savoia, window, value, "down", down)
+            else:
+                key(savoia, window, value, "press", down)
+        for modifier in sorted(down):
+            key(savoia, window, modifier, "up", down)
+    elif name == "action_sequence":
+        # wptrunner releases what the sequence before this one left down.
+        for modifier in sorted(held):
+            key(savoia, window, modifier, "up", held)
+        sources, pointers = params["actions"], {}
+        for tick in range(max(len(source["actions"]) for source in sources)):
+            pause = 0
+            for source in sources:
+                step = source["actions"][tick] if tick < len(source["actions"]) else {"type": "pause"}
+                kind, at = step["type"], pointers.setdefault(source.get("id"), [0, 0])
+                if kind == "pause":
+                    pause = max(pause, step.get("duration") or 0)
+                elif kind in ("keyDown", "keyUp"):
+                    key(savoia, window, step["value"], "down" if kind == "keyDown" else "up", held)
+                elif kind == "pointerMove":
+                    start = step.get("origin", "viewport")
+                    if isinstance(start, dict):
+                        start = inside(POINT % json.dumps(start["selectors"]))
+                        if "error" in start:
+                            raise RuntimeError(start["error"])
+                        start = [start["x"], start["y"]]
+                    else:
+                        start = at if start == "pointer" else [0, 0]
+                    at[:] = [start[0] + step.get("x", 0), start[1] + step.get("y", 0)]
+                    savoia.call("testdriver_click", window_id=window, x=at[0], y=at[1], action="move", **aimed)
+                elif kind in ("pointerDown", "pointerUp") and step.get("button", 0) == 0:
+                    savoia.call("testdriver_click", window_id=window, x=at[0], y=at[1],
+                                action="down" if kind == "pointerDown" else "up", **aimed)
+                else:
+                    raise NotImplementedError(f"action_sequence with {kind}")
+            time.sleep(pause / 1000)
     else:
         raise NotImplementedError(name)
     return None
 
 
-def answer(savoia, window, action, origin, log):
+def answer(savoia, window, action, origin, log, held):
     """What wptrunner's process_action does: act, then post testdriver-complete to the page."""
     try:
-        message = {"status": "success", "message": json.dumps({"result": act(savoia, window, action, origin)})}
+        message = {"status": "success", "message": json.dumps({"result": act(savoia, window, action, origin, held)})}
     except NotImplementedError as error:
         message = {"status": "error", "message": f"Action {error} not implemented"}
     except Exception as error:
@@ -332,7 +425,7 @@ def run_one(savoia, window, test, slack):
     savoia.call("testdriver_close_windows")
     savoia.call("navigate", window_id=window, url=address(test["url"]))
     state, started = None, time.time()
-    actions, acted = [], False
+    actions, acted, held = [], False, set()
     while time.time() - started < timeout:
         # No pause after an action: a user activation the page was just given lasts about a second.
         if not acted:
@@ -347,11 +440,13 @@ def run_one(savoia, window, test, slack):
             state = None
             continue
         if state["action"]:
-            answer(savoia, window, state["action"], state["origin"], actions)
+            answer(savoia, window, state["action"], state["origin"], actions, held)
             acted = True
             continue
         if state["done"] or (test["kind"] == "crashtest" and time.time() - started > 3):
             break
+    for modifier in sorted(held):
+        key(savoia, window, modifier, "up", held)
     if test["kind"] == "crashtest":
         return ("OK" if state else "CRASH"), [], actions
     if state and state["done"]:
@@ -405,6 +500,9 @@ def main():
     parser.add_argument("--actions", action="store_true", help="print every testdriver action and how it went")
     parser.add_argument("--update", action="store_true", help="pull the suite again first")
     parser.add_argument("--write-baseline", action="store_true", help="save this run as scripts/permissions-wpt-baseline.json")
+    parser.add_argument("--newest-safari", action="store_true",
+                        help="compare with Safari's newest stable run and not the one the baseline names")
+    parser.add_argument("--safari-run", type=int, help="compare with this wpt.fyi run of Safari instead")
     parser.add_argument("--json", help="write every result to this file too")
     args = parser.parse_args()
 
@@ -416,7 +514,9 @@ def main():
     if not present:
         sys.exit(f"{HOST} does not resolve to this Mac. Add wpt's names to /etc/hosts:\n"
                  f"    ./scripts/permissions-wpt.py --hosts | sudo tee -a /etc/hosts")
-    run, summary, reports = safari()
+    baseline = json.load(open(BASELINE)) if os.path.exists(BASELINE) else None
+    pinned = baseline["safari"]["run"] if baseline else None
+    run, summary, reports = safari(args.safari_run or (None if args.newest_safari else pinned))
     listed = tests(directories, args.only)
     runnable = [t for t in listed if not (args.no_testdriver and t["testdriver"]) and (args.screen or not t["picker"])]
 
@@ -459,16 +559,19 @@ def main():
               f"{len(same):5} {len(mine) - len(same) - len(absent):6} {len(absent):13}")
 
     system = system_safari()
-    print(f"\nwpt {commit}; Safari {run['browser_version']} on macOS {run['os_version']}, wpt {run['revision']}, "
-          f"{run['time_start'][:10]} (wpt.fyi run {run['id']})")
+    print(f"\nwpt {commit}; {named(run)}")
     if not run["browser_version"].startswith(system):
         print(f"NOTE: this Mac has Safari {system}, and the run compared against is {run['browser_version'].split()[0]} — "
               "a difference may be the WebKit version and not Savoia")
 
-    if os.path.exists(BASELINE) and not args.write_baseline:
-        baseline = json.load(open(BASELINE))
+    if baseline and run["id"] != pinned:
+        was, before, _ = safari(pinned)
+        moved = safari_moves([t["url"] for t in listed], before, summary)
+        print(f"in Safari, since {named(was)}:")
+        print("\n".join(moved) if moved else "nothing moved")
+    if baseline and not args.write_baseline:
         moved = stand.compare(results, baseline["results"])
-        print(f"against the baseline (wpt {baseline['wpt']}):")
+        print(f"in Savoia, against the baseline (wpt {baseline['wpt']}):")
         print("\n".join(moved) if moved else "nothing moved")
     record = {"wpt": commit, "safari": {"version": run["browser_version"], "os": run["os_version"],
                                        "wpt": run["revision"], "run": run["id"]}, "results": results}
@@ -477,8 +580,10 @@ def main():
         slim = {url: dict(result, rows=[{"name": r["name"], "status": r["status"]} for r in result["rows"]])
                 for url, result in results.items()}
         # A run of some directories replaces those and keeps the rest.
-        if os.path.exists(BASELINE) and json.load(open(BASELINE))["wpt"] == commit:
-            slim = dict(json.load(open(BASELINE))["results"], **slim)
+        if baseline and baseline["wpt"] == commit:
+            slim = dict(baseline["results"], **slim)
+        # One Safari run for every row, the kept ones too.
+        slim = {url: dict(result, safari=summary.get(url)) for url, result in slim.items()}
         json.dump(dict(record, results=slim), open(BASELINE, "w"), indent=1, ensure_ascii=False, sort_keys=True)
         print(f"baseline written to {os.path.relpath(BASELINE)}")
     if args.json:

@@ -408,6 +408,14 @@ nonisolated enum PageActionScript {
     return { ok: true, target: describe(e), defaultPrevented: !proceed };
     """#
 
+    /// Arguments: `ref` (optional). Gives the element the keyboard, for a key that comes as an event.
+    static let focus = library + #"""
+    const e = ref ? node(ref) : (document.activeElement || document.body);
+    if (!e) return { error: 'stale', detail: 'ref ' + ref + ' is gone from the page' };
+    if (ref && e.focus) e.focus({ preventScroll: true });
+    return { ok: true, target: describe(e) };
+    """#
+
     /// Arguments: `ref` (optional: scroll that element into view, or scroll inside it), `direction`.
     static let scroll = library + #"""
     const e = ref ? node(ref) : null;

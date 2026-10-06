@@ -51,6 +51,17 @@ enum PageActions {
         return found
     }
 
+    /// A key press the page cannot tell from a person's. A page with no view on screen, or a key
+    /// with no place on the keyboard, gets the scripted events, which are not trusted.
+    static func press(_ tab: BrowserTab, arguments: [String: Any]) async throws -> [String: Any] {
+        guard let key = PageKey(arguments["keyName"] as? String ?? ""),
+              let view = WebViewResponder.shared.webView(for: tab.id), view.window != nil
+        else { return try await run(tab, PageActionScript.press, arguments: arguments) }
+        let found = try await run(tab, PageActionScript.focus, arguments: arguments)
+        view.press(key)
+        return found
+    }
+
     /// After an action: through any navigation it started, then until the DOM stops changing — two
     /// reads 100 ms apart that agree — bounded, because some pages never stop (a clock, a carousel).
     static func settle(_ tab: BrowserTab, timeout: TimeInterval = 3) async {

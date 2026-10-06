@@ -44,16 +44,37 @@ the counterpart of Safari's *Allow Remote Automation*:
 | `set_permission` | `testdriver_set_permission` | files the answer in `SitePermissions` for the page's origin, as the bar would. A name Savoia keeps no answer for (`geolocation`, `notifications`, `clipboard-write`…) is an error, and the test sees it |
 | `click`, and `bless` through it | `testdriver_click` | an `NSEvent` mouse down and up handed straight to the `WKWebView`, at the element's middle. WebKit counts it as a user gesture — measured: the page gets `click`, and a clipboard write that needs activation succeeds |
 | `delete_all_cookies` | `testdriver_delete_all_cookies` | empties the profile's cookie store |
+| `send_keys` | `testdriver_key` | the runner focuses the element and presses each key: an `NSEvent` key down and up handed to the `WKWebView`. WebDriver's code points (`\uE004` Tab, `\uE03D` Meta…) are turned into `KeyboardEvent.key` names by the runner |
+| `action_sequence` | `testdriver_key`, `testdriver_click` with `action` | the runner walks the sequence tick by tick: `keyDown` / `keyUp`, `pointerMove` / `pointerDown` / `pointerUp` of the left button, `pause`. A wheel source or another button is `not implemented` |
 
 Everything else is answered `not implemented`, in wptrunner's words.
+
+**`⌘C`, `⌘V`, `⌘X` and `⌘A` are sent as the Edit menu's actions**, `copy:` `paste:` `cut:` `selectAll:`, to the web
+view, and the letter's own `keydown` is not. WebKit does not act on those keys in the page: it hands the event back
+to AppKit for the menu bar, and a `WKWebView` validates Paste as off on a page with nothing editable — so
+`clipboard-copy-selection-line-break`, which listens for `paste` on a plain document, got no event and timed out,
+while the same key in a `contenteditable` frame pasted. The action sent directly runs either way (WebKit marks the
+command as allowed while disabled), once, and does not depend on Savoia being the front app. The modifier's own
+`keydown` and `keyup` still reach the page.
 
 **An action aimed at a frame** (`context`, which WebDriver serves by switching to it) is served by finding the
 frame: `testdriver_in_context` walks the view's frame tree (`_frames:`, SPI) for the window testdriver gave that
 id and runs there, cross-origin frames included. A click adds up where each frame starts in its parent — a parent
 cannot name a cross-origin child, but it can recognise a message from it — and lands as the same `NSEvent`.
-`set_permission` for `storage-access` is WebKit's own state and not `SitePermissions`: `granted` goes to
-`_grantStorageAccessForTesting:`, and since nothing takes a grant back, `prompt` and `denied` are answered as done.
-An action aimed at another *window* is still `not implemented`.
+The frames searched are the tab's and then those of every window a page opened (`ScriptedPopups.views`): a test
+that opens a popup runs testdriver from a frame inside it, and a click aimed there goes to that window's
+`WKWebView`.
+`set_permission` for `storage-access` is WebKit's own state and not `SitePermissions`. It goes to
+`WKWebsiteDataStoreSetStorageAccessPermissionForTesting`, the call WebKit's own automation makes for WebDriver's
+Set Permission (`WebAutomationSession::setStorageAccessPermissionState`); it is exported from the C API only, so
+it is reached with `dlsym` and the page's `WKPageRef`. `_grantStorageAccessForTesting:`, which stood here before,
+is a different thing — a cross-page grant — and `requestStorageAccess()` without a gesture still answered false
+after it.
+An action aimed at another *window* (a `context` that is not a frame's id) is still `not implemented`.
+
+`wpt serve` is given a `ws` and a `wss` port (8666, 8667) and `websockets/handlers` is in the checkout:
+`requestStorageAccess-web-socket` substitutes `{{ports[wss][0]}}` and connects to `/echo-cookie`, and without
+either it produced no result at all.
 
 **This runner's stand is under wpt's own names**, `web-platform.test` and `not-web-platform.test`, from
 `/etc/hosts` (`./scripts/permissions-wpt.py --hosts | sudo tee -a /etc/hosts`, once), with certificates of its own

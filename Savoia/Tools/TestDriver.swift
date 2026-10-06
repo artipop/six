@@ -23,7 +23,7 @@ enum TestDriver {
                     let tab = try tab(args)
                     let name = args["permission"]?.stringValue ?? ""
                     if name == "storage-access" {
-                        return try await grantStorageAccess(args, tab: tab, browser: browser)
+                        return try await setStorageAccess(args, tab: tab)
                     }
                     guard let permission = SitePermission(rawValue: name), permission != .pageTools else {
                         throw BrowserTool.Failure(message: "Savoia keeps no answer for \(name)")
@@ -46,6 +46,7 @@ enum TestDriver {
                 parameters: [window,
                              .init(name: "x", description: "From the viewport's left edge.", type: .integer, required: true),
                              .init(name: "y", description: "From the viewport's top edge.", type: .integer, required: true),
+                             .init(name: "action", description: "`down`, `up` or `move` for half a click; both halves when absent."),
                              context],
                 surfaces: .mcp,
                 run: { args in
@@ -54,14 +55,44 @@ enum TestDriver {
                         throw BrowserTool.Failure(message: "x and y are required")
                     }
                     var point = CGPoint(x: x, y: y)
+                    var view = WebViewResponder.shared.webView(for: tab.id)
                     if let wanted = args["context"]?.stringValue {
-                        let offset = try await offset(ofFrame: wanted, in: tab)
-                        point.x += offset.x
-                        point.y += offset.y
+                        let place = try await place(ofFrame: wanted, in: tab)
+                        point.x += place.offset.x
+                        point.y += place.offset.y
+                        view = place.view
                     }
-                    guard tab.click(atViewport: point) else {
-                        throw BrowserTool.Failure(message: "The window's page is not on screen")
+                    let sent = switch args["action"]?.stringValue {
+                    case "down": view?.mouse(.leftMouseDown, atViewport: point)
+                    case "up": view?.mouse(.leftMouseUp, atViewport: point)
+                    case "move": view?.mouse(.mouseMoved, atViewport: point)
+                    default: view?.click(atViewport: point)
                     }
+                    guard sent == true else { throw BrowserTool.Failure(message: "The window's page is not on screen") }
+                    return "ok"
+                }
+            ),
+            BrowserTool(
+                name: "testdriver_key",
+                description: "A key of the keyboard, as `KeyboardEvent.key` names it, going down, up, or both.",
+                parameters: [window,
+                             .init(name: "key", description: "`Enter`, `Tab`, `ArrowDown`, `Meta`…, or one character.", required: true),
+                             .init(name: "action", description: "`down` or `up`; a press when absent."),
+                             .init(name: "modifiers", description: "The modifiers held meanwhile, as `Meta+Shift`.")],
+                surfaces: .mcp,
+                run: { args in
+                    let tab = try tab(args)
+                    guard let key = PageKey(args["key"]?.stringValue ?? "") else {
+                        throw BrowserTool.Failure(message: "No key of the keyboard is \(args["key"]?.stringValue ?? "")")
+                    }
+                    let view = WebViewResponder.shared.webView(for: tab.id)
+                    let held = NSEvent.ModifierFlags(pageKeys: args["modifiers"]?.stringValue ?? "")
+                    let sent = switch args["action"]?.stringValue {
+                    case "down": view?.key(key, down: true, holding: held)
+                    case "up": view?.key(key, down: false, holding: held)
+                    default: view?.press(key, holding: held)
+                    }
+                    guard sent == true else { throw BrowserTool.Failure(message: "The window's page is not on screen") }
                     return "ok"
                 }
             ),
@@ -73,9 +104,9 @@ enum TestDriver {
                 run: { args in
                     let tab = try tab(args)
                     let frames = try await frames(of: tab)
-                    let index = try await find(args["context"]?.stringValue ?? "", among: frames, in: tab)
-                    let value = try await tab.callWithoutGesture(args["script"]?.stringValue ?? "", in: .page,
-                                                                 frame: frames[index].info)
+                    let frame = frames[try await find(args["context"]?.stringValue ?? "", among: frames)]
+                    let value = try await frame.view.callWithoutGesture(args["script"]?.stringValue ?? "", in: .page,
+                                                                        frame: frame.info)
                     return value as? String ?? ""
                 }
             ),
@@ -124,35 +155,39 @@ enum TestDriver {
     private struct Frame {
         let info: WKFrameInfo
         let parent: Int?
+        let view: WKWebView
     }
 
+    /// The tab's frames, then those of the windows pages opened: a test's frame may be in either.
     private static func frames(of tab: BrowserTab) async throws -> [Frame] {
-        guard let view = WebViewResponder.shared.webView(for: tab.id), view.responds(to: #selector(FrameTrees.frames(_:))) else {
+        guard let own = WebViewResponder.shared.webView(for: tab.id), own.responds(to: #selector(FrameTrees.frames(_:))) else {
             throw BrowserTool.Failure(message: "The window's page is not on screen")
         }
-        let root: Box<NSObject?> = await withCheckedContinuation { continuation in
-            unsafeBitCast(view, to: FrameTrees.self).frames { continuation.resume(returning: Box(value: $0 as? NSObject)) }
-        }
         var found: [Frame] = []
-        func walk(_ node: NSObject, parent: Int?) {
-            guard let info = node.value(forKey: "info") as? WKFrameInfo else { return }
-            found.append(Frame(info: info, parent: parent))
-            let index = found.count - 1
-            for child in node.value(forKey: "childFrames") as? [NSObject] ?? [] { walk(child, parent: index) }
+        for view in [own] + ScriptedPopups.views {
+            let root: Box<NSObject?> = await withCheckedContinuation { continuation in
+                unsafeBitCast(view, to: FrameTrees.self).frames { continuation.resume(returning: Box(value: $0 as? NSObject)) }
+            }
+            func walk(_ node: NSObject, parent: Int?) {
+                guard let info = node.value(forKey: "info") as? WKFrameInfo else { return }
+                found.append(Frame(info: info, parent: parent, view: view))
+                let index = found.count - 1
+                for child in node.value(forKey: "childFrames") as? [NSObject] ?? [] { walk(child, parent: index) }
+            }
+            if let node = root.value { walk(node, parent: nil) }
         }
-        if let node = root.value { walk(node, parent: nil) }
         return found
     }
 
     /// The frame whose window testdriver gave this id (`get_window_id` in testdriver-extra.js).
-    private static func find(_ context: String, among frames: [Frame], in tab: BrowserTab) async throws -> Int {
+    private static func find(_ context: String, among frames: [Frame]) async throws -> Int {
         // `url:` and a piece of the frame's address, for probing a frame testdriver has not named.
         if context.hasPrefix("url:"), let index = frames.firstIndex(where: {
             $0.info.request.url?.absoluteString.contains(context.dropFirst(4)) == true
         }) { return index }
         for (index, frame) in frames.enumerated() {
-            let isIt = try? await tab.callWithoutGesture("return window.__wptrunner_id === context",
-                                                         arguments: ["context": context], in: .page, frame: frame.info)
+            let isIt = try? await frame.view.callWithoutGesture("return window.__wptrunner_id === context",
+                                                                arguments: ["context": context], in: .page, frame: frame.info)
             if isIt as? Bool == true { return index }
         }
         throw BrowserTool.Failure(message: "No frame of this window is \(context)")
@@ -160,19 +195,20 @@ enum TestDriver {
 
     /// Where a frame's viewport starts in the top one. A frame cannot see past its own edges, and
     /// its parent cannot name a cross-origin child — but it can recognise the child's message.
-    private static func offset(ofFrame context: String, in tab: BrowserTab) async throws -> CGPoint {
+    private static func place(ofFrame context: String, in tab: BrowserTab) async throws -> (offset: CGPoint, view: WKWebView) {
         let frames = try await frames(of: tab)
-        var index = try await find(context, among: frames, in: tab)
+        var index = try await find(context, among: frames)
+        let view = frames[index].view
         var offset = CGPoint.zero
         while let parent = frames[index].parent {
             let token = UUID().uuidString
             let listening = Task { @MainActor in
-                try? await tab.callWithoutGesture(Self.listen, arguments: ["token": token], in: .page,
-                                                  frame: frames[parent].info) as? [Double]
+                try? await view.callWithoutGesture(Self.listen, arguments: ["token": token], in: .page,
+                                                   frame: frames[parent].info) as? [Double]
             }
             try? await Task.sleep(for: .milliseconds(50))
-            _ = try? await tab.callWithoutGesture("parent.postMessage({ savoiaFrame: token }, '*')",
-                                                  arguments: ["token": token], in: .page, frame: frames[index].info)
+            _ = try? await view.callWithoutGesture("parent.postMessage({ savoiaFrame: token }, '*')",
+                                                   arguments: ["token": token], in: .page, frame: frames[index].info)
             guard let step = await listening.value, step.count == 2 else {
                 throw BrowserTool.Failure(message: "The frame's place in its parent could not be found")
             }
@@ -180,7 +216,7 @@ enum TestDriver {
             offset.y += step[1]
             index = parent
         }
-        return offset
+        return (offset, view)
     }
 
     private static let listen = """
@@ -202,29 +238,45 @@ enum TestDriver {
 
     // MARK: Storage access
 
-    /// The last two labels: what WebKit calls the domain of every host the wpt stand serves.
-    private static func site(_ host: String) -> String {
-        host.split(separator: ".").suffix(2).joined(separator: ".")
-    }
+    private typealias Done = @convention(c) (UnsafeMutableRawPointer?) -> Void
 
-    /// WebKit keeps this one itself, and offers a way to grant it and none to take it back: `prompt`
-    /// and `denied` are answered as done when nothing was granted.
-    private static func grantStorageAccess(_ args: ACPJSON, tab: BrowserTab, browser: BrowserState) async throws -> String {
-        guard args["state"]?.stringValue == "granted" else { return "ok" }
-        guard let host = URL(string: args["origin"]?.stringValue ?? "")?.host(),
-              let top = URL(string: args["top"]?.stringValue ?? "")?.host(),
-              let profile = browser.profiles.first(where: { $0.id == tab.profileID }) else {
+    /// WebKit keeps this one itself. The call is the one its own automation makes for WebDriver's
+    /// Set Permission, and it is in the C API only.
+    private static func setStorageAccess(_ args: ACPJSON, tab: BrowserTab) async throws -> String {
+        typealias Text = @convention(c) (UnsafePointer<CChar>) -> UnsafeRawPointer?
+        typealias Store = @convention(c) (UnsafeRawPointer?) -> UnsafeRawPointer?
+        typealias Release = @convention(c) (UnsafeRawPointer?) -> Void
+        typealias Set = @convention(c) (UnsafeRawPointer?, UnsafeRawPointer?, Bool, UnsafeRawPointer?, UnsafeRawPointer?,
+                                        UnsafeMutableRawPointer?, Done) -> Void
+        guard let origin = args["origin"]?.stringValue, let top = args["top"]?.stringValue else {
             throw BrowserTool.Failure(message: "origin and top are required")
         }
-        let store = browser.dataStore(for: profile)
-        guard store.responds(to: #selector(StorageAccessGrants.grant(_:subFrameDomains:completionHandler:))) else {
-            throw BrowserTool.Failure(message: "This WebKit cannot grant storage access")
+        let webKit = UnsafeMutableRawPointer(bitPattern: -2)
+        guard let view = WebViewResponder.shared.webView(for: tab.id), view.responds(to: #selector(PageRefs.pageRef)),
+              let page = unsafeBitCast(view, to: PageRefs.self).pageRef(),
+              let text = dlsym(webKit, "WKStringCreateWithUTF8CString"), let store = dlsym(webKit, "WKPageGetWebsiteDataStore"),
+              let release = dlsym(webKit, "WKRelease"),
+              let set = dlsym(webKit, "WKWebsiteDataStoreSetStorageAccessPermissionForTesting") else {
+            throw BrowserTool.Failure(message: "This WebKit cannot set storage access")
         }
+        let topFrame = unsafeBitCast(text, to: Text.self)(top)
+        let subFrame = unsafeBitCast(text, to: Text.self)(origin)
+        let granted = args["state"]?.stringValue == "granted"
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            unsafeBitCast(store, to: StorageAccessGrants.self).grant(site(top), subFrameDomains: [site(host)]) { continuation.resume() }
+            let waiting = Unmanaged.passRetained(Waiting(continuation: continuation)).toOpaque()
+            unsafeBitCast(set, to: Set.self)(unsafeBitCast(store, to: Store.self)(page), page, granted, topFrame, subFrame, waiting) {
+                Unmanaged<Waiting>.fromOpaque($0!).takeRetainedValue().continuation.resume()
+            }
         }
+        unsafeBitCast(release, to: Release.self)(topFrame)
+        unsafeBitCast(release, to: Release.self)(subFrame)
         return "ok"
     }
+}
+
+private final class Waiting {
+    let continuation: CheckedContinuation<Void, Never>
+    init(continuation: CheckedContinuation<Void, Never>) { self.continuation = continuation }
 }
 
 private struct Box<Value>: @unchecked Sendable {
@@ -236,7 +288,7 @@ private struct Box<Value>: @unchecked Sendable {
     func frames(_ completionHandler: @escaping @MainActor (Any?) -> Void)
 }
 
-@objc private protocol StorageAccessGrants {
-    @objc(_grantStorageAccessForTesting:withSubFrameDomains:completionHandler:)
-    func grant(_ topFrameDomain: String, subFrameDomains: [String], completionHandler: @escaping @MainActor () -> Void)
+@objc private protocol PageRefs {
+    @objc(_pageRefForTransitionToWKWebView)
+    func pageRef() -> UnsafeRawPointer?
 }

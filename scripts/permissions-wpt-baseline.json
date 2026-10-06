@@ -694,47 +694,47 @@
    }
   },
   "/clipboard-apis/clipboard-copy-selection-line-break.https.html?1-10": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
      "name": "test preformatted text with line breaks: \"\\r\"",
-     "status": "Timeout"
+     "status": "Pass"
     },
     {
      "name": "test paragraph text with line breaks: \"\\r\"",
-     "status": "Not Run"
+     "status": "Fail"
     },
     {
      "name": "test preformatted text with line breaks: \"\\n\"",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "test paragraph text with line breaks: \"\\n\"",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "test preformatted text with line breaks: \"\\r\\r\"",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "test paragraph text with line breaks: \"\\r\\r\"",
-     "status": "Not Run"
+     "status": "Fail"
     },
     {
      "name": "test preformatted text with line breaks: \"\\r\\n\"",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "test paragraph text with line breaks: \"\\r\\n\"",
-     "status": "Not Run"
+     "status": "Fail"
     },
     {
      "name": "test preformatted text with line breaks: \"\\n\\r\"",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "test paragraph text with line breaks: \"\\n\\r\"",
-     "status": "Not Run"
+     "status": "Fail"
     }
    ],
    "safari": {
@@ -746,54 +746,54 @@
    },
    "savoia": {
     "c": [
-     0,
+     6,
      10
     ],
-    "s": "E"
+    "s": "O"
    }
   },
   "/clipboard-apis/clipboard-copy-selection-line-break.https.html?11-20": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
      "name": "test preformatted text with line breaks: \"\\n\\n\"",
-     "status": "Timeout"
+     "status": "Pass"
     },
     {
      "name": "test paragraph text with line breaks: \"\\n\\n\"",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "test preformatted text with line breaks: \"\\r\\r\\r\"",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "test paragraph text with line breaks: \"\\r\\r\\r\"",
-     "status": "Not Run"
+     "status": "Fail"
     },
     {
      "name": "test preformatted text with line breaks: \"\\r\\r\\n\"",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "test paragraph text with line breaks: \"\\r\\r\\n\"",
-     "status": "Not Run"
+     "status": "Fail"
     },
     {
      "name": "test preformatted text with line breaks: \"\\r\\n\\r\"",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "test paragraph text with line breaks: \"\\r\\n\\r\"",
-     "status": "Not Run"
+     "status": "Fail"
     },
     {
      "name": "test preformatted text with line breaks: \"\\r\\n\\n\"",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "test paragraph text with line breaks: \"\\r\\n\\n\"",
-     "status": "Not Run"
+     "status": "Fail"
     }
    ],
    "safari": {
@@ -805,54 +805,54 @@
    },
    "savoia": {
     "c": [
-     0,
+     6,
      10
     ],
-    "s": "E"
+    "s": "O"
    }
   },
   "/clipboard-apis/clipboard-copy-selection-line-break.https.html?21-30": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
      "name": "test preformatted text with line breaks: \"\\n\\r\\r\"",
-     "status": "Timeout"
+     "status": "Pass"
     },
     {
      "name": "test paragraph text with line breaks: \"\\n\\r\\r\"",
-     "status": "Not Run"
+     "status": "Fail"
     },
     {
      "name": "test preformatted text with line breaks: \"\\n\\r\\n\"",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "test paragraph text with line breaks: \"\\n\\r\\n\"",
-     "status": "Not Run"
+     "status": "Fail"
     },
     {
      "name": "test preformatted text with line breaks: \"\\n\\n\\r\"",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "test paragraph text with line breaks: \"\\n\\n\\r\"",
-     "status": "Not Run"
+     "status": "Fail"
     },
     {
      "name": "test preformatted text with line breaks: \"\\n\\n\\n\"",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "test paragraph text with line breaks: \"\\n\\n\\n\"",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "test preformatted text with line breaks: \"\\r \\n\"",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "test paragraph text with line breaks: \"\\r \\n\"",
-     "status": "Not Run"
+     "status": "Fail"
     }
    ],
    "safari": {
@@ -864,22 +864,22 @@
    },
    "savoia": {
     "c": [
-     0,
+     6,
      10
     ],
-    "s": "E"
+    "s": "O"
    }
   },
   "/clipboard-apis/clipboard-copy-selection-line-break.https.html?31-last": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
      "name": "test preformatted text with line breaks: \"\\n \\r\"",
-     "status": "Timeout"
+     "status": "Pass"
     },
     {
      "name": "test paragraph text with line breaks: \"\\n \\r\"",
-     "status": "Not Run"
+     "status": "Fail"
     }
    ],
    "safari": {
@@ -891,10 +891,10 @@
    },
    "savoia": {
     "c": [
-     0,
+     1,
      2
     ],
-    "s": "E"
+    "s": "O"
    }
   },
   "/clipboard-apis/clipboard-events-synthetic.html": {
@@ -1185,7 +1185,7 @@
    "rows": [
     {
      "name": "Detaching an iframe during its paste event must not crash",
-     "status": "Fail"
+     "status": "Pass"
     }
    ],
    "safari": {
@@ -1197,7 +1197,7 @@
    },
    "savoia": {
     "c": [
-     0,
+     1,
      1
     ],
     "s": "O"
@@ -6643,7 +6643,12 @@
   },
   "/notifications/getnotifications-across-processes.https.window.html": {
    "harness": "Error",
-   "rows": [],
+   "rows": [
+    {
+     "name": "Service worker test setup",
+     "status": "Not Run"
+    }
+   ],
    "safari": {
     "c": [
      0,
@@ -6654,7 +6659,7 @@
    "savoia": {
     "c": [
      0,
-     0
+     1
     ],
     "s": "E"
    }
@@ -7899,6 +7904,10 @@
     {
      "name": "new Notification(): Attribute exists with expected value: actions",
      "status": "Not Run"
+    },
+    {
+     "name": "Service worker test setup",
+     "status": "Not Run"
     }
    ],
    "safari": {
@@ -7911,7 +7920,7 @@
    "savoia": {
     "c": [
      0,
-     11
+     12
     ],
     "s": "E"
    }
@@ -8497,7 +8506,7 @@
    "rows": [
     {
      "name": "Tab focus from parent frame into cross-origin iframe is allowed with permissions policy \"focus-without-user-activation\" set to \"none\"",
-     "status": "Fail"
+     "status": "Pass"
     }
    ],
    "safari": {
@@ -8509,7 +8518,7 @@
    },
    "savoia": {
     "c": [
-     0,
+     1,
      1
     ],
     "s": "O"
@@ -8520,7 +8529,7 @@
    "rows": [
     {
      "name": "Tab focus from parent frame into same-origin iframe is allowed with permissions policy \"focus-without-user-activation\" set to \"none\"",
-     "status": "Fail"
+     "status": "Pass"
     }
    ],
    "safari": {
@@ -8532,7 +8541,7 @@
    },
    "savoia": {
     "c": [
-     0,
+     1,
      1
     ],
     "s": "O"
@@ -8647,7 +8656,7 @@
     },
     {
      "name": "Iframe with policy denied and focus can delegate focus to child iframe via element.focus() and contentWindow.focus()",
-     "status": "Pass"
+     "status": "Fail"
     },
     {
      "name": "Iframe with policy denied can take focus back from child iframe that has focus",
@@ -8675,7 +8684,7 @@
    },
    "savoia": {
     "c": [
-     4,
+     3,
      7
     ],
     "s": "O"
@@ -14522,18 +14531,6 @@
      "status": "Pass"
     },
     {
-     "name": "[cross-site-frame] document.hasStorageAccess() should exist on the document interface",
-     "status": "Pass"
-    },
-    {
-     "name": "[cross-site-frame] document.hasStorageAccess() should not be allowed by default unless in top-level frame or same-origin iframe.",
-     "status": "Pass"
-    },
-    {
-     "name": "[cross-site-frame] document.hasStorageAccess() should reject in a document that isn't fully active.",
-     "status": "Pass"
-    },
-    {
      "name": "[nested-same-origin-frame] document.hasStorageAccess() should exist on the document interface",
      "status": "Pass"
     },
@@ -14543,6 +14540,18 @@
     },
     {
      "name": "[nested-same-origin-frame] document.hasStorageAccess() should reject in a document that isn't fully active.",
+     "status": "Pass"
+    },
+    {
+     "name": "[cross-site-frame] document.hasStorageAccess() should exist on the document interface",
+     "status": "Pass"
+    },
+    {
+     "name": "[cross-site-frame] document.hasStorageAccess() should not be allowed by default unless in top-level frame or same-origin iframe.",
+     "status": "Pass"
+    },
+    {
+     "name": "[cross-site-frame] document.hasStorageAccess() should reject in a document that isn't fully active.",
      "status": "Pass"
     },
     {
@@ -14707,23 +14716,23 @@
    "rows": [
     {
      "name": "Same-site-initiated same-origin navigations preserve storage access",
-     "status": "Fail"
+     "status": "Pass"
     },
     {
      "name": "Same-site-initiated cross-origin navigations do not preserve storage access",
-     "status": "Fail"
+     "status": "Pass"
     }
    ],
    "safari": {
     "c": [
-     0,
+     2,
      2
     ],
-    "s": "T"
+    "s": "O"
    },
    "savoia": {
     "c": [
-     0,
+     2,
      2
     ],
     "s": "O"
@@ -14734,19 +14743,19 @@
    "rows": [
     {
      "name": "Self-initiated reloads preserve storage access",
-     "status": "Fail"
+     "status": "Pass"
     },
     {
      "name": "Self-initiated same-origin navigations preserve storage access",
-     "status": "Fail"
+     "status": "Pass"
     },
     {
      "name": "Non-self-initiated same-origin navigations do not preserve storage access",
-     "status": "Fail"
+     "status": "Pass"
     },
     {
      "name": "Self-initiated cross-origin navigations do not preserve storage access",
-     "status": "Fail"
+     "status": "Pass"
     }
    ],
    "safari": {
@@ -14758,7 +14767,7 @@
    },
    "savoia": {
     "c": [
-     0,
+     4,
      4
     ],
     "s": "O"
@@ -14800,7 +14809,7 @@
     },
     {
      "name": "[cross-site-frame] document.requestStorageAccess() should be resolved with no user gesture when a permission grant exists, and should allow cookie access",
-     "status": "Fail"
+     "status": "Pass"
     },
     {
      "name": "[cross-site-frame] document.requestStorageAccess() should be rejected with a NotAllowedError with denied permission",
@@ -14809,14 +14818,14 @@
    ],
    "safari": {
     "c": [
-     1,
+     4,
      4
     ],
-    "s": "T"
+    "s": "O"
    },
    "savoia": {
     "c": [
-     3,
+     4,
      4
     ],
     "s": "O"
@@ -14827,11 +14836,11 @@
    "rows": [
     {
      "name": "Grants have per-frame scope",
-     "status": "Fail"
+     "status": "Pass"
     },
     {
      "name": "Cross-site sibling iframes should not be able to take advantage of the existing permission grant requested by others.",
-     "status": "Fail"
+     "status": "Pass"
     }
    ],
    "safari": {
@@ -14843,7 +14852,7 @@
    },
    "savoia": {
     "c": [
-     0,
+     2,
      2
     ],
     "s": "O"
@@ -14995,7 +15004,7 @@
     },
     {
      "name": "[nested-cross-site-frame] document.requestStorageAccess() should be resolved with no user gesture when a permission grant exists, and should allow cookie access",
-     "status": "Fail"
+     "status": "Pass"
     },
     {
      "name": "[nested-cross-site-frame] document.requestStorageAccess() should be rejected with a NotAllowedError with denied permission",
@@ -15004,14 +15013,14 @@
    ],
    "safari": {
     "c": [
-     1,
+     4,
      4
     ],
-    "s": "T"
+    "s": "O"
    },
    "savoia": {
     "c": [
-     3,
+     4,
      4
     ],
     "s": "O"
@@ -15123,11 +15132,11 @@
     },
     {
      "name": "[sandboxed-iframe-allow-storage-access-by-user-activation] document.requestStorageAccess() should resolve even without a user gesture when already granted.",
-     "status": "Fail"
+     "status": "Pass"
     },
     {
      "name": "[sandboxed-iframe-allow-storage-access-by-user-activation] document.requestStorageAccess() should resolve with a user gesture",
-     "status": "Fail"
+     "status": "Pass"
     }
    ],
    "safari": {
@@ -15139,7 +15148,7 @@
    },
    "savoia": {
     "c": [
-     1,
+     3,
      3
     ],
     "s": "O"
@@ -15177,8 +15186,17 @@
    }
   },
   "/storage-access-api/requestStorageAccess-web-socket.sub.https.window.html": {
-   "harness": "Timeout",
-   "rows": [],
+   "harness": "OK",
+   "rows": [
+    {
+     "name": "WebSocket inherits storage access",
+     "status": "Pass"
+    },
+    {
+     "name": "WebSocket omits unpartitioned cookies without storage access",
+     "status": "Pass"
+    }
+   ],
    "safari": {
     "c": [
      2,
@@ -15188,10 +15206,10 @@
    },
    "savoia": {
     "c": [
-     0,
-     0
+     2,
+     2
     ],
-    "s": "T"
+    "s": "O"
    }
   },
   "/storage-access-api/requestStorageAccess.sub.https.window.html": {
@@ -15216,10 +15234,10 @@
    ],
    "safari": {
     "c": [
-     1,
+     4,
      4
     ],
-    "s": "T"
+    "s": "O"
    },
    "savoia": {
     "c": [
@@ -15288,7 +15306,7 @@
      0,
      1
     ],
-    "s": "T"
+    "s": "O"
    },
    "savoia": {
     "c": [
@@ -15357,7 +15375,7 @@
      0,
      1
     ],
-    "s": "T"
+    "s": "O"
    },
    "savoia": {
     "c": [
@@ -15380,7 +15398,7 @@
      0,
      1
     ],
-    "s": "T"
+    "s": "O"
    },
    "savoia": {
     "c": [
@@ -15449,7 +15467,7 @@
      0,
      1
     ],
-    "s": "T"
+    "s": "O"
    },
    "savoia": {
     "c": [
@@ -15556,7 +15574,7 @@
    "rows": [
     {
      "name": "Verify StorageAccessAPIBeyondCookies for third-party context accessing first-party Blob URLs",
-     "status": "Fail"
+     "status": "Pass"
     }
    ],
    "safari": {
@@ -15568,7 +15586,7 @@
    },
    "savoia": {
     "c": [
-     0,
+     1,
      1
     ],
     "s": "O"
@@ -15662,19 +15680,35 @@
    }
   },
   "/storage-access-api/storage-access-permission.sub.https.window.html": {
-   "harness": "Timeout",
+   "harness": "OK",
    "rows": [
     {
      "name": "Permissions grants are observable across same-origin iframes",
-     "status": "Timeout"
+     "status": "Pass"
     },
     {
      "name": "Permissions grants are observable across same-site iframes",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "IFrame tests",
-     "status": "Not Run"
+     "status": "Pass"
+    },
+    {
+     "name": "Permission default state can be queried",
+     "status": "Pass"
+    },
+    {
+     "name": "Permission granted state can be queried",
+     "status": "Pass"
+    },
+    {
+     "name": "Permission denied state is hidden",
+     "status": "Pass"
+    },
+    {
+     "name": "Permission state can be observed",
+     "status": "Pass"
     }
    ],
    "safari": {
@@ -15686,10 +15720,10 @@
    },
    "savoia": {
     "c": [
-     0,
-     3
+     7,
+     7
     ],
-    "s": "T"
+    "s": "O"
    }
   },
   "/storage-access-api/storageAccess.testdriver.sub.html": {
@@ -15718,9 +15752,9 @@
  },
  "safari": {
   "os": "27.0",
-  "run": 5164107446878208,
+  "run": 5068288941096960,
   "version": "27.0 (22625.1.29.11.27)",
-  "wpt": "cc74d2669f"
+  "wpt": "564b9b1eb1"
  },
  "wpt": "1d99362"
 }

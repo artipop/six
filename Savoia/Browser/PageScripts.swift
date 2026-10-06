@@ -31,11 +31,28 @@ extension BrowserTab {
                             in world: WKContentWorld? = nil, frame: WKFrameInfo? = nil) async throws -> Any? {
         resumeIfNeeded()
         let world = world ?? .savoia
-        guard let view = WebViewResponder.shared.webView(for: id),
-              view.responds(to: #selector(GesturelessCalls.call(_:arguments:in:in:withUserGesture:completionHandler:)))
+        guard let view = WebViewResponder.shared.webView(for: id), view.canCallWithoutGesture
         else { return try await page.callJavaScript(functionBody, arguments: arguments, contentWorld: world) }
+        return try await view.callWithoutGesture(functionBody, arguments: arguments, in: world, frame: frame)
+    }
+
+    /// A mouse click at a point of the page's viewport, in CSS pixels, as an event handed to the web
+    /// view: trusted, and a user gesture. False when the page has no view on screen to hand it to.
+    @discardableResult
+    func click(atViewport point: CGPoint) -> Bool {
+        WebViewResponder.shared.webView(for: id)?.click(atViewport: point) ?? false
+    }
+}
+
+extension WKWebView {
+    var canCallWithoutGesture: Bool {
+        responds(to: #selector(GesturelessCalls.call(_:arguments:in:in:withUserGesture:completionHandler:)))
+    }
+
+    func callWithoutGesture(_ functionBody: String, arguments: [String: Any] = [:],
+                            in world: WKContentWorld, frame: WKFrameInfo? = nil) async throws -> Any? {
         let answer: UncheckedBox<Result<Any?, any Error>> = await withCheckedContinuation { continuation in
-            unsafeBitCast(view, to: GesturelessCalls.self).call(
+            unsafeBitCast(self, to: GesturelessCalls.self).call(
                 functionBody, arguments: arguments, in: frame, in: world, withUserGesture: false
             ) { value, error in
                 continuation.resume(returning: UncheckedBox(value: error.map { .failure($0) } ?? .success(value)))
@@ -43,24 +60,27 @@ extension BrowserTab {
         }
         return try answer.value.get()
     }
-}
 
-extension BrowserTab {
-    /// A mouse click at a point of the page's viewport, in CSS pixels, as an event handed to the web
-    /// view: trusted, and a user gesture. False when the page has no view on screen to hand it to.
+    /// One mouse event at a point of the viewport, in CSS pixels. False when the view is in no window.
     @discardableResult
-    func click(atViewport point: CGPoint) -> Bool {
-        guard let view = WebViewResponder.shared.webView(for: id), let window = view.window else { return false }
-        let inView = CGPoint(x: point.x, y: view.isFlipped ? point.y : view.bounds.height - point.y)
-        let location = view.convert(inView, to: nil)
-        for (type, send) in [(NSEvent.EventType.leftMouseDown, view.mouseDown(with:)), (.leftMouseUp, view.mouseUp(with:))] {
-            guard let event = NSEvent.mouseEvent(
-                with: type, location: location, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
-                windowNumber: window.windowNumber, context: nil, eventNumber: 0, clickCount: 1,
-                pressure: type == .leftMouseDown ? 1 : 0) else { return false }
-            send(event)
+    func mouse(_ type: NSEvent.EventType, atViewport point: CGPoint) -> Bool {
+        guard let window else { return false }
+        let inView = CGPoint(x: point.x, y: isFlipped ? point.y : bounds.height - point.y)
+        guard let event = NSEvent.mouseEvent(
+            with: type, location: convert(inView, to: nil), modifierFlags: [],
+            timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber, context: nil,
+            eventNumber: 0, clickCount: 1, pressure: type == .leftMouseDown ? 1 : 0) else { return false }
+        switch type {
+        case .leftMouseDown: mouseDown(with: event)
+        case .leftMouseUp: mouseUp(with: event)
+        default: mouseMoved(with: event)
         }
         return true
+    }
+
+    @discardableResult
+    func click(atViewport point: CGPoint) -> Bool {
+        mouse(.leftMouseDown, atViewport: point) && mouse(.leftMouseUp, atViewport: point)
     }
 }
 
