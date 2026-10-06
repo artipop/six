@@ -77,11 +77,17 @@ extension WebPage {
     /// the video is in and only if that video is the one it considers the page's main one.
     func isInPictureInPicture(reportedBy webView: WKWebView?) async -> Bool {
         if Self.webKitReportsPictureInPicture(webView) { return true }
-        let answer = try? await savoia("""
+        let script = """
             return Array.prototype.some.call(document.querySelectorAll('video'), function (video) {
                 return video.webkitPresentationMode === 'picture-in-picture';
             });
-            """)
+            """
+        let answer: Any?
+        if let webView, webView.canCallWithoutGesture {
+            answer = try? await webView.callWithoutGesture(script, in: .savoia)
+        } else {
+            answer = try? await savoia(script)
+        }
         return (answer as? Bool) ?? false
     }
 

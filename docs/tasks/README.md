@@ -15,7 +15,6 @@ A task's file is deleted by the commit that finishes it; what was learned goes i
 | 3 | [browser/03-popups.md](browser/03-popups.md) | which `window.open` is a window and which a tab; dialogs and permissions in the window |
 | 7 | [permissions/07-geolocation.md](permissions/07-geolocation.md) | geolocation for sites |
 | 8 | [permissions/08-notifications.md](permissions/08-notifications.md) | site notifications |
-| 10 | [investigations/10-activation-at-load.md](investigations/10-activation-at-load.md) | why every loaded page reports `hasBeenActive` |
 
 7 and 8 share a header and a delegate proxy: one after the other, never in parallel.
 

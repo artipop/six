@@ -18,6 +18,8 @@ final class WebViewResponder {
 
     private var views: [UUID: WeakView] = [:]
 
+    private var waiters: [UUID: [CheckedContinuation<Void, Never>]] = [:]
+
     private final class WeakView {
         weak var view: NSView?
         init(_ view: NSView?) { self.view = view }
@@ -48,6 +50,7 @@ final class WebViewResponder {
         }
         guard let found else { return }
         views[tabID] = WeakView(found)
+        release(tabID)
         Log.debug(.keys, "the keyboard can reach \(tabID.uuidString.prefix(8)) at \(Int(mine.width))pt")
         if let webView = found as? WKWebView {
             PageKeyFallback.install(on: webView)
@@ -74,6 +77,23 @@ final class WebViewResponder {
     /// A page no pane has shown yet answers `nil`.
     func webView(for tabID: UUID) -> WKWebView? {
         views[tabID]?.view as? WKWebView
+    }
+
+    /// The same, for a tab whose pane is on its way to the screen: waits for the claim, a second at most.
+    func awaitedWebView(for tabID: UUID) async -> WKWebView? {
+        if let view = webView(for: tabID) { return view }
+        await withCheckedContinuation { continuation in
+            waiters[tabID, default: []].append(continuation)
+            Task {
+                try? await Task.sleep(for: .seconds(1))
+                self.release(tabID)
+            }
+        }
+        return webView(for: tabID)
+    }
+
+    private func release(_ tabID: UUID) {
+        waiters.removeValue(forKey: tabID)?.forEach { $0.resume() }
     }
 
     /// Hands the keyboard to a window's page, or — for a window that has no page to hand it to — takes

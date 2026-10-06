@@ -25,13 +25,15 @@ extension WebPage {
 extension BrowserTab {
     /// A function body run in the page with no user gesture attached. `callJavaScript` is one to
     /// WebKit: the page may then open windows, play sound and read the clipboard as if a person had
-    /// clicked (docs/page-scripts.md). Needs the tab's view: a page no pane has shown has none to
-    /// ask, and gets the ordinary call.
+    /// clicked (docs/page-scripts.md). Needs the tab's view: a page on screen waits for its pane to
+    /// find it, and a page no pane shows has none to ask and gets the ordinary call.
     func callWithoutGesture(_ functionBody: String, arguments: [String: Any] = [:],
                             in world: WKContentWorld? = nil, frame: WKFrameInfo? = nil) async throws -> Any? {
         resumeIfNeeded()
         let world = world ?? .savoia
-        guard let view = WebViewResponder.shared.webView(for: id), view.canCallWithoutGesture
+        var view = WebViewResponder.shared.webView(for: id)
+        if view == nil, cache?.isOnScreen(id) == true { view = await WebViewResponder.shared.awaitedWebView(for: id) }
+        guard let view, view.canCallWithoutGesture
         else { return try await page.callJavaScript(functionBody, arguments: arguments, contentWorld: world) }
         return try await view.callWithoutGesture(functionBody, arguments: arguments, in: world, frame: frame)
     }

@@ -18,8 +18,8 @@ extension BrowserTab: PageScriptRunner {
     /// window in the background is exactly what `LivePageCache` exists to prevent. A caller that
     /// needs the page alive has touched `tab.page` already, because the person was looking at it.
     func runScript(_ functionBody: String, arguments: [String: Any] = [:]) async throws -> Any? {
-        guard let page = livePage else { throw CancellationError() }
-        return try await page.savoia(functionBody, arguments: arguments)
+        guard livePage != nil else { throw CancellationError() }
+        return try await callWithoutGesture(functionBody, arguments: arguments)
     }
 }
 

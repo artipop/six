@@ -1083,7 +1083,7 @@ final class BrowserTab: Identifiable {
             // An app is unsaved work by definition — its whole state lives in a document Savoia
             // cannot rebuild — so it is never the window the budget takes back.
             if isApp { return true }
-            guard let livePage, !isDocument else { return false }
+            guard livePage != nil, !isDocument else { return false }
             let script = """
             var drafts = Array.from(document.querySelectorAll('textarea')).some(function (element) {
                 return element.value.trim().length > 20;
@@ -1093,7 +1093,7 @@ final class BrowserTab: Identifiable {
             });
             return drafts || secrets
             """
-            return (try? await livePage.savoia(script)) as? Bool ?? false
+            return (try? await callWithoutGesture(script)) as? Bool ?? false
         }
     }
 

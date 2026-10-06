@@ -8,10 +8,10 @@ showed two things about `WebPage.callJavaScript`.
 
 - **It is a user gesture.** Measured in the page's world: after `evaluate_javascript`, with no click,
   `navigator.userActivation.isActive` is true for about a second, `navigator.clipboard.writeText()` and `readText()`
-  resolve, and a `postMessage` or zero-delay timer started from it inherits the same. On a blank page nobody had
-  clicked, reached only through a gesture-free call, `hasBeenActive` was already true — so something Savoia runs at
-  load activates every page. Not measured: whether a call in the `savoia` world does the same. Activation belongs
-  to the window and not to the world, so it probably does.
+  resolve, and a `postMessage` or zero-delay timer started from it inherits the same. `hasBeenActive` stays true
+  for the life of the document. A call in the `savoia` world does the same as one in the page's: activation
+  belongs to the window and not to the world (measured in a bare `WebPage`, where a load alone, a load with a user
+  script, and the gesture-free call all leave it false).
 - **A script that moves the page moves it when nobody asked.** Two of them scroll.
 - **A user script on every page is a condition WebKit can see.** `PaymentRequest` and `ApplePaySession` are
   `undefined` in Savoia (measured), and still are with the blocker's page scripts off. The cause was not
@@ -19,11 +19,22 @@ showed two things about `WebPage.callJavaScript`.
 
 The call that carries none is `BrowserTab.callWithoutGesture` (`PageScripts.swift`): WebKit's
 `_callAsyncJavaScript:arguments:inFrame:inContentWorld:withUserGesture:completionHandler:`, SPI, behind
-`responds(to:)`. It needs the tab's `WKWebView`, which exists only for a page some pane has shown; any other page
-gets the ordinary call. Measured through it: `isActive` false, and a clipboard write with no click is refused.
+`responds(to:)`. It needs the tab's `WKWebView`, which a pane finds a moment after it is mounted: a call for a
+page on screen waits for that (`WebViewResponder.awaitedWebView`, a second at most), and a page no pane shows gets
+the ordinary call. Measured through it: `isActive` false, and a clipboard write with no click is refused.
 
-`hasBeenActive` is still true on every load, on three origins in a row from an empty window, after every call
-Savoia makes at load was moved to the gesture-free one. What sets it has not been found.
+**What activated every page at load** was three calls, found with a page that writes
+`navigator.userActivation` into its own title, read with `list_workspaces` so that nothing is run to read it:
+
+- the offer to translate — `PageTranslator.plan` on every `.finished`, through `BrowserTab.runScript`;
+- any call at `.finished` on a page that loads fast: the load ended before the pane had found the web view (67 ms
+  before, on a local page), and the call fell back to the ordinary one;
+- the live-page budget asking a page off screen whether a video of it is floating
+  (`WebPage.isInPictureInPicture`).
+
+All three go without a gesture now, and so do the highlights put back on a load and `hasUserInput`. With them
+`hasBeenActive` is false after a load, after a load of an address that has a highlight (which is painted), in a
+second window opened straight after, and on a page the budget looked at and kept.
 
 ## Runs by itself
 
@@ -32,8 +43,10 @@ Savoia makes at load was moved to the gesture-free one. What sets it has not bee
 | the page's size, for its picture — `BrowserTab.rememberViewState` | a tab leaving the screen, at most every 3 s | savoia | reads `innerWidth` and `innerHeight` | stays; no gesture. The scroll offset is no longer read here, nor put back by a script — below |
 | site icon — `SiteIcons.ask` | every `.finished` | **page** | starts a fetch, then polls up to 20 times at 150 ms | no gesture now; later: read the `<link rel=icon>` once and fetch it with `URLSession` |
 | description for groups — `TabSorter.pageFinished` | every `.finished` | savoia | reads the meta description or the first paragraph | **done**: `savoia` world, no gesture |
-| highlights — `HighlightStore.apply` | a load of an address that has highlights | savoia | edits the DOM, watches it for 5 s | below |
-| unsent input — `BrowserTab.hasUserInput` | the live-page budget choosing what to discard | savoia | reads `textarea` and password fields | stays |
+| highlights — `HighlightStore.apply` | a load of an address that has highlights | savoia | edits the DOM, watches it for 5 s | no gesture; below |
+| the offer to translate — `BrowserState.offerTranslation` | every `.finished` | savoia | reads the page's language and a sample of its text | stays; no gesture |
+| unsent input — `BrowserTab.hasUserInput` | the live-page budget choosing what to discard | savoia | reads `textarea` and password fields | stays; no gesture |
+| a floating video — `WebPage.isInPictureInPicture` | the same | savoia | reads each `video`'s presentation mode | stays; no gesture |
 
 ## Injected ahead of time
 
@@ -49,7 +62,8 @@ Savoia makes at load was moved to the gesture-free one. What sets it has not bee
 | what | decision |
 |---|---|
 | find on page | **done**: `WKWebView.find`, no script in the page; `FindScript` is gone. The bar says only when there is nothing, since the public API gives no count |
-| translation, the readable copy for bookmarks, export, the accessibility overlay, going to a highlight | stay; `savoia` world, on demand |
+| translation | stays; `savoia` world, no gesture (`BrowserTab.runScript`) |
+| the readable copy for bookmarks, export, the accessibility overlay, going to a highlight, the selection for ⌘E, `get_selection`, `get_page_links`, `list_page_blocks`, `highlight_page` | stay; `savoia` world, on demand, and still a gesture each — `page.savoia` |
 | agent tools — `page_snapshot`, `click`, `fill`, `scroll_page`, `evaluate_javascript` | all run without a gesture; `click` is a real mouse event instead ([agent-actions.md](agent-actions.md#the-acting-tools)) |
 
 ## Scroll and history: `interactionState`

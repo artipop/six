@@ -84,15 +84,14 @@ final class HighlightStore {
         let stored = highlights(for: url)
         tab.highlightNote = nil
         guard !stored.isEmpty else { return }
-        let page = tab.page
         Task { [weak tab] in
-            let result = try? await page.savoia(HighlightScript.apply, arguments: ["list": stored.map(\.scriptValue)])
+            let result = try? await tab?.callWithoutGesture(HighlightScript.apply, arguments: ["list": stored.map(\.scriptValue)])
             var missing = (result as? [String: Any])?["missing"] as? [String] ?? []
             let unsupported = (result as? [String: Any])?["unsupported"] as? String
             if !missing.isEmpty, unsupported?.isEmpty != false {
                 // The page's retry budget is five seconds; ask again once it has run out.
                 try? await Task.sleep(for: .milliseconds(5600))
-                let later = try? await page.savoia(HighlightScript.status, arguments: ["ids": missing])
+                let later = try? await tab?.callWithoutGesture(HighlightScript.status, arguments: ["ids": missing])
                 missing = (later as? [String: Any])?["missing"] as? [String] ?? missing
             }
             guard let tab, tab.currentURL.map({ Highlight.key(for: $0) }) == Highlight.key(for: url) else { return }
