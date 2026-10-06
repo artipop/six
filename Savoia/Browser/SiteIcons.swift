@@ -3,27 +3,26 @@ import Foundation
 import WebKit
 
 /// The little picture a site draws itself with, kept by host: in the tab bar, and on a card or a
-/// placeholder with no screenshot yet.
-///
-/// **The page fetches it, not Savoia.** A `URLSession` asking `https://host/favicon.ico` is a second
-/// visit to that site from outside the profile it belongs to — no cookies of its own, none of the
-/// blocking that was applied to the page, and one a private window would make as readily as any
-/// other. The page is already there and already allowed, so it does the asking and leaves a `data:`
-/// URL on its window for Savoia to pick up. `callJavaScript` is not `callAsyncJavaScript` (AGENTS.md),
-/// so the script starts the work and the answer is polled for.
+/// placeholder with no screenshot yet. WebKit names the page's icons and fetches them in the page's own
+/// network session; a `URLSession` here would be a second visit from outside the profile.
 @MainActor
 @Observable
-final class SiteIcons {
+final class SiteIcons: NSObject {
     static let folder: URL = AppSupport.folder("SiteIcons")
 
-    /// What the views read; `missing` is what stops a host with none being looked for on disk again
-    /// on every frame.
     private var images: [String: PlatformImage] = [:]
 
     @ObservationIgnored private var missing: Set<String> = []
     @ObservationIgnored private var reading: Set<String> = []
-    /// Hosts this run has already asked a page about, so a reload is not another fetch.
-    @ObservationIgnored private var asked: Set<String> = []
+    /// The score of the icon this run has fetched for a host; a host that has one is not fetched again.
+    @ObservationIgnored private var fetched: [String: Int] = [:]
+    @ObservationIgnored private var offers: [ObjectIdentifier: [Offer]] = [:]
+
+    private struct Offer {
+        let host: String
+        let score: Int
+        let answer: (((Data?) -> Void)?) -> Void
+    }
 
     /// The icon for a host, if there is one to hand. Nil the first time it is asked about a host
     /// whose file has not been read back yet; the read starts here and arrives as an observation.
@@ -46,115 +45,82 @@ final class SiteIcons {
         return nil
     }
 
-    /// A page has finished loading: ask it for its own icon, once per host per run. A private
-    /// window never reaches here — `BrowserState` gives a private profile no `SiteIcons` at all.
-    func refresh(_ page: WebPage, through run: @escaping (String) async throws -> Any?) {
-        guard let host = Self.key(page.url?.host()), !asked.contains(host) else { return }
-        asked.insert(host)
-        guard images[host] == nil else { return }
-        Task { [weak self] in
-            guard let data = await Self.ask(run) else { return }
-            guard let self, let image = PlatformImage(data: data), image.size.width > 1 else { return }
-            self.images[host] = image
-            self.missing.remove(host)
-            Self.write(data, for: host)
-        }
-    }
-
     /// Forgets every host's icon file: an icon is a record of a site having been visited.
     func clear() {
         images.removeAll()
         missing.removeAll()
-        asked.removeAll()
+        fetched.removeAll()
         let folder = Self.folder
         Task.detached(priority: .utility) { try? FileManager.default.removeItem(at: folder) }
     }
 
-    // MARK: Asking the page
+    // MARK: Asking WebKit
 
-    /// Starts the script and waits for the window property it fills in. A page may answer at once
-    /// or never — a request refused by CORS, a site with no icon — so the wait is short and the
-    /// failure silent.
-    private static func ask(_ run: (String) async throws -> Any?) async -> Data? {
-        guard (try? await run(script)) != nil else { return nil }
-        for _ in 0..<20 {
-            try? await Task.sleep(for: .milliseconds(150))
-            guard let answer = (try? await run("return window.__savoiaIcon || null")) as? String
-            else { continue }
-            guard answer != "none" else { return nil }
-            guard let comma = answer.firstIndex(of: ","),
-                  let data = Data(base64Encoded: String(answer[answer.index(after: comma)...]))
-            else { return nil }
-            return data
+    /// Takes the view's icon loads. A private window's view is never handed here, and with nobody
+    /// to ask WebKit requests no icon at all.
+    func watch(_ view: WKWebView) {
+        guard view.responds(to: #selector(IconLoadingView.setIconLoadingDelegate(_:))) else { return }
+        unsafeBitCast(view, to: IconLoadingView.self).setIconLoadingDelegate(self)
+    }
+
+    /// WebKit asks once for every icon a loaded page names, all in one turn, `/favicon.ico` when it
+    /// names none. Every answer block has to be called, with nil for the ones not wanted.
+    @objc(webView:shouldLoadIconWithParameters:completionHandler:)
+    func webView(_ view: WKWebView, shouldLoadIconWith parameters: NSObject,
+                 completionHandler: @escaping (((Data?) -> Void)?) -> Void) {
+        guard view.configuration.websiteDataStore.isPersistent,
+              let host = Self.key(view.url?.host()), fetched[host] == nil
+        else { return completionHandler(nil) }
+        let icon = unsafeBitCast(parameters, to: LinkIcon.self)
+        let offer = Offer(host: host, score: Self.score(icon), answer: completionHandler)
+        let id = ObjectIdentifier(view)
+        guard offers[id] == nil else { offers[id]?.append(offer); return }
+        offers[id] = [offer]
+        Task { [weak self] in self?.choose(among: id) }
+    }
+
+    /// The best few are fetched rather than the best one: the first choice may be refused or not decode.
+    private func choose(among id: ObjectIdentifier) {
+        let ranked = (offers.removeValue(forKey: id) ?? []).sorted { $0.score > $1.score }
+        for (place, offer) in ranked.enumerated() {
+            guard place < 3 else { offer.answer(nil); continue }
+            offer.answer { [weak self] data in self?.arrived(data, for: offer.host, score: offer.score) }
         }
-        return nil
     }
 
-    /// Reads the page's own `<link rel="icon">` tags, best first, falls back to `/favicon.ico` and
-    /// draws whichever arrives into a 64-point canvas — which is what makes an SVG usable, since
-    /// `PlatformImage` cannot decode one. Promises rather than `await`: the body of a
-    /// `callJavaScript` call is parsed as a plain function body.
-    private static let script = """
-    if (window.__savoiaIconFor !== location.origin) {
-      window.__savoiaIconFor = location.origin;
-      window.__savoiaIcon = null;
-      var links = Array.prototype.slice.call(document.querySelectorAll('link[rel]'))
-        .filter(function (l) { return /(^|\\s)(shortcut\\s+)?icon(\\s|$)/i.test(l.rel) || /apple-touch-icon/i.test(l.rel); })
-        .map(function (l) {
-          var side = parseInt((l.sizes && l.sizes.value || '').split('x')[0], 10) || 0;
-          return { href: l.href, score: side === 0 ? 48 : 128 - Math.abs(64 - side) };
-        })
-        .sort(function (a, b) { return b.score - a.score; })
-        .map(function (l) { return l.href; });
-      links.push(location.origin + '/favicon.ico');
-      var draw = function (url) {
-        return new Promise(function (resolve, reject) {
-          var image = new Image();
-          image.onload = function () {
-            try {
-              var canvas = document.createElement('canvas');
-              canvas.width = 64; canvas.height = 64;
-              canvas.getContext('2d').drawImage(image, 0, 0, 64, 64);
-              resolve(canvas.toDataURL('image/png'));
-            } catch (e) { reject(e); }
-          };
-          image.onerror = reject;
-          image.src = url;
-        });
-      };
-      var next = function (i) {
-        if (i >= links.length) { window.__savoiaIcon = 'none'; return; }
-        fetch(links[i], { credentials: 'include' })
-          .then(function (r) { return r.ok ? r.blob() : Promise.reject(); })
-          .then(function (b) { return b.size > 0 && b.size < 524288 ? b : Promise.reject(); })
-          .then(function (b) {
-            return new Promise(function (resolve, reject) {
-              var reader = new FileReader();
-              reader.onload = function () { resolve(reader.result); };
-              reader.onerror = reject;
-              reader.readAsDataURL(b);
-            });
-          })
-          .then(function (d) {
-            return draw(d).catch(function () {
-              // WebKit's <img> refuses a data: URL that says image/x-icon — measured — and a .ico
-              // is what half the web serves; ImageIO takes it, so those bytes go back as they came.
-              return /^data:image\\/(x-icon|vnd\\.microsoft\\.icon)/.test(d) ? d : Promise.reject();
-            });
-          })
-          .then(function (d) { window.__savoiaIcon = d; })
-          .catch(function () { next(i + 1); });
-      };
-      next(0);
+    private func arrived(_ data: Data?, for host: String, score: Int) {
+        guard let data, data.count < 524_288, score > fetched[host] ?? .min,
+              let png = Self.png(from: data), let image = PlatformImage(data: png) else { return }
+        fetched[host] = score
+        images[host] = image
+        missing.remove(host)
+        Self.write(png, for: host)
     }
-    return 1;
-    """
+
+    /// Closeness to 64 pixels; an SVG counts as exact, an icon that names no size as a small one.
+    private static func score(_ icon: LinkIcon) -> Int {
+        if icon.mimeType == "image/svg+xml" || icon.url.pathExtension.lowercased() == "svg" { return 128 }
+        guard let side = icon.size?.intValue, side > 0 else { return 48 }
+        return 128 - abs(64 - side)
+    }
+
+    /// Whatever arrived — PNG, ICO, SVG — drawn at 64 pixels, so a large icon is not kept large.
+    private static func png(from data: Data) -> Data? {
+        guard let image = PlatformImage(data: data), image.size.width > 1 else { return nil }
+        guard let bitmap = NSBitmapImageRep(
+            bitmapDataPlanes: nil, pixelsWide: 64, pixelsHigh: 64, bitsPerSample: 8, samplesPerPixel: 4,
+            hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)
+        else { return nil }
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: bitmap)
+        image.draw(in: NSRect(x: 0, y: 0, width: 64, height: 64), from: .zero, operation: .copy, fraction: 1)
+        NSGraphicsContext.restoreGraphicsState()
+        return bitmap.representation(using: .png, properties: [:])
+    }
 
     // MARK: The files
 
-    /// One file per host, like the thumbnails, and named `.icon` rather than `.png` because what is
-    /// kept is whatever the page handed back — a canvas PNG usually, the original `.ico` bytes for
-    /// the sites the page could not draw itself.
+    /// One file per host, like the thumbnails. A PNG now; `.icon` because older files hold `.ico` bytes.
     private static func url(for host: String) -> URL {
         folder.appending(path: "\(host).icon")
     }
@@ -175,4 +141,16 @@ final class SiteIcons {
         guard !host.isEmpty, !host.contains("/") else { return nil }
         return host
     }
+}
+
+@objc private protocol IconLoadingView {
+    @objc(_setIconLoadingDelegate:)
+    func setIconLoadingDelegate(_ delegate: AnyObject?)
+}
+
+/// `_WKLinkIconParameters`, as far as it is read.
+@objc private protocol LinkIcon {
+    var url: URL { get }
+    var mimeType: String? { get }
+    var size: NSNumber? { get }
 }

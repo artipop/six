@@ -820,7 +820,6 @@ final class BrowserTab: Identifiable {
             savedTitle = page.title
             extensions?.noteChanged(self, [.title, .loading])
             onNavigation?(self, .finished)
-            siteIcons?.refresh(page) { [weak self] in try await self?.callWithoutGesture($0, in: .page) }
             // Only to give a window that has never been drawn something to show. The picture that
             // matters is taken when it leaves the screen; taking one after every load would be the
             // most frequent trigger and the least useful one, since a page that just loaded is a
@@ -970,6 +969,7 @@ final class BrowserTab: Identifiable {
     #if os(macOS)
     /// A pane has found the page's web view: a window waiting with a session state is given it here.
     func webViewFound(_ view: WKWebView) {
+        siteIcons?.watch(view)
         guard pendingURL != nil, livePage != nil, let state = savedState else { return }
         stateWait?.cancel()
         stateWait = nil

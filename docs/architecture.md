@@ -144,13 +144,26 @@ pictures of tabs that no longer exist, at launch and as they close, so there is 
 
 Beside them, one file per **host**: `SiteIcons` keeps the site's own icon under
 `Application Support/org.deffun.savoia/SiteIcons/<host>.icon`, which the tab bar draws, and what a card falls back to when there is no
-picture of the page yet. The page fetches it, not Savoia — a `URLSession` asking `https://host/favicon.ico` would be a
-second visit to that site from outside the profile it belongs to, with none of its cookies and none of its blocking,
-and a private window would make it as readily as any other. A script reads the page's own `<link rel="icon">` tags,
-fetches the best of them, draws it into a 64-point canvas (which is what makes an SVG usable, since `NSImage` cannot
-decode one) and leaves a `data:` URL on the window; `callJavaScript` cannot await, so Savoia polls for it. The one thing
-the page cannot draw is a `.ico` — WebKit's `<img>` refuses a `data:` URL that says `image/x-icon`, measured — and
-those bytes go back as they came for ImageIO to decode. A private profile is given no `SiteIcons` at all.
+picture of the page yet. WebKit fetches it, not Savoia and not a script: `SiteIcons` is the icon-loading delegate
+(`_setIconLoadingDelegate:`, SPI behind `responds(to:)`) of every web view a pane finds, which is what Safari does.
+After a load WebKit names the page's icons — each `<link rel="icon">` and `apple-touch-icon`, or `/favicon.ico` when
+there is none — and asks about each; the three closest to 64 pixels are let through, the best that decodes is drawn
+at 64 pixels and kept as a PNG, and a host that has its icon is not fetched again in that run. A `URLSession` asking
+`https://host/favicon.ico` would be a second visit to that site from outside the profile it belongs to; these
+requests leave in the page's own session, with its cookies. A private profile is given no `SiteIcons`, its views get
+no delegate, and without one WebKit requests no icon at all — measured on a local server in each case.
+
+It replaced a script in the page that fetched the icon and left a `data:` URL on `window`. On the thirty most
+visited hosts of Artem's history, each opened at its root in a fresh profile, 23 had an icon with the script and 28
+have one now: an icon on another origin needs no CORS, nothing depends on the page's `connect-src` or on `data:` in
+its `img-src`, and there is no poll to run out. The two without (`sso.passport.yandex.ru`, `sso.kinopoisk.ru`) serve
+a plain-text 404 and a one-byte `favicon.ico`. What still gets none:
+
+- **a tab loaded in the background** (⌘-click, `open_window` with `activate: false`) — it has no web view to put the
+  delegate on until a pane shows it, and WebKit does not ask twice. Accepted: the icon is per host and arrives with
+  the next load of that host on screen;
+- a page whose policy forbids the image itself (`img-src 'none'`): WebKit asks and hands back nothing;
+- an icon a script adds or changes after the load: the delegate is not called for it.
 
 On the tab side (`BrowserTab`): `page` builds the page on demand — everything that *talks* to a page goes through it
 (tools, assistant, highlights, export) — while `title`, `currentURL`, `isLoading`, `canGoBack` and the rest answer

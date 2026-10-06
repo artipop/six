@@ -41,7 +41,7 @@ second window opened straight after, and on a page the budget looked at and kept
 | what | when | world | does | decision |
 |---|---|---|---|---|
 | the page's size, for its picture — `BrowserTab.rememberViewState` | a tab leaving the screen, at most every 3 s | savoia | reads `innerWidth` and `innerHeight` | stays; no gesture. The scroll offset is no longer read here, nor put back by a script — below |
-| site icon — `SiteIcons.ask` | every `.finished` | **page** | starts a fetch, then polls up to 20 times at 150 ms | no gesture now; later: read the `<link rel=icon>` once and fetch it with `URLSession` |
+| site icon | — | — | — | **done**: no script. WebKit names and fetches the icons, `SiteIcons` is the view's icon-loading delegate ([architecture.md](architecture.md)) |
 | description for groups — `TabSorter.pageFinished` | every `.finished` | savoia | reads the meta description or the first paragraph | **done**: `savoia` world, no gesture |
 | highlights — `HighlightStore.apply` | a load of an address that has highlights | savoia | edits the DOM, watches it for 5 s | no gesture; below |
 | the offer to translate — `BrowserState.offerTranslation` | every `.finished` | savoia | reads the page's language and a sample of its text | stays; no gesture |

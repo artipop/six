@@ -24,7 +24,6 @@ Left alone:
 | what | where | waits by the clock for | the event it has |
 |---|---|---|---|
 | a load to end | `waitForLoad` in `BrowserTools`, `BookmarkStore` and `Export`; `WebSearch.withLoading`; `BookmarkStore.read` | 150 ms (300 in `read`) for `isLoading` to rise, then a poll every 100 ms (200) | `page.navigations` — `.finished`, or the error it throws |
-| a site icon | `SiteIcons.ask` | up to 20 polls, 150 ms apart, for the page to leave a data URL on `window` | the promise itself: the gesture-free call is `callAsyncJavaScript` and takes an `await` |
 | a highlight to be painted | `HighlightStore.scroll(_:toHighlightMatching:)`, and the second question in `apply` | 600 ms before scrolling; 5.6 s before asking what never anchored | the answer of `HighlightScript.apply`, and a promise for the end of its five-second watch |
 | fullscreen to end | `BrowserTab.leaveElementFullscreen`, before a navigation | up to 40 polls, 50 ms apart | `fullscreenState` is observable |
 | a feed that keeps growing | `PageTranslator.follow` | a poll from 800 ms backing off to 5 s | the observer already in the page could resolve a promise |
@@ -33,9 +32,6 @@ Left alone:
 a load that starts later than that reads as already finished, and the tool reads the page being left. It is also
 five copies of one loop. One helper that waits for the navigation to end, with the timeout each caller already has
 as its ceiling, replaces all five.
-
-The second row may not need doing: [tasks/browser/02-site-icons.md](tasks/browser/02-site-icons.md) takes the
-fetch out of the page altogether.
 
 The last row is the least useful. The loop is cheap, it backs off, and it stops by itself after a minute of nothing.
 

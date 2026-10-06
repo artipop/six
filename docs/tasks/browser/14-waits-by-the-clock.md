@@ -31,7 +31,6 @@ allowed. The state is observable (`withObservationTracking`, as `PageElementFull
 
 ## Left
 
-- **The site icon's poll** — [02-site-icons.md](02-site-icons.md) takes the fetch out of the page altogether.
 - **The translator following a feed** — cheap, backs off, stops by itself.
 - Everything under "Left as they are, with the reason" in timers.md: focus and the keyboard, a page settling after
   an agent's action, WebKit's accessibility tree.
