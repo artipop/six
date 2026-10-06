@@ -22,10 +22,12 @@ where it can be applied at all.
 ## What the page tells Savoia
 
 `PageFocus` is what the person is pointing at inside a page, and it is the fact the old assistant
-never had. It is **pushed, not polled**: `PageFocusScript` installs a watcher in Savoia's own content
-world (`PageScripts.swift`), which posts on `selectionchange`, on focus moving in or out of a field,
-and on scroll — debounced, deduplicated, main frame only. `PageFocusStore` receives it per window,
-`BrowserTab` clears it on navigation, and `BrowserState` forgets it when the window closes.
+never had. It is **asked for, not pushed**: nothing of Savoia's sits in a page watching the selection.
+`PageFocusStore.refresh` runs `PageFocusScript.read` in Savoia's own content world (`PageScripts.swift`), main
+frame only, when ⌘E is pressed, and keeps the answer per window; `BrowserTab` clears it on navigation, and
+`BrowserState` forgets it when the window closes. A watcher in every page was a script running on sites the
+assistant was never called on ([page-scripts.md](page-scripts.md)); the cost of asking instead is that a line hung
+on a field does not follow it when the page scrolls.
 
 | the focus says | where it comes from |
 |---|---|
@@ -36,7 +38,7 @@ and on scroll — debounced, deduplicated, main frame only. `PageFocusStore` rec
 | `rect` | viewport coordinates, which is exactly the box the overlay hangs in |
 
 **Password fields are dropped in the page**, before anything is sent: `type="password"`, or an
-autocomplete/name/id that looks like a secret or a card number, and the watcher returns `none`. The
+autocomplete/name/id that looks like a secret or a card number, and the script returns `none`. The
 cheapest place to drop a secret is before it leaves the frame it was typed in. An `<input>` of an
 exotic type is ignored for the same reason — a colour picker has no text worth reading.
 
@@ -169,9 +171,7 @@ Off is not a greyed-out button:
 - `AssistantBar` is not in the view hierarchy, so ⌘E has nothing to raise — the menu item stays enabled and does
   nothing, because a `.disabled` on a `Commands` item is decided once (AGENTS.md); the agent inspector is not
   presented either;
-- `PageFocusStore.isEnabled` goes false, which pulls the watcher **out of the pages**: the message
-  handler is removed at once and the user script is dropped from every window's controller, so a
-  page loaded after that has nothing of Savoia's watching what is selected in it;
+- `PageFocusStore.isEnabled` goes false: no page is asked what is selected in it, and what was kept is dropped;
 - `MCPHost.stop()` closes the socket and unlinks it, so `Savoia --mcp` fails to connect rather than
   hanging on a door nobody answers.
 

@@ -9,8 +9,7 @@ different in each. Privacy puts **Block Ads and Trackers** in the pane's own hea
 beside the segmented picker (`ConfigurationPageView.PrivacyConfiguration`) — and it governs one of
 the three segments, leaving Site Permissions and Certificates working. Assistant puts **Use Language
 Models and Agents** in the first row of its Form (`AssistantPane`) — and it governs far more than
-the pane: the ⌘E line, the agent path, the MCP server, the watcher `PageFocusStore` puts in every
-page. So the switch that sits in the chrome, where it reads as the master of everything under it, is
+the pane: the ⌘E line, the agent path, the MCP server, the reading of a page's selection. So the switch that sits in the chrome, where it reads as the master of everything under it, is
 the narrow one; the switch that sits in the list, where it reads as one setting among many, is the
 broadest in the application.
 
@@ -166,33 +165,24 @@ missed:
 2. **A verb of your own.** The catalog is a Swift array; the row that would make it a setting — a
    title, a prompt, where it applies — is the smallest useful next feature, and the reason the type
    is shaped the way it is.
-4. **The phone.** `PageFocus` compiles on iOS and nothing reads it there: the Phone layout has no
-   assistant surface at all yet, and a selection bar is a different gesture on a touch screen —
-   iOS puts its own menu over a selection.
-5. **Any ACP agent, not two.** The welcome's provider step and `ModelChoice.agents` know exactly
-   Claude Code and Codex (`ACPAgentDefinition.builtIn`). ACP is a protocol, and the right shape is
-   an "ACP" block in Configuration ▸ Assistant where any ACP-speaking binary is added by path and
-   arguments, then offered everywhere the two built-ins are — the welcome included. Every variant
-   `ModelChoice` has should be reachable from the welcome as well, not only the four doors it opens
-   now (Private Cloud Compute is the one left out).
+3. **Every model from the welcome.** Any ACP agent can be added by path and arguments now (Configuration ▸
+   Assistant ▸ Agents, `ModelChoice.customAgent`), but the welcome's provider step still knows only its own four
+   doors: a custom agent and Private Cloud Compute are not offered there.
 
 ## Dictation: saying it instead of typing it
 
-Built on the Mac: a microphone beside the agent panel's composer and the ⌘E line, FluidAudio's Parakeet TDT v3 with
+Built on the Mac: a microphone beside the ⌘E line (and the agent panel's composer, which has no way in now), FluidAudio's Parakeet TDT v3 with
 Silero in front of it on the Neural Engine. What is left — Apple's `SpeechAnalyzer` as the engine that downloads
 nothing, a Settings section with the model's Delete, a key, the phone — is at the end of [speech.md](speech.md).
 
-## Developer tools: the half Chrome's devtools MCP has and Savoia does not
+## Developer tools: what Chrome's devtools MCP has and Savoia does not
 
-Web Inspector and capture are built ([devtools.md](devtools.md)): console, network, screenshots, over MCP. What an
-agent still cannot do is *act* on a page except through `evaluate_javascript`, and cannot measure it:
+Web Inspector and capture are built ([devtools.md](devtools.md)): console, network, screenshots, over MCP. Acting on
+a page is built too ([agent-actions.md](agent-actions.md)): `page_snapshot` numbers the page's controls, and `click`,
+`fill`, `select_option`, `press_key`, `scroll_page` and `wait_for` take those numbers, the click and the keys as real
+events. What is still missing:
 
-- **A snapshot with stable ids** — Chrome's `take_snapshot` returns the accessibility tree with a uid per node, and
-  every interaction tool takes one. Savoia has `list_page_blocks` for reading; the same idea with uids, over the
-  accessibility tree rather than paragraphs, is what `click`, `fill` and `hover` would address.
-- **Interactions as tools** rather than hand-written JavaScript: click, type, hover, select, drag, upload, and
-  `wait_for(text)`. All of it is expressible through the page world today, which is why it is not urgent — but a
-  tool that returns "the button was not there" beats a script that throws.
+- **Hover, drag and upload** as tools.
 - **Performance traces and emulation** (CPU/network throttling, a device viewport). WebKit exposes none of this to
   an app; it would need the Web Inspector protocol, which is not reachable from the app hosting the page. Worth
   saying so in the docs and stopping there.
@@ -350,7 +340,7 @@ their chunks and vectors (`Savoia/Data/`, `Savoia/Bookmarks/`, [architecture.md]
   [Wax](https://github.com/christopherkarani/Wax) — one `.wax` file with FTS5 + Metal HNSW, hybrid search in one
   query, own embedder and an MCP server; Apple Silicon first, single writer, v0.2. VecturaKit — embed + index +
   BM25 hybrid in one Swift API over MLX; Apple-only, own files.
-- **The vector index off the Mac.** ~~Out of scope for the Linux phase~~ — built for both: sqlite-vec is registered
+- **The vector index off the Mac** (the `dev` branch, where the other fronts live). ~~Out of scope for the Linux phase~~ — built for both: sqlite-vec is registered
   per process (`Vectors.register()`) before the first connection, `VectorIndex` holds the `vec0` table and the KNN for
   every front, and `BookmarkIndexer` writes the rows, the passages and the vectors. The embedder is the same E5, run
   by transformers.js in a `PageSandbox` (`WebEmbedder`). Measured on Windows; **Linux is written and unrun** — the
@@ -360,7 +350,7 @@ their chunks and vectors (`Savoia/Data/`, `Savoia/Bookmarks/`, [architecture.md]
   beside the row there as well (`BookmarkFile`). What is still owed is somewhere to *see* the library — Windows has no
   bookmarks window, and Linux's `BookmarksSheet` searches titles and addresses only — and the hourly refresh, which
   needs an off-screen page with the profile's cookies.
-- **Linux build of the data layer.** ~~Verify early~~ — done, and it builds: GRDB, SQLiteData, sqlite-vec
+- **Linux build of the data layer** (the `dev` branch). ~~Verify early~~ — done, and it builds: GRDB, SQLiteData, sqlite-vec
   and the `@Table` macros all compile on Swift 6.3.3/aarch64, as do `AppDatabase`, `ConfigurationStore`, `History`
   and `Bookmark`. No fallback needed. What it costs is two pins: `swift-sharing` 2.10.0 and
   `combine-schedulers` 1.2.1 regressed on Linux, and `sqlite-data` 1.11.0 does not compile against
@@ -394,8 +384,9 @@ place tabs yet.
 165 of 174 of wpt's `webmcp/` pass (`scripts/webmcp-wpt.py`, the baseline beside it). The nine left, and what each
 would take — none of it is a polyfill's to do ([webmcp.md](webmcp.md#not-built)):
 
-- **An opened window (2).** Needs [Popups](#popups-a-window-the-page-can-script) above; once `window.open` returns a
-  window, the polyfill in it is already there and the broker only has to know it belongs to another frame tree.
+- **An opened window (2).** `window.open` returns a window now ([links.md](links.md#a-second-window)), in a
+  `WKWebView` of its own. Not re-run since: whether the polyfill is installed in that view, and whether the broker
+  knows it belongs to another frame tree, is the open part.
 - **`document.domain` (4).** The draft refuses the API where `document.domain` is enabled, and WebKit has no
   origin-keyed agent clusters, so the rule read literally refuses everything. Waits for WebKit to ship
   `Origin-Agent-Cluster` by default, or for the draft to phrase the rule so it has meaning there.
@@ -412,25 +403,13 @@ where the next changes will land.
 
 ## Smaller things
 
-- A readable maximum width for the default column on ultra-wide displays: 88 % of a 5K panel is a very long line.
 - A window whose address *is* a download re-downloads it on every launch. Nothing was committed in it, so the
   window comes back pointed at the attachment and asks for it again; `closeIfOnlyCarriedALink` only closes the
   window a link opened, not the one somebody typed the address into. Harmless until this session, easy to see now
-  that an unfinished row survives a relaunch.
+  that an unfinished download survives a relaunch.
 - Deep research without an agent: a native loop over the ⌘E model for machines with no Claude Code / Codex, and
   exporting a run as one HTML file with its sources inlined ([deep-research.md](deep-research.md)).
 - A way back to the start page after navigating (a "home" affordance, or `⌘⇧H`).
-- **The row that moves up, shown moving up — in the overview.** Taking the last window out of the row (⌥⇧↓, or a drag
-  in the overview) empties it, and the rule removes it: the row below takes its place, so the window you just
-  sent *down* ends up on the top row — which is right, and reads strangely. In the row itself rows are not
-  visible as rows, so nothing there can show it; the overview draws the whole stack, and there the lower row could
-  fly up into the gap instead of the rows being renumbered in one cut.
-- **Closing a full-width window with the mouse.** The × on a card sits on the corner a page does not want
-  (`ColumnCloseBadge`), which works because a tiled window has a gap beside it; filled (⌥W) there is no gap, the page
-  runs edge to edge, and the badge is not drawn at all — so ⌘W and the context menu are the only ways out. Everything
-  that could stand there covers something: the top bar has no room left beside the address field, and a badge over
-  the page is chrome charged against every page. The overview has a × per card now, which is the one place a window
-  can be closed with the mouse whatever its fill.
 - Forget one site: drop a single host's cookies and storage (`WKWebsiteDataStore.fetchDataRecords` →
   `remove(ofTypes:for:)`). Clearing a whole profile is the only option today, and it takes every login with it.
 - Per-site user-agent overrides through `WebPage.customUserAgent`, for sites that sniff wrongly even at Safari's

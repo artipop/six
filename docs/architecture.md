@@ -284,7 +284,7 @@ search, and how sqlite-vec is loaded into the Apple SQLite.
 ## Page-side scripts
 
 Everything Savoia runs inside a page — the readable-text extractor behind bookmarks and `get_page_content`, the link
-lister, the scroll save/restore, the highlight anchoring — goes through `WebPage.savoia(_:arguments:)`
+lister, the highlight anchoring — goes through `WebPage.savoia(_:arguments:)`
 (`Savoia/Browser/PageScripts.swift`): `callJavaScript` in a `WKContentWorld` of Savoia's own. This is the arrangement
 Firefox Reader View and Safari Reader use — the browser's script reads the page from a privileged context, never as a
 guest of the page's own scripts. The DOM is shared, the JavaScript is not:
@@ -297,10 +297,10 @@ guest of the page's own scripts. The DOM is shared, the JavaScript is not:
   over it) and `Range`s in `CSS.highlights`, both DOM objects and both shared. `<mark>` wrappers and a `<style>` element
   exist only as fallbacks for engines without those APIs.
 
-One of these scripts is a *watcher* rather than a reader: `PageFocusScript` follows the selection and the caret and
-pushes what it finds over a message handler in Savoia's world, because a selection is an event and polling for one would
-run while nothing is happening ([assistant.md](assistant.md)). It is also where password fields are dropped — in the
-page, before anything is sent — and the same script is what writes an answer back into a field.
+None of them watches a page. `PageFocusScript` reads the selection and the caret when ⌘E is pressed
+([assistant.md](assistant.md)); it is also where password fields are dropped — in the page, before anything is sent —
+and the same script is what writes an answer back into a field. Which scripts run by themselves, which are injected
+ahead of time, and which carry a user gesture is in [page-scripts.md](page-scripts.md).
 
 There are two deliberate exceptions. The `evaluate_javascript` tool runs in the page's world because that is what
 it is for. The devtools capture ([devtools.md](devtools.md)) does too, and has to: `console.log` and `fetch` are the

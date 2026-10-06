@@ -266,11 +266,12 @@ rewrite the root file. `xcodebuild` never touches it — the project holds only 
 
 Built: tabs with groups, folding, pinning, picking and two tabs side by side, groups by meaning, the ⌃Tab ring,
 profiles with isolated data stores, persistence (a SQLite system of record plus a versioned JSON snapshot), history and
-bookmarks with on-device multilingual embeddings and personal search on the start page, ad/tracker blocking down to
-scriptlets and extended CSS, extra certificate authorities, `WKWebExtension` hosting, site permissions, downloads,
-page translation, find on page (⌘F), picture-in-picture, the ⌘E assistant, ACP agents and chats, `Savoia --mcp`, MCP
+bookmarks with on-device multilingual embeddings and personal search on the start page, ad/tracker blocking (its
+page half, scriptlets and extended CSS, switched off for now), extra certificate authorities, `WKWebExtension` hosting, site permissions, downloads,
+page translation, find on page (⌘F), windows a page opens with their opener, picture-in-picture, the ⌘E assistant, ACP agents and chats, `Savoia --mcp`, MCP
 apps (SEP-1865) with OAuth, deep research with document tabs and highlights, DevTools capture, dictation, localization.
 
 Not built, with reasons: [docs/todo.md](docs/todo.md) — web archives, bookmark images, the content-script boundary
-`WebPage` cannot cross, geolocation and site notifications, floating windows, passkeys, CloudKit sync. What Savoia is waiting on Apple to make public, and how to notice when it does:
+`WebPage` cannot cross, geolocation and site notifications, Apple Pay, floating windows, passkeys, CloudKit sync.
+What is specified and waiting for a session: [docs/tasks/](docs/tasks/README.md). What Savoia is waiting on Apple to make public, and how to notice when it does:
 [docs/api-watch.md](docs/api-watch.md).

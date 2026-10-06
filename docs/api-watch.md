@@ -4,8 +4,8 @@ What Savoia is waiting on Apple for: every place Savoia either lacks a feature o
 name to look for when it becomes public, and what to delete in Savoia when it does. Check it on every new SDK — a
 macOS beta, an Xcode or Command Line Tools update, a Safari Technology Preview release note.
 
-The target builds against the **Command Line Tools** SDK (`SDKROOT` in the project; see [build.md](build.md)), so
-that is the SDK to read, not Xcode's.
+The target builds against the active Xcode's own SDK (`SDKROOT = macosx`; see [build.md](build.md#sdk)), so that
+is the SDK to read.
 
 ## The list
 
@@ -24,6 +24,11 @@ that is the SDK to read, not Xcode's.
 | **Opening Web Inspector** | Safari can attach; Savoia cannot open it ([devtools.md](devtools.md)) | any public API beyond `isInspectable` | an inspector in Savoia's own window |
 | **Web archives** | Save As has `.html`, `.pdf`, `.txt` | `createWebArchiveData` on `WebPage` | `.webarchive` in Save As |
 | **Back-forward state across launches** | `interactionState` taken from and given to the `WKWebView` a pane mounts (`WebViewResponder`), addresses otherwise | `interactionState` on `WebPage` | restore a tab before it is shown, and drop the address lists |
+| **A script that is not a user gesture** | SPI in use: `_callAsyncJavaScript:arguments:inFrame:inContentWorld:withUserGesture:completionHandler:` — `BrowserTab.callWithoutGesture` ([page-scripts.md](page-scripts.md)) | a gesture flag on `WebPage.callJavaScript` or `WKWebView.callAsyncJavaScript` | the SPI goes |
+| **A window a page opens** | a delegate in front of `WebPage`'s own answers `createWebView` with a bare `WKWebView` in an `NSWindow` — `Savoia/Browser/ScriptedPopups.swift` | `WebPage` answering new-window requests, or an initialiser from a `WKWebViewConfiguration` | script-opened windows become ordinary tabs |
+| **A count of find matches** | none: `WKWebView.find` says only whether there is one | `_countStringMatches:options:maxCount:` made public, or a count on `WKFindResult` | "2 of 5" in the find bar |
+| **Apple Pay for pages** | `PaymentRequest` is `undefined`, cause not established ([todo.md](todo.md#apple-pay-not-supported-and-why-is-not-known)) | — | — |
+| **A page leaving element fullscreen by navigating** | Savoia exits fullscreen first — `BrowserTab.leaveElementFullscreen`; otherwise the web view is left in no window | the bug fixed; retest with the call removed | delete the call |
 | **Element fullscreen in SwiftUI's `WebView`** | black without the temporary hold — `Savoia/Browser/PageElementFullscreen.swift` | the bug fixed (forums thread 720612); retest with the hold removed | delete the hold |
 
 ## Where changes show up
@@ -46,9 +51,9 @@ that is the SDK to read, not Xcode's.
 The quickest check is the SDK itself, header and Swift interface both:
 
 ```sh
-SDK=/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk     # the one Savoia builds with
+SDK=$(xcrun --show-sdk-path)                                    # the one Savoia builds with
 H=$SDK/System/Library/Frameworks/WebKit.framework/Headers
-I=$SDK/System/Cryptexes/OS/System/Library/Frameworks/WebKit.framework/Versions/A/Modules/WebKit.swiftmodule/arm64e-apple-macos.swiftinterface
+I=$SDK/System/Library/Frameworks/WebKit.framework/Modules/WebKit.swiftmodule/arm64e-apple-macos.swiftinterface
 
 grep -rn -i "displayCaptureState\|allowsPictureInPictureMediaPlayback\|requiredWebExtensionBaseURL\|NotificationPermission\|Geolocation" "$H"
 grep -n "struct Configuration" -A40 "$I" | grep "public var"          # WebPage.Configuration's fields

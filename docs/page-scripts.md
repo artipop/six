@@ -101,8 +101,8 @@ Checked through `Savoia --mcp` in a throwaway home: `testdriver_discard_pages` g
 
 ## Highlights
 
-The code is whole: `highlight_page`, `list_highlights`, `remove_highlight` and `cite` are in the catalog,
-`HighlightStore.apply` runs on a load, and the research preset still tells the agent to highlight what it cites
-([deep-research.md](deep-research.md)). The one way to start a run is `/research` on the ⌘E line. There is no
-`highlights.json` on the dev Mac under either build, so no highlight has ever been stored there; whether a run
-today produces any has not been tried.
+`highlight_page`, `list_highlights`, `remove_highlight` and `cite` are in the catalog, `HighlightStore.apply` paints
+a stored highlight again on a load, and the research preset tells the agent to highlight what it cites
+([deep-research.md](deep-research.md)). The one way to start a run is `/research` on the ⌘E line. A run on
+6 October 2026 stored thirteen highlights on thirteen pages. Who chooses the paragraphs is the model ⌘E is set to;
+with an agent there, the agent calling the tool chooses.
