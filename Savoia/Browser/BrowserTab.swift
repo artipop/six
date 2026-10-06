@@ -443,6 +443,8 @@ final class BrowserTab: Identifiable {
     @ObservationIgnored var onNavigation: ((BrowserTab, NavigationOutcome) -> Void)?
     /// A navigation was asked for and has not ended; `isLoading` rises a tick after the asking.
     @ObservationIgnored private var awaitsNavigation = false
+    /// The navigation under way is a page given back to the system loading again.
+    @ObservationIgnored private(set) var isResuming = false
     @ObservationIgnored private var loadWaiters: [UUID: CheckedContinuation<Void, Never>] = [:]
 
     enum NavigationOutcome { case committed, finished }
@@ -899,6 +901,7 @@ final class BrowserTab: Identifiable {
     private func beginResume() -> WKWebView {
         savedURL = pendingURL ?? savedURL
         pendingURL = nil
+        isResuming = true
         if isWebPage {
             pageControllers?.setUserScripts([MediaHold.script], named: MediaHold.scriptName, for: id)
             mediaHold = .loading
@@ -975,6 +978,7 @@ final class BrowserTab: Identifiable {
 
     private func settleLoads() {
         awaitsNavigation = false
+        isResuming = false
         let waiting = loadWaiters
         loadWaiters = [:]
         waiting.values.forEach { $0.resume() }

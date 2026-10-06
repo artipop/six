@@ -613,10 +613,8 @@ final class BrowserToolCatalog {
                 let tab = try self.tab(args)
                 guard let script = args["script"]?.stringValue else { throw BrowserTool.Failure(message: "script is required") }
                 // A window given back to the system loads again first, or the script reads a blank page.
-                if tab.pendingURL != nil {
-                    tab.resumeIfNeeded()
-                    await tab.loadSettled()
-                }
+                tab.resumeIfNeeded()
+                if tab.isResuming { await tab.loadSettled() }
                 let value = try await tab.callWithoutGesture(script, in: .page)
                 return Self.describeJavaScriptValue(value)
             }
