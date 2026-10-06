@@ -18,7 +18,6 @@ final class WebViewResponder {
 
     func register(_ view: WKWebView, for tabID: UUID) {
         views[tabID] = WeakView(view)
-        PageKeyFallback.install(on: view)
     }
 
     func forget(_ tabID: UUID) {
