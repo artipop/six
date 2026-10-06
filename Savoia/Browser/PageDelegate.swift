@@ -66,12 +66,12 @@ final class PageDelegate: NSObject, WKNavigationDelegate, WKUIDelegate {
             return .cancel
         }
         // `buttonNumber` is 1 for every click of the mouse, so ⌘ is the only signal there is.
-        let behind = action.navigationType == .linkActivated && command
-        if action.targetFrame == nil, !behind, ScriptedPopups.isOn, action.navigationType != .linkActivated { return .allow }
-        if action.targetFrame == nil || behind {
-            tab.onNewWindow?(tab, action.request, behind)
+        if action.navigationType == .linkActivated, command {
+            tab.onNewWindow?(tab, action.request, true)
             return .cancel
         }
+        // No target frame is a window the page asks for; `createWebView` answers it with a tab.
+        if action.targetFrame == nil { return .allow }
         // Before the load: an allowlisted site must never have the rules applied to it.
         if url.scheme?.hasPrefix("http") == true { tab.blocker?.note(tab.id, showing: url) }
         if action.targetFrame?.isMainFrame == true { await tab.leaveElementFullscreen() }
@@ -119,6 +119,19 @@ final class PageDelegate: NSObject, WKNavigationDelegate, WKUIDelegate {
 
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
         tab?.pageDid(.ended, in: webView)
+    }
+
+    // MARK: A window the page opens
+
+    func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
+                 for action: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
+        guard kind == .web, let tab else { return nil }
+        return tab.onPageWindow?(tab, configuration)
+    }
+
+    func webViewDidClose(_ webView: WKWebView) {
+        guard let tab, tab.isOpenedByPage else { return }
+        tab.onPageClose?(tab)
     }
 
     // MARK: Dialogs

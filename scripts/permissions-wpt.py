@@ -260,7 +260,7 @@ class Browser:
         self.app = app
         self.home = tempfile.mkdtemp(prefix="savoia-wpt-", dir="/tmp")
         self.env = dict(os.environ, CFFIXED_USER_HOME=self.home, SAVOIA_MCP_SOCKET=os.path.join(self.home, "mcp.sock"),
-                        SAVOIA_TESTDRIVER="1", SAVOIA_ALL_POPUPS="1")
+                        SAVOIA_TESTDRIVER="1")
         self.process = None
         # A sleeping display hides every page, and a hidden page is refused fullscreen and focus.
         self.awake = subprocess.Popen(["caffeinate", "-d", "-u", "-w", str(os.getpid())])

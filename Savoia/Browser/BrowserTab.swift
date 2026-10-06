@@ -220,9 +220,15 @@ final class BrowserTab: Identifiable {
     @ObservationIgnored var onBuiltInAddress: ((BrowserTab, BuiltInPage, String?) -> Void)?
     /// The page's context menu, for the link under the pointer. Set by `BrowserState`.
     @ObservationIgnored var onContextMenu: ((BrowserTab, URL?) -> NSMenu?)?
-    /// The page asked for a second window — a ⌘-click, `target=_blank`, `window.open`. Set by
-    /// `BrowserState`, which puts a column next to this one.
+    /// A ⌘-click: the link opens by its address in a tab next to this one. Set by `BrowserState`.
     @ObservationIgnored var onNewWindow: ((BrowserTab, URLRequest, Bool) -> Void)?
+    /// `window.open` or a plain `target=_blank`: the tab WebKit is to load into, built on the
+    /// configuration it handed over. Set by `BrowserState`.
+    @ObservationIgnored var onPageWindow: ((BrowserTab, WKWebViewConfiguration) -> WKWebView?)?
+    /// `window.close()` in a tab a page opened. Set by `BrowserState`.
+    @ObservationIgnored var onPageClose: ((BrowserTab) -> Void)?
+    @ObservationIgnored private(set) var isOpenedByPage = false
+    @ObservationIgnored private var openerConfiguration: WKWebViewConfiguration?
     /// A link to save rather than to show. Set by `BrowserState`, which hands it to `DownloadStore`.
     @ObservationIgnored var onDownload: ((BrowserTab, URLRequest, String?) -> Void)?
     /// A fresh window shows Savoia's own start page instead of loading someone's home page. The first
@@ -499,7 +505,9 @@ final class BrowserTab: Identifiable {
         if let livePage { return livePage }
         let started = LivePageCache.debugging ? ContinuousClock.now : nil
         defer { if let started { LivePageCache.log("built \(title) in \(started.duration(to: .now))") } }
-        let configuration = WKWebViewConfiguration()
+        // A window a page opened keeps its opener only on the configuration WebKit handed over.
+        let configuration = openerConfiguration ?? WKWebViewConfiguration()
+        openerConfiguration = nil
         let kind: PageDelegate.Kind
         if isDocument {
             kind = .document
@@ -535,7 +543,6 @@ final class BrowserTab: Identifiable {
         #if os(macOS)
         WebViewResponder.shared.register(page, for: id)
         page.allowPictureInPicture()
-        ScriptedPopups.install(on: page, tabID: id, profileID: profileID)
         DisplayCapture.observe(page) { [weak self] in self?.displayCapture = $0 }
         siteIcons?.watch(page)
         #endif
@@ -641,6 +648,8 @@ final class BrowserTab: Identifiable {
         onNavigation = nil
         onDocumentLink = nil
         onNewWindow = nil
+        onPageWindow = nil
+        onPageClose = nil
         onDownload = nil
         permissions?.forget(id)
         releasePage()
@@ -937,6 +946,16 @@ final class BrowserTab: Identifiable {
         loadStartedAt = Date()
         awaitsNavigation = true
         page.load(URLRequest(url: url))
+    }
+
+    /// Becomes the window a page opened; WebKit loads into the view this answers with.
+    func open(byPageWith configuration: WKWebViewConfiguration) -> WKWebView {
+        showsStartPage = false
+        isOpenedByPage = true
+        openerConfiguration = configuration
+        awaitsNavigation = true
+        loadStartedAt = Date()
+        return page
     }
 
     /// A document's preview, rendered again.

@@ -57,7 +57,7 @@ enum TestDriver {
                     var point = CGPoint(x: x, y: y)
                     var view = tab.livePage
                     if let wanted = args["context"]?.stringValue {
-                        let place = try await place(ofFrame: wanted, in: tab)
+                        let place = try await place(ofFrame: wanted, in: tab, browser: browser)
                         point.x += place.offset.x
                         point.y += place.offset.y
                         view = place.view
@@ -103,7 +103,7 @@ enum TestDriver {
                 surfaces: .mcp,
                 run: { args in
                     let tab = try tab(args)
-                    let frames = try await frames(of: tab)
+                    let frames = try await frames(of: tab, browser: browser)
                     let frame = frames[try await find(args["context"]?.stringValue ?? "", among: frames)]
                     let value = try await frame.view.callWithoutGesture(args["script"]?.stringValue ?? "", in: .page,
                                                                         frame: frame.info)
@@ -134,20 +134,11 @@ enum TestDriver {
             ),
             BrowserTool(
                 name: "testdriver_close_windows",
-                description: "Closes the windows pages opened by script.",
+                description: "Closes the tabs pages opened by script.",
                 surfaces: .mcp,
                 run: { _ in
-                    ScriptedPopups.closeAll()
+                    browser.closeTabs(browser.tabs.filter(\.isOpenedByPage).map(\.id))
                     return "ok"
-                }
-            ),
-            BrowserTool(
-                name: "testdriver_answer_sheets",
-                description: "Presses the first button, or the second, of every sheet on the windows pages opened by script.",
-                parameters: [.init(name: "accept", description: "False presses the second button.", type: .boolean)],
-                surfaces: .mcp,
-                run: { args in
-                    "\(ScriptedPopups.answerSheets(accepting: args["accept"]?.boolValue ?? true)) answered"
                 }
             ),
             BrowserTool(
@@ -176,13 +167,13 @@ enum TestDriver {
         let view: WKWebView
     }
 
-    /// The tab's frames, then those of the windows pages opened: a test's frame may be in either.
-    private static func frames(of tab: BrowserTab) async throws -> [Frame] {
+    /// The tab's frames, then those of the tabs its page opened: a test's frame may be in either.
+    private static func frames(of tab: BrowserTab, browser: BrowserState) async throws -> [Frame] {
         guard let own = tab.livePage, own.responds(to: #selector(FrameTrees.frames(_:))) else {
             throw BrowserTool.Failure(message: "The window's page is not on screen")
         }
         var found: [Frame] = []
-        for view in [own] + ScriptedPopups.views {
+        for view in [own] + browser.tabs.filter({ $0.openedFrom == tab.id }).compactMap(\.livePage) {
             let root: Box<NSObject?> = await withCheckedContinuation { continuation in
                 unsafeBitCast(view, to: FrameTrees.self).frames { continuation.resume(returning: Box(value: $0 as? NSObject)) }
             }
@@ -213,8 +204,8 @@ enum TestDriver {
 
     /// Where a frame's viewport starts in the top one. A frame cannot see past its own edges, and
     /// its parent cannot name a cross-origin child — but it can recognise the child's message.
-    private static func place(ofFrame context: String, in tab: BrowserTab) async throws -> (offset: CGPoint, view: WKWebView) {
-        let frames = try await frames(of: tab)
+    private static func place(ofFrame context: String, in tab: BrowserTab, browser: BrowserState) async throws -> (offset: CGPoint, view: WKWebView) {
+        let frames = try await frames(of: tab, browser: browser)
         var index = try await find(context, among: frames)
         let view = frames[index].view
         var offset = CGPoint.zero

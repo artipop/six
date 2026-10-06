@@ -104,13 +104,6 @@ struct SavoiaApp: App {
                                    blocker: blocker, devTools: devTools, permissions: permissions)
         permissions.isPrivate = { [weak browser] id in browser?.isPrivate(id) ?? false }
         #if os(macOS)
-        ScriptedPopups.permissions = permissions
-        ScriptedPopups.downloads = browser.downloads
-        ScriptedPopups.openTab = { [weak browser] tabID, url in
-            guard let browser, let tab = browser.tab(tabID) else { return false }
-            browser.openInNewWindow(url, from: tab, background: false)
-            return true
-        }
         browser.find.find = { [weak browser] tabID, query, backwards in
             guard let view = browser?.tab(tabID)?.livePage else { return false }
             let configuration = WKFindConfiguration()
@@ -363,7 +356,7 @@ struct SavoiaApp: App {
                     .keyboardShortcut("p", modifiers: [.command, .shift])
                 Button("Close Private Browsing") { browser.closePrivateBrowsing() }
                     .disabled(browser.privateProfile == nil)
-                Button("Close Tab") { if !ScriptedPopups.closeKeyWindow() { browser.closeSelectedTab() } }
+                Button("Close Tab") { browser.closeSelectedTab() }
                     .keyboardShortcut("w")
                 Divider()
                 // Safari's home for it, and the only menu that already means "an address".

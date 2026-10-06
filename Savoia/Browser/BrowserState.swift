@@ -690,6 +690,10 @@ final class BrowserState {
                 if settings.sortsTabsByMeaning { sorter.pageFinished(tab, in: self) }
             }
         }
+        tab.onPageWindow = { [weak self] tab, configuration in
+            self?.openPageWindow(from: tab, configuration: configuration)
+        }
+        tab.onPageClose = { [weak self] tab in self?.closeTab(tab.id) }
         tab.onNewWindow = { [weak self] tab, request, behind in
             guard let url = request.url else { return }
             self?.openInNewWindow(url, from: tab, background: behind)
@@ -732,6 +736,24 @@ final class BrowserState {
         opened.openedFrom = tab.id
     }
 
+
+    /// `window.open` and a `target=_blank` link clicked plainly: a tab next to its opener, in front
+    /// because the page opened it to be looked at, and built on the configuration WebKit handed
+    /// over, which is what leaves the two a `window.opener` and a `WindowProxy`.
+    private func openPageWindow(from opener: BrowserTab, configuration: WKWebViewConfiguration) -> WKWebView? {
+        guard let profile = profiles.first(where: { $0.id == opener.profileID }) else { return nil }
+        let tab = makeTab(profile: profile)
+        add(tab)
+        sorter.arrived(tab.id)
+        tab.openedFrom = opener.id
+        let view = tab.open(byPageWith: configuration)
+        withAnimation(TilingLayout.switchAnimation) {
+            layout.insertColumn(tabID: tab.id, in: profile.id, workspace: nil, focus: true)
+        }
+        syncSelection()
+        Log.info(.links, "a page opened a tab, \(tabs.count) open")
+        return view
+    }
 
     /// Download Linked File, `<a download>`, or a response no page can show.
     func download(_ request: URLRequest, suggestedName: String?, from tab: BrowserTab) {
