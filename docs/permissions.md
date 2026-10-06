@@ -172,7 +172,7 @@ The 25, by cause:
 | 4: `GUM-deny`, `MediaDevices-SecureContext`, `enumerateDevices-per-origin-ids`, `focus-…-target-frame-state-ignored` | Savoia passes more than Safari | Safari's own report says why for one: "Unable to set permission to denied for this test" — safaridriver cannot, the runner can | — |
 | `MediaStreamTrack-getCapabilities` | four `facingMode` subtests | the real camera of this Mac against CI's mock devices; reasoning | — |
 | `reporting/geolocation-reporting` | Savoia times out, Safari errors | geolocation is not built (below) | recorded |
-| `focus-…-focused-frame-descendant` | one subtest, "B should be able to delegate focus to child C", fails; it passed in the baseline before | the file calls no testdriver and nothing it runs was changed; it failed three runs of three with the terminal in front. Reasoning, not measured: a page's focus follows the window's | open |
+| `focus-…-focused-frame-descendant` | one subtest, "B should be able to delegate focus to child C", fails | the stand, measured: the subtest reads `document.hasFocus()`, and the file gives Safari's 4/7 when Savoia is the active app and the page is the window's first responder, 3/7 behind another app — on the build before the key events too, so nothing here changed it. As launched by the runner the first responder is the window, not the page, and the app is not in front | the stand's; a run with Savoia in front would close it |
 | 5 others: `clipboard-read-enabled-on-self-origin`, `enumerateDevices-with-navigation`, `focus-…-click-handler`, `picture-in-picture-report-only`, `payment-extension-allowed-…` | one subtest or a status | not established | open |
 
 What closed the rest, October 2026:
@@ -194,8 +194,9 @@ What closed the rest, October 2026:
 - **Eight in `storage-access-api` and two in `notifications`** were Safari's own run of 6 October; against the 5th
   they are the same.
 
-`MediaDevices-getUserMedia` timed out once in the full run and finished, the same as Safari, alone twice after it;
-the baseline holds the second.
+`MediaDevices-getUserMedia` timed out once in the full run, in the audio `groupId` subtest, and has not since: ten
+runs alone and two runs of the whole `mediacapture-streams` directory all give Safari's 3/8. The baseline holds
+that; what the one timeout was is not established.
 
 What the runs turned up that is in no test's assertion:
 
