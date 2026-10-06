@@ -11,13 +11,13 @@ A task's file is deleted by the commit that finishes it; what was learned goes i
 
 | # | task | what it changes |
 |---|---|---|
-| 2 | [browser/02-site-icons.md](browser/02-site-icons.md) | favicons that sometimes do not load; no script in the page for them |
 | 7 | [permissions/07-geolocation.md](permissions/07-geolocation.md) | geolocation for sites |
 | 8 | [permissions/08-notifications.md](permissions/08-notifications.md) | site notifications |
 | 11 | [browser/11-page-scripts-rest.md](browser/11-page-scripts-rest.md) | one pass: the calls that are still a gesture, the last script on every page, the Apple Pay experiment, `AdvancedRules` on or gone |
 | 12 | [measure/12-one-sitting.md](measure/12-one-sitting.md) | one sitting of measurements: extensions, two WebMCP tests, fullscreen on a real site |
 | 13 | [browser/13-small-things.md](browser/13-small-things.md) | one pass of six small things from the todo |
 | 14 | [browser/14-waits-by-the-clock.md](browser/14-waits-by-the-clock.md) | one pass: three waits by the clock replaced by the event they stand in for, the first of them a race |
+| 22 | [devtools/22-web-inspector-in-savoia.md](devtools/22-web-inspector-in-savoia.md) | WebKit's inspector opened on a tab from Savoia, through SPI that was measured to work; numbered last, done before 15 |
 | 15 | [agents/15-agent-tools-to-chrome.md](agents/15-agent-tools-to-chrome.md) | an agent's tools brought up to Chrome's DevTools MCP — upload, dialogs, hover, drag — with as little script in the page as possible |
 | 16 | [bookmarks/16-images-in-bookmarks.md](bookmarks/16-images-in-bookmarks.md) | a bookmark found by the words in its pictures; only if such pages get bookmarked |
 | 17 | [browser/17-floating-window.md](browser/17-floating-window.md) | a tab as a small always-on-top window |

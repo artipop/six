@@ -50,13 +50,26 @@ Savoia's column is the catalog in `Savoia/Tools/BrowserTools.swift`. Chrome's is
 4. **`drag`.** Down, dragged, up as real events. HTML drag-and-drop goes through the system's dragging session,
    which may not start from synthetic events — measure on a sortable list and on a file drop zone before promising.
 
-## What is not reachable, and where to stop
+## WebKit's own automation: tried, and it stops at tabs
 
-Request headers and bodies, throttling, a device viewport and performance traces all come from the Web Inspector
-protocol, and the app that hosts a page cannot attach to its own inspector. A `WKURLSchemeHandler`-shaped proxy
-would give the bodies at the price of carrying every request, and Savoia's own WebKit build would give all of it at
-the price in [todo.md](../../todo.md#someday-savoias-own-webkit-build). Say so in [mcp.md](../../mcp.md) and
-[devtools.md](../../devtools.md), in the table above, and stop.
+Safari's WebDriver runs on `_WKAutomationSession`, and the session answers protocol messages inside the app with no
+safaridriver (`_setMessageToFrontendHandlerForTesting:`, `_dispatchMessageFromRemoteForTesting:`). Measured on
+6 October 2026 in a throwaway app: on a `WKWebView` whose configuration was made with `_setControlledByAutomation:`,
+`Automation.getBrowsingContexts` lists the page, `evaluateJavaScriptFunction` returns a value with
+`userActivation.isActive` false, `takeScreenshot` returns a PNG and `getAllCookies` the cookies.
+
+**On the view a `WebPage` owns the context list is empty.** The flag is read from the configuration when the view
+is made, `WebPage` makes its own, and the view has no setter. So this door opens only for views Savoia creates
+itself — the windows a page opens (`ScriptedPopups`) — and not for a tab. It is not the way to build these tools;
+it would become one if `WebPage.Configuration` ever carried the flag ([api-watch.md](../../api-watch.md)).
+
+## What is not reachable for an agent, and where to stop
+
+Request headers and bodies, throttling, a device viewport and performance traces come from the Web Inspector
+protocol. A person can have them: the inspector opens on a tab through SPI
+([22-web-inspector-in-savoia.md](../devtools/22-web-inspector-in-savoia.md)). An agent cannot: nothing there sends a
+protocol message. A `WKURLSchemeHandler`-shaped proxy would give the bodies at the price of carrying every
+request. Say so in [mcp.md](../../mcp.md) and [devtools.md](../../devtools.md), in the table above, and stop.
 
 ## Done when
 

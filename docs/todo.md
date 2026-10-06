@@ -54,7 +54,10 @@ Two separate walls in this document are the same wall — WebKit can do the thin
   answers this through a view-tree walk instead of waiting on Apple, but the walk is still a workaround for a wall
   the SDK put there in the first place ([extensions.md](extensions.md));
 - there is no public way to *open* Web Inspector on your own page — the whole word "Inspector" appears in exactly
-  one public header, as `WKWebView.isInspectable` — so Savoia can only let Safari attach ([devtools.md](devtools.md)).
+  one public header, as `WKWebView.isInspectable` — so Savoia only lets Safari attach ([devtools.md](devtools.md)).
+  **This wall has a door**: `WKWebView._inspector` opens it on a tab, measured in October 2026
+  ([tasks/devtools/22-web-inspector-in-savoia.md](tasks/devtools/22-web-inspector-in-savoia.md)). What stays behind
+  the wall is the inspector *protocol* for an agent.
 
 Neither is a WebKit limitation. WebKit's inspector frontend is in the open-source tree, and the GTK port hands it to
 applications as ordinary public API (`webkit_web_view_get_inspector`, `webkit_web_inspector_show`). Orion has
