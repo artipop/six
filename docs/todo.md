@@ -1,51 +1,25 @@
 # TODO
 
-What is planned but not built. Ordered by how much it is missed, not by effort.
+What is planned but not built. Ordered by how much it is missed, not by effort. Whatever has a brief a session can
+be handed is in [tasks/](tasks/README.md), and its section here is a pointer.
 
 ## Two switches in the same corner mean two different sizes of thing
 
-`savoia://configuration` has two panes that open with a switch, and the switch means something
-different in each. Privacy puts **Block Ads and Trackers** in the pane's own header row, top right
-beside the segmented picker (`ConfigurationPageView.PrivacyConfiguration`) — and it governs one of
-the three segments, leaving Site Permissions and Certificates working. Assistant puts **Use Language
-Models and Agents** in the first row of its Form (`AssistantPane`) — and it governs far more than
-the pane: the ⌘E line, the agent path, the MCP server, the reading of a page's selection. So the switch that sits in the chrome, where it reads as the master of everything under it, is
-the narrow one; the switch that sits in the list, where it reads as one setting among many, is the
-broadest in the application.
-
-Neither placement is wrong on its own, and the scopes are real — what is missing is a rule that
-makes the difference visible before it is discovered. Options, none chosen: one place for a pane's
-master switch and a sentence under it saying what it reaches; or the header row reserved for
-switches that reach the whole pane, with the ad-blocking one moving down into Blocking's own list
-where its scope is; or the broad one keeping its own shape, since turning off every model in the
-browser is not the same kind of act as turning off a filter list.
-
-Acceptance: a person who has used one of the two panes can predict, without trying it, how far the
-other's switch reaches.
+Configuration has two panes that open with a switch, and the switch reaches a different distance in each. No rule
+chosen — [tasks/design/21-open-design-questions.md](tasks/design/21-open-design-questions.md).
 
 ## Help inside the app
 
-Savoia has no Help menu content and no help book: the only account of what a setting does is the
-VitePress guide on the site. That used to be papered over by captions under almost every setting,
-which made the configuration pages read like the guide and were cut down to the few that say
-something a person cannot do without (a consequence, a missing step). What is owed is a Help menu
-that opens the guide — the page for the pane in front of you, in the interface language — and a
-`?` button on each configuration pane that goes to the same place. Offline is the open question: a
-help book bundled with the app, or the guide's built pages shipped as resources and opened in a
-window of Savoia's own.
+No Help menu content and no help book: the only account of what a setting does is the guide on the site. A Help
+menu and a `?` on each pane that open the guide's page for what is in front are item 6 of
+[tasks/browser/13-small-things.md](tasks/browser/13-small-things.md). Offline is the open question after that: a
+help book bundled with the app, or the guide's built pages shipped as resources and opened in a window of Savoia's
+own.
 
 ## The ring's arrows are three keys
 
-`⌃⇧←` / `⌃⇧→` walk the cards while the ring is held open. The `⇧` is a tax, not a design: macOS
-owns plain `⌃←` and `⌃→` for Mission Control's *Move left/right a space* (symbolic hotkeys 79 and 80,
-enabled by default), and the WindowServer takes them before any application's event monitor — so the
-two keys a person would reach for cannot be had at all on a default Mac. The binding matches any
-modifiers, so one extra key is enough to get the event delivered, and `⇧` is the one already under the
-hand from `⌃⇧Tab`.
-
-Three keys to page a carousel is a bad answer wherever it is written down, and
-another one has not been found yet: the ring is held open *by* `⌃`, so every key it can answer is a
-`⌃` chord, and the arrows are the only pair that says "the card over there" without being learned.
+`⌃⇧←` / `⌃⇧→`, because macOS owns the two-key ones. No better answer found —
+[tasks/design/21-open-design-questions.md](tasks/design/21-open-design-questions.md).
 
 ## Popups: what the window still lacks
 
@@ -64,61 +38,14 @@ source), `.pdf` or `.txt`. Downloads are built without `WKDownload` at all — s
 
 ## Bookmarks: images
 
-Today a bookmark keeps images only as `![alt](src)` in the Markdown and `og:image` in the front matter; nothing in
-a picture is searchable. The plan, in the order it should be built ([bookmarks.md](bookmarks.md#embeddings) has what
-the SDK offers and doesn't):
-
-1. **OCR + labels, locally (Vision)** — the base. When a page is bookmarked, download its large images (≥ 120 px, at
-   most ~20 per page) into `Bookmarks/<slug>/images/`, run `RecognizeTextRequest` (multilingual OCR) and
-   `ClassifyImageRequest` (~1300 labels) on each, and store the result as chunks of a new kind —
-   `bookmark_chunks(kind: image, imageURL, text)` — embedded like any text. Screenshots, diagrams, infographics,
-   menus, tables-as-pictures become findable by their words; a photo by its labels. Don't lean on `alt` or
-   `<figcaption>` — they are usually empty or wrong; use them only as extra words when present.
-2. **Descriptions from Foundation Models** (macOS 27: the on-device model takes `Attachment<ImageAttachmentContent>`
-   — `CGImage`, `CIImage`, `CVPixelBuffer`, `imageURL:`; nothing else, no PDF). Ask for a one-line description per
-   image, in the user's language, and store it as another image chunk. Seconds per image, needs Apple Intelligence
-   assets — a budget of ~10 images per page, in the background after step 1. Decide after seeing step 1 on real pages.
-3. **A multimodal embedder** (Voyage `voyage-multimodal-3`, Cohere Embed v4) as a second `Embedder` conformer:
-   image chunks embedded as images, text as text, one space — real text→image search and cross-lingual text at the
-   same time. Remote, keyed, images leave the Mac; a setting, off by default.
-
-PDFs: the model doesn't take them; `PDFPage.string` for the text layer and page renders as images through step 1/2
-when `ReadablePage` learns to read a PDF `WebPage`.
+Nothing in a bookmark's pictures is searchable. Three steps, OCR and labels first —
+[tasks/bookmarks/16-images-in-bookmarks.md](tasks/bookmarks/16-images-in-bookmarks.md).
 
 ## Extensions: the tab a content script cannot see
 
-Hosting is built ([extensions.md](extensions.md)): install from a folder or an archive, a controller per profile,
-actions in the top bar, permission prompts, and a compatibility verdict shown before anything runs. The one gap
-behind it — `WKWebExtensionTab.webView(for:)` needed the live `WKWebView` and `WebPage` hands its own out to
-nobody — now answers on macOS, through `WebViewResponder`'s existing per-tab lookup (a view-tree walk for
-`is WKWebView`, matched by frame containment — not reflection into `WebPage`'s own storage, which was tried,
-works, and stays unused). What that closes — messaging between a content script and its extension,
-`scripting.executeScript`/`insertCSS`, uBlock Origin Lite's per-tab logic — is confirmed at the API level
-(`webView(for:)` now answers the right tab correctly) but **not yet re-measured end to end**: a fresh MV3 test
-extension hit a content-script-injection snag unrelated to this method in the same session, so the "what works"
-table in [extensions.md](extensions.md) still describes the state from before this fix. iOS has no view-tree walk
-yet and still answers `nil`.
-
-The move that would close it without a workaround is upstream: nothing on bugs.webkit.org mentions `WKWebExtension`
-and `WebPage` together, so this wants a bug (and a Feedback) asking for the backing view — or for a way to associate
-a `WebPage` with a tab — with the measurements from [extensions.md](extensions.md) as the case. `WebPage.isInspectable`
-is the precedent: something that lives on `WKWebView`, lifted into the new API.
-
-Smaller things that follow once the boundary moves (or that are worth doing anyway): a workspace per extension
-window rather than one window per profile strip.
-
-**Extension pages inside Savoia's own interface.** An extension's options page, its dashboard and the pages it opens
-with `tabs.create` open today in a plain `NSWindow` of their own (`ExtensionStore.openExtensionPage`), because a
-column is a `WebPage` and WebKit will not load an extension's page as a main frame into one
-([extensions.md](extensions.md#extension-pages-get-a-window-not-a-column)). Try to fit them into the row anyway.
-The options, cheapest first: a panel Savoia places and sizes over the focused column instead of a free-floating window
-(still a `WKWebView` from `context.webViewConfiguration`); a column kind that hosts that `WKWebView` through
-`NSViewRepresentable` — an exception to the `WebPage`-only rule, to be weighed against everything such a column would
-not have (find, translation, highlights, DevTools capture, discarding); or, if `WebPage.Configuration` ever takes a
-configuration or a `requiredWebExtensionBaseURL` ([api-watch.md](api-watch.md)), ordinary columns with nothing
-special about them. The new-tab override is blocked on the same thing.
-
-`commands` bound to real keys is no longer on this list — see [extensions.md](extensions.md#commands-an-extensions-own-shortcuts).
+Hosting is built ([extensions.md](extensions.md)); the per-tab half is fixed at the API level and not re-measured end
+to end. The measurement is in [tasks/measure/12-one-sitting.md](tasks/measure/12-one-sitting.md); the WebKit bug to file and
+extension pages inside Savoia's interface are in [tasks/extensions/20-extensions-next.md](tasks/extensions/20-extensions-next.md).
 
 ## Someday: Savoia's own WebKit build
 
@@ -153,21 +80,8 @@ same capability from the other end.
 
 ## The assistant: what the three surfaces still owe
 
-Built: the catalog of verbs, the bar at a selection, the caret in a field, and the one-answer ⌘E
-line ([assistant.md](assistant.md)). What was deliberately left for later, in the order it is
-missed:
-
-1. **Ghost text in the field itself.** A rewrite arrives in the strip at the bottom of the window
-   and goes into the page on Return; the thing to build is the answer shown *in place* — grey text
-   after the caret, Tab to take it — which needs an overlay positioned on a caret rectangle that
-   moves with every keystroke, inside a page whose scrolling Savoia does not own. The strip is the
-   honest version until that is measured.
-2. **A verb of your own.** The catalog is a Swift array; the row that would make it a setting — a
-   title, a prompt, where it applies — is the smallest useful next feature, and the reason the type
-   is shaped the way it is.
-3. **Every model from the welcome.** Any ACP agent can be added by path and arguments now (Configuration ▸
-   Assistant ▸ Agents, `ModelChoice.customAgent`), but the welcome's provider step still knows only its own four
-   doors: a custom agent and Private Cloud Compute are not offered there.
+Ghost text in the field itself, and a verb of one's own —
+[tasks/assistant/18-ghost-text-and-own-verbs.md](tasks/assistant/18-ghost-text-and-own-verbs.md).
 
 ## Dictation: saying it instead of typing it
 
@@ -177,17 +91,9 @@ nothing, a Settings section with the model's Delete, a key, the phone — is at 
 
 ## Developer tools: what Chrome's devtools MCP has and Savoia does not
 
-Web Inspector and capture are built ([devtools.md](devtools.md)): console, network, screenshots, over MCP. Acting on
-a page is built too ([agent-actions.md](agent-actions.md)): `page_snapshot` numbers the page's controls, and `click`,
-`fill`, `select_option`, `press_key`, `scroll_page` and `wait_for` take those numbers, the click and the keys as real
-events. What is still missing:
-
-- **Hover, drag and upload** as tools.
-- **Performance traces and emulation** (CPU/network throttling, a device viewport). WebKit exposes none of this to
-  an app; it would need the Web Inspector protocol, which is not reachable from the app hosting the page. Worth
-  saying so in the docs and stopping there.
-- **Request bodies and headers**, and request interception. The page-world hooks see status and timing only; going
-  further means either the inspector protocol or a `WKURLSchemeHandler`-shaped proxy, and neither is cheap.
+Acting on a page is built ([agent-actions.md](agent-actions.md)). Missing against Chrome's server: `hover`, `drag`,
+`upload_file`, `handle_dialog`; not reachable: request bodies, throttling, traces. The comparison and the plan —
+[tasks/agents/15-agent-tools-to-chrome.md](tasks/agents/15-agent-tools-to-chrome.md).
 
 ## Geolocation and notifications: WebKit's C API, one header for both
 
@@ -291,21 +197,8 @@ are the problem; not worth guessing at before that.
 
 ## Picture-in-picture — the window half
 
-Two different features deserve the name, and the first of them is now built.
-
-**Video PiP** — WebKit's own, for `<video>` — is done: `⌥⇧P`, a View menu item, and the button in WebKit's own media
-controls. `WebPage.Configuration` turned out to have no field to allow it in, so it is SPI on the terms above, and the
-floating player survives its window being scrolled out of the row, turned into a placeholder card and left behind for
-another profile. What it took, and what was measured, is in [layout.md](layout.md#picture-in-picture).
-
-**Window PiP** is not. Any Savoia window as a small always-on-top panel: an `NSPanel` at `.floating` level hosting the
-page, which leaves the strip while it floats and returns to its column when closed. This is a floating layer, and
-the same mechanism would later serve a proper floating-window mode. Nothing about the video half helps here — that one
-is not even a window WebKit owns: `PIPAgent` draws it in a process of its own, on a system layer, snapped to a corner
-of the screen, and Savoia can neither parent it to the browser window nor place it
-([layout.md](layout.md#picture-in-picture) has the measurements). Which is the argument for this half: a floating
-window Savoia draws is one it can put under the top bar and carry with the browser, and those are the two things asked
-for about the video player that could not be answered.
+Video PiP is built ([layout.md](layout.md#picture-in-picture)). Any tab as a small always-on-top window is not —
+[tasks/browser/17-floating-window.md](tasks/browser/17-floating-window.md).
 
 ## Passkeys and passwords
 
@@ -322,49 +215,9 @@ columns under Storage below.
 
 ## Storage: history pages and retrieval
 
-SQLite is the system of record — chosen and built: SQLiteData over GRDB for `visits`, `settings`, bookmarks and
-their chunks and vectors (`Savoia/Data/`, `Savoia/Bookmarks/`, [architecture.md](architecture.md#persistence),
-[bookmarks.md](bookmarks.md)). The app-state snapshot stays JSON — one small document, not a table. What is left:
-
-- **History pages through the same store.** Bookmarks are the first RAG slice; history is the second: `pages(url,
-  fetchedAt, text)` + FTS5 for visited pages, chunks and vectors like bookmarks, retrieval over what was *read*, not
-  only what was saved. Decide when a visit is worth its text (dwell time, scroll, explicit "remember this").
-- **`Retrieval` as a protocol.** The sqlite-vec KNN lives inside `BookmarkStore.vectorSearch` — one function to
-  swap. Lift it behind a seam before a second index appears ([storage.md](storage.md)).
-- **A bigger embedder when small isn't enough.** ~~One line in `MLXEmbedder.configuration`~~ — done, as a setting:
-  `EmbeddingModelChoice` offers `multilingual-e5-small` and `multilingual-e5-base`, recommended by the Mac's memory
-  and overridable ([bookmarks.md](bookmarks.md)). What is still open is a third rung — `multilingual-e5-large` or
-  `bge-m3`, at 2 GB and up — and whether the ladder should be one the user climbs at all rather than one Savoia climbs
-  for them. An ANN index (USearch) only past ~100k chunks — `vec0` is brute force too, just in C.
-- **Prototypes worth an afternoon**, both caches over SQLite, never systems of record:
-  [Wax](https://github.com/christopherkarani/Wax) — one `.wax` file with FTS5 + Metal HNSW, hybrid search in one
-  query, own embedder and an MCP server; Apple Silicon first, single writer, v0.2. VecturaKit — embed + index +
-  BM25 hybrid in one Swift API over MLX; Apple-only, own files.
-- **The vector index off the Mac** (the `dev` branch, where the other fronts live). ~~Out of scope for the Linux phase~~ — built for both: sqlite-vec is registered
-  per process (`Vectors.register()`) before the first connection, `VectorIndex` holds the `vec0` table and the KNN for
-  every front, and `BookmarkIndexer` writes the rows, the passages and the vectors. The embedder is the same E5, run
-  by transformers.js in a `PageSandbox` (`WebEmbedder`). Measured on Windows; **Linux is written and unrun** — the
-  container is on the Mac. Windows has the bookmark button and `⌃D` now, beside the address the way the Mac's is. A saved page
-  is its whole text there too: `ReadablePage` is in `SavoiaCore` and runs through `PageScriptRunner`, so the star saves
-  the row at once and replaces its title-only passage with the page's a moment later. The Markdown copy is written
-  beside the row there as well (`BookmarkFile`). What is still owed is somewhere to *see* the library — Windows has no
-  bookmarks window, and Linux's `BookmarksSheet` searches titles and addresses only — and the hourly refresh, which
-  needs an off-screen page with the profile's cookies.
-- **Linux build of the data layer** (the `dev` branch). ~~Verify early~~ — done, and it builds: GRDB, SQLiteData, sqlite-vec
-  and the `@Table` macros all compile on Swift 6.3.3/aarch64, as do `AppDatabase`, `ConfigurationStore`, `History`
-  and `Bookmark`. No fallback needed. What it costs is two pins: `swift-sharing` 2.10.0 and
-  `combine-schedulers` 1.2.1 regressed on Linux, and `sqlite-data` 1.11.0 does not compile against
-  `structured-queries` 0.38 on any platform. The package's `Package.resolved` is seeded from the app's,
-  which answers all three — so `swift package update` is Linux-breaking. Measured in [storage.md](storage.md).
-- `record_name` / `sync_state` columns for [sync](sync.md) when it comes; the schema already follows SQLiteData's
-  CloudKit rules (UUID text keys with `ON CONFLICT REPLACE`, no other `UNIQUE`, no column drops, BLOBs in their own
-  tables), so nothing migrates.
-
-Rejected, so it isn't re-litigated: Core Data / SwiftData (Apple-only, no FTS or vectors), Realm (sync dropped, no
-Linux Swift), LMDB/RocksDB (everything built on top), Couchbase Lite (its own sync), DuckDB (poor for many small
-writes), libSQL / Turso (native vectors, but not the system `sqlite3`, young Swift SDK), ObjectBox (closed core, no
-Linux), PGlite (WASM runtime, data unreachable from `Savoia --mcp`), Qdrant / Milvus / Weaviate / Chroma (server
-clients, nothing embedded).
+SQLite is the system of record, built. Search over visited pages, not only saved ones, is not —
+[tasks/storage/19-history-pages.md](tasks/storage/19-history-pages.md), which also carries the state of the store and what
+was rejected.
 
 ## Tab groups by meaning: a classifier instead of cosines
 
