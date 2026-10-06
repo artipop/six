@@ -36,6 +36,12 @@ ACP agent gets them through its own permission dialog, and the ⌘E line never g
 question. The page half is `Savoia/Tools/PageActionScript.swift`, the Swift half `Savoia/Tools/PageActions.swift`, the
 tools themselves in `BrowserTools.swift`.
 
+- **`click` is a mouse event, not a script.** The script finds the element, scrolls it into view and checks what
+  covers it; the click itself is an `NSEvent` handed to the web view (`BrowserTab.click(atViewport:)`), so the page
+  sees a trusted click with a user gesture — a button that opens a window or starts playback works. The scripts
+  themselves run without a gesture ([page-scripts.md](page-scripts.md)). A page with no view on screen, and a
+  `force` click through a cover, still get the scripted `click()`. `fill` sets the value and `press_key`
+  dispatches key events from script, as before.
 - **The script runs in Savoia's own content world** (`WebPage.savoia`), as the readable-text extractor does
   ([architecture.md](architecture.md#page-side-scripts)): a page cannot redefine `querySelectorAll` or a getter to
   show the agent a button the person does not see, or reach the registry to aim a click elsewhere. It is also why the

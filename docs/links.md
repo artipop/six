@@ -62,8 +62,19 @@ the two link items working at all.
   being read, and the strip leans over for a moment to show what arrived (above). There is no modifier for "and
   take me there" — every shift-click is swallowed before Savoia is asked — so the going-there version lives in the
   context menu, as Open Link in New Window next to Open Link Behind.
-- A page that opened the window itself (`window.open`, a `_blank` link clicked plainly) comes **forward**, because it
-  was opened to be looked at.
+- A `_blank` link clicked plainly comes **forward**, because it was opened to be looked at.
+- **`window.open` is not a column.** The decider lets a navigation with no target frame through when it is not a
+  clicked link, and `ScriptedPopups` (`Savoia/Browser/ScriptedPopups.swift`) answers WebKit's `createWebView` with
+  a `WKWebView` built from the configuration it was handed, in an `NSWindow` of its own — the only way the new
+  page gets a `window.opener` and the opener a `WindowProxy`, which is what a sign-in or payment popup reports back
+  through. `WebPage` cannot be that view: it has no initialiser from a `WKWebViewConfiguration`, and its UI
+  delegate answers no `createWebView`, so the answer comes from a delegate placed in front of `WebPage`'s own that
+  forwards everything else. The window shows the page's title, its host (with the scheme when it is not https)
+  and a lock; `window.close()` and ⌘W close it. `SAVOIA_NO_POPUPS=1` goes back to a column with no opener.
+
+  What such a window does not have: Savoia's dialogs (`alert` shows nothing, `confirm` is false), the permission
+  bar (WebKit's own prompt asks, and remembers nothing), downloads, history, translation, the ⌘E line. It is a
+  place to finish a sign-in, not a second browser.
 - A link that is not the web — `magnet:`, `mailto:`, `tel:`, a custom scheme — goes to the system, not into a
   column. `ExternalScheme` in [`ExternalScheme.swift`](../Savoia/Browser/ExternalScheme.swift) — holds the one rule, and all
   three routes ask it: the decider (a link clicked **in place** — WebKit does call the decider for `magnet:`, and a

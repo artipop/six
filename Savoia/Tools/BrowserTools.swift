@@ -786,7 +786,7 @@ final class BrowserToolCatalog {
 
     private func snapshotText(_ tab: BrowserTab, _ args: ACPJSON) async throws -> String {
         let snapshot = try await PageActions.snapshot(
-            tab.page,
+            tab,
             maxElements: min(max(10, args["max_elements"]?.intValue ?? PageActions.defaultMaxElements), 1000),
             textLimit: min(max(0, args["text_chars"]?.intValue ?? PageActions.defaultTextLimit), 20000))
         if args["format"]?.stringValue == "json" { return PageActions.json(snapshot, window: tab.id.uuidString) }
@@ -800,7 +800,9 @@ final class BrowserToolCatalog {
         arguments["ref"] = args["ref"]?.stringValue ?? ""
         let result: [String: Any]
         do {
-            result = try await PageActions.run(tab.page, script, arguments: arguments)
+            result = script == PageActionScript.click
+                ? try await PageActions.click(tab, arguments: arguments)
+                : try await PageActions.run(tab, script, arguments: arguments)
         } catch let failure as PageActions.Failure {
             throw BrowserTool.Failure(message: failure.message)
         }

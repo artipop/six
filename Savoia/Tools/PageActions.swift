@@ -17,18 +17,18 @@ enum PageActions {
     nonisolated static let defaultMaxElements = 250
     nonisolated static let defaultTextLimit = 3000
 
-    static func snapshot(_ page: WebPage, maxElements: Int = defaultMaxElements, textLimit: Int = defaultTextLimit) async throws -> [String: Any] {
-        let value = try await page.savoia(PageActionScript.snapshot, arguments: ["maxElements": maxElements, "textLimit": textLimit])
+    static func snapshot(_ tab: BrowserTab, maxElements: Int = defaultMaxElements, textLimit: Int = defaultTextLimit) async throws -> [String: Any] {
+        let value = try await tab.callWithoutGesture(PageActionScript.snapshot, arguments: ["maxElements": maxElements, "textLimit": textLimit])
         guard let snapshot = value as? [String: Any] else { throw Failure(message: "The page returned no snapshot; it may still be navigating — try again") }
         return snapshot
     }
 
     /// Runs one action script and turns the page's own refusal (`{error, detail}`) into a failure the
     /// model reads. A script interrupted by the navigation it caused is a success: the click landed.
-    static func run(_ page: WebPage, _ script: String, arguments: [String: Any]) async throws -> [String: Any] {
+    static func run(_ tab: BrowserTab, _ script: String, arguments: [String: Any]) async throws -> [String: Any] {
         let value: Any?
         do {
-            value = try await page.savoia(script, arguments: arguments)
+            value = try await tab.callWithoutGesture(script, arguments: arguments)
         } catch {
             return ["ok": true, "note": "the page navigated while the action ran"]
         }
@@ -38,6 +38,17 @@ enum PageActions {
             throw Failure(message: error == "stale" ? "\(detail); take a new page_snapshot and use its refs" : detail)
         }
         return result
+    }
+
+    /// A click the page cannot tell from a person's: the script only finds the point, and the event
+    /// goes to the web view. A page with no view on screen, or an element clicked through its cover,
+    /// gets the scripted click, which is neither trusted nor a gesture.
+    static func click(_ tab: BrowserTab, arguments: [String: Any]) async throws -> [String: Any] {
+        let found = try await run(tab, PageActionScript.point, arguments: arguments)
+        guard found["covered"] as? Bool != true, let x = found["x"] as? Double, let y = found["y"] as? Double,
+              tab.click(atViewport: CGPoint(x: x, y: y))
+        else { return try await run(tab, PageActionScript.click, arguments: arguments) }
+        return found
     }
 
     /// After an action: through any navigation it started, then until the DOM stops changing — two
@@ -50,7 +61,7 @@ enum PageActions {
         while Date() < deadline {
             if tab.isLoading {
                 agreeing = 0
-            } else if let now = try? await tab.page.savoia(PageActionScript.settle) as? [Any] {
+            } else if let now = try? await tab.callWithoutGesture(PageActionScript.settle) as? [Any] {
                 let key = now.map { "\($0)" }.joined(separator: "|")
                 agreeing = key == last && now.count > 1 && (now[1] as? String) == "complete" ? agreeing + 1 : 0
                 last = key
@@ -64,7 +75,7 @@ enum PageActions {
     static func wait(for text: String, in tab: BrowserTab, timeout: TimeInterval) async -> Bool {
         let deadline = Date().addingTimeInterval(timeout)
         while Date() < deadline {
-            if !tab.isLoading, (try? await tab.page.savoia(PageActionScript.hasText, arguments: ["text": text])) as? Bool == true { return true }
+            if !tab.isLoading, (try? await tab.callWithoutGesture(PageActionScript.hasText, arguments: ["text": text])) as? Bool == true { return true }
             try? await Task.sleep(for: .milliseconds(150))
         }
         return false

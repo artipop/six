@@ -1,4 +1,7 @@
 import WebKit
+#if os(macOS)
+import AppKit
+#endif
 
 /// Everything Savoia runs inside a page runs here: a `WKContentWorld` of its own. The DOM is shared, the
 /// JavaScript is not — the page cannot redefine `querySelectorAll` or the `innerText` getter to feed
@@ -39,6 +42,25 @@ extension BrowserTab {
             }
         }
         return try answer.value.get()
+    }
+}
+
+extension BrowserTab {
+    /// A mouse click at a point of the page's viewport, in CSS pixels, as an event handed to the web
+    /// view: trusted, and a user gesture. False when the page has no view on screen to hand it to.
+    @discardableResult
+    func click(atViewport point: CGPoint) -> Bool {
+        guard let view = WebViewResponder.shared.webView(for: id), let window = view.window else { return false }
+        let inView = CGPoint(x: point.x, y: view.isFlipped ? point.y : view.bounds.height - point.y)
+        let location = view.convert(inView, to: nil)
+        for (type, send) in [(NSEvent.EventType.leftMouseDown, view.mouseDown(with:)), (.leftMouseUp, view.mouseUp(with:))] {
+            guard let event = NSEvent.mouseEvent(
+                with: type, location: location, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                windowNumber: window.windowNumber, context: nil, eventNumber: 0, clickCount: 1,
+                pressure: type == .leftMouseDown ? 1 : 0) else { return false }
+            send(event)
+        }
+        return true
     }
 }
 

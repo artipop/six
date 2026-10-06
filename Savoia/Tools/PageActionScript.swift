@@ -338,6 +338,19 @@ nonisolated enum PageActionScript {
     return Object.assign(result, { target: describe(e) });
     """#
 
+    /// Where a real click on `ref` should land, after the same checks. Arguments: `ref`, `force`.
+    static let point = library + #"""
+    const e = node(ref);
+    if (!e) return { error: 'stale', detail: 'ref ' + ref + ' is gone from the page' };
+    if (disabled(e)) return { error: 'disabled', detail: describe(e) + ' is disabled' };
+    if (!visible(e)) return { error: 'hidden', detail: describe(e) + ' is not visible' };
+    ensureInView(e);
+    const hit = hitOK(e);
+    if (!hit.ok && !force) return { error: 'covered', detail: describe(e) + ' is covered by ' + hit.cover + '; close what covers it, or scroll' };
+    const { x, y } = center(e);
+    return { ok: true, x, y, covered: !hit.ok, target: describe(e) };
+    """#
+
     /// Arguments: `ref`, `text`, `submit`.
     static let fill = library + #"""
     const e = node(ref);

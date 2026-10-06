@@ -48,32 +48,14 @@ Three keys to page a carousel is a bad answer wherever it is written down, and
 another one has not been found yet: the ring is held open *by* `⌃`, so every key it can answer is a
 `⌃` chord, and the arrows are the only pair that says "the card over there" without being learned.
 
-## Popups: a window the page can script
+## Popups: what the window still lacks
 
-`window.open` hands the page nothing back. Without a user gesture WebKit's popup blocking answers `null`; with one,
-Savoia opens a new column through `BrowserState.openInNewWindow`, which starts a fresh `WebPage` at the address and is
-not the `WKWebView` WebKit asked the UI client for — so the opener gets `null`, and the new page has no
-`window.opener` ([links.md](links.md#a-second-window)). Every site whose sign-in popup reports back through
-`window.opener.postMessage` (OAuth and payment windows, "Sign in with …" buttons) cannot finish in Savoia. Measured
-while building WebMCP's frames ([webmcp.md](webmcp.md#frames-what-webkit-allows-measured)); two wpt tests there
-fail on it and nothing else.
-
-The work is the UI client's `createWebView`: answer it with a view built from the configuration WebKit passes in.
-Measured in October 2026:
-
-- **`WebPage` cannot be that view.** It has no initialiser from a `WKWebViewConfiguration`, and its own UI
-  delegate (`WKUIDelegateAdapter`) implements no `createWebView` — which is why WebKit falls back to asking the
-  navigation decider with no target frame.
-- **A delegate in front of `WebPage`'s can.** `ScriptedPopups` (`SAVOIA_POPUPS=1`, a spike) puts a proxy on the
-  opener's `WKWebView` that forwards everything else and answers `createWebView` with a plain `WKWebView` in a bare
-  `NSWindow`; the decider lets a script-opened window through instead of cancelling it. With it wpt's
-  `enumerateDevices-with-navigation` passes, the `unload-*` files give Safari's result, and
-  `requestStorageAccess` goes from 1/4 to 3/4 — the rest of `storage-access-api` then stops at testdriver actions
-  aimed at a frame, which the runner does not carry yet.
-
-What is not decided is where such a window lives. A tab in Savoia is a `WebPage`; this one cannot be, so it is
-either a window of its own, as now, or a second kind of tab drawn through `NSViewRepresentable`, with whatever of a
-tab's features it is given.
+A window opened with `window.open` has its opener now ([links.md](links.md#a-second-window)), as a `WKWebView` in a
+window of its own. It has none of what a tab has: the page's dialogs, the permission bar, downloads, history. And
+every script-opened window is one, including the many sites that call `window.open(url)` only to mean "a new
+tab" — Safari gives those a tab that still has its opener, which a `WebPage` tab cannot be. Telling the two apart
+by the size the page asked for (`WKWindowFeatures`) is the obvious next step, at the price of the unsized ones
+losing their opener again.
 
 ## Save As: web archives
 

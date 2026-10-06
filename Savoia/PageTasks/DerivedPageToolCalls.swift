@@ -7,7 +7,7 @@ import Foundation
 @MainActor
 enum DerivedPageToolCalls {
     static func tools(on tab: BrowserTab) async throws -> [(tool: WebMCPTool, action: PageTaskRoute.DerivedAction)] {
-        let snapshot = try await PageActions.snapshot(tab.page)
+        let snapshot = try await PageActions.snapshot(tab)
         let origin = origin(of: tab)
         return try await PageTaskRoute.derivedActions(tab, snapshot: snapshot).map { ($0.webMCPTool(origin: origin), $0) }
     }
@@ -43,17 +43,17 @@ enum DerivedPageToolCalls {
         case .type:
             guard let value = values["text"].map(text(of:)) else { throw PageTaskFailure(message: "\(name) needs `text`") }
             try await webMCP.confirm(tool, arguments: arguments, in: tab)
-            _ = try await PageActions.run(tab.page, PageActionScript.fill,
+            _ = try await PageActions.run(tab, PageActionScript.fill,
                                           arguments: ["ref": action.ref ?? "", "text": value, "submit": values["submit"]?.boolValue == true])
             done.append("typed into \"\(action.name)\"")
         case .press:
             try await webMCP.confirm(tool, arguments: arguments, in: tab)
-            _ = try await PageActions.run(tab.page, PageActionScript.click, arguments: ["ref": action.ref ?? "", "force": false])
+            _ = try await PageActions.click(tab, arguments: ["ref": action.ref ?? "", "force": false])
             done.append("pressed \"\(action.name)\"")
         }
         await PageActions.settle(tab)
         let summary = done.isEmpty ? "\(name): nothing to do — no argument named a field." : "\(name): " + done.joined(separator: ", ") + "."
-        guard let after = try? await PageActions.snapshot(tab.page) else { return summary }
+        guard let after = try? await PageActions.snapshot(tab) else { return summary }
         return summary + "\n\n" + PageActions.outline(after, header: (after["url"] as? String) ?? "")
     }
 

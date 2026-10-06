@@ -51,7 +51,7 @@ Savoia makes at load was moved to the gesture-free one. What sets it has not bee
 |---|---|
 | find on page — `FindScript` builds its own ranges and scrolls with `scrollBy({behavior: 'smooth'})` | `SAVOIA_NATIVE_FIND=1` switches ⌘F to `WKWebView.find`, with no script in the page; the default is still `FindScript`. The public API gives no "2 of 5", so the bar says only when there is nothing |
 | translation, the readable copy for bookmarks, export, the accessibility overlay, going to a highlight | stay; `savoia` world, on demand |
-| agent tools — `page_snapshot`, `click`, `fill`, `scroll_page`, `evaluate_javascript` | `evaluate_javascript` runs without a gesture. The acting tools still carry one: without it a button that opens a window or starts a video does nothing — undecided |
+| agent tools — `page_snapshot`, `click`, `fill`, `scroll_page`, `evaluate_javascript` | all run without a gesture; `click` is a real mouse event instead ([agent-actions.md](agent-actions.md#the-acting-tools)) |
 
 ## `interactionState`, and what is not known about it
 

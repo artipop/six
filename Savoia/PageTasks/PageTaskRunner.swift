@@ -134,7 +134,7 @@ final class PageTaskRunner {
         var digests: [String] = []
         while run.steps.count < Self.maxSteps {
             if Task.isCancelled { run.ending = .stopped(String(localized: "Stopped")); break }
-            guard let snapshot = try? await PageActions.snapshot(tab.page) else {
+            guard let snapshot = try? await PageActions.snapshot(tab) else {
                 run.ending = .stopped(String(localized: "The page could not be read"))
                 break
             }
@@ -172,7 +172,7 @@ final class PageTaskRunner {
                 return run
             }
             await execute(&step, snapshot: snapshot, goal: goal, run: run, tab: tab)
-            if let after = try? await PageActions.snapshot(tab.page) {
+            if let after = try? await PageActions.snapshot(tab) {
                 step.changedNothing = Self.digest(after) == Self.digest(snapshot)
             }
             run.steps.append(step)
@@ -392,14 +392,14 @@ final class PageTaskRunner {
         do {
             switch step.operation {
             case "CLICK":
-                _ = try await PageActions.run(tab.page, PageActionScript.click, arguments: ["ref": ref, "force": false])
+                _ = try await PageActions.click(tab, arguments: ["ref": ref, "force": false])
             case "TYPE_TEXT":
                 let text = step.text ?? ""
-                _ = try await PageActions.run(tab.page, PageActionScript.fill, arguments: ["ref": ref, "text": text, "submit": false])
+                _ = try await PageActions.run(tab, PageActionScript.fill, arguments: ["ref": ref, "text": text, "submit": false])
             case "SELECT":
-                _ = try await PageActions.run(tab.page, PageActionScript.select, arguments: ["ref": ref, "option": step.text ?? ""])
+                _ = try await PageActions.run(tab, PageActionScript.select, arguments: ["ref": ref, "option": step.text ?? ""])
             case "SCROLL_DOWN", "SCROLL_UP":
-                _ = try await PageActions.run(tab.page, PageActionScript.scroll, arguments: ["ref": "", "direction": step.operation == "SCROLL_DOWN" ? "down" : "up"])
+                _ = try await PageActions.run(tab, PageActionScript.scroll, arguments: ["ref": "", "direction": step.operation == "SCROLL_DOWN" ? "down" : "up"])
             case "WAIT":
                 try? await Task.sleep(for: .milliseconds(400))
             case "CALL_TOOL":

@@ -44,22 +44,11 @@ enum TestDriver {
                 surfaces: .mcp,
                 run: { args in
                     let tab = try tab(args)
-                    guard let view = WebViewResponder.shared.webView(for: tab.id), let host = view.window else {
-                        throw BrowserTool.Failure(message: "The window's page is not on screen")
-                    }
                     guard let x = args["x"]?.doubleValue, let y = args["y"]?.doubleValue else {
                         throw BrowserTool.Failure(message: "x and y are required")
                     }
-                    let inView = CGPoint(x: x, y: view.isFlipped ? y : view.bounds.height - y)
-                    let location = view.convert(inView, to: nil)
-                    for (type, send) in [(NSEvent.EventType.leftMouseDown, view.mouseDown(with:)),
-                                         (.leftMouseUp, view.mouseUp(with:))] {
-                        guard let event = NSEvent.mouseEvent(
-                            with: type, location: location, modifierFlags: [],
-                            timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: host.windowNumber,
-                            context: nil, eventNumber: 0, clickCount: 1, pressure: type == .leftMouseDown ? 1 : 0)
-                        else { throw BrowserTool.Failure(message: "No event could be made") }
-                        send(event)
+                    guard tab.click(atViewport: CGPoint(x: x, y: y)) else {
+                        throw BrowserTool.Failure(message: "The window's page is not on screen")
                     }
                     return "ok"
                 }

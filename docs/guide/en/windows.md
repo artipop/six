@@ -39,10 +39,15 @@ A link that is not the web — `magnet:`, `mailto:`, `tel:`, a custom scheme —
 goes to the system rather than becoming a tab, and it does so wherever it was
 clicked: in place, in a new tab, or pasted into the address bar. The address
 bar hands one over only when an app on this Mac claims the scheme; with nothing
-to open it, what was typed is a search like anything else. A page that opened a tab itself
-(`window.open`, a `target=_blank` link) comes forward: it was opened to be looked
-at. WebKit's own popup blocking runs before any of this, so an ad that opens
-itself gets no tab.
+to open it, what was typed is a search like anything else. A `target=_blank` link
+opens a tab, and it comes forward: it was opened to be looked at.
+
+A window a page opens by script (`window.open`) — signing in through another service,
+a payment — is a window of its own and not a tab: the page's title, its address under
+it, and a lock while the connection is secure. It stays connected to the page that
+opened it, so it can hand a result back and close itself; ⌘W closes it while it is in
+front. WebKit's own popup blocking runs before any of this, so an ad that opens
+itself gets no window.
 
 ## The page's context menu
 

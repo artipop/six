@@ -90,7 +90,7 @@ enum PageTaskRoute {
     static func fill(_ form: DerivedAction, values: [String: String], submit: Bool, tab: BrowserTab) async throws -> [String] {
         var done: [String] = []
         var checked: [String: Bool] = [:]
-        if form.fields.contains(where: { $0.input == .toggle }), let snapshot = try? await PageActions.snapshot(tab.page) {
+        if form.fields.contains(where: { $0.input == .toggle }), let snapshot = try? await PageActions.snapshot(tab) {
             for element in snapshot["elements"] as? [[String: Any]] ?? [] {
                 if let ref = element["ref"] as? String, let state = element["checked"] as? Bool { checked[ref] = state }
             }
@@ -99,20 +99,20 @@ enum PageTaskRoute {
             guard let value = values.first(where: { $0.key.caseInsensitiveCompare(field.name) == .orderedSame })?.value else { continue }
             switch field.input {
             case .text:
-                _ = try await PageActions.run(tab.page, PageActionScript.fill, arguments: ["ref": field.ref, "text": value, "submit": false])
+                _ = try await PageActions.run(tab, PageActionScript.fill, arguments: ["ref": field.ref, "text": value, "submit": false])
                 done.append("filled \"\(field.name)\"")
             case .choice:
-                _ = try await PageActions.run(tab.page, PageActionScript.select, arguments: ["ref": field.ref, "option": value])
+                _ = try await PageActions.run(tab, PageActionScript.select, arguments: ["ref": field.ref, "option": value])
                 done.append("chose \"\(value)\" in \"\(field.name)\"")
             case .toggle:
                 let wanted = ["true", "1", "yes", "on"].contains(value.lowercased())
                 guard checked[field.ref] != wanted else { continue }
-                _ = try await PageActions.run(tab.page, PageActionScript.click, arguments: ["ref": field.ref, "force": false])
+                _ = try await PageActions.click(tab, arguments: ["ref": field.ref, "force": false])
                 done.append("\(wanted ? "checked" : "unchecked") \"\(field.name)\"")
             }
         }
         if submit, let button = form.submitRef {
-            _ = try await PageActions.run(tab.page, PageActionScript.click, arguments: ["ref": button, "force": false])
+            _ = try await PageActions.click(tab, arguments: ["ref": button, "force": false])
             done.append("pressed \"\(form.submitName ?? button)\"")
         }
         return done
