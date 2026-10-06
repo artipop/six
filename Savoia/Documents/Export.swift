@@ -12,6 +12,8 @@ import WebKit
 enum Exporter {
     enum Format: String, CaseIterable, Identifiable {
         case markdown, html, pdf, text
+        /// The page with what it loaded — images, styles, frames — in one file, as WebKit writes it.
+        case webArchive
         /// What the server sent, byte for byte — a raw log, a JSON reply, an image. Offered only for
         /// a page that is not HTML; its type is the one WebKit reports for the document.
         case original
@@ -22,6 +24,7 @@ enum Exporter {
             switch self {
             case .markdown: UTType(filenameExtension: "md") ?? .plainText
             case .html: .html
+            case .webArchive: .webArchive
             case .pdf: .pdf
             case .text: .plainText
             case .original: .data
@@ -32,6 +35,7 @@ enum Exporter {
             switch self {
             case .markdown: "Markdown"
             case .html: "HTML"
+            case .webArchive: "Web Archive"
             case .pdf: "PDF"
             case .text: "Plain Text"
             case .original: "Original"
@@ -40,7 +44,7 @@ enum Exporter {
 
         static func formats(for tab: BrowserTab, served: UTType? = nil) -> [Format] {
             if tab.isDocument { return [.markdown, .html, .pdf] }
-            return served == nil ? [.html, .pdf, .text] : [.original, .pdf, .text]
+            return served == nil ? [.html, .webArchive, .pdf, .text] : [.original, .pdf, .text]
         }
 
         static func format(for url: URL, of tab: BrowserTab, served: UTType? = nil) -> Format {
@@ -114,7 +118,7 @@ enum Exporter {
     static func data(of tab: BrowserTab, as format: Format) async throws -> Data {
         if let document = tab.document {
             switch format {
-            case .markdown, .text, .original:
+            case .markdown, .text, .original, .webArchive:
                 return Data(document.text.utf8)
             case .html:
                 return Data(Markdown.page(title: document.title, markdown: document.text).utf8)
@@ -132,6 +136,11 @@ enum Exporter {
         case .html:
             let source = (try? await tab.page.savoia("return '<!DOCTYPE html>\\n' + document.documentElement.outerHTML")) as? String ?? ""
             return Data(source.utf8)
+        case .webArchive:
+            let page = tab.page
+            return try await withCheckedThrowingContinuation { continuation in
+                page.createWebArchiveData { continuation.resume(with: $0) }
+            }
         case .pdf:
             return try await tab.page.pdf()
         case .text, .markdown:

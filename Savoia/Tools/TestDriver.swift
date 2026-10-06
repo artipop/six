@@ -124,6 +124,20 @@ enum TestDriver {
                 }
             ),
             BrowserTool(
+                name: "testdriver_export",
+                description: "What Save As would write for the window in a format: its size and how it starts.",
+                parameters: [window, .init(name: "format", description: "html, webArchive, pdf or text.", required: true)],
+                surfaces: .mcp,
+                run: { args in
+                    let tab = try tab(args)
+                    guard let format = Exporter.Format(rawValue: args["format"]?.stringValue ?? "") else {
+                        throw BrowserTool.Failure(message: "No such format")
+                    }
+                    let data = try await Exporter.data(of: tab, as: format)
+                    return "\(data.count) bytes, starting \(String(decoding: data.prefix(8), as: UTF8.self))"
+                }
+            ),
+            BrowserTool(
                 name: "testdriver_discard_pages",
                 description: "Gives back the page of every window that is not on screen, as the page budget would.",
                 surfaces: .mcp,
