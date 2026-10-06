@@ -995,18 +995,6 @@ final class BrowserTab: Identifiable {
         load(url)
     }
 
-    /// A page that navigates while it has the screen is taken out of fullscreen with its view left in
-    /// no window at all, and the tab is blank from then on. Out first, then the navigation.
-    func leaveElementFullscreen() async {
-        #if os(macOS)
-        guard let page = livePage, page.fullscreenState != .notInFullscreen else { return }
-        _ = try? await callWithoutGesture("if (document.fullscreenElement) await document.exitFullscreen();", in: .page)
-        for _ in 0..<40 where page.fullscreenState != .notInFullscreen {
-            try? await Task.sleep(for: .milliseconds(50))
-        }
-        #endif
-    }
-
     private func releaseMediaHold() {
         guard mediaHold != nil else { return }
         mediaHold = nil

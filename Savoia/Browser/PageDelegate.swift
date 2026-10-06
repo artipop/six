@@ -74,7 +74,6 @@ final class PageDelegate: NSObject, WKNavigationDelegate, WKUIDelegate {
         if action.targetFrame == nil { return .allow }
         // Before the load: an allowlisted site must never have the rules applied to it.
         if url.scheme?.hasPrefix("http") == true { tab.blocker?.note(tab.id, showing: url) }
-        if action.targetFrame?.isMainFrame == true { await tab.leaveElementFullscreen() }
         return .allow
     }
 
