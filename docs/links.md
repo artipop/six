@@ -63,18 +63,35 @@ the two link items working at all.
   take me there" — every shift-click is swallowed before Savoia is asked — so the going-there version lives in the
   context menu, as Open Link in New Window next to Open Link Behind.
 - A `_blank` link clicked plainly comes **forward**, because it was opened to be looked at.
-- **`window.open` is not a column.** The decider lets a navigation with no target frame through when it is not a
+- **`window.open` is a window when the page asked something of it.** The decider lets a navigation with no target frame through when it is not a
   clicked link, and `ScriptedPopups` (`Savoia/Browser/ScriptedPopups.swift`) answers WebKit's `createWebView` with
   a `WKWebView` built from the configuration it was handed, in an `NSWindow` of its own — the only way the new
   page gets a `window.opener` and the opener a `WindowProxy`, which is what a sign-in or payment popup reports back
   through. `WebPage` cannot be that view: it has no initialiser from a `WKWebViewConfiguration`, and its UI
   delegate answers no `createWebView`, so the answer comes from a delegate placed in front of `WebPage`'s own that
   forwards everything else. The window shows the page's title, its host (with the scheme when it is not https)
-  and a lock; `window.close()` and ⌘W close it. `SAVOIA_NO_POPUPS=1` goes back to a column with no opener.
+  and a lock; `window.close()` and ⌘W close it.
 
-  What such a window does not have: Savoia's dialogs (`alert` shows nothing, `confirm` is false), the permission
-  bar (WebKit's own prompt asks, and remembers nothing), downloads, history, translation, the ⌘E line. It is a
-  place to finish a sign-in, not a second browser.
+  **Which one is a window.** Other browsers split on the features string — none is a tab, a size or a hidden bar
+  is a window — and their tab keeps its opener, which a `WebPage` tab cannot. So the rule here has a second
+  clause: a call that asked nothing (`WKWindowFeatures` all nil: size, position, the three bars, resizing) **and**
+  named an http(s) address is a tab with no opener, `createWebView` answering nil; anything else is the window.
+  The second clause is for `window.open()` with the address assigned afterwards — it can only reach the view
+  WebKit was handed, and a tab would stay blank. Clicked on live sites in October 2026: Sign in with Google (on
+  Reddit) asks 500×550 and Telegram's login widget 550×650, both with the bars off; YouTube's Share to X,
+  Facebook, WhatsApp and Reddit, and a link in vscode.dev, ask nothing — and vscode.dev and YouTube's Share by
+  email open the window empty. Vercel's Continue with GitHub opens nothing at all, it navigates. What the rule
+  costs is a site that opens an unsized window by address and still waits for a message from it.
+  `SAVOIA_NO_POPUPS=1` makes every one a tab, `SAVOIA_ALL_POPUPS=1` every one a window — the wpt stand runs
+  with the second, because the tests open unsized windows by address and talk to them. Each call is one line in
+  the log, with what it asked.
+
+  The window answers what a tab answers: the page's dialogs as sheets on it (`PageDialogs`, shared with the
+  tab), the camera and the microphone through `SitePermissions` — the tab's question as a sheet, the answer
+  filed under the same origin and profile, so either one remembers the other's — and a file goes to the
+  downloads, closing a window that was opened only to carry it. The window is its own UI delegate behind the
+  same proxy that answers `createWebView`. What it still does not have: history, translation, the ⌘E line. It
+  is a place to finish a sign-in, not a second browser.
 - A link that is not the web — `magnet:`, `mailto:`, `tel:`, a custom scheme — goes to the system, not into a
   column. `ExternalScheme` in [`ExternalScheme.swift`](../Savoia/Browser/ExternalScheme.swift) — holds the one rule, and all
   three routes ask it: the decider (a link clicked **in place** — WebKit does call the decider for `magnet:`, and a

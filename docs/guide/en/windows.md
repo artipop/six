@@ -42,11 +42,15 @@ bar hands one over only when an app on this Mac claims the scheme; with nothing
 to open it, what was typed is a search like anything else. A `target=_blank` link
 opens a tab, and it comes forward: it was opened to be looked at.
 
-A window a page opens by script (`window.open`) — signing in through another service,
-a payment — is a window of its own and not a tab: the page's title, its address under
-it, and a lock while the connection is secure. It stays connected to the page that
-opened it, so it can hand a result back and close itself; ⌘W closes it while it is in
-front. WebKit's own popup blocking runs before any of this, so an ad that opens
+A window a page opens by script (`window.open`) and asks a size for — signing in
+through another service, a payment — is a window of its own and not a tab: the page's
+title, its address under it, and a lock while the connection is secure. It stays
+connected to the page that opened it, so it can hand a result back and close itself;
+⌘W closes it while it is in front. The page's messages and questions appear on that
+window; **Allow** and **Block** answer a question about the camera and the microphone,
+and the answer is remembered for the site as it is in a tab. A file such a window
+hands over goes to the downloads. When the page asked nothing about the window and
+only named an address — Share, a link in a web app — an ordinary tab opens. WebKit's own popup blocking runs before any of this, so an ad that opens
 itself gets no window.
 
 ## The page's context menu

@@ -391,7 +391,7 @@ final class SitePermissions {
     /// Filing them together under `file://` is not a shortcut — it is what that origin *is*, and it
     /// beats the alternative of denying a local page with no question asked.
     #if canImport(WebKit)
-    private static func string(for origin: WKSecurityOrigin) -> String {
+    static func string(for origin: WKSecurityOrigin) -> String {
         let scheme = origin.`protocol`
         guard !scheme.isEmpty else { return "" }
         guard !origin.host.isEmpty else { return "\(scheme)://" }
@@ -414,7 +414,7 @@ final class SitePermissions {
     }
 
     #if canImport(WebKit)
-    private static func permissions(
+    static func permissions(
         for permission: WebPage.DeviceSensorAuthorization.Permission
     ) -> [SitePermission] {
         switch permission {

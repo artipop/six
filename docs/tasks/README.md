@@ -12,7 +12,6 @@ A task's file is deleted by the commit that finishes it; what was learned goes i
 | # | task | what it changes |
 |---|---|---|
 | 2 | [browser/02-site-icons.md](browser/02-site-icons.md) | favicons that sometimes do not load; no script in the page for them |
-| 3 | [browser/03-popups.md](browser/03-popups.md) | which `window.open` is a window and which a tab; dialogs and permissions in the window |
 | 7 | [permissions/07-geolocation.md](permissions/07-geolocation.md) | geolocation for sites |
 | 8 | [permissions/08-notifications.md](permissions/08-notifications.md) | site notifications |
 | 11 | [browser/11-page-scripts-rest.md](browser/11-page-scripts-rest.md) | one pass: the calls that are still a gesture, the last script on every page, the Apple Pay experiment, `AdvancedRules` on or gone |

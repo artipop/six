@@ -107,10 +107,17 @@ struct SavoiaApp: App {
         // Everything Savoia asks of the `WKWebView` behind a page goes through `WebViewResponder`, the one
         // door to it: picture-in-picture is switched on here (`PagePictureInPicture`), and screen
         // sharing — the one capture `WebPage` publishes nothing about — is watched (`DisplayCapture`).
+        ScriptedPopups.permissions = permissions
+        ScriptedPopups.downloads = browser.downloads
+        ScriptedPopups.openTab = { [weak browser] tabID, url in
+            guard let browser, let tab = browser.tab(tabID) else { return false }
+            browser.openInNewWindow(url, from: tab, background: false)
+            return true
+        }
         WebViewResponder.shared.onWebViewFound = { [weak browser] tabID, webView in
             WebPage.allowPictureInPicture(on: webView)
             browser?.tab(tabID)?.webViewFound(webView)
-            ScriptedPopups.install(on: webView)
+            ScriptedPopups.install(on: webView, tabID: tabID, profileID: browser?.tab(tabID)?.profileID)
             DisplayCapture.observe(webView) { [weak browser] state in
                 browser?.tab(tabID)?.displayCapture = state
             }

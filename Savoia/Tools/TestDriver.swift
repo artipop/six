@@ -142,6 +142,15 @@ enum TestDriver {
                 }
             ),
             BrowserTool(
+                name: "testdriver_answer_sheets",
+                description: "Presses the first button, or the second, of every sheet on the windows pages opened by script.",
+                parameters: [.init(name: "accept", description: "False presses the second button.", type: .boolean)],
+                surfaces: .mcp,
+                run: { args in
+                    "\(ScriptedPopups.answerSheets(accepting: args["accept"]?.boolValue ?? true)) answered"
+                }
+            ),
+            BrowserTool(
                 name: "testdriver_delete_all_cookies",
                 description: "Removes every cookie of the window's profile.",
                 parameters: [window],

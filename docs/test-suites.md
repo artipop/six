@@ -44,6 +44,7 @@ the counterpart of Safari's *Allow Remote Automation*:
 | `set_permission` | `testdriver_set_permission` | files the answer in `SitePermissions` for the page's origin, as the bar would. A name Savoia keeps no answer for (`geolocation`, `notifications`, `clipboard-write`…) is an error, and the test sees it |
 | `click`, and `bless` through it | `testdriver_click` | an `NSEvent` mouse down and up handed straight to the `WKWebView`, at the element's middle. WebKit counts it as a user gesture — measured: the page gets `click`, and a clipboard write that needs activation succeeds |
 | `delete_all_cookies` | `testdriver_delete_all_cookies` | empties the profile's cookie store |
+| — | `testdriver_answer_sheets` | presses the first or the second button of every sheet on a window a page opened — its dialogs and its question about the camera. No testdriver call maps to it; it is how the window was checked |
 | `send_keys` | `testdriver_key` | the runner focuses the element and presses each key: an `NSEvent` key down and up handed to the `WKWebView`. WebDriver's code points (`\uE004` Tab, `\uE03D` Meta…) are turned into `KeyboardEvent.key` names by the runner |
 | `action_sequence` | `testdriver_key`, `testdriver_click` with `action` | the runner walks the sequence tick by tick: `keyDown` / `keyUp`, `pointerMove` / `pointerDown` / `pointerUp` of the left button, `pause`. A wheel source or another button is `not implemented` |
 

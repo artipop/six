@@ -18,22 +18,44 @@ import WebKit
 @MainActor
 struct PageDialogs: WebPage.DialogPresenting {
     func handleJavaScriptAlert(message: String, initiatedBy frame: WebPage.FrameInfo) async {
-        let alert = Self.alert(from: frame, message: message)
-        alert.addButton(withTitle: String(localized: "OK"))
-        _ = await Self.present(alert)
+        await Self.alert(message, from: frame.securityOrigin, on: Self.window)
     }
 
     func handleJavaScriptConfirm(message: String,
                                  initiatedBy frame: WebPage.FrameInfo) async -> WebPage.JavaScriptConfirmResult {
-        let alert = Self.alert(from: frame, message: message)
-        alert.addButton(withTitle: String(localized: "OK"))
-        alert.addButton(withTitle: String(localized: "Cancel"))
-        return await Self.present(alert) == .alertFirstButtonReturn ? .ok : .cancel
+        await Self.confirm(message, from: frame.securityOrigin, on: Self.window) ? .ok : .cancel
     }
 
     func handleJavaScriptPrompt(message: String, defaultText: String?,
                                 initiatedBy frame: WebPage.FrameInfo) async -> WebPage.JavaScriptPromptResult {
-        let alert = Self.alert(from: frame, message: message)
+        let text = await Self.prompt(message, defaultText: defaultText, from: frame.securityOrigin, on: Self.window)
+        return text.map { .ok($0) } ?? .cancel
+    }
+
+    func handleFileInputPrompt(parameters: WKOpenPanelParameters,
+                               initiatedBy frame: WebPage.FrameInfo) async -> WebPage.FileInputPromptResult {
+        let files = await Self.files(parameters, from: frame.securityOrigin, on: Self.window)
+        return files.map { .selected($0) } ?? .cancel
+    }
+
+    // MARK: The dialogs, for a tab and for a window a page opened
+
+    static func alert(_ message: String, from origin: WKSecurityOrigin, on window: NSWindow?) async {
+        let alert = Self.alert(from: origin, message: message)
+        alert.addButton(withTitle: String(localized: "OK"))
+        _ = await present(alert, on: window)
+    }
+
+    static func confirm(_ message: String, from origin: WKSecurityOrigin, on window: NSWindow?) async -> Bool {
+        let alert = Self.alert(from: origin, message: message)
+        alert.addButton(withTitle: String(localized: "OK"))
+        alert.addButton(withTitle: String(localized: "Cancel"))
+        return await present(alert, on: window) == .alertFirstButtonReturn
+    }
+
+    static func prompt(_ message: String, defaultText: String?, from origin: WKSecurityOrigin,
+                       on window: NSWindow?) async -> String? {
+        let alert = Self.alert(from: origin, message: message)
         alert.addButton(withTitle: String(localized: "OK"))
         alert.addButton(withTitle: String(localized: "Cancel"))
         let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 260, height: 22))
@@ -42,48 +64,47 @@ struct PageDialogs: WebPage.DialogPresenting {
         // Without this the sheet opens with the buttons focused and the field — the only reason the
         // sheet exists — waiting for a click.
         alert.window.initialFirstResponder = field
-        return await Self.present(alert) == .alertFirstButtonReturn ? .ok(field.stringValue) : .cancel
+        return await present(alert, on: window) == .alertFirstButtonReturn ? field.stringValue : nil
     }
 
-    func handleFileInputPrompt(parameters: WKOpenPanelParameters,
-                               initiatedBy frame: WebPage.FrameInfo) async -> WebPage.FileInputPromptResult {
+    static func files(_ parameters: WKOpenPanelParameters, from origin: WKSecurityOrigin,
+                      on window: NSWindow?) async -> [URL]? {
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = parameters.allowsMultipleSelection
         // `webkitdirectory` asks for a folder and nothing else; an ordinary input asks for files.
         panel.canChooseDirectories = parameters.allowsDirectories
         panel.canChooseFiles = !parameters.allowsDirectories
-        panel.message = String(localized: "\(Self.host(of: frame)) is asking for a file.")
+        panel.message = String(localized: "\(host(of: origin)) is asking for a file.")
         panel.prompt = String(localized: "Choose")
-        guard let window = Self.window else {
-            return panel.runModal() == .OK ? .selected(panel.urls) : .cancel
+        guard let window else {
+            return panel.runModal() == .OK ? panel.urls : nil
         }
         let response = await withCheckedContinuation { continuation in
             panel.beginSheetModal(for: window) { continuation.resume(returning: $0) }
         }
-        return response == .OK ? .selected(panel.urls) : .cancel
+        return response == .OK ? panel.urls : nil
     }
 
     // MARK: Presenting
 
-    private static func alert(from frame: WebPage.FrameInfo, message: String) -> NSAlert {
+    private static func alert(from origin: WKSecurityOrigin, message: String) -> NSAlert {
         let alert = NSAlert()
-        alert.messageText = String(localized: "\(host(of: frame)) says:")
+        alert.messageText = String(localized: "\(host(of: origin)) says:")
         alert.informativeText = message
         return alert
     }
 
     /// The site behind the frame that asked — a subframe's own origin, not the page's, because that
     /// is who is speaking.
-    private static func host(of frame: WebPage.FrameInfo) -> String {
-        let host = frame.securityOrigin.host
-        return host.isEmpty ? String(localized: "This page") : host
+    static func host(of origin: WKSecurityOrigin) -> String {
+        origin.host.isEmpty ? String(localized: "This page") : origin.host
     }
 
     private static var window: NSWindow? {
         NSApp.keyWindow ?? NSApp.mainWindow ?? NSApp.windows.first { $0.isVisible }
     }
 
-    private static func present(_ alert: NSAlert) async -> NSApplication.ModalResponse {
+    static func present(_ alert: NSAlert, on window: NSWindow?) async -> NSApplication.ModalResponse {
         // No window to hang a sheet on — during a launch, or with every window closed — and the
         // dialog still has to be answerable, so it runs on its own.
         guard let window else { return alert.runModal() }

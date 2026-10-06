@@ -23,12 +23,11 @@ own.
 
 ## Popups: what the window still lacks
 
-A window opened with `window.open` has its opener now ([links.md](links.md#a-second-window)), as a `WKWebView` in a
-window of its own. It has none of what a tab has: the page's dialogs, the permission bar, downloads, history. And
-every script-opened window is one, including the many sites that call `window.open(url)` only to mean "a new
-tab" — Safari gives those a tab that still has its opener, which a `WebPage` tab cannot be. Telling the two apart
-by the size the page asked for (`WKWindowFeatures`) is the obvious next step, at the price of the unsized ones
-losing their opener again.
+A window opened with `window.open` has its opener, the page's dialogs, an answer about the camera and the
+microphone, and downloads ([links.md](links.md#a-second-window)). It has no history, translation or ⌘E line. And a
+call that asks nothing of the window and names an address is a tab with no opener, where Safari's tab keeps it —
+a `WebPage` tab cannot. The sign-in through a popup was not yet walked through by hand on a real service, and the
+microphone was only refused on the stand, never granted.
 
 ## Save As: web archives
 
