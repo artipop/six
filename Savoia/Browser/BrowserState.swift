@@ -327,11 +327,6 @@ final class BrowserState {
         )
     }
 
-    /// How far back a window's trail is written down. WebKit's own list is bounded too, and the
-    /// snapshot is read and written on every change: a browser open for a week should not be
-    /// carrying every address it has ever shown in a file it rewrites once a second.
-    static let rememberedSteps = 50
-
     /// What is kept of one window: its address and title, where it has been, and — for the two kinds
     /// that are not a page — the document beside it or the question an app window was opened with. Written by the session
     /// snapshot and by `remember`, because a window that can be brought back after a relaunch and one
@@ -339,12 +334,8 @@ final class BrowserState {
     private static func entry(for tab: BrowserTab) -> TabSnapshot {
         var entry = TabSnapshot(id: tab.id, profileID: tab.profileID, url: tab.showsStartPage ? nil : tab.currentURL, title: tab.title)
         entry.seenAt = tab.seenAt
-        // Where it has been, so ⌘[ still works after a relaunch. Bounded: a window read all day
-        // accumulates hundreds of addresses, and nobody walks back through hundreds.
-        let trail = tab.trail
-        if !trail.back.isEmpty { entry.back = trail.back.suffix(Self.rememberedSteps) }
-        if !trail.forward.isEmpty { entry.forward = Array(trail.forward.prefix(Self.rememberedSteps)) }
-        entry.state = trail.state
+        // Where it has been, so ⌘[ still works after a relaunch.
+        if let state = tab.trail.state, state.count <= BrowserTab.stateLimit { entry.state = state }
         if let document = tab.document {
             entry.document = DocumentSnapshot(id: document.id, title: document.title, modifiedAt: document.modifiedAt,
                                               fileURL: document.fileURL, showsPreview: document.showsPreview)
@@ -432,9 +423,7 @@ final class BrowserState {
         let tab = makeTab(id: saved.id, profile: profile, restoring: saved.url, title: saved.title)
         // The same trail a window handed to another profile is given, from the file instead of from
         // the window it replaces.
-        if saved.back?.isEmpty == false || saved.forward?.isEmpty == false || saved.state != nil {
-            tab.adopt(BrowserTab.Trail(back: saved.back ?? [], forward: saved.forward ?? [], state: saved.state))
-        }
+        if let state = saved.state { tab.adopt(BrowserTab.Trail(state: state)) }
         return tab
     }
 

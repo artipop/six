@@ -251,10 +251,9 @@ final class BrowserTab: Identifiable {
     /// What the window knows about itself with no page to ask: kept up to date while there is one.
     private var savedTitle = ""
     private var savedURL: URL?
-    /// Back and forward across a discard. WebKit's own lists belong to the page and go with it, so
-    /// the window keeps the addresses and walks them itself once a rebuilt page runs out of its own.
-    @ObservationIgnored private var savedBack: [URL] = []
-    @ObservationIgnored private var savedForward: [URL] = []
+    /// Whether the page that went had anywhere to go, for a window waiting on its state.
+    private var savedCanGoBack = false
+    private var savedCanGoForward = false
     /// WebKit's session state of the page that went: its back-forward list, each entry with its scroll offset.
     @ObservationIgnored private var savedState: Data?
     /// A resumed load's media waits for a gesture (`MediaHold`) — in that load's document only. Lifted
@@ -615,7 +614,7 @@ final class BrowserTab: Identifiable {
         resumeIfNeeded()
     }
 
-    /// Gives the page back to the system. The window keeps its address, title, history stacks, session
+    /// Gives the page back to the system. The window keeps its address, title, session
     /// state and thumbnail, and builds the same page again the next time it is shown — which is what
     /// makes this discarding rather than closing. Called by `LivePageCache`, never by the views.
     func discard() {
@@ -623,9 +622,11 @@ final class BrowserTab: Identifiable {
         savedTitle = title
         savedURL = page.url ?? savedURL
         // A page still waiting for its state has none of its own to take.
-        if pendingURL == nil { savedState = liveState }
-        savedBack += page.backForwardList.backList.map(\.url)
-        savedForward = page.backForwardList.forwardList.map(\.url) + savedForward
+        if pendingURL == nil {
+            savedState = liveState
+            savedCanGoBack = page.canGoBack
+            savedCanGoForward = page.canGoForward
+        }
         // A document is never waiting on an address: its preview is rendered from the text again by
         // `DocumentView` as soon as the column is back on screen.
         if !showsStartPage, isWebPage, let url = page.url { pendingURL = url }
@@ -660,45 +661,35 @@ final class BrowserTab: Identifiable {
 
     // MARK: What survives a move to another profile
 
-    /// A window apart from the store its page was built against: where it has been, where it can go
-    /// forward to, WebKit's session state, and how it last looked.
+    /// A window apart from the store its page was built against: WebKit's session state — the
+    /// back-forward list, each entry with its scroll offset — and how it last looked.
     ///
-    /// A web view's data store is fixed when the view is built and WebKit's back-forward list
-    /// belongs to that page, so a window cannot be handed another profile's cookies. Moving one
-    /// between profiles is therefore a rebuild (`BrowserState.moveTab(_:toProfile:)`), and this is
-    /// everything the window built in its place is given: the three things a discard already keeps,
-    /// plus the picture, which is still a picture of the same page.
+    /// A web view's data store is fixed when the view is built, so a window cannot be handed another
+    /// profile's cookies. Moving one between profiles is therefore a rebuild
+    /// (`BrowserState.moveTab(_:toProfile:)`), and this is what the window built in its place is given.
     struct Trail {
-        var back: [URL] = []
-        var forward: [URL] = []
         var state: Data?
         var picture: PlatformImage?
     }
 
-    /// The trail as it stands, the live page's own lists included — in the same order `discard()`
-    /// joins them, the addresses kept across a discard first and the page's own after.
     var trail: Trail {
-        Trail(back: savedBack + (livePage?.backForwardList.backList.map(\.url) ?? []),
-              forward: (livePage?.backForwardList.forwardList.map(\.url) ?? []) + savedForward,
-              state: pendingURL == nil ? liveState : savedState, picture: thumbnail)
+        Trail(state: pendingURL == nil ? liveState : savedState, picture: thumbnail)
     }
 
-    /// Takes over from the window this one was built to replace. Called before it is first shown: the
-    /// state goes into the page when the window comes on screen, as a discarded window's does.
+    /// Takes over from the window this one was built to replace, before it is first shown.
     func adopt(_ trail: Trail) {
-        savedBack = trail.back
-        savedForward = trail.forward
         savedState = trail.state
         thumbnail = trail.picture
     }
 
-    /// States above this are not kept: `history.state` can be megabytes, and the snapshot is rewritten on every change.
-    nonisolated private static let stateLimit = 512 * 1024
+    /// A state above this is not written to the snapshot, which is rewritten on every change:
+    /// `history.state` can be megabytes. Such a window comes back after a relaunch at its address.
+    nonisolated static let stateLimit = 512 * 1024
 
     /// The state of the page as it stands.
     private var liveState: Data? {
-        guard isWebPage, let state = livePage?.interactionState as? Data, state.count <= Self.stateLimit else { return nil }
-        return state
+        guard isWebPage else { return nil }
+        return livePage?.interactionState as? Data
     }
 
     /// What the page's delegate saw of a navigation.
@@ -803,32 +794,22 @@ final class BrowserTab: Identifiable {
     var isLoading: Bool { liveIsLoading }
     var estimatedProgress: Double { liveProgress }
 
-    var canGoBack: Bool { liveCanGoBack || !savedBack.isEmpty }
-    var canGoForward: Bool { liveCanGoForward || !savedForward.isEmpty }
+    var canGoBack: Bool { liveCanGoBack || (pendingURL != nil && savedCanGoBack) }
+    var canGoForward: Bool { liveCanGoForward || (pendingURL != nil && savedCanGoForward) }
 
-    /// Back through the live page's own list first; when that runs out (a rebuilt page starts with an
-    /// empty one) the window walks the addresses it kept across the discard.
+    /// A window waiting on its session state is given it first: the list is in there.
     func goBack() {
-        if let item = livePage?.backForwardList.backItem {
-            awaitsNavigation = true
-            livePage?.go(to: item)
-            return
-        }
-        guard let url = savedBack.popLast() else { return }
-        if let current = currentURL { savedForward.insert(current, at: 0) }
-        load(url)
+        resumeIfNeeded()
+        guard let item = livePage?.backForwardList.backItem else { return }
+        awaitsNavigation = true
+        livePage?.go(to: item)
     }
 
     func goForward() {
-        if let item = livePage?.backForwardList.forwardItem {
-            awaitsNavigation = true
-            livePage?.go(to: item)
-            return
-        }
-        guard !savedForward.isEmpty else { return }
-        let url = savedForward.removeFirst()
-        if let current = currentURL { savedBack.append(current) }
-        load(url)
+        resumeIfNeeded()
+        guard let item = livePage?.backForwardList.forwardItem else { return }
+        awaitsNavigation = true
+        livePage?.go(to: item)
     }
 
     /// Is there anything here to fetch again? A document is rendered from text Savoia is holding, Savoia's
@@ -905,11 +886,6 @@ final class BrowserTab: Identifiable {
         awaitsNavigation = true
         view.interactionState = state
         LivePageCache.log("resumed \(title) from its session state")
-        // WebKit's own list has these again, so the addresses kept for them would be walked twice.
-        let back = view.backForwardList.backList.map(\.url)
-        let forward = view.backForwardList.forwardList.map(\.url)
-        if !back.isEmpty, Array(savedBack.suffix(back.count)) == back { savedBack.removeLast(back.count) }
-        if !forward.isEmpty, Array(savedForward.prefix(forward.count)) == forward { savedForward.removeFirst(forward.count) }
     }
 
     @discardableResult
