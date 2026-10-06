@@ -60,10 +60,10 @@ extension WKWebView {
     #if os(macOS)
     /// Lets the page behind `webView` float its videos. Called on every claim of a pane, so a view
     /// that already allows it is left alone rather than sent the same preference again.
-    static func allowPictureInPicture(on webView: WKWebView) {
-        let preferences = webView.configuration.preferences
-        guard preferences.responds(to: allowsPictureInPicture) else { return }
-        if preferences.responds(to: allowsPictureInPictureGetter),
+    func allowPictureInPicture() {
+        let preferences = configuration.preferences
+        guard preferences.responds(to: Self.allowsPictureInPicture) else { return }
+        if preferences.responds(to: Self.allowsPictureInPictureGetter),
            preferences.value(forKey: "allowsPictureInPictureMediaPlayback") as? Bool == true { return }
         preferences.setValue(true, forKey: "allowsPictureInPictureMediaPlayback")
     }

@@ -49,7 +49,7 @@ final class AccessibilityOverlay {
 
     /// Reads a window's tree and places it over the window's web view. Throws what a tool should say.
     func read(_ tab: BrowserTab, limit: Int = 2500) async throws -> AXPlacedSnapshot {
-        guard let view = WebViewResponder.shared.webView(for: tab.id), let window = view.window, window.isVisible,
+        guard let view = tab.livePage, let window = view.window, window.isVisible,
               let primary = NSScreen.screens.first else { throw AXReadProblem.notOnScreen }
         let visible = view.visibleRect
         guard visible.width > 40, visible.height > 40 else { throw AXReadProblem.notOnScreen }

@@ -40,7 +40,7 @@ final class ExtensionTabAdapter: NSObject, WKWebExtensionTab {
         // Only a view built with this context's own controller. WebKit refuses any other and says so
         // ("is not configured with the same WKWebExtensionController as extension context") — which
         // it did, every ten minutes, when a tab of one profile had reached another profile's context.
-        guard let webView = WebViewResponder.shared.webView(for: tab.id),
+        guard let webView = tab.livePage,
               webView.configuration.webExtensionController === context.webExtensionController
         else { return nil }
         return webView

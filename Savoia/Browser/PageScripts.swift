@@ -28,26 +28,23 @@ extension WKWebView {
 
 #if os(macOS)
 extension BrowserTab {
-    /// A function body run in the page with no user gesture attached. `callJavaScript` is one to
+    /// A function body run in the page with no user gesture attached. `callAsyncJavaScript` is one to
     /// WebKit: the page may then open windows, play sound and read the clipboard as if a person had
-    /// clicked (docs/page-scripts.md). Needs the tab's view: a page on screen waits for its pane to
-    /// find it, and a page no pane shows has none to ask and gets the ordinary call.
+    /// clicked (docs/page-scripts.md). SPI; without it the ordinary call is all there is.
     func callWithoutGesture(_ functionBody: String, arguments: [String: Any] = [:],
                             in world: WKContentWorld? = nil, frame: WKFrameInfo? = nil) async throws -> Any? {
-        resumeIfNeeded()
         let world = world ?? .savoia
-        var view = WebViewResponder.shared.webView(for: id)
-        if view == nil, cache?.isOnScreen(id) == true { view = await WebViewResponder.shared.awaitedWebView(for: id) }
-        guard let view, view.canCallWithoutGesture
-        else { return try await page.callJavaScript(functionBody, arguments: arguments, contentWorld: world) }
+        let view = page
+        guard view.canCallWithoutGesture
+        else { return try await view.callJavaScript(functionBody, arguments: arguments, contentWorld: world) }
         return try await view.callWithoutGesture(functionBody, arguments: arguments, in: world, frame: frame)
     }
 
     /// A mouse click at a point of the page's viewport, in CSS pixels, as an event handed to the web
-    /// view: trusted, and a user gesture. False when the page has no view on screen to hand it to.
+    /// view: trusted, and a user gesture. False when the page's view is in no window.
     @discardableResult
     func click(atViewport point: CGPoint) -> Bool {
-        WebViewResponder.shared.webView(for: id)?.click(atViewport: point) ?? false
+        livePage?.click(atViewport: point) ?? false
     }
 }
 

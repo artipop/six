@@ -78,7 +78,7 @@ extension KeySelfTest {
         pages: do {
             let tab = browser.newTab(url: URL(string: "about:blank"))
             try? await Task.sleep(for: .milliseconds(1200))
-            guard let web = WebViewResponder.shared.webView(for: tab.id) else {
+            guard let web = tab.livePage else {
                 check(false, "no web view")
                 browser.closeTab(tab.id, remembering: false)
                 break pages
@@ -139,7 +139,7 @@ extension KeySelfTest {
         func focus(_ id: UUID) async {
             browser.selectTab(id)
             try? await Task.sleep(for: .milliseconds(450))
-            _ = window.makeFirstResponder(WebViewResponder.shared.webView(for: id))
+            _ = window.makeFirstResponder(browser.tab(id)?.livePage)
         }
         func press(_ code: UInt16, _ text: String, _ flags: NSEvent.ModifierFlags = []) async {
             for kind in [NSEvent.EventType.keyDown, .keyUp] {

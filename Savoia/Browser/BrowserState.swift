@@ -934,7 +934,7 @@ final class BrowserState {
             return current.absoluteString.split(separator: "#", maxSplits: 1).first.map(String.init) == target
         }) {
             selectTab(existing.id)
-            existing.resumeOnScreen()
+            existing.resumeIfNeeded()
             if url.fragment() != nil { existing.load(url) }
             highlights?.scroll(existing, toHighlightMatching: url)
             return

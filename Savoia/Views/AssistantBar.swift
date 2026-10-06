@@ -456,7 +456,7 @@ struct AnchoredAssistantLine: View {
         // Esc or ⌘E over a comment box means "back to writing", not "nowhere".
         .onDisappear {
             guard assistant.line == nil, assistant.closedByKey,
-                  let web = WebViewResponder.shared.webView(for: tab.id) else { return }
+                  let web = tab.livePage else { return }
             web.window?.makeFirstResponder(web)
         }
     }

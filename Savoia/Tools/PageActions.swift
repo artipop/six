@@ -55,7 +55,7 @@ enum PageActions {
     /// with no place on the keyboard, gets the scripted events, which are not trusted.
     static func press(_ tab: BrowserTab, arguments: [String: Any]) async throws -> [String: Any] {
         guard let key = PageKey(arguments["keyName"] as? String ?? ""),
-              let view = WebViewResponder.shared.webView(for: tab.id), view.window != nil
+              let view = tab.livePage, view.window != nil
         else { return try await run(tab, PageActionScript.press, arguments: arguments) }
         let found = try await run(tab, PageActionScript.focus, arguments: arguments)
         view.press(key)

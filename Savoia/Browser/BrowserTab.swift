@@ -251,7 +251,6 @@ final class BrowserTab: Identifiable {
     @ObservationIgnored private var savedForward: [URL] = []
     /// WebKit's session state of the page that went: its back-forward list, each entry with its scroll offset.
     @ObservationIgnored private var savedState: Data?
-    @ObservationIgnored private var stateWait: Task<Void, Never>?
     /// A resumed load's media waits for a gesture (`MediaHold`) — in that load's document only. Lifted
     /// when the next navigation starts, once the held one has committed.
     private enum MediaHoldState { case loading, shown }
@@ -353,9 +352,7 @@ final class BrowserTab: Identifiable {
         switch device {
         case .screen:
             #if os(macOS)
-            if let webView = WebViewResponder.shared.webView(for: id) {
-                DisplayCapture.setState(state, on: webView)
-            }
+            DisplayCapture.setState(state, on: page)
             #endif
         case .camera:
             Task { await page.setCameraCaptureState(state) }
@@ -535,6 +532,13 @@ final class BrowserTab: Identifiable {
         page.isInspectable = devTools?.isInspectable ?? false
         livePage = page
         observe(page)
+        #if os(macOS)
+        WebViewResponder.shared.register(page, for: id)
+        page.allowPictureInPicture()
+        ScriptedPopups.install(on: page, tabID: id, profileID: profileID)
+        DisplayCapture.observe(page) { [weak self] in self?.displayCapture = $0 }
+        siteIcons?.watch(page)
+        #endif
         if let app {
             app.page = page
             page.load(URLRequest(url: app.url))
@@ -581,6 +585,9 @@ final class BrowserTab: Identifiable {
         livePage?.removeFromSuperview()
         livePage = nil
         pageDelegate = nil
+        #if os(macOS)
+        WebViewResponder.shared.forget(id)
+        #endif
         readPage()
     }
 
@@ -598,8 +605,7 @@ final class BrowserTab: Identifiable {
     func prepareForDisplay() {
         guard !showsStartPage, builtIn == nil, pendingApp == nil else { return }
         materialize()
-        // With a session state it is the pane that resumes it: there is no web view before one.
-        if savedState == nil { resumeIfNeeded() }
+        resumeIfNeeded()
     }
 
     /// Gives the page back to the system. The window keeps its address, title, history stacks, session
@@ -611,11 +617,6 @@ final class BrowserTab: Identifiable {
         savedURL = page.url ?? savedURL
         // A page still waiting for its state has none of its own to take.
         if pendingURL == nil { savedState = liveState }
-        stateWait?.cancel()
-        stateWait = nil
-        #if os(macOS)
-        WebViewResponder.shared.forget(id)
-        #endif
         savedBack += page.backForwardList.backList.map(\.url)
         savedForward = page.backForwardList.forwardList.map(\.url) + savedForward
         // A document is never waiting on an address: its preview is rendered from the text again by
@@ -685,15 +686,10 @@ final class BrowserTab: Identifiable {
     /// States above this are not kept: `history.state` can be megabytes, and the snapshot is rewritten on every change.
     nonisolated private static let stateLimit = 512 * 1024
 
-    /// The state of the page as it stands, which only a web view that has been on screen can give.
+    /// The state of the page as it stands.
     private var liveState: Data? {
-        #if os(macOS)
-        guard isWebPage, livePage != nil, let view = WebViewResponder.shared.webView(for: id),
-              let state = view.interactionState as? Data, state.count <= Self.stateLimit else { return nil }
+        guard isWebPage, let state = livePage?.interactionState as? Data, state.count <= Self.stateLimit else { return nil }
         return state
-        #else
-        return nil
-        #endif
     }
 
     /// What the page's delegate saw of a navigation.
@@ -881,27 +877,8 @@ final class BrowserTab: Identifiable {
     /// Loads a waiting window's page — a restored one, or one whose page was discarded. Called when
     /// the window comes on screen and by the tools.
     func resumeIfNeeded() {
-        guard stateWait == nil, pendingURL != nil else { return }
-        // On screen the web view is about to be found, and only it can take the state.
-        if savedState != nil, cache?.isOnScreen(id) == true { return awaitWebView() }
-        resumeByAddress()
-    }
-
-    /// A waiting window's pane has appeared.
-    func resumeOnScreen() {
-        guard pendingURL != nil, savedState != nil else { return resumeIfNeeded() }
-        awaitWebView()
-    }
-
-    /// Holds the load for the web view (`webViewFound`), and loads the address if none turns up.
-    private func awaitWebView() {
-        guard stateWait == nil else { return }
-        stateWait = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(1))
-            guard !Task.isCancelled, let self else { return }
-            self.stateWait = nil
-            self.resumeByAddress()
-        }
+        guard pendingURL != nil else { return }
+        if isWebPage, let state = savedState { resume(from: state) } else { resumeByAddress() }
     }
 
     private func resumeByAddress() {
@@ -913,15 +890,9 @@ final class BrowserTab: Identifiable {
         page.load(URLRequest(url: url))
     }
 
-    #if os(macOS)
-    /// A pane has found the page's web view: a window waiting with a session state is given it here.
-    func webViewFound(_ view: WKWebView) {
-        siteIcons?.watch(view)
-        guard pendingURL != nil, livePage != nil, let state = savedState else { return }
-        stateWait?.cancel()
-        stateWait = nil
+    private func resume(from state: Data) {
         savedState = nil
-        beginResume()
+        let view = beginResume()
         awaitsNavigation = true
         view.interactionState = state
         LivePageCache.log("resumed \(title) from its session state")
@@ -931,7 +902,6 @@ final class BrowserTab: Identifiable {
         if !back.isEmpty, Array(savedBack.suffix(back.count)) == back { savedBack.removeLast(back.count) }
         if !forward.isEmpty, Array(savedForward.prefix(forward.count)) == forward { savedForward.removeFirst(forward.count) }
     }
-    #endif
 
     @discardableResult
     private func beginResume() -> WKWebView {
@@ -964,8 +934,6 @@ final class BrowserTab: Identifiable {
         savedTitle = ""
         savedURL = url
         savedState = nil
-        stateWait?.cancel()
-        stateWait = nil
         loadStartedAt = Date()
         awaitsNavigation = true
         page.load(URLRequest(url: url))

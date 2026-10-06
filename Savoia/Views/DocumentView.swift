@@ -22,11 +22,6 @@ struct DocumentView: View {
                         // No back, forward or reload: a preview is one page, rendered from the text
                         // again whenever it changes, and it has no history to walk.
                         .id(tab.generation)
-                        #if os(macOS)
-                        // The same handle a web page's pane leaves: the preview's web view is found
-                        // through it like every other (`WebViewResponder`).
-                        .background { WebViewResponder.Handle(tabID: tab.id) }
-                        #endif
                 } else {
                     Color.documentBackground
                 }

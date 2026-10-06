@@ -74,7 +74,7 @@ struct TabPageView: View {
             PageHost(view: page)
                 // WebKit's default is off on macOS, which left YouTube's fullscreen button dead.
                 .id(tab.generation)
-                .onAppear(perform: tab.resumeOnScreen)
+                .onAppear(perform: tab.resumeIfNeeded)
                 .overlay {
                     if isFocused { AccessibilityOverlayView(tab: tab) }
                 }
@@ -90,8 +90,6 @@ struct TabPageView: View {
                     }
                 }
                 .overlay { if capturesClicks { ClickCatcher(action: activate) } }
-                // A handle on this web view, so the keyboard can be given to it (`WebViewResponder`).
-                .background { WebViewResponder.Handle(tabID: tab.id) }
         } else {
             TabPlaceholder(tab: tab, accent: accent)
                 .contentShape(Rectangle())

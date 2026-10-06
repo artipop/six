@@ -55,7 +55,7 @@ enum TestDriver {
                         throw BrowserTool.Failure(message: "x and y are required")
                     }
                     var point = CGPoint(x: x, y: y)
-                    var view = WebViewResponder.shared.webView(for: tab.id)
+                    var view = tab.livePage
                     if let wanted = args["context"]?.stringValue {
                         let place = try await place(ofFrame: wanted, in: tab)
                         point.x += place.offset.x
@@ -85,7 +85,7 @@ enum TestDriver {
                     guard let key = PageKey(args["key"]?.stringValue ?? "") else {
                         throw BrowserTool.Failure(message: "No key of the keyboard is \(args["key"]?.stringValue ?? "")")
                     }
-                    let view = WebViewResponder.shared.webView(for: tab.id)
+                    let view = tab.livePage
                     let held = NSEvent.ModifierFlags(pageKeys: args["modifiers"]?.stringValue ?? "")
                     let sent = switch args["action"]?.stringValue {
                     case "down": view?.key(key, down: true, holding: held)
@@ -117,7 +117,7 @@ enum TestDriver {
                 surfaces: .mcp,
                 run: { args in
                     let tab = try tab(args)
-                    let view = WebViewResponder.shared.webView(for: tab.id)
+                    let view = tab.livePage
                     let host = view?.window.map { String(describing: type(of: $0)) } ?? "no window"
                     let state = tab.livePage.map { "\($0.fullscreenState)" } ?? "no page"
                     return "view \(view == nil ? "not on file" : "on file"), in \(host), superview \(view?.superview == nil ? "none" : "yes"), fullscreen \(state)"
@@ -178,7 +178,7 @@ enum TestDriver {
 
     /// The tab's frames, then those of the windows pages opened: a test's frame may be in either.
     private static func frames(of tab: BrowserTab) async throws -> [Frame] {
-        guard let own = WebViewResponder.shared.webView(for: tab.id), own.responds(to: #selector(FrameTrees.frames(_:))) else {
+        guard let own = tab.livePage, own.responds(to: #selector(FrameTrees.frames(_:))) else {
             throw BrowserTool.Failure(message: "The window's page is not on screen")
         }
         var found: [Frame] = []
@@ -270,7 +270,7 @@ enum TestDriver {
             throw BrowserTool.Failure(message: "origin and top are required")
         }
         let webKit = UnsafeMutableRawPointer(bitPattern: -2)
-        guard let view = WebViewResponder.shared.webView(for: tab.id), view.responds(to: #selector(PageRefs.pageRef)),
+        guard let view = tab.livePage, view.responds(to: #selector(PageRefs.pageRef)),
               let page = unsafeBitCast(view, to: PageRefs.self).pageRef(),
               let text = dlsym(webKit, "WKStringCreateWithUTF8CString"), let store = dlsym(webKit, "WKPageGetWebsiteDataStore"),
               let release = dlsym(webKit, "WKRelease"),
