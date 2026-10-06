@@ -13,11 +13,16 @@ extension WKContentWorld {
     static let savoia = WKContentWorld.world(name: "savoia")
 }
 
-extension WebPage {
-    /// `callJavaScript` in Savoia's world. A plain function body, no `await` (the API runs a function, not
-    /// an async one).
+extension WKWebView {
+    /// A function body run in Savoia's world.
     func savoia(_ functionBody: String, arguments: [String: Any] = [:]) async throws -> Any? {
-        try await callJavaScript(functionBody, arguments: arguments, contentWorld: .savoia)
+        try await callAsyncJavaScript(functionBody, arguments: arguments, in: nil, contentWorld: .savoia)
+    }
+
+    /// A function body run in the main frame; the page's own world unless another is named.
+    func callJavaScript(_ functionBody: String, arguments: [String: Any] = [:],
+                        contentWorld: WKContentWorld? = nil) async throws -> Any? {
+        try await callAsyncJavaScript(functionBody, arguments: arguments, in: nil, contentWorld: contentWorld ?? .page)
     }
 }
 

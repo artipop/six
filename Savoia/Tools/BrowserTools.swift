@@ -1208,8 +1208,7 @@ final class BrowserToolCatalog {
     private func screenshot(_ args: ACPJSON) async throws -> String {
         let tab = try webTab(args, allowsApps: true)
         await tab.loadSettled()
-        // The whole page, not the part on screen — a screenshot of a column is not what was asked for.
-        guard let data = try? await tab.page.exported(as: .image(region: .contents, snapshotWidth: 1200)) else {
+        guard let data = try? await tab.page.takeSnapshot(configuration: nil).pngData else {
             throw BrowserTool.Failure(message: "Could not take a picture of this window.")
         }
         try? FileManager.default.createDirectory(at: DevToolsStore.screenshotFolder, withIntermediateDirectories: true)
@@ -1467,7 +1466,7 @@ final class BrowserToolCatalog {
         return "\(tab.title) <\(tab.showsStartPage ? "about:start" : tab.currentURL?.absoluteString ?? "")> [\(tab.id.uuidString)]"
     }
 
-    static func pageText(of page: WebPage, limit: Int = 200_000) async -> String? {
+    static func pageText(of page: WKWebView, limit: Int = 200_000) async -> String? {
         let script = "return document.body ? document.body.innerText : ''"
         guard let raw = try? await page.savoia(script) as? String else { return nil }
         let collapsed = raw.replacingOccurrences(of: "\\s*\\n\\s*", with: "\n", options: .regularExpression)

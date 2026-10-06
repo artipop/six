@@ -123,7 +123,7 @@ enum Exporter {
                 // The preview may not be loaded (the editor is showing); load it and wait.
                 tab.load(html: html, baseURL: URL(string: "savoia://document/\(document.id.uuidString)/")!)
                 await tab.loadSettled()
-                return try await tab.page.exported(as: .pdf())
+                return try await tab.page.pdf()
             }
         }
         tab.resumeIfNeeded()
@@ -133,7 +133,7 @@ enum Exporter {
             let source = (try? await tab.page.savoia("return '<!DOCTYPE html>\\n' + document.documentElement.outerHTML")) as? String ?? ""
             return Data(source.utf8)
         case .pdf:
-            return try await tab.page.exported(as: .pdf())
+            return try await tab.page.pdf()
         case .text, .markdown:
             let text = await BrowserToolCatalog.pageText(of: tab.page) ?? ""
             return Data(text.utf8)

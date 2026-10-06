@@ -71,11 +71,8 @@ struct TabPageView: View {
         } else if let page = tab.livePage {
             // Identified by the page: a tab whose page was discarded and built again is showing a
             // different `WebPage`, and the view has to be built again with it.
-            WebView(page)
-                .webViewBackForwardNavigationGestures(.enabled)
+            PageHost(view: page)
                 // WebKit's default is off on macOS, which left YouTube's fullscreen button dead.
-                .webViewElementFullscreenBehavior(.enabled)
-                .pageContextMenu(for: tab, in: browser)
                 .id(tab.generation)
                 .onAppear(perform: tab.resumeOnScreen)
                 .overlay {

@@ -293,12 +293,12 @@ final class BookmarkStore {
         }
     }
 
-    /// Loads the URL in a `WebPage` of its own, waits for the load (and a moment for scripts), extracts.
+    /// Loads the URL in a web view of its own, waits for the load (and a moment for scripts), extracts.
     private static func read(_ url: URL, dataStore: WKWebsiteDataStore?) async throws -> ReadablePage {
-        var configuration = WebPage.Configuration()
+        let configuration = WKWebViewConfiguration()
         if let dataStore { configuration.websiteDataStore = dataStore }
         configuration.applicationNameForUserAgent = UserAgent.applicationName
-        let page = WebPage(configuration: configuration)
+        let page = WKWebView(frame: .zero, configuration: configuration)
         await page.loadAndSettle(URLRequest(url: url), timeout: refreshTimeout)
         guard !page.isLoading else { throw Failure("Timed out loading \(url.host() ?? url.absoluteString)") }
         try? await Task.sleep(for: .seconds(1))

@@ -1,14 +1,11 @@
 import AppKit
 import Foundation
 import Observation
-// For `NavigationAction.modifierFlags`: WebKit declares it in its SwiftUI half, so reading the keys
-// held during a click needs SwiftUI imported even here, in the model.
-import SwiftUI
 import WebKit
 
 /// What a column holds: a web page; a document — Markdown the user (or an agent) writes, with a
-/// `WebPage` of its own for the rendered preview; an MCP app — somebody else's HTML, served to a
-/// `WebPage` under the policy its server declared (see `MCPAppSession`); or one of Savoia's own pages.
+/// web view of its own for the rendered preview; an MCP app — somebody else's HTML, served to a
+/// web view under the policy its server declared (see `MCPAppSession`); or one of Savoia's own pages.
 /// The layout does not care which.
 enum TabContent {
     case web
@@ -105,8 +102,7 @@ nonisolated enum BuiltInPage: String, Codable, Sendable, CaseIterable {
     }
 }
 
-/// One tab — a `WebPage` (the new SwiftUI-native WebKit model object) bound to a profile, or a
-/// document window (see `TabContent`).
+/// One tab — a `WKWebView` of its own bound to a profile, or a document window (see `TabContent`).
 ///
 /// The page is **not** owned for the window's lifetime. It is built the first time the window is
 /// shown (or the first time anything asks to talk to it) and given back when the app is over its
@@ -145,16 +141,25 @@ final class BrowserTab: Identifiable {
     @ObservationIgnored weak var pageFocus: PageFocusStore?
     /// The tools this window's page declares for agents (WebMCP); set by `BrowserState`.
     @ObservationIgnored weak var webMCP: WebMCPStore?
-    /// What sites were allowed to use the camera, the microphone and the motion sensors. The page's
-    /// `deviceSensorAuthorization` is this window's question routed here; set by `BrowserState`.
+    /// What sites were allowed to use the camera and the microphone; set by `BrowserState`.
     @ObservationIgnored weak var permissions: SitePermissions?
 
     /// The live page, when there is one. Read it to *draw* the window; anything that needs to talk to
     /// the page uses `page`, which builds one.
-    private(set) var livePage: WebPage?
-    /// Bumped for every page built. `WebView` is identified by it, so a rebuilt page gets a fresh
-    /// view instead of the old one quietly pointing at a new model.
+    private(set) var livePage: WKWebView?
+    /// Bumped for every page built, so a rebuilt page gets a fresh host.
     private(set) var generation = 0
+    @ObservationIgnored private var pageDelegate: PageDelegate?
+    @ObservationIgnored private var observations: [NSKeyValueObservation] = []
+    /// What the live page says of itself, copied as it changes: a view observes these, not the web view.
+    private var liveURL: URL?
+    private var liveTitle = ""
+    private var liveIsLoading = false
+    private var liveProgress = 0.0
+    private var liveCanGoBack = false
+    private var liveCanGoForward = false
+    private(set) var cameraCapture = WKMediaCaptureState.none
+    private(set) var microphoneCapture = WKMediaCaptureState.none
     var hasLivePage: Bool { livePage != nil }
 
     /// The page, built on demand — and a window that was waiting to load starts loading.
@@ -163,7 +168,7 @@ final class BrowserTab: Identifiable {
     /// export. Everything that only *describes* the window deliberately does not (`title`,
     /// `currentURL`, `isLoading`, `canGoBack`…), or the address bar alone would be enough to keep
     /// every window in the strip live.
-    var page: WebPage {
+    var page: WKWebView {
         let page = materialize()
         cache?.touch(id)
         resumeIfNeeded()
@@ -213,6 +218,8 @@ final class BrowserTab: Identifiable {
     @ObservationIgnored var onDocumentLink: ((BrowserTab, URL) -> Void)?
     /// `savoia://…` was typed or followed. Set by `BrowserState`, which shows the page.
     @ObservationIgnored var onBuiltInAddress: ((BrowserTab, BuiltInPage, String?) -> Void)?
+    /// The page's context menu, for the link under the pointer. Set by `BrowserState`.
+    @ObservationIgnored var onContextMenu: ((BrowserTab, URL?) -> NSMenu?)?
     /// The page asked for a second window — a ⌘-click, `target=_blank`, `window.open`. Set by
     /// `BrowserState`, which puts a column next to this one.
     @ObservationIgnored var onNewWindow: ((BrowserTab, URLRequest, Bool) -> Void)?
@@ -318,13 +325,7 @@ final class BrowserTab: Identifiable {
 
     // MARK: The camera, the microphone and the screen
 
-    /// What this window's page is doing with the devices right now. `WebPage` publishes both, so the
-    /// title bar's indicator follows the page without polling it — and reads `livePage`, never
-    /// `page`, so drawing a title bar never builds one.
-    var cameraCapture: WKMediaCaptureState { livePage?.cameraCaptureState ?? .none }
-    var microphoneCapture: WKMediaCaptureState { livePage?.microphoneCaptureState ?? .none }
-    /// Screen or window sharing, which `WebPage` publishes nothing about: on the Mac `DisplayCapture`
-    /// fills this in from the `WKWebView` underneath, and everywhere else it stays `.none`.
+    /// Screen or window sharing, which `WKWebView` publishes only as SPI (`DisplayCapture`).
     var displayCapture: WKMediaCaptureState = .none
     var isCapturing: Bool { cameraCapture != .none || microphoneCapture != .none || displayCapture != .none }
 
@@ -392,11 +393,7 @@ final class BrowserTab: Identifiable {
     var isInPictureInPicture: Bool {
         get async {
             guard let livePage else { return false }
-            #if os(macOS)
-            return await livePage.isInPictureInPicture(reportedBy: WebViewResponder.shared.webView(for: id))
-            #else
-            return await livePage.isInPictureInPicture(reportedBy: nil)
-            #endif
+            return await livePage.isInPictureInPicture()
         }
     }
 
@@ -440,7 +437,6 @@ final class BrowserTab: Identifiable {
     var highlightNote: String?
     /// Committed navigations go here (the profile's history); set by `BrowserState`.
     @ObservationIgnored var onNavigation: ((BrowserTab, NavigationOutcome) -> Void)?
-    @ObservationIgnored private var navigationTask: Task<Void, Never>?
     /// A navigation was asked for and has not ended; `isLoading` rises a tick after the asking.
     @ObservationIgnored private var awaitsNavigation = false
     @ObservationIgnored private var loadWaiters: [UUID: CheckedContinuation<Void, Never>] = [:]
@@ -469,7 +465,7 @@ final class BrowserTab: Identifiable {
         showsStartPage = false
     }
 
-    /// One of Savoia's own pages. Pure SwiftUI, like the start page: no `WebPage` is ever built for it,
+    /// One of Savoia's own pages. Pure SwiftUI, like the start page: no web view is ever built for it,
     /// which is the point — a list of servers should not cost a web content process.
     init(id: UUID = UUID(), profileID: Profile.ID, builtIn: BuiltInPage) {
         self.id = id
@@ -502,108 +498,90 @@ final class BrowserTab: Identifiable {
 
     /// Builds the page if this window has none. Cheap to call: the second call hands back the first's.
     @discardableResult
-    private func materialize() -> WebPage {
+    private func materialize() -> WKWebView {
         if let livePage { return livePage }
         let started = LivePageCache.debugging ? ContinuousClock.now : nil
         defer { if let started { LivePageCache.log("built \(title) in \(started.duration(to: .now))") } }
-        var configuration = WebPage.Configuration()
-        let page: WebPage
+        let configuration = WKWebViewConfiguration()
+        let kind: PageDelegate.Kind
         if isDocument {
+            kind = .document
             configuration.websiteDataStore = .nonPersistent()
-            // A preview renders Markdown Savoia itself wrote out; there is no site here to grant
-            // anything to, so the question is answered before it can be asked.
-            configuration.deviceSensorAuthorization = .init(decision: .deny)
-            let decider = DocumentNavigationDecider()
-            decider.onLink = { [weak self] url in
-                guard let self else { return }
-                self.onDocumentLink?(self, url)
-            }
-            page = WebPage(configuration: configuration, navigationDecider: decider)
-            page.isInspectable = devTools?.isInspectable ?? false
         } else if let app {
-            // The app's own store is never anyone's: a non-persistent one, thrown away with the
-            // window. Its two documents are served by `MCPAppSchemeHandler`, which is where the
-            // Content-Security-Policy the server declared is actually applied.
+            kind = .app
+            // Never anyone's store. `MCPAppSchemeHandler` serves the two documents, under the policy the server declared.
             configuration.websiteDataStore = .nonPersistent()
             configuration.userContentController = app.contentController
-            if let shell = URLScheme(MCPAppScheme.shell) { configuration.urlSchemeHandlers[shell] = app.schemeHandler }
-            if let content = URLScheme(MCPAppScheme.content) { configuration.urlSchemeHandlers[content] = app.schemeHandler }
-            // The camera and the microphone an app declared are still the profile's question to
-            // answer, asked of the app's origin like any other.
-            let windowID = id
-            let profileID = profileID
-            let permissions = permissions
-            configuration.deviceSensorAuthorization = .init { [weak permissions] permission, _, origin in
-                guard let permissions else { return .deny }
-                return await permissions.decide(permission, origin: origin, in: windowID, profileID: profileID)
-            }
-            let decider = AppNavigationDecider()
-            decider.onLink = { [weak self] url in
-                guard let self else { return }
-                self.onDocumentLink?(self, url)
-            }
-            page = WebPage(configuration: configuration, navigationDecider: decider)
-            page.isInspectable = devTools?.isInspectable ?? false
-            app.page = page
-            _ = page.load(URLRequest(url: app.url))
+            configuration.setURLSchemeHandler(app.schemeHandler, forURLScheme: MCPAppScheme.shell)
+            configuration.setURLSchemeHandler(app.schemeHandler, forURLScheme: MCPAppScheme.content)
         } else {
+            kind = .web
             configuration.websiteDataStore = dataStore ?? .nonPersistent()
             configuration.applicationNameForUserAgent = UserAgent.applicationName
-            // The blocker is told where the window is going before its controller is built: the
-            // controller is configured on creation, and what it gets depends on the address.
+            // Before its controller is built: what the controller gets depends on the address.
             blocker?.note(id, showing: pendingURL ?? savedURL)
             if let controller = pageControllers?.controller(for: id) {
                 configuration.userContentController = controller
             }
             configuration.webExtensionController = extensions?.controller(for: profileID)
-            let decider = TabNavigationDecider()
-            decider.beforeLeaving = { [weak self] in await self?.leaveElementFullscreen() }
-            // Before the load, not after: a site on the allowlist must never have the rules applied
-            // to it in the first place, and one that isn't must have them from its first request.
-            decider.onNavigate = { [weak self] url in
-                guard let self else { return }
-                self.blocker?.note(self.id, showing: url)
-            }
-            decider.onNewWindow = { [weak self] request, behind in
-                guard let self else { return }
-                self.onNewWindow?(self, request, behind)
-            }
-            decider.onDownload = { [weak self] request, suggestedName in
-                guard let self else { return }
-                self.onDownload?(self, request, suggestedName)
-            }
-            // The page suspends inside this closure while the bar is up, which is the whole point:
-            // WebKit's own answer (`.prompt`) puts up a popover Savoia can neither remember nor undo.
-            let windowID = id
-            let profileID = profileID
-            let permissions = permissions
-            configuration.deviceSensorAuthorization = .init { [weak permissions] permission, _, origin in
-                guard let permissions else { return .deny }
-                return await permissions.decide(permission, origin: origin,
-                                                in: windowID, profileID: profileID)
-            }
-            page = WebPage(configuration: configuration, navigationDecider: decider,
-                           dialogPresenter: PageDialogs())
-            // The one kind of page Safari is ever asked to attach to, and for a while the one that
-            // did not get the switch: `applyInspectable` reached the pages open at the moment it
-            // was flipped, and every page built afterwards — each new window, every one after a
-            // relaunch — was not inspectable, so Safari's Develop menu had no Savoia in it at all.
-            page.isInspectable = devTools?.isInspectable ?? false
+            configuration.preferences.isElementFullscreenEnabled = true
         }
+        let page = WKWebView(frame: CGRect(origin: .zero, size: drawnSize), configuration: configuration)
+        let delegate = PageDelegate(kind: kind, tab: self)
+        page.navigationDelegate = delegate
+        page.uiDelegate = delegate
+        pageDelegate = delegate
+        page.allowsBackForwardNavigationGestures = kind == .web
+        page.isInspectable = devTools?.isInspectable ?? false
         livePage = page
-        // WebKit's fullscreen window cannot size a view SwiftUI holds by constraints, so the
-        // hold is swapped for the duration (`PageElementFullscreen`). Measured on macOS and fixed
-        // there only: the same page on iOS has no window to be moved into, and nobody has looked.
-        // Picture-in-picture is not switched on here: a page just built has no web view on file
-        // yet, so it is switched on as a pane claims one (`onWebViewFound`, in `SavoiaApp`).
-        #if os(macOS)
-        let tabID = id
-        page.watchElementFullscreenHosting { WebViewResponder.shared.webView(for: tabID) }
-        #endif
+        observe(page)
+        if let app {
+            app.page = page
+            page.load(URLRequest(url: app.url))
+        }
         generation += 1
-        watchNavigations(of: page)
         cache?.noteLive(self)
         return page
+    }
+
+    /// `WKWebView` is key-value observable and not `@Observable`.
+    private func observe(_ page: WKWebView) {
+        func watch<Value>(_ path: KeyPath<WKWebView, Value>) -> NSKeyValueObservation {
+            page.observe(path) { [weak self] _, _ in
+                MainActor.assumeIsolated { self?.readPage() }
+            }
+        }
+        observations = [watch(\.url), watch(\.title), watch(\.isLoading), watch(\.estimatedProgress),
+                        watch(\.canGoBack), watch(\.canGoForward),
+                        watch(\.cameraCaptureState), watch(\.microphoneCaptureState)]
+        readPage()
+    }
+
+    private func readPage() {
+        let page = livePage
+        func set<Value: Equatable>(_ path: ReferenceWritableKeyPath<BrowserTab, Value>, _ value: Value) {
+            if self[keyPath: path] != value { self[keyPath: path] = value }
+        }
+        set(\.liveURL, page?.url)
+        set(\.liveTitle, page?.title ?? "")
+        set(\.liveIsLoading, page?.isLoading ?? false)
+        set(\.liveProgress, page?.estimatedProgress ?? 0)
+        set(\.liveCanGoBack, page?.canGoBack ?? false)
+        set(\.liveCanGoForward, page?.canGoForward ?? false)
+        set(\.cameraCapture, page?.cameraCaptureState ?? .none)
+        set(\.microphoneCapture, page?.microphoneCaptureState ?? .none)
+    }
+
+    /// Lets the live page go: its observers, its delegate, and what was copied from it.
+    private func releasePage() {
+        observations = []
+        livePage?.navigationDelegate = nil
+        livePage?.uiDelegate = nil
+        livePage?.stopLoading()
+        livePage?.removeFromSuperview()
+        livePage = nil
+        pageDelegate = nil
+        readPage()
     }
 
     /// Is there any work behind showing this window — a page to build, an address waiting to load? A
@@ -643,13 +621,10 @@ final class BrowserTab: Identifiable {
         // A document is never waiting on an address: its preview is rendered from the text again by
         // `DocumentView` as soon as the column is back on screen.
         if !showsStartPage, isWebPage, let url = page.url { pendingURL = url }
-        navigationTask?.cancel()
-        navigationTask = nil
         settleLoads()
         // A question belongs to the page that asked it. This one is going.
         permissions?.forget(id)
-        page.stopLoading()
-        livePage = nil
+        releasePage()
         // Nothing will report on the web view that is going; the next one starts from its own state.
         displayCapture = .none
         generation += 1
@@ -659,17 +634,15 @@ final class BrowserTab: Identifiable {
         // also the only time it can be taken at all.
     }
 
-    /// The tab is closing: stop the page and the navigation feed for good.
+    /// The tab is closing: stop the page for good.
     func close() {
-        navigationTask?.cancel()
         settleLoads()
         onNavigation = nil
         onDocumentLink = nil
         onNewWindow = nil
         onDownload = nil
         permissions?.forget(id)
-        livePage?.stopLoading()
-        livePage = nil
+        releasePage()
         thumbnail = nil
         cache?.forget(id)
         thumbnails?.remove(id)
@@ -680,7 +653,7 @@ final class BrowserTab: Identifiable {
     /// A window apart from the store its page was built against: where it has been, where it can go
     /// forward to, WebKit's session state, and how it last looked.
     ///
-    /// A `WebPage`'s data store is fixed when the page is built and WebKit's back-forward list
+    /// A web view's data store is fixed when the view is built and WebKit's back-forward list
     /// belongs to that page, so a window cannot be handed another profile's cookies. Moving one
     /// between profiles is therefore a rebuild (`BrowserState.moveTab(_:toProfile:)`), and this is
     /// everything the window built in its place is given: the three things a discard already keeps,
@@ -723,52 +696,52 @@ final class BrowserTab: Identifiable {
         #endif
     }
 
-    /// The window's one subscription to what its page is doing.
-    ///
-    /// `page.navigations` is a **throwing** sequence, and a load that fails throws through it. Read
-    /// once, as a single `for try await`, the loop therefore ended at the first bad address — and
-    /// the window stopped recording every navigation after it: no visit written to history, no
-    /// title kept for the card, nothing told to the blocker, no scroll put back, and the capture
-    /// from the previous page never cleared. Measured: a window sent to a site with an untrusted
-    /// certificate and then to `example.com` left the second visit out of the database entirely.
-    ///
-    /// So the failure is written down and the feed is subscribed to again. Only a *navigation*
-    /// failure is worth coming back from — a closed page and a dead web content process are the
-    /// page itself ending, and re-subscribing to those would be a spin.
-    private func watchNavigations(of page: WebPage) {
-        navigationTask = Task { [weak self] in
-            while !Task.isCancelled {
-                let outcome = await Self.observe(page) { [weak self] event in
-                    self?.apply(event, of: page)
-                }
-                self?.settleLoads()
-                guard let self, self.livePage === page, !Task.isCancelled else { return }
-                guard case .failed(let error) = outcome else { return }
-                self.noteFailure(error)
-            }
+    /// What the page's delegate saw of a navigation.
+    func pageDid(_ event: PageDelegate.Event, in page: WKWebView) {
+        guard livePage === page else { return }
+        switch event {
+        case .started:
+            // The window is trying again, whatever it was showing before.
+            loadFailure = nil
+            if mediaHold == .shown { releaseMediaHold() }
+        case .committed:
+            loadFailure = nil
+            if mediaHold == .loading { mediaHold = .shown }
+            hasCommitted = true
+            savedURL = page.url ?? savedURL
+            // Redirects and history moves never go through the decider.
+            blocker?.note(id, showing: page.url)
+            extensions?.noteChanged(self, [.URL, .loading])
+            // What was captured belonged to the page being left, and so did what was selected in it
+            // and the tools it declared.
+            devTools?.noteNavigation(id)
+            pageFocus?.noteNavigation(id)
+            webMCP?.noteNavigation(id)
+            // So did a question nobody answered: the page that asked is gone.
+            permissions?.forget(id)
+            onNavigation?(self, .committed)
+        case .finished:
+            savedURL = page.url ?? savedURL
+            savedTitle = page.title ?? ""
+            extensions?.noteChanged(self, [.title, .loading])
+            onNavigation?(self, .finished)
+            settleLoads()
+            // Only to give a window that has never been drawn something to show; the picture that
+            // matters is taken when it leaves the screen.
+            if thumbnail == nil { rememberViewState(force: true) }
+        case .failedProvisional(let error):
+            settleLoads()
+            noteFailure(error)
+        case .ended:
+            settleLoads()
         }
     }
 
-    private enum FeedOutcome {
-        /// The page is over: it was closed, or its content process died.
-        case ended
-        /// One navigation failed. The page is still there and will be asked to load again.
-        case failed(any Error)
-    }
-
-    /// One pass over the feed, so the loop above reads as a loop. Nothing here touches the tab —
-    /// the events go back through the closure, on the main actor, where the rest of the class lives.
-    private static func observe(_ page: WebPage,
-                                _ handle: (WebPage.NavigationEvent) -> Void) async -> FeedOutcome {
-        do {
-            for try await event in page.navigations {
-                handle(event)
-            }
-            return .ended
-        } catch {
-            guard let navigation = error as? WebPage.NavigationError,
-                  case .failedProvisionalNavigation(let reason) = navigation else { return .ended }
-            return .failed(reason)
+    /// The delegate cancelled a navigation of the main frame, and WebKit reports nothing after that.
+    func navigationCancelled() {
+        Task { [weak self] in
+            guard let self, self.livePage?.isLoading != true else { return }
+            self.settleLoads()
         }
     }
 
@@ -798,44 +771,6 @@ final class BrowserTab: Identifiable {
                                   reason: "\(failure.localizedDescription) (\(failure.domain) \(failure.code))\(offer)")
     }
 
-    private func apply(_ event: WebPage.NavigationEvent, of page: WebPage) {
-        guard livePage === page else { return }
-        switch event {
-        case .startedProvisionalNavigation:
-            // The window is trying again, whatever it was showing before.
-            loadFailure = nil
-            if mediaHold == .shown { releaseMediaHold() }
-        case .committed:
-            loadFailure = nil
-            if mediaHold == .loading { mediaHold = .shown }
-            hasCommitted = true
-            savedURL = page.url ?? savedURL
-            // Redirects and history moves never go through the decider.
-            blocker?.note(id, showing: page.url)
-            extensions?.noteChanged(self, [.URL, .loading])
-            // What was captured belonged to the page being left, and so did what was selected in it
-            // and the tools it declared.
-            devTools?.noteNavigation(id)
-            pageFocus?.noteNavigation(id)
-            webMCP?.noteNavigation(id)
-            // So did a question nobody answered: the page that asked is gone.
-            permissions?.forget(id)
-            onNavigation?(self, .committed)
-        case .finished:
-            savedURL = page.url ?? savedURL
-            savedTitle = page.title
-            extensions?.noteChanged(self, [.title, .loading])
-            onNavigation?(self, .finished)
-            settleLoads()
-            // Only to give a window that has never been drawn something to show. The picture that
-            // matters is taken when it leaves the screen; taking one after every load would be the
-            // most frequent trigger and the least useful one, since a page that just loaded is a
-            // page you are looking at.
-            if thumbnail == nil { rememberViewState(force: true) }
-        default: break
-        }
-    }
-
     // MARK: What the window knows without a page
 
     var title: String {
@@ -844,7 +779,7 @@ final class BrowserTab: Identifiable {
         if let builtIn { return pageTitle ?? builtIn.title }
         if let pendingApp { return pendingApp.toolTitle }
         if showsStartPage { return String(localized: "New Tab") }
-        if let live = livePage, !live.title.isEmpty { return live.title }
+        if !liveTitle.isEmpty { return liveTitle }
         if !savedTitle.isEmpty { return savedTitle }
         return currentURL?.host() ?? "New Tab"
     }
@@ -857,21 +792,21 @@ final class BrowserTab: Identifiable {
         if let builtIn { return builtIn.url(section: section) }
         guard isWebPage else { return nil }
         if let pendingURL { return pendingURL }
-        return livePage?.url ?? savedURL
+        return liveURL ?? savedURL
     }
 
-    var isLoading: Bool { livePage?.isLoading ?? false }
-    var estimatedProgress: Double { livePage?.estimatedProgress ?? 0 }
+    var isLoading: Bool { liveIsLoading }
+    var estimatedProgress: Double { liveProgress }
 
-    var canGoBack: Bool { !(livePage?.backForwardList.backList.isEmpty ?? true) || !savedBack.isEmpty }
-    var canGoForward: Bool { !(livePage?.backForwardList.forwardList.isEmpty ?? true) || !savedForward.isEmpty }
+    var canGoBack: Bool { liveCanGoBack || !savedBack.isEmpty }
+    var canGoForward: Bool { liveCanGoForward || !savedForward.isEmpty }
 
     /// Back through the live page's own list first; when that runs out (a rebuilt page starts with an
     /// empty one) the window walks the addresses it kept across the discard.
     func goBack() {
-        if let item = livePage?.backForwardList.backList.last {
+        if let item = livePage?.backForwardList.backItem {
             awaitsNavigation = true
-            _ = livePage?.load(item)
+            livePage?.go(to: item)
             return
         }
         guard let url = savedBack.popLast() else { return }
@@ -880,9 +815,9 @@ final class BrowserTab: Identifiable {
     }
 
     func goForward() {
-        if let item = livePage?.backForwardList.forwardList.first {
+        if let item = livePage?.backForwardList.forwardItem {
             awaitsNavigation = true
-            _ = livePage?.load(item)
+            livePage?.go(to: item)
             return
         }
         guard !savedForward.isEmpty else { return }
@@ -902,14 +837,14 @@ final class BrowserTab: Identifiable {
     func reload() {
         guard canReload else { return }
         awaitsNavigation = true
-        _ = page.reload()
+        page.reload()
     }
 
     /// The reload that does not believe the cache — everything is asked of the network again.
     func reloadFromOrigin() {
         guard canReload else { return }
         awaitsNavigation = true
-        _ = page.reload(fromOrigin: true)
+        page.reloadFromOrigin()
     }
 
     func stop() { livePage?.stopLoading() }
@@ -975,7 +910,7 @@ final class BrowserTab: Identifiable {
         let page = beginResume()
         LivePageCache.log("resumed \(title) by its address")
         awaitsNavigation = true
-        _ = page.load(URLRequest(url: url))
+        page.load(URLRequest(url: url))
     }
 
     #if os(macOS)
@@ -999,7 +934,7 @@ final class BrowserTab: Identifiable {
     #endif
 
     @discardableResult
-    private func beginResume() -> WebPage {
+    private func beginResume() -> WKWebView {
         pendingURL = nil
         if isWebPage {
             pageControllers?.setUserScripts([MediaHold.script], named: MediaHold.scriptName, for: id)
@@ -1033,13 +968,13 @@ final class BrowserTab: Identifiable {
         stateWait = nil
         loadStartedAt = Date()
         awaitsNavigation = true
-        _ = page.load(URLRequest(url: url))
+        page.load(URLRequest(url: url))
     }
 
     /// A document's preview, rendered again.
     func load(html: String, baseURL: URL) {
         awaitsNavigation = true
-        _ = page.load(html: html, baseURL: baseURL)
+        page.loadHTMLString(html, baseURL: baseURL)
     }
 
     /// Waits for the navigation under way to end, or for the ceiling.
@@ -1078,7 +1013,7 @@ final class BrowserTab: Identifiable {
 
     /// A page that navigates while it has the screen is taken out of fullscreen with its view left in
     /// no window at all, and the tab is blank from then on. Out first, then the navigation.
-    fileprivate func leaveElementFullscreen() async {
+    func leaveElementFullscreen() async {
         #if os(macOS)
         guard let page = livePage, page.fullscreenState != .notInFullscreen else { return }
         _ = try? await callWithoutGesture("if (document.fullscreenElement) await document.exitFullscreen();", in: .page)
@@ -1100,7 +1035,7 @@ final class BrowserTab: Identifiable {
     var isPlayingMedia: Bool {
         get async {
             guard let livePage else { return false }
-            return await livePage.mediaPlaybackState() == .playing
+            return await livePage.requestMediaPlaybackState() == .playing
         }
     }
 
@@ -1156,13 +1091,15 @@ final class BrowserTab: Identifiable {
             async let viewport = self.callWithoutGesture("return [window.innerWidth, window.innerHeight]")
             // `afterScreenUpdates: false` takes what is already rendered: a tab on its way off screen
             // will never get another screen update. 400 pt wide: a ring card is never drawn bigger.
-            let configuration = WebPage.ExportedContentConfiguration.image(
-                region: .rect(region), snapshotWidth: 400, afterScreenUpdates: false)
+            let configuration = WKSnapshotConfiguration()
+            configuration.rect = region
+            configuration.snapshotWidth = 400
+            configuration.afterScreenUpdates = false
             let clock = ContinuousClock()
             let started = clock.now
-            let exported = try? await page.exported(as: configuration)
+            let taken = try? await page.takeSnapshot(configuration: configuration)
             let measured = (try? await viewport) as? [Double]
-            guard let data = exported, let image = PlatformImage(data: data), image.size.width > 1 else {
+            guard let image = taken, image.size.width > 1, let data = image.pngData else {
                 LivePageCache.log("no picture of \(self.title)")
                 return
             }
@@ -1188,149 +1125,12 @@ final class BrowserTab: Identifiable {
     }
 }
 
-/// Everything a page asks for that is not "load this here".
-///
-/// The SwiftUI WebKit API has no UI client and no download delegate. A page that asks for a second
-/// window (`target=_blank`, `window.open`, a ⌘-click) and a link that asks to be saved
-/// (`<a download>`, a response no page can show) reach a decider and nowhere else; left at `.allow`
-/// they are handed on to a delegate that does not exist, and the click does nothing at all. So the
-/// decider cancels them and gives the request back to the browser, which has a strip to put a window
-/// in and a `DownloadStore` to give a file to.
-///
-/// The context menu's own Open Link in New Window and Download Linked File never come through here —
-/// they go straight to those missing delegates, which is why Savoia builds the menu itself
-/// (`PageContextMenu`). [links.md](../../docs/links.md) has the whole map.
-@MainActor
-private final class TabNavigationDecider: WebPage.NavigationDeciding {
-    /// Where the window is going, told before the request leaves — the one moment early enough to
-    /// decide whether this page is blocked (`ContentBlocker`).
-    var onNavigate: ((URL) -> Void)?
-    /// A second window: the browser opens a column for it. The flag says the click asked for it
-    /// *behind* — a ⌘-click, which everywhere else means a background tab.
-    var onNewWindow: ((URLRequest, Bool) -> Void)?
-    /// A file rather than a page.
-    var onDownload: ((URLRequest, String?) -> Void)?
-    /// Awaited before the main frame is let go anywhere.
-    var beforeLeaving: (() async -> Void)?
-
-    /// The site's certificate could not be traced back to anything the system trusts.
-    ///
-    /// Left alone this is where a Russian bank's page stops: the chain is signed by an authority no
-    /// Apple machine has ever heard of, and to WebKit that is indistinguishable from somebody
-    /// standing in the middle. `CertificateStore` gets to answer with the anchors the user switched
-    /// on — and with none switched on, which is the default, it hands the question straight back and
-    /// WebKit's own error page is what appears. See `CertificateStore.decide(_:)`.
-    ///
-    /// Only the *page's* handshakes come through here. A subresource fetched by a `URLSession` of
-    /// Savoia's own — a download — asks `DownloadStore`'s delegate instead, which asks the same store.
-    func decideAuthenticationChallengeDisposition(for challenge: URLAuthenticationChallenge) async -> (URLSession.AuthChallengeDisposition, URLCredential?) {
-        guard let certificates = CertificateStore.shared else { return (.performDefaultHandling, nil) }
-        return await certificates.decide(challenge)
-    }
-
-    func decidePolicy(for action: WebPage.NavigationAction, preferences: inout WebPage.NavigationPreferences) async -> WKNavigationActionPolicy {
-        guard let url = action.request.url else { return .allow }
-        LinkTrace.log("action \(url.absoluteString) target=\(action.target == nil ? "none" : "frame") type=\(action.navigationType.rawValue) button=\(action.buttonNumber) mods=\(action.modifierFlags.rawValue) cmd=\(action.modifierFlags.contains(.command)) download=\(action.shouldPerformDownload)")
-        if action.shouldPerformDownload {
-            onDownload?(action.request, nil)
-            return .cancel
-        }
-        // Not the web at all — `magnet:`, `mailto:`, a scheme some app on this machine claimed.
-        // WebKit will not load one and says nothing about it either, so `.allow` here is a link that
-        // does nothing; the app that owns the scheme gets it instead. Before the new-window branch,
-        // because a `target=_blank` magnet link wants the torrent client and not a blank column.
-        //
-        // Only a clicked link earns the system's "no application" sheet when nobody claims the
-        // scheme. A page that sends *itself* there — Telemost's join page tries `telemost://` to
-        // wake the desktop app and carries on in the browser when nothing answers — is probing, and
-        // the sheet would be an alert about an app the person never asked for. Dropped quietly, the
-        // way every other browser drops it and the Windows front already does.
-        if ExternalScheme.isExternal(url) {
-            guard action.navigationType == .linkActivated || ExternalScheme.hasHandler(for: url) else {
-                LinkTrace.log("external \(url.scheme ?? "") unclaimed, not a click — dropped")
-                return .cancel
-            }
-            let opened = ExternalScheme.open(url)
-            LinkTrace.log("external \(url.absoluteString) opened=\(opened)")
-            return .cancel
-        }
-        // A ⌘-click asks for the link somewhere else rather than here. WebKit keeps its own record of
-        // the keys that were held (`modifierFlags`, declared in its SwiftUI half and carrying
-        // SwiftUI's `EventModifiers`), which is the honest signal — nothing here depends on what the
-        // keyboard happens to be doing by the time this runs.
-        //
-        // The ⌘ is the only thing that can be read, and `buttonNumber` is not a second signal:
-        // despite the name it is not a button at all. Every activation driven by the mouse reports 1
-        // — left, middle, plain or modified — and everything else reports 0, so a middle click cannot
-        // be told from an ordinary one. Reading it as "the middle button" made every plain click on
-        // every link open a window of its own. Measured by clicking all three.
-        //
-        // ⇧ cannot be read either, because a shift-modified click never arrives: WebKit sends every
-        // one of them — ⇧ alone and ⌘⇧ together — to the UI client, the seat this API has none of,
-        // and they reach nothing at all.
-        let behind = action.navigationType == .linkActivated && action.modifierFlags.contains(.command)
-        // The other way: no target frame means the frame does not exist yet — `target=_blank`,
-        // `window.open`. There is nobody to answer that but the browser.
-        if action.target == nil, !behind, ScriptedPopups.isOn, action.navigationType != .linkActivated { return .allow }
-        if action.target == nil || behind {
-            onNewWindow?(action.request, behind)
-            return .cancel
-        }
-        if url.scheme?.hasPrefix("http") == true { onNavigate?(url) }
-        if action.target?.isMainFrame == true { await beforeLeaving?() }
-        return .allow
-    }
-
-    /// What came back cannot be shown — a zip, a dmg, anything served as an attachment. A browser
-    /// downloads it; `.allow` here would leave the window on a blank page.
-    func decidePolicy(for response: WebPage.NavigationResponse) async -> WKNavigationResponsePolicy {
-        guard let url = response.response.url else { return .allow }
-        let http = response.response as? HTTPURLResponse
-        let disposition = (http?.value(forHTTPHeaderField: "Content-Disposition") ?? "").lowercased()
-        let isAttachment = disposition.hasPrefix("attachment")
-        guard !response.canShowMimeType || isAttachment else { return .allow }
-        LinkTrace.log("response \(url.absoluteString) canShow=\(response.canShowMimeType) attachment=\(isAttachment)")
-        onDownload?(URLRequest(url: url), response.response.suggestedFilename)
-        return .cancel
-    }
-}
-
 /// `SAVOIA_LINKS_TRACE=1` narrates what the page asked for. Off, it costs the branch and nothing else.
 enum LinkTrace {
     static let isOn = ProcessInfo.processInfo.environment["SAVOIA_LINKS_TRACE"] == "1"
     static func log(_ message: @autoclosure () -> String) {
         guard isOn else { return }
         Log.debug(.links, message())
-    }
-}
-
-/// A document's preview only ever shows the document: `load(html:)` and in-page anchors go through,
-/// a link to anywhere else is handed to the browser to open as a window.
-@MainActor
-/// An app never navigates: the shell and the app's frame are the only two documents this window
-/// ever shows, and a link the app's HTML carries becomes a window of Savoia's own — the same answer a
-/// document's preview gives.
-private final class AppNavigationDecider: WebPage.NavigationDeciding {
-    var onLink: ((URL) -> Void)?
-
-    func decidePolicy(for action: WebPage.NavigationAction, preferences: inout WebPage.NavigationPreferences) async -> WKNavigationActionPolicy {
-        guard let url = action.request.url else { return .allow }
-        if url.scheme == MCPAppScheme.shell || url.scheme == MCPAppScheme.content || url.scheme == "about" {
-            return .allow
-        }
-        onLink?(url)
-        return .cancel
-    }
-}
-
-private final class DocumentNavigationDecider: WebPage.NavigationDeciding {
-    var onLink: ((URL) -> Void)?
-
-    func decidePolicy(for action: WebPage.NavigationAction, preferences: inout WebPage.NavigationPreferences) async -> WKNavigationActionPolicy {
-        guard let url = action.request.url else { return .allow }
-        if url.scheme == "about" || url.scheme == "savoia" { return .allow }
-        onLink?(url)
-        return .cancel
     }
 }
 
@@ -1359,15 +1159,5 @@ extension URL {
         // without — which is also what keeps «note: buy milk» out of the address row.
         if let url = URL(string: text), ExternalScheme.isExternal(url), ExternalScheme.hasHandler(for: url) { return true }
         return text.contains(".") || text.hasPrefix("localhost")
-    }
-}
-
-extension WebPage {
-    /// `load(_:)` returns a navigation, not a verdict; this says whether there was anything to load.
-    @discardableResult
-    func load(_ item: WebPage.BackForwardList.Item?) -> Bool {
-        guard let item else { return false }
-        _ = load(item)
-        return true
     }
 }

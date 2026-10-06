@@ -202,14 +202,13 @@ private final class PopupWindow: NSObject, NSWindowDelegate, WKNavigationDelegat
 
     func webView(_ webView: WKWebView, decideMediaCapturePermissionsFor origin: WKSecurityOrigin,
                  initiatedBy frame: WKFrameInfo, type: WKMediaCaptureType) async -> WKPermissionDecision {
-        await decide(.mediaCapture(type), origin: origin)
+        await decide(SitePermissions.permissions(for: type), origin: origin)
     }
 
-    private func decide(_ permission: WebPage.DeviceSensorAuthorization.Permission,
-                        origin: WKSecurityOrigin) async -> WKPermissionDecision {
+    private func decide(_ asked: [SitePermission], origin: WKSecurityOrigin) async -> WKPermissionDecision {
         guard let permissions = ScriptedPopups.permissions, let profileID else { return .deny }
         let allowed = await withCheckedContinuation { continuation in
-            permissions.decide(SitePermissions.permissions(for: permission),
+            permissions.decide(asked,
                                origin: SitePermissions.string(for: origin), in: id, profileID: profileID) {
                 continuation.resume(returning: $0)
             }

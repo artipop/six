@@ -18,10 +18,9 @@ struct DocumentView: View {
                 // The page is built by the live-page budget when the column comes on screen, and given
                 // back when it goes cold; the preview is rendered again from the text either way.
                 if let page = tab.livePage {
-                    WebView(page)
+                    PageHost(view: page)
                         // No back, forward or reload: a preview is one page, rendered from the text
                         // again whenever it changes, and it has no history to walk.
-                        .pageContextMenu(for: tab, in: browser, showsPageCommands: false)
                         .id(tab.generation)
                         #if os(macOS)
                         // The same handle a web page's pane leaves: the preview's web view is found

@@ -16,30 +16,7 @@ import WebKit
 /// suspends the page's JavaScript until these return, which is exactly the contract `alert()` has
 /// always had — but it is one column's JavaScript, not the app's.
 @MainActor
-struct PageDialogs: WebPage.DialogPresenting {
-    func handleJavaScriptAlert(message: String, initiatedBy frame: WebPage.FrameInfo) async {
-        await Self.alert(message, from: frame.securityOrigin, on: Self.window)
-    }
-
-    func handleJavaScriptConfirm(message: String,
-                                 initiatedBy frame: WebPage.FrameInfo) async -> WebPage.JavaScriptConfirmResult {
-        await Self.confirm(message, from: frame.securityOrigin, on: Self.window) ? .ok : .cancel
-    }
-
-    func handleJavaScriptPrompt(message: String, defaultText: String?,
-                                initiatedBy frame: WebPage.FrameInfo) async -> WebPage.JavaScriptPromptResult {
-        let text = await Self.prompt(message, defaultText: defaultText, from: frame.securityOrigin, on: Self.window)
-        return text.map { .ok($0) } ?? .cancel
-    }
-
-    func handleFileInputPrompt(parameters: WKOpenPanelParameters,
-                               initiatedBy frame: WebPage.FrameInfo) async -> WebPage.FileInputPromptResult {
-        let files = await Self.files(parameters, from: frame.securityOrigin, on: Self.window)
-        return files.map { .selected($0) } ?? .cancel
-    }
-
-    // MARK: The dialogs, for a tab and for a window a page opened
-
+enum PageDialogs {
     static func alert(_ message: String, from origin: WKSecurityOrigin, on window: NSWindow?) async {
         let alert = Self.alert(from: origin, message: message)
         alert.addButton(withTitle: String(localized: "OK"))
@@ -100,7 +77,7 @@ struct PageDialogs: WebPage.DialogPresenting {
         origin.host.isEmpty ? String(localized: "This page") : origin.host
     }
 
-    private static var window: NSWindow? {
+    static var window: NSWindow? {
         NSApp.keyWindow ?? NSApp.mainWindow ?? NSApp.windows.first { $0.isVisible }
     }
 

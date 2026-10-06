@@ -53,7 +53,7 @@ nonisolated extension MCPAppScheme {
 
 /// Serves one app's two documents. Immutable once built: the HTML and the policy are decided when
 /// the app opens, and a running app cannot talk the handler into serving it something else.
-nonisolated final class MCPAppSchemeHandler: URLSchemeHandler, Sendable {
+final class MCPAppSchemeHandler: NSObject, WKURLSchemeHandler {
     private let host: String
     private let shell: Data
     private let content: Data
@@ -66,7 +66,8 @@ nonisolated final class MCPAppSchemeHandler: URLSchemeHandler, Sendable {
         shell = Data(Self.shellHTML(host: host, permissions: resource.permissions).utf8)
     }
 
-    func reply(for request: URLRequest) -> AsyncThrowingStream<URLSchemeTaskResult, any Error> {
+    func webView(_ webView: WKWebView, start task: any WKURLSchemeTask) {
+        let request = task.request
         let scheme = request.url?.scheme?.lowercased()
         let isShell = scheme == MCPAppScheme.shell
         let body = isShell ? shell : content
@@ -84,16 +85,13 @@ nonisolated final class MCPAppSchemeHandler: URLSchemeHandler, Sendable {
             // An app is a document, never a download, and never anyone's frame but the shell's.
             "X-Content-Type-Options": "nosniff",
         ])
-        return AsyncThrowingStream { continuation in
-            if let response {
-                continuation.yield(.response(response))
-                continuation.yield(.data(body))
-                continuation.finish()
-            } else {
-                continuation.finish(throwing: URLError(.badServerResponse))
-            }
-        }
+        guard let response else { return task.didFailWithError(URLError(.badServerResponse)) }
+        task.didReceive(response)
+        task.didReceive(body)
+        task.didFinish()
     }
+
+    func webView(_ webView: WKWebView, stop task: any WKURLSchemeTask) {}
 
     /// The shell: a full-bleed frame and nothing else. `color-scheme: inherit` and the transparent
     /// background are what let an app that draws nothing of its own take Savoia's own backdrop.

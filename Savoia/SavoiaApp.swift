@@ -115,7 +115,7 @@ struct SavoiaApp: App {
             return true
         }
         WebViewResponder.shared.onWebViewFound = { [weak browser] tabID, webView in
-            WebPage.allowPictureInPicture(on: webView)
+            WKWebView.allowPictureInPicture(on: webView)
             browser?.tab(tabID)?.webViewFound(webView)
             ScriptedPopups.install(on: webView, tabID: tabID, profileID: browser?.tab(tabID)?.profileID)
             DisplayCapture.observe(webView) { [weak browser] state in

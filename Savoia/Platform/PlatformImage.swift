@@ -11,3 +11,10 @@ extension Image {
         self.init(nsImage: image)
     }
 }
+
+extension NSImage {
+    var pngData: Data? {
+        guard let image = cgImage(forProposedRect: nil, context: nil, hints: nil) else { return nil }
+        return NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])
+    }
+}

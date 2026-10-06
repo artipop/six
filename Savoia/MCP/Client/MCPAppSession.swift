@@ -61,7 +61,7 @@ final class MCPAppSession: Identifiable {
     }
 
     /// The page showing the app, set by `BrowserTab` when it builds one.
-    @ObservationIgnored weak var page: WebPage?
+    @ObservationIgnored weak var page: WKWebView?
     /// A link the app asked Savoia to open (`ui/open-link`). Set by `BrowserState`.
     @ObservationIgnored var onOpenLink: ((URL) -> Void)?
     /// Something the app wants said in the conversation (`ui/message`). Set by whoever owns the agent.
@@ -80,7 +80,7 @@ final class MCPAppSession: Identifiable {
     private var nextRequestID = 1
     /// Holds the page alive while the app answers a teardown. The window is already gone from the
     /// strip; this is the difference between "told it" and "gave it a moment".
-    private var teardownHold: WebPage?
+    private var teardownHold: WKWebView?
     private var allowedTools: Set<String> = []
     private var blockedTools: Set<String> = []
     /// The window is going. A question put up now is a question with nobody left to answer it.

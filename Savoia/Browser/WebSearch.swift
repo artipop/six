@@ -25,11 +25,11 @@ final class WebSearch {
 
     /// Kept between calls: the page holds the connection and the (ephemeral) cookie jar, and a search
     /// is usually followed by another one.
-    private lazy var page: WebPage = {
-        var configuration = WebPage.Configuration()
+    private lazy var page: WKWebView = {
+        let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = .nonPersistent()
         configuration.applicationNameForUserAgent = UserAgent.applicationName
-        return WebPage(configuration: configuration)
+        return WKWebView(frame: .zero, configuration: configuration)
     }()
 
     func search(_ query: String, limit: Int) async throws -> [Result] {

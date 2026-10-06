@@ -1,8 +1,5 @@
 import Foundation
 import Observation
-#if canImport(WebKit)
-import WebKit
-#endif
 
 /// One device a site can ask for.
 ///
@@ -177,23 +174,6 @@ final class SitePermissions {
     }
 
     // MARK: Answering the page
-
-    #if canImport(WebKit)
-    /// The page is asking, in WebKit's own vocabulary. Everything past the translation is
-    /// `decide(_:origin:in:profileID:)`, which is the same on both platforms.
-    ///
-    /// This is the closure behind `WebPage.Configuration.deviceSensorAuthorization`, so the page's
-    /// `getUserMedia()` is suspended for exactly as long as the bar is up.
-    func decide(_ permission: WebPage.DeviceSensorAuthorization.Permission,
-                origin: WKSecurityOrigin,
-                in windowID: UUID,
-                profileID: UUID) async -> WKPermissionDecision {
-        let allowed = await decide(Self.permissions(for: permission),
-                                   origin: Self.string(for: origin),
-                                   in: windowID, profileID: profileID)
-        return allowed ? .grant : .deny
-    }
-    #endif
 
     /// The page is asking, and the caller would rather be suspended than called back.
     func decide(_ asked: [SitePermission], origin: String,
@@ -384,26 +364,8 @@ final class SitePermissions {
 
     // MARK: Origins
 
-    /// The origin as WebKit writes it: scheme, host, and the port only when there is one worth
-    /// naming (WebKit reports 0 for a scheme's default).
-    ///
-    /// A `file:` page has no host, because WebKit gives every local file the same opaque origin.
-    /// Filing them together under `file://` is not a shortcut — it is what that origin *is*, and it
-    /// beats the alternative of denying a local page with no question asked.
-    #if canImport(WebKit)
-    static func string(for origin: WKSecurityOrigin) -> String {
-        let scheme = origin.`protocol`
-        guard !scheme.isEmpty else { return "" }
-        guard !origin.host.isEmpty else { return "\(scheme)://" }
-        let base = "\(scheme)://\(origin.host)"
-        return origin.port == 0 ? base : "\(base):\(origin.port)"
-    }
-
-    #endif
-
-    /// The same string built from an address, so the title bar can look up what a window was
-    /// answered without asking its page. Kept beside `string(for:)` because the two must agree —
-    /// and it is what Linux files answers under, since WebKitGTK does not hand out an origin at all.
+    /// The origin of an address, as a front's engine writes it: scheme, host, and the port only when
+    /// it is not the scheme's own. A `file:` page has no host, and all of them are filed under `file://`.
     static func origin(of url: URL?) -> String? {
         guard let url, let scheme = url.scheme?.lowercased(), !scheme.isEmpty else { return nil }
         guard let host = url.host()?.lowercased(), !host.isEmpty else { return "\(scheme)://" }
@@ -413,26 +375,6 @@ final class SitePermissions {
         return "\(base):\(port)"
     }
 
-    #if canImport(WebKit)
-    static func permissions(
-        for permission: WebPage.DeviceSensorAuthorization.Permission
-    ) -> [SitePermission] {
-        switch permission {
-        case .deviceOrientationAndMotion:
-            return [.motion]
-        case .mediaCapture(let type):
-            switch type {
-            case .camera: return [.camera]
-            case .microphone: return [.microphone]
-            case .cameraAndMicrophone: return [.camera, .microphone]
-            @unknown default: return []
-            }
-        @unknown default:
-            // A sensor Savoia has never heard of is not one it can describe in a question.
-            return []
-        }
-    }
-    #endif
 }
 
 // MARK: - Configuration

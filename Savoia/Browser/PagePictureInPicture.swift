@@ -56,7 +56,7 @@ import WebKit
 /// player visible after WebKit has ordered it out; `_pipSetWindowContentRect:` is how the agent tells
 /// Savoia where the player went, not the other way round.
 /// [layout.md](../../docs/layout.md#picture-in-picture) has the measurements.
-extension WebPage {
+extension WKWebView {
     #if os(macOS)
     /// Lets the page behind `webView` float its videos. Called on every claim of a pane, so a view
     /// that already allows it is left alone rather than sent the same preference again.
@@ -75,16 +75,16 @@ extension WebPage {
     /// main frame and blind to cross-origin iframes — an embedded player on somebody else's page.
     /// WebKit's, asked of `webView` when there is one, is the other way round: it sees whatever frame
     /// the video is in and only if that video is the one it considers the page's main one.
-    func isInPictureInPicture(reportedBy webView: WKWebView?) async -> Bool {
-        if Self.webKitReportsPictureInPicture(webView) { return true }
+    func isInPictureInPicture() async -> Bool {
+        if Self.webKitReportsPictureInPicture(self) { return true }
         let script = """
             return Array.prototype.some.call(document.querySelectorAll('video'), function (video) {
                 return video.webkitPresentationMode === 'picture-in-picture';
             });
             """
         let answer: Any?
-        if let webView, webView.canCallWithoutGesture {
-            answer = try? await webView.callWithoutGesture(script, in: .savoia)
+        if canCallWithoutGesture {
+            answer = try? await callWithoutGesture(script, in: .savoia)
         } else {
             answer = try? await savoia(script)
         }

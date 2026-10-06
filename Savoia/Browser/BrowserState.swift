@@ -558,7 +558,7 @@ final class BrowserState {
         guard let profile = profiles.first(where: { $0.id == id }) else { return }
         await dataStore(for: profile).removeData(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(), modifiedSince: .distantPast)
         for tab in tabs(in: id) where !tab.showsStartPage && tab.pendingURL == nil {
-            _ = tab.livePage?.reload(fromOrigin: true)
+            tab.livePage?.reloadFromOrigin()
         }
     }
 
@@ -611,6 +611,11 @@ final class BrowserState {
         tab.pageFocus = pageFocus
         tab.webMCP = webMCP
         tab.permissions = permissions
+        #if os(macOS)
+        tab.onContextMenu = { [weak self] tab, link in
+            self.map { PageContextMenu.menu(for: tab, link: link, in: $0) }
+        }
+        #endif
     }
 
     func tabs(in profileID: Profile.ID) -> [BrowserTab] {
@@ -672,7 +677,7 @@ final class BrowserState {
                 // looked at. A private window translates like any other — the work never leaves it.
                 self.translation.forget(tab.id)
                 self.find.forget(tab.id) // a page gone is a page whose matches went with it
-                if !profile.isPrivate { history.record(url, title: page.title, in: tab.profileID) }
+                if !profile.isPrivate { history.record(url, title: page.title ?? "", in: tab.profileID) }
             case .finished:
                 // Above the private guard, deliberately. A private window keeps no history and
                 // stores no highlights, but a page in another language is still a page in another
@@ -680,7 +685,7 @@ final class BrowserState {
                 // the profile to protect it from.
                 offerTranslation(of: tab)
                 guard !profile.isPrivate else { return } // no history, and highlights are not stored for it
-                history.updateTitle(page.title, for: url, in: tab.profileID)
+                history.updateTitle(page.title ?? "", for: url, in: tab.profileID)
                 highlights?.apply(to: tab)
                 if settings.sortsTabsByMeaning { sorter.pageFinished(tab, in: self) }
             }
