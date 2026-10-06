@@ -15,7 +15,6 @@ A task's file is deleted by the commit that finishes it; what was learned goes i
 | 3 | [browser/03-popups.md](browser/03-popups.md) | which `window.open` is a window and which a tab; dialogs and permissions in the window |
 | 7 | [permissions/07-geolocation.md](permissions/07-geolocation.md) | geolocation for sites |
 | 8 | [permissions/08-notifications.md](permissions/08-notifications.md) | site notifications |
-| 9 | [investigations/09-apple-pay.md](investigations/09-apple-pay.md) | why `PaymentRequest` is undefined — a cause, not a fix |
 | 10 | [investigations/10-activation-at-load.md](investigations/10-activation-at-load.md) | why every loaded page reports `hasBeenActive` |
 
 7 and 8 share a header and a delegate proxy: one after the other, never in parallel.
@@ -24,6 +23,8 @@ A task's file is deleted by the commit that finishes it; what was learned goes i
 
 - **`AdvancedRules`** — the blocker's scriptlets and extended CSS are off behind `SAVOIA_ADVANCED_RULES=1` while
   Artem uses the browser without them. Back on, or gone, is his call.
+- **Apple Pay** — `PaymentRequest` is not there for pages, and the cause was left unestablished on purpose
+  ([todo.md](../todo.md#apple-pay-not-supported-and-why-is-not-known)).
 - **Idle Detection** — WebKit does not implement `IdleDetector`; nothing to build until it does.
 - **`MediaStreamTrack-getCapabilities`** — four subtests differ from Safari's CI because this Mac's camera reports
   no `facingMode` and CI's mock camera does. Closed without a change.

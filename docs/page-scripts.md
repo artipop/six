@@ -14,8 +14,8 @@ showed two things about `WebPage.callJavaScript`.
   to the window and not to the world, so it probably does.
 - **A script that moves the page moves it when nobody asked.** Two of them scroll.
 - **A user script on every page is a condition WebKit can see.** `PaymentRequest` and `ApplePaySession` are
-  `undefined` in Savoia (measured). Whether user scripts are the cause is a guess; the region of the Apple ID is
-  another candidate.
+  `undefined` in Savoia (measured), and still are with the blocker's page scripts off. The cause was not
+  established ([todo.md](todo.md#apple-pay-not-supported-and-why-is-not-known)).
 
 The call that carries none is `BrowserTab.callWithoutGesture` (`PageScripts.swift`): WebKit's
 `_callAsyncJavaScript:arguments:inFrame:inContentWorld:withUserGesture:completionHandler:`, SPI, behind

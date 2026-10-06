@@ -166,7 +166,7 @@ The 25, by cause:
 
 | files | what differs | why | state |
 |---|---|---|---|
-| 6: `permissions-policy/payment-*` (5), `reporting/payment-reporting` | Safari passes the "allowed" cases | `PaymentRequest` and `ApplePaySession` are `undefined` in Savoia — measured, and still so with the blocker's page scripts off. Why is not established: the region of the Apple ID, or what WebKit gives an app that is not Safari | open |
+| 6: `permissions-policy/payment-*` (5), `reporting/payment-reporting` | Safari passes the "allowed" cases | `PaymentRequest` and `ApplePaySession` are `undefined` in Savoia — measured, and still so with the blocker's page scripts off. Why was not established ([todo.md](todo.md#apple-pay-not-supported-and-why-is-not-known)) | not supported |
 | 4: `idle-detection-*-permissions-policy*` | Savoia times out with no result, Safari errors | not established; neither passes | open |
 | 3: `async-unsanitized-standard-html-read-fail`, `clipboard-read-enabled-by-permissions-policy`, `readText-granted` | Safari's row is a crash | nothing to compare with | — |
 | 4: `GUM-deny`, `MediaDevices-SecureContext`, `enumerateDevices-per-origin-ids`, `focus-…-target-frame-state-ignored` | Savoia passes more than Safari | Safari's own report says why for one: "Unable to set permission to denied for this test" — safaridriver cannot, the runner can | — |

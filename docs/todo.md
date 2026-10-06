@@ -261,6 +261,18 @@ through the same provider marked persistent, but their clicks go to `WKWebsiteDa
 Savoia is not sandboxed and not on the App Store, so undeclared API carries no review risk here — only the ordinary one,
 that it changes in a macOS update.
 
+## Apple Pay: not supported, and why is not known
+
+A page in Savoia has no `PaymentRequest` and no `ApplePaySession` — both are `undefined`, so a shop's Apple Pay
+button is absent or dead, and the six wpt files `permissions-policy/payment-*` and `reporting/payment-reporting`
+differ from Safari for that reason. Measured in October 2026 on an https page, with and without the blocker's page
+scripts (`AdvancedRules`), so those are not the cause.
+
+What the cause is was not established, and the investigation was dropped rather than finished. The candidates
+that remain: the region of the Apple ID on the dev Mac, where Apple Pay does not work at all; and a limit WebKit
+puts on an app that is not Safari. The way to tell them apart is a twenty-five-line app with a bare `WKWebView`
+and no user script, and `typeof PaymentRequest` in Safari on the same Mac.
+
 ## Blocking: cosmetic rules inside a frame
 
 [Advanced blocking](blocking.md#the-advanced-rules-what-runs-inside-the-page) is main frame only, and the reason is

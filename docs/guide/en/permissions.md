@@ -67,7 +67,9 @@ even when you switch to another.
 - **site notifications** — a site is refused at once, with no question shown.
   WebKit lets a browser both ask and show them only through undocumented
   functions;
-- **web push** — Apple opens it only to its own apps.
+- **web push** — Apple opens it only to its own apps;
+- **Apple Pay on sites** — the Apple Pay button is missing or does nothing: a
+  page in Savoia is not given the functions it needs. Why is not yet known.
 
 Geolocation and notifications can be done, but through undocumented WebKit
 functions that any macOS update could change.
