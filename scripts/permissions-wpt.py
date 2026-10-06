@@ -3,6 +3,7 @@
 
     ./scripts/permissions-wpt.py                               # every directory, against Safari and the baseline
     ./scripts/permissions-wpt.py --no-testdriver               # without the camera and the system clipboard
+    ./scripts/permissions-wpt.py --screen                      # with the screen-sharing files, and a person to answer
     ./scripts/permissions-wpt.py permissions screen-capture    # only these directories
     ./scripts/permissions-wpt.py --only getusermedia           # files whose address contains this
     ./scripts/permissions-wpt.py --write-baseline              # after a change that should move the numbers
@@ -153,9 +154,12 @@ def tests(directories, only):
                 continue
             source = "/".join(path + [name])
             # The manifest's own flag misses a .js test that names testdriver in its META lines.
-            testdriver = "testdriver" in open(os.path.join(CACHE, source), errors="replace").read()
+            text = open(os.path.join(CACHE, source), errors="replace").read()
+            testdriver = "testdriver" in text
+            # The system's sharing picker: nobody but a person can answer it.
+            picker = "getDisplayMedia" in text or source.startswith("screen-capture/")
             for url, extras in value[1:]:
-                found.append({"url": "/" + (url or source), "kind": kind, "testdriver": testdriver,
+                found.append({"url": "/" + (url or source), "kind": kind, "testdriver": testdriver, "picker": picker,
                               "long": extras.get("timeout") == "long"})
 
     for kind in ("testharness", "crashtest"):
@@ -266,9 +270,8 @@ class Browser:
 
 
 def js(savoia, window, script):
-    """Runs a function body in the page and reads back the JSON it returns — without the user gesture
-    that evaluate_javascript carries, which would keep every page activated for the whole run."""
-    return json.loads(savoia.call("testdriver_evaluate", window_id=window, script=script))
+    """Runs a function body in the page and reads back the JSON it returns."""
+    return savoia.js(window, script)
 
 
 def act(savoia, window, action, origin):
@@ -376,6 +379,8 @@ def main():
     parser.add_argument("--slack", type=float, default=5, help="seconds past testharness's own timeout to wait")
     parser.add_argument("--no-testdriver", action="store_true",
                         help="leave out the files that call testdriver: they use the camera and the system clipboard")
+    parser.add_argument("--screen", action="store_true",
+                        help="run the files that call getDisplayMedia too; someone has to answer the system's picker")
     parser.add_argument("--actions", action="store_true", help="print every testdriver action and how it went")
     parser.add_argument("--update", action="store_true", help="pull the suite again first")
     parser.add_argument("--write-baseline", action="store_true", help="save this run as scripts/permissions-wpt-baseline.json")
@@ -386,7 +391,7 @@ def main():
     commit = fetch(args.update)
     run, summary, reports = safari()
     listed = tests(directories, args.only)
-    runnable = [t for t in listed if not (args.no_testdriver and t["testdriver"])]
+    runnable = [t for t in listed if not (args.no_testdriver and t["testdriver"]) and (args.screen or not t["picker"])]
 
     vendor()
     server = serve()
@@ -416,13 +421,14 @@ def main():
         if server:
             os.killpg(server.pid, 15)
 
-    print(f"\n{'directory':24} {'files':>5} {'testdriver':>10} {'run':>4} {'same':>5} {'differ':>6} {'no Safari row':>13}")
+    print(f"\n{'directory':24} {'files':>5} {'testdriver':>10} {'picker':>6} {'run':>4} {'same':>5} {'differ':>6} {'no Safari row':>13}")
     for directory in directories:
         mine = [u for u in results if u.split("/")[1] == directory]
         absent = [u for u in mine if results[u]["safari"] is None]
         same = [u for u in mine if results[u]["safari"] == results[u]["savoia"]]
         everything = [t for t in listed if t["url"].split("/")[1] == directory]
-        print(f"{directory:24} {len(everything):5} {sum(t['testdriver'] for t in everything):10} {len(mine):4} "
+        print(f"{directory:24} {len(everything):5} {sum(t['testdriver'] for t in everything):10} "
+              f"{sum(t['picker'] for t in everything):6} {len(mine):4} "
               f"{len(same):5} {len(mine) - len(same) - len(absent):6} {len(absent):13}")
 
     system = system_safari()

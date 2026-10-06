@@ -132,26 +132,54 @@ answer about every site unreadable — the same trap `location` set below.
 `geolocation`, `notifications`, `clipboard-apis`, `storage-access-api`, `idle-detection` — in a Debug Savoia it
 launches itself in a throwaway home, and compares every file with the newest stable Safari run on wpt.fyi. The bar
 is Safari's result for the same file, not the absolute number: a failure Safari shares is WebKit's. It prints the
-Safari version of the run beside the system's, since they can differ (27.0 on wpt.fyi against 27.2 here).
+Safari version of the run beside the system's, since they differ (27.0 on wpt.fyi against 27.2 here). testdriver
+is carried the way wptrunner carries it to Safari ([test-suites.md](test-suites.md#what-unlocks-most-of-the-rest-testdriver)).
 
-Only the files that do not call testdriver are run, 150 addresses of 377; the rest wait for a
-`testdriver-vendor.js` ([test-suites.md](test-suites.md)). On wpt `1d99362`, 4 October 2026, 121 matched Safari and
-29 did not:
+On wpt `1d99362`, 6 October 2026, baseline in `scripts/permissions-wpt-baseline.json`: 377 addresses, 21 left out,
+356 run, **277 the same as Safari, 79 not**.
+
+| directory | run | same | differ |
+|---|---|---|---|
+| `permissions`, `-request`, `-revoke` | 22 | 22 | 0 |
+| `permissions-policy` | 117 | 90 | 27 |
+| `mediacapture-streams` | 52 | 48 | 4 |
+| `mediacapture-handle` | 1 | 1 | 0 |
+| `geolocation` | 22 | 22 | 0 |
+| `notifications` | 29 | 27 | 2 |
+| `clipboard-apis` | 61 | 52 | 9 |
+| `storage-access-api` | 40 | 7 | 33 |
+| `idle-detection` | 12 | 8 | 4 |
+
+The 21 left out call `getDisplayMedia()` — all of `screen-capture` and six files of `mediacapture-streams`. The
+system's sharing picker waits for a person, the page needs focus, and Savoia is not in front during a run; with
+`--screen` they run, for whoever will sit and answer.
+
+The 79, by cause:
 
 | files | what differs | why | state |
 |---|---|---|---|
-| `geolocation/non-secure-contexts.http`, `notifications/permissions-non-secure`, `storage-access-api/hasStorageAccess-insecure` | Savoia failed, Safari passes | the stand: `http://*.localhost` is a secure context. Such files are now served from the Mac's own interface address | rerun, all match |
-| 14 × `permissions-policy/experimental-features/unload-*` | Savoia times out, Safari fails at once | the helper opens a window with `window.open`, which answers `null` without a gesture ([todo.md](todo.md#popups-a-window-the-page-can-script)); the `null` is measured, that it is the whole cause is not | not fixed |
-| 5 × `permissions-policy/payment-*`, `reporting/payment-reporting` | Safari passes the "allowed" cases, Savoia fails them | `PaymentRequest` and `ApplePaySession` are `undefined` in Savoia — measured. The likely cause is that WebKit hides Apple Pay from an app that injects user scripts, which Savoia does on every page; that part is reasoning, not a run | not established |
-| `mediacapture-streams/idlharness.https.window`, `overconstrained_error`, `MediaStreamTrack-transfer-video` | Savoia times out | each calls `getUserMedia()` and the bar waits for a person; Safari under automation is granted mock devices | waits for testdriver |
-| `mediacapture-streams/MediaDevices-enumerateDevices-not-allowed-camera` | Savoia passes, Safari fails | not established; possibly 27.2 against 27.0 | — |
-| `permissions-policy/experimental-features/focus-without-user-activation-focused-frame-descendant` | one subtest of seven | not established; Savoia is not the front app during a run | — |
-| `permissions-policy/reporting/geolocation-reporting` | Savoia times out, Safari errors | geolocation is not built (below) | recorded |
+| 47: `storage-access-api` (33), `permissions-policy/…/unload-*` (13), `enumerateDevices-with-navigation` | Savoia times out | each opens a window with `window.open` and waits for it to `postMessage` its opener; Savoia's new window has no opener ([todo.md](todo.md#popups-a-window-the-page-can-script)). Read from the tests' helpers; the click before it is measured to arrive | not built |
+| 7: `permissions-policy/payment-*`, `reporting/payment-reporting` | Safari passes the "allowed" cases | `PaymentRequest` and `ApplePaySession` are `undefined` in Savoia — measured. Why is not established: user scripts, or the region of the Apple ID | open |
+| 7: `clipboard-copy-selection-line-break` (4), `paste-on-detaching-iframe`, two `focus-without-user-activation-disabled-*` | Savoia fails | they call `action_sequence` or `send_keys`, which the runner answers `not implemented` | testdriver gap |
+| 4: `idle-detection-*-permissions-policy*` | Savoia times out with no result, Safari errors | not established; neither passes | open |
+| 3: clipboard files where Safari's row is a crash | — | nothing to compare with | — |
+| 3: `GUM-deny`, `enumerateDevices-per-origin-ids`, `focus-…-target-frame-state-ignored` | Savoia passes, Safari does not | Safari's own report says why for one: "Unable to set permission to denied for this test" — safaridriver cannot, the runner can | — |
+| 2: `notifications/instance`, `getnotifications-across-processes` | both are harness errors, one row apart | notifications are not built (below) | recorded |
+| `MediaStreamTrack-getCapabilities` | four `facingMode` subtests | the real camera of this Mac against CI's mock devices; reasoning | — |
+| `reporting/geolocation-reporting` | Savoia times out, Safari errors | geolocation is not built (below) | recorded |
+| 4 others: `clipboard-read-enabled-on-self-origin`, `focus-…-click-handler`, `focus-…-focused-frame-descendant`, `picture-in-picture-report-only` | one subtest or a status | not established | open |
 
-The run found one defect that is Savoia's and is in no test's assertion: the bar outliving its page, above.
+Three things the runs turned up that are in no test's assertion:
 
-Content blocking is on in the throwaway home, as it is in a fresh install. Plain-http files other than the
-non-secure ones still run in a secure context, unlike on wpt.fyi.
+- **The bar outlived its page** — above; fixed.
+- **`http://*.localhost` is a secure context.** Files about non-secure contexts are served from the Mac's own
+  interface address instead; the address the default route gives may be a VPN tunnel that does not loop back.
+- **`evaluate_javascript` was a user gesture** — a first run that polled pages with it had every page activated,
+  and clipboard files passed and failed at random ([page-scripts.md](page-scripts.md)).
+
+The clipboard files write to the system clipboard and the capture files use the real camera; `--no-testdriver`
+leaves both out. Content blocking is on in the throwaway home, as it is in a fresh install. Plain-http files other
+than the non-secure ones run in a secure context, unlike on wpt.fyi.
 
 ## What a `WebPage` browser still cannot ask for
 
