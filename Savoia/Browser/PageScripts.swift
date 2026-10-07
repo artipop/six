@@ -88,8 +88,18 @@ extension WKWebView {
         mouse(.leftMouseDown, atViewport: point) && mouse(.leftMouseUp, atViewport: point)
     }
 
-    /// The destination's half of a drag the page began, called as a dragging session calls it: a
-    /// session begun from an event nobody's hand made never does. False when the page refused the drop.
+    /// While true, a drag the page starts in this view begins no dragging session: in the front app a
+    /// session follows the person's pointer and takes the drop to wherever that is.
+    var dragsWithoutSession: Bool {
+        get { SessionlessDrags.view === self }
+        set {
+            _ = SessionlessDrags.installed
+            SessionlessDrags.view = newValue ? self : nil
+        }
+    }
+
+    /// The destination's half of a drag the page began, called as the dragging session that was not
+    /// begun would have called it. False when the page refused the drop.
     func drop(atViewport point: CGPoint) async -> Bool {
         guard let window else { return false }
         let location = inWindow(viewport: point)
@@ -114,6 +124,22 @@ extension WKWebView {
     private func inWindow(viewport point: CGPoint) -> CGPoint {
         convert(CGPoint(x: point.x, y: isFlipped ? point.y : bounds.height - point.y), to: nil)
     }
+}
+
+private enum SessionlessDrags {
+    nonisolated(unsafe) static weak var view: WKWebView?
+
+    /// `WKWebView` inherits the method from `NSView`; this gives it one of its own that can decline.
+    static let installed: Bool = {
+        let selector = #selector(NSView.beginDraggingSession(with:event:source:))
+        guard let method = class_getInstanceMethod(NSView.self, selector) else { return false }
+        typealias Begin = @convention(c) (AnyObject, Selector, NSArray, NSEvent, AnyObject) -> AnyObject?
+        let begin = unsafeBitCast(method_getImplementation(method), to: Begin.self)
+        let block: @convention(block) (AnyObject, NSArray, NSEvent, AnyObject) -> AnyObject? = { receiver, items, event, source in
+            receiver === view ? nil : begin(receiver, selector, items, event, source)
+        }
+        return class_addMethod(WKWebView.self, selector, imp_implementationWithBlock(block), method_getTypeEncoding(method))
+    }()
 }
 
 /// What a dragging session tells its destination.

@@ -69,7 +69,7 @@ enum PageActions {
     }
 
     /// Down, dragged, up as mouse events. A page that starts drag-and-drop on them gets its drop from
-    /// the web view's dragging-destination methods, which is all a dragging session would have called.
+    /// the web view's dragging-destination methods, and no dragging session is begun meanwhile.
     static func drag(_ tab: BrowserTab, arguments: [String: Any]) async throws -> [String: Any] {
         var found = try await run(tab, PageActionScript.span, arguments: arguments)
         guard let x = found["x"] as? Double, let y = found["y"] as? Double,
@@ -79,6 +79,8 @@ enum PageActions {
         let end = CGPoint(x: toX, y: toY)
         let pasteboard = NSPasteboard(name: .drag)
         let before = pasteboard.changeCount
+        view.dragsWithoutSession = true
+        defer { view.dragsWithoutSession = false }
         view.mouse(.leftMouseDown, atViewport: CGPoint(x: x, y: y))
         let steps = 8
         // The page writes the drag pasteboard at `dragstart`; from there the pointer is the session's, not the page's.

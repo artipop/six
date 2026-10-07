@@ -119,7 +119,8 @@ later; on the tooltip's button the tooltip's text appeared, and the menu folded.
 each list behind the third, and put an item's `dataTransfer` text into the drop target, with `dragstart`,
 `dragenter`, `drop`, `dragend` in that order and all trusted. The refusing element got `dragenter` and
 `dragleave`, the source `dragend`, and the tool failed; a `click` and another `drag` after it worked. Each took
-0.4–0.8 s. The first run in front, before sessions were declined, is where the two drag-and-drop cases failed.
+0.4–0.8 s. The first run in front, before sessions were declined, is where the two drag-and-drop cases failed. Artem
+watched a later run in front: it went by fast, and nothing was left on screen.
 The same destination calls with a pasteboard of two file URLs gave the page both files with their contents —
 measured from the test driver, in the background, and not a tool. Not measured: a page inside a frame, and a
 window known to be key — `document.hasFocus()` answered false in both runs.
