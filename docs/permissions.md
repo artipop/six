@@ -210,6 +210,13 @@ What the runs turned up that is in no test's assertion:
   WebKit between them, and Savoia left fullscreen by script before a main-frame navigation to get round it. On a
   tab's own `WKWebView` the view comes home by itself — measured on the stand with a real click into fullscreen and
   a navigation out — and the workaround is gone.
+  **It does not come home on the stand any more**, 7 October 2026 in the evening: after
+  `permissions-policy/reporting/fullscreen-report-only` the test window's view is in no window, and every later
+  click in the run is refused as off screen — 22 of them in a full run, which is all of what `storage-access-api`
+  then loses (37 subtests; the directory alone gives 40 of 40). One minute to see:
+  `./scripts/permissions-wpt.py --actions --only reporting/fullscreen --only requestStorageAccess-ABA`. It needs the
+  page to be visible, so a run under a locked screen does not show it, and the baseline's run may not have. Which
+  change brought it, if one did, is not established.
 - **`evaluate_javascript` was a user gesture** — a first run that polled pages with it had every page activated,
   and clipboard files passed and failed at random ([page-scripts.md](page-scripts.md)).
 

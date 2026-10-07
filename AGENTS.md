@@ -97,8 +97,10 @@ ls -td ~/Library/Developer/Xcode/DerivedData/Savoia-*/Build/Products/Debug/Savoi
   being looked at is often a stale Release build.
 
 **Screenshots do not work here.** `screencapture` writes black (no Screen Recording for the terminal) and System Events
-is refused (no Accessibility), so synthetic clicks, hover and menu states cannot be captured. Verify through Savoia's own
-MCP server instead — that is what it is for:
+is refused (no Accessibility), so synthetic clicks, hover and menu states cannot be captured. Savoia can draw its own
+window, though: under `SAVOIA_TESTDRIVER=1`, `testdriver_window_image` writes the tab bar, the address field and the
+page to a PNG — not menus, popovers or sheets, which are other windows. Verify through Savoia's own
+MCP server — that is what it is for:
 
 ```sh
 <Savoia.app>/Contents/MacOS/Savoia --mcp     # JSON-RPC on stdio, relays to the running app over its Unix socket

@@ -291,7 +291,8 @@ final class BrowserToolCatalog {
             description: "Sends one command of WebKit's automation protocol — the one safaridriver speaks — and answers with "
                 + "the reply as WebKit wrote it. Start with Automation.getBrowsingContexts, which lists the automation tabs "
                 + "and the handle each command names: Automation.navigateBrowsingContext, evaluateJavaScriptFunction, "
-                + "performInteractionSequence, takeScreenshot, getAllCookies and the rest of WebKit's Automation.json.",
+                + "performKeyboardInteractions, takeScreenshot, getAllCookies and the rest of WebKit's Automation.json. "
+                + "Its mouse commands do not click here; the click tool does, on an automation tab as on any other.",
             parameters: [
                 .init(name: "method", description: "The command, such as Automation.getBrowsingContexts.", required: true),
                 .init(name: "params", description: "The command's parameters, as the protocol names them.", type: .object),
@@ -904,6 +905,11 @@ final class BrowserToolCatalog {
             surfaces: .mcp,
             run: { [unowned self] args in
                 let tab = try self.actingTab(args)
+                // WebKit answers an automation tab's chooser itself, and the delegate is never asked.
+                guard !tab.isAutomated else {
+                    throw BrowserTool.Failure(message: "An automation tab's file chooser is WebKit's: name the files with "
+                        + "automation_send Automation.setFilesToSelectForFileUpload, then click the input.")
+                }
                 let urls = try Self.files(args["path"]?.stringValue ?? "")
                 let names = urls.map(\.lastPathComponent).joined(separator: ", ")
                 return try await self.aroundDialogs(tab) {

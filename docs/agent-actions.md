@@ -151,6 +151,8 @@ are requests to the tab's UI delegate (`PageDelegate`), and the tab keeps each o
   so. Without `ref` it answers a chooser that is already open, which is how an agent gets out of one it opened with
   a plain `click`. Files against the input's own terms — two for a single input, a folder for a file input — are
   refused by name and the page is told the chooser was cancelled.
+  An automation tab is the exception: WebKit answers its chooser itself and the delegate is never asked, so the
+  tool refuses there and names the protocol's command ([devtools.md](devtools.md#remote-automation)).
 
 Measured over `Savoia --mcp` in a throwaway home, 7 October 2026, on a page of four buttons and three file inputs:
 `confirm` accepted and dismissed read `true` and `false` in the page; `prompt` answered with a text, with its

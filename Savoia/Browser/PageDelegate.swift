@@ -185,6 +185,14 @@ final class PageDelegate: NSObject, WKNavigationDelegate, WKUIDelegate {
         return allowed ? .grant : .deny
     }
 
+    // MARK: The window's frame
+
+    /// SPI. Unanswered, a page reads `outerWidth` 0 and remote automation a window of no size.
+    @objc(_webView:getWindowFrameWithCompletionHandler:)
+    func webView(_ webView: WKWebView, windowFrame completionHandler: @escaping (CGRect) -> Void) {
+        completionHandler(webView.window?.frame ?? .zero)
+    }
+
     // MARK: The context menu
 
     /// SPI, and the one place WebKit says what is under the pointer. Without it WebKit's own menu shows.

@@ -109,6 +109,24 @@ final class Automation: NSObject {
         completionHandler()
     }
 
+    // MARK: The window, which is the person's
+
+    /// An automation tab is a tab in the one window: these are answered, and nothing moves.
+    @objc(_automationSession:requestMaximizeWindowOfWebView:completionHandler:)
+    func automationSession(_ session: NSObject, requestMaximizeWindowOf view: WKWebView, completionHandler: @escaping () -> Void) {
+        completionHandler()
+    }
+
+    @objc(_automationSession:requestHideWindowOfWebView:completionHandler:)
+    func automationSession(_ session: NSObject, requestHideWindowOf view: WKWebView, completionHandler: @escaping () -> Void) {
+        completionHandler()
+    }
+
+    @objc(_automationSession:requestRestoreWindowOfWebView:completionHandler:)
+    func automationSession(_ session: NSObject, requestRestoreWindowOf view: WKWebView, completionHandler: @escaping () -> Void) {
+        completionHandler()
+    }
+
     // MARK: A page's dialog, for the protocol's dialog commands
 
     /// WebKit holds a command's reply while a dialog is up; it follows a later command, with the events.

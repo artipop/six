@@ -69,7 +69,8 @@ field. It stands apart from everything else:
 - its page can tell it is being driven: `navigator.webdriver` is `true` there. In
   an ordinary tab it is `false`, whether the switch is on or not.
 
-Turning the switch off closes such tabs. Only what talks to Savoia over
+The program can read where the window is and how large; it cannot move, resize
+or hide it. Turning the switch off closes such tabs. Only what talks to Savoia over
 [MCP](/en/agents) drives them: `safaridriver` does not attach to Savoia.
 
 ## WebMCP

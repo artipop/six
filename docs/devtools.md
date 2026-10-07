@@ -132,16 +132,24 @@ tabs opened under it, and for no other tab. All of it is SPI behind `responds(to
 process pool that carries the session. It has the session's own non-persistent store, no extension controller, is
 left out of history, the snapshot and the closed-tab list, and shows an orange **Automation** mark in the address
 field. A window such a tab opens is one too. Turning the switch off closes them and ends the session
-(`Automation.end`); that path was not exercised. An ordinary tab never carries the flag, so `navigator.webdriver`
-stays `false` there.
+(`Automation.end`). An ordinary tab never carries the flag, so `navigator.webdriver` stays `false` there.
 
 **Two tools, MCP only**, listed while the switch is on: `automation_open_window` opens such a tab, and
 `automation_send` passes one command (`method`, `params`) to the session with
 `_dispatchMessageFromRemoteForTesting:` and answers with the reply `_setMessageToFrontendHandlerForTesting:`
 delivered for its id, as WebKit wrote it; events that arrived since the last command follow it. Savoia assigns the
 id. The session's delegate answers two requests: a new web view (`Automation.createBrowsingContext`) is a new
-automation tab, and a switch to a web view selects its tab. The window-geometry requests are not answered, so
-`windowSize` reads 0×0.
+automation tab, and a switch to a web view selects its tab.
+
+**The window is the person's, and the protocol may read it and not move it.** WebKit asks for a window's frame
+through the UI delegate — `_webView:getWindowFrameWithCompletionHandler:`, which `PageDelegate` answers with the
+frame of the window the view is in — so `windowSize` and `windowOrigin` are the one window's, the origin counted
+from the top left of the screen. It is every tab's delegate, and it was every tab's fault: a page read
+`outerWidth` and `outerHeight` 0 and `screenY` as the height of the screen until it was answered.
+`_webView:setWindowFrame:` is left unanswered, so neither `setWindowFrameOfBrowsingContext` nor a page's
+`resizeTo` moves anything. The session delegate's `requestMaximizeWindowOfWebView`, `requestHideWindowOfWebView`
+and `requestRestoreWindowOfWebView` are answered at once and do nothing: an automation tab is a tab in the window
+somebody is using, and the three have no way to say no, only a completion to call.
 
 **A page's dialog is answered through the protocol.** The delegate's seven dialog requests read the tab's own
 pending dialog ([agent-actions.md](agent-actions.md#dialogs-and-files-the-delegates-door)), so
@@ -149,8 +157,21 @@ pending dialog ([agent-actions.md](agent-actions.md#dialogs-and-files-the-delega
 `acceptCurrentJavaScriptDialog` and `dismissCurrentJavaScriptDialog` work, and the sheet a person would have
 answered comes down. WebKit holds the reply of a command a dialog interrupts until the dialog is answered, so
 `automation_send` ends that wait when the dialog opens (`Automation.dialogOpened`) and the held reply arrives with
-the events of a later command. The file chooser is WebKit's own business under automation
-(`setFilesToSelectForFileUpload`) and was not tried.
+the events of a later command.
+
+**The file chooser is WebKit's own under automation, and Savoia is never asked.** A chooser an automation tab opens
+is answered by the session with the files `setFilesToSelectForFileUpload` named — they stay named for the session,
+not for one use — or cancelled when none were, and `Automation.fileChooserDismissed` says which; more than one file
+for an input without `multiple` is a cancel. `PageDelegate.runOpenPanelWith` does not run, so no sheet goes up and
+`upload_file` has nothing to answer: on an automation tab it refuses and names the command.
+
+**The protocol's keys reach the page and its mouse does not.** `performKeyboardInteractions` and a keyboard source in
+`performInteractionSequence` type, through Savoia's own key router. A mouse source in `performInteractionSequence`
+is answered `{}` and no window is sent an event; `performMouseInteraction` with `SingleClick` sends the window two
+mouse-downs and no mouse-up, so the page sees `mousedown` and never `click`. The same with Savoia in front and
+behind. Why is not known — safaridriver clicks in Safari through the same session — and it is what a WebDriver
+server over this session would have to solve first. Savoia's own `click` works on an automation tab as on any
+other ([agent-actions.md](agent-actions.md)), and is what opens a chooser there.
 
 Measured over `Savoia --mcp` in a throwaway home, 7 October 2026: with the switch off the tools are not listed; with
 it on, `Automation.getBrowsingContexts` lists the tab, `evaluateJavaScriptFunction` answers with
@@ -162,13 +183,44 @@ the page read `true`, `false` after a dismiss, and the text set with `setUserInp
 command that armed the timer answered in 0.3 s where it had waited out its 30; an accept with no dialog is
 WebKit's `NoJavaScriptDialog`.
 
+The rest was measured the same way later that day, the switch thrown by `testdriver_allow_automation`
+([test-suites.md](test-suites.md#what-unlocks-most-of-the-rest-testdriver)). **The switch turned off** with an
+automation tab open and a command waiting on a 20 s timer in its page: the command was answered `Automation was
+switched off` 2.6 s after it was sent, the switch thrown 2 s in; the tab was gone from `list_workspaces`, both tools from the list, and
+`automation_send` was an unknown tool; turned on again, a new tab came up under a new session and
+`getBrowsingContexts` listed it alone. **The frame**, in a 1440×799 window on a 1440×900 screen: `windowSize`
+1440×799 and `windowOrigin` 0, 30 where they had read 0×0 and 0, 900, and an ordinary tab's `outerWidth`,
+`outerHeight` and `screenY` 1440, 799 and 30 where they had read 0, 0 and 900; after `setWindowFrameOfBrowsingContext`
+to 700×500, `maximizeWindowOfBrowsingContext` and `hideWindowOfBrowsingContext`, each answered `{}` at once, the
+frame read the same. **A file**: with one named, a Space on the focused input and Savoia's `click` on it each left
+`files.length` 1, the file's name and a `change`; with none named the chooser was cancelled; two named were a
+cancel on a plain input and two files on a `multiple` one. **The orange mark** was seen in a drawing of the window
+(`testdriver_window_image`): the capsule stands in the address field, left of the address.
+
 Two things that cost time. `setValue(_:forKey:)` with `_controlledByAutomation` never returns — the flag is set by
 calling the setter's implementation. And `WKProcessPool` is deprecated in the SDK, so the pool is made and attached
 by name to keep the build free of warnings; if pools ever stop being separate, the session would reach every tab's
 pool and this needs another look.
 
-safaridriver does not attach to Savoia, so nothing speaks WebDriver over HTTP here; a client speaks the protocol
-through `automation_send`.
+### Who speaks to it
+
+An MCP client, one command at a time through `automation_send`, and nothing else. Two larger things were weighed
+and declined, 7 October 2026.
+
+**The wpt stand stays on its own testdriver** ([test-suites.md](test-suites.md)). One run of the permission
+directories with `--actions`: 356 files, 749 testdriver actions, 10 of them answered "not implemented" in 10
+files — nine `bidi.permissions.set_permission` and one `add_virtual_authenticator`. The session answers
+`addVirtualAuthenticator`; its BiDi door (`processBidiMessage`) answers that the `permissions` and `emulation`
+domains were not found, which rules out the nine and the 21 `bidi.emulation.set_geolocation_override` calls in the
+sources that the run never reached. So the protocol would serve one action in one file, and it would take away
+the clicks the stand has now, since its mouse does not click here (above). The other 242 failed `set_permission` actions are
+for a name Savoia keeps no answer for — `clipboard-read`, `clipboard-write`, `geolocation`,
+`notifications`, `idle-detection` — which is Savoia's to build and no protocol's; `setSessionPermissions` refuses
+`geolocation` as an unknown value too.
+
+**WebDriver over HTTP is not built.** safaridriver does not attach to another browser, so it would be a server of
+Savoia's own turning W3C commands into the protocol's. No client is waiting for one, and Element Click would not
+work until the mouse above does.
 
 ## What is not here
 

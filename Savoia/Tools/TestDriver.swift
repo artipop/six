@@ -134,6 +134,28 @@ enum TestDriver {
                 }
             ),
             BrowserTool(
+                name: "testdriver_window_image",
+                description: "Draws the window holding the tab, with the tab bar and the address field, into a PNG at `path`.",
+                parameters: [window, .init(name: "path", description: "Where the PNG goes.", required: true)],
+                surfaces: .mcp,
+                run: { args in
+                    let tab = try tab(args)
+                    guard let content = tab.livePage?.window?.contentView, let path = args["path"]?.stringValue else {
+                        throw BrowserTool.Failure(message: "The window's page is not on screen, or no path")
+                    }
+                    let view = content.superview ?? content
+                    guard let bitmap = view.bitmapImageRepForCachingDisplay(in: view.bounds) else {
+                        throw BrowserTool.Failure(message: "No bitmap for the window")
+                    }
+                    view.cacheDisplay(in: view.bounds, to: bitmap)
+                    guard let png = bitmap.representation(using: .png, properties: [:]) else {
+                        throw BrowserTool.Failure(message: "The window did not encode")
+                    }
+                    try png.write(to: URL(fileURLWithPath: path))
+                    return "\(bitmap.pixelsWide)×\(bitmap.pixelsHigh)"
+                }
+            ),
+            BrowserTool(
                 name: "testdriver_export",
                 description: "What Save As would write for the window in a format: its size and how it starts.",
                 parameters: [window, .init(name: "format", description: "html, webArchive, pdf or text.", required: true)],
@@ -163,6 +185,17 @@ enum TestDriver {
                 run: { _ in
                     browser.closeTabs(browser.tabs.filter(\.isOpenedByPage).map(\.id))
                     return "ok"
+                }
+            ),
+            BrowserTool(
+                name: "testdriver_allow_automation",
+                description: "Turns Allow Remote Automation on or off, as the switch in Configuration does.",
+                parameters: [.init(name: "allow", description: "true or false.", type: .boolean, required: true)],
+                surfaces: .mcp,
+                run: { args in
+                    guard let devTools = browser.devTools else { throw BrowserTool.Failure(message: "No developer tools") }
+                    devTools.allowsAutomation = args["allow"]?.boolValue ?? false
+                    return devTools.allowsAutomation ? "on" : "off"
                 }
             ),
             BrowserTool(
