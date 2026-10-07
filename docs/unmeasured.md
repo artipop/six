@@ -62,6 +62,42 @@ Three values, four calls, one page. Errors land in `list_console_messages` and i
 `[extensions] <name> reports …`. It has to be an ordinary page in an ordinary window: extensions do not run in
 private browsing, and `savoia://` pages have no content scripts.
 
+## An agent's hover and drag, past the stand page
+
+**2026-10-07, macOS, dev build.** `hover` and `drag` over `Savoia --mcp` passed seven steps on a page written for
+them, with Savoia in the background and launched in front ([agent-actions.md](agent-actions.md#hover-and-drag-the-pointer)).
+What that leaves:
+
+- **A window known to be key.** `document.hasFocus()` answered false in every run, the ones in front too, so
+  nobody knows the page was in the key window. The first fault found — a dragging session following the person's
+  pointer — showed only with Savoia in front, so this is the case most likely to hide another.
+- **What a person sees.** Artem watched one run and it went by too fast to judge. Slow it down, or draw the window
+  with `testdriver_window_image` after `hover` and after a refused `drag`: is the menu open, is anything left on
+  screen.
+- **A page inside a frame.** The acting tools are main frame only; nobody has run `hover` or `drag` at an element
+  in an `iframe` to see what the refusal says.
+- **A real site.** A Trello-like board, a SortableJS list, a page that checks `event.buttons` on `mousemove` — the
+  last is expected to let go, since the page reads the buttons from the system.
+- **Hover in wpt.** The runner's `pointerMove` reached no page until this day. 109 files with testdriver under
+  `pointerevents`, `uievents` and `css/selectors` name `mouseover`, `mouseenter`, `:hover` or their pointer
+  twins, and none has been run since; the permission baseline was not rerun either.
+- **Drag-and-drop in wpt measures nothing yet.** A run of `html/editing/dnd` stopped at 50 files: 18 passed, 31
+  timed out, every one the same as Safari's row. The runner sends down, move, up past `PageActions.drag`, so
+  those are the raw path's timeouts and not the tool's. Before they mean anything the press has to be kept at the
+  web view — down declines the session, a move after `dragstart` is the destination's `draggingUpdated`, up is the
+  drop — with the tool and the runner both on it. **Do not run them on the raw path while Artem is at the Mac**:
+  each starts a real dragging session and writes the system's drag pasteboard, and it got in the way of his work.
+- **Whether WebKit's automation starts a dragging session too**, when `performInteractionSequence` presses and
+  moves over a `draggable` element. Reasoned, not measured.
+- **Chrome's and Firefox's rows for the same files** on wpt.fyi were not read, so it is not known how many of the
+  31 a browser passes at all.
+
+The instrument is a page with a CSS hover menu, a `mouseenter` tooltip, a list sorted on `mousemove`, a list of
+`draggable` items, a drop target and an element that takes no drops, each with a button or a `draggable` element
+inside so the snapshot gives it a ref, and a `state()` that returns the lists' order, the menu's `display`, the
+tooltip's text and the event log. Seven tool calls — `hover` twice, `drag` four times, the last onto the refusing
+element, then `click` — and `state()` read through `evaluate_javascript` after each.
+
 ## What the move to `WKWebView` left to eyes and hands
 
 **2026-10-06 to 08, macOS, dev build, throwaway homes.** Every tab became a `WKWebView` of Savoia's own

@@ -28,6 +28,13 @@ leaves that file by being measured, in either direction, and by the page it came
    gone with `WebPage`; that the view comes home by itself was checked on a stand page only. Artem does this one by hand: a video in
    fullscreen, then a link or "next" that navigates — the tab must not go blank.
 
+## An agent's pointer
+
+6. **`hover` and `drag` past the stand page**: a window known to be key, what a person sees, a frame, a real
+   site, and the hover files of wpt. The page and the seven calls are described in unmeasured.md. The
+   drag-and-drop files of wpt are not part of this sitting — they need the press moved to the web view first, and
+   must not be run on the raw path while Artem is working.
+
 ## Done when
 
 Each numbered line has a date and a result in the page it belongs to, and unmeasured.md is shorter.
