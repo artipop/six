@@ -229,7 +229,8 @@ for a name Savoia keeps no answer for — `clipboard-read`, `clipboard-write`, `
 `geolocation` as an unknown value too.
 
 **WebDriver over HTTP is not built.** safaridriver does not attach to another browser, so it would be a server of
-Savoia's own turning W3C commands into the protocol's. No client is waiting for one.
+Savoia's own turning W3C commands into the protocol's. No client is waiting for one; what it would take is
+[tasks/devtools/28](tasks/devtools/28-webdriver-http.md).
 
 ## What is not here
 

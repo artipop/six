@@ -259,6 +259,14 @@ in the throwaway home, as it is in a fresh install.
 
 Geolocation and notifications are the same trade: C functions `WebKit.framework` exports and the SDK does not
 declare, which a bridging header can declare and any macOS update can change. That is the direction chosen — see
+Two more of the same kind, 7 October 2026, in full runs after the baseline. `MediaStreamTrack-applyConstraints` timed
+out once at its second subtest (1/17) and gave the baseline's 15/17 alone straight after. And
+`MediaDevices-enumerateDevices-per-origin-ids` loses "stable deviceIds across same-origin iframe" whenever an iPhone
+is in reach of this Mac: the page's list and its same-origin frame's were printed side by side, seven devices each,
+and six carry the same `deviceId` in both — the one that does not is the Continuity Camera, «Камера (iPhone)», whose
+id is another in every document and equal to its own `groupId`. That is WebKit's and the room's, not Savoia's; the
+baseline's row was taken without the phone, and still stands.
+
 [todo.md](todo.md).
 
 ## Geolocation and notifications: WebKit's C API, one header for both

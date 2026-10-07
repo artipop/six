@@ -254,6 +254,10 @@ rewrite the root file. `xcodebuild` never touches it — the project holds only 
   ("The window that was closed comes back where it stood") — and a body that explains the why, the measurement, and
   what was left honest. No conventional-commits prefixes. Quotes in the subject break the shell; commit via
   `git commit -F -` with a heredoc.
+- **`docs/todo.md` is an index and nothing is written in it.** What is found and not done gets a document of its
+  own — a task in `docs/tasks/`, written to be handed to a fresh session, or a section of the `docs/*.md` it belongs
+  to — and todo.md gets at most the one row that points there. The same for what is not built and why: the reason
+  lives beside the thing, not in the list.
 - **A feature is not finished until the docs say so.** `docs/*.md` for whoever changes the code, and
   [`docs/guide/`](docs/guide/) — the VitePress user guide — **in both Russian and English**, naming buttons with the
   strings from `Savoia/Localizable.xcstrings` rather than translating by eye. That build runs from `docs/guide` and

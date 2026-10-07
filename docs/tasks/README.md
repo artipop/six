@@ -27,6 +27,8 @@ The order to take them in, and what is not a task at all, is [todo.md](../todo.m
 | [design/21-open-design-questions.md](design/21-open-design-questions.md) | Two questions with no answer chosen |
 | [assistant/24-research-without-an-agent.md](assistant/24-research-without-an-agent.md) | Deep research on a Mac with no agent |
 | [bookmarks/25-embeddinggemma-2.md](bookmarks/25-embeddinggemma-2.md) | EmbeddingGemma 2 as the embedder |
+| [devtools/28-webdriver-http.md](devtools/28-webdriver-http.md) | WebDriver over HTTP — waits for a client |
+| [permissions/29-paste-menu-over-another-app.md](permissions/29-paste-menu-over-another-app.md) | The Paste menu comes up over another app |
 | [assistant/26-research-as-one-file.md](assistant/26-research-as-one-file.md) | A deep research saved as one file |
 
 ## Every task
