@@ -346,7 +346,11 @@ Savoia was built on SwiftUI's `WebView` / `WebPage` and moved every tab to a `WK
 sync of the `dev` branch. For that sync: `SavoiaCore` still knows no engine and the protocols a front implements kept
 their shape; `TabSnapshot.back` / `forward` stay in the format and the Mac no longer writes or reads them; and the
 iOS front there is still on `WebPage` — `PageDelegate` and `BrowserTab.materialize` are where the same move starts,
-with `PageHost`, `PageContextMenu` and the dialogs being the AppKit parts. The third column is WebKitGTK's name for the same thing; **bold** there is what the Linux
+with `PageHost`, `PageContextMenu` and the dialogs being the AppKit parts.
+
+What it cost in memory: nothing that can be told from noise. Ten tabs of a stand page in a throwaway home, all ten
+live, the app and the twelve WebKit processes it started, twice each on 7 October 2026: a footprint of 1588 and
+1816 MB on `WKWebView`, 1643 and 1546 MB on the build before the move. The third column is WebKitGTK's name for the same thing; **bold** there is what the Linux
 front on `dev` already calls (`linux/Sources/SavoiaWebKit`, `SavoiaWebKitCore`, `SavoiaBrowser`). The rest of that
 column was written from memory of its API and not compiled.
 

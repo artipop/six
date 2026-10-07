@@ -64,7 +64,8 @@ id and runs there, cross-origin frames included. A click adds up where each fram
 cannot name a cross-origin child, but it can recognise a message from it — and lands as the same `NSEvent`.
 The frames searched are the tab's and then those of every tab its page opened (`BrowserTab.openedFrom`): a test
 that opens a window runs testdriver from a frame inside it, and a click aimed there goes to that tab's
-`WKWebView` — which is in no window while its opener is in front, so such a click does not land.
+`WKWebView`. A view behind another tab is in no window, so its tab is brought forward first, the way WebDriver
+switches windows.
 `set_permission` for `storage-access` is WebKit's own state and not `SitePermissions`. It goes to
 `WKWebsiteDataStoreSetStorageAccessPermissionForTesting`, the call WebKit's own automation makes for WebDriver's
 Set Permission (`WebAutomationSession::setStorageAccessPermissionState`); it is exported from the C API only, so

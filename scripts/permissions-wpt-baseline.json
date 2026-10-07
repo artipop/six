@@ -4010,7 +4010,7 @@
    "rows": [
     {
      "name": "enumerateDevices has stable deviceIds across same-origin iframe",
-     "status": "Fail"
+     "status": "Pass"
     },
     {
      "name": "enumerateDevices rotates deviceId across different-origin iframe",
@@ -4029,11 +4029,11 @@
     "s": "T"
    },
    "savoia": {
+    "s": "O",
     "c": [
-     1,
+     2,
      3
-    ],
-    "s": "O"
+    ]
    }
   },
   "/mediacapture-streams/MediaDevices-enumerateDevices-persistent-permission.https.html": {

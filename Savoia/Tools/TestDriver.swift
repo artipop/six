@@ -62,6 +62,11 @@ enum TestDriver {
                         point.y += place.offset.y
                         view = place.view
                     }
+                    // A view behind another tab is in no window; its tab comes forward first, as WebDriver switches windows.
+                    if let target = view, target.window == nil, let owner = browser.tabs.first(where: { $0.livePage === target }) {
+                        browser.selectTab(owner.id)
+                        for _ in 0..<20 where target.window == nil { try? await Task.sleep(for: .milliseconds(50)) }
+                    }
                     let sent = switch args["action"]?.stringValue {
                     case "down": view?.mouse(.leftMouseDown, atViewport: point)
                     case "up": view?.mouse(.leftMouseUp, atViewport: point)
@@ -87,6 +92,11 @@ enum TestDriver {
                     }
                     let view = tab.livePage
                     let held = NSEvent.ModifierFlags(pageKeys: args["modifiers"]?.stringValue ?? "")
+                    // A view behind another tab is in no window; its tab comes forward first, as WebDriver switches windows.
+                    if let target = view, target.window == nil, let owner = browser.tabs.first(where: { $0.livePage === target }) {
+                        browser.selectTab(owner.id)
+                        for _ in 0..<20 where target.window == nil { try? await Task.sleep(for: .milliseconds(50)) }
+                    }
                     let sent = switch args["action"]?.stringValue {
                     case "down": view?.key(key, down: true, holding: held)
                     case "up": view?.key(key, down: false, holding: held)
