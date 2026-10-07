@@ -165,13 +165,21 @@ not for one use — or cancelled when none were, and `Automation.fileChooserDism
 for an input without `multiple` is a cancel. `PageDelegate.runOpenPanelWith` does not run, so no sheet goes up and
 `upload_file` has nothing to answer: on an automation tab it refuses and names the command.
 
-**The protocol's keys reach the page and its mouse does not.** `performKeyboardInteractions` and a keyboard source in
-`performInteractionSequence` type, through Savoia's own key router. A mouse source in `performInteractionSequence`
-is answered `{}` and no window is sent an event; `performMouseInteraction` with `SingleClick` sends the window two
-mouse-downs and no mouse-up, so the page sees `mousedown` and never `click`. The same with Savoia in front and
-behind. Why is not known — safaridriver clicks in Safari through the same session — and it is what a WebDriver
-server over this session would have to solve first. Savoia's own `click` works on an automation tab as on any
-other ([agent-actions.md](agent-actions.md)), and is what opens a chooser there.
+**The protocol's mouse clicks with Savoia behind another app**, because an automation tab's view is an
+`AutomatedWebView`, which accepts a first click. WebKit sends its synthesized mouse events to the window with
+`sendEvent:`, and a window that is not key hands a mouse-down only to a view that says it takes the first one — a
+plain `WKWebView` does not, so the down went nowhere and the up after it. Nothing is brought forward: the app in
+front stays in front. Moves do not reach a page behind another app, as for any view
+([agent-actions.md](agent-actions.md#hover-and-drag-the-pointer)).
+
+Three things in the protocol that read like Savoia's fault and are not, from WebKit's source
+(`SimulatedInputDispatcher.cpp`, `WebAutomationSessionMac.mm`). A mouse state in `performInteractionSequence`
+without `mouseInteraction` (`Move`, `Down`, `Up`) is dropped and the command still answers `{}`. Its `origin`
+defaults to `Pointer`, so a `location` is added to the last one unless `origin` is `Viewport`. And the button of an
+`Up` is its own `pressedButton`: an `Up` without one is sent as a move, and the page never sees `mouseup`.
+`performMouseInteraction` with `SingleClick` sends two mouse-downs and no mouse-up on this system's WebKit, in front
+too; `Down` and then `Up` click. Keys — `performKeyboardInteractions`, a keyboard source in a sequence — go through
+Savoia's own key router.
 
 Measured over `Savoia --mcp` in a throwaway home, 7 October 2026: with the switch off the tools are not listed; with
 it on, `Automation.getBrowsingContexts` lists the tab, `evaluateJavaScriptFunction` answers with
@@ -195,7 +203,10 @@ to 700×500, `maximizeWindowOfBrowsingContext` and `hideWindowOfBrowsingContext`
 frame read the same. **A file**: with one named, a Space on the focused input and Savoia's `click` on it each left
 `files.length` 1, the file's name and a `change`; with none named the chooser was cancelled; two named were a
 cancel on a plain input and two files on a `multiple` one. **The orange mark** was seen in a drawing of the window
-(`testdriver_window_image`): the capsule stands in the address field, left of the address.
+(`testdriver_window_image`): the capsule stands in the address field, left of the address. **The mouse**, with
+Terminal in front before and after: a sequence of `Move`, `Down`, `Up` on a text field gave the page `mousedown`,
+`mouseup` and `click`, the same on a file input chose the named file, and `performMouseInteraction` `Down` then `Up`
+clicked; on a plain `WKWebView` the window was sent the mouse-down and the view's `mouseDown:` never ran.
 
 Two things that cost time. `setValue(_:forKey:)` with `_controlledByAutomation` never returns — the flag is set by
 calling the setter's implementation. And `WKProcessPool` is deprecated in the SDK, so the pool is made and attached
@@ -212,15 +223,13 @@ directories with `--actions`: 356 files, 749 testdriver actions, 10 of them answ
 files — nine `bidi.permissions.set_permission` and one `add_virtual_authenticator`. The session answers
 `addVirtualAuthenticator`; its BiDi door (`processBidiMessage`) answers that the `permissions` and `emulation`
 domains were not found, which rules out the nine and the 21 `bidi.emulation.set_geolocation_override` calls in the
-sources that the run never reached. So the protocol would serve one action in one file, and it would take away
-the clicks the stand has now, since its mouse does not click here (above). The other 242 failed `set_permission` actions are
+sources that the run never reached. So the protocol would serve one action in one file. The other 242 failed `set_permission` actions are
 for a name Savoia keeps no answer for — `clipboard-read`, `clipboard-write`, `geolocation`,
 `notifications`, `idle-detection` — which is Savoia's to build and no protocol's; `setSessionPermissions` refuses
 `geolocation` as an unknown value too.
 
 **WebDriver over HTTP is not built.** safaridriver does not attach to another browser, so it would be a server of
-Savoia's own turning W3C commands into the protocol's. No client is waiting for one, and Element Click would not
-work until the mouse above does.
+Savoia's own turning W3C commands into the protocol's. No client is waiting for one.
 
 ## What is not here
 

@@ -2,6 +2,11 @@
 import Foundation
 import WebKit
 
+/// An automation tab's view takes a click as it comes, so the protocol's mouse lands with Savoia behind another app.
+final class AutomatedWebView: WKWebView {
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+}
+
 /// WebKit's own automation — the protocol safaridriver drives Safari with — for the tabs opened
 /// under it. SPI throughout, behind `responds(to:)`. docs/devtools.md.
 @MainActor

@@ -26,8 +26,7 @@ Nothing here waits on the steps above, except where it says so.
 | Measurements nobody has made: extensions' messaging and `scripting`, uBlock Origin Lite's control run, two WebMCP tests, fullscreen on a real site | [tasks/measure/12](tasks/measure/12-one-sitting.md) |
 | Extensions after those measurements: what is left of the list now that a tab hands out its view and extension pages are tabs | [tasks/extensions/20](tasks/extensions/20-extensions-next.md) |
 | A tab as a floating window | [tasks/browser/17](tasks/browser/17-floating-window.md) |
-| A page left in element fullscreen loses its view again on the wpt stand, and the files after it lose their clicks | [permissions.md](permissions.md#compatibility-web-platform-tests) |
-| Remote automation's mouse: the protocol's mouse commands reach no page, cause unknown — and WebDriver over HTTP, which waits on that and on a client | [devtools.md](devtools.md#remote-automation) |
+| WebDriver over HTTP, when a client wants one | [devtools.md](devtools.md#who-speaks-to-it) |
 | The assistant: a verb of one's own, an answer shown in the field | [tasks/assistant/18](tasks/assistant/18-ghost-text-and-own-verbs.md) |
 | A deep research saved as one self-contained file, sources and highlights inside | [tasks/assistant/26](tasks/assistant/26-research-as-one-file.md) |
 | Deep research on a Mac with no agent: Savoia's own loop over the ⌘E model | [tasks/assistant/24](tasks/assistant/24-research-without-an-agent.md) |

@@ -210,13 +210,14 @@ What the runs turned up that is in no test's assertion:
   WebKit between them, and Savoia left fullscreen by script before a main-frame navigation to get round it. On a
   tab's own `WKWebView` the view comes home by itself — measured on the stand with a real click into fullscreen and
   a navigation out — and the workaround is gone.
-  **It does not come home on the stand any more**, 7 October 2026 in the evening: after
-  `permissions-policy/reporting/fullscreen-report-only` the test window's view is in no window, and every later
-  click in the run is refused as off screen — 22 of them in a full run, which is all of what `storage-access-api`
-  then loses (37 subtests; the directory alone gives 40 of 40). One minute to see:
-  `./scripts/permissions-wpt.py --actions --only reporting/fullscreen --only requestStorageAccess-ABA`. It needs the
-  page to be visible, so a run under a locked screen does not show it, and the baseline's run may not have. Which
-  change brought it, if one did, is not established.
+  **Not always**, it turned out a day later: after `permissions-policy/reporting/fullscreen-report-only`, which sits
+  in fullscreen until its timeout and is then navigated away, WebKit took its placeholder out of the tab's host
+  (`completeFinishExitFullScreenAnimation`) and put no view back; the view was in no window, and every later click of
+  a full run was refused as off screen — 22 of them, which cost `storage-access-api` 37 subtests. A page of the same
+  shape made by hand did come home, and what the difference is was not found. `PageHost.Host` now takes the page
+  back when a subview that is not the page leaves it empty and the page is out of fullscreen. Measured:
+  `--only reporting/fullscreen --only storage-access-api` gives 40 of 40 with no click refused, where it gave the
+  refusals before. It needs a visible page, so a run under a locked screen never showed it.
 - **`evaluate_javascript` was a user gesture** — a first run that polled pages with it had every page activated,
   and clipboard files passed and failed at random ([page-scripts.md](page-scripts.md)).
 

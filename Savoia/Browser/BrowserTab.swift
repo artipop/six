@@ -559,7 +559,12 @@ final class BrowserTab: Identifiable {
         #if os(macOS)
         WebInspector.allow(in: configuration)
         #endif
-        let page = WKWebView(frame: CGRect(origin: .zero, size: drawnSize), configuration: configuration)
+        #if os(macOS)
+        let view = isAutomated ? AutomatedWebView.self : WKWebView.self
+        #else
+        let view = WKWebView.self
+        #endif
+        let page = view.init(frame: CGRect(origin: .zero, size: drawnSize), configuration: configuration)
         let delegate = PageDelegate(kind: kind, tab: self)
         page.navigationDelegate = delegate
         page.uiDelegate = delegate

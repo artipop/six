@@ -291,8 +291,9 @@ final class BrowserToolCatalog {
             description: "Sends one command of WebKit's automation protocol — the one safaridriver speaks — and answers with "
                 + "the reply as WebKit wrote it. Start with Automation.getBrowsingContexts, which lists the automation tabs "
                 + "and the handle each command names: Automation.navigateBrowsingContext, evaluateJavaScriptFunction, "
-                + "performKeyboardInteractions, takeScreenshot, getAllCookies and the rest of WebKit's Automation.json. "
-                + "Its mouse commands do not click here; the click tool does, on an automation tab as on any other.",
+                + "performInteractionSequence, takeScreenshot, getAllCookies and the rest of WebKit's Automation.json. "
+                + "A mouse state in performInteractionSequence is dropped without an error unless it carries "
+                + "mouseInteraction (Move, Down or Up); give it origin Viewport, and pressedButton on Down and on Up.",
             parameters: [
                 .init(name: "method", description: "The command, such as Automation.getBrowsingContexts.", required: true),
                 .init(name: "params", description: "The command's parameters, as the protocol names them.", type: .object),
