@@ -42,6 +42,7 @@ Savoia/Translation   segments, batching, the page script, LanguageGuess, AppleTr
 Savoia/ACP           JSONRPCConnection, ACPClient (actor), ACPAgent (process), AgentSessionStore (view model)
 Savoia/MCP           MCPServer + MCPSocket + MCPStdioBridge (`Savoia --mcp`), Client/ (MCP apps, SEP-1865, OAuth, catalog)
 Savoia/Speech        dictation: MicrophoneCapture, ParakeetTranscriber (FluidAudio), DictationStore, the button
+Savoia/DevTools      DevToolsStore (console and network capture, the inspector switch), Automation (remote automation)
 Savoia/Tools         BrowserTools — one catalog, served to the assistant, to ACP agents and over MCP
 Savoia/WebMCP        pages declaring tools for agents: polyfill, registry, calls, WebMCPStore — docs/webmcp.md
 ```
@@ -276,7 +277,7 @@ profiles with isolated data stores, persistence (a SQLite system of record plus 
 bookmarks with on-device multilingual embeddings and personal search on the start page, ad/tracker blocking (its
 page half, scriptlets and extended CSS, switched off for now), extra certificate authorities, `WKWebExtension` hosting, site permissions, downloads,
 page translation, find on page (⌘F), windows a page opens as tabs that keep their opener, extension pages as tabs, Save As with web archives, picture-in-picture, the ⌘E assistant, ACP agents and chats, `Savoia --mcp`, MCP
-apps (SEP-1865) with OAuth, deep research with document tabs and highlights, DevTools capture, dictation, localization.
+apps (SEP-1865) with OAuth, deep research with document tabs and highlights, DevTools capture, remote automation, dictation, localization.
 
 Not built, with reasons: [docs/todo.md](docs/todo.md) — bookmark images, geolocation and site notifications, Apple Pay, floating windows, passkeys, CloudKit sync.
 What is specified and waiting for a session: [docs/tasks/](docs/tasks/README.md). What Savoia is waiting on Apple to make public, and how to notice when it does:

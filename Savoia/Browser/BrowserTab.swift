@@ -115,6 +115,8 @@ final class BrowserTab: Identifiable {
     let id: UUID
     let profileID: Profile.ID
     let content: TabContent
+    /// Opened for remote automation (`Automation`): driven by a program, and nothing of it is kept.
+    @ObservationIgnored private(set) var isAutomated = false
     /// The profile's store, kept so the page can be built again after a discard. Documents render in
     /// a non-persistent store instead: nothing a preview renders is anyone's site data.
     @ObservationIgnored let dataStore: WKWebsiteDataStore?
@@ -449,11 +451,13 @@ final class BrowserTab: Identifiable {
 
     enum NavigationOutcome { case committed, finished }
 
-    init(id: UUID = UUID(), profileID: Profile.ID, dataStore: WKWebsiteDataStore, restoring url: URL? = nil, title: String = "") {
+    init(id: UUID = UUID(), profileID: Profile.ID, dataStore: WKWebsiteDataStore, restoring url: URL? = nil,
+         title: String = "", automated: Bool = false) {
         self.id = id
         self.profileID = profileID
         self.dataStore = dataStore
         self.content = .web
+        isAutomated = automated
         if let url {
             showsStartPage = false
             pendingURL = url
@@ -536,8 +540,14 @@ final class BrowserTab: Identifiable {
             if let controller = pageControllers?.controller(for: id) {
                 configuration.userContentController = controller
             }
-            configuration.webExtensionController = extensions?.controller(for: profileID)
             configuration.preferences.isElementFullscreenEnabled = true
+            #if os(macOS)
+            if isAutomated {
+                devTools?.automation.prepare(configuration)
+            } else {
+                configuration.webExtensionController = extensions?.controller(for: profileID)
+            }
+            #endif
         }
         let page = WKWebView(frame: CGRect(origin: .zero, size: drawnSize), configuration: configuration)
         let delegate = PageDelegate(kind: kind, tab: self)

@@ -387,6 +387,6 @@ column was written from memory of its API and not compiled.
 | `MediaHold`, a user script | **stays**: `mediaTypesRequiringUserActionForPlayback` holds every later navigation in the view too | `webkit_settings_set_media_playback_requires_user_gesture` |
 | picture-in-picture and screen sharing switched on as a pane claims a view | as the view is made | `display-capture-state` |
 | extension pages in a window (`ExtensionStore.openExtensionPage`) | gone: a tab built on `WKWebExtensionContext.webViewConfiguration` | none |
-| no automation of a tab | **not turned on**, by decision: the flag can be set now, and [task 15](tasks/agents/15-agent-tools-to-chrome.md) has why it is not | `is-controlled-by-automation`, `WebKitAutomationSession` |
+| no automation of a tab | a mode of its own: tabs opened for remote automation carry the flag and a session, ordinary tabs never do ([devtools.md](devtools.md#remote-automation)) | `is-controlled-by-automation`, `WebKitAutomationSession` |
 | no web archive | `createWebArchiveData`, in Save As | `webkit_web_view_save` (MHTML) |
 | find reached through the pane's view | `find(_:configuration:)` on the tab's view | `webkit_web_view_get_find_controller` |

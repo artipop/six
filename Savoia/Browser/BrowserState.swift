@@ -317,7 +317,7 @@ final class BrowserState {
         return BrowserSnapshot(
             profiles: profiles.filter { !$0.isPrivate },
             selectedProfileID: selected,
-            tabs: tabs.filter { !privateIDs.contains($0.profileID) }.map(Self.entry(for:)),
+            tabs: tabs.filter { !privateIDs.contains($0.profileID) && !$0.isAutomated }.map(Self.entry(for:)),
             strips: layout.allStrips
                 .filter { !privateIDs.contains($0.key) }
                 .map { StripSnapshot(profileID: $0.key, strip: $0.value) }
@@ -653,8 +653,14 @@ final class BrowserState {
         return tab
     }
 
-    private func makeTab(id: UUID = UUID(), profile: Profile, restoring url: URL? = nil, title: String = "") -> BrowserTab {
-        let tab = BrowserTab(id: id, profileID: profile.id, dataStore: dataStore(for: profile), restoring: url, title: title)
+    private func makeTab(id: UUID = UUID(), profile: Profile, restoring url: URL? = nil, title: String = "",
+                         automated: Bool = false) -> BrowserTab {
+        #if os(macOS)
+        let store = automated ? (devTools?.automation.dataStore ?? .nonPersistent()) : dataStore(for: profile)
+        #else
+        let store = dataStore(for: profile)
+        #endif
+        let tab = BrowserTab(id: id, profileID: profile.id, dataStore: store, restoring: url, title: title, automated: automated)
         // `savoia://configuration` typed into any window's address field shows the page rather than asking
         // WebKit to fetch an address it has never heard of.
         tab.onBuiltInAddress = { [weak self] _, page, section in self?.openBuiltIn(page, section: section) }
@@ -666,7 +672,7 @@ final class BrowserState {
                 // looked at. A private window translates like any other — the work never leaves it.
                 self.translation.forget(tab.id)
                 self.find.forget(tab.id) // a page gone is a page whose matches went with it
-                if !profile.isPrivate { history.record(url, title: page.title ?? "", in: tab.profileID) }
+                if !profile.isPrivate, !tab.isAutomated { history.record(url, title: page.title ?? "", in: tab.profileID) }
             case .finished:
                 // Above the private guard, deliberately. A private window keeps no history and
                 // stores no highlights, but a page in another language is still a page in another
@@ -731,7 +737,7 @@ final class BrowserState {
     /// over, which is what leaves the two a `window.opener` and a `WindowProxy`.
     private func openPageWindow(from opener: BrowserTab, configuration: WKWebViewConfiguration) -> WKWebView? {
         guard let profile = profiles.first(where: { $0.id == opener.profileID }) else { return nil }
-        let tab = makeTab(profile: profile)
+        let tab = makeTab(profile: profile, automated: opener.isAutomated)
         add(tab)
         sorter.arrived(tab.id)
         tab.openedFrom = opener.id
@@ -743,6 +749,23 @@ final class BrowserState {
         Log.info(.links, "a page opened a tab, \(tabs.count) open")
         return view
     }
+
+    #if os(macOS)
+    /// A tab under remote automation, in front: its own store, no extensions, nothing written down.
+    @discardableResult
+    func openAutomationTab(url: URL?) -> BrowserTab? {
+        guard devTools?.allowsAutomation == true else { return nil }
+        let profile = selectedProfile
+        let tab = makeTab(profile: profile, automated: true)
+        add(tab)
+        withAnimation(TilingLayout.switchAnimation) {
+            layout.insertColumn(tabID: tab.id, in: profile.id, workspace: nil, focus: true)
+        }
+        syncSelection()
+        tab.load(url ?? URL(string: "about:blank")!)
+        return tab
+    }
+    #endif
 
     /// Download Linked File, `<a download>`, or a response no page can show.
     func download(_ request: URLRequest, suggestedName: String?, from tab: BrowserTab) {
@@ -1207,7 +1230,7 @@ final class BrowserState {
     /// empty window had stood. The one window that never joins the list is the one nobody closed:
     /// see `closeIfOnlyCarriedALink`, which closes with `remembering: false`.
     private func remember(_ tab: BrowserTab) {
-        guard !isPrivate(tab.profileID) else { return }
+        guard !isPrivate(tab.profileID), !tab.isAutomated else { return }
         let entry = Self.entry(for: tab)
         guard let place = layout.location(ofTabID: tab.id, in: tab.profileID) else { return }
         // The document's text, before `closeTab` deletes the file holding it.

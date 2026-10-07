@@ -45,7 +45,7 @@ calling.
 |---|---|
 | `list_console_messages` | what the page logged since it last navigated, with uncaught errors and unhandled rejections; `level` filters |
 | `list_network_requests` | the requests it made — method, status, duration, size, kind; `failed_only` narrows to errors and 4xx/5xx |
-| `take_screenshot` | writes a PNG of the whole page (not the visible part) under `Application Support/org.deffun.savoia/Screenshots/` and returns the path |
+| `take_screenshot` | writes a PNG of the visible part of the page (`WKWebView.takeSnapshot`; measured 2880×1442 on a 1440-point column, before the move to `WKWebView` and after) under `Application Support/org.deffun.savoia/Screenshots/` and returns the path |
 
 `take_screenshot` is there whether or not capture is on. Because the hooks are installed at the *start* of a load,
 turning capture on reloads the open windows.
@@ -99,6 +99,42 @@ opaque and report status 0 — shown as `opaque`, and not counted as failures.
 
 The hooks live in the window's `WKUserContentController` — the same one that carries the blocker's rules, which is
 why both now go through [`PageControllers`](../Savoia/Browser/PageControllers.swift) rather than belonging to either.
+
+## Remote automation
+
+`savoia://configuration` ▸ Develop ▸ **Allow Remote Automation**, off by default, is Safari's switch of the same name
+done in-process: WebKit's automation — `_WKAutomationSession`, the thing safaridriver drives Safari through — for
+tabs opened under it, and for no other tab. All of it is SPI behind `responds(to:)`
+(`Savoia/DevTools/Automation.swift`); where it is absent the section does not show.
+
+**An automation tab** (`BrowserTab.isAutomated`) is built on a configuration with `_setControlledByAutomation:` and a
+process pool that carries the session. It has the session's own non-persistent store, no extension controller, is
+left out of history, the snapshot and the closed-tab list, and shows an orange **Automation** mark in the address
+field. A window such a tab opens is one too. Turning the switch off closes them and ends the session
+(`Automation.end`); that path was not exercised. An ordinary tab never carries the flag, so `navigator.webdriver`
+stays `false` there.
+
+**Two tools, MCP only**, listed while the switch is on: `automation_open_window` opens such a tab, and
+`automation_send` passes one command (`method`, `params`) to the session with
+`_dispatchMessageFromRemoteForTesting:` and answers with the reply `_setMessageToFrontendHandlerForTesting:`
+delivered for its id, as WebKit wrote it; events that arrived since the last command follow it. Savoia assigns the
+id. The session's delegate answers two requests: a new web view (`Automation.createBrowsingContext`) is a new
+automation tab, and a switch to a web view selects its tab. The dialog and window-geometry requests are not
+answered, so `windowSize` reads 0×0 and a page's `alert` is not reachable through the protocol.
+
+Measured over `Savoia --mcp` in a throwaway home, 7 October 2026: with the switch off the tools are not listed; with
+it on, `Automation.getBrowsingContexts` lists the tab, `evaluateJavaScriptFunction` answers with
+`navigator.webdriver` true and `userActivation.isActive` false, `navigateBrowsingContext`, `takeScreenshot`,
+`getAllCookies` and `createBrowsingContext` answer; a cookie set in the automation tab is not seen by an ordinary
+tab on the same site; the automation tab is in neither `state.json` nor `visits`.
+
+Two things that cost time. `setValue(_:forKey:)` with `_controlledByAutomation` never returns — the flag is set by
+calling the setter's implementation. And `WKProcessPool` is deprecated in the SDK, so the pool is made and attached
+by name to keep the build free of warnings; if pools ever stop being separate, the session would reach every tab's
+pool and this needs another look.
+
+safaridriver does not attach to Savoia, so nothing speaks WebDriver over HTTP here; a client speaks the protocol
+through `automation_send`.
 
 ## What is not here
 

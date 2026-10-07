@@ -112,6 +112,9 @@ struct SavoiaApp: App {
         #endif
         blocker.startRefreshSchedule()
         devTools.browser = browser
+        #if os(macOS)
+        devTools.automation.browser = browser
+        #endif
         webMCP.browser = browser
         webMCP.permissions = permissions
         browser.webMCP = webMCP

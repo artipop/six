@@ -79,6 +79,15 @@ struct AddressBar: View {
             // would read as "allowed on this site", which is a different and narrower thing.
             if isWebPage && blocker.isEnabled { shield }
             captureIndicator
+            if tab.isAutomated {
+                Text("Automation")
+                    .font(.caption2.weight(.semibold))
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 1)
+                    .foregroundStyle(.white)
+                    .background(.orange, in: Capsule())
+                    .help("Driven by a program. Nothing from this tab is kept.")
+            }
             TextField("Search or enter address", text: $text, selection: $textSelection)
                 .textFieldStyle(.plain)
                 .font(.callout)

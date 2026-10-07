@@ -45,6 +45,21 @@ final class DevToolsStore {
         }
     }
 
+    #if os(macOS)
+    let automation = Automation()
+
+    /// Remote automation: it is also what puts the `automation_` tools in the MCP list.
+    var allowsAutomation: Bool {
+        didSet {
+            guard allowsAutomation != oldValue else { return }
+            settings.devToolsAutomation = allowsAutomation
+            if !allowsAutomation { automation.end() }
+            onCaptureChanged?()
+            Log.info(.devtools, allowsAutomation ? "remote automation allowed" : "remote automation off")
+        }
+    }
+    #endif
+
     /// Console and network capture, for agents: it is also what puts `list_console_messages` and
     /// `list_network_requests` into Savoia's tool list. A person has Safari's inspector for the same
     /// facts, told by the browser rather than by the page.
@@ -65,6 +80,9 @@ final class DevToolsStore {
         self.controllers = controllers
         self.isInspectable = settings.devToolsInspector
         self.isCapturing = settings.devToolsCapture
+        #if os(macOS)
+        self.allowsAutomation = settings.devToolsAutomation && Automation.isAvailable
+        #endif
         controllers.onController { [weak self] windowID, controller in
             self?.install(in: controller, for: windowID)
         }

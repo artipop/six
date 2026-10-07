@@ -8547,6 +8547,76 @@
           }
         }
       }
+    },
+    "Remote Automation" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалённая автоматизация"
+          }
+        }
+      }
+    },
+    "Allow Remote Automation" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешить удалённую автоматизацию"
+          }
+        }
+      }
+    },
+    "A tab opened for it keeps no history or site data, and its page can tell." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открытая для неё вкладка не хранит историю и данные сайтов, и страница видит, что ей управляют."
+          }
+        }
+      }
+    },
+    "Automation" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Автоматизация"
+          }
+        }
+      }
+    },
+    "Driven by a program. Nothing from this tab is kept." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Управляется программой. От этой вкладки ничего не остаётся."
+          }
+        }
+      }
+    },
+    "Automation Tab" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вкладка автоматизации"
+          }
+        }
+      }
+    },
+    "Automation Command" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Команда автоматизации"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

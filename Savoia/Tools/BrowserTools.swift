@@ -62,8 +62,13 @@ final class BrowserToolCatalog {
 
     private static let captureTools: Set = ["list_console_messages", "list_network_requests"]
 
+    private static let automationTools: Set = ["automation_open_window", "automation_send"]
+
     private func isOffered(_ tool: BrowserTool) -> Bool {
-        !Self.captureTools.contains(tool.name) || devTools?.isCapturing == true
+        #if os(macOS)
+        if Self.automationTools.contains(tool.name) { return devTools?.allowsAutomation == true }
+        #endif
+        return !Self.captureTools.contains(tool.name) || devTools?.isCapturing == true
     }
 
     init(browser: BrowserState, assistant: AssistantSettings, bookmarks: BookmarkStore, settings: ConfigurationStore, highlights: HighlightStore) {
@@ -260,6 +265,41 @@ final class BrowserToolCatalog {
             parameters: [Self.windowID, .init(name: "focus", description: "What the summary should concentrate on, if anything.")],
             surfaces: .mcp,
             run: { [unowned self] args in try await self.summarize(args) }
+        ),
+        BrowserTool(
+            name: "automation_open_window",
+            title: String(localized: "Automation Tab"),
+            description: "Opens a tab under WebKit's remote automation, in a store of its own with no history, no cookies of "
+                + "the person's and no extensions. Its page sees navigator.webdriver as true. Drive it with automation_send; "
+                + "the other tools work on it too.",
+            parameters: [.init(name: "url", description: "Where to start; a blank page when left out.")],
+            surfaces: .mcp,
+            run: { [unowned self] args in
+                let url = args["url"]?.stringValue.flatMap { URL.fromUserInput($0) }
+                guard let tab = self.browser.openAutomationTab(url: url) else {
+                    throw BrowserTool.Failure(message: "Remote automation is not allowed.")
+                }
+                await tab.loadSettled()
+                return "Opened automation window \(tab.id.uuidString)"
+            }
+        ),
+        BrowserTool(
+            name: "automation_send",
+            title: String(localized: "Automation Command"),
+            description: "Sends one command of WebKit's automation protocol — the one safaridriver speaks — and answers with "
+                + "the reply as WebKit wrote it. Start with Automation.getBrowsingContexts, which lists the automation tabs "
+                + "and the handle each command names: Automation.navigateBrowsingContext, evaluateJavaScriptFunction, "
+                + "performInteractionSequence, takeScreenshot, getAllCookies and the rest of WebKit's Automation.json.",
+            parameters: [
+                .init(name: "method", description: "The command, such as Automation.getBrowsingContexts.", required: true),
+                .init(name: "params", description: "The command's parameters, as the protocol names them.", type: .object),
+            ],
+            surfaces: .mcp,
+            run: { [unowned self] args in
+                guard let method = args["method"]?.stringValue else { throw BrowserTool.Failure(message: "method is required") }
+                guard let automation = self.devTools?.automation else { throw BrowserTool.Failure(message: "Remote automation is not available.") }
+                return try await automation.send(method, params: args["params"])
+            }
         ),
         BrowserTool(
             name: "list_console_messages",

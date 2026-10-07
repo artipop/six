@@ -1,6 +1,6 @@
 # Developer tools
 
-Both switches are off by default.
+Every switch here is off by default.
 
 ## Web Inspector
 
@@ -40,7 +40,7 @@ requested — what Chrome's devtools MCP does, on WebKit.
 |---|---|
 | console | everything the page logged since it last navigated, uncaught errors included |
 | requests | method, status, duration, size, kind; the failures can be asked for on their own |
-| screenshot | a PNG of the **whole** page, not the visible part — works with capture off too |
+| screenshot | a PNG of the visible part of the page — works with capture off too |
 
 What is captured stays in memory — nothing is written to disk, so there is no
 file for it. Each window keeps 500 messages and 500 requests, and both are cleared when it
@@ -60,6 +60,25 @@ testimony. The channel's name is different on every launch, so a page cannot
 count on finding it. Capture is off by default and is meant to be turned on while
 you are looking into something, not left on.
 :::
+
+## Remote automation
+
+**Configuration ▸ Develop ▸ Allow Remote Automation** is what Allow Remote
+Automation is in Safari's Develop menu: a program may open a tab and drive it
+through WebKit's automation protocol, the one WebDriver runs on. It is for tests
+and for an [agent](/en/agents), not for a person.
+
+A tab opened for automation carries an orange **Automation** mark in the address
+field. It stands apart from everything else:
+
+- it has a store of its own: none of your cookies or sign-ins, and it leaves none;
+- it is not in the history, and does not come back after a relaunch or with ⌘⇧T;
+- extensions do not run in it;
+- its page can tell it is being driven: `navigator.webdriver` is `true` there. In
+  an ordinary tab it is `false`, whether the switch is on or not.
+
+Turning the switch off closes such tabs. Only what talks to Savoia over
+[MCP](/en/agents) drives them: `safaridriver` does not attach to Savoia.
 
 ## WebMCP
 

@@ -561,6 +561,15 @@ private struct DevelopConfiguration: View {
                 }
             }
 
+            if Automation.isAvailable {
+                SwiftUI.Section("Remote Automation") {
+                    Toggle("Allow Remote Automation", isOn: $devTools.allowsAutomation)
+                    Text("A tab opened for it keeps no history or site data, and its page can tell.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
             // Here and not beside the assistant's switches: until a site has to be allowed and a
             // call confirmed (docs/webmcp.md, stage 3), this is a thing to test, not to live with.
             SwiftUI.Section("WebMCP") {

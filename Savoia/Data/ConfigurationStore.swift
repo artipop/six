@@ -100,6 +100,7 @@ final class ConfigurationStore {
         case newTabOverride = "extensions.newTabOverride"
         case devToolsInspector = "devtools.inspector"
         case devToolsCapture = "devtools.capture"
+        case devToolsAutomation = "devtools.automation"
         /// Whether pages may declare tools for agents (WebMCP). See `webMCP`.
         case webMCP = "webmcp.enabled"
         case sitePermissions = "permissions.sites"
@@ -287,6 +288,12 @@ final class ConfigurationStore {
     var devToolsCapture: Bool {
         get { self[.devToolsCapture].map { $0 == "1" } ?? false }
         set { self[.devToolsCapture] = newValue ? "1" : "0" }
+    }
+
+    /// Remote automation. Off by default: a tab opened under it tells its page so.
+    var devToolsAutomation: Bool {
+        get { self[.devToolsAutomation].map { $0 == "1" } ?? false }
+        set { self[.devToolsAutomation] = newValue ? "1" : "0" }
     }
 
     /// The installed extension id (if any) allowed to stand in for the start page on a blank new
