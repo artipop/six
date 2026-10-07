@@ -27,7 +27,7 @@ The order to take them in, and what is not a task at all, is [todo.md](../todo.m
 | [extensions/20-extensions-next.md](extensions/20-extensions-next.md) | Extensions: after the measurement |
 | [design/21-open-design-questions.md](design/21-open-design-questions.md) | Two questions with no answer chosen |
 | [devtools/22-web-inspector-in-savoia.md](devtools/22-web-inspector-in-savoia.md) | Web Inspector in Savoia's own window |
-| [architecture/23-webpage-or-wkwebview.md](architecture/23-webpage-or-wkwebview.md) | A tab is a `WKWebView` of Savoia's own — built; what is left is a walk by hand and two decisions |
+| [architecture/23-webpage-or-wkwebview.md](architecture/23-webpage-or-wkwebview.md) | A tab is a `WKWebView` of Savoia's own — built; what is left is a walk by hand and one decision |
 | [assistant/24-research-without-an-agent.md](assistant/24-research-without-an-agent.md) | Deep research for a Mac with no agent, and a run saved as one file |
 
 ## Every task

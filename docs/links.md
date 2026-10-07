@@ -95,8 +95,9 @@ right of the one the link was in, loaded by its address.
 
 **Nothing blocks a window a page opens by itself.** `javaScriptCanOpenWindowsAutomatically` is on by default in a
 `WKWebView` on macOS, and measured over `Savoia --mcp` a `window.open` with no user gesture behind it gets its tab —
-as it did before the move, when the note here said otherwise. The preference is Savoia's to set now; it is left on
-because there is nothing yet to let one site through with.
+as it did before the move, when the note here said otherwise. The preference is Savoia's to set now and is left
+on by decision (7 October 2026): turning it off wants a switch per site, for the sign-ins that open their window
+after the click has gone stale, and no site has yet made that worth building.
 
 ## Downloads
 
