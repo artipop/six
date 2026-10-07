@@ -39,6 +39,16 @@ Savoia's column is the catalog in `Savoia/Tools/BrowserTools.swift`. Chrome's is
 
 ## What to build, and how each stays out of the page
 
+**`upload_file` and `handle_dialog` first, ahead of the inspector; `hover` and `drag` after it**
+([todo.md](../../todo.md)). Why those two:
+
+- They are the only tools on Chrome's list without which an agent simply stops: at an `alert` or `confirm`, and at
+  the system's file panel.
+- There is almost no risk in them. Both requests already arrive in Savoia's own `PageDelegate`; what changes is
+  that under an agent's call they are answered from that call instead of a window being drawn for a person.
+- The same wiring closes a loose end of automation: WebKit's automation session asks the delegate about dialogs,
+  and today nothing answers.
+
 1. **`upload_file`.** No script at all: the file input asks the tab's UI delegate (`PageDelegate`, `runOpenPanelWith`), which
    `PageDialogs` answers. Under an agent's call it is answered with the path the agent gave instead of an
    `NSOpenPanel`. The agent names a file on the person's disk, so this asks, per call, like every acting tool.
