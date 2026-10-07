@@ -125,6 +125,16 @@
         }
       }
     },
+    "Answer Dialog" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ответить на диалог"
+          }
+        }
+      }
+    },
     "Answered “Always”: %lld" : {
       "localizations" : {
         "ru" : {
@@ -161,6 +171,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Чаты"
+          }
+        }
+      }
+    },
+    "Choose File" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выбрать файл"
           }
         }
       }

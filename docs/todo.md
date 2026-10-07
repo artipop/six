@@ -10,15 +10,14 @@ The browser's core first, each step making the next one smaller.
 
 | | what | where |
 |---|---|---|
-| 1 | **`handle_dialog` and `upload_file` for an agent** — the first two items of the agent-tools task, through the tab's own UI delegate, with no script in the page | [tasks/agents/15](tasks/agents/15-agent-tools-to-chrome.md) |
-| 2 | **Web Inspector in Savoia's own window** | [tasks/devtools/22](tasks/devtools/22-web-inspector-in-savoia.md) |
-| 3 | **`hover` and `drag` for an agent** — the rest of the same task, as real mouse events, each measured before it is promised | [tasks/agents/15](tasks/agents/15-agent-tools-to-chrome.md) |
-| 4 | **Geolocation** | [tasks/permissions/07](tasks/permissions/07-geolocation.md) |
-| 5 | **Site notifications** | [tasks/permissions/08](tasks/permissions/08-notifications.md) |
-| 6 | **The rest of the scripts in pages**: the calls that are still a user gesture, the last script on every page, the blocker's page half as a setting that is off by default, and one experiment about Apple Pay | [tasks/browser/11](tasks/browser/11-page-scripts-rest.md) |
-| 7 | **Waits by the clock** replaced by the events they stand in for — what is left; the first, a load to end, is done | [tasks/browser/14](tasks/browser/14-waits-by-the-clock.md) |
-| 8 | **Small things**, seven of them: forget one site, a way home, a download that repeats, a user agent per site, every model in the welcome, a Help menu, grouping by meaning off for a new install | [tasks/browser/13](tasks/browser/13-small-things.md) |
-| 9 | **Passkeys and passwords** — as much paperwork with Apple as code | [passkeys.md](passkeys.md) |
+| 1 | **Web Inspector in Savoia's own window** | [tasks/devtools/22](tasks/devtools/22-web-inspector-in-savoia.md) |
+| 2 | **`hover` and `drag` for an agent** — what is left of the agent-tools task, as real mouse events, each measured before it is promised | [tasks/agents/15](tasks/agents/15-agent-tools-to-chrome.md) |
+| 3 | **Geolocation** | [tasks/permissions/07](tasks/permissions/07-geolocation.md) |
+| 4 | **Site notifications** | [tasks/permissions/08](tasks/permissions/08-notifications.md) |
+| 5 | **The rest of the scripts in pages**: the calls that are still a user gesture, the last script on every page, the blocker's page half as a setting that is off by default, and one experiment about Apple Pay | [tasks/browser/11](tasks/browser/11-page-scripts-rest.md) |
+| 6 | **Waits by the clock** replaced by the events they stand in for — what is left; the first, a load to end, is done | [tasks/browser/14](tasks/browser/14-waits-by-the-clock.md) |
+| 7 | **Small things**, seven of them: forget one site, a way home, a download that repeats, a user agent per site, every model in the welcome, a Help menu, grouping by meaning off for a new install | [tasks/browser/13](tasks/browser/13-small-things.md) |
+| 8 | **Passkeys and passwords** — as much paperwork with Apple as code | [passkeys.md](passkeys.md) |
 
 ## Beside the order
 

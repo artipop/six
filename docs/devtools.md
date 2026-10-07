@@ -119,14 +119,27 @@ stays `false` there.
 `_dispatchMessageFromRemoteForTesting:` and answers with the reply `_setMessageToFrontendHandlerForTesting:`
 delivered for its id, as WebKit wrote it; events that arrived since the last command follow it. Savoia assigns the
 id. The session's delegate answers two requests: a new web view (`Automation.createBrowsingContext`) is a new
-automation tab, and a switch to a web view selects its tab. The dialog and window-geometry requests are not
-answered, so `windowSize` reads 0×0 and a page's `alert` is not reachable through the protocol.
+automation tab, and a switch to a web view selects its tab. The window-geometry requests are not answered, so
+`windowSize` reads 0×0.
+
+**A page's dialog is answered through the protocol.** The delegate's seven dialog requests read the tab's own
+pending dialog ([agent-actions.md](agent-actions.md#dialogs-and-files-the-delegates-door)), so
+`isShowingJavaScriptDialog`, `messageOfCurrentJavaScriptDialog`, `setUserInputForCurrentJavaScriptPrompt`,
+`acceptCurrentJavaScriptDialog` and `dismissCurrentJavaScriptDialog` work, and the sheet a person would have
+answered comes down. WebKit holds the reply of a command a dialog interrupts until the dialog is answered, so
+`automation_send` ends that wait when the dialog opens (`Automation.dialogOpened`) and the held reply arrives with
+the events of a later command. The file chooser is WebKit's own business under automation
+(`setFilesToSelectForFileUpload`) and was not tried.
 
 Measured over `Savoia --mcp` in a throwaway home, 7 October 2026: with the switch off the tools are not listed; with
 it on, `Automation.getBrowsingContexts` lists the tab, `evaluateJavaScriptFunction` answers with
 `navigator.webdriver` true and `userActivation.isActive` false, `navigateBrowsingContext`, `takeScreenshot`,
 `getAllCookies` and `createBrowsingContext` answer; a cookie set in the automation tab is not seen by an ordinary
 tab on the same site; the automation tab is in neither `state.json` nor `visits`.
+The same day for dialogs: a `confirm` and a `prompt` raised from a timer read as showing, gave their message, and
+the page read `true`, `false` after a dismiss, and the text set with `setUserInputForCurrentJavaScriptPrompt`; the
+command that armed the timer answered in 0.3 s where it had waited out its 30; an accept with no dialog is
+WebKit's `NoJavaScriptDialog`.
 
 Two things that cost time. `setValue(_:forKey:)` with `_controlledByAutomation` never returns — the flag is set by
 calling the setter's implementation. And `WKProcessPool` is deprecated in the SDK, so the pool is made and attached

@@ -106,9 +106,9 @@ nonisolated enum PageActionScript {
         if (tag === 'TEXTAREA' || e.isContentEditable) return 'textbox';
         if (tag === 'INPUT') {
             const t = e.type;
-            if (t === 'hidden' || t === 'file') return null;
+            if (t === 'hidden') return null;
             if (t === 'checkbox' || t === 'radio') return t;
-            if (['button', 'submit', 'reset', 'image'].includes(t)) return 'button';
+            if (['button', 'submit', 'reset', 'image', 'file'].includes(t)) return 'button';
             if (t === 'search') return 'searchbox';
             if (t === 'number') return 'spinbutton';
             if (t === 'range') return 'slider';

@@ -108,5 +108,64 @@ final class Automation: NSObject {
         if let browser, let tab = browser.tabs.first(where: { $0.livePage === view }) { browser.selectTab(tab.id) }
         completionHandler()
     }
+
+    // MARK: A page's dialog, for the protocol's dialog commands
+
+    /// WebKit holds a command's reply while a dialog is up; it follows a later command, with the events.
+    func dialogOpened() {
+        waiting.values.forEach { $0.resume(returning: #"{"error":{"message":"A JavaScript dialog opened before the reply; answer it, and the reply follows"}}"#) }
+        waiting = [:]
+    }
+
+    private func dialog(in view: WKWebView) -> PageDialog? {
+        browser?.tabs.first { $0.livePage === view }?.dialogs.stoppingScript
+    }
+
+    @objc(_automationSession:isShowingJavaScriptDialogForWebView:)
+    func automationSession(_ session: NSObject, isShowingJavaScriptDialogFor view: WKWebView) -> Bool {
+        dialog(in: view) != nil
+    }
+
+    @objc(_automationSession:dismissCurrentJavaScriptDialogForWebView:)
+    func automationSession(_ session: NSObject, dismissCurrentJavaScriptDialogFor view: WKWebView) {
+        dialog(in: view)?.resolve(.dismissed)
+    }
+
+    @objc(_automationSession:acceptCurrentJavaScriptDialogForWebView:)
+    func automationSession(_ session: NSObject, acceptCurrentJavaScriptDialogFor view: WKWebView) {
+        guard let dialog = dialog(in: view) else { return }
+        dialog.resolve(.accepted(dialog.input))
+    }
+
+    @objc(_automationSession:messageOfCurrentJavaScriptDialogForWebView:)
+    func automationSession(_ session: NSObject, messageOfCurrentJavaScriptDialogFor view: WKWebView) -> String? {
+        dialog(in: view)?.message
+    }
+
+    @objc(_automationSession:defaultTextOfCurrentJavaScriptDialogForWebView:)
+    func automationSession(_ session: NSObject, defaultTextOfCurrentJavaScriptDialogFor view: WKWebView) -> String? {
+        dialog(in: view)?.defaultText
+    }
+
+    @objc(_automationSession:userInputOfCurrentJavaScriptDialogForWebView:)
+    func automationSession(_ session: NSObject, userInputOfCurrentJavaScriptDialogFor view: WKWebView) -> String? {
+        dialog(in: view)?.input
+    }
+
+    @objc(_automationSession:setUserInput:forCurrentJavaScriptDialogForWebView:)
+    func automationSession(_ session: NSObject, setUserInput text: String, forCurrentJavaScriptDialogFor view: WKWebView) {
+        dialog(in: view)?.input = text
+    }
+
+    /// `_WKAutomationSessionJavaScriptDialogType`, which starts at 1 for none.
+    @objc(_automationSession:typeOfCurrentJavaScriptDialogForWebView:)
+    func automationSession(_ session: NSObject, typeOfCurrentJavaScriptDialogFor view: WKWebView) -> Int {
+        switch dialog(in: view)?.kind {
+        case .alert: 2
+        case .confirm: 3
+        case .prompt: 4
+        default: 1
+        }
+    }
 }
 #endif

@@ -152,6 +152,9 @@ final class BrowserTab: Identifiable {
     /// Bumped for every page built, so a rebuilt page gets a fresh host.
     private(set) var generation = 0
     @ObservationIgnored private var pageDelegate: PageDelegate?
+    #if os(macOS)
+    @ObservationIgnored let dialogs = PendingDialogs()
+    #endif
     @ObservationIgnored private var observations: [NSKeyValueObservation] = []
     /// What the live page says of itself, copied as it changes: a view observes these, not the web view.
     private var liveURL: URL?
@@ -672,6 +675,9 @@ final class BrowserTab: Identifiable {
         onPageClose = nil
         onDownload = nil
         permissions?.forget(id)
+        #if os(macOS)
+        dialogs.dismissAll()
+        #endif
         releasePage()
         thumbnail = nil
         cache?.forget(id)

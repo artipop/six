@@ -31,7 +31,8 @@ What is left when none of them works — a canvas (Sheets, Figma, Maps), a page 
 
 ## The acting tools
 
-`page_snapshot`, `click`, `fill`, `select_option`, `press_key`, `scroll_page`, `wait_for`, all `surfaces: .mcp`: an
+`page_snapshot`, `click`, `fill`, `select_option`, `press_key`, `scroll_page`, `wait_for`, `handle_dialog`,
+`upload_file`, all `surfaces: .mcp`: an
 ACP agent gets them through its own permission dialog, and the ⌘E line never gets a button pressed in answer to a
 question. The page half is `Savoia/Tools/PageActionScript.swift`, the Swift half `Savoia/Tools/PageActions.swift`, the
 tools themselves in `BrowserTools.swift`.
@@ -72,6 +73,66 @@ tools themselves in `BrowserTools.swift`.
 - Open shadow roots are walked; closed ones and `ElementInternals` are not — the narrow difference from the
   accessibility tree measured in [accessibility.md](accessibility.md). Main frame only.
 - `wait_for` is not a convenience: `callJavaScript` takes no `await`, so everything that waits is polled from Swift.
+
+## Dialogs and files: the delegate's door
+
+`handle_dialog` and `upload_file` run no script of their own. A page's `alert`, `confirm`, `prompt` and file chooser
+are requests to the tab's UI delegate (`PageDelegate`), and the tab keeps each one while it waits
+(`PageDialog`, `PendingDialogs` in `Savoia/Browser/PageDialogs.swift`, as `BrowserTab.dialogs`).
+
+- **A dialog is the person's and the agent's at once.** It is still a sheet that names its site; what changed is
+  that the answer belongs to the `PageDialog` and not to the sheet, so whoever answers first wins and the sheet is
+  taken down after an agent's answer. A dialog nobody is driving is answered by the person, as before. An agent may
+  answer one it did not cause — through its own permission prompt, like every acting tool.
+- **A page held by `alert`, `confirm` or `prompt` runs no script**, so a tool that reads the page would wait as
+  long as the dialog does. `page_snapshot`, the acting tools, `wait_for` and `evaluate_javascript` race their work
+  against a dialog opening (`PendingDialogs.racing`) and answer with the dialog instead — kind, message, site, and
+  what a prompt holds. The work that lost goes on once the dialog is answered, unheard. The reading tools
+  (`get_page_content` and the rest) are not wrapped and still wait.
+- **`handle_dialog`**: `accept` or `dismiss`, and `text` for a prompt (without it, what the prompt holds). It also
+  dismisses an open file chooser. There is no `beforeunload` in it: WebKit asks about that through SPI Savoia does
+  not answer.
+- **`upload_file`** takes `path` (one per line for a `multiple` input) and the `ref` that opens the chooser: the
+  file input, which the snapshot lists as a button with `type=file` and the chosen file as its value, or the page's
+  own Upload button over a hidden input. The files are left with the tab (`PendingDialogs.choosing`), the element
+  gets the same real click `click` gives — a chooser opens only on a user gesture — and the delegate's
+  `runOpenPanelWith` is answered with them: no panel is made. Five seconds without a chooser is a failure that says
+  so. Without `ref` it answers a chooser that is already open, which is how an agent gets out of one it opened with
+  a plain `click`. Files against the input's own terms — two for a single input, a folder for a file input — are
+  refused by name and the page is told the chooser was cancelled.
+
+Measured over `Savoia --mcp` in a throwaway home, 7 October 2026, on a page of four buttons and three file inputs:
+`confirm` accepted and dismissed read `true` and `false` in the page; `prompt` answered with a text, with its
+default and dismissed read the text, the default and `null`; `alert` let the script after it run; a `confirm` raised
+by `evaluate_javascript` came back as the dialog in 0.3 s instead of never. A file went into a plain input, into a
+hidden input behind a button, and two into a `multiple` one, and the page read their contents back. The window had no
+sheet attached after each answer; nobody watched the sheets go up and come down.
+
+## Against Chrome's server
+
+Tool for tool against `chrome-devtools-mcp`, whose list was read on 7 October 2026.
+
+| Chrome DevTools MCP | Savoia | |
+|---|---|---|
+| `take_snapshot` | `page_snapshot` | built |
+| `click`, `fill`, `fill_form`, `press_key`, `type_text` | `click`, `fill`, `select_option`, `press_key` | built; click and keys are real events |
+| `click_at` | — | not built: an agent answers with a ref, never coordinates |
+| `handle_dialog` | `handle_dialog` | built; no `beforeunload` |
+| `upload_file` | `upload_file` | built |
+| `wait_for` | `wait_for` | built |
+| `navigate_page`, `new_page`, `list_pages`, `select_page`, `close_page` | `navigate`, `open_window`, `list_workspaces`, `focus_window`, `close_window` | built |
+| `evaluate_script` | `evaluate_javascript` | built; no user gesture |
+| `take_screenshot` | `take_screenshot` | built; the visible part only |
+| `list_console_messages`, `get_console_message`, `list_network_requests` | `list_console_messages`, `list_network_requests` | built, only while capture is on ([devtools.md](devtools.md)); status and timing, no headers or bodies |
+| `list_webmcp_tools`, `execute_webmcp_tool` | `list_page_tools`, `call_page_tool` | built ([webmcp.md](webmcp.md)) |
+| `hover`, `drag` | — | missing — [tasks/agents/15](tasks/agents/15-agent-tools-to-chrome.md) |
+| `get_network_request` (headers, body) | — | not reachable |
+| `emulate`, `resize_page` | — | not reachable |
+| `performance_*`, `lighthouse_audit`, `get_css_styles`, `screencast_*`, the heap snapshot tools | — | not reachable |
+| the extension and PWA tools | — | not built; extensions are installed by the person ([extensions.md](extensions.md)) |
+
+Not reachable means the Web Inspector protocol: a person can open the inspector on a tab, and nothing in Savoia
+sends it a message ([devtools.md](devtools.md)).
 
 ## `run_page_task`: the routes
 

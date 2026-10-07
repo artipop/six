@@ -137,27 +137,40 @@ final class PageDelegate: NSObject, WKNavigationDelegate, WKUIDelegate {
 
     func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String,
                  initiatedByFrame frame: WKFrameInfo) async {
-        guard kind == .web else { return }
-        await PageDialogs.alert(message, from: frame.securityOrigin, on: webView.window ?? PageDialogs.window)
+        guard kind == .web, let tab else { return }
+        _ = await ask(.alert, message, of: tab, from: frame, in: webView)
     }
 
     func webView(_ webView: WKWebView, runJavaScriptConfirmPanelWithMessage message: String,
                  initiatedByFrame frame: WKFrameInfo) async -> Bool {
-        guard kind == .web else { return false }
-        return await PageDialogs.confirm(message, from: frame.securityOrigin, on: webView.window ?? PageDialogs.window)
+        guard kind == .web, let tab else { return false }
+        let answer = await ask(.confirm, message, of: tab, from: frame, in: webView)
+        if case .accepted = answer { return true }
+        return false
     }
 
     func webView(_ webView: WKWebView, runJavaScriptTextInputPanelWithPrompt prompt: String,
                  defaultText: String?, initiatedByFrame frame: WKFrameInfo) async -> String? {
-        guard kind == .web else { return nil }
-        return await PageDialogs.prompt(prompt, defaultText: defaultText, from: frame.securityOrigin,
-                                        on: webView.window ?? PageDialogs.window)
+        guard kind == .web, let tab else { return nil }
+        let answer = await ask(.prompt, prompt, defaultText: defaultText, of: tab, from: frame, in: webView)
+        if case .accepted(let text) = answer { return text ?? defaultText ?? "" }
+        return nil
+    }
+
+    private func ask(_ kind: PageDialog.Kind, _ message: String, defaultText: String? = nil, of tab: BrowserTab,
+                     from frame: WKFrameInfo, in webView: WKWebView) async -> PageDialog.Answer {
+        if tab.isAutomated { tab.devTools?.automation.dialogOpened() }
+        return await tab.dialogs.ask(kind, message: message, defaultText: defaultText, from: frame.securityOrigin,
+                                     on: webView.window ?? PageDialogs.window)
     }
 
     func webView(_ webView: WKWebView, runOpenPanelWith parameters: WKOpenPanelParameters,
                  initiatedByFrame frame: WKFrameInfo) async -> [URL]? {
-        guard kind == .web else { return nil }
-        return await PageDialogs.files(parameters, from: frame.securityOrigin, on: webView.window ?? PageDialogs.window)
+        guard kind == .web, let tab else { return nil }
+        let answer = await tab.dialogs.ask(.files, panel: parameters, from: frame.securityOrigin,
+                                           on: webView.window ?? PageDialogs.window)
+        if case .files(let urls) = answer { return urls }
+        return nil
     }
 
     // MARK: The camera and the microphone
