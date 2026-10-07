@@ -119,7 +119,7 @@ of a **profile**. Everything defaults to what is on screen.
 | look | list groups and tabs, read a page's text, its links, summarize it |
 | open | search the web; open a tab by address or by query — including **behind**, so nothing on screen moves; open a private window |
 | move | focus a tab, move it to another group, put two side by side, close it |
-| act | a snapshot of the page with its buttons and fields numbered, click, fill a field, choose an option in a list, press a key, scroll, wait for a result — this is how an agent fills in forms and searches for flights by itself |
+| act | a snapshot of the page with its buttons and fields numbered, click, fill a field, choose an option in a list, press a key, scroll, hover, drag, attach a file, answer a page's dialog, wait for a result — this is how an agent fills in forms and searches for flights by itself |
 | debug | what a page logged, what it requested, a screenshot, run code in the page |
 | write | create a document, write into it section by section, cite a source, highlight the paragraphs that answer a question |
 | bookmarks | list, search by meaning, read, add, refresh, remove |
@@ -133,6 +133,12 @@ and leaves the last button to you. When the page itself declared tools for agent
 it uses those rather than the buttons ([WebMCP](/en/devtools#webmcp)). A language model on
 the ⌘E line gets none of these tools; the [do command](/en/assistant#the-do-command)
 is how it is asked to act.
+
+Two cases are worth knowing beforehand. A **file** is attached from your disk by its path —
+no file panel opens, and permission is asked as for any action: the card shows which file
+and where it goes. A **page's dialog** — `alert`, `confirm`, `prompt` — appears as usual, and
+either you or the agent may answer it: whoever is first. When the agent answers, the dialog
+closes by itself.
 
 ## The browser as an MCP server for anything else
 

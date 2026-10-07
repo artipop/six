@@ -43,10 +43,10 @@ most one.
 
 ## The page's own dialogs
 
-`alert()`, `confirm()`, `prompt()` and the file picker work as everywhere. That
-is worth saying out loud: a browser built on these APIs answers all four with
-"no" by default, which means quietly not being able to upload a file. Here they
-are real.
+`alert()`, `confirm()`, `prompt()` and the file picker work as everywhere. A
+dialog appears in the tab whose page raised it and names the site, so it is clear
+who is asking. Close the tab and its dialogs go with it. While an agent is working
+on the page, it may answer too ([agents](/en/agents#what-an-agent-can-do-in-the-browser)).
 
 ## Screen sharing
 
