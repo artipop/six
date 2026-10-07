@@ -162,6 +162,12 @@ in [permissions.md](permissions.md).
   rule would refuse everything. Savoia does not apply it.
 - **An opened window.** `window.open` hands the page no window in Savoia ([Frames](#frames-what-webkit-allows-measured)),
   so nothing about tools across an opener boundary can be tested, or needs to be.
+- **A sandboxed frame without `allow-scripts`** gets the user script all the same — WebKit runs it there — and the
+  polyfill leaves at once, on `matchMedia('(scripting: none)')`. Before that every such frame put `Blocked script
+  execution in 'about:blank' because the document's frame is sandboxed` in the page's console, twice, and a
+  `Sandbox access violation` beside it: the script's own promise callbacks and its walk up `parent`, refused. YouTube
+  makes such frames. Measured through the inspector on a page that appends one, with nothing else switched on: three
+  errors before, none after, and `modelContext` still in the top page, a plain frame and an `allow-scripts` sandbox.
 - **The initial `about:blank` of an iframe with a `src`** gets no polyfill: WebKit does not run user scripts in it,
   and the page reaches it before it navigates. The wpt test for it says Chrome gets it wrong too.
 - **Not native.** The IDL is followed as far as `idlharness` checks it, but the events Savoia dispatches are the page's

@@ -3,7 +3,8 @@ import AppKit
 import WebKit
 
 /// `SAVOIA_INSPECTOR_SELFTEST=1`: ⌥⌘I on a real tab — docked, under the find bar, across a navigation,
-/// a tab switch and a discard, and beside another tab. Closes what it opens.
+/// a tab switch and a discard, and beside another tab. Closes what it opens. Given an address, the
+/// first page is that one, and the frontend's account ends with the console's errors and warnings.
 enum WebInspectorSelfTest {
     static func run(_ browser: BrowserState) async {
         func say(_ line: String) { Log.info(.devtools, "inspector selftest: \(line)") }
@@ -33,7 +34,8 @@ enum WebInspectorSelfTest {
         window.makeKeyAndOrderFront(nil)
         say("available \(WebInspector.isAvailable), window \(size(window.contentView))")
 
-        let tab = browser.newTab(url: page("one"))
+        let given = ProcessInfo.processInfo.environment["SAVOIA_INSPECTOR_SELFTEST"].flatMap(URL.init(string:))
+        let tab = browser.newTab(url: given?.scheme == nil ? page("one") : given)
         await pause(1500)
         if let view = tab.livePage { _ = window.makeFirstResponder(view) }
         say("before: \(describe(tab)), open to Safari \(tab.livePage?.isInspectable ?? false)")
@@ -45,6 +47,13 @@ enum WebInspectorSelfTest {
             let script = "JSON.stringify([WI.networkManager.mainFrame.url, WI.tabBrowser.tabBar.tabBarItems.map(item => item.representedObject?.constructor.name ?? item.title)])"
             let answer = try? await frontend.evaluateJavaScript(script)
             say("the frontend's own account: \(answer as? String ?? "nothing")")
+            if given?.scheme != nil {
+                _ = try? await frontend.evaluateJavaScript("WI.showConsoleTab(); 0")
+                await pause()
+                let lines = try? await frontend.evaluateJavaScript(
+                    "JSON.stringify([...document.querySelectorAll('.console-message')].map(row => row.className.replace('console-message', '').trim() + ': ' + row.textContent.slice(0, 200)))")
+                say("the console: \(lines as? String ?? "nothing")")
+            }
         }
 
         browser.find.show(tab.id)

@@ -29,7 +29,9 @@ SPI is absent the menu item is not there.
   window the key came from (`WebInspector.closeWindow`); without that the key closed the inspected tab.
 
 `SAVOIA_INSPECTOR_SELFTEST=1` walks all of it with real keys and prints a line per step, among them the
-frontend's own account of what it inspects.
+frontend's own account of what it inspects. Given an address instead of `1`, the first page is that one and the
+rows of the Console tab are printed too — the one way here to read what WebKit itself wrote to a page's console,
+which capture never sees.
 
 Measured in the dev build, in a throwaway home, 7 October 2026, in a 1440×799 window: the page went from 721 to
 221 points with the frontend at 500 under it; 191 with the find bar; `⌥⌘I` closed it with the page focused and

@@ -82,6 +82,8 @@ nonisolated enum WebMCPScript {
             'use strict';
             const channel = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.\#(handlerName);
             if (!channel) { return; }
+            // A sandboxed frame without allow-scripts still gets this script, and every callback it leaves is refused aloud.
+            if (window.matchMedia('(scripting: none)').matches) { return; }
             // Taken now, before any of the page's own scripts has run and could replace them.
             const { Promise, Map, Array, Object, String, Symbol, URL, Event, EventTarget, Document, DOMException,
                     AbortController, TypeError, Error, setTimeout, queueMicrotask } = window;
