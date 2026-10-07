@@ -329,10 +329,14 @@ final class BrowserTab: Identifiable {
         }
     }
 
-    /// Web Inspector, turned on or off while the window is open.
-    func applyInspectable(_ isInspectable: Bool) {
-        livePage?.isInspectable = isInspectable
+    #if os(macOS)
+    var isInspected: Bool { livePage.map(WebInspector.isOpen(on:)) ?? false }
+
+    func toggleInspector() {
+        guard let livePage else { return }
+        WebInspector.toggle(on: livePage)
     }
+    #endif
 
     // MARK: The camera, the microphone and the screen
 
@@ -552,13 +556,15 @@ final class BrowserTab: Identifiable {
             }
             #endif
         }
+        #if os(macOS)
+        WebInspector.allow(in: configuration)
+        #endif
         let page = WKWebView(frame: CGRect(origin: .zero, size: drawnSize), configuration: configuration)
         let delegate = PageDelegate(kind: kind, tab: self)
         page.navigationDelegate = delegate
         page.uiDelegate = delegate
         pageDelegate = delegate
         page.allowsBackForwardNavigationGestures = kind == .web
-        page.isInspectable = devTools?.isInspectable ?? false
         livePage = page
         observe(page)
         #if os(macOS)
@@ -606,6 +612,10 @@ final class BrowserTab: Identifiable {
 
     /// Lets the live page go: its observers, its delegate, and what was copied from it.
     private func releasePage() {
+        #if os(macOS)
+        // A docked inspector holds the page's frame.
+        if let livePage { WebInspector.close(on: livePage) }
+        #endif
         observations = []
         livePage?.navigationDelegate = nil
         livePage?.uiDelegate = nil

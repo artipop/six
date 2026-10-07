@@ -2,17 +2,8 @@ import Foundation
 import Observation
 import WebKit
 
-/// Developer tools, in the two shapes they can take in a browser that is not Safari.
-///
-/// **Web Inspector.** `WKWebView.isInspectable` is all it takes: with it on, Safari's Develop menu
-/// lists Savoia and its windows, and the real inspector attaches to them. Off by default, because an
-/// inspectable page is one any other process on the machine can attach to.
-///
-/// **Capture.** What an agent needs is not the inspector but its facts: what the page logged and what
-/// it requested. WebKit has no API for either, so Savoia instruments the page
-/// (`PageInstrumentation` — read what it says about running in the page's own world) and keeps the
-/// last few hundred of each per window, cleared when the window navigates. `list_console_messages`
-/// and `list_network_requests` hand them to agents over MCP.
+/// What an agent reads of a page: what it logged and what it requested, kept per window and cleared
+/// when the window navigates. The page is instrumented for it (`PageInstrumentation`).
 @MainActor
 @Observable
 final class DevToolsStore {
@@ -30,21 +21,6 @@ final class DevToolsStore {
     /// Per-window message handlers: the handler is what tells a message which window it came from.
     @ObservationIgnored private var handlers: [UUID: PageMessageHandler] = [:]
 
-    /// Web Inspector: Safari's Develop menu can attach to Savoia's pages.
-    var isInspectable: Bool {
-        didSet {
-            guard isInspectable != oldValue else { return }
-            settings.devToolsInspector = isInspectable
-            // Live pages take it at once; pages built later get it in `BrowserTab.materialize`.
-            for tab in browser?.tabs ?? [] { tab.applyInspectable(isInspectable) }
-            // Savoia opens nothing itself — WebKit gives an app no way to open the inspector on its own
-            // page, only to allow one to attach. Say where it appears, since nothing else will.
-            Log.info(.devtools, isInspectable
-                ? "Web Inspector on — attach from Safari: Develop › \(Self.machineName) › \(Self.appName)"
-                : "Web Inspector off")
-        }
-    }
-
     #if os(macOS)
     let automation = Automation()
 
@@ -61,7 +37,7 @@ final class DevToolsStore {
     #endif
 
     /// Console and network capture, for agents: it is also what puts `list_console_messages` and
-    /// `list_network_requests` into Savoia's tool list. A person has Safari's inspector for the same
+    /// `list_network_requests` into Savoia's tool list. A person has the inspector for the same
     /// facts, told by the browser rather than by the page.
     var isCapturing: Bool {
         didSet {
@@ -78,7 +54,6 @@ final class DevToolsStore {
     init(settings: ConfigurationStore, controllers: PageControllers) {
         self.settings = settings
         self.controllers = controllers
-        self.isInspectable = settings.devToolsInspector
         self.isCapturing = settings.devToolsCapture
         #if os(macOS)
         self.allowsAutomation = settings.devToolsAutomation && Automation.isAvailable
@@ -198,18 +173,6 @@ final class DevToolsStore {
         let all = network[windowID] ?? []
         let filtered = failedOnly ? all.filter(\.isFailed) : all
         return Array(filtered.suffix(limit))
-    }
-
-    /// What Safari calls Savoia under that Mac: the bundle's display name, so a Debug build is `Savoia dev`.
-    static var appName: String {
-        (Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String)
-            ?? (Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String)
-            ?? "Savoia"
-    }
-
-    /// What Safari calls this Mac in its Develop menu.
-    static var machineName: String {
-        Host.current().localizedName ?? ProcessInfo.processInfo.hostName
     }
 
     /// Where `take_screenshot` puts its files.

@@ -356,7 +356,9 @@ struct SavoiaApp: App {
                     .keyboardShortcut("p", modifiers: [.command, .shift])
                 Button("Close Private Browsing") { browser.closePrivateBrowsing() }
                     .disabled(browser.privateProfile == nil)
-                Button("Close Tab") { browser.closeSelectedTab() }
+                Button("Close Tab") {
+                    if !WebInspector.closeWindow(NSApp.currentEvent?.window ?? NSApp.keyWindow) { browser.closeSelectedTab() }
+                }
                     .keyboardShortcut("w")
                 Divider()
                 // Safari's home for it, and the only menu that already means "an address".

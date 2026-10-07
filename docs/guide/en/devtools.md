@@ -1,38 +1,27 @@
 # Developer tools
 
-Every switch here is off by default.
-
 ## Web Inspector
 
-**Configuration ▸ Develop ▸ Allow Safari to Inspect Savoia's Pages** lets **Safari's inspector** attach to them.
-There is no inspector window of Savoia's own and there cannot be one: WebKit lets an
-application declare its pages inspectable, and no more. Safari's inspector,
-though, is the real thing — elements, console, network, sources, breakpoints.
+**View ▸ Web Inspector** (`⌥⌘I`) opens the inspector on the tab in front of you,
+and the same keys close it. It is the inspector Safari has: elements, console,
+sources and breakpoints, network, timelines, storage. Nothing has to be turned
+on for it.
 
-How to attach:
+The inspector appears under the page. When two tabs stand side by side, half a
+window is too narrow for it and it opens in a window of its own; `⌘W` there
+closes that window and not the tab.
 
-1. in Safari, turn on **Settings › Advanced › Show features for web
-   developers** — without it Safari's own Develop menu is hidden and there is
-   nowhere to attach from. This is the usual reason for "I turned it on and
-   nothing happened";
-2. in Safari's menu bar: **Develop › ‹the name of this Mac› › Savoia › ‹the page's
-   title›**.
+The tab has to be showing a **page**: the start page and Savoia's own pages —
+configuration, bookmarks, chats — have nothing to inspect. While the inspector
+is open the page is not discarded from memory, even when you are on another tab.
 
-An **Open Safari to Attach** button appears beside the switch. The computer's
-name in Safari's menu is the one set in **System Settings › General › Sharing**.
-
-The window has to be showing a **page**: a fresh window is the start page, which
-is drawn natively rather than as web content, so there is nothing in it to
-inspect. Nor is there in a window whose page has been discarded, until you come
-back to it.
-
-It is off by default because an inspectable page is one another process on the
-machine can attach to.
+Savoia's pages can no longer be attached to from Safari's Develop menu: there is
+no switch for it in the configuration.
 
 ## Capturing the console and the network
 
 **Configuration ▸ Assistant ▸ Access to Page Console and Network** is not for a
-person but for an [agent](/en/agents): a person has Safari's inspector for the same
+person but for an [agent](/en/agents): a person has the web inspector for the same
 thing, told more exactly. With it on, the agent gets two more tools and can ask what a page logged and what it
 requested — what Chrome's devtools MCP does, on WebKit.
 

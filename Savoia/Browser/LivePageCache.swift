@@ -258,6 +258,9 @@ final class LivePageCache {
         // A call scrolled out of view is still a call: discarding its page hangs up on the camera,
         // the microphone and the screen being shown, and "playing media" only catches it by accident.
         if tab.isCapturing { return "capturing" }
+        #if os(macOS)
+        if tab.isInspected { return "inspected" }
+        #endif
         if tab.isLoadingRecently { return "still loading" }
         if await tab.isPlayingMedia { return "playing media" }
         // The floating player is the one thing on this list that is *on screen* while its window is

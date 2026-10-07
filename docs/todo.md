@@ -10,14 +10,13 @@ The browser's core first, each step making the next one smaller.
 
 | | what | where |
 |---|---|---|
-| 1 | **Web Inspector in Savoia's own window** | [tasks/devtools/22](tasks/devtools/22-web-inspector-in-savoia.md) |
-| 2 | **`hover` and `drag` for an agent** — what is left of the agent-tools task, as real mouse events, each measured before it is promised | [tasks/agents/15](tasks/agents/15-agent-tools-to-chrome.md) |
-| 3 | **Geolocation** | [tasks/permissions/07](tasks/permissions/07-geolocation.md) |
-| 4 | **Site notifications** | [tasks/permissions/08](tasks/permissions/08-notifications.md) |
-| 5 | **The rest of the scripts in pages**: the calls that are still a user gesture, the last script on every page, the blocker's page half as a setting that is off by default, and one experiment about Apple Pay | [tasks/browser/11](tasks/browser/11-page-scripts-rest.md) |
-| 6 | **Waits by the clock** replaced by the events they stand in for — what is left; the first, a load to end, is done | [tasks/browser/14](tasks/browser/14-waits-by-the-clock.md) |
-| 7 | **Small things**, seven of them: forget one site, a way home, a download that repeats, a user agent per site, every model in the welcome, a Help menu, grouping by meaning off for a new install | [tasks/browser/13](tasks/browser/13-small-things.md) |
-| 8 | **Passkeys and passwords** — as much paperwork with Apple as code | [passkeys.md](passkeys.md) |
+| 1 | **`hover` and `drag` for an agent** — what is left of the agent-tools task, as real mouse events, each measured before it is promised | [tasks/agents/15](tasks/agents/15-agent-tools-to-chrome.md) |
+| 2 | **Geolocation** | [tasks/permissions/07](tasks/permissions/07-geolocation.md) |
+| 3 | **Site notifications** | [tasks/permissions/08](tasks/permissions/08-notifications.md) |
+| 4 | **The rest of the scripts in pages**: the calls that are still a user gesture, the last script on every page, the blocker's page half as a setting that is off by default, and one experiment about Apple Pay | [tasks/browser/11](tasks/browser/11-page-scripts-rest.md) |
+| 5 | **Waits by the clock** replaced by the events they stand in for — what is left; the first, a load to end, is done | [tasks/browser/14](tasks/browser/14-waits-by-the-clock.md) |
+| 6 | **Small things**, seven of them: forget one site, a way home, a download that repeats, a user agent per site, every model in the welcome, a Help menu, grouping by meaning off for a new install | [tasks/browser/13](tasks/browser/13-small-things.md) |
+| 7 | **Passkeys and passwords** — as much paperwork with Apple as code | [passkeys.md](passkeys.md) |
 
 ## Beside the order
 
@@ -49,7 +48,7 @@ Nothing here waits on the steps above, except where it says so.
   ([webmcp.md](webmcp.md#the-nine-wpt-tests-left)).
 - **Idle Detection.** WebKit does not implement it.
 - **The inspector's protocol for an agent** — request bodies, throttling, traces. A person gets them through the
-  inspector's window (step 2); an app cannot reach the protocol for its own pages.
+  inspector's window ([devtools.md](devtools.md#web-inspector)); an app cannot reach the protocol for its own pages.
 - **A WebKit build of Savoia's own.** Ruled out: system WebKit, used as far as it goes.
 
 What waits on Apple to make something public, and how to notice when it does, is [api-watch.md](api-watch.md).

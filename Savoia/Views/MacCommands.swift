@@ -100,6 +100,11 @@ struct ViewCommands: Commands {
                 set: { AccessibilityOverlay.shared.isOn = $0 }
             ))
             .keyboardShortcut("a", modifiers: [.command, .option])
+            // ⌥⌘I, Safari's key. Opens it, and closes it when it is open.
+            if WebInspector.isAvailable {
+                Button("Web Inspector") { browser.selectedTab?.toggleInspector() }
+                    .keyboardShortcut("i", modifiers: [.command, .option])
+            }
 
             Divider()
 

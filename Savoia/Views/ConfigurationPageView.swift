@@ -533,7 +533,7 @@ private struct PrivacyConfiguration: View {
 
 // MARK: - Develop
 
-/// Safari's inspector and Savoia's own log — the two things a person developing against Savoia reads.
+/// Switches for whoever develops against Savoia, and its own log.
 private struct DevelopConfiguration: View {
     @Environment(DevToolsStore.self) private var devTools
     @Environment(WebMCPStore.self) private var webMCP
@@ -542,25 +542,6 @@ private struct DevelopConfiguration: View {
         @Bindable var devTools = devTools
         @Bindable var webMCP = webMCP
         Form {
-            SwiftUI.Section("Web Inspector") {
-                // Savoia has no inspector window of its own — WebKit lets an app allow inspection, not
-                // open it. Where to attach from is written here rather than left to devtools.md.
-                // The computer is named by what it is rather than by what it is called: the name is
-                // whatever Sharing says, and read here it looked like something Savoia had made up.
-                Toggle("Allow Safari to Inspect Pages", isOn: $devTools.isInspectable)
-                Text("In Safari: the Develop menu, this computer's name, then \(DevToolsStore.appName).")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                if devTools.isInspectable {
-                    Button("Open Safari to Attach") {
-                        if let safari = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.Safari") {
-                            NSWorkspace.shared.openApplication(at: safari, configuration: NSWorkspace.OpenConfiguration())
-                        }
-                    }
-                    .controlSize(.small)
-                }
-            }
-
             if Automation.isAvailable {
                 SwiftUI.Section("Remote Automation") {
                     Toggle("Allow Remote Automation", isOn: $devTools.allowsAutomation)

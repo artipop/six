@@ -26,7 +26,7 @@ It is a playground for three things:
    named group, read and summarize pages, move and close tabs — the same tool catalog the assistant uses.
    With `savoia://settings` ▸ **Develop** ▸ Capture Console and Network on, that catalog also answers what a page logged and what it
    requested (`list_console_messages`, `list_network_requests`, `take_screenshot`) — Chrome's devtools-MCP moves, on
-   WebKit. `WKWebView.isInspectable` puts Savoia's pages in Safari's own Develop menu.
+   WebKit. `⌥⌘I` opens WebKit's own inspector on a tab.
    See [docs/mcp.md](docs/mcp.md) and [docs/devtools.md](docs/devtools.md).
 
 Tabs, groups, profiles and agent chats survive a relaunch: one JSON snapshot under Application Support, autosaved
@@ -94,7 +94,7 @@ Full reference: [docs/](docs/) — [controls](docs/controls.md), [hotkeys](docs/
 ```
 Savoia/Tiling      TilingLayout — tab groups and columns (a tab, or two side by side), focus and moves
 Savoia/Browser     Profile, BrowserTab (its own WKWebView), BrowserState, SearchEngine + SearchSuggestions
-Savoia/DevTools    DevToolsStore (Web Inspector + capture), PageInstrumentation (the page-world hooks)
+Savoia/DevTools    WebInspector (⌥⌘I), DevToolsStore (capture), PageInstrumentation (the page-world hooks)
 Savoia/Extensions  ExtensionStore (a controller per profile), ExtensionInstaller (+ the compatibility verdict), adapters
 Savoia/Blocking    ContentBlocker (compiles + attaches rules), FilterList/FilterListStore (the lists), RuleConversion
 Savoia/Browser     CertificateStore + ServerTrust (extra trust anchors), BundledCertificates (the ones Savoia ships)

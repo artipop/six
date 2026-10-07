@@ -108,7 +108,7 @@ What is installed, what each one can do here, and installing from a folder, a
 
 ## Develop
 
-Let Safari's inspector attach to Savoia's pages and open the browser log. More in
+Remote automation, WebMCP and the browser log. More in
 [Developer tools](/en/devtools).
 
 ## Where it all lives

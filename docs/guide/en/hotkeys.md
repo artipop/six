@@ -54,6 +54,7 @@ ring, and it remembers this run only.
 | `⌥⇧H` | highlight the selection on the page |
 | `⌥⇧P` | the video into the floating picture-in-picture window and back |
 | `⌥⌘A` | the [accessibility overlay](/en/accessibility) over the page, on and off |
+| `⌥⌘I` | the [web inspector](/en/devtools) on this tab, open and close |
 | `⌘` + click a link | open it in a new tab, in the background |
 
 `⌥⇧T`, `⌥⇧H` and `⌥⇧P` go to the page first: if a site uses the combination itself,

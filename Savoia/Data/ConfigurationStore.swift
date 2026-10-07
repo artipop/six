@@ -98,7 +98,6 @@ final class ConfigurationStore {
         /// (`WKWebExtension.hasOverrideNewTabPage`) — Apple's own note says to ask before using it, so
         /// this is the record of having asked, not a capability WebKit hands out on its own.
         case newTabOverride = "extensions.newTabOverride"
-        case devToolsInspector = "devtools.inspector"
         case devToolsCapture = "devtools.capture"
         case devToolsAutomation = "devtools.automation"
         /// Whether pages may declare tools for agents (WebMCP). See `webMCP`.
@@ -274,13 +273,6 @@ final class ConfigurationStore {
     var blockingRefreshDays: Int {
         get { self[.blockingRefreshDays].flatMap(Int.init) ?? 3 }
         set { self[.blockingRefreshDays] = String(newValue) }
-    }
-
-    /// Web Inspector: Safari's Develop menu can attach to Savoia's pages. Off by default — an
-    /// inspectable page is one another process on the machine can attach to.
-    var devToolsInspector: Bool {
-        get { self[.devToolsInspector].map { $0 == "1" } ?? false }
-        set { self[.devToolsInspector] = newValue ? "1" : "0" }
     }
 
     /// Console and network capture, for the agent tools. Off by default: it runs a hook in the

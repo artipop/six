@@ -39,7 +39,7 @@ from [`Savoia/Localizable.xcstrings`](../Savoia/Localizable.xcstrings) rather th
 | [bookmarks.md](bookmarks.md) | bookmarks: readable Markdown copies per profile, on-device embeddings, search from the assistant and MCP |
 | [assistant.md](assistant.md) | the assistant: verbs at a selection, at a caret and on the ⌘E line, over Foundation Models |
 | [agents.md](agents.md) | the ACP client, agents on the ⌘E line, and the chat history (`savoia://chats`) |
-| [devtools.md](devtools.md) | Web Inspector on Savoia's pages, and the console/network capture the agent tools read |
+| [devtools.md](devtools.md) | Web Inspector on a tab (⌥⌘I), and the console/network capture the agent tools read |
 | [logging.md](logging.md) | what Savoia says happened: the unified log, the file under `~/Library/Logs`, and the levels |
 | [mcp.md](mcp.md) | `Savoia --mcp`: the browser as an MCP server, and its tools |
 | [webmcp.md](webmcp.md) | WebMCP: a page declaring tools of its own for agents — how Savoia carries them, the gate in front of them, and what is not built |

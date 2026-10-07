@@ -19,7 +19,7 @@ is the SDK to read.
 | **`declarativeNetRequest.onRuleMatchedDebug`** | not implemented by WebKit | the event implemented | nothing — it is WebKit's gap, not Savoia's |
 | **`browser.idle`, `bookmarks`, `browsingData`, `runtime.onEnabled`, `storage.setAccessLevel`** | absent in WebKit; Savoia scores what Safari scores on wpt `web-extensions/` ([extensions.md](extensions.md#compatibility-web-platform-tests)) | `NEW PASS` from `scripts/web-extensions-wpt.py` after a system update; for bookmarks, `bookmarksForExtensionContext:` and its siblings leaving `WKWebExtensionControllerDelegatePrivate.h` | bookmarks answered from `BookmarkStore`; the rest is a new baseline |
 | **Extension testing mode** | SPI in use, only under `SAVOIA_EXTENSION_TESTING`: `_testingMode` and the `recordTest…` delegate methods — `Savoia/Extensions/ExtensionTesting.swift` | a public testing switch on `WKWebExtensionController` | the SPI goes |
-| **Opening Web Inspector** | Safari can attach. SPI opens it on a tab — `_inspector`, with `developerExtrasEnabled` — measured, not built ([tasks/devtools/22](tasks/devtools/22-web-inspector-in-savoia.md)) | any public API beyond `isInspectable` | the SPI goes |
+| **Opening Web Inspector** | SPI in use: `WKWebView._inspector` (`_WKInspector`: `show`, `attach`, `detach`, `close`, `isVisible`, `inspectorWebView`, `setDelegate:` for `inspectorFrontendLoaded:`), `_setDeveloperExtrasEnabled:` on `WKPreferences`, and the class name `_WKInspectorWindow` — `Savoia/DevTools/WebInspector.swift` ([devtools.md](devtools.md#web-inspector)) | a public way to open the inspector on one's own page; today the only public name is `isInspectable`, which lets Safari attach | the SPI goes |
 | **Remote automation** | SPI in use, only for tabs opened under Develop ▸ Allow Remote Automation: `_WKAutomationSession`, `_setAutomationSession:` on a process pool, `_setControlledByAutomation:`, and the `…ForTesting` pair that carries the protocol — `Savoia/DevTools/Automation.swift` ([devtools.md](devtools.md#remote-automation)) | a public session and a public flag on `WKWebViewConfiguration`; or a way for safaridriver to attach to another browser | the SPI goes, and with a driver that attaches, so does the passthrough tool |
 | **A script that is not a user gesture** | SPI in use: `_callAsyncJavaScript:arguments:inFrame:inContentWorld:withUserGesture:completionHandler:` — `BrowserTab.callWithoutGesture` ([page-scripts.md](page-scripts.md)) | a gesture flag on `WKWebView.callAsyncJavaScript` | the SPI goes |
 | **What is under the pointer, for the context menu** | SPI in use: `_webView:getContextMenuFromProposedMenu:forElement:userInfo:completionHandler:` and `_WKContextMenuElementInfo.hitTestResult.absoluteLinkURL` — `PageDelegate`; without it WebKit's own menu shows | a public delegate method that hands over the element | the SPI goes |
@@ -60,7 +60,7 @@ SDK=$(xcrun --show-sdk-path)                                    # the one Savoia
 H=$SDK/System/Library/Frameworks/WebKit.framework/Headers
 
 grep -rn -i "displayCaptureState\|allowsPictureInPictureMediaPlayback\|requiredWebExtensionBaseURL\|NotificationPermission\|Geolocation" "$H"
-grep -rn -i "contextMenu\|callAsyncJavaScript\|DeviceOrientationAndMotion\|controlledByAutomation" "$H"
+grep -rn -i "contextMenu\|callAsyncJavaScript\|DeviceOrientationAndMotion\|controlledByAutomation\|inspector\|developerExtras" "$H"
 ```
 
 What the running OS actually implements, whatever the headers say, is in the runtime; the probes used for this list

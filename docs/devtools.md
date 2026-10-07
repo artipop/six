@@ -1,32 +1,46 @@
 # Developer tools
 
-Two different things, both off by default: Web Inspector under **Develop**, for a person, and capture under
-**Configuration ▸ Assistant**, for agents.
+Two different things: Web Inspector, for a person, and capture under **Configuration ▸ Assistant**, off by
+default, for agents.
 
 ## Web Inspector
 
-`WKWebView.isInspectable`, and that is the whole of it. **Savoia has no inspector window of its own, and cannot have
-one**: WebKit lets an app declare its pages inspectable, and nothing more — opening an inspector on your own page
-is `_WKInspector`, which is private API. What the switch does is let *Safari's* Web Inspector attach, and that one
-is the real thing — elements, console, network, sources, breakpoints.
+**View ▸ Web Inspector**, `⌥⌘I`, opens WebKit's own inspector on the tab in front and closes it again
+(`Savoia/DevTools/WebInspector.swift`). It is the frontend Safari shows — Elements, Console, Sources, Network,
+Timelines, Storage, Graphics, Layers, Audit — and there is no switch for it.
 
-**How to attach**, once `savoia://configuration` ▸ **Develop** ▸ Allow Safari to Inspect Savoia's Pages is on:
+All of it is SPI behind `responds(to:)`: `WKWebView._inspector` is a `_WKInspector` with `show`, `attach`,
+`detach` and `close`, and none of them does anything unless `developerExtrasEnabled` was set on the
+configuration's preferences before the view was made (`BrowserTab.materialize`, every kind of tab). Where the
+SPI is absent the menu item is not there.
 
-1. In Safari: **Settings › Advanced › Show features for web developers**. Without it Safari's own Develop menu is
-   hidden and there is nowhere to attach from. (This is the usual reason "I turned it on and nothing happened".)
-2. Safari's menu bar: **Develop › ‹the name of this Mac› › Savoia › ‹the page's title›**.
-3. The window has to be showing a *page*. A fresh window in Savoia is the start page, which is SwiftUI rather than web
-   content, so it has nothing to inspect; so does a window whose page was discarded by the memory budget until you
-   scroll back to it.
+- **Docked or in a window of its own.** A page at least 0.6 of its window wide gets the inspector docked; one
+  of two tabs side by side gets it in WebKit's own window. The frontend puts itself where it last stood while it
+  loads, so a `detach` sent straight after `show` is undone; the choice is sent from the delegate's
+  `inspectorFrontendLoaded:`. That overrides where the person left it the last time.
+- **A docked inspector lives inside `PageHost`'s view**, beside the page, and WebKit resizes the page's view
+  itself. It follows the host: the find bar opening above takes its height from the page, not from the
+  inspector, and a window resize is followed. `_WKInspector` has nothing that sets the docked height; the
+  person drags the divider.
+- **An inspected tab is not discarded** (`LivePageCache`, "inspected"), and stays inspected behind another tab
+  and across a navigation. A page that is let go anyway — a rebuild, a close — closes its inspector first
+  (`BrowserTab.releasePage`), and the tab is built again without one.
+- **`⌘W` in the inspector's own window closes that window.** Close Tab is Savoia's only `⌘W`, so it asks whose
+  window the key came from (`WebInspector.closeWindow`); without that the key closed the inspected tab.
 
-Savoia's settings page carries the same instruction under the switch — naming "this computer's name" rather than
-filling it in, since a Sharing name read back in Savoia's own caption looked like something Savoia had invented — and
-turning the switch on writes it, name and all, to the log.
+`SAVOIA_INSPECTOR_SELFTEST=1` walks all of it with real keys and prints a line per step, among them the
+frontend's own account of what it inspects.
 
-Off by default because an inspectable page is one another process on the machine can attach to. The switch applies
-to the pages that are open at once, and to every page built after it — the second half is set in
-`BrowserTab.materialize`, and for a while the web-page branch there did not set it, so after a relaunch no page was
-inspectable and Safari listed no Savoia.
+Measured in the dev build, in a throwaway home, 7 October 2026, in a 1440×799 window: the page went from 721 to
+221 points with the frontend at 500 under it; 191 with the find bar; `⌥⌘I` closed it with the page focused and
+with the frontend focused; the frontend named the page's address and the nine panels. Not looked at by a
+person: the test reads sizes and the frontend's answers, not the screen. Not measured: the other `⌘` keys
+pressed in the inspector's own window, which still reach Savoia's menu.
+
+**Safari no longer attaches.** Until this, `savoia://configuration` ▸ Develop had a switch that set
+`WKWebView.isInspectable`, and Safari's Develop menu listed Savoia's pages. The inspector it opened is this one,
+so the switch and its setting (`devtools.inspector`) are gone and a page is inspectable by nothing outside
+Savoia.
 
 ## Capture, for agents
 
@@ -35,7 +49,7 @@ An agent driving the browser does not want an inspector window; it wants its fac
 requested — kept in memory and nowhere else, and adds the two MCP tools that read it ([mcp.md](mcp.md)).
 
 The switch lives with the agents and not under Develop because nothing in Savoia shows a person what it records: a
-person has Safari's inspector for the same facts, told by the browser rather than by the page. So the tools are not
+person has the inspector for the same facts, told by the browser rather than by the page. So the tools are not
 offered at all while it is off — `tools/list` leaves them out and `notifications/tools/list_changed` goes to whoever
 is connected when it flips, since a tool that can only answer "turn something on first" is one a model keeps
 calling.
@@ -154,5 +168,5 @@ through `automation_send`.
 No DOM snapshot with stable element ids, no synthetic clicks and typing, no performance traces, no request
 interception or throttling — the things Chrome's devtools MCP has beyond this. Most of them need the inspector
 protocol, which an app cannot reach for its own pages; a build of WebKit of Savoia's own would, and is ruled
-out. The inspector itself can be opened on a tab ([tasks/devtools/22](tasks/devtools/22-web-inspector-in-savoia.md)). `evaluate_javascript` covers a
+out — the inspector above is a window for a person, and nothing in `_WKInspector` sends a protocol message. `evaluate_javascript` covers a
 surprising amount of it for now ([mcp.md](mcp.md)), and the rest is in [todo.md](todo.md).

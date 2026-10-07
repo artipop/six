@@ -375,7 +375,7 @@ column was written from memory of its API and not compiled.
 | `callJavaScript(_:arguments:contentWorld:)` | `callAsyncJavaScript(_:arguments:in:contentWorld:)` | **`webkit_web_view_call_async_javascript_function`** |
 | `exported(as: .image(…))` | `takeSnapshot(with:)` | **`webkit_web_view_get_snapshot`** |
 | `exported(as: .pdf())` | `pdf(configuration:)` | `webkit_print_operation_*` |
-| `isInspectable` | `isInspectable` | `webkit_settings_set_enable_developer_extras` |
+| `isInspectable` | `_inspector` with `developerExtrasEnabled` (SPI): the inspector opens in Savoia ([devtools.md](devtools.md#web-inspector)) | `webkit_settings_set_enable_developer_extras` |
 | `WebView(page)` | one `NSViewRepresentable` handing out the tab's own view | the widget itself |
 | `.webViewBackForwardNavigationGestures` | `allowsBackForwardNavigationGestures` | `webkit_settings_set_enable_back_forward_navigation_gestures` |
 | `.webViewElementFullscreenBehavior` | `configuration.preferences.isElementFullscreenEnabled` | `webkit_settings_set_enable_fullscreen` |

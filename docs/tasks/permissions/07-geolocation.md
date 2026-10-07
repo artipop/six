@@ -1,6 +1,6 @@
 # 7. Geolocation for sites
 
-**After [22](../devtools/22-web-inspector-in-savoia.md).** A tab is a `WKWebView` of Savoia's own, and the
+A tab is a `WKWebView` of Savoia's own, and the
 permission question is one more method of its UI delegate, `PageDelegate`.
 
 Build geolocation in Savoia.

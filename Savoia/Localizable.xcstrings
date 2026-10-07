@@ -2283,16 +2283,6 @@
         }
       }
     },
-    "Allow Safari to Inspect Pages" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Разрешить Safari инспектировать страницы"
-          }
-        }
-      }
-    },
     "Allowed — click to block" : {
       "localizations" : {
         "ru" : {
@@ -3776,16 +3766,6 @@
         }
       }
     },
-    "In Safari: the Develop menu, this computer's name, then %@." : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "В Safari: меню «Разработка», имя этого компьютера, затем %@."
-          }
-        }
-      }
-    },
     "In This Profile" : {
       "localizations" : {
         "ru" : {
@@ -4682,16 +4662,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Открыть страницу настроек"
-          }
-        }
-      }
-    },
-    "Open Safari to Attach" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Открыть Safari для подключения"
           }
         }
       }
@@ -7734,16 +7704,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Модель выбирается в Конфигурации ▸ Ассистент. На устройстве — всё остаётся на этом Mac; остальные — это ключ и адрес, которые вы вводите сами."
-          }
-        }
-      }
-    },
-    "Then attach from Safari: Develop › %@ › Savoia" : {
-      "localizations" : {
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Дальше подключитесь из Safari: Разработка › %@ › Savoia"
           }
         }
       }

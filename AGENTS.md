@@ -42,7 +42,7 @@ Savoia/Translation   segments, batching, the page script, LanguageGuess, AppleTr
 Savoia/ACP           JSONRPCConnection, ACPClient (actor), ACPAgent (process), AgentSessionStore (view model)
 Savoia/MCP           MCPServer + MCPSocket + MCPStdioBridge (`Savoia --mcp`), Client/ (MCP apps, SEP-1865, OAuth, catalog)
 Savoia/Speech        dictation: MicrophoneCapture, ParakeetTranscriber (FluidAudio), DictationStore, the button
-Savoia/DevTools      DevToolsStore (console and network capture, the inspector switch), Automation (remote automation)
+Savoia/DevTools      DevToolsStore (console and network capture), WebInspector (⌥⌘I, SPI), Automation (remote automation)
 Savoia/Tools         BrowserTools — one catalog, served to the assistant, to ACP agents and over MCP
 Savoia/WebMCP        pages declaring tools for agents: polyfill, registry, calls, WebMCPStore — docs/webmcp.md
 ```
