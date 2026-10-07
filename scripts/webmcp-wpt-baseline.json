@@ -1,18 +1,8 @@
 {
- "wpt": "a9871a2",
- "passed": 165,
- "total": 174,
+ "wpt": "1d99362",
+ "passed": 170,
+ "total": 193,
  "results": {
-  "webmcp/declarative/document-domain-enabled.sub.https.html": {
-   "harness": "OK",
-   "rows": [
-    {
-     "status": "Fail",
-     "name": "Declarative tool registration is blocked when document.domain is enabled",
-     "message": "promise_rejects_dom: function \"function() { throw e; }\" threw object \"NotAllowedError: the tools permissions policy does not allow this frame\" that is not a DOMException SecurityError: property \"code\" is equal to 0, expected 18get_stack@https://www.savoia.localhost:8443/resources/testharness.js:4802:30"
-    }
-   ]
-  },
   "webmcp/declarative/duplicate-tool-name.https.html": {
    "harness": "OK",
    "rows": [
@@ -29,12 +19,12 @@
    ]
   },
   "webmcp/declarative/executeTool-abort.https.html": {
-   "harness": "OK",
+   "harness": "Timeout",
    "rows": [
     {
-     "status": "Pass",
+     "status": "Timeout",
      "name": "executeTool signal successfully resets tool pseudo-classes",
-     "message": "Asserts runPassassert_false(false)"
+     "message": "Test timed outAsserts runPassassert_false(false)"
     }
    ]
   },
@@ -124,7 +114,7 @@
     {
      "status": "Pass",
      "name": "Form controls are populated with arguments when toolactivated event fires",
-     "message": "Asserts runPassassert_true(true, \"toolactivated event should have fired on the window\")"
+     "message": "Asserts runPassassert_equals(1, 1, \"toolactivated event should have fired at document.modelContext\")"
     }
    ]
   },
@@ -448,6 +438,86 @@
     },
     {
      "status": "Pass",
+     "name": "ModelContext interface: attribute ontoolactivated",
+     "message": "Asserts runPassassert_own_property(object \"[object Window]\", \"ModelContext\", \"self does not have own property \\\"ModelContext\\\"\")"
+    },
+    {
+     "status": "Fail",
+     "name": "ModelContext interface: attribute ontoolcancel",
+     "message": "assert_true: The prototype object must have a property \"ontoolcancel\" expected true got false@https://savoia.localhost:8443/resources/idlharness.js:2227:24"
+    },
+    {
+     "status": "Pass",
+     "name": "ToolActivatedEvent interface: existence and properties of interface object",
+     "message": "Asserts runPassassert_own_property(object \"[object Window]\", \"ToolActivatedEvent\", \"self does not have own property \\\"ToolActivatedEvent\\\"\")"
+    },
+    {
+     "status": "Fail",
+     "name": "ToolActivatedEvent interface object length",
+     "message": "assert_equals: wrong value for ToolActivatedEvent.length expected 1 but got 2@https://savoia.localhost:8443/resources/idlharness.js:1575:26"
+    },
+    {
+     "status": "Pass",
+     "name": "ToolActivatedEvent interface object name",
+     "message": "Asserts runPassassert_own_property(object \"[object Window]\", \"ToolActivatedEvent\", \"self does not have own property \\\"ToolActivatedEvent\\\"\")"
+    },
+    {
+     "status": "Pass",
+     "name": "ToolActivatedEvent interface: existence and properties of interface prototype object",
+     "message": "Asserts runPassassert_own_property(object \"[object Window]\", \"ToolActivatedEvent\", \"self does not have own property \\\"ToolActivatedEvent\\\"\")"
+    },
+    {
+     "status": "Pass",
+     "name": "ToolActivatedEvent interface: existence and properties of interface prototype object's \"constructor\" property",
+     "message": "Asserts runPassassert_own_property(object \"[object Window]\", \"ToolActivatedEvent\", \"self does not have own property \\\"ToolActivatedEvent\\\"\")"
+    },
+    {
+     "status": "Pass",
+     "name": "ToolActivatedEvent interface: existence and properties of interface prototype object's @@unscopables property",
+     "message": "Asserts runPassassert_own_property(object \"[object Window]\", \"ToolActivatedEvent\", \"self does not have own property \\\"ToolActivatedEvent\\\"\")"
+    },
+    {
+     "status": "Pass",
+     "name": "ToolActivatedEvent interface: attribute toolName",
+     "message": "Asserts runPassassert_own_property(object \"[object Window]\", \"ToolActivatedEvent\", \"self does not have own property \\\"ToolActivatedEvent\\\"\")"
+    },
+    {
+     "status": "Fail",
+     "name": "ToolCancelEvent interface: existence and properties of interface object",
+     "message": "assert_own_property: self does not have own property \"ToolCancelEvent\" expected property \"ToolCancelEvent\" missing@https://savoia.localhost:8443/resources/idlharness.js:1319:24"
+    },
+    {
+     "status": "Fail",
+     "name": "ToolCancelEvent interface object length",
+     "message": "assert_own_property: self does not have own property \"ToolCancelEvent\" expected property \"ToolCancelEvent\" missing@https://savoia.localhost:8443/resources/idlharness.js:1319:24"
+    },
+    {
+     "status": "Fail",
+     "name": "ToolCancelEvent interface object name",
+     "message": "assert_own_property: self does not have own property \"ToolCancelEvent\" expected property \"ToolCancelEvent\" missing@https://savoia.localhost:8443/resources/idlharness.js:1319:24"
+    },
+    {
+     "status": "Fail",
+     "name": "ToolCancelEvent interface: existence and properties of interface prototype object",
+     "message": "assert_own_property: self does not have own property \"ToolCancelEvent\" expected property \"ToolCancelEvent\" missing@https://savoia.localhost:8443/resources/idlharness.js:1319:24"
+    },
+    {
+     "status": "Fail",
+     "name": "ToolCancelEvent interface: existence and properties of interface prototype object's \"constructor\" property",
+     "message": "assert_own_property: self does not have own property \"ToolCancelEvent\" expected property \"ToolCancelEvent\" missing@https://savoia.localhost:8443/resources/idlharness.js:1319:24"
+    },
+    {
+     "status": "Fail",
+     "name": "ToolCancelEvent interface: existence and properties of interface prototype object's @@unscopables property",
+     "message": "assert_own_property: self does not have own property \"ToolCancelEvent\" expected property \"ToolCancelEvent\" missing@https://savoia.localhost:8443/resources/idlharness.js:1319:24"
+    },
+    {
+     "status": "Fail",
+     "name": "ToolCancelEvent interface: attribute toolName",
+     "message": "assert_own_property: self does not have own property \"ToolCancelEvent\" expected property \"ToolCancelEvent\" missing@https://savoia.localhost:8443/resources/idlharness.js:1319:24"
+    },
+    {
+     "status": "Pass",
      "name": "Document interface: attribute modelContext",
      "message": "Asserts runPassassert_own_property(object \"[object Window]\", \"Document\", \"self does not have own property \\\"Document\\\"\")"
     }
@@ -503,26 +573,6 @@
     }
    ]
   },
-  "webmcp/imperative/document-domain-enabled.sub.https.html": {
-   "harness": "OK",
-   "rows": [
-    {
-     "status": "Fail",
-     "name": "modelContext.registerTool rejects with SecurityError when document.domain is enabled",
-     "message": "promise_rejects_dom: function \"function() { throw e; }\" threw object \"NotAllowedError: the tools permissions policy does not allow this frame\" that is not a DOMException SecurityError: property \"code\" is equal to 0, expected 18get_stack@https://www.savoia.localhost:8443/resources/testharness.js:4802:30"
-    },
-    {
-     "status": "Fail",
-     "name": "modelContext.getTools rejects with SecurityError when document.domain is enabled",
-     "message": "promise_rejects_dom: function \"function() { throw e; }\" threw object \"NotAllowedError: the tools permissions policy does not allow this frame\" that is not a DOMException SecurityError: property \"code\" is equal to 0, expected 18get_stack@https://www.savoia.localhost:8443/resources/testharness.js:4802:30"
-    },
-    {
-     "status": "Fail",
-     "name": "modelContext.executeTool rejects with SecurityError when document.domain is enabled",
-     "message": "promise_rejects_dom: function \"function() { throw e; }\" threw object \"NotAllowedError: the tools permissions policy does not allow this frame\" that is not a DOMException SecurityError: property \"code\" is equal to 0, expected 18get_stack@https://www.savoia.localhost:8443/resources/testharness.js:4802:30"
-    }
-   ]
-  },
   "webmcp/imperative/duplicate_tool_registration.https.html": {
    "harness": "OK",
    "rows": [
@@ -534,7 +584,7 @@
    ]
   },
   "webmcp/imperative/executeTool-abort.https.html": {
-   "harness": "OK",
+   "harness": "Timeout",
    "rows": [
     {
      "status": "Pass",
@@ -542,34 +592,34 @@
      "message": "Asserts runPassassert_equals(\"success\", \"success\")"
     },
     {
-     "status": "Pass",
+     "status": "Timeout",
      "name": "caller abort propagates to tool callback options.signal",
-     "message": "Asserts runPassassert_equals(\"abort_propagate_tool\", \"abort_propagate_tool\")"
+     "message": "Test timed outAsserts runPassassert_equals(\"abort_propagate_tool\", \"abort_propagate_tool\")"
     },
     {
-     "status": "Pass",
+     "status": "Not Run",
      "name": "executeTool() with already-aborted tool synchronously rejects",
-     "message": "Asserts runPassassert_equals(\"already aborted\", \"already aborted\")"
+     "message": "Asserts runNo asserts ran"
     },
     {
-     "status": "Pass",
+     "status": "Not Run",
      "name": "executeTool() promise remains rejected even if tool callback resolves after abort",
-     "message": "Asserts runPassassert_equals(\"late resolved value\", \"late resolved value\")"
+     "message": "Asserts runNo asserts ran"
     },
     {
-     "status": "Pass",
+     "status": "Not Run",
      "name": "concurrent executions of the same tool have independent AbortSignals",
-     "message": "Asserts runPassassert_true(true, \"execution 1 signal should be aborted\")"
+     "message": "Asserts runNo asserts ran"
     }
    ]
   },
   "webmcp/imperative/executeTool-across-trees.https.html": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
-     "status": "Fail",
+     "status": "Pass",
      "name": "executeTool() rejects when the tool is hosted in another frame tree",
-     "message": "promise_test: Unhandled rejection with value: object \"TypeError: null is not an object (evaluating 'windowB.onload = resolve')\"get_stack@https://savoia.localhost:8443/resources/testharness.js:4802:30"
+     "message": "Asserts runPassassert_array_equals([], [], \"We do not see the other document's tool\")"
     }
    ]
   },
@@ -603,6 +653,21 @@
     }
    ]
   },
+  "webmcp/imperative/executeTool-detach-toolcancel.https.html": {
+   "harness": "OK",
+   "rows": [
+    {
+     "status": "Fail",
+     "name": "toolcancel is not dispatched when a tool abort handler from another realm detaches the tool document",
+     "message": "step_wait_func: the iframe is detached Timed out waiting on conditionget_stack@https://savoia.localhost:8443/resources/testharness.js:4802:30"
+    },
+    {
+     "status": "Pass",
+     "name": "toolcancel is not dispatched when a tool abort handler detaches its own document",
+     "message": "Asserts runPassassert_true(true, \"\\\"self_detaching_tool\\\" is visible to the parent document\")"
+    }
+   ]
+  },
   "webmcp/imperative/executeTool-error-window-onerror.https.html": {
    "harness": "OK",
    "rows": [
@@ -619,17 +684,22 @@
    ]
   },
   "webmcp/imperative/executeTool-events.https.html": {
-   "harness": "OK",
+   "harness": "Timeout",
    "rows": [
     {
      "status": "Fail",
-     "name": "toolactivated and toolcancel events are dispatched on window and document.modelContext during tool execution and cancellation",
-     "message": "assert_true: event is trusted expected true got false@https://savoia.localhost:8443/webmcp/imperative/executeTool-events.https.html:53:14Asserts runPassassert_array_equals([\"activated:slow\"], [\"activated:slow\"])"
+     "name": "toolactivated and toolcancel events are dispatched on document.modelContext during tool execution and cancellation",
+     "message": "assert_true: event is trusted expected true got false@https://savoia.localhost:8443/webmcp/imperative/executeTool-events.https.html:52:14Asserts runPassassert_equals(1, 1)"
     },
     {
      "status": "Pass",
      "name": "toolactivated is dispatched at the ModelContext of the tool target document",
      "message": "Asserts runPassassert_true(true, \"\\\"iframe_tool\\\" is visible to the parent document\")"
+    },
+    {
+     "status": "Timeout",
+     "name": "toolcancel is dispatched at the ModelContext of the tool target document",
+     "message": "Test timed outAsserts runPassassert_true(true, \"\\\"iframe_slow_tool\\\" is visible to the parent document\")"
     }
    ]
   },
@@ -889,12 +959,12 @@
    ]
   },
   "webmcp/imperative/exposedTo-window-open.https.html": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
-     "status": "Fail",
+     "status": "Pass",
      "name": "Tools are scoped to a frame tree, and are not exposed across opener boundaries.",
-     "message": "promise_test: Unhandled rejection with value: object \"TypeError: null is not an object (evaluating 'opened_window.document')\"get_stack@https://savoia.localhost:8443/resources/testharness.js:4802:30"
+     "message": "Asserts runPassassert_true(true, \"Parent A should see tool_b_to_a\")"
     }
    ]
   },
@@ -1230,6 +1300,31 @@
      "status": "Pass",
      "name": "ontoolactivated is invoked when a tool is activated",
      "message": "Asserts runPassassert_equals(null, null, \"ontoolactivated must initially be null\")"
+    }
+   ]
+  },
+  "webmcp/tool-cancel-event.https.html": {
+   "harness": "Timeout",
+   "rows": [
+    {
+     "status": "Fail",
+     "name": "ToolCancelEvent constructor with default event init dictionary",
+     "message": "Can't find variable: ToolCancelEvent@https://savoia.localhost:8443/webmcp/tool-cancel-event.https.html:11:36"
+    },
+    {
+     "status": "Fail",
+     "name": "ToolCancelEvent constructor with an event init dictionary",
+     "message": "Can't find variable: ToolCancelEvent@https://savoia.localhost:8443/webmcp/tool-cancel-event.https.html:21:36"
+    },
+    {
+     "status": "Fail",
+     "name": "ontoolcancel is invoked for synthetic toolcancel events dispatched at ModelContext",
+     "message": "Can't find variable: ToolCancelEvent@https://savoia.localhost:8443/webmcp/tool-cancel-event.https.html:39:36"
+    },
+    {
+     "status": "Timeout",
+     "name": "ontoolcancel is invoked when a tool invocation is canceled",
+     "message": "Test timed outAsserts runPassassert_equals(null, null, \"ontoolcancel must initially be null\")"
     }
    ]
   }

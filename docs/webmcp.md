@@ -181,6 +181,15 @@ external client path is not needed when Savoia **is** the MCP server (`Savoia --
 
 ### The nine wpt tests left
 
+**The suite has moved since this was counted.** On 7 October 2026, wpt `1d99362`, a tab on its own `WKWebView`:
+170 of 193 pass, and that run is the baseline now. Two tests pass that could not before a window a page opens kept
+its opener: `imperative/executeTool-across-trees` (an error on the build before the move, run the same day) and
+`imperative/exposedTo-window-open`. What fails that is not in the list below is the suite's newer surface, which the
+polyfill does not have yet — `ToolCancelEvent` (`tool-cancel-event`, 4), the caller's abort reaching the tool
+(`executeTool-abort`, imperative 4 and declarative 1; they time out the same way on the build before the move),
+`executeTool-events` (2), `executeTool-detach-toolcancel` (1), nine of `idlharness`, and
+`initial-about-blank-shared-tool` (1). The account below is of the nine as they stood at `a9871a2`.
+
 165 of 174 of wpt's `webmcp/` pass (`scripts/webmcp-wpt.py`, the baseline beside it). The nine left, and what each
 would take — none of it is a polyfill's to do (above):
 

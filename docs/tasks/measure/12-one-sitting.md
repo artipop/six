@@ -18,12 +18,9 @@ leaves that file by being measured, in either direction, and by the page it came
 
 ## WebMCP
 
-4. **The two wpt tests that needed an opened window.** `window.open` returns a window now
-   ([links.md](../../links.md#a-second-window)), so they may pass — or fail for a new reason: the window is a tab
-   with the content controller every tab gets, and nobody has checked that the polyfill answers in it.
-   `./scripts/webmcp-wpt.py` (its stand is still under `savoia.localhost`, and it uses the dev build's own home:
-   `--install-ca` with the dev Savoia quit, then launch with `SAVOIA_WEBMCP=1`). Update the nine-left list in
-   [webmcp.md](../../webmcp.md#the-nine-wpt-tests-left) and the baseline.
+4. **The two wpt tests that needed an opened window** — measured on 7 October 2026: both pass
+   ([webmcp.md](../../webmcp.md#the-nine-wpt-tests-left)). What is left there is the suite's newer surface, which
+   is the polyfill's work and not a measurement.
 
 ## Windows a page opens
 
