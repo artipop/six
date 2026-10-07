@@ -50,7 +50,7 @@ Savoia's column is the catalog in `Savoia/Tools/BrowserTools.swift`. Chrome's is
 4. **`drag`.** Down, dragged, up as real events. HTML drag-and-drop goes through the system's dragging session,
    which may not start from synthetic events — measure on a sortable list and on a file drop zone before promising.
 
-## WebKit's own automation: open now, and a decision
+## WebKit's own automation: reachable now, and not used
 
 Safari's WebDriver runs on `_WKAutomationSession`, and the session answers protocol messages inside the app with no
 safaridriver (`_setMessageToFrontendHandlerForTesting:`, `_dispatchMessageFromRemoteForTesting:`). Measured on
@@ -59,17 +59,25 @@ safaridriver (`_setMessageToFrontendHandlerForTesting:`, `_dispatchMessageFromRe
 `userActivation.isActive` false, `takeScreenshot` returns a PNG and `getAllCookies` the cookies.
 
 A tab was a `WebPage` then, which makes its own view, and the door stayed shut. A tab is a `WKWebView` of Savoia's
-own now and `BrowserTab.materialize` writes its configuration, so the flag is one line away.
-[Task 23](../architecture/23-webpage-or-wkwebview.md) was to set it on every tab and did not, for two reasons to
-settle here first:
+own now and `BrowserTab.materialize` writes its configuration, so the flag can be set.
 
-- **A page can tell.** WebKit's source answers `navigator.webdriver` from the same flag, and a site that reads it
-  treats the visitor as a robot. On every tab that is Artem's whole browsing; it belongs on a tab an agent drives,
-  which means building that tab's view with the flag — the configuration is read when the view is made — and
-  rebuilding it to take the flag off.
-- **It was not reproduced.** A second throwaway `WKWebView`, with the flag set by key on the configuration and no
-  session attached, hung before its first load (7 October 2026). What the first measurement had that this one
-  lacked — a session, a process pool, the order — is the first thing to find out.
+**Decided by Artem on 7 October 2026: it is not set — not on every tab, and not for the tests either.**
+
+- **It is a tool for tests, and gives a person nothing.** WebKit's source answers `navigator.webdriver` from the
+  same flag, so on an ordinary tab a site would see a robot. The flag is read when the view is made and the view
+  has no setter, so a tab cannot be put under automation without building its view again.
+- **The flag is not a switch.** Measured on 7 October 2026: with the flag set by key on the configuration and no
+  session attached, a tab does not load — in Savoia `open_window` did not answer in 40 seconds, and a throwaway
+  `WKWebView` hung before its first load the same way. What the first measurement had was the session. Using it
+  means a `_WKAutomationSession` through SPI and code that speaks its protocol.
+- **An agent gains little.** A script with no gesture, a screenshot and the cookies are what Savoia's own tools
+  already do. What an agent lacks — request bodies, throttling, traces — is the inspector's protocol, below.
+- **The wpt stand already has a testdriver.** It was written because wptrunner drives Safari through safaridriver,
+  which cannot attach to Savoia, and because the flag could not be set at all then
+  ([test-suites.md](../../test-suites.md)). Moving the stand onto WebKit's automation would buy the actions the
+  stand answers "not implemented", done by WebKit itself, at the price of the session and a bridge to wptrunner.
+
+Come back to this only if those unimplemented testdriver actions start to cost runs.
 
 ## What is not reachable for an agent, and where to stop
 

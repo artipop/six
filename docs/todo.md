@@ -29,7 +29,7 @@ Nothing here waits on the steps above, except where it says so.
 |---|---|
 | Measurements nobody has made: extensions' messaging and `scripting`, uBlock Origin Lite's control run, two WebMCP tests, fullscreen on a real site | [tasks/measure/12](tasks/measure/12-one-sitting.md) |
 | Extensions after those measurements: what is left of the list now that a tab hands out its view and extension pages are tabs | [tasks/extensions/20](tasks/extensions/20-extensions-next.md) |
-| An agent's tools up to Chrome's DevTools MCP, and whether a tab an agent drives is put under WebKit's automation | [tasks/agents/15](tasks/agents/15-agent-tools-to-chrome.md) |
+| An agent's tools up to Chrome's DevTools MCP | [tasks/agents/15](tasks/agents/15-agent-tools-to-chrome.md) |
 | A tab as a floating window | [tasks/browser/17](tasks/browser/17-floating-window.md) |
 | The assistant: a verb of one's own, an answer shown in the field | [tasks/assistant/18](tasks/assistant/18-ghost-text-and-own-verbs.md) |
 | Deep research with no agent installed, and a run saved as one HTML file | [tasks/assistant/24](tasks/assistant/24-research-without-an-agent.md) |

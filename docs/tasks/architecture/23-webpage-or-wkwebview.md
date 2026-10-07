@@ -4,7 +4,7 @@ Built on the `wkwebview` branch on 6–7 October 2026: every tab is a `WKWebView
 imports `WebPage`'s API, and the workarounds it forced are out or have a line saying why they stayed. The map the
 move was made by, and what became of each workaround, is
 [architecture.md](../../architecture.md#from-webpage-to-wkwebview). This file holds what is not finished: a walk by
-hand, one decision, and the merge.
+hand and the merge.
 
 ## What was checked, and how
 
@@ -41,8 +41,9 @@ No test covers these, and nothing here can click, hover or look at the screen:
 
 ## Decisions
 
-- **The automation flag was not set on every tab.** [15](../agents/15-agent-tools-to-chrome.md) has why: a page
-  reads it as `navigator.webdriver`, and a second measurement hung.
+- **The automation flag is not set, on any tab** — decided by Artem on 7 October 2026.
+  [15](../agents/15-agent-tools-to-chrome.md) has why: a page reads it as `navigator.webdriver`, and a tab with the
+  flag and no automation session does not load.
 - **A window a page opens by itself is not blocked, and will not be** — decided by Artem on 7 October 2026. It
   was not blocked before the move either ([links.md](../../links.md#a-second-window)).
 
@@ -55,5 +56,5 @@ starts, with `PageHost`, `PageContextMenu` and the dialogs being the AppKit part
 
 ## Done when
 
-The list above is walked, the decision about automation is made or left with its task, and `wkwebview` is merged into
+The list above is walked and `wkwebview` is merged into
 `main`. This file goes with that commit.
