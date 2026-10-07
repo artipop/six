@@ -10,6 +10,9 @@ words were only in the picture.
 Worth building only if such pages get bookmarked. **Ask Artem for five bookmarks where this bit him before
 starting**; with none, close this file and leave a line in todo.md.
 
+**Do [25-embeddinggemma-2.md](25-embeddinggemma-2.md) first.** A local model that embeds a picture in the same
+space as text turns the plan below upside down: its third step becomes the first, with nothing leaving the Mac.
+
 ## The plan
 
 Today a bookmark keeps images only as `![alt](src)` in the Markdown and `og:image` in the front matter; nothing in

@@ -34,6 +34,7 @@ Nothing here waits on the steps above, except where it says so.
 | The assistant: a verb of one's own, an answer shown in the field | [tasks/assistant/18](tasks/assistant/18-ghost-text-and-own-verbs.md) |
 | Deep research with no agent installed, and a run saved as one HTML file | [tasks/assistant/24](tasks/assistant/24-research-without-an-agent.md) |
 | Search over pages that were read, not only saved | [tasks/storage/19](tasks/storage/19-history-pages.md) |
+| EmbeddingGemma 2 as the embedder: one local model for text and pictures, to be compared with E5 on real bookmarks — decides how the next row is built | [tasks/bookmarks/25](tasks/bookmarks/25-embeddinggemma-2.md) |
 | A bookmark found by the words in its pictures — only if such pages get bookmarked | [tasks/bookmarks/16](tasks/bookmarks/16-images-in-bookmarks.md) |
 | Sync through CloudKit, history first | [sync.md](sync.md) |
 | Dictation: Apple's own engine, a settings section, a key | the end of [speech.md](speech.md) |
