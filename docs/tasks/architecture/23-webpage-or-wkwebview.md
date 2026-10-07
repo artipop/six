@@ -42,8 +42,8 @@ No test covers these, and nothing here can click, hover or look at the screen:
 ## Decisions
 
 - **The automation flag is not set, on any tab** — decided by Artem on 7 October 2026.
-  [15](../agents/15-agent-tools-to-chrome.md) has why: a page reads it as `navigator.webdriver`, and a tab with the
-  flag and no automation session does not load.
+  [15](../agents/15-agent-tools-to-chrome.md) has why: a page reads it as `navigator.webdriver`, and by
+  itself it does nothing for an agent or a test.
 - **A window a page opens by itself is not blocked, and will not be** — decided by Artem on 7 October 2026. It
   was not blocked before the move either ([links.md](../../links.md#a-second-window)).
 

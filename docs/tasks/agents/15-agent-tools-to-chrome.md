@@ -66,10 +66,13 @@ own now and `BrowserTab.materialize` writes its configuration, so the flag can b
 - **It is a tool for tests, and gives a person nothing.** WebKit's source answers `navigator.webdriver` from the
   same flag, so on an ordinary tab a site would see a robot. The flag is read when the view is made and the view
   has no setter, so a tab cannot be put under automation without building its view again.
-- **The flag is not a switch.** Measured on 7 October 2026: with the flag set by key on the configuration and no
-  session attached, a tab does not load — in Savoia `open_window` did not answer in 40 seconds, and a throwaway
-  `WKWebView` hung before its first load the same way. What the first measurement had was the session. Using it
-  means a `_WKAutomationSession` through SPI and code that speaks its protocol.
+- **The flag alone works, and does nothing by itself.** Measured on 7 October 2026 on a throwaway `WKWebView`,
+  with the flag set through `_setControlledByAutomation:` itself: the view is made, the page loads and
+  `navigator.webdriver` is `true`, with a `_WKAutomationSession` on the process pool (`_setAutomationSession:`) and
+  without one. Driving the page still takes the session and code that speaks its protocol. An earlier note here
+  said a flagged tab does not load; that was the measurement's own fault — `setValue(_:forKey:)` with
+  `_controlledByAutomation` never returns, and the hang was that call, in the probe and in Savoia alike. Call the
+  setter, not KVC.
 - **An agent gains little.** A script with no gesture, a screenshot and the cookies are what Savoia's own tools
   already do. What an agent lacks — request bodies, throttling, traces — is the inspector's protocol, below.
 - **The wpt stand already has a testdriver.** It was written because wptrunner drives Safari through safaridriver,
