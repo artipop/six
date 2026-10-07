@@ -28,6 +28,11 @@ SPI is absent the menu item is not there.
 - **`⌘W` in the inspector's own window closes that window.** Close Tab is Savoia's only `⌘W`, so it asks whose
   window the key came from (`WebInspector.closeWindow`); without that the key closed the inspected tab.
 
+- **Inspect Element** in the page's context menu is WebKit's own item, the one thing that knows the element
+  under the pointer: `PageDelegate` takes it out of the menu WebKit proposed, by its identifier
+  `WKMenuItemIdentifierInspectElement`, and puts it last in Savoia's. It opens the inspector where WebKit last
+  had it, not where `⌥⌘I` would put it. Not measured: a right click cannot be sent from a test.
+
 `SAVOIA_INSPECTOR_SELFTEST=1` walks all of it with real keys and prints a line per step, among them the
 frontend's own account of what it inspects. Given an address instead of `1`, the first page is that one and the
 rows of the Console tab are printed too — the one way here to read what WebKit itself wrote to a page's console,

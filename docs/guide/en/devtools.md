@@ -7,6 +7,9 @@ and the same keys close it. It is the inspector Safari has: elements, console,
 sources and breakpoints, network, timelines, storage. Nothing has to be turned
 on for it.
 
+**Inspect Element** in the page's context menu opens the inspector on what is
+under the pointer.
+
 The inspector appears under the page. When two tabs stand side by side, half a
 window is too narrow for it and it opens in a window of its own; `⌘W` there
 closes that window and not the tab.

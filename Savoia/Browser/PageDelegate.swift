@@ -194,6 +194,12 @@ final class PageDelegate: NSObject, WKNavigationDelegate, WKUIDelegate {
         guard let tab, let menu = tab.onContextMenu?(tab, Self.link(under: element)) else {
             return completionHandler(proposed)
         }
+        // WebKit's own Inspect Element is the one item that knows the element under the pointer.
+        if let inspect = proposed.items.first(where: { $0.identifier?.rawValue == "WKMenuItemIdentifierInspectElement" }) {
+            proposed.removeItem(inspect)
+            menu.addItem(.separator())
+            menu.addItem(inspect)
+        }
         completionHandler(menu)
     }
 
