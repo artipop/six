@@ -11,6 +11,16 @@
         }
       }
     },
+    "location" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "геопозиция"
+          }
+        }
+      }
+    },
     "Start Page" : {
       "localizations" : {
         "ru" : {

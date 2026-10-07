@@ -1,7 +1,7 @@
 # Site permissions
 
 What a page is allowed to do with the machine, and who does the asking. Two things live here: the devices a site can
-ask for (camera, microphone) and the four dialogs a page can put up (`alert`, `confirm`, `prompt`, the
+ask for (camera, microphone, location) and the four dialogs a page can put up (`alert`, `confirm`, `prompt`, the
 file picker). They share a file's worth of thinking because they share a cause — a web view left alone answers both
 kinds of question by itself, and both of its answers are wrong for a browser. Both are methods of a tab's UI
 delegate, `PageDelegate`. The motion sensors were a third device while a tab was SwiftUI's `WebPage`; `WKUIDelegate`
@@ -125,7 +125,47 @@ is never remembered (`SitePermissions.Ask.pageToolCall`).
 Two consequences worth knowing. The bar draws a sentence now (`Question.prompt` for Windows and Linux, a localized
 `switch` in `PermissionBar` on the Mac) rather than a list of device names. And a database written by this build is
 one an older build reads badly: `sitePermissions` decodes the list whole, so a row saying `pageTools` makes every
-answer about every site unreadable — the same trap `location` set below.
+answer about every site unreadable. Since `location` the list is decoded leniently (`Lenient` in
+`SitePermissions.swift`): an answer this build cannot read costs only itself.
+
+## Geolocation
+
+WebKit splits it in two, and only one half is public. The question is `WKUIDelegate`'s
+`webView(_:requestGeolocationPermissionFor:initiatedBy:)` (macOS 27), which `PageDelegate` answers from
+`SitePermissions` like the camera's — `SitePermission.location`, the same bar, the same switch in the panel. The
+position is the app's to supply, through C functions `WebKit.framework` exports and the SDK does not declare:
+`Geolocation` (`Savoia/Browser/Geolocation.swift`) installs a `WKGeolocationProviderV1` on the process pool's
+geolocation manager and feeds it from a `CLLocationManager` of its own. The declarations are in
+`Savoia/Savoia-Bridging-Header.h`, copied from WebKit's open headers; the struct's layout is the contract, and one
+that no longer matched would be a crash and not a compile error. All of it is `#if os(macOS)` — WebKitGTK has API of
+its own for this.
+
+What was not known before it was built, and is now measured:
+
+- **A `WKContextRef` is the `WKProcessPool` object.** On Apple's ports WebKit's C types are its Objective-C
+  wrappers, so the pointer is cast and nothing is looked up. The pool is read with KVC from the configuration a tab
+  is built on (`configuration.processPool` is deprecated for *making* pools), and the provider is installed once per
+  pool.
+- **A request made while another is being served waits for the next position.** With a `watchPosition` running,
+  `getCurrentPosition` with the default `maximumAge` of 0 is not given the position WebKit already holds and the
+  provider is not asked again: a provider that reported once left it waiting forever — which is every map with a
+  "my location" button on a Mac that is not moving. So while any page watches, `Geolocation` repeats what it knows
+  once a second.
+- **The async delegate method is called.** `e64dd24` found that `#selector` of the `WK_SWIFT_ASYNC_NAME` overload was
+  not what WebKit sends; that was a proxy answering `responds(to:)` by hand. Implemented as the protocol's own
+  method on `PageDelegate` it is found.
+
+macOS asks too, once for the app (`NSLocationWhenInUseUsageDescription`), and here its prompt comes **after**
+Savoia's bar: CoreLocation is started when WebKit asks the provider for a position, which is after the site was
+allowed. A Mac with Location Services off for Savoia answers the page `POSITION_UNAVAILABLE`.
+
+Not done: taking the answer back in the site menu does not stop a `watchPosition` already running — the provider
+serves the pool, not a page, and the page keeps its watch until it reloads. And `navigator.permissions.query` for
+`geolocation` still says `prompt` whatever was answered; that is one private delegate method, and it comes with
+notifications ([tasks/permissions/08](tasks/permissions/08-notifications.md)).
+
+Under `SAVOIA_TESTDRIVER` CoreLocation is never started: `testdriver_set_geolocation` sets the position pages are
+given, and with none set the position cannot be found — a test must not learn where it runs.
 
 ## Compatibility: web-platform-tests
 
@@ -146,7 +186,8 @@ after it: on 6 October nineteen of these files timed out in Safari that had fini
 `storage-access-api`, seven in `clipboard-apis`, four in `screen-capture` — and a timeout is nothing to compare with.
 
 On wpt `1d99362`, 6 October 2026, baseline in `scripts/permissions-wpt-baseline.json`, one full run: 377 addresses,
-21 left out, 356 run, **331 the same as Safari, 25 not**.
+21 left out, 356 run, **331 the same as Safari, 25 not** — and, since geolocation was built a day later, 315 and 41:
+its sixteen files that were a harness error in both now run in Savoia and are still an error in Safari.
 
 | directory | run | same | differ |
 |---|---|---|---|
@@ -154,7 +195,7 @@ On wpt `1d99362`, 6 October 2026, baseline in `scripts/permissions-wpt-baseline.
 | `permissions-policy` | 117 | 105 | 12 |
 | `mediacapture-streams` | 52 | 47 | 5 |
 | `mediacapture-handle` | 1 | 1 | 0 |
-| `geolocation` | 22 | 22 | 0 |
+| `geolocation` | 22 | 6 | 16 |
 | `notifications` | 29 | 29 | 0 |
 | `clipboard-apis` | 61 | 57 | 4 |
 | `storage-access-api` | 40 | 40 | 0 |
@@ -164,7 +205,7 @@ The 21 left out call `getDisplayMedia()` — all of `screen-capture` and six fil
 system's sharing picker waits for a person, the page needs focus, and Savoia is not in front during a run; with
 `--screen` they run, for whoever will sit and answer.
 
-The 25, by cause:
+The 25 of the full run, by cause (geolocation's sixteen are [below](#geolocation-in-the-suite)):
 
 | files | what differs | why | state |
 |---|---|---|---|
@@ -173,9 +214,27 @@ The 25, by cause:
 | 3: `async-unsanitized-standard-html-read-fail`, `clipboard-read-enabled-by-permissions-policy`, `readText-granted` | Safari's row is a crash | nothing to compare with | — |
 | 4: `GUM-deny`, `MediaDevices-SecureContext`, `enumerateDevices-per-origin-ids`, `focus-…-target-frame-state-ignored` | Savoia passes more than Safari | Safari's own report says why for one: "Unable to set permission to denied for this test" — safaridriver cannot, the runner can | — |
 | `MediaStreamTrack-getCapabilities` | four `facingMode` subtests | the real camera of this Mac against CI's mock devices; reasoning | — |
-| `reporting/geolocation-reporting` | Savoia times out, Safari errors | geolocation is not built (below) | recorded |
+| `reporting/geolocation-reporting` | Savoia times out, Safari errors | the test waits for a violation report of `Permissions-Policy: geolocation=()`, and WebKit does not enforce the header ([below](#geolocation-in-the-suite)) | WebKit's |
 | `focus-…-focused-frame-descendant` | one subtest, "B should be able to delegate focus to child C", fails | the stand, measured: the subtest reads `document.hasFocus()`, and the file gives Safari's 4/7 when Savoia is the active app and the page is the window's first responder, 3/7 behind another app — on the build before the key events too, so nothing here changed it. As launched by the runner the first responder is the window, not the page, and the app is not in front | the stand's; a run with Savoia in front would close it |
 | 5 others: `clipboard-read-enabled-on-self-origin`, `enumerateDevices-with-navigation`, `focus-…-click-handler`, `picture-in-picture-report-only`, `payment-extension-allowed-…` | one subtest or a status | not established | open |
+
+### Geolocation in the suite
+
+Safari's row is no bar here: safaridriver cannot `set_permission` or stand a position in, so sixteen of its
+twenty-two files are a harness error. The bar is the absolute number — **124 of 131 subtests, no file in harness
+error**, where it was 94 with sixteen. The runner carries three things it used to refuse: `set_permission` for
+`geolocation`, `bidi.permissions.set_permission` (the same answer under another action name), and
+`bidi.emulation.set_geolocation_override` (`testdriver_set_geolocation`). A BiDi action names its browsing contexts
+as `window` objects, which are not JSON; the runner's read of the page's queue failed on them silently until it
+wrote them as a marker.
+
+The seven that fail, all WebKit's:
+
+| subtests | what | why |
+|---|---|---|
+| 2: `disabled-by-permissions-policy` (top-level), `enabled-on-self-origin-…` (cross-origin frame) | a page whose response says `Permissions-Policy: geolocation=()` is given a position | WebKit does not enforce the response header — measured here: the request reached the provider; and Safari fails `picture-in-picture-disabled-by-permissions-policy` 0/3 the same way. The `allow` attribute is enforced |
+| 3: `getCurrentPosition-accuracyMode` (approximate), `-accuracyMode-cache` (both) | `accuracyMode` is ignored: the position is not coarsened, and a cached one is reused across modes | not implemented in WebKit; reasoning, from what the page was given |
+| 2: `non-fully-active` | no error callback for a request on a detached frame's `navigator.geolocation` | WebKit calls nothing; the provider is never asked |
 
 What closed the rest, October 2026:
 
@@ -199,6 +258,14 @@ What closed the rest, October 2026:
 `MediaDevices-getUserMedia` timed out once in the full run, in the audio `groupId` subtest, and has not since: ten
 runs alone and two runs of the whole `mediacapture-streams` directory all give Safari's 3/8. The baseline holds
 that; what the one timeout was is not established.
+
+Two more of the same kind, 7 October 2026, in full runs after the baseline. `MediaStreamTrack-applyConstraints` timed
+out once at its second subtest (1/17) and gave the baseline's 15/17 alone straight after. And
+`MediaDevices-enumerateDevices-per-origin-ids` loses "stable deviceIds across same-origin iframe" whenever an iPhone
+is in reach of this Mac: the page's list and its same-origin frame's were printed side by side, seven devices each,
+and six carry the same `deviceId` in both — the one that does not is the Continuity Camera, «Камера (iPhone)», whose
+id is another in every document and equal to its own `groupId`. That is WebKit's and the room's, not Savoia's; the
+baseline's row was taken without the phone, and still stands.
 
 What the runs turned up that is in no test's assertion:
 
@@ -229,22 +296,6 @@ in the throwaway home, as it is in a fresh install.
 
 ## What Savoia still cannot ask for
 
-- **Geolocation.** Half of it is public now, and it is the wrong half. macOS 27 added
-  `WKUIDelegate.webView(_:requestGeolocationPermissionFor:initiatedBy:)`, but that only *decides*: the position has
-  to come from a provider the host installs, and on macOS the only way to install one is C SPI on the process pool
-  (`WKContextGetGeolocationManager`, `WKGeolocationManagerSetProvider`, `WKGeolocationPositionCreate` — WebKit's
-  exports carry nothing else about location). Measured with the permission half built (`e64dd24`, taken back out
-  after it): the bar came up, "Allow" was saved, and the page got `TIMEOUT` — or, asked without a timeout, waited
-  forever — while `locationd` logged nothing from Savoia or WebKit for the whole minute. With nothing answering the
-  delegate WebKit refuses at once, which is kinder than an "Allow" that leads nowhere.
-
-  What that attempt taught, for whoever builds the SPI half. A tab was a `WebPage` then, and the question was
-  answered by a proxy in front of its delegate; a tab's delegate is Savoia's own `PageDelegate` now, and the method
-  goes there. The selector has to be built from its string: `#selector` of the `WK_SWIFT_ASYNC_NAME` overload is not
-  what WebKit sends, so `responds(to:)` said yes and the method was never called. `uiDelegate` is `weak`, so a proxy
-  nobody retains is gone the moment it is installed. And taking `SitePermission.location` back out meant deleting the
-  dev database's one `location` row first: `sitePermissions` decodes the list whole, so one unknown case forgets
-  every answer.
 - **Notifications.** `Notification.requestPermission()` answers `denied` and no question appears — which is why
   Mattermost prompts in Safari and not here. WebKit asks only a private `WKUIDelegate` method,
   `_webView:requestNotificationPermissionForSecurityOrigin:decisionHandler:`, and refuses when nothing implements it.
@@ -257,26 +308,14 @@ in the throwaway home, as it is in a fresh install.
 - **Web Push.** Closed, not merely undocumented: `webpushd` requires the private entitlement
   `com.apple.private.webkit.webpush` from every client.
 
-Geolocation and notifications are the same trade: C functions `WebKit.framework` exports and the SDK does not
-declare, which a bridging header can declare and any macOS update can change. That is the direction chosen — see
-Two more of the same kind, 7 October 2026, in full runs after the baseline. `MediaStreamTrack-applyConstraints` timed
-out once at its second subtest (1/17) and gave the baseline's 15/17 alone straight after. And
-`MediaDevices-enumerateDevices-per-origin-ids` loses "stable deviceIds across same-origin iframe" whenever an iPhone
-is in reach of this Mac: the page's list and its same-origin frame's were printed side by side, seven devices each,
-and six carry the same `deviceId` in both — the one that does not is the Continuity Camera, «Камера (iPhone)», whose
-id is another in every document and equal to its own `groupId`. That is WebKit's and the room's, not Savoia's; the
-baseline's row was taken without the phone, and still stands.
-
-[todo.md](todo.md).
+Notifications are the trade [geolocation](#geolocation) made: C functions `WebKit.framework` exports and the SDK does
+not declare, which the bridging header declares and any macOS update can change.
 
 ## Geolocation and notifications: WebKit's C API, one header for both
 
-Site permissions are built ([permissions.md](#site-permissions)): the camera and the microphone are
-asked for per site, remembered per origin and profile, and takeable back, and screen sharing works through the picker
-WebKit presents by itself ([permissions.md](#screen-sharing-which-webkit-asks-for-by-itself)).
-Geolocation and notifications are still missing, and missing the same way: WebKit asks the app for permission through
-a delegate, then expects the app to *supply* the thing — a position, a banner — through C functions that
-`WebKit.framework` exports and the SDK does not declare.
+Geolocation and notifications are shaped the same way: WebKit asks the app for permission through a delegate, then
+expects the app to *supply* the thing — a position, a banner — through C functions that `WebKit.framework` exports
+and the SDK does not declare. [Geolocation](#geolocation) is built on them; notifications are not yet.
 
 The direction chosen (Artem, 2026-09-15) is to declare them, in a bridging header copied from WebKit's open-source
 `WKGeolocationManager.h`, `WKNotificationManager.h` and `WKNotificationProvider.h`. The alternative weighed was a
@@ -285,7 +324,7 @@ for service-worker notifications.
 
 What the two share, built once:
 
-- **The header.** Savoia has none today. The functions — `WKContextGetGeolocationManager`,
+- **The header**, `Savoia/Savoia-Bridging-Header.h`, which has geolocation's half. The functions — `WKContextGetGeolocationManager`,
   `WKGeolocationManagerSetProvider`, `WKGeolocationManagerProviderDidChangePosition`, `WKGeolocationPositionCreate`;
   `WKContextGetNotificationManager`, `WKNotificationManagerSetProvider`, `WKNotificationManagerProviderDidShowNotification`,
   `…DidClickNotification`, `…DidCloseNotifications`, `WKNotificationCopyTitle`, `WKNotificationCopyBody`,
@@ -293,16 +332,10 @@ What the two share, built once:
   versioned (`WKGeolocationProviderV1`, `WKNotificationProviderV0`), and a layout that no longer matches is a crash
   rather than a compile error, so the header pins one version.
 - **The `WKContextRef`.** Both managers hang off the process pool: `configuration.processPool` of a tab's
-  `WKWebView`. How that object becomes a `WKContextRef` from Swift is the first unproven
-  step.
+  `WKWebView`, and that object *is* the `WKContextRef` (`Geolocation.serve`).
 - **The delegate.** Both permission questions are `WKUIDelegate` methods, and a tab's UI delegate is
-  `PageDelegate`. One lesson from `e64dd24` still applies: the selector built from its string.
-
-**Geolocation.** The permission hook is public (`requestGeolocationPermissionFor:initiatedBy:`, macOS 27); the
-provider is not. Savoia would run `CLLocationManager` itself — `NSLocationWhenInUseUsageDescription` is already in the
-Info.plist — and hand WebKit positions. Without a provider "Allow" led to a page that waited forever
-([permissions.md](#what-savoia-still-cannot-ask-for)). First step: a position arriving in a
-page at all.
+  `PageDelegate`. A private one is declared there with `@objc(…)` and its selector written out, as the window-frame
+  and context-menu methods are.
 
 **Notifications.** Measured on 2026-09-15 in a throwaway app, not in Savoia:
 

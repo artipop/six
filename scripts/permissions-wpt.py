@@ -121,7 +121,8 @@ const rows = [...document.querySelectorAll('#results > tbody > tr')].map(r => {
     return {status: cells[0], name: cells[1] || '', message: (cells[2] || '').split('\n')[0].slice(0, 200)};
 });
 const harness = summary ? (summary.textContent.match(/Harness status: (OK|Error|Timeout|Precondition Failed)/) || [])[1] || '' : '';
-return JSON.stringify({done: !!summary, harness, rows, url: location.href, origin: location.origin, action});
+return JSON.stringify({done: !!summary, harness, rows, url: location.href, origin: location.origin, action},
+    (key, value) => value && value.window === value ? {window: true} : value);
 """
 
 
@@ -349,6 +350,16 @@ def act(savoia, window, action, origin, held):
         target = inside("return JSON.stringify({origin: location.origin});")["origin"]
         savoia.call("testdriver_set_permission", window_id=window, origin=target, top=origin,
                     permission=wanted["descriptor"]["name"], state=wanted["state"])
+    elif name == "bidi.permissions.set_permission":
+        savoia.call("testdriver_set_permission", window_id=window, origin=params["origin"], top=origin,
+                    permission=params["descriptor"]["name"], state=params["state"])
+    elif name == "bidi.emulation.set_geolocation_override":
+        stand_in = {}
+        if params.get("coordinates"):
+            stand_in["coordinates"] = json.dumps(params["coordinates"])
+        if params.get("error"):
+            stand_in["error"] = params["error"]["type"]
+        savoia.call("testdriver_set_geolocation", **stand_in)
     elif name == "click":
         point = inside(POINT % json.dumps(params["selectors"]))
         if "error" in point:
@@ -423,6 +434,7 @@ def answer(savoia, window, action, origin, log, held):
 def run_one(savoia, window, test, slack):
     timeout = (60 if test["long"] else 10) + slack
     savoia.call("testdriver_close_windows")
+    savoia.call("testdriver_set_geolocation")
     savoia.call("navigate", window_id=window, url=address(test["url"]))
     state, started = None, time.time()
     actions, acted, held = [], False, set()

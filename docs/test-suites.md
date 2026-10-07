@@ -41,7 +41,8 @@ the counterpart of Safari's *Allow Remote Automation*:
 
 | testdriver call | tool | what it does |
 |---|---|---|
-| `set_permission` | `testdriver_set_permission` | files the answer in `SitePermissions` for the page's origin, as the bar would. A name Savoia keeps no answer for (`geolocation`, `notifications`, `clipboard-write`…) is an error, and the test sees it |
+| `set_permission` | `testdriver_set_permission` | files the answer in `SitePermissions` for the page's origin, as the bar would. `geolocation` is `SitePermission.location`. A name Savoia keeps no answer for (`notifications`, `clipboard-write`…) is an error, and the test sees it. `bidi.permissions.set_permission` goes the same way |
+| `bidi.emulation.set_geolocation_override` | `testdriver_set_geolocation` | the position pages are given in place of CoreLocation's, or `positionUnavailable`; with neither, none. The runner clears it before every file |
 | `click`, and `bless` through it | `testdriver_click` | an `NSEvent` mouse down and up handed straight to the `WKWebView`, at the element's middle. WebKit counts it as a user gesture — measured: the page gets `click`, and a clipboard write that needs activation succeeds |
 | `delete_all_cookies` | `testdriver_delete_all_cookies` | empties the profile's cookie store |
 | — | `testdriver_allow_automation` | throws Allow Remote Automation (`allow`), as the switch in Configuration does — how turning it off under a running command was measured ([devtools.md](devtools.md#remote-automation)) |
@@ -163,7 +164,7 @@ Safari column is 27.0 on wpt.fyi, 2 October 2026 (Technology Preview 253 scores 
 | `mediacapture-streams` | 57 | 12 | 366/482 | `bless`, `click`, `set_permission` through its helper |
 | `screen-capture` | 15 | 4 | 25/186 | `bless`, `click`, `set_permission` |
 | `mediacapture-handle` | 1 | 1 | 0/5 | — |
-| `geolocation` | 22 | 5 | 94/131, 16 files in error | `set_permission`, WebDriver BiDi emulation |
+| `geolocation` | 22 | 5 | 124/131, no file in error ([permissions.md](permissions.md#geolocation-in-the-suite)) | `set_permission`, WebDriver BiDi emulation |
 | `notifications` | 24 | 8 | 187/345, 14 files in error | `set_permission` |
 | `clipboard-apis` | 58 | 7 | 181/245 | `click`, `set_permission` |
 | `storage-access-api` | 40 | 2 | 117/149 | `delete_all_cookies`, `set_permission` |

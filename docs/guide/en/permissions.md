@@ -1,6 +1,6 @@
 # Site permissions
 
-When a site wants the camera or the microphone, it asks — and
+When a site wants the camera, the microphone or your location, it asks — and
 the answer is remembered. It does not ask with a sheet over the whole
 application: the question is drawn as a bar **in the tab that asked**. A page
 that wants the camera is one tab out of twenty, and stopping the other
@@ -41,6 +41,15 @@ prompt comes **first** — once for the whole application, not once per site. So
 the very first request you ever make costs two answers, and every one after it at
 most one.
 
+Location goes the other way round: you answer the site first — **Allow** or
+**Block** in the bar — and only after the first Allow does macOS ask, once, for
+the whole application. With Location Services off for Savoia (System Settings ▸
+Privacy & Security ▸ Location Services) a site is told the position is
+unavailable, however often it is allowed.
+
+Blocking location from the site's menu takes effect with the next request: a
+page already following your position stops when it is reloaded.
+
 ## The page's own dialogs
 
 `alert()`, `confirm()`, `prompt()` and the file picker work as everywhere. A
@@ -61,9 +70,6 @@ even when you switch to another.
 
 ## What is not there yet
 
-- **geolocation** — WebKit now lets a browser answer the permission question, but
-  does not hand it the coordinates through public API. So a site is refused at
-  once rather than left waiting;
 - **site notifications** — a site is refused at once, with no question shown.
   WebKit lets a browser both ask and show them only through undocumented
   functions;
@@ -71,5 +77,5 @@ even when you switch to another.
 - **Apple Pay on sites** — the Apple Pay button is missing or does nothing: a
   page in Savoia is not given the functions it needs. Why is not yet known.
 
-Geolocation and notifications can be done, but through undocumented WebKit
-functions that any macOS update could change.
+Notifications can be done, but through undocumented WebKit functions that any
+macOS update could change. Location is built that way.

@@ -185,6 +185,16 @@ final class PageDelegate: NSObject, WKNavigationDelegate, WKUIDelegate {
         return allowed ? .grant : .deny
     }
 
+    // MARK: The position
+
+    func webView(_ webView: WKWebView, requestGeolocationPermissionFor origin: WKSecurityOrigin,
+                 initiatedBy frame: WKFrameInfo) async -> WKPermissionDecision {
+        guard kind != .document, let tab, let permissions = tab.permissions else { return .deny }
+        let allowed = await permissions.decide([.location], origin: SitePermissions.string(for: origin),
+                                               in: tab.id, profileID: tab.profileID)
+        return allowed ? .grant : .deny
+    }
+
     // MARK: The window's frame
 
     /// SPI. Unanswered, a page reads `outerWidth` 0 and remote automation a window of no size.

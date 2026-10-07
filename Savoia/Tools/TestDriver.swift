@@ -25,7 +25,9 @@ enum TestDriver {
                     if name == "storage-access" {
                         return try await setStorageAccess(args, tab: tab)
                     }
-                    guard let permission = SitePermission(rawValue: name), permission != .pageTools else {
+                    // The Permissions API's name for it.
+                    let known = name == "geolocation" ? .location : SitePermission(rawValue: name)
+                    guard let permission = known, permission != .pageTools else {
                         throw BrowserTool.Failure(message: "Savoia keeps no answer for \(name)")
                     }
                     guard let origin = args["origin"]?.stringValue, let permissions = browser.permissions else {
@@ -36,6 +38,31 @@ enum TestDriver {
                     case "denied": permissions.set(false, permission, forOrigin: origin, profileID: tab.profileID)
                     case "prompt": permissions.forget(permission, forOrigin: origin, profileID: tab.profileID)
                     default: throw BrowserTool.Failure(message: "state must be granted, denied or prompt")
+                    }
+                    return "ok"
+                }
+            ),
+            BrowserTool(
+                name: "testdriver_set_geolocation",
+                description: "The position pages are given in place of the Mac's own; with neither argument, none.",
+                parameters: [.init(name: "coordinates", description: "JSON: `latitude`, `longitude`, `accuracy`, and optionally `altitude`, `altitudeAccuracy`, `heading`, `speed`."),
+                             .init(name: "error", description: "`positionUnavailable`, for a position that cannot be found.")],
+                surfaces: .mcp,
+                run: { args in
+                    if args["error"]?.stringValue != nil {
+                        Geolocation.shared.override = .unavailable
+                    } else if let text = args["coordinates"]?.stringValue {
+                        let read = (try? JSONSerialization.jsonObject(with: Data(text.utf8))) as? [String: Any]
+                        func number(_ key: String) -> Double? { (read?[key] as? NSNumber)?.doubleValue }
+                        guard let latitude = number("latitude"), let longitude = number("longitude") else {
+                            throw BrowserTool.Failure(message: "coordinates need a latitude and a longitude")
+                        }
+                        Geolocation.shared.override = .position(.init(
+                            latitude: latitude, longitude: longitude, accuracy: number("accuracy") ?? 1,
+                            altitude: number("altitude"), altitudeAccuracy: number("altitudeAccuracy"),
+                            heading: number("heading"), speed: number("speed")))
+                    } else {
+                        Geolocation.shared.override = nil
                     }
                     return "ok"
                 }

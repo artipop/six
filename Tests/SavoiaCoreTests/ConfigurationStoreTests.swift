@@ -62,4 +62,16 @@ struct SettingsStoreTests {
 
         #expect(ConfigurationStore(database: database)[.pageName] == nil)
     }
+
+    @Test func anAnswerThisBuildCannotReadCostsOnlyItself() throws {
+        let (settings, _) = try store()
+        let profile = UUID()
+        settings[.sitePermissions] = """
+            [{"profileID":"\(profile)","origin":"https://a.example","permission":"camera","isAllowed":true},
+             {"profileID":"\(profile)","origin":"https://a.example","permission":"something-newer","isAllowed":true},
+             {"profileID":"\(profile)","origin":"https://b.example","permission":"location","isAllowed":false}]
+            """
+
+        #expect(settings.sitePermissions.map(\.permission) == [.camera, .location])
+    }
 }

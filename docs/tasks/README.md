@@ -13,7 +13,6 @@ The order to take them in, and what is not a task at all, is [todo.md](../todo.m
 
 | file | what |
 |---|---|
-| [permissions/07-geolocation.md](permissions/07-geolocation.md) | Geolocation for sites |
 | [permissions/08-notifications.md](permissions/08-notifications.md) | Site notifications |
 | [browser/11-page-scripts-rest.md](browser/11-page-scripts-rest.md) | The rest of the scripts in pages — one pass |
 | [measure/12-one-sitting.md](measure/12-one-sitting.md) | Things nobody has watched happen — one sitting |

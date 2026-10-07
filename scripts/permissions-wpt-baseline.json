@@ -2139,31 +2139,31 @@
    }
   },
   "/geolocation/PositionOptions.https.html": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
      "name": "Set timeout and maximumAge to 0, check that timeout error raised (getCurrentPosition)",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "Set timeout and maximumAge to 0, check that timeout error raised (watchPosition)",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "Check that a negative timeout and maxAge values are clamped to 0 (getCurrentPosition)",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "Check that a negative timeout and maxAge values are clamped to 0 (watchPosition)",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "Call getCurrentPosition with wrong type for enableHighAccuracy. No exception expected.",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "Call watchPosition with wrong type for enableHighAccuracy. No exception expected.",
-     "status": "Not Run"
+     "status": "Pass"
     }
    ],
    "safari": {
@@ -2175,10 +2175,10 @@
    },
    "savoia": {
     "c": [
-     0,
+     6,
      6
     ],
-    "s": "E"
+    "s": "O"
    }
   },
   "/geolocation/clearWatch_TypeError.https.html": {
@@ -2229,19 +2229,19 @@
    }
   },
   "/geolocation/disabled-by-permissions-policy.https.sub.html": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
      "name": "Permissions-Policy header geolocation=() disallows the top-level document.",
-     "status": "Not Run"
+     "status": "Fail"
     },
     {
      "name": "Permissions-Policy header geolocation=() disallows same-origin iframes.",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "Permissions-Policy header geolocation=() disallows cross-origin iframes.",
-     "status": "Not Run"
+     "status": "Pass"
     }
    ],
    "safari": {
@@ -2253,22 +2253,22 @@
    },
    "savoia": {
     "c": [
-     0,
+     2,
      3
     ],
-    "s": "E"
+    "s": "O"
    }
   },
   "/geolocation/enabled-by-permission-policy-attribute-redirect-on-load.https.sub.html": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
      "name": "Permissions-Policy allow=\"geolocation\" allows same-origin redirection",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "Permissions-Policy allow=\"geolocation\" disallows cross-origin redirection",
-     "status": "Not Run"
+     "status": "Pass"
     }
    ],
    "safari": {
@@ -2280,22 +2280,22 @@
    },
    "savoia": {
     "c": [
-     0,
+     2,
      2
     ],
-    "s": "E"
+    "s": "O"
    }
   },
   "/geolocation/enabled-by-permission-policy-attribute.https.sub.html": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
      "name": "Permissions policy \"geolocation\" can be enabled in same-origin iframe using allow=\"geolocation\" attribute",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "Permissions policy \"geolocation\" can be enabled in cross-origin iframe using allow=\"geolocation\" attribute",
-     "status": "Not Run"
+     "status": "Pass"
     }
    ],
    "safari": {
@@ -2307,26 +2307,26 @@
    },
    "savoia": {
     "c": [
-     0,
+     2,
      2
     ],
-    "s": "E"
+    "s": "O"
    }
   },
   "/geolocation/enabled-by-permissions-policy.https.sub.html": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
      "name": "Permissions-Policy header geolocation=* allows the top-level document.",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "Permissions-Policy header geolocation=* allows same-origin iframes.",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "Permissions-Policy header geolocation=* allows cross-origin iframes.",
-     "status": "Not Run"
+     "status": "Pass"
     }
    ],
    "safari": {
@@ -2338,26 +2338,26 @@
    },
    "savoia": {
     "c": [
-     0,
+     3,
      3
     ],
-    "s": "E"
+    "s": "O"
    }
   },
   "/geolocation/enabled-on-self-origin-by-permissions-policy.https.sub.html": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
      "name": "Permissions-Policy header geolocation=(self) allows the top-level document.",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "Permissions-Policy header geolocation=(self) allows same-origin iframes.",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "Permissions-Policy header geolocation=(self) disallows cross-origin iframes.",
-     "status": "Not Run"
+     "status": "Fail"
     }
    ],
    "safari": {
@@ -2369,22 +2369,22 @@
    },
    "savoia": {
     "c": [
-     0,
+     2,
      3
     ],
-    "s": "E"
+    "s": "O"
    }
   },
   "/geolocation/getCurrentPosition-accuracyMode-cache.https.html": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
      "name": "A cached approximate position is not reused for a precise request",
-     "status": "Not Run"
+     "status": "Fail"
     },
     {
      "name": "A cached precise position is not reused for an approximate request",
-     "status": "Not Run"
+     "status": "Fail"
     }
    ],
    "safari": {
@@ -2399,19 +2399,19 @@
      0,
      2
     ],
-    "s": "E"
+    "s": "O"
    }
   },
   "/geolocation/getCurrentPosition-accuracyMode.https.html": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
      "name": "getCurrentPosition with accuracyMode: \"approximate\"",
-     "status": "Not Run"
+     "status": "Fail"
     },
     {
      "name": "getCurrentPosition with accuracyMode: \"precise\"",
-     "status": "Not Run"
+     "status": "Pass"
     }
    ],
    "safari": {
@@ -2423,18 +2423,18 @@
    },
    "savoia": {
     "c": [
-     0,
+     1,
      2
     ],
-    "s": "E"
+    "s": "O"
    }
   },
   "/geolocation/getCurrentPosition-error.https.html": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
      "name": "Tests Geolocation error callback",
-     "status": "Not Run"
+     "status": "Pass"
     }
    ],
    "safari": {
@@ -2446,22 +2446,22 @@
    },
    "savoia": {
     "c": [
-     0,
+     1,
      1
     ],
-    "s": "E"
+    "s": "O"
    }
   },
   "/geolocation/getCurrentPosition-success.https.html": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
      "name": "getCurrentPosition called with success and error callbacks",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "Error callback is nullable for getCurrentPosition().",
-     "status": "Not Run"
+     "status": "Pass"
     }
    ],
    "safari": {
@@ -2473,10 +2473,10 @@
    },
    "savoia": {
     "c": [
-     0,
+     2,
      2
     ],
-    "s": "E"
+    "s": "O"
    }
   },
   "/geolocation/getCurrentPosition_TypeError.https.html": {
@@ -2527,11 +2527,11 @@
    }
   },
   "/geolocation/getCurrentPosition_permission_deny.https.html": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
      "name": "User denies access, check that error callback is called with correct code",
-     "status": "Fail"
+     "status": "Pass"
     }
    ],
    "safari": {
@@ -2543,22 +2543,22 @@
    },
    "savoia": {
     "c": [
-     0,
+     1,
      1
     ],
-    "s": "E"
+    "s": "O"
    }
   },
   "/geolocation/heading-stationary.https.html": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
      "name": "heading is null when stationary (speed is 0)",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "heading has a value when moving (speed > 0)",
-     "status": "Not Run"
+     "status": "Pass"
     }
    ],
    "safari": {
@@ -2570,10 +2570,10 @@
    },
    "savoia": {
     "c": [
-     0,
+     2,
      2
     ],
-    "s": "E"
+    "s": "O"
    }
   },
   "/geolocation/idlharness.https.window.html": {
@@ -2868,23 +2868,23 @@
    }
   },
   "/geolocation/non-fully-active.https.html": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
      "name": "watchPosition returns 0 for non-fully-active document",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "watchPosition calls errorCallback with POSITION_UNAVAILABLE for non-fully-active document",
-     "status": "Not Run"
+     "status": "Fail"
     },
     {
      "name": "getCurrentPosition calls errorCallback with POSITION_UNAVAILABLE for non-fully-active document",
-     "status": "Not Run"
+     "status": "Fail"
     },
     {
      "name": "re-attached document restores geolocation functionality",
-     "status": "Not Run"
+     "status": "Pass"
     }
    ],
    "safari": {
@@ -2896,10 +2896,10 @@
    },
    "savoia": {
     "c": [
-     0,
+     2,
      4
     ],
-    "s": "E"
+    "s": "O"
    }
   },
   "/geolocation/non-secure-contexts.http.html": {
@@ -2961,11 +2961,11 @@
    }
   },
   "/geolocation/tojson.https.window.html": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
      "name": "Test toJSON() in GeolocationPosition and GeolocationCoordinates.",
-     "status": "Not Run"
+     "status": "Pass"
     }
    ],
    "safari": {
@@ -2977,10 +2977,10 @@
    },
    "savoia": {
     "c": [
-     0,
+     1,
      1
     ],
-    "s": "E"
+    "s": "O"
    }
   },
   "/geolocation/watchPosition_TypeError.https.html": {
@@ -3031,15 +3031,15 @@
    }
   },
   "/geolocation/watchPosition_permission_deny.https.html": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
      "name": "Check that watchPosition returns synchronously before any callbacks are invoked.",
-     "status": "Fail"
+     "status": "Pass"
     },
     {
      "name": "User denies access, check that error callback is called.",
-     "status": "Not Run"
+     "status": "Pass"
     }
    ],
    "safari": {
@@ -3051,18 +3051,18 @@
    },
    "savoia": {
     "c": [
-     0,
+     2,
      2
     ],
-    "s": "E"
+    "s": "O"
    }
   },
   "/geolocation/watchposition-timeout.https.window.html": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
      "name": "Passing timeout=1 should not cause multiple timeout errors",
-     "status": "Not Run"
+     "status": "Pass"
     }
    ],
    "safari": {
@@ -3074,10 +3074,10 @@
    },
    "savoia": {
     "c": [
-     0,
+     1,
      1
     ],
-    "s": "E"
+    "s": "O"
    }
   },
   "/idle-detection/basics.tentative.https.window.html": {
@@ -4029,11 +4029,11 @@
     "s": "T"
    },
    "savoia": {
-    "s": "O",
     "c": [
      2,
      3
-    ]
+    ],
+    "s": "O"
    }
   },
   "/mediacapture-streams/MediaDevices-enumerateDevices-persistent-permission.https.html": {

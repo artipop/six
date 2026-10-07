@@ -9,6 +9,7 @@ import Observation
 enum SitePermission: String, Codable, CaseIterable, Sendable, Identifiable {
     case camera
     case microphone
+    case location
     /// `DeviceOrientationEvent` and `DeviceMotionEvent`. A desktop has neither sensor, but the
     /// question still arrives here, and answering it costs less than explaining the silence.
     case motion
@@ -27,6 +28,7 @@ enum SitePermission: String, Codable, CaseIterable, Sendable, Identifiable {
         switch self {
         case .camera: "camera"
         case .microphone: "microphone"
+        case .location: "location"
         case .motion: "motion sensors"
         case .pageTools: "tools for agents"
         }
@@ -34,6 +36,7 @@ enum SitePermission: String, Codable, CaseIterable, Sendable, Identifiable {
         switch self {
         case .camera: String(localized: "camera")
         case .microphone: String(localized: "microphone")
+        case .location: String(localized: "location")
         case .motion: String(localized: "motion sensors")
         case .pageTools: String(localized: "tools for agents")
         }
@@ -44,6 +47,7 @@ enum SitePermission: String, Codable, CaseIterable, Sendable, Identifiable {
         switch self {
         case .camera: "video"
         case .microphone: "mic"
+        case .location: "location"
         case .motion: "gyroscope"
         case .pageTools: "wrench.and.screwdriver"
         }
@@ -385,7 +389,17 @@ extension ConfigurationStore {
     /// What sites were allowed — or refused — the camera, the microphone and the motion sensors.
     /// A private profile's answers never reach here; see `SitePermissions`.
     var sitePermissions: [SitePermissions.Decision] {
-        get { decode(.sitePermissions) ?? [] }
+        get { (decode(.sitePermissions) as [Lenient<SitePermissions.Decision>]?)?.compactMap(\.value) ?? [] }
         set { encode(.sitePermissions, newValue, keepingEmpty: false) }
+    }
+}
+
+/// One element of a list that survives an element it cannot read — an answer about a permission
+/// this build does not know must not cost every other answer.
+private struct Lenient<Value: Decodable>: Decodable {
+    let value: Value?
+
+    init(from decoder: any Decoder) throws {
+        value = try? Value(from: decoder)
     }
 }
