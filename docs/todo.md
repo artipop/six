@@ -18,9 +18,6 @@ The browser's core first, each step making the next one smaller.
 | 6 | **Small things**, seven of them: forget one site, a way home, a download that repeats, a user agent per site, every model in the welcome, a Help menu, grouping by meaning off for a new install | [tasks/browser/13](tasks/browser/13-small-things.md) |
 | 7 | **Passkeys and passwords** — as much paperwork with Apple as code | [passkeys.md](passkeys.md) |
 
-The step that stood first — every tab a `WKWebView` of Savoia's own — is done but for a walk by hand, which is what
-[tasks/architecture/23](tasks/architecture/23-webpage-or-wkwebview.md) now holds.
-
 ## Beside the order
 
 Nothing here waits on the steps above, except where it says so.

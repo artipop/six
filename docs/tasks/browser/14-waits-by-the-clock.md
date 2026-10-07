@@ -8,7 +8,7 @@ replaces the one that is left, and leaves two.
 
 `BrowserTab.loadSettled(timeout:)` and `loadAndSettle` for a page that is no tab's; [timers.md](../../timers.md)
 has it. The race was not reproduced on the wpt stand first: the five loops went in one commit ahead of
-[23](../architecture/23-webpage-or-wkwebview.md), which rewrites the feed they hang on.
+the move of every tab to a `WKWebView`, which rewrote the feed they hung on.
 
 ## 2. A highlight to be painted
 

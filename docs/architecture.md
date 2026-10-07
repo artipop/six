@@ -342,8 +342,11 @@ page yet draws a placeholder with the site's icon and host until its page is bui
 ## From `WebPage` to `WKWebView`
 
 Savoia was built on SwiftUI's `WebView` / `WebPage` and moved every tab to a `WKWebView` of its own in October 2026
-([task 23](tasks/architecture/23-webpage-or-wkwebview.md)); this is the map the move was made by, kept for the next
-sync of the `dev` branch. The third column is WebKitGTK's name for the same thing; **bold** there is what the Linux
+(the `wkwebview` branch, task 23); this is the map the move was made by, kept for the next
+sync of the `dev` branch. For that sync: `SavoiaCore` still knows no engine and the protocols a front implements kept
+their shape; `TabSnapshot.back` / `forward` stay in the format and the Mac no longer writes or reads them; and the
+iOS front there is still on `WebPage` — `PageDelegate` and `BrowserTab.materialize` are where the same move starts,
+with `PageHost`, `PageContextMenu` and the dialogs being the AppKit parts. The third column is WebKitGTK's name for the same thing; **bold** there is what the Linux
 front on `dev` already calls (`linux/Sources/SavoiaWebKit`, `SavoiaWebKitCore`, `SavoiaBrowser`). The rest of that
 column was written from memory of its API and not compiled.
 
