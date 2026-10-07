@@ -69,15 +69,16 @@ extension WKWebView {
     @discardableResult
     func mouse(_ type: NSEvent.EventType, atViewport point: CGPoint) -> Bool {
         guard let window else { return false }
-        let inView = CGPoint(x: point.x, y: isFlipped ? point.y : bounds.height - point.y)
+        // A moved event reaches the page only in the key window; a dragged one always does, and the page reads no button from it.
+        let type = type == .mouseMoved ? .leftMouseDragged : type
         guard let event = NSEvent.mouseEvent(
-            with: type, location: convert(inView, to: nil), modifierFlags: [],
+            with: type, location: inWindow(viewport: point), modifierFlags: [],
             timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber, context: nil,
             eventNumber: 0, clickCount: 1, pressure: type == .leftMouseDown ? 1 : 0) else { return false }
         switch type {
         case .leftMouseDown: mouseDown(with: event)
         case .leftMouseUp: mouseUp(with: event)
-        default: mouseMoved(with: event)
+        default: mouseDragged(with: event)
         }
         return true
     }
@@ -86,10 +87,71 @@ extension WKWebView {
     func click(atViewport point: CGPoint) -> Bool {
         mouse(.leftMouseDown, atViewport: point) && mouse(.leftMouseUp, atViewport: point)
     }
+
+    /// The destination's half of a drag the page began, called as a dragging session calls it: a
+    /// session begun from an event nobody's hand made never does. False when the page refused the drop.
+    func drop(atViewport point: CGPoint) async -> Bool {
+        guard let window else { return false }
+        let location = inWindow(viewport: point)
+        let drop = PageDrop(window: window, pasteboard: NSPasteboard(name: .drag), location: location)
+        _ = draggingEntered(drop)
+        var operation: NSDragOperation = []
+        // The page's answer to `dragover` comes back from its process a moment later.
+        for _ in 0..<6 where operation.isEmpty {
+            try? await Task.sleep(for: .milliseconds(100))
+            operation = draggingUpdated(drop)
+        }
+        let taken = !operation.isEmpty && prepareForDragOperation(drop) && performDragOperation(drop)
+        if !taken { draggingExited(drop) }
+        try? await Task.sleep(for: .milliseconds(100))
+        if responds(to: #selector(DragSource.dragged(_:endedAt:operation:))) {
+            unsafeBitCast(self, to: DragSource.self).dragged(NSImage(), endedAt: window.convertPoint(toScreen: location),
+                                                             operation: taken ? operation : [])
+        }
+        return taken
+    }
+
+    private func inWindow(viewport point: CGPoint) -> CGPoint {
+        convert(CGPoint(x: point.x, y: isFlipped ? point.y : bounds.height - point.y), to: nil)
+    }
+}
+
+/// What a dragging session tells its destination.
+private final class PageDrop: NSObject, NSDraggingInfo {
+    let draggingDestinationWindow: NSWindow?
+    let draggingPasteboard: NSPasteboard
+    let draggingLocation: NSPoint
+    let draggingSourceOperationMask: NSDragOperation = [.copy, .move, .link, .generic]
+    var draggedImageLocation: NSPoint { draggingLocation }
+    let draggedImage: NSImage? = nil
+    let draggingSource: Any? = nil
+    let draggingSequenceNumber = 0
+    var draggingFormation = NSDraggingFormation.none
+    var animatesToDestination = false
+    var numberOfValidItemsForDrop = 1
+    let springLoadingHighlight = NSSpringLoadingHighlight.none
+
+    init(window: NSWindow, pasteboard: NSPasteboard, location: NSPoint) {
+        draggingDestinationWindow = window
+        draggingPasteboard = pasteboard
+        draggingLocation = location
+    }
+
+    func slideDraggedImage(to screenPoint: NSPoint) {}
+    func resetSpringLoading() {}
+    func enumerateDraggingItems(options: NSDraggingItemEnumerationOptions = [], for view: NSView?,
+                                classes: [AnyClass], searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
+                                using block: (NSDraggingItem, Int, UnsafeMutablePointer<ObjCBool>) -> Void) {}
 }
 
 private struct UncheckedBox<Value>: @unchecked Sendable {
     let value: Value
+}
+
+/// AppKit's own name for it, which Swift marks unavailable.
+@objc private protocol DragSource {
+    @objc(draggedImage:endedAt:operation:)
+    func dragged(_ image: NSImage, endedAt point: NSPoint, operation: NSDragOperation)
 }
 
 @objc private protocol GesturelessCalls {

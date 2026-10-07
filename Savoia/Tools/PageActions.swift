@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 import WebKit
 
 /// The Swift half of the acting tools: running `PageActionScript` against a window's page, waiting
@@ -48,6 +48,53 @@ enum PageActions {
         guard found["covered"] as? Bool != true, let x = found["x"] as? Double, let y = found["y"] as? Double,
               tab.click(atViewport: CGPoint(x: x, y: y))
         else { return try await run(tab, PageActionScript.click, arguments: arguments) }
+        return found
+    }
+
+    /// The pointer over an element, as a mouse event: the page's `mouseover` is trusted and `:hover` holds.
+    /// No scripted fallback — a dispatched `mouseover` opens nothing that CSS opens.
+    static func hover(_ tab: BrowserTab, arguments: [String: Any]) async throws -> [String: Any] {
+        var found = try await run(tab, PageActionScript.point, arguments: arguments)
+        // What the pointer left may fold away and move the element: aim again once.
+        for _ in 0..<2 {
+            guard let x = found["x"] as? Double, let y = found["y"] as? Double,
+                  tab.livePage?.mouse(.mouseMoved, atViewport: CGPoint(x: x, y: y)) == true
+            else { throw Failure(message: "The page is not on screen, and only a pointer over it hovers; focus_window first") }
+            try? await Task.sleep(for: .milliseconds(80))
+            let again = try await run(tab, PageActionScript.point, arguments: arguments)
+            if again["x"] as? Double == x, again["y"] as? Double == y { break }
+            found = again
+        }
+        return found
+    }
+
+    /// Down, dragged, up as mouse events. A page that starts drag-and-drop on them gets its drop from
+    /// the web view's dragging-destination methods, which is all a dragging session would have called.
+    static func drag(_ tab: BrowserTab, arguments: [String: Any]) async throws -> [String: Any] {
+        var found = try await run(tab, PageActionScript.span, arguments: arguments)
+        guard let x = found["x"] as? Double, let y = found["y"] as? Double,
+              let toX = found["toX"] as? Double, let toY = found["toY"] as? Double,
+              let view = tab.livePage, view.window != nil
+        else { throw Failure(message: "The page is not on screen, and a drag is the pointer's; focus_window first") }
+        let end = CGPoint(x: toX, y: toY)
+        let pasteboard = NSPasteboard(name: .drag)
+        let before = pasteboard.changeCount
+        view.mouse(.leftMouseDown, atViewport: CGPoint(x: x, y: y))
+        let steps = 8
+        // The page writes the drag pasteboard at `dragstart`; from there the pointer is the session's, not the page's.
+        for step in 1...steps where pasteboard.changeCount == before {
+            let part = Double(step) / Double(steps)
+            view.mouse(.leftMouseDragged, atViewport: CGPoint(x: x + (toX - x) * part, y: y + (toY - y) * part))
+            try? await Task.sleep(for: .milliseconds(40))
+        }
+        if pasteboard.changeCount != before {
+            let taken = await view.drop(atViewport: end)
+            view.mouse(.leftMouseUp, atViewport: end)
+            if !taken { throw Failure(message: "\(found["target"] as? String ?? "The drag") was refused: the page takes no drop there") }
+            found["note"] = "dropped as drag-and-drop"
+        } else {
+            view.mouse(.leftMouseUp, atViewport: end)
+        }
         return found
     }
 

@@ -31,8 +31,8 @@ What is left when none of them works — a canvas (Sheets, Figma, Maps), a page 
 
 ## The acting tools
 
-`page_snapshot`, `click`, `fill`, `select_option`, `press_key`, `scroll_page`, `wait_for`, `handle_dialog`,
-`upload_file`, all `surfaces: .mcp`: an
+`page_snapshot`, `click`, `fill`, `select_option`, `press_key`, `scroll_page`, `hover`, `drag`, `wait_for`,
+`handle_dialog`, `upload_file`, all `surfaces: .mcp`: an
 ACP agent gets them through its own permission dialog, and the ⌘E line never gets a button pressed in answer to a
 question. The page half is `Savoia/Tools/PageActionScript.swift`, the Swift half `Savoia/Tools/PageActions.swift`, the
 tools themselves in `BrowserTools.swift`.
@@ -73,6 +73,51 @@ tools themselves in `BrowserTools.swift`.
 - Open shadow roots are walked; closed ones and `ElementInternals` are not — the narrow difference from the
   accessibility tree measured in [accessibility.md](accessibility.md). Main frame only.
 - `wait_for` is not a convenience: `callJavaScript` takes no `await`, so everything that waits is polled from Swift.
+
+## Hover and drag: the pointer
+
+Both are mouse events handed to the web view, and the script only finds the points, as it does for `click`
+(`PageActions.hover`, `PageActions.drag`; `WKWebView.mouse` and `WKWebView.drop` in `Savoia/Browser/PageScripts.swift`).
+Neither has a scripted fallback: a dispatched `mouseover` opens nothing CSS opens. A page whose view is in no
+window is refused, with `focus_window` named.
+
+- **A hover is a *dragged* event with no button down.** Measured, with Savoia not in front: `mouseMoved(with:)`
+  on the `WKWebView` and WebKit's `_simulateMouseMove:` both gave the page nothing, and `mouseDragged(with:)` gave
+  it an ordinary `mousemove` with `buttons: 0`, trusted `mouseover` and `mouseenter`, and a `:hover` that holds.
+  The reasons are read from WebKit and not measured: `WKWebView` has no `mouseMoved:` of its own, the tracking area
+  belonging to an observer; and a move with no button goes only to the scrollbars of a page whose window is not
+  key, while a dragged event carries a button and is hit-tested anywhere. The page reads `buttons` from the system
+  and not from the event, which is why it sees none. The pointer stays there until the next event; the hover ends
+  when the agent acts elsewhere, or when the person's own pointer moves over the page.
+- **`hover` aims twice.** What the pointer left may fold away and move the element, so the point is read again
+  after the first event and the event repeated if it moved.
+- **`drag` is down, eight dragged events along the line, up.** That is enough for whatever follows the pointer: a
+  slider's thumb, a list sorted on `mousemove`. `buttons` is the system's here too, so a page that checks
+  `event.buttons` during the move sees no button and lets go.
+- **Drag-and-drop gets its drop from the destination's own methods.** The page's `dragstart` fires on the real
+  events, and WebKit begins a dragging session — which, begun from an event no hand made, never delivers anything
+  and never ends. So `drag` watches the drag pasteboard: when its change count moves, the page has started a drag,
+  the dragged events stop, and the web view is called as a session calls its destination — `draggingEntered`,
+  `draggingUpdated` until the page's answer to `dragover` is back, `performDragOperation` — with a `PageDrop` that
+  names the same pasteboard, then `draggedImage:endedAt:operation:` for `dragend`. A target that takes no drop
+  gets `draggingExited`, and the tool fails saying so. A mouse-up follows either way; a browser under a hand sends
+  none after a drop, and the page sees one here.
+- **The snapshot lists `draggable="true"` elements**, with the role `draggable`, since a list item that can be
+  dragged is rarely a control. A drop target with no control in it has no ref, and neither has an item sorted by
+  pointer events alone: the agent names the nearest control inside it.
+- `drag` takes two refs and no offsets, as Chrome's does: a slider is set with `fill` or the arrow keys.
+
+Measured over `Savoia --mcp` in a throwaway home, 7 October 2026, with Savoia not the front app, on a page with a
+CSS hover menu, a `mouseenter` tooltip, a list sorted on `mousemove`, a `draggable` list, a drop target and an
+element that takes no drops. `hover` on the menu's button: `:hover` matched, the submenu was displayed and its link
+was in the returned snapshot; on the tooltip's button the tooltip's text appeared, and the menu folded. `drag` moved
+the first item of each list behind the third, and put an item's `dataTransfer` text into the drop target, with
+`dragstart`, `dragenter`, `drop`, `dragend` in that order and all trusted. The refusing element got `dragenter` and
+`dragleave`, the source `dragend`, and the tool failed; a `click` and another `drag` after it worked. Each took
+0.4–0.8 s. The same destination calls with a pasteboard of two file URLs gave the page both files with their
+contents — measured from the test driver, and not a tool. After a started drag the process owns one more window
+at the dragging level, 0×0 and off screen; nobody watched the screen. Not measured: the window being key, and a
+page inside a frame.
 
 ## Dialogs and files: the delegate's door
 
@@ -125,7 +170,7 @@ Tool for tool against `chrome-devtools-mcp`, whose list was read on 7 October 20
 | `take_screenshot` | `take_screenshot` | built; the visible part only |
 | `list_console_messages`, `get_console_message`, `list_network_requests` | `list_console_messages`, `list_network_requests` | built, only while capture is on ([devtools.md](devtools.md)); status and timing, no headers or bodies |
 | `list_webmcp_tools`, `execute_webmcp_tool` | `list_page_tools`, `call_page_tool` | built ([webmcp.md](webmcp.md)) |
-| `hover`, `drag` | — | missing — [tasks/agents/15](tasks/agents/15-agent-tools-to-chrome.md) |
+| `hover`, `drag` | `hover`, `drag` | built; real events, and drag-and-drop through the destination's methods ([above](#hover-and-drag-the-pointer)) |
 | `get_network_request` (headers, body) | — | not reachable |
 | `emulate`, `resize_page` | — | not reachable |
 | `performance_*`, `lighthouse_audit`, `get_css_styles`, `screencast_*`, the heap snapshot tools | — | not reachable |

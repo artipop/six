@@ -133,7 +133,7 @@ final class BrowserToolCatalog {
     static let actingInstructions = """
         To *do* something on a page — fill a form, search, pick dates, press a button — look first: \
         `page_snapshot` lists the page's controls as numbered refs (`e12`) with their current values. Then act \
-        by ref: `click`, `fill`, `select_option`, `press_key`, `scroll_page`. Every action returns the page's new \
+        by ref: `click`, `fill`, `select_option`, `press_key`, `scroll_page`, `hover`, `drag`. Every action returns the page's new \
         snapshot, so read it instead of asking again, and check that the value you set is the value shown. \
         A file goes to a page with `upload_file`, never by clicking through the system's panel; a page's \
         `alert`, `confirm` or `prompt` is answered with `handle_dialog`. \
@@ -683,7 +683,7 @@ final class BrowserToolCatalog {
             description: "The page in a window as something to act on: every visible interactive element (links, buttons, "
                 + "fields, dropdowns, checkboxes, tabs, options), numbered with a ref such as `e12`, with its role, "
                 + "accessible name, current value and state, and the page's visible text. Refs are what click, fill, "
-                + "select_option, press_key and scroll_page take; the same element keeps its ref across snapshots, and a "
+                + "select_option, press_key, scroll_page, hover and drag take; the same element keeps its ref across snapshots, and a "
                 + "ref whose element the page removed fails rather than landing somewhere else.",
             parameters: [
                 Self.windowID,
@@ -712,6 +712,34 @@ final class BrowserToolCatalog {
             surfaces: .mcp,
             run: { [unowned self] args in
                 try await self.act(args, PageActionScript.click, ["force": args["force"]?.boolValue ?? false])
+            }
+        ),
+        BrowserTool(
+            name: "hover",
+            title: String(localized: "Hover"),
+            description: "Moves the pointer over an element from page_snapshot and leaves it there: opens a menu or a tooltip "
+                + "that shows on hover, reveals a row's buttons. The returned snapshot lists what appeared; the next "
+                + "action on another element ends the hover.",
+            parameters: [Self.windowID, Self.ref, Self.snapshotAfter, Self.format],
+            surfaces: .mcp,
+            run: { [unowned self] args in
+                try await self.act(args, PageActionScript.point, ["force": false])
+            }
+        ),
+        BrowserTool(
+            name: "drag",
+            title: String(localized: "Drag"),
+            description: "Drags one element from page_snapshot onto another with the pointer: reorders a list, moves a card to "
+                + "a column, drops an item on a target. Both must fit on screen together. Refuses when the page takes "
+                + "no drop at the target. Check the returned snapshot: a page decides for itself where the item lands.",
+            parameters: [Self.windowID,
+                         .init(name: "ref", description: "Ref of the element to drag.", required: true),
+                         .init(name: "to_ref", description: "Ref of the element to drop it on.", required: true),
+                         Self.snapshotAfter, Self.format],
+            surfaces: .mcp,
+            run: { [unowned self] args in
+                guard let to = args["to_ref"]?.stringValue, !to.isEmpty else { throw BrowserTool.Failure(message: "to_ref is required") }
+                return try await self.act(args, PageActionScript.span, ["to": to])
             }
         ),
         BrowserTool(
@@ -964,6 +992,8 @@ final class BrowserToolCatalog {
             result = switch script {
             case PageActionScript.click: try await PageActions.click(tab, arguments: arguments)
             case PageActionScript.press: try await PageActions.press(tab, arguments: arguments)
+            case PageActionScript.point: try await PageActions.hover(tab, arguments: arguments)
+            case PageActionScript.span: try await PageActions.drag(tab, arguments: arguments)
             default: try await PageActions.run(tab, script, arguments: arguments)
             }
         } catch let failure as PageActions.Failure {

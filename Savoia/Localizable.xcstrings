@@ -3215,6 +3215,16 @@
         }
       }
     },
+    "Drag" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перетащить"
+          }
+        }
+      }
+    },
     "Draft a Reply" : {
       "localizations" : {
         "ru" : {
@@ -3652,6 +3662,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Группировать вкладки по смыслу"
+          }
+        }
+      }
+    },
+    "Hover" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Навести указатель"
           }
         }
       }

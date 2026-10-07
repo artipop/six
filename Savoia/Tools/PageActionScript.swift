@@ -95,7 +95,7 @@ nonisolated enum PageActionScript {
     const ROLES = ['button', 'link', 'checkbox', 'radio', 'switch', 'tab', 'menuitem', 'menuitemcheckbox', 'menuitemradio',
         'option', 'gridcell', 'combobox', 'textbox', 'searchbox', 'spinbutton', 'slider', 'listbox', 'treeitem'];
     const SELECTOR = 'a[href],button,input,textarea,select,summary,[contenteditable=""],[contenteditable="true"],[onclick],' +
-        '[tabindex]:not([tabindex="-1"]),' + ROLES.map(r => '[role="' + r + '"]').join(',');
+        '[tabindex]:not([tabindex="-1"]),[draggable="true"],' + ROLES.map(r => '[role="' + r + '"]').join(',');
     const roleOf = e => {
         const explicit = (e.getAttribute('role') || '').split(/\s+/)[0];
         if (ROLES.includes(explicit)) return explicit;
@@ -116,6 +116,7 @@ nonisolated enum PageActionScript {
             return 'textbox';
         }
         if (e.hasAttribute('onclick') || e.hasAttribute('tabindex')) return 'button';
+        if (e.getAttribute('draggable') === 'true') return 'draggable';
         return null;
     };
     const editable = e => {
@@ -221,7 +222,7 @@ nonisolated enum PageActionScript {
                 if (e.getAttribute('role') === 'gridcell' && e.querySelector('button,[role="button"]')) continue;
                 if (e.getAttribute('role') === 'listbox' && e.querySelector('[role="option"]')) continue;
                 // A tabindex'd wrapper around a real control is noise.
-                if (!e.matches('a[href],button,input,textarea,select,summary,[role]') && e.querySelector('a[href],button,input,select,textarea')) continue;
+                if (!e.matches('a[href],button,input,textarea,select,summary,[role],[draggable="true"]') && e.querySelector('a[href],button,input,select,textarea')) continue;
                 const r = e.getBoundingClientRect();
                 if (items.length >= maxElements) { omitted++; continue; }
                 items.push(record(e, r));
@@ -349,6 +350,20 @@ nonisolated enum PageActionScript {
     if (!hit.ok && !force) return { error: 'covered', detail: describe(e) + ' is covered by ' + hit.cover + '; close what covers it, or scroll' };
     const { x, y } = center(e);
     return { ok: true, x, y, covered: !hit.ok, target: describe(e) };
+    """#
+
+    /// Where a drag from `ref` to `to` starts and ends, with both on screen at once. Arguments: `ref`, `to`.
+    static let span = library + #"""
+    const a = node(ref), b = node(to);
+    if (!a || !b) return { error: 'stale', detail: 'ref ' + (a ? to : ref) + ' is gone from the page' };
+    for (const e of [a, b]) if (!visible(e)) return { error: 'hidden', detail: describe(e) + ' is not visible' };
+    ensureInView(b);
+    ensureInView(a);
+    const hit = hitOK(a);
+    if (!hit.ok) return { error: 'covered', detail: describe(a) + ' is covered by ' + hit.cover + '; close what covers it, or scroll' };
+    const p = center(a), q = center(b);
+    if (q.x < 0 || q.y < 0 || q.x >= innerWidth || q.y >= innerHeight) return { error: 'apart', detail: describe(a) + ' and ' + describe(b) + ' are not on screen together' };
+    return { ok: true, x: p.x, y: p.y, toX: q.x, toY: q.y, target: describe(a) + ' onto ' + describe(b) };
     """#
 
     /// Arguments: `ref`, `text`, `submit`.

@@ -46,7 +46,7 @@ the counterpart of Safari's *Allow Remote Automation*:
 | `delete_all_cookies` | `testdriver_delete_all_cookies` | empties the profile's cookie store |
 | — | `testdriver_answer_sheets` | presses the first or the second button of every sheet on a window a page opened — its dialogs and its question about the camera. No testdriver call maps to it; it is how the window was checked |
 | `send_keys` | `testdriver_key` | the runner focuses the element and presses each key: an `NSEvent` key down and up handed to the `WKWebView`. WebDriver's code points (`\uE004` Tab, `\uE03D` Meta…) are turned into `KeyboardEvent.key` names by the runner |
-| `action_sequence` | `testdriver_key`, `testdriver_click` with `action` | the runner walks the sequence tick by tick: `keyDown` / `keyUp`, `pointerMove` / `pointerDown` / `pointerUp` of the left button, `pause`. A wheel source or another button is `not implemented` |
+| `action_sequence` | `testdriver_key`, `testdriver_click` with `action` | the runner walks the sequence tick by tick: `keyDown` / `keyUp`, `pointerMove` / `pointerDown` / `pointerUp` of the left button, `pause`. A move is a dragged event, the only kind that reaches a page in a window that is not key ([agent-actions.md](agent-actions.md#hover-and-drag-the-pointer)); until 7 October 2026 it was a `mouseMoved` the view never saw. A wheel source or another button is `not implemented` |
 
 Everything else is answered `not implemented`, in wptrunner's words.
 

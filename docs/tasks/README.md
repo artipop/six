@@ -19,7 +19,6 @@ The order to take them in, and what is not a task at all, is [todo.md](../todo.m
 | [measure/12-one-sitting.md](measure/12-one-sitting.md) | Things nobody has watched happen — one sitting |
 | [browser/13-small-things.md](browser/13-small-things.md) | Small things — one pass |
 | [browser/14-waits-by-the-clock.md](browser/14-waits-by-the-clock.md) | Waits by the clock that have an event — one pass |
-| [agents/15-agent-tools-to-chrome.md](agents/15-agent-tools-to-chrome.md) | An agent in Savoia can do what one in Chrome can |
 | [bookmarks/16-images-in-bookmarks.md](bookmarks/16-images-in-bookmarks.md) | Finding a bookmark by what is in its pictures |
 | [browser/17-floating-window.md](browser/17-floating-window.md) | A tab as a small window that floats |
 | [assistant/18-ghost-text-and-own-verbs.md](assistant/18-ghost-text-and-own-verbs.md) | The assistant: an answer in place, and a verb of one's own |
