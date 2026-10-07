@@ -397,8 +397,15 @@ final class ExtensionStore {
     /// The configuration an extension's own page has to be built with — its options, its dashboard,
     /// its new-tab page. WebKit refuses such a page as a main frame anywhere else (-1008).
     func pageConfiguration(for url: URL, profileID: Profile.ID) -> WKWebViewConfiguration? {
-        guard let contexts = runtimes[profileID]?.contexts.values else { return nil }
-        return contexts.first { url.scheme == $0.baseURL.scheme && url.host == $0.baseURL.host }?.webViewConfiguration
+        context(owning: url, profileID: profileID)?.webViewConfiguration
+    }
+
+    func isExtensionPage(_ url: URL, profileID: Profile.ID) -> Bool {
+        context(owning: url, profileID: profileID) != nil
+    }
+
+    private func context(owning url: URL, profileID: Profile.ID) -> WKWebExtensionContext? {
+        runtimes[profileID]?.contexts.values.first { url.scheme == $0.baseURL.scheme && url.host == $0.baseURL.host }
     }
 
     #if os(macOS)

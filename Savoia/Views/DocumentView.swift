@@ -1,5 +1,4 @@
 import SwiftUI
-import WebKit
 
 /// A document column: the Markdown source in a text editor, or the rendered preview in the tab's
 /// own web view. The two swap in place — the column stays — and the preview page is also what
@@ -9,7 +8,6 @@ struct DocumentView: View {
     let document: TextDocument
     let isActive: Bool
 
-    @Environment(BrowserState.self) private var browser
     @State private var rendered = ""
 
     var body: some View {

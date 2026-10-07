@@ -67,7 +67,7 @@ final class PageDelegate: NSObject, WKNavigationDelegate, WKUIDelegate {
         }
         // `buttonNumber` is 1 for every click of the mouse, so ⌘ is the only signal there is.
         if action.navigationType == .linkActivated, command {
-            tab.onNewWindow?(tab, action.request, true)
+            tab.onLinkBehind?(tab, action.request)
             return .cancel
         }
         // No target frame is a window the page asks for; `createWebView` answers it with a tab.
@@ -191,10 +191,6 @@ final class PageDelegate: NSObject, WKNavigationDelegate, WKUIDelegate {
         return hit.value(forKey: "absoluteLinkURL") as? URL
     }
 }
-#endif
-
-#if canImport(WebKit)
-import WebKit
 
 extension SitePermissions {
     /// The origin as WebKit writes it, which reports 0 for a scheme's own port; agrees with `origin(of:)`.
@@ -213,6 +209,15 @@ extension SitePermissions {
         case .cameraAndMicrophone: [.camera, .microphone]
         @unknown default: []
         }
+    }
+}
+
+/// `SAVOIA_LINKS_TRACE=1` narrates what the page asked for. Off, it costs the branch and nothing else.
+enum LinkTrace {
+    static let isOn = ProcessInfo.processInfo.environment["SAVOIA_LINKS_TRACE"] == "1"
+    static func log(_ message: @autoclosure () -> String) {
+        guard isOn else { return }
+        Log.debug(.links, message())
     }
 }
 #endif

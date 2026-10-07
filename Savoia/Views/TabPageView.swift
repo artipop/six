@@ -1,6 +1,5 @@
 #if os(macOS)
 import SwiftUI
-import WebKit
 
 /// One tab's page and the bars above it: the whole of the window below the tab bar, or one half of
 /// it when two tabs are shown side by side.

@@ -683,9 +683,9 @@ final class BrowserState {
             self?.openPageWindow(from: tab, configuration: configuration)
         }
         tab.onPageClose = { [weak self] tab in self?.closeTab(tab.id) }
-        tab.onNewWindow = { [weak self] tab, request, behind in
+        tab.onLinkBehind = { [weak self] tab, request in
             guard let url = request.url else { return }
-            self?.openInNewWindow(url, from: tab, background: behind)
+            self?.openInNewWindow(url, from: tab, background: true)
         }
         tab.onDownload = { [weak self] tab, request, suggestedName in
             self?.download(request, suggestedName: suggestedName, from: tab)

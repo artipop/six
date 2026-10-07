@@ -220,8 +220,8 @@ final class BrowserTab: Identifiable {
     @ObservationIgnored var onBuiltInAddress: ((BrowserTab, BuiltInPage, String?) -> Void)?
     /// The page's context menu, for the link under the pointer. Set by `BrowserState`.
     @ObservationIgnored var onContextMenu: ((BrowserTab, URL?) -> NSMenu?)?
-    /// A ⌘-click: the link opens by its address in a tab next to this one. Set by `BrowserState`.
-    @ObservationIgnored var onNewWindow: ((BrowserTab, URLRequest, Bool) -> Void)?
+    /// A ⌘-click: the link opens behind, by its address, in a tab next to this one. Set by `BrowserState`.
+    @ObservationIgnored var onLinkBehind: ((BrowserTab, URLRequest) -> Void)?
     /// `window.open` or a plain `target=_blank`: the tab WebKit is to load into, built on the
     /// configuration it handed over. Set by `BrowserState`.
     @ObservationIgnored var onPageWindow: ((BrowserTab, WKWebViewConfiguration) -> WKWebView?)?
@@ -657,7 +657,7 @@ final class BrowserTab: Identifiable {
         settleLoads()
         onNavigation = nil
         onDocumentLink = nil
-        onNewWindow = nil
+        onLinkBehind = nil
         onPageWindow = nil
         onPageClose = nil
         onDownload = nil
@@ -932,7 +932,7 @@ final class BrowserTab: Identifiable {
         savedState = nil
         loadStartedAt = Date()
         // Into or out of an extension's own page is another configuration, and so another view.
-        if livePage != nil, showsExtensionPage != (extensions?.pageConfiguration(for: url, profileID: profileID) != nil) {
+        if livePage != nil, showsExtensionPage != (extensions?.isExtensionPage(url, profileID: profileID) == true) {
             releasePage()
             generation += 1
         }
@@ -953,7 +953,7 @@ final class BrowserTab: Identifiable {
     /// An extension has loaded: a view showing one of its pages on a plain configuration is built again.
     func extensionLoaded() {
         guard isWebPage, livePage != nil, !showsExtensionPage, let url = loadFailure?.url ?? currentURL,
-              extensions?.pageConfiguration(for: url, profileID: profileID) != nil else { return }
+              extensions?.isExtensionPage(url, profileID: profileID) == true else { return }
         loadFailure = nil
         load(url)
     }
@@ -1098,15 +1098,6 @@ final class BrowserTab: Identifiable {
             self.cache?.notePicture(self)
             self.thumbnails?.write(data, for: self.id)
         }
-    }
-}
-
-/// `SAVOIA_LINKS_TRACE=1` narrates what the page asked for. Off, it costs the branch and nothing else.
-enum LinkTrace {
-    static let isOn = ProcessInfo.processInfo.environment["SAVOIA_LINKS_TRACE"] == "1"
-    static func log(_ message: @autoclosure () -> String) {
-        guard isOn else { return }
-        Log.debug(.links, message())
     }
 }
 

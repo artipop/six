@@ -1,6 +1,5 @@
 #if os(macOS)
 import AppKit
-import WebKit
 
 /// The page's context menu — Savoia's, built for the link under the pointer (`PageDelegate`).
 enum PageContextMenu {
