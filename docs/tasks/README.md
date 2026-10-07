@@ -28,6 +28,7 @@ The order to take them in, and what is not a task at all, is [todo.md](../todo.m
 | [assistant/24-research-without-an-agent.md](assistant/24-research-without-an-agent.md) | Deep research on a Mac with no agent |
 | [bookmarks/25-embeddinggemma-2.md](bookmarks/25-embeddinggemma-2.md) | EmbeddingGemma 2 as the embedder |
 | [assistant/26-research-as-one-file.md](assistant/26-research-as-one-file.md) | A deep research saved as one file |
+| [devtools/27-automation-rest.md](devtools/27-automation-rest.md) | Remote automation: the rest |
 
 ## Every task
 

@@ -94,30 +94,35 @@ window is refused, with `focus_window` named.
 - **`drag` is down, eight dragged events along the line, up.** That is enough for whatever follows the pointer: a
   slider's thumb, a list sorted on `mousemove`. `buttons` is the system's here too, so a page that checks
   `event.buttons` during the move sees no button and lets go.
-- **Drag-and-drop gets its drop from the destination's own methods.** The page's `dragstart` fires on the real
-  events, and WebKit begins a dragging session — which, begun from an event no hand made, never delivers anything
-  and never ends. So `drag` watches the drag pasteboard: when its change count moves, the page has started a drag,
-  the dragged events stop, and the web view is called as a session calls its destination — `draggingEntered`,
-  `draggingUpdated` until the page's answer to `dragover` is back, `performDragOperation` — with a `PageDrop` that
-  names the same pasteboard, then `draggedImage:endedAt:operation:` for `dragend`. A target that takes no drop
-  gets `draggingExited`, and the tool fails saying so. A mouse-up follows either way; a browser under a hand sends
-  none after a drop, and the page sees one here.
+- **Drag-and-drop gets its drop from the destination's own methods, and no dragging session runs.** The page's
+  `dragstart` fires on the real events, and WebKit then asks the view to begin a dragging session. Such a session
+  is no use either way: with Savoia in the background it delivered nothing and never ended, and with Savoia in
+  front it followed the person's pointer — the page got `dragenter` at the target and under the pointer in turn,
+  and no `drop`. So for the length of an agent's drag the view declines to begin one (`dragsWithoutSession`:
+  `WKWebView` is given a `beginDraggingSession` of its own at run time, which answers nil for that one view and
+  is `NSView`'s for every other). `drag` watches the drag pasteboard: when its change count moves, the page has
+  started a drag, the dragged events stop, and the web view is called as a session calls its destination —
+  `draggingEntered`, `draggingUpdated` until the page's answer to `dragover` is back, `performDragOperation` —
+  with a `PageDrop` that names the same pasteboard, then `draggedImage:endedAt:operation:` for `dragend`. A target
+  that takes no drop gets `draggingExited`, and the tool fails saying so. A mouse-up follows either way; a browser
+  under a hand sends none after a drop, and the page sees one here.
 - **The snapshot lists `draggable="true"` elements**, with the role `draggable`, since a list item that can be
   dragged is rarely a control. A drop target with no control in it has no ref, and neither has an item sorted by
   pointer events alone: the agent names the nearest control inside it.
 - `drag` takes two refs and no offsets, as Chrome's does: a slider is set with `fill` or the arrow keys.
 
-Measured over `Savoia --mcp` in a throwaway home, 7 October 2026, with Savoia not the front app, on a page with a
-CSS hover menu, a `mouseenter` tooltip, a list sorted on `mousemove`, a `draggable` list, a drop target and an
-element that takes no drops. `hover` on the menu's button: `:hover` matched, the submenu was displayed and its link
-was in the returned snapshot; on the tooltip's button the tooltip's text appeared, and the menu folded. `drag` moved
-the first item of each list behind the third, and put an item's `dataTransfer` text into the drop target, with
-`dragstart`, `dragenter`, `drop`, `dragend` in that order and all trusted. The refusing element got `dragenter` and
+Measured over `Savoia --mcp`, 7 October 2026, twice: in a throwaway home with Savoia in the background, and in
+the dev build launched in front. The page had a CSS hover menu, a `mouseenter` tooltip, a list sorted on
+`mousemove`, a `draggable` list, a drop target and an element that takes no drops. `hover` on the menu's button:
+`:hover` matched, the submenu was displayed and its link was in the returned snapshot, and both still held 2.5 s
+later; on the tooltip's button the tooltip's text appeared, and the menu folded. `drag` moved the first item of
+each list behind the third, and put an item's `dataTransfer` text into the drop target, with `dragstart`,
+`dragenter`, `drop`, `dragend` in that order and all trusted. The refusing element got `dragenter` and
 `dragleave`, the source `dragend`, and the tool failed; a `click` and another `drag` after it worked. Each took
-0.4–0.8 s. The same destination calls with a pasteboard of two file URLs gave the page both files with their
-contents — measured from the test driver, and not a tool. After a started drag the process owns one more window
-at the dragging level, 0×0 and off screen; nobody watched the screen. Not measured: the window being key, and a
-page inside a frame.
+0.4–0.8 s. The first run in front, before sessions were declined, is where the two drag-and-drop cases failed.
+The same destination calls with a pasteboard of two file URLs gave the page both files with their contents —
+measured from the test driver, in the background, and not a tool. Not measured: a page inside a frame, and a
+window known to be key — `document.hasFocus()` answered false in both runs.
 
 ## Dialogs and files: the delegate's door
 
@@ -155,7 +160,10 @@ sheet attached after each answer; nobody watched the sheets go up and come down.
 
 ## Against Chrome's server
 
-Tool for tool against `chrome-devtools-mcp`, whose list was read on 7 October 2026.
+Tool for tool against `chrome-devtools-mcp`, whose list was read on 7 October 2026 and checked again against its
+`docs/tool-reference.md` the next day. Two of Chrome's names in the built rows have no tool of their own here:
+`fill_form` and `type_text` are `fill` called once per field, and `get_console_message` is a line of
+`list_console_messages`.
 
 | Chrome DevTools MCP | Savoia | |
 |---|---|---|
@@ -175,6 +183,7 @@ Tool for tool against `chrome-devtools-mcp`, whose list was read on 7 October 20
 | `emulate`, `resize_page` | — | not reachable |
 | `performance_*`, `lighthouse_audit`, `get_css_styles`, `screencast_*`, the heap snapshot tools | — | not reachable |
 | the extension and PWA tools | — | not built; extensions are installed by the person ([extensions.md](extensions.md)) |
+| `list_3p_developer_tools`, `execute_3p_developer_tool` | — | not built: tools a page's own developer tooling registers with Chrome; nothing registers any with Savoia |
 
 Not reachable means the Web Inspector protocol: a person can open the inspector on a tab, and nothing in Savoia
 sends it a message ([devtools.md](devtools.md)).
