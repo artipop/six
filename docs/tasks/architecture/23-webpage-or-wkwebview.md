@@ -37,6 +37,8 @@ No test covers these, and nothing here can click, hover or look at the screen:
 - an extension's popup, its options page and the new-tab override;
 - find, translation, ⌘E on a selection, a discarded tab coming back, a restored tab not starting its video;
 - Save As to a web archive through the panel, and the archive opened again;
+- remote automation: the switch in Develop, the orange mark on a tab opened with `automation_open_window`, and
+  the switch turned off while such a tab is open;
 - memory with ten tabs, against `main` — the dev Mac has 8 GB.
 
 ## Decisions
