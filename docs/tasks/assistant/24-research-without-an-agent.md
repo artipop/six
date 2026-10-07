@@ -1,29 +1,33 @@
-# 24. Deep research for a Mac with no agent, and a run saved as one file
+# 24. Deep research on a Mac with no agent
 
-Two additions to deep research ([deep-research.md](../../deep-research.md)), independent of each other.
+Let Savoia run a deep research itself, on the model ⌘E is set to, for a Mac that has no agent installed.
 
-## A run without an agent
+## Why
 
-`/research` on the ⌘E line hands the question to an ACP agent — Claude Code, Codex or a custom one — which searches,
-opens sources, writes the document and cites. A Mac with none of those installed has no deep research at all.
+`/research` on the ⌘E line hands the question to an ACP agent — Claude Code, Codex or a custom one. The agent is a
+separate program with its own subscription, and it does all of the work: searches, opens the sources, reads them,
+writes the document, cites and highlights. Savoia only lends it the tools ([deep-research.md](../../deep-research.md)).
+On a Mac with no agent, `/research` does nothing at all.
 
-The addition is a loop of Savoia's own over the model ⌘E is set to (on-device, Private Cloud Compute, a model by
-key): the same steps the preset describes, driven by Savoia calling its own tools — `web_search`, `open_window`,
-`get_page_content`, `write_document`, `cite`, `highlight_page` — instead of an agent calling them. Smaller models
-do less per step, so the loop does the planning: one source at a time, one section at a time.
+## What to build
 
-Measure first what the on-device model can do with one source and one section; if it cannot write a usable
-paragraph from a page, say so and stop — the feature is then "needs a larger model", not a loop.
+A loop of Savoia's own in the agent's place, over whichever language model ⌘E is set to — on-device, Private Cloud
+Compute, or a model by key. Savoia calls the same tools the agent would: `web_search`, `open_window`,
+`get_page_content`, `write_document`, `cite`, `highlight_page`.
 
-## A run as one HTML file
+An agent plans for itself; a small model cannot. So the planning is Savoia's code and the model gets one small job
+at a time: this page, this heading — write the paragraph. One source at a time, one section at a time, the outline
+written into the document first so the person sees it grow, as the preset already asks of an agent.
 
-A finished run is a document tab and the tabs of its sources. Export writes the document
-(`Savoia/Documents/Export.swift`); the sources stay behind as addresses. The addition is one self-contained `.html`:
-the document, and under it each cited source's readable copy (`ReadablePage`) with the highlighted passages marked,
-so the file can be sent to someone or kept after the pages change.
+## First, before the loop
+
+Measure what the on-device model can do with one page and one heading. If it cannot write a usable paragraph from a
+page, say so and stop: the feature is then "needs a larger model", and a loop would only hide that. The on-device
+model was not available on the dev Mac in October 2026 (Apple Intelligence not set up) — check that before
+planning the sitting, or measure on a model by key and say which.
 
 ## Done when
 
-Each is its own commit. The first: a question answered into a document with citations on a Mac with no agent, with
-the model, the time and the number of sources written into deep-research.md. The second: Save As offers the format
-and the file opens in Safari with its highlights visible.
+A question is answered into a document with citations and highlights on a Mac with no agent, and
+deep-research.md records the model, the time and the number of sources. `/research` chooses the agent when ⌘E is
+set to one and this loop otherwise, without asking — the rule `highlight_page` already follows.

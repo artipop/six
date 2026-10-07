@@ -27,8 +27,9 @@ The order to take them in, and what is not a task at all, is [todo.md](../todo.m
 | [extensions/20-extensions-next.md](extensions/20-extensions-next.md) | Extensions: after the measurement |
 | [design/21-open-design-questions.md](design/21-open-design-questions.md) | Two questions with no answer chosen |
 | [devtools/22-web-inspector-in-savoia.md](devtools/22-web-inspector-in-savoia.md) | Web Inspector in Savoia's own window |
-| [assistant/24-research-without-an-agent.md](assistant/24-research-without-an-agent.md) | Deep research for a Mac with no agent, and a run saved as one file |
+| [assistant/24-research-without-an-agent.md](assistant/24-research-without-an-agent.md) | Deep research on a Mac with no agent |
 | [bookmarks/25-embeddinggemma-2.md](bookmarks/25-embeddinggemma-2.md) | EmbeddingGemma 2 as the embedder |
+| [assistant/26-research-as-one-file.md](assistant/26-research-as-one-file.md) | A deep research saved as one file |
 
 ## Every task
 
