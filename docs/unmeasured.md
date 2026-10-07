@@ -131,3 +131,40 @@ left by navigating. What nobody has watched:
   it was there before the move was not checked.
 - **The key ring's self-test on the last build.** `SAVOIA_KEY_SELFTEST=1` read "no key window" in its last two
   runs, with the screen locked or another app in front; `=alert` was run by Artem on a free Mac and passed.
+
+## Remote automation and the page's host, 7 October 2026
+
+What [devtools.md](devtools.md#remote-automation) and [permissions.md](permissions.md#compatibility-web-platform-tests)
+say after that day's work, and the part of it nobody watched.
+
+- **A person's first click on an automation tab.** `AutomatedWebView` accepts the first mouse so that the
+  protocol's click lands with Savoia behind another app. It follows that a person who clicks a Savoia window to
+  bring it forward also clicks whatever in the page was under the pointer, on such a tab only. Reasoned, not tried.
+- **A window an automation tab opens** is said to be an automation tab with the same view. That it is built as an
+  `AutomatedWebView`, and that the protocol clicks in it from behind, was not run.
+- **The rest of the protocol's mouse.** Measured: `Move`, `Down`, `Up` of the left button in a sequence, and
+  `performMouseInteraction` `Down` and `Up`. Not run: the right and middle buttons, a double click, a drag, a wheel
+  source, an `Element` origin. Why `SingleClick` sends two mouse-downs is not known.
+- **The page that does not come home from fullscreen.** The host takes it back, and that was measured on the one
+  wpt file that showed it. A page of the same shape made by hand came home by itself, so what sets the wpt file
+  apart is not known — and a real site in fullscreen, entered and left by a person after this change, was not
+  watched ([tasks/measure/12](tasks/measure/12-one-sitting.md) has that sitting).
+- **The Continuity Camera and `enumerateDevices-per-origin-ids`.** Seen: with an iPhone in reach its camera's
+  `deviceId` differs between a page and its same-origin frame, and the subtest fails. Inferred: that the baseline's
+  pass was a run without the phone. One run with the iPhone out of reach settles it.
+- **The full wpt run after the two fixes** gave Safari's 331 of 356 — on a Debug build that another session
+  rebuilt while it ran, with geolocation half in. The numbers are of that tree, not of a commit.
+- **`MediaStreamTrack-applyConstraints`** timed out once in that run at its second subtest and not alone
+  afterwards. Not explained.
+- **The window's frame** was measured in one window on the built-in display: not on a second display, not in a
+  fullscreen window, not with two windows.
+- **Whether the window commands hung before they were answered.** `maximizeWindowOfBrowsingContext`,
+  `hideWindowOfBrowsingContext` and `setWindowFrameOfBrowsingContext` answer at once now; what they did on the
+  build before was not run, so "they had nobody to ask" is the task's word and not a measurement.
+- **The switch itself.** Turning automation off under a command was done through `testdriver_allow_automation`,
+  which sets the same property as the toggle in Configuration; the toggle was not pressed.
+- **The orange mark** was seen in a drawing of the window, dark appearance, Russian. Its help text on hover and the
+  light appearance were not.
+- **The guide** was edited in both languages and not built.
+- **The names in [task 30](tasks/permissions/30-paste-menu-over-another-app.md)** — the three WebKit calls around
+  the Paste menu — are from the binary; none was called.

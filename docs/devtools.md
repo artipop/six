@@ -146,8 +146,9 @@ through the UI delegate — `_webView:getWindowFrameWithCompletionHandler:`, whi
 frame of the window the view is in — so `windowSize` and `windowOrigin` are the one window's, the origin counted
 from the top left of the screen. It is every tab's delegate, and it was every tab's fault: a page read
 `outerWidth` and `outerHeight` 0 and `screenY` as the height of the screen until it was answered.
+A tab behind another is in no window and is answered with the window there is.
 `_webView:setWindowFrame:` is left unanswered, so neither `setWindowFrameOfBrowsingContext` nor a page's
-`resizeTo` moves anything. The session delegate's `requestMaximizeWindowOfWebView`, `requestHideWindowOfWebView`
+`resizeTo`, `moveTo` or `resizeBy` moves anything — measured. The session delegate's `requestMaximizeWindowOfWebView`, `requestHideWindowOfWebView`
 and `requestRestoreWindowOfWebView` are answered at once and do nothing: an automation tab is a tab in the window
 somebody is using, and the three have no way to say no, only a completion to call.
 
@@ -229,7 +230,7 @@ for a name Savoia keeps no answer for — `clipboard-read`, `clipboard-write`, `
 `geolocation` as an unknown value too.
 
 **WebDriver over HTTP is not built.** safaridriver does not attach to another browser, so it would be a server of
-Savoia's own turning W3C commands into the protocol's. No client is waiting for one; what it would take is
+Savoia's own turning W3C commands into the protocol's. Its client is to be wptrunner, in place of the stand's own runner:
 [tasks/devtools/28](tasks/devtools/28-webdriver-http.md).
 
 ## What is not here

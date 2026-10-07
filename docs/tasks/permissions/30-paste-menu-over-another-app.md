@@ -1,4 +1,4 @@
-# 29. The Paste menu comes up over another app
+# 30. The Paste menu comes up over another app
 
 A page that reads the clipboard — `navigator.clipboard.read()`, `readText()`, `execCommand('paste')` — when what is
 on it was not put there by the same origin, is answered by WebKit with a one-item menu, **Paste**, at the element.

@@ -25,8 +25,8 @@ Nothing here waits on the steps above, except where it says so.
 | Measurements nobody has made: extensions' messaging and `scripting`, uBlock Origin Lite's control run, two WebMCP tests, fullscreen on a real site | [tasks/measure/12](tasks/measure/12-one-sitting.md) |
 | Extensions after those measurements: what is left of the list now that a tab hands out its view and extension pages are tabs | [tasks/extensions/20](tasks/extensions/20-extensions-next.md) |
 | A tab as a floating window | [tasks/browser/17](tasks/browser/17-floating-window.md) |
-| WebKit's Paste menu, which an agent's click brings up over whatever app is in front | [tasks/permissions/29](tasks/permissions/29-paste-menu-over-another-app.md) |
-| WebDriver over HTTP, when a client wants one | [tasks/devtools/28](tasks/devtools/28-webdriver-http.md) |
+| WebKit's Paste menu, which an agent's click brings up over whatever app is in front | [tasks/permissions/30](tasks/permissions/30-paste-menu-over-another-app.md) |
+| WebDriver over HTTP, so that the wpt stand runs under wptrunner | [tasks/devtools/28](tasks/devtools/28-webdriver-http.md) |
 | The assistant: a verb of one's own, an answer shown in the field | [tasks/assistant/18](tasks/assistant/18-ghost-text-and-own-verbs.md) |
 | A deep research saved as one self-contained file, sources and highlights inside | [tasks/assistant/26](tasks/assistant/26-research-as-one-file.md) |
 | Deep research on a Mac with no agent: Savoia's own loop over the ⌘E model | [tasks/assistant/24](tasks/assistant/24-research-without-an-agent.md) |

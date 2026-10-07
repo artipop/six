@@ -200,7 +200,8 @@ final class PageDelegate: NSObject, WKNavigationDelegate, WKUIDelegate {
     /// SPI. Unanswered, a page reads `outerWidth` 0 and remote automation a window of no size.
     @objc(_webView:getWindowFrameWithCompletionHandler:)
     func webView(_ webView: WKWebView, windowFrame completionHandler: @escaping (CGRect) -> Void) {
-        completionHandler(webView.window?.frame ?? .zero)
+        // A tab behind another is in no window, and the window it will come back to is the one there is.
+        completionHandler((webView.window ?? PageDialogs.window)?.frame ?? .zero)
     }
 
     // MARK: The context menu
