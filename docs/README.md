@@ -4,20 +4,19 @@ Short, practical notes on how the app is put together. The [top-level README](..
 reference.
 
 Everything on this page is written for whoever changes the code. What is written for whoever *uses* the browser is
-[`guide/`](guide/) — the user guide, in Russian and English, published on the deffun site under `/docs/vi/`, an address kept from when the product was
-called VI. It is a VitePress site whose root is that
+[`guide/`](guide/) — the user guide, in Russian and English, published on the deffun site under `/savoia/docs/`. It is a VitePress site whose root is that
 folder, so nothing else in `docs/` can be published by accident:
 
 ```sh
 cd docs/guide
 npm ci
-npm run dev      # http://localhost:5176/docs/vi/
-npm run build    # into ../../../xciii/site/dist/docs/vi — the deffun site's own dist
+npm run dev      # http://localhost:5176/docs/
+npm run build    # into docs/guide/.vitepress/dist, which git ignores
 ```
 
-The port is pinned, and the build writes into the site repository next door, which has to be checked out beside this
-one. Normally it is built from there instead: `npm run build:all` in `xciii/site` does the landing and all three
-guides in the order their output directories require.
+The port is pinned. The published site is composed by the `deffun` project checked out beside this one: its
+`npm run build` runs this build with `BASE` set and copies the output under `/savoia/docs/`, and
+`ONLY=savoia npm run build` there does the home page and Savoia alone.
 
 A feature is not finished until `docs/guide/` says how to use it — in both languages, naming buttons with the strings
 from [`Savoia/Localizable.xcstrings`](../Savoia/Localizable.xcstrings) rather than translating them by eye

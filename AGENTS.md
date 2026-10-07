@@ -255,7 +255,8 @@ rewrite the root file. `xcodebuild` never touches it — the project holds only 
 - **A feature is not finished until the docs say so.** `docs/*.md` for whoever changes the code, and
   [`docs/guide/`](docs/guide/) — the VitePress user guide — **in both Russian and English**, naming buttons with the
   strings from `Savoia/Localizable.xcstrings` rather than translating by eye. That build runs from `docs/guide` and
-  writes into the sibling `xciii` site; VitePress drops the diacritic on «й» when slugifying anchors.
+  writes `docs/guide/.vitepress/dist`; the sibling `deffun` project composes the published site
+  (`ONLY=savoia npm run build` there). VitePress drops the diacritic on «й» when slugifying anchors.
 - **Localization**: everything a person reads goes through the String Catalogs, English and Russian. Everything a
   *model* reads — tool descriptions, the catalog's instructions, presets — stays English, because that is a prompt and
   not an interface. [docs/localization.md](docs/localization.md).
