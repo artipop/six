@@ -35,6 +35,12 @@ leaves that file by being measured, in either direction, and by the page it came
    drag-and-drop files of wpt are not part of this sitting — they need the press moved to the web view first, and
    must not be run on the raw path while Artem is working.
 
+## What Artem does, and what a session does
+
+Items 5 and the watching half of 6 are a person's, and have pages: `./scripts/walk.sh`, the stations "Fullscreen
+and picture-in-picture", "An agent's hand" and "On real sites" ([unmeasured.md](../../unmeasured.md)). Items 1 to
+3 and the wpt half of 6 are a session's.
+
 ## Done when
 
 Each numbered line has a date and a result in the page it belongs to, and unmeasured.md is shorter.
