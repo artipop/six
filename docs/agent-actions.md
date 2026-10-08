@@ -158,8 +158,18 @@ Measured over `Savoia --mcp` in a throwaway home, 7 October 2026, on a page of f
 `confirm` accepted and dismissed read `true` and `false` in the page; `prompt` answered with a text, with its
 default and dismissed read the text, the default and `null`; `alert` let the script after it run; a `confirm` raised
 by `evaluate_javascript` came back as the dialog in 0.3 s instead of never. A file went into a plain input, into a
-hidden input behind a button, and two into a `multiple` one, and the page read their contents back. The window had no
-sheet attached after each answer; nobody watched the sheets go up and come down.
+hidden input behind a button, and two into a `multiple` one, and the page read their contents back.
+
+`SAVOIA_DIALOGS_SELFTEST=1` (`Savoia/Browser/DialogsSelfTest.swift`) runs the person's half and the sheets from
+inside the app: each dialog is raised from a timer, its sheet is waited for, and it is answered by the sheet's own
+OK or Cancel pressed with `performClick`, by Return posted to the sheet, or in code as an agent's answer; every step
+logs what the page read and whether a sheet is still attached. On 8 October 2026 all fifteen steps passed: the
+buttons of `confirm`, `prompt` and `alert`, a text put in the prompt's field, Return on `confirm` and `alert`, an
+agent's answer taking the sheet down, the open panel cancelled and answered with a file, and a tab closed under
+its `confirm`. The call that raises a dialog is not awaited there — WebKit holds its reply while the dialog is up.
+The same day `upload_file` on squoosh.app, a real page with its input hidden behind a drop area: the editor opened
+on the 177-byte image. What a posted key does not reach, and what only eyes can say, is in
+[unmeasured.md](unmeasured.md#a-pages-dialogs-under-a-hand).
 
 ## Against Chrome's server
 

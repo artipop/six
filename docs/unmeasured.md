@@ -194,3 +194,24 @@ Both were built and measured under `SAVOIA_TESTDRIVER`, where neither system ser
   the Continuity Camera line above.
 - **The guide** was edited in both languages and not built.
 - **A Release build** with the bridging header was not made.
+
+## A page's dialogs, under a hand
+
+**8 October 2026, dev build.** The sheets behind `alert`, `confirm`, `prompt` and the file chooser were rebuilt so
+that an agent can answer them ([agent-actions.md](agent-actions.md#dialogs-and-files-the-delegates-door)).
+`SAVOIA_DIALOGS_SELFTEST` presses their buttons and reads the result; these it cannot do.
+
+- **Escape on a sheet, and any key in the prompt's field.** Posted with `NSApp.postEvent` they reach the key
+  router, pass through, and the sheet does nothing: Escape on `confirm`, `prompt` and the open panel, and Return or
+  a typed letter while the prompt's field has the keyboard. Return on `confirm` and `alert` does answer. Whether a
+  real key does better is not known — it is the same `NSAlert` as before the change, but nobody pressed Escape on
+  the old one either. One `confirm` and one `prompt` by hand settle it.
+- **A file picked in the open panel by hand.** The panel's Cancel and an agent's file are measured; a person
+  choosing a file and pressing Choose is not.
+- **What the sheets look like.** Each step saw a sheet attached and gone afterwards, by class. Nobody saw one go up
+  under an agent's click and come down on its answer, or whether that reads as a flicker.
+- **A dialog in a tab that is not in front.** Its sheet takes the whole window until it is answered, as it always
+  did; with an agent working in a background tab that now happens while a person reads another. Whether that is
+  acceptable, or a tab under an agent should raise no sheet, is a decision and not a measurement.
+- **A dialog with no window to hang a sheet on** runs `runModal`, and an agent's answer to it was not tried.
+

@@ -121,6 +121,10 @@ whole session of reasoning. Two things that make its output readable: a **contro
 so "the item did nothing" can be told from "the key never arrived"; and that control going **last**, because `⌘T`
 takes the selection with it and every key after it is then aimed at a fresh window with no history — which reads
 exactly like WebKit swallowing the key, and was believed once. `SAVOIA_UI_DEBUG=1` prints a line per key press with the context it landed in and who took it.
+`SAVOIA_DIALOGS_SELFTEST=1` answers a page's `alert`, `confirm`, `prompt` and file chooser the way a person and an
+agent do, and says what the sheet and the page were left with. A sheet's buttons are pressed with `performClick`:
+a posted Escape, and any posted key while a sheet's text field has the keyboard, arrive and do nothing, and only
+Return on a sheet without a field answers it ([unmeasured.md](docs/unmeasured.md#a-pages-dialogs-under-a-hand)).
 **But `postEvent` goes past the system**, straight into the app's own queue — so a key the WindowServer
 owns tests green and does nothing in the hand. `⌃←` / `⌃→` are Mission Control's *Move left/right a
 space* (symbolic hotkeys 79 and 80, on by default) and never reach any application; the ring's

@@ -158,6 +158,7 @@ extension ContentView {
         if let spec = environment["SAVOIA_FIND_SELFTEST"], !spec.isEmpty { await findSelfTest(spec) }
         if environment["SAVOIA_CRX_SELFTEST"] != nil { crxSelfTest() }
         if environment["SAVOIA_TABS_SELFTEST"] != nil { await TabsSelfTest.run(browser) }
+        if environment["SAVOIA_DIALOGS_SELFTEST"] != nil { await DialogsSelfTest.run(browser) }
         if environment["SAVOIA_INSPECTOR_SELFTEST"] != nil { await WebInspectorSelfTest.run(browser) }
         if let mode = environment["SAVOIA_TOPICS_SELFTEST"] { await TabTopicsSelfTest.run(browser, grid: mode == "grid", compare: mode == "compare") }
         if let text = environment["SAVOIA_CHATS_SELFTEST"], !text.isEmpty {
