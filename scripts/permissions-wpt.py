@@ -434,7 +434,7 @@ def answer(savoia, window, action, origin, log, held):
 def run_one(savoia, window, test, slack):
     timeout = (60 if test["long"] else 10) + slack
     savoia.call("testdriver_close_windows")
-    savoia.call("testdriver_set_geolocation")
+    savoia.call("testdriver_reset")
     savoia.call("navigate", window_id=window, url=address(test["url"]))
     state, started = None, time.time()
     actions, acted, held = [], False, set()

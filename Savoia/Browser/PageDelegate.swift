@@ -195,6 +195,30 @@ final class PageDelegate: NSObject, WKNavigationDelegate, WKUIDelegate {
         return allowed ? .grant : .deny
     }
 
+    // MARK: Notifications
+
+    /// SPI. Unanswered, WebKit refuses and no question appears.
+    @objc(_webView:requestNotificationPermissionForSecurityOrigin:decisionHandler:)
+    func webView(_ webView: WKWebView, notificationsFor origin: WKSecurityOrigin,
+                 decisionHandler: @escaping (Bool) -> Void) {
+        guard kind == .web, let tab, let permissions = tab.permissions else { return decisionHandler(false) }
+        permissions.decide([.notifications], origin: SitePermissions.string(for: origin),
+                           in: tab.id, profileID: tab.profileID, then: decisionHandler)
+    }
+
+    /// SPI: what `navigator.permissions.query` says. Unanswered, everything is `prompt`.
+    @objc(_webView:queryPermission:forOrigin:completionHandler:)
+    func webView(_ webView: WKWebView, queryPermission name: String, for origin: WKSecurityOrigin,
+                 completionHandler: @escaping (WKPermissionDecision) -> Void) {
+        let asked = SitePermission.allCases.first { SitePermissions.queryName(of: $0) == name }
+        guard kind == .web, let tab, let asked,
+              let allowed = tab.permissions?.decision(for: asked, origin: SitePermissions.string(for: origin),
+                                                      profileID: tab.profileID) else {
+            return completionHandler(.prompt)
+        }
+        completionHandler(allowed ? .grant : .deny)
+    }
+
     // MARK: The window's frame
 
     /// SPI. Unanswered, a page reads `outerWidth` 0 and remote automation a window of no size.
@@ -231,6 +255,28 @@ final class PageDelegate: NSObject, WKNavigationDelegate, WKUIDelegate {
 }
 
 extension SitePermissions {
+    /// The Permissions API's name for what Savoia keeps an answer about.
+    static func queryName(of permission: SitePermission) -> String? {
+        switch permission {
+        case .camera: "camera"
+        case .microphone: "microphone"
+        case .location: "geolocation"
+        case .notifications: "notifications"
+        case .motion, .pageTools: nil
+        }
+    }
+
+    /// A `PermissionStatus` a page holds hears `change` only if WebKit is told.
+    static func tellPages(_ permission: SitePermission, changedFor origin: String) {
+        guard let name = queryName(of: permission) else { return }
+        let asked = WKStringCreateWithUTF8CString(name)
+        let site = WKStringCreateWithUTF8CString(origin)
+        WKPagePermissionChanged(asked, site)
+        WKRelease(UnsafeRawPointer(asked))
+        WKRelease(UnsafeRawPointer(site))
+        if permission == .notifications { SiteNotifications.shared.policyChanged(for: origin) }
+    }
+
     /// The origin as WebKit writes it, which reports 0 for a scheme's own port; agrees with `origin(of:)`.
     static func string(for origin: WKSecurityOrigin) -> String {
         let scheme = origin.`protocol`

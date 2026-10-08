@@ -41,8 +41,10 @@ the counterpart of Safari's *Allow Remote Automation*:
 
 | testdriver call | tool | what it does |
 |---|---|---|
-| `set_permission` | `testdriver_set_permission` | files the answer in `SitePermissions` for the page's origin, as the bar would. `geolocation` is `SitePermission.location`. A name Savoia keeps no answer for (`notifications`, `clipboard-write`…) is an error, and the test sees it. `bidi.permissions.set_permission` goes the same way |
-| `bidi.emulation.set_geolocation_override` | `testdriver_set_geolocation` | the position pages are given in place of CoreLocation's, or `positionUnavailable`; with neither, none. The runner clears it before every file |
+| `set_permission` | `testdriver_set_permission` | files the answer in `SitePermissions` for the page's origin, as the bar would. `geolocation` is `SitePermission.location`. A name Savoia keeps no answer for (`clipboard-write`, `midi`…) is an error, and the test sees it. `bidi.permissions.set_permission` goes the same way |
+| `bidi.emulation.set_geolocation_override` | `testdriver_set_geolocation` | the position pages are given in place of CoreLocation's, or `positionUnavailable`; with neither, none. |
+| — | `testdriver_reset` | before every file: forgets the answers about location and notifications, clears the stand-in position, closes every notification shown |
+| — | `testdriver_answer_permission` | presses Allow or Block on the bar a window is showing — how the question about notifications was walked from a click to `granted` |
 | `click`, and `bless` through it | `testdriver_click` | an `NSEvent` mouse down and up handed straight to the `WKWebView`, at the element's middle. WebKit counts it as a user gesture — measured: the page gets `click`, and a clipboard write that needs activation succeeds |
 | `delete_all_cookies` | `testdriver_delete_all_cookies` | empties the profile's cookie store |
 | — | `testdriver_allow_automation` | throws Allow Remote Automation (`allow`), as the switch in Configuration does — how turning it off under a running command was measured ([devtools.md](devtools.md#remote-automation)) |
@@ -135,7 +137,7 @@ Savoia's answer. These are the wpt directories worth running; everything else in
 |---|---|
 | `permissions`, `permissions-policy`, `permissions-request`, `permissions-revoke` | `SitePermissions`: the per-site answers and the permission bar |
 | `mediacapture-streams`, `screen-capture`, `mediacapture-handle` | camera, microphone and screen: the bar, the capture indicator, `stopCapture` ([permissions.md](permissions.md)) |
-| `geolocation`, `notifications`, `push-api` | not built ([todo.md](todo.md)); these say exactly what is missing |
+| `push-api` | not built, and out of reach ([permissions.md](permissions.md#what-savoia-still-cannot-ask-for)) |
 | `html/browsers/windows`, `html/browsers/the-window-object` (`window.open`, `noopener`, popups) | where a new window lands in the row, and who owns it |
 | `html/webappapis/user-prompts`, `html/browsers/browsing-the-web/unloading-documents` (`beforeunload`) | the page's own dialogs, which Savoia draws ([permissions.md](permissions.md)) |
 | `html/browsers/history`, `navigation-api` | back and forward as Savoia wires them, including the `⌘[` menu items |
@@ -158,14 +160,14 @@ Safari column is 27.0 on wpt.fyi, 2 October 2026 (Technology Preview 253 scores 
 
 | wpt directory | test files | without testdriver | Safari 27.0, subtests | testdriver calls the rest make |
 |---|---|---|---|---|
-| `permissions` | 14 | 7 | 150/206 | `set_permission` |
+| `permissions` | 18 | 7 | 175/234 | `set_permission` |
 | `permissions-request`, `permissions-revoke` | 2 | 2 | 8/14 each | — |
 | `permissions-policy` | 111 | 83 | 66/620, 30 files timing out | `bless`, `send_keys`, `click` |
 | `mediacapture-streams` | 57 | 12 | 366/482 | `bless`, `click`, `set_permission` through its helper |
 | `screen-capture` | 15 | 4 | 25/186 | `bless`, `click`, `set_permission` |
 | `mediacapture-handle` | 1 | 1 | 0/5 | — |
 | `geolocation` | 22 | 5 | 124/131, no file in error ([permissions.md](permissions.md#geolocation-in-the-suite)) | `set_permission`, WebDriver BiDi emulation |
-| `notifications` | 24 | 8 | 187/345, 14 files in error | `set_permission` |
+| `notifications` | 29 | 16 | 231/369, no file in error ([permissions.md](permissions.md#notifications-in-the-suite)) | `set_permission` |
 | `clipboard-apis` | 58 | 7 | 181/245 | `click`, `set_permission` |
 | `storage-access-api` | 40 | 2 | 117/149 | `delete_all_cookies`, `set_permission` |
 | `idle-detection` | 12 | 1 | 1/63 | `set_permission` |

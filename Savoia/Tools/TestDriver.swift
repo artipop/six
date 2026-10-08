@@ -68,6 +68,34 @@ enum TestDriver {
                 }
             ),
             BrowserTool(
+                name: "testdriver_answer_permission",
+                description: "Presses Allow or Block on the permission bar the window is showing.",
+                parameters: [window, .init(name: "allow", description: "true or false.", type: .boolean, required: true)],
+                surfaces: .mcp,
+                run: { args in
+                    let tab = try tab(args)
+                    guard let question = browser.permissions?.question(for: tab.id) else {
+                        throw BrowserTool.Failure(message: "The window is asking nothing")
+                    }
+                    browser.permissions?.answer(args["allow"]?.boolValue ?? false, for: tab.id)
+                    return "\(question.origin) \(question.permissions.map(\.rawValue).joined(separator: "+"))"
+                }
+            ),
+            BrowserTool(
+                name: "testdriver_reset",
+                description: "What one test file must not leave for the next: answers about location and notifications, the stand-in position, and every notification shown.",
+                surfaces: .mcp,
+                run: { _ in
+                    for decision in browser.permissions?.decisions ?? []
+                    where decision.permission == .location || decision.permission == .notifications {
+                        browser.permissions?.forget(decision.permission, forOrigin: decision.origin, profileID: decision.profileID)
+                    }
+                    Geolocation.shared.override = nil
+                    SiteNotifications.shared.closeAll()
+                    return "ok"
+                }
+            ),
+            BrowserTool(
                 name: "testdriver_click",
                 description: "A mouse click in the page, at a point of its viewport in CSS pixels.",
                 parameters: [window,

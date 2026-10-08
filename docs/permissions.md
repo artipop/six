@@ -1,7 +1,7 @@
 # Site permissions
 
 What a page is allowed to do with the machine, and who does the asking. Two things live here: the devices a site can
-ask for (camera, microphone, location) and the four dialogs a page can put up (`alert`, `confirm`, `prompt`, the
+ask for (camera, microphone, location, notifications) and the four dialogs a page can put up (`alert`, `confirm`, `prompt`, the
 file picker). They share a file's worth of thinking because they share a cause — a web view left alone answers both
 kinds of question by itself, and both of its answers are wrong for a browser. Both are methods of a tab's UI
 delegate, `PageDelegate`. The motion sensors were a third device while a tab was SwiftUI's `WebPage`; `WKUIDelegate`
@@ -160,9 +160,7 @@ Savoia's bar: CoreLocation is started when WebKit asks the provider for a positi
 allowed. A Mac with Location Services off for Savoia answers the page `POSITION_UNAVAILABLE`.
 
 Not done: taking the answer back in the site menu does not stop a `watchPosition` already running — the provider
-serves the pool, not a page, and the page keeps its watch until it reloads. And `navigator.permissions.query` for
-`geolocation` still says `prompt` whatever was answered; that is one private delegate method, and it comes with
-notifications ([tasks/permissions/08](tasks/permissions/08-notifications.md)).
+serves the pool, not a page, and the page keeps its watch until it reloads.
 
 Under `SAVOIA_TESTDRIVER` CoreLocation is never started: `testdriver_set_geolocation` sets the position pages are
 given, and with none set the position cannot be found — a test must not learn where it runs.
@@ -187,16 +185,17 @@ after it: on 6 October nineteen of these files timed out in Safari that had fini
 
 On wpt `1d99362`, 6 October 2026, baseline in `scripts/permissions-wpt-baseline.json`, one full run: 377 addresses,
 21 left out, 356 run, **331 the same as Safari, 25 not** — and, since geolocation was built a day later, 315 and 41:
-its sixteen files that were a harness error in both now run in Savoia and are still an error in Safari.
+its sixteen files that were a harness error in both now run in Savoia and are still an error in Safari. Notifications
+and `navigator.permissions` a day after that moved nineteen more the same way ([below](#notifications-in-the-suite)).
 
 | directory | run | same | differ |
 |---|---|---|---|
-| `permissions`, `-request`, `-revoke` | 22 | 22 | 0 |
+| `permissions`, `-request`, `-revoke` | 22 | 17 | 5 |
 | `permissions-policy` | 117 | 105 | 12 |
 | `mediacapture-streams` | 52 | 47 | 5 |
 | `mediacapture-handle` | 1 | 1 | 0 |
 | `geolocation` | 22 | 6 | 16 |
-| `notifications` | 29 | 29 | 0 |
+| `notifications` | 29 | 15 | 14 |
 | `clipboard-apis` | 61 | 57 | 4 |
 | `storage-access-api` | 40 | 40 | 0 |
 | `idle-detection` | 12 | 8 | 4 |
@@ -294,28 +293,84 @@ holds it awake; windows that tests open are closed before the next test. The cli
 clipboard and the capture files use the real camera — `--no-testdriver` leaves both out. Content blocking is on
 in the throwaway home, as it is in a fresh install.
 
+## Notifications
+
+The same trade as [geolocation](#geolocation), with both halves private this time. The question is
+`_webView:requestNotificationPermissionForSecurityOrigin:decisionHandler:`, which `PageDelegate` answers from
+`SitePermissions` — `SitePermission.notifications`, the bar with a sentence of its own. What a granted page then
+shows is the app's to draw: `SiteNotifications` (`Savoia/Browser/SiteNotifications.swift`) installs a
+`WKNotificationProviderV0` on the process pool's notification manager, posts through `UserNotifications`, and tells
+WebKit what became of each one — shown, clicked, closed — which is what a page hears as `onshow`, `onclick` and
+`onclose`. The declarations are in the bridging header beside geolocation's, checked against WebKit's
+`WKNotificationProvider.h`, `WKNotificationManager.h` and `WKNotification.h`; macOS only.
+
+Measured in Savoia, under the test driver, 8 October 2026:
+
+- **Without a user gesture `requestPermission()` is `denied` in 0 ms** and nothing reaches Savoia — WebCore refuses
+  first. With a real click (`testdriver_click`) the bar comes up; answered Allow, the page gets `granted`.
+- **`new Notification()` then fires `show`, and `close()` fires `close`** — the provider's two reports.
+- **`Notification.permission` is `granted` after a reload**, and `navigator.permissions.query` agrees. WebKit keeps a
+  list of its own for this, per origin, which it asks the provider for when a web process starts
+  (`notificationPermissions`) and has to be told about afterwards
+  (`WKNotificationManagerProviderDidUpdateNotificationPolicy`, `…DidRemoveNotificationPolicies`):
+  `SitePermissions.onChanged` is that telling.
+
+That list has no profile in it and Savoia's answers do. An origin allowed in any profile is `granted` in WebKit's
+list; when a notification arrives, the tab it came from is found by its page and the answer of *that* profile is
+asked again, so a profile that was told no shows nothing. A private profile is refused inside WebKit before anyone is
+asked, as in Safari.
+
+A click on the banner brings Savoia forward and selects the tab that showed it. A `tag` replaces the earlier
+notification of the same site and tag. The system's own prompt, once for the app, comes with the first notification
+and not with the first Allow.
+
+**`navigator.permissions` answers from `SitePermissions` now**, for the camera, the microphone, location and
+notifications: `_webView:queryPermission:forOrigin:completionHandler:`, which unanswered says `prompt` for
+everything. And a `PermissionStatus` a page holds hears `change` when an answer is written or taken back —
+`WKPagePermissionChanged`, the call WebKit's own test runner makes.
+
+**A service worker's notifications** (`registration.showNotification`) go through a manager of their own, one for
+the process (`WKNotificationManagerGetSharedServiceWorkerNotificationManager`), with no page. The provider is
+installed there too and shows them when the origin is allowed in some profile; a click brings forward a tab of that
+site if there is one, and the worker hears `notificationclick`. What a worker then asks for —
+`clients.openWindow` — is not answered, and the profile is not known. That, icons, and action buttons are
+[tasks/permissions/31](tasks/permissions/31-service-worker-notifications.md).
+
+Under `SAVOIA_TESTDRIVER` nothing is posted to the system: the provider reports "shown" at once, and a run leaves no
+banners behind.
+
+### Notifications in the suite
+
+As with geolocation, Safari's row is no bar — safaridriver cannot `set_permission` — and the number is absolute:
+**231 of 369 subtests, no file in harness error**, where it was 187 of 343 with sixteen. Two runs agree file for
+file. `permissions`, with its `-request` and `-revoke`, went from 150 of 206 to 175 of 234 on the same change: its
+tests set `geolocation` and wait for `change`.
+
+The stand resets between files now (`testdriver_reset`): answers about location and notifications, the stand-in
+position, every notification shown. Without it one file's grant was the next file's starting state, and a test that
+waits for a change from `prompt` waited forever.
+
+What fails, by cause:
+
+| subtests | what | why |
+|---|---|---|
+| 72: `idlharness` (four globals), 21: `lang` | the same as Safari | WebKit's: `actions`, `image`, `badge`, `vibrate`, `requireInteraction`, `maxActions`, no `Notification` in a shared worker, `lang` not validated |
+| 6: `instance` | `requireInteraction` and `actions` are `undefined` | the same missing attributes |
+| 9: `shownotification` (6), `registration-association` (2), `getnotifications-across-processes` (1) | `getNotifications()` returns more than the test showed | WebKit refuses to `close()` a persistent notification younger than its minimum lifetime, so the tests' own cleanup does nothing. Measured: no `cancel` reaches the provider for them. That the lifetime is the reason is read from WebCore's `Notification::close`, not measured; WebKit's own runner overrides it through the data store's configuration |
+| 5: `cross-origin-nested` (4), `cross-origin-serviceworker` (1), both tentative | a third-party frame or worker is `granted` | WebKit decides by the frame's own origin; the tests want a partitioned frame refused, as Firefox and Chrome do |
+| 1: `event-onclose`, immediate close | no `close` for a notification closed before it was shown | read from WebCore: `close()` in the idle state stops the icon's loader and reports nothing |
+| 1: `icon-fetch`, tentative | no fetch event for the icon | Savoia shows no icon and asks for none |
+
 ## What Savoia still cannot ask for
 
-- **Notifications.** `Notification.requestPermission()` answers `denied` and no question appears — which is why
-  Mattermost prompts in Safari and not here. WebKit asks only a private `WKUIDelegate` method,
-  `_webView:requestNotificationPermissionForSecurityOrigin:decisionHandler:`, and refuses when nothing implements it.
-  Answering it is half: a granted page's `new Notification()` reaches the UI process and stops there until the app
-  installs a notification provider through C SPI (`WKNotificationManagerSetProvider`). The feature flag
-  `BuiltInNotificationsEnabled`, which looks like WebKit showing them itself, hands both halves to `webpushd`
-  instead, and that daemon serves only Apple's own apps. Measured, with the traps (a user gesture is required;
-  private profiles are refused before any delegate is asked), in
-  [todo.md](#geolocation-and-notifications-webkits-c-api-one-header-for-both).
 - **Web Push.** Closed, not merely undocumented: `webpushd` requires the private entitlement
   `com.apple.private.webkit.webpush` from every client.
-
-Notifications are the trade [geolocation](#geolocation) made: C functions `WebKit.framework` exports and the SDK does
-not declare, which the bridging header declares and any macOS update can change.
 
 ## Geolocation and notifications: WebKit's C API, one header for both
 
 Geolocation and notifications are shaped the same way: WebKit asks the app for permission through a delegate, then
 expects the app to *supply* the thing — a position, a banner — through C functions that `WebKit.framework` exports
-and the SDK does not declare. [Geolocation](#geolocation) is built on them; notifications are not yet.
+and the SDK does not declare. [Geolocation](#geolocation) and [notifications](#notifications) are built on them.
 
 The direction chosen (Artem, 2026-09-15) is to declare them, in a bridging header copied from WebKit's open-source
 `WKGeolocationManager.h`, `WKNotificationManager.h` and `WKNotificationProvider.h`. The alternative weighed was a
@@ -324,7 +379,7 @@ for service-worker notifications.
 
 What the two share, built once:
 
-- **The header**, `Savoia/Savoia-Bridging-Header.h`, which has geolocation's half. The functions — `WKContextGetGeolocationManager`,
+- **The header**, `Savoia/Savoia-Bridging-Header.h`. The functions — `WKContextGetGeolocationManager`,
   `WKGeolocationManagerSetProvider`, `WKGeolocationManagerProviderDidChangePosition`, `WKGeolocationPositionCreate`;
   `WKContextGetNotificationManager`, `WKNotificationManagerSetProvider`, `WKNotificationManagerProviderDidShowNotification`,
   `…DidClickNotification`, `…DidCloseNotifications`, `WKNotificationCopyTitle`, `WKNotificationCopyBody`,
@@ -337,13 +392,13 @@ What the two share, built once:
   `PageDelegate`. A private one is declared there with `@objc(…)` and its selector written out, as the window-frame
   and context-menu methods are.
 
-**Notifications.** Measured on 2026-09-15 in a throwaway app, not in Savoia:
+**Notifications**, before they were built — measured on 2026-09-15 in a throwaway app:
 
 - `Notification.requestPermission()` is refused inside WebCore, before anyone is asked, unless it runs in a user
   gesture and a secure context. A script run over `Savoia --mcp` is not a gesture, which is why an early check from Savoia
   read `denied` in 3 ms and proved nothing about the delegate.
 - A non-persistent data store — what Savoia's private profiles use — is refused in `WebNotificationClient` before the
-  delegate too (`sessionID().isEphemeral()`). Private profiles would stay without notifications, as in Safari.
+  delegate too (`sessionID().isEphemeral()`). Private profiles stay without notifications, as in Safari.
 - With a persistent store, made the way Savoia makes its other profiles, and a real click, the private delegate method
   `_webView:requestNotificationPermissionForSecurityOrigin:decisionHandler:` was called, answered yes, and the page got
   `granted`. `new Notification()` then reached the UI process (`showNotification called` in the log) and went no
@@ -351,10 +406,6 @@ What the two share, built once:
 - `BuiltInNotificationsEnabled`, the feature flag that looks like WebKit showing them itself, sends both permission and
   display to `webpushd` through the network process: `requestPermission failed: no active connection to webpushd`,
   refused in 0 ms, with the data store's `webPushMachServiceName` set.
-
-The provider would post through `UserNotifications` (a system prompt of its own, once for the app), report shows and
-clicks back to WebKit, and answer `notificationPermissions` from `SitePermissions`. Service-worker notifications come
-through the same provider marked persistent, but their clicks go to `WKWebsiteDataStore` SPI — later, not first.
 
 **Web Push** is out of reach rather than undocumented: `webpushd` checks the private entitlement
 `com.apple.private.webkit.webpush` before serving a client, and Apple does not hand it out.

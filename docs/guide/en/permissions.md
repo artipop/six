@@ -1,6 +1,6 @@
 # Site permissions
 
-When a site wants the camera, the microphone or your location, it asks — and
+When a site wants the camera, the microphone, your location or to send notifications, it asks — and
 the answer is remembered. It does not ask with a sheet over the whole
 application: the question is drawn as a bar **in the tab that asked**. A page
 that wants the camera is one tab out of twenty, and stopping the other
@@ -50,6 +50,22 @@ unavailable, however often it is allowed.
 Blocking location from the site's menu takes effect with the next request: a
 page already following your position stops when it is reloaded.
 
+## Notifications
+
+A site can ask to send you notifications — but only in answer to something you
+did on the page, a button pressed for instance. The question comes in the same
+bar: **Allow** or **Block**. An allowed site shows its notifications through
+macOS's Notification Centre; before the very first one the system asks, once,
+for the whole application. Clicking a notification opens Savoia on the tab that
+sent it.
+
+If nothing appears although the site is allowed, look at System Settings ▸
+Notifications ▸ Savoia, and at the Focus that is on.
+
+A private profile has no notifications. Neither is there web push — a
+notification from a site that is not open: Apple opens that only to its own
+apps.
+
 ## The page's own dialogs
 
 `alert()`, `confirm()`, `prompt()` and the file picker work as everywhere. A
@@ -70,12 +86,9 @@ even when you switch to another.
 
 ## What is not there yet
 
-- **site notifications** — a site is refused at once, with no question shown.
-  WebKit lets a browser both ask and show them only through undocumented
-  functions;
 - **web push** — Apple opens it only to its own apps;
 - **Apple Pay on sites** — the Apple Pay button is missing or does nothing: a
   page in Savoia is not given the functions it needs. Why is not yet known.
 
-Notifications can be done, but through undocumented WebKit functions that any
-macOS update could change. Location is built that way.
+Location and notifications are built on undocumented WebKit functions that any
+macOS update could change.

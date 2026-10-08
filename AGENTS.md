@@ -26,7 +26,7 @@ Savoia/Tiling        TilingLayout — workspaces (tab groups) and columns (a tab
 Savoia/Tabs          TabSorter, TabTopics (groups by meaning), GroupColor, the local language model
 Savoia/Input         KeyBindings + KeyContext (the table, in SavoiaCore), KeyEvents (the AppKit half), KeyRouter, KeySelfTest
 Savoia/Browser       BrowserState, BrowserTab (its own WKWebView) + PageDelegate, Profile/ProfileStore, History, SearchEngine, LivePageCache,
-                     SitePermissions, Geolocation (the position provider, C SPI), CertificateStore, Downloads, IDN, PersonalSuggestions, PageThumbnails, PageFinder,
+                     SitePermissions, Geolocation + SiteNotifications (the providers WebKit asks, C SPI), CertificateStore, Downloads, IDN, PersonalSuggestions, PageThumbnails, PageFinder,
                      WindowSwitcher (the ⌃Tab ring)
 Savoia/Views         ContentView, TabStripView (tab bar + toolbar), TabPageView (one tab's page), PageHost, StartPage,
                      ConfigurationPageView, AssistantBar, AgentPanel, MCPApps*
@@ -214,8 +214,8 @@ rewrite the root file. `xcodebuild` never touches it — the project holds only 
   `Notification.requestPermission()` needs a user gesture and answers `denied` in milliseconds without one;
   `getDisplayMedia()` needs the page to have focus and throws `InvalidStateError` while Savoia is not the front app.
   Neither refusal reaches Savoia's own code, so a `denied` from `evaluate_javascript` says nothing about the permission
-  code under test. Have Artem click, or send a real click into a throwaway app's window
-  ([docs/permissions.md](docs/permissions.md#geolocation-and-notifications-webkits-c-api-one-header-for-both)).
+  code under test. Send a real click — `testdriver_click` under `SAVOIA_TESTDRIVER`, or the agent's `click` — or have
+  Artem click ([docs/permissions.md](docs/permissions.md#notifications)).
 
 - **`WKWebView.callAsyncJavaScript` is a user gesture to WebKit.** After it the page has `userActivation.isActive` and may
   read the clipboard or open a window; a test stand that polled pages with it had every page activated for a whole
@@ -282,10 +282,10 @@ rewrite the root file. `xcodebuild` never touches it — the project holds only 
 Built: tabs with groups, folding, pinning, picking and two tabs side by side, groups by meaning, the ⌃Tab ring,
 profiles with isolated data stores, persistence (a SQLite system of record plus a versioned JSON snapshot), history and
 bookmarks with on-device multilingual embeddings and personal search on the start page, ad/tracker blocking (its
-page half, scriptlets and extended CSS, switched off for now), extra certificate authorities, `WKWebExtension` hosting, site permissions, geolocation, downloads,
+page half, scriptlets and extended CSS, switched off for now), extra certificate authorities, `WKWebExtension` hosting, site permissions, geolocation, site notifications, downloads,
 page translation, find on page (⌘F), windows a page opens as tabs that keep their opener, extension pages as tabs, Save As with web archives, picture-in-picture, the ⌘E assistant, ACP agents and chats, `Savoia --mcp`, MCP
 apps (SEP-1865) with OAuth, deep research with document tabs and highlights, DevTools capture, remote automation, dictation, localization.
 
-Not built, with reasons: [docs/todo.md](docs/todo.md) — bookmark images, site notifications, Apple Pay, floating windows, passkeys, CloudKit sync.
+Not built, with reasons: [docs/todo.md](docs/todo.md) — bookmark images, Apple Pay, floating windows, passkeys, CloudKit sync.
 What is specified and waiting for a session: [docs/tasks/](docs/tasks/README.md). What Savoia is waiting on Apple to make public, and how to notice when it does:
 [docs/api-watch.md](docs/api-watch.md).

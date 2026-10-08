@@ -6484,23 +6484,23 @@
    }
   },
   "/notifications/cross-origin-nested.tentative.https.sub.html": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
      "name": "third party iframe",
-     "status": "Not Run"
+     "status": "Fail"
     },
     {
      "name": "nested first party iframe",
-     "status": "Not Run"
+     "status": "Fail"
     },
     {
      "name": "third party worker",
-     "status": "Not Run"
+     "status": "Fail"
     },
     {
      "name": "nested first party worker",
-     "status": "Not Run"
+     "status": "Fail"
     }
    ],
    "safari": {
@@ -6515,15 +6515,15 @@
      0,
      4
     ],
-    "s": "E"
+    "s": "O"
    }
   },
   "/notifications/cross-origin-same-site-request.tentative.https.sub.html": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
      "name": "same-site cross-origin iframe",
-     "status": "Not Run"
+     "status": "Pass"
     }
    ],
    "safari": {
@@ -6535,18 +6535,18 @@
    },
    "savoia": {
     "c": [
-     0,
+     1,
      1
     ],
-    "s": "E"
+    "s": "O"
    }
   },
   "/notifications/cross-origin-serviceworker.tentative.https.sub.html": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
      "name": "third party serviceworker",
-     "status": "Not Run"
+     "status": "Fail"
     }
    ],
    "safari": {
@@ -6561,19 +6561,19 @@
      0,
      1
     ],
-    "s": "E"
+    "s": "O"
    }
   },
   "/notifications/event-onclose.https.html": {
-   "harness": "Error",
+   "harness": "Timeout",
    "rows": [
     {
      "name": "Invoked the onclose event handler.",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "Invoked the onclose event handler on immediate close.",
-     "status": "Not Run"
+     "status": "Timeout"
     }
    ],
    "safari": {
@@ -6585,18 +6585,18 @@
    },
    "savoia": {
     "c": [
-     0,
+     1,
      2
     ],
-    "s": "E"
+    "s": "T"
    }
   },
   "/notifications/event-onshow.https.html": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
      "name": "Invoked the onshow event handler.",
-     "status": "Not Run"
+     "status": "Pass"
     }
    ],
    "safari": {
@@ -6608,22 +6608,22 @@
    },
    "savoia": {
     "c": [
-     0,
+     1,
      1
     ],
-    "s": "E"
+    "s": "O"
    }
   },
   "/notifications/fetch-url-resolve.https.window.html": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
      "name": "new Notification() should give a resolved icon URL",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "getNotifications() should give a resolved icon URL",
-     "status": "Not Run"
+     "status": "Pass"
     }
    ],
    "safari": {
@@ -6635,18 +6635,26 @@
    },
    "savoia": {
     "c": [
-     0,
+     2,
      2
     ],
-    "s": "E"
+    "s": "O"
    }
   },
   "/notifications/getnotifications-across-processes.https.window.html": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
      "name": "Service worker test setup",
-     "status": "Not Run"
+     "status": "Pass"
+    },
+    {
+     "name": "Get notification created from window",
+     "status": "Pass"
+    },
+    {
+     "name": "Create and get notification within service worker",
+     "status": "Fail"
     }
    ],
    "safari": {
@@ -6658,10 +6666,10 @@
    },
    "savoia": {
     "c": [
-     0,
-     1
+     2,
+     3
     ],
-    "s": "E"
+    "s": "O"
    }
   },
   "/notifications/global-teardown-crash.html": {
@@ -6737,11 +6745,11 @@
    }
   },
   "/notifications/icon-fetch.tentative.https.window.html": {
-   "harness": "Error",
+   "harness": "Timeout",
    "rows": [
     {
      "name": "Icon fetch should cause a corresponding fetch event in the service worker",
-     "status": "Not Run"
+     "status": "Timeout"
     }
    ],
    "safari": {
@@ -6756,7 +6764,7 @@
      0,
      1
     ],
-    "s": "E"
+    "s": "T"
    }
   },
   "/notifications/icon-url-encoding-euc-kr.https.html": {
@@ -7859,55 +7867,143 @@
    }
   },
   "/notifications/instance.https.window.html": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
      "name": "new Notification(): Setup",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "new Notification(): Attribute exists with expected value: title",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "new Notification(): Attribute exists with expected value: dir",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "new Notification(): Attribute exists with expected value: lang",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "new Notification(): Attribute exists with expected value: body",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "new Notification(): Attribute exists with expected value: tag",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "new Notification(): Attribute exists with expected value: icon",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "new Notification(): Attribute exists with expected value: requireInteraction",
-     "status": "Not Run"
+     "status": "Fail"
     },
     {
      "name": "new Notification(): Attribute exists with expected value: silent",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "new Notification(): Attribute exists with expected value: data",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "new Notification(): Attribute exists with expected value: actions",
-     "status": "Not Run"
+     "status": "Fail"
     },
     {
      "name": "Service worker test setup",
-     "status": "Not Run"
+     "status": "Pass"
+    },
+    {
+     "name": "getNotifications(): Setup",
+     "status": "Pass"
+    },
+    {
+     "name": "getNotifications(): Attribute exists with expected value: title",
+     "status": "Pass"
+    },
+    {
+     "name": "getNotifications(): Attribute exists with expected value: dir",
+     "status": "Pass"
+    },
+    {
+     "name": "getNotifications(): Attribute exists with expected value: lang",
+     "status": "Pass"
+    },
+    {
+     "name": "getNotifications(): Attribute exists with expected value: body",
+     "status": "Pass"
+    },
+    {
+     "name": "getNotifications(): Attribute exists with expected value: tag",
+     "status": "Pass"
+    },
+    {
+     "name": "getNotifications(): Attribute exists with expected value: icon",
+     "status": "Pass"
+    },
+    {
+     "name": "getNotifications(): Attribute exists with expected value: requireInteraction",
+     "status": "Fail"
+    },
+    {
+     "name": "getNotifications(): Attribute exists with expected value: silent",
+     "status": "Pass"
+    },
+    {
+     "name": "getNotifications(): Attribute exists with expected value: data",
+     "status": "Pass"
+    },
+    {
+     "name": "getNotifications(): Attribute exists with expected value: actions",
+     "status": "Fail"
+    },
+    {
+     "name": "notificationclose: Setup",
+     "status": "Pass"
+    },
+    {
+     "name": "notificationclose: Attribute exists with expected value: title",
+     "status": "Pass"
+    },
+    {
+     "name": "notificationclose: Attribute exists with expected value: dir",
+     "status": "Pass"
+    },
+    {
+     "name": "notificationclose: Attribute exists with expected value: lang",
+     "status": "Pass"
+    },
+    {
+     "name": "notificationclose: Attribute exists with expected value: body",
+     "status": "Pass"
+    },
+    {
+     "name": "notificationclose: Attribute exists with expected value: tag",
+     "status": "Pass"
+    },
+    {
+     "name": "notificationclose: Attribute exists with expected value: icon",
+     "status": "Pass"
+    },
+    {
+     "name": "notificationclose: Attribute exists with expected value: requireInteraction",
+     "status": "Fail"
+    },
+    {
+     "name": "notificationclose: Attribute exists with expected value: silent",
+     "status": "Pass"
+    },
+    {
+     "name": "notificationclose: Attribute exists with expected value: data",
+     "status": "Pass"
+    },
+    {
+     "name": "notificationclose: Attribute exists with expected value: actions",
+     "status": "Fail"
     }
    ],
    "safari": {
@@ -7919,10 +8015,10 @@
    },
    "savoia": {
     "c": [
-     0,
-     12
+     28,
+     34
     ],
-    "s": "E"
+    "s": "O"
    }
   },
   "/notifications/lang.https.html": {
@@ -8147,15 +8243,15 @@
    }
   },
   "/notifications/registration-association.https.window.html": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
      "name": "A new SW registration gets no previous notification",
-     "status": "Not Run"
+     "status": "Fail"
     },
     {
      "name": "An unregistered SW registration gets no previous notification",
-     "status": "Not Run"
+     "status": "Fail"
     }
    ],
    "safari": {
@@ -8170,15 +8266,15 @@
      0,
      2
     ],
-    "s": "E"
+    "s": "O"
    }
   },
   "/notifications/shownotification-window.https.html": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
      "name": "Refreshing window does not clear persistent notifications",
-     "status": "Not Run"
+     "status": "Pass"
     }
    ],
    "safari": {
@@ -8190,10 +8286,10 @@
    },
    "savoia": {
     "c": [
-     0,
+     1,
      1
     ],
-    "s": "E"
+    "s": "O"
    }
   },
   "/notifications/shownotification-without-permission.https.window.html": {
@@ -8220,51 +8316,51 @@
    }
   },
   "/notifications/shownotification.https.window.html": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
      "name": "fetching no notifications",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "fetching notification with an empty title",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "fetching notification by tag filter",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "fetching same-tagged notification by tag filter",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "fetching multiple notifications",
-     "status": "Not Run"
+     "status": "Fail"
     },
     {
      "name": "fetching from another registration",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "fetching only persistent notifications",
-     "status": "Not Run"
+     "status": "Fail"
     },
     {
      "name": "fetching a notification with custom data",
-     "status": "Not Run"
+     "status": "Fail"
     },
     {
      "name": "fetching a notification with navigate URL",
-     "status": "Not Run"
+     "status": "Fail"
     },
     {
      "name": "fetching a notification with no navigate URL",
-     "status": "Not Run"
+     "status": "Fail"
     },
     {
      "name": "fetching a notification with invalid navigate URL",
-     "status": "Not Run"
+     "status": "Fail"
     }
    ],
    "safari": {
@@ -8276,22 +8372,22 @@
    },
    "savoia": {
     "c": [
-     0,
+     5,
      11
     ],
-    "s": "E"
+    "s": "O"
    }
   },
   "/notifications/tag.https.html": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
      "name": "Opening two notifications with the same tag should close the first one",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "Opening two notifications with the same tag should fire close event before show event",
-     "status": "Not Run"
+     "status": "Pass"
     }
    ],
    "safari": {
@@ -8303,18 +8399,18 @@
    },
    "savoia": {
     "c": [
-     0,
+     2,
      2
     ],
-    "s": "E"
+    "s": "O"
    }
   },
   "/notifications/worker-gc.https.window.html": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
      "name": "An active notification should prevent worker cycle collection",
-     "status": "Not Run"
+     "status": "Pass"
     }
    ],
    "safari": {
@@ -8326,10 +8422,10 @@
    },
    "savoia": {
     "c": [
-     0,
+     1,
      1
     ],
-    "s": "E"
+    "s": "O"
    }
   },
   "/permissions-policy/bluetooth-allowed-by-permissions-policy-attribute-redirect-on-load.https.sub.html": {
@@ -13737,19 +13833,19 @@
    "rows": [
     {
      "name": "Multiple listeners on a single PermissionStatus should all fire on change",
-     "status": "Fail"
+     "status": "Pass"
     },
     {
      "name": "Multiple transitions generate multiple \"change\" events",
-     "status": "Fail"
+     "status": "Pass"
     },
     {
      "name": "Multiple PermissionStatus objects observe the same transition",
-     "status": "Fail"
+     "status": "Pass"
     },
     {
      "name": "PermissionStatus out of scope should still fire \"change\" event",
-     "status": "Fail"
+     "status": "Pass"
     }
    ],
    "safari": {
@@ -13761,7 +13857,7 @@
    },
    "savoia": {
     "c": [
-     0,
+     4,
      4
     ],
     "s": "O"
@@ -14213,7 +14309,7 @@
    }
   },
   "/permissions/non-fully-active.https.html": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
      "name": "Trying to query() a non-fully active document rejects with a InvalidStateError",
@@ -14221,7 +14317,7 @@
     },
     {
      "name": "Permission change events shouldn't fire on non-fully active document",
-     "status": "Timeout"
+     "status": "Pass"
     }
    ],
    "safari": {
@@ -14233,18 +14329,18 @@
    },
    "savoia": {
     "c": [
-     1,
+     2,
      2
     ],
-    "s": "E"
+    "s": "O"
    }
   },
   "/permissions/permissions-cg.https.html": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
      "name": "status is not garbage collected when it goes out of scope",
-     "status": "Timeout"
+     "status": "Pass"
     }
    ],
    "safari": {
@@ -14256,18 +14352,18 @@
    },
    "savoia": {
     "c": [
-     0,
+     1,
      1
     ],
-    "s": "E"
+    "s": "O"
    }
   },
   "/permissions/permissions-garbage-collect.https.html": {
-   "harness": "Error",
+   "harness": "OK",
    "rows": [
     {
      "name": "Events fire even if the status object is garbage collected",
-     "status": "Fail"
+     "status": "Pass"
     }
    ],
    "safari": {
@@ -14279,10 +14375,10 @@
    },
    "savoia": {
     "c": [
-     0,
+     1,
      1
     ],
-    "s": "E"
+    "s": "O"
    }
   },
   "/permissions/permissions-query-permissions-policy-attribute.https.sub.html": {
@@ -14348,11 +14444,11 @@
    "rows": [
     {
      "name": "Transition \"granted\" -> \"prompt\" fires a \"change\" event",
-     "status": "Fail"
+     "status": "Pass"
     },
     {
      "name": "Transition \"granted\" -> \"denied\" fires a \"change\" event",
-     "status": "Fail"
+     "status": "Pass"
     }
    ],
    "safari": {
@@ -14364,7 +14460,7 @@
    },
    "savoia": {
     "c": [
-     0,
+     2,
      2
     ],
     "s": "O"

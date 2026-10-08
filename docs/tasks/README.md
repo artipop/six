@@ -13,7 +13,6 @@ The order to take them in, and what is not a task at all, is [todo.md](../todo.m
 
 | file | what |
 |---|---|
-| [permissions/08-notifications.md](permissions/08-notifications.md) | Site notifications |
 | [browser/11-page-scripts-rest.md](browser/11-page-scripts-rest.md) | The rest of the scripts in pages — one pass |
 | [measure/12-one-sitting.md](measure/12-one-sitting.md) | Things nobody has watched happen — one sitting |
 | [browser/13-small-things.md](browser/13-small-things.md) | Small things — one pass |
@@ -29,6 +28,7 @@ The order to take them in, and what is not a task at all, is [todo.md](../todo.m
 | [assistant/26-research-as-one-file.md](assistant/26-research-as-one-file.md) | A deep research saved as one file |
 | [devtools/28-webdriver-http.md](devtools/28-webdriver-http.md) | WebDriver over HTTP, for wptrunner |
 | [permissions/30-paste-menu-over-another-app.md](permissions/30-paste-menu-over-another-app.md) | The Paste menu comes up over another app |
+| [permissions/31-service-worker-notifications.md](permissions/31-service-worker-notifications.md) | What a service worker's notification still lacks |
 
 ## Every task
 

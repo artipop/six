@@ -10,11 +10,10 @@ The browser's core first, each step making the next one smaller.
 
 | | what | where |
 |---|---|---|
-| 1 | **Site notifications** | [tasks/permissions/08](tasks/permissions/08-notifications.md) |
-| 2 | **The rest of the scripts in pages**: the calls that are still a user gesture, the last script on every page, the blocker's page half as a setting that is off by default, and one experiment about Apple Pay | [tasks/browser/11](tasks/browser/11-page-scripts-rest.md) |
-| 3 | **Waits by the clock** replaced by the events they stand in for — what is left; the first, a load to end, is done | [tasks/browser/14](tasks/browser/14-waits-by-the-clock.md) |
-| 4 | **Small things**, seven of them: forget one site, a way home, a download that repeats, a user agent per site, every model in the welcome, a Help menu, grouping by meaning off for a new install | [tasks/browser/13](tasks/browser/13-small-things.md) |
-| 5 | **Passkeys and passwords** — as much paperwork with Apple as code | [passkeys.md](passkeys.md) |
+| 1 | **The rest of the scripts in pages**: the calls that are still a user gesture, the last script on every page, the blocker's page half as a setting that is off by default, and one experiment about Apple Pay | [tasks/browser/11](tasks/browser/11-page-scripts-rest.md) |
+| 2 | **Waits by the clock** replaced by the events they stand in for — what is left; the first, a load to end, is done | [tasks/browser/14](tasks/browser/14-waits-by-the-clock.md) |
+| 3 | **Small things**, seven of them: forget one site, a way home, a download that repeats, a user agent per site, every model in the welcome, a Help menu, grouping by meaning off for a new install | [tasks/browser/13](tasks/browser/13-small-things.md) |
+| 4 | **Passkeys and passwords** — as much paperwork with Apple as code | [passkeys.md](passkeys.md) |
 
 ## Beside the order
 
@@ -25,6 +24,7 @@ Nothing here waits on the steps above, except where it says so.
 | Measurements nobody has made: extensions' messaging and `scripting`, uBlock Origin Lite's control run, two WebMCP tests, fullscreen on a real site | [tasks/measure/12](tasks/measure/12-one-sitting.md) |
 | Extensions after those measurements: what is left of the list now that a tab hands out its view and extension pages are tabs | [tasks/extensions/20](tasks/extensions/20-extensions-next.md) |
 | A tab as a floating window | [tasks/browser/17](tasks/browser/17-floating-window.md) |
+| What a service worker's notification still lacks: its profile, `clients.openWindow`, the icon | [tasks/permissions/31](tasks/permissions/31-service-worker-notifications.md) |
 | WebKit's Paste menu, which an agent's click brings up over whatever app is in front | [tasks/permissions/30](tasks/permissions/30-paste-menu-over-another-app.md) |
 | WebDriver over HTTP, so that the wpt stand runs under wptrunner | [tasks/devtools/28](tasks/devtools/28-webdriver-http.md) |
 | The assistant: a verb of one's own, an answer shown in the field | [tasks/assistant/18](tasks/assistant/18-ghost-text-and-own-verbs.md) |
@@ -42,7 +42,7 @@ Nothing here waits on the steps above, except where it says so.
 - **Apple Pay on sites.** A page has no `PaymentRequest`; it is not the Apple ID's region, and the cause is one
   experiment away ([tasks/browser/11](tasks/browser/11-page-scripts-rest.md), item 3).
 - **Web Push.** `webpushd` serves only apps with a private entitlement
-  ([permissions.md](permissions.md#geolocation-and-notifications-webkits-c-api-one-header-for-both)).
+  ([permissions.md](permissions.md#what-savoia-still-cannot-ask-for)).
 - **Cosmetic blocking rules inside frames** ([blocking.md](blocking.md#not-built-cosmetic-rules-inside-a-frame)).
 - **Seven of WebMCP's nine failing wpt tests**, which wait for WebKit
   ([webmcp.md](webmcp.md#the-nine-wpt-tests-left)).

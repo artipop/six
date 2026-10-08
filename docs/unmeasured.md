@@ -168,3 +168,29 @@ say after that day's work, and the part of it nobody watched.
 - **The guide** was edited in both languages and not built.
 - **The names in [task 30](tasks/permissions/30-paste-menu-over-another-app.md)** — the three WebKit calls around
   the Paste menu — are from the binary; none was called.
+
+## Geolocation and notifications, 8 October 2026
+
+Both were built and measured under `SAVOIA_TESTDRIVER`, where neither system service is touched. What that leaves:
+
+- **CoreLocation.** No position from the Mac has reached a page: the system's prompt for Savoia, a real fix, the
+  `desiredAccuracy` switch, and what a page is told with Location Services off (`POSITION_UNAVAILABLE` is what the
+  code sends) were not seen. One map and one press of "my location".
+- **That the position repeating once a second is right outside the stand.** It was added for a stand-in position
+  that never changes; whether CoreLocation on a still Mac leaves `getCurrentPosition` waiting the same way, and
+  whether a real map minds a callback every second, were not watched.
+- **A banner.** `UNUserNotificationCenter` was never called: the system's prompt, the banner's title, body and
+  site, a click on it selecting the tab and the page hearing `click`, and a notification the system refused, are
+  all untried. Mattermost, or any page with a button.
+- **Two profiles that answered one site differently.** The rule — allowed anywhere is `granted` to WebKit, and the
+  tab's own profile is asked again before anything is shown — was not run with two profiles.
+- **A private profile** is said to be refused inside WebKit; that is from the throwaway app of September, not from
+  Savoia.
+- **A service worker's notification** outside wpt, and its click, on a real site.
+- **Why nine wpt subtests count too many notifications.** No `cancel` reaches the provider for a persistent
+  notification — seen. That WebKit's minimum lifetime is why — read from `Notification::close`
+  ([tasks/permissions/31](tasks/permissions/31-service-worker-notifications.md)).
+- **`MediaDevices-enumerateDevices-per-origin-ids`** gave 1/3 once and 2/3 on the next run of the same build; see
+  the Continuity Camera line above.
+- **The guide** was edited in both languages and not built.
+- **A Release build** with the bridging header was not made.

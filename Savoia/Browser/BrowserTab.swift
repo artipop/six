@@ -385,7 +385,7 @@ final class BrowserTab: Identifiable {
             switch permission {
             case .camera: await page.setCameraCaptureState(.none)
             case .microphone: await page.setMicrophoneCaptureState(.none)
-            case .location, .motion, .pageTools: break
+            case .location, .notifications, .motion, .pageTools: break
             }
         }
     }
@@ -559,6 +559,7 @@ final class BrowserTab: Identifiable {
         #if os(macOS)
         WebInspector.allow(in: configuration)
         Geolocation.shared.serve(configuration)
+        SiteNotifications.shared.serve(configuration)
         #endif
         #if os(macOS)
         let view = isAutomated ? AutomatedWebView.self : WKWebView.self

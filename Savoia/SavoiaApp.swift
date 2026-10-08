@@ -102,6 +102,9 @@ struct SavoiaApp: App {
                                    blocker: blocker, devTools: devTools, permissions: permissions)
         permissions.isPrivate = { [weak browser] id in browser?.isPrivate(id) ?? false }
         #if os(macOS)
+        SiteNotifications.shared.browser = browser
+        SiteNotifications.shared.permissions = permissions
+        permissions.onChanged = { SitePermissions.tellPages($0, changedFor: $1) }
         browser.find.find = { [weak browser] tabID, query, backwards in
             guard let view = browser?.tab(tabID)?.livePage else { return false }
             let configuration = WKFindConfiguration()

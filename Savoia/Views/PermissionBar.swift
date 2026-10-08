@@ -43,6 +43,8 @@ struct PermissionBar: View {
     /// is signed into (docs/webmcp.md).
     @ViewBuilder private var sentence: some View {
         switch question.ask {
+        case .devices([.notifications]):
+            Text("\(question.host) wants to send you notifications.")
         case .devices:
             Text("\(question.host) wants to use your \(devices).")
         case .pageTools:

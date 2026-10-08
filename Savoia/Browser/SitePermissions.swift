@@ -10,6 +10,7 @@ enum SitePermission: String, Codable, CaseIterable, Sendable, Identifiable {
     case camera
     case microphone
     case location
+    case notifications
     /// `DeviceOrientationEvent` and `DeviceMotionEvent`. A desktop has neither sensor, but the
     /// question still arrives here, and answering it costs less than explaining the silence.
     case motion
@@ -29,6 +30,7 @@ enum SitePermission: String, Codable, CaseIterable, Sendable, Identifiable {
         case .camera: "camera"
         case .microphone: "microphone"
         case .location: "location"
+        case .notifications: "notifications"
         case .motion: "motion sensors"
         case .pageTools: "tools for agents"
         }
@@ -37,6 +39,7 @@ enum SitePermission: String, Codable, CaseIterable, Sendable, Identifiable {
         case .camera: String(localized: "camera")
         case .microphone: String(localized: "microphone")
         case .location: String(localized: "location")
+        case .notifications: String(localized: "notifications")
         case .motion: String(localized: "motion sensors")
         case .pageTools: String(localized: "tools for agents")
         }
@@ -48,6 +51,7 @@ enum SitePermission: String, Codable, CaseIterable, Sendable, Identifiable {
         case .camera: "video"
         case .microphone: "mic"
         case .location: "location"
+        case .notifications: "bell"
         case .motion: "gyroscope"
         case .pageTools: "wrench.and.screwdriver"
         }
@@ -130,6 +134,8 @@ final class SitePermissions {
         /// localises it; these two must say the same thing, so they are kept beside each other.
         var prompt: String {
             switch ask {
+            case .devices([.notifications]):
+                "\(host) wants to send you notifications."
             case .devices(let asked):
                 "\(host) wants to use your \(asked.map(\.label).joined(separator: " and "))."
             case .pageTools:
@@ -170,6 +176,8 @@ final class SitePermissions {
     /// assigned, and a question arriving from a C signal assigns nothing. So the one thing the Mac
     /// gets for free is said out loud here.
     @ObservationIgnored var onQuestionsChanged: (() -> Void)?
+    /// Told which site's answer about what was written, changed or taken back.
+    @ObservationIgnored var onChanged: ((SitePermission, String) -> Void)?
     @ObservationIgnored private let settings: ConfigurationStore
 
     init(settings: ConfigurationStore) {
@@ -334,32 +342,34 @@ final class SitePermissions {
                                       permission: permission, isAllowed: allowed))
         }
         save()
+        onChanged?(permission, origin)
     }
 
     /// Take back one answer and leave the rest of the site's alone — what `WebMCPSelfTest` does
     /// before it starts, so a run measures the question being asked rather than last run's answer.
     func forget(_ permission: SitePermission, forOrigin origin: String, profileID: UUID) {
-        decisions.removeAll {
-            $0.profileID == profileID && $0.origin == origin && $0.permission == permission
-        }
-        save()
+        remove { $0.profileID == profileID && $0.origin == origin && $0.permission == permission }
     }
 
     /// Take it back: the site asks again the next time it needs the device.
     func forget(origin: String, profileID: UUID) {
-        decisions.removeAll { $0.profileID == profileID && $0.origin == origin }
-        save()
+        remove { $0.profileID == profileID && $0.origin == origin }
     }
 
     func forgetAll() {
-        decisions.removeAll()
-        save()
+        remove { _ in true }
     }
 
     /// A profile is gone; so are the answers given inside it.
     func forgetProfile(_ profileID: UUID) {
-        decisions.removeAll { $0.profileID == profileID }
+        remove { $0.profileID == profileID }
+    }
+
+    private func remove(where gone: (Decision) -> Bool) {
+        let removed = decisions.filter(gone)
+        decisions.removeAll(where: gone)
         save()
+        for decision in removed { onChanged?(decision.permission, decision.origin) }
     }
 
     private func save() {
