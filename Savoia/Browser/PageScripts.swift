@@ -14,30 +14,50 @@ extension WKContentWorld {
 }
 
 extension WKWebView {
-    /// A function body run in Savoia's world.
+    /// A function body run in Savoia's world, with no user gesture attached.
     func savoia(_ functionBody: String, arguments: [String: Any] = [:]) async throws -> Any? {
-        try await callAsyncJavaScript(functionBody, arguments: arguments, in: nil, contentWorld: .savoia)
+        try await callWithoutGesture(functionBody, arguments: arguments, in: .savoia)
     }
 
-    /// A function body run in the main frame; the page's own world unless another is named.
+    /// A function body run in the main frame, with no user gesture; the page's own world unless another is named.
     func callJavaScript(_ functionBody: String, arguments: [String: Any] = [:],
                         contentWorld: WKContentWorld? = nil) async throws -> Any? {
-        try await callAsyncJavaScript(functionBody, arguments: arguments, in: nil, contentWorld: contentWorld ?? .page)
+        try await callWithoutGesture(functionBody, arguments: arguments, in: contentWorld ?? .page)
     }
+
+    /// `callAsyncJavaScript` is a user gesture to WebKit: the page may then open windows, play sound and
+    /// read the clipboard as if a person had clicked (docs/page-scripts.md). SPI; without it the ordinary call is all there is.
+    func callWithoutGesture(_ functionBody: String, arguments: [String: Any] = [:],
+                            in world: WKContentWorld, frame: WKFrameInfo? = nil) async throws -> Any? {
+        guard responds(to: #selector(GesturelessCalls.call(_:arguments:in:in:withUserGesture:completionHandler:)))
+        else { return try await callAsyncJavaScript(functionBody, arguments: arguments, in: frame, contentWorld: world) }
+        let answer: UncheckedBox<Result<Any?, any Error>> = await withCheckedContinuation { continuation in
+            unsafeBitCast(self, to: GesturelessCalls.self).call(
+                functionBody, arguments: arguments, in: frame, in: world, withUserGesture: false
+            ) { value, error in
+                continuation.resume(returning: UncheckedBox(value: error.map { .failure($0) } ?? .success(value)))
+            }
+        }
+        return try answer.value.get()
+    }
+}
+
+private struct UncheckedBox<Value>: @unchecked Sendable {
+    let value: Value
+}
+
+@objc private protocol GesturelessCalls {
+    @objc(_callAsyncJavaScript:arguments:inFrame:inContentWorld:withUserGesture:completionHandler:)
+    func call(_ functionBody: String, arguments: [String: Any]?, in frame: WKFrameInfo?, in world: WKContentWorld,
+              withUserGesture: Bool, completionHandler: (@MainActor (Any?, (any Error)?) -> Void)?)
 }
 
 #if os(macOS)
 extension BrowserTab {
-    /// A function body run in the page with no user gesture attached. `callAsyncJavaScript` is one to
-    /// WebKit: the page may then open windows, play sound and read the clipboard as if a person had
-    /// clicked (docs/page-scripts.md). SPI; without it the ordinary call is all there is.
+    /// A function body run in the tab's page with no user gesture; Savoia's world unless another is named.
     func callWithoutGesture(_ functionBody: String, arguments: [String: Any] = [:],
                             in world: WKContentWorld? = nil, frame: WKFrameInfo? = nil) async throws -> Any? {
-        let world = world ?? .savoia
-        let view = page
-        guard view.canCallWithoutGesture
-        else { return try await view.callJavaScript(functionBody, arguments: arguments, contentWorld: world) }
-        return try await view.callWithoutGesture(functionBody, arguments: arguments, in: world, frame: frame)
+        try await page.callWithoutGesture(functionBody, arguments: arguments, in: world ?? .savoia, frame: frame)
     }
 
     /// A mouse click at a point of the page's viewport, in CSS pixels, as an event handed to the web
@@ -49,22 +69,6 @@ extension BrowserTab {
 }
 
 extension WKWebView {
-    var canCallWithoutGesture: Bool {
-        responds(to: #selector(GesturelessCalls.call(_:arguments:in:in:withUserGesture:completionHandler:)))
-    }
-
-    func callWithoutGesture(_ functionBody: String, arguments: [String: Any] = [:],
-                            in world: WKContentWorld, frame: WKFrameInfo? = nil) async throws -> Any? {
-        let answer: UncheckedBox<Result<Any?, any Error>> = await withCheckedContinuation { continuation in
-            unsafeBitCast(self, to: GesturelessCalls.self).call(
-                functionBody, arguments: arguments, in: frame, in: world, withUserGesture: false
-            ) { value, error in
-                continuation.resume(returning: UncheckedBox(value: error.map { .failure($0) } ?? .success(value)))
-            }
-        }
-        return try answer.value.get()
-    }
-
     /// One mouse event at a point of the viewport, in CSS pixels. False when the view is in no window.
     @discardableResult
     func mouse(_ type: NSEvent.EventType, atViewport point: CGPoint) -> Bool {
@@ -170,19 +174,9 @@ private final class PageDrop: NSObject, NSDraggingInfo {
                                 using block: (NSDraggingItem, Int, UnsafeMutablePointer<ObjCBool>) -> Void) {}
 }
 
-private struct UncheckedBox<Value>: @unchecked Sendable {
-    let value: Value
-}
-
 /// AppKit's own name for it, which Swift marks unavailable.
 @objc private protocol DragSource {
     @objc(draggedImage:endedAt:operation:)
     func dragged(_ image: NSImage, endedAt point: NSPoint, operation: NSDragOperation)
-}
-
-@objc private protocol GesturelessCalls {
-    @objc(_callAsyncJavaScript:arguments:inFrame:inContentWorld:withUserGesture:completionHandler:)
-    func call(_ functionBody: String, arguments: [String: Any]?, in frame: WKFrameInfo?, in world: WKContentWorld,
-              withUserGesture: Bool, completionHandler: (@MainActor (Any?, (any Error)?) -> Void)?)
 }
 #endif

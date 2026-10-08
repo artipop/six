@@ -175,7 +175,7 @@ private final class WebMCPMessageHandler: NSObject, WKScriptMessageHandlerWithRe
 }
 
 /// A frame of a page, reached through the `WKWebView` its message came from:
-/// `callAsyncJavaScript(in:)` runs code in one frame, cross-origin frames included.
+/// a call can name one frame, cross-origin frames included.
 @MainActor
 private final class WebMCPFrameHandle: WebMCPFrame {
     let frame: WKFrameInfo
@@ -193,7 +193,7 @@ private final class WebMCPFrameHandle: WebMCPFrame {
 
     func run(_ body: String, isolated: Bool) async throws -> String {
         guard let webView else { throw WebMCPError.navigatedAway }
-        let value = try await webView.callAsyncJavaScript(body, in: frame, contentWorld: isolated ? .savoia : .page)
+        let value = try await webView.callWithoutGesture(body, in: isolated ? .savoia : .page, frame: frame)
         return value as? String ?? ""
     }
 }

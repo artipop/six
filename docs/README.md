@@ -43,7 +43,7 @@ from [`Savoia/Localizable.xcstrings`](../Savoia/Localizable.xcstrings) rather th
 | [mcp.md](mcp.md) | `Savoia --mcp`: the browser as an MCP server, and its tools |
 | [webmcp.md](webmcp.md) | WebMCP: a page declaring tools of its own for agents — how Savoia carries them, the gate in front of them, and what is not built |
 | [test-suites.md](test-suites.md) | external test suites Savoia can be run against — wpt where Savoia answers rather than WebKit, extensions, blocking, privacy, MCP, certificates — and the shared stand |
-| [page-scripts.md](page-scripts.md) | every script Savoia runs or injects in a page, what a call costs (it is a user gesture), and what each is to become |
+| [page-scripts.md](page-scripts.md) | every script Savoia runs or injects in a page, the one call they go through and why it is not a user gesture, and what each is to become |
 | [timers.md](timers.md) | every wait by the clock: which are what a timer is for, which stand in for an event and are worth replacing, and which stay |
 | [tasks/](tasks/README.md) | work that is specified and not started, one file per task, in the order to take it |
 | [accessibility.md](accessibility.md) | the accessibility overlay and `get_accessibility_tree`: WebKit's accessibility tree as the agent's eyes, read through `AXUIElement` by `Savoia --ax-read` — a second process, because Savoia asking itself deadlocks |

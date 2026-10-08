@@ -77,13 +77,7 @@ extension WKWebView {
                 return video.webkitPresentationMode === 'picture-in-picture';
             });
             """
-        let answer: Any?
-        if canCallWithoutGesture {
-            answer = try? await callWithoutGesture(script, in: .savoia)
-        } else {
-            answer = try? await savoia(script)
-        }
-        return (answer as? Bool) ?? false
+        return (try? await savoia(script)) as? Bool ?? false
     }
 
     /// In, or back out — the same command both ways, which is how a person thinks of the button.

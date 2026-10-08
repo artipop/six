@@ -215,6 +215,8 @@ extension KeySelfTest {
         try? await Task.sleep(for: .milliseconds(600))
         let kept = (try? await tab.page.callJavaScript("return String(window.getSelection())")) as? String
         note("assistant: menu ⌘E → \(place(assistant, tab)), caret \(caret(window)), the line is about the \(assistant.subject(in: tab.id).kind) «\(assistant.subject(in: tab.id).text.prefix(20))», the page still has «\(kept ?? "?")»")
+        let activation = (try? await tab.page.callJavaScript("return navigator.userActivation.isActive + ', ever ' + navigator.userActivation.hasBeenActive")) as? String
+        note("assistant: the page's user activation after it: \(activation ?? "?")")
         note("assistant: the line stands at \(anchoredHost(in: window) ?? "—")")
         note("assistant: offered at a selection: \(AssistantAction.offered(for: assistant.subject(in: tab.id)).map(\.id))")
         note("assistant: keyboard \(keyboardOwner(window))")

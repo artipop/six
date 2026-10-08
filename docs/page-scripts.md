@@ -2,38 +2,63 @@
 
 Every place Savoia executes or injects script in a page, why each one is a liability, and what is to become of it.
 Written in October 2026, after the wpt permission run ([permissions.md](permissions.md#compatibility-web-platform-tests))
-showed two things about a call into a page — `WebPage.callJavaScript` then, `WKWebView.callAsyncJavaScript` since a tab
-became a `WKWebView` of its own.
+showed two things about `WKWebView.callAsyncJavaScript`, the public call into a page.
 
 ## What a call costs
 
-- **It is a user gesture.** Measured in the page's world: after `evaluate_javascript`, with no click,
+- **It is a user gesture.** Measured in the page's world: after the public call, with no click,
   `navigator.userActivation.isActive` is true for about a second, `navigator.clipboard.writeText()` and `readText()`
   resolve, and a `postMessage` or zero-delay timer started from it inherits the same. `hasBeenActive` stays true
   for the life of the document. A call in the `savoia` world does the same as one in the page's: activation
-  belongs to the window and not to the world (measured in a bare `WebPage`, and again in a bare `WKWebView`; where a load alone, a load with a user
-  script, and the gesture-free call all leave it false).
+  belongs to the window and not to the world (measured in a bare `WKWebView`, where a load alone, a load with a
+  user script, and the gesture-free call all leave it false).
 - **A script that moves the page moves it when nobody asked.** Two of them scroll.
 - **A user script on every page is a condition WebKit can see.** `PaymentRequest` and `ApplePaySession` are
   `undefined` in Savoia (measured), and still are with the blocker's page scripts off. The cause was not
   established ([todo.md](tasks/browser/11-page-scripts-rest.md)).
 
-The call that carries none is `BrowserTab.callWithoutGesture` (`PageScripts.swift`): WebKit's
-`_callAsyncJavaScript:arguments:inFrame:inContentWorld:withUserGesture:completionHandler:`, SPI, behind
-`responds(to:)`. It runs on the tab's own `WKWebView`, on screen or not; the ordinary call is left only for the
-SPI being absent. Measured through it: `isActive` false, and a clipboard write with no click is refused.
+## One door
+
+Savoia does not make that call. Everything it runs in a page goes through `WKWebView.callWithoutGesture`
+(`PageScripts.swift`): WebKit's `_callAsyncJavaScript:arguments:inFrame:inContentWorld:withUserGesture:completionHandler:`
+with `false`, SPI, behind `responds(to:)` — the public call is left only for the SPI being absent. The other names
+are that call with a world filled in: `WKWebView.savoia` (Savoia's world), `WKWebView.callJavaScript` (the page's),
+`BrowserTab.callWithoutGesture` (the tab's view) and `BrowserTab.runScript` (the same, and only while the tab has a
+page). What gives a page activation is what a person or an agent does to it: a click or a key, which `click`,
+`testdriver_click` and `testdriver_key` send as real events.
+
+Measured over `Savoia --mcp` in a throwaway home, 8 October 2026, `navigator.userActivation` read with
+`evaluate_javascript` on a fresh page each time: `isActive` and `hasBeenActive` both false after `get_selection`,
+`get_page_links`, `list_page_blocks`, `highlight_page`, `add_bookmark`, Save As as HTML and as text
+(`testdriver_export`), `get_page_content`, `web_search`, a page opened by a highlight's link (which landed on the
+highlight, 2521 px down), and `call_page_tool`; true after `testdriver_click` and after `testdriver_key`, the
+controls. ⌘E on a selection, pressed as its menu item by `SAVOIA_KEY_SELFTEST=assistant`: false, and true in the
+same run with the gesture put back. The rest of that self-test, and `SAVOIA_WEBMCP_SELFTEST`, read the same either way.
+
+**The page's world goes without a gesture too**, by choice:
+
+- **A WebMCP tool call** (`call_page_tool`, and the registry's own questions to the page, one of which runs at every
+  navigation). The call is an agent's, not a click of the person's, and a page that got activation from it could
+  open a window or read the clipboard on an agent's word — the reason `evaluate_javascript` has none. A tool that
+  needs activation is refused by the API it calls and can say so in its answer; the agent has `click`.
+- **A message to an MCP app** (`MCPAppSession.deliver`). Messages arrive by themselves, and the app's frame is
+  activated by the person clicking in it, as any frame is.
+
+**Remote automation is not this door.** `Automation.evaluateJavaScriptFunction` is WebKit's own, in an automation
+tab, and leaves `isActive` false ([devtools.md](devtools.md#remote-automation)). The scripts in the tables below
+run in an automation tab as in any other.
 
 **What activated every page at load** was three calls, found with a page that writes
 `navigator.userActivation` into its own title, read with `list_workspaces` so that nothing is run to read it:
 
 - the offer to translate — `PageTranslator.plan` on every `.finished`, through `BrowserTab.runScript`;
-- any call at `.finished` on a page that loads fast: the load ended before the pane had found the web view (67 ms
-  before, on a local page), and the call fell back to the ordinary one — a fallback that is gone, with the search
-  for the view;
+- any call at `.finished` on a page that loaded fast, while a tab was a `WebPage`: the load ended before the pane
+  had found the web view, and the call fell back to the ordinary one — a fallback that is gone, with the search for
+  the view;
 - the live-page budget asking a page off screen whether a video of it is floating
   (`WKWebView.isInPictureInPicture`).
 
-All three go without a gesture now, and so do the highlights put back on a load and `hasUserInput`. With them
+All three go without a gesture now, as every call does. With them
 `hasBeenActive` is false after a load, after a load of an address that has a highlight (which is painted), in a
 second window opened straight after, and on a page the budget looked at and kept.
 
@@ -41,13 +66,13 @@ second window opened straight after, and on a page the budget looked at and kept
 
 | what | when | world | does | decision |
 |---|---|---|---|---|
-| the page's size, for its picture — `BrowserTab.rememberViewState` | a tab leaving the screen, at most every 3 s | savoia | reads `innerWidth` and `innerHeight` | stays; no gesture. The scroll offset is no longer read here, nor put back by a script — below |
+| the page's size, for its picture — `BrowserTab.rememberViewState` | a tab leaving the screen, at most every 3 s | savoia | reads `innerWidth` and `innerHeight` | stays. The scroll offset is no longer read here, nor put back by a script — below |
 | site icon | — | — | — | **done**: no script. WebKit names and fetches the icons, `SiteIcons` is the view's icon-loading delegate ([architecture.md](architecture.md)) |
-| description for groups — `TabSorter.pageFinished` | every `.finished` | savoia | reads the meta description or the first paragraph | **done**: `savoia` world, no gesture |
-| highlights — `HighlightStore.apply` | a load of an address that has highlights | savoia | edits the DOM, watches it for 5 s | no gesture; below |
-| the offer to translate — `BrowserState.offerTranslation` | every `.finished` | savoia | reads the page's language and a sample of its text | stays; no gesture |
-| unsent input — `BrowserTab.hasUserInput` | the live-page budget choosing what to discard | savoia | reads `textarea` and password fields | stays; no gesture |
-| a floating video — `WKWebView.isInPictureInPicture` | the same | savoia | reads each `video`'s presentation mode | stays; no gesture |
+| description for groups — `TabSorter.pageFinished` | every `.finished` | savoia | reads the meta description or the first paragraph | stays |
+| highlights — `HighlightStore.apply` | a load of an address that has highlights | savoia | edits the DOM, watches it for 5 s | stays; below |
+| the offer to translate — `BrowserState.offerTranslation` | every `.finished` | savoia | reads the page's language and a sample of its text | stays |
+| unsent input — `BrowserTab.hasUserInput` | the live-page budget choosing what to discard | savoia | reads `textarea` and password fields | stays |
+| a floating video — `WKWebView.isInPictureInPicture` | the same | savoia | reads each `video`'s presentation mode | stays |
 
 ## Injected ahead of time
 
@@ -63,9 +88,10 @@ second window opened straight after, and on a page the budget looked at and kept
 | what | decision |
 |---|---|
 | find on page | **done**: `WKWebView.find`, no script in the page; `FindScript` is gone. The bar says only when there is nothing, since the public API gives no count |
-| translation | stays; `savoia` world, no gesture (`BrowserTab.runScript`) |
-| the readable copy for bookmarks, export, the accessibility overlay, going to a highlight, the selection for ⌘E, `get_selection`, `get_page_links`, `list_page_blocks`, `highlight_page` | stay; `savoia` world, on demand, and still a gesture each — `page.savoia` |
-| agent tools — `page_snapshot`, `click`, `fill`, `scroll_page`, `evaluate_javascript` | all run without a gesture; `click` is a real mouse event instead ([agent-actions.md](agent-actions.md#the-acting-tools)) |
+| translation | stays; `savoia` world |
+| the readable copy for bookmarks, Save As, the accessibility overlay, going to a highlight, the selection for ⌘E, `web_search`, `get_selection`, `get_page_links`, `list_page_blocks`, `highlight_page` | stay; `savoia` world, on demand |
+| agent tools — `page_snapshot`, `click`, `fill`, `scroll_page`, `evaluate_javascript` | `savoia` world, `evaluate_javascript` the page's; `click` is a real mouse event, and the one gesture ([agent-actions.md](agent-actions.md#the-acting-tools)) |
+| a page's own tools — `list_page_tools`, `call_page_tool` | the page's world ([webmcp.md](webmcp.md)) |
 
 ## Scroll and history: `interactionState`
 

@@ -310,7 +310,8 @@ on the tab's view), on a stand page holding a same-origin iframe, two cross-orig
 - Who sees what: a document sees every tool of its own origin, in any frame, and every tool whose `exposedTo` names
   its origin; `getTools({fromOrigins})` keeps the first kind always and the second kind only from the origins
   asked for. `toolchange` goes to every other document that could see the tool, once its policy is known to allow it.
-- A call into another frame goes to that frame through `callAsyncJavaScript(in:)`, and its answer comes back over the
+- A call into another frame goes to that frame by its `WKFrameInfo`, without a user gesture as every call does
+  ([page-scripts.md](page-scripts.md#one-door)), and its answer comes back over the
   channel as a `result`, which the broker hands to the caller's pending reply. The caller's abort rejects at once and
   is passed on to the tool's signal; a caller or a target that goes away ends the call on the other side.
 - The `tools` policy: the top document may; a subframe may when its parent may and the parent's container for it
