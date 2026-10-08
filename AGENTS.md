@@ -42,7 +42,8 @@ Savoia/Translation   segments, batching, the page script, LanguageGuess, AppleTr
 Savoia/ACP           JSONRPCConnection, ACPClient (actor), ACPAgent (process), AgentSessionStore (view model)
 Savoia/MCP           MCPServer + MCPSocket + MCPStdioBridge (`Savoia --mcp`), Client/ (MCP apps, SEP-1865, OAuth, catalog)
 Savoia/Speech        dictation: MicrophoneCapture, ParakeetTranscriber (FluidAudio), DictationStore, the button
-Savoia/DevTools      DevToolsStore (console and network capture), WebInspector (⌥⌘I, SPI), Automation (remote automation)
+Savoia/DevTools      DevToolsStore (console and network capture), WebInspector (⌥⌘I, SPI), Automation (remote automation),
+                     WebDriverServer + WebDriverWire (W3C WebDriver over HTTP, for wptrunner and Selenium)
 Savoia/Tools         BrowserTools — one catalog, served to the assistant, to ACP agents and over MCP
 Savoia/WebMCP        pages declaring tools for agents: polyfill, registry, calls, WebMCPStore — docs/webmcp.md
 ```
@@ -228,7 +229,16 @@ rewrite the root file. `xcodebuild` never touches it — the project holds only 
   ([docs/page-scripts.md](docs/page-scripts.md#one-door)).
 - **A page nobody can see behaves differently, and a sleeping display hides all of them.** `visibilityState` is
   `hidden`, `requestFullscreen()` is refused with a `TypeError`. A long unattended run crosses the display-sleep
-  timer; `scripts/permissions-wpt.py` holds the display awake with `caffeinate -d`.
+  timer; the wpt stands (`scripts/wpt.py`, `scripts/permissions-wpt.py`) hold the display awake with `caffeinate -d`.
+- **A `WKWebView` that lives is an automation tab still open.** The protocol lists a browsing context for as
+  long as its view exists, so a local `let view = …` across an `await` kept every window WebDriver had closed in
+  `getBrowsingContexts`. Hold the tab's id. And **`BrowserTab.page` builds a view when there is none**, a closed
+  tab's too: a task that outlived its tab (`rememberViewState`) read it and left a web view belonging to no tab,
+  which nothing showed until wptrunner listed it and failed every file after with "the window remained open".
+  Code that may run after a close takes `livePage`, or the view it already had.
+- **Two wpt stands on one Mac answer each other.** Both serve on 8000 and 8443; a run started while another
+  session's is going reads that one's server, and both come out with numbers nobody can explain. `lsof -nP
+  -iTCP:8000 -sTCP:LISTEN` first, and an orphaned `wpt serve` (parent 1) is the usual find.
 - **`*.localhost` is not a neutral test host.** Plain http there is a secure context, and each host is a site of
   its own to WebKit, so "non-secure" and "same-site" tests measure nothing. wpt's own names in `/etc/hosts` are the
   ones Safari is run on ([docs/test-suites.md](docs/test-suites.md)).
@@ -289,7 +299,7 @@ profiles with isolated data stores, persistence (a SQLite system of record plus 
 bookmarks with on-device multilingual embeddings and personal search on the start page, ad/tracker blocking (its
 page half, scriptlets and extended CSS, a setting that is off by default), extra certificate authorities, `WKWebExtension` hosting, site permissions, geolocation, site notifications, downloads,
 page translation, find on page (⌘F), windows a page opens as tabs that keep their opener, extension pages as tabs, Save As with web archives, picture-in-picture, the ⌘E assistant, ACP agents and chats, `Savoia --mcp`, MCP
-apps (SEP-1865) with OAuth, deep research with document tabs and highlights, DevTools capture, remote automation, dictation, localization.
+apps (SEP-1865) with OAuth, deep research with document tabs and highlights, DevTools capture, remote automation with WebDriver over HTTP, dictation, localization.
 
 Not built, with reasons: [docs/todo.md](docs/todo.md) — bookmark images, Apple Pay, floating windows, passkeys, CloudKit sync.
 What is specified and waiting for a session: [docs/tasks/](docs/tasks/README.md). What Savoia is waiting on Apple to make public, and how to notice when it does:

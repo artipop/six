@@ -23,13 +23,19 @@ final class DevToolsStore {
 
     #if os(macOS)
     let automation = Automation()
+    @ObservationIgnored private(set) lazy var webDriver = WebDriverServer(automation: automation)
 
     /// Remote automation: it is also what puts the `automation_` tools in the MCP list.
     var allowsAutomation: Bool {
         didSet {
             guard allowsAutomation != oldValue else { return }
             settings.devToolsAutomation = allowsAutomation
-            if !allowsAutomation { automation.end() }
+            if allowsAutomation {
+                webDriver.start()
+            } else {
+                webDriver.stop()
+                automation.end()
+            }
             onCaptureChanged?()
             Log.info(.devtools, allowsAutomation ? "remote automation allowed" : "remote automation off")
         }
@@ -57,6 +63,7 @@ final class DevToolsStore {
         self.isCapturing = settings.devToolsCapture
         #if os(macOS)
         self.allowsAutomation = settings.devToolsAutomation && Automation.isAvailable
+        if allowsAutomation { webDriver.start() }
         #endif
         controllers.onController { [weak self] windowID, controller in
             self?.install(in: controller, for: windowID)

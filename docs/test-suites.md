@@ -24,7 +24,63 @@ rather than written again:
   per file. testharness's report is read off the page (`#results > tbody > tr`), crash tests pass by leaving the
   page alive, and each run is compared with a committed baseline so the output is what moved.
 
+### The wpt stand
+
+`scripts/wpt.py` is `./wpt run savoia`: wpt's own runner, the way Safari is run on wpt's CI, and since 8 October
+2026 the stand for every wpt directory that is not one of the two scripted before it.
+
+- **The product** is `scripts/wptrunner/savoia_wptrunner.py`, which wptrunner finds through an entry point the
+  script writes beside it in the cache. Savoia is its own driver: wptrunner starts the Debug Savoia with
+  `SAVOIA_WEBDRIVER_PORT` and speaks W3C WebDriver to the server Savoia has while Allow Remote Automation is on
+  ([devtools.md](devtools.md#webdriver-over-http)). The home is a throwaway one (`CFFIXED_USER_HOME`), launched
+  once to make the settings table, then given the switch and wpt's CA — `tools/certs/cacert.pem`, whose key is in
+  wpt's repository, so it is trusted there and nowhere else.
+- **The tests run in automation tabs**, with `SAVOIA_TESTDRIVER=1`: under it such a tab keeps its profile's store,
+  so that notifications can be answered at all, and the notifications themselves are not posted to the system.
+- **testdriver is wptrunner's**, every action a WebDriver command. Two it sends over WebDriver BiDi, which
+  WebKit's automation does not carry for them — `bidi.permissions.set_permission` and
+  `bidi.emulation.set_geolocation_override` — and the product takes those off the queue itself and sends
+  Savoia's own commands; `reset_browser_state`, wptrunner's hook between files, is `savoia/reset`.
+- **The names** are wpt's, `web-platform.test` and `not-web-platform.test`, from `/etc/hosts`
+  (`./scripts/wpt.py --hosts | sudo tee -a /etc/hosts`, once), on wpt's default ports 8000 and 8443. Two stands
+  cannot serve at once, and an old `wpt serve` left on `*:8000` is answered by whichever runner comes next.
+- **What it prints** is what the old runner printed: each file against one pinned Safari run on wpt.fyi, subtest
+  by subtest where they differ, and what moved against `scripts/wpt-baseline.json`. Anything after `--` goes to
+  `wpt run`; wptrunner's own log is `savoia-wptrunner.log` in the cache, and Savoia's from the throwaway home
+  is `savoia-app.log` beside it.
+
+The browser is not restarted between files (`--no-restart-on-unexpected`): without expectation files every
+failure is unexpected, and a restart each is most of a run.
+
+**Against the runner before it**, 8 October 2026, wpt `1d99362`, the twelve permission directories, 356 files
+run (the 21 that call `getDisplayMedia` left out, as before), Safari's run `5068288941096960` for both: **338
+files give the old runner's result, 6 a better one, 12 another**; 300 are the same as Safari. A full run is about 25
+minutes.
+
+| files | the new stand | the old runner | why |
+|---|---|---|---|
+| 3 in `mediacapture-streams`: `MediaStreamTrack-getCapabilities`, `GUM-invalid-facing-mode`, `enumerateDevices-with-navigation` | 80/112, 1/1, 1/1 | 76/112, 0/1, 0/1 | WebKit's mock devices in place of this Mac's camera; the first and the third are now Safari's numbers |
+| 2 in `clipboard-apis/permissions-policy/clipboard-read` | 2/2, 3/3 | timeout, 2/3 | the click is the protocol's |
+| `notifications/instance` | 28/34 in one full run, a timeout with 18/34 in another | the same two results | varies in both |
+| 4 in `idle-detection` | harness error, as Safari | timeout | Set Permission answers `invalid argument` at once where the old runner's page waited |
+| 3 in `notifications`: `shownotification`, `-window`, `-without-permission` | one notification too many | 5/11, 1/1, 1/1 | not the stand: a lifetime override for persistent notifications that was in the tree for a few hours that day gave the old runner the same three numbers |
+| 2 in `clipboard-apis/permissions`: `readText-granted`, `readText-denied` | a failure or a timeout, by the run | 1/1, 0/1 | WebKit's Paste menu, which the click brings up and nothing answers ([tasks/permissions/30](tasks/permissions/30-paste-menu-over-another-app.md)) |
+| 2 in `permissions-policy/reporting`: `picture-in-picture-report-only`, `-reporting` | 0/1 alone, as Safari; a timeout in a full run | timeout, 0/1 | Element Click does not come back while the page asks for picture-in-picture; its mouse commands are given five seconds |
+| `focus-without-user-activation-click-handler` | timeout, as Safari | 0/2 | not looked into |
+
+**The old runner stays for now.** What is left between the two stands is the three notification files above:
+they have to be run again on a tree without that override before `notifications` can be called equal.
+`geolocation` already is, file for file. When the three agree, `scripts/permissions-wpt.py`, its baseline and the
+`testdriver_*` tools nothing else calls go — `TestDriver.swift` keeps `setPermission`, `setGeolocation` and
+`reset`, which the WebDriver server calls, and the tools the walks and probes use.
+
+**wptrunner was not run against Safari on this Mac.** Safari's Allow Remote Automation is off here and turning
+it on takes Artem's password; the commands to build were read from wptrunner's executor instead, and the answers
+to compare with are wpt.fyi's, as before.
+
 ### What unlocks most of the rest: testdriver
+
+This is the runner before wptrunner, `scripts/permissions-wpt.py`, and the tools it drives Savoia with.
 
 Many wpt tests need an action a page cannot take on itself — a click that counts as a user gesture, granting a
 permission, pressing a key, installing an extension. wpt routes those through `resources/testdriver.js`, which a
@@ -152,7 +208,8 @@ Savoia's answer. These are the wpt directories worth running; everything else in
 
 ### Permissions: what to run next, and against what
 
-Step 1 is scripted — `scripts/permissions-wpt.py`, results in
+Steps 1 and 2 are scripted twice over — `scripts/wpt.py` on wptrunner ([above](#the-wpt-stand)) and, before it,
+`scripts/permissions-wpt.py`, results in
 [permissions.md](permissions.md#compatibility-web-platform-tests), and so is step 2; step 3 is not started. The bar is the one `web-extensions/` set: **the same result as the Safari of the same system, file by
 file** — a failure Safari shares is WebKit's, a failure only Savoia has is Savoia's. Counted on wpt `1d99362`; the
 Safari column is 27.0 on wpt.fyi, 2 October 2026 (Technology Preview 253 scores the same in every row but

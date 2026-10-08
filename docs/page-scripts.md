@@ -58,7 +58,8 @@ activation in one: an event. Each row is a door; nothing else runs in a page.
 | `testdriver_in_context` | the caller's | the page's | any, by the name testdriver gave it | an MCP client, under `SAVOIA_TESTDRIVER` | every web tab |
 | WebMCP — `call_page_tool`, and the registry's questions | Savoia's body, calling a tool the page declared | the page's (the `allow` attribute is read in savoia) | the tool's own | an agent, after the site was allowed; the registry at each navigation | while Develop ▸ WebMCP is on |
 | the MCP app bridge — `MCPAppSession.deliver` | Savoia's body, posting one message | the page's | main, the app's shell | a message from the app's server | an MCP app's tab |
-| `Automation.evaluateJavaScriptFunction` | the client's | the page's | the protocol's choice | `automation_send`, MCP only | automation tabs, while Develop ▸ Allow Remote Automation is on |
+| `Automation.evaluateJavaScriptFunction` | the client's, and the WebDriver server's own bodies for finding and reading elements | the page's | the frame the client switched to | `automation_send` over MCP; a WebDriver client's Execute Script and element commands ([devtools.md](devtools.md#webdriver-over-http)) | automation tabs, while Develop ▸ Allow Remote Automation is on |
+| the WebDriver server's mark — `WebDriverSession.tab` | Savoia's, one property set through the protocol and deleted through `callWithoutGesture` | the page's | main | Set Permission and Close Window, to learn which tab a handle is | automation tabs |
 | Web Inspector's console | the person's | the page's | any | ⌥⌘I | every web tab |
 
 None of them is a user gesture: the first five by `withUserGesture: false`, the protocol's by WebKit (measured,
@@ -79,7 +80,7 @@ synthesize one. A click and a key activate the page (measured, above).
   protocol's `evaluateJavaScriptFunction`. They are one call apart from each other in the first two cases — the
   test driver's adds the choice of a frame — and the third is WebKit's. They stay three because they answer three
   clients: an agent, the wpt stand, a WebDriver client. `testdriver_in_context` goes with the stand's move to
-  wptrunner ([tasks/devtools/28](tasks/devtools/28-webdriver-http.md)), where the protocol's own call does its work.
+  wptrunner ([devtools.md](devtools.md#webdriver-over-http)), where the protocol's own call does its work.
 - **Two ways to click, and two to answer a dialog**: Savoia's event and the protocol's, `handle_dialog` and the
   protocol's dialog commands. Each pair ends in the same place — the view's `mouseDown`, the tab's pending dialog —
   and they are compared in [agent-actions.md](agent-actions.md) and [devtools.md](devtools.md#remote-automation).

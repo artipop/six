@@ -22,6 +22,23 @@ final class PageDelegate: NSObject, WKNavigationDelegate, WKUIDelegate {
         self.tab = tab
     }
 
+    // MARK: Storage access under automation
+
+    private static let storageAccessPanel = #selector(PageDelegate.webView(_:requestStorageAccessPanelForDomain:underCurrentDomain:completionHandler:))
+
+    /// Only an automation tab answers the question itself: elsewhere WebKit's own alert is the answer.
+    override func responds(to selector: Selector!) -> Bool {
+        if selector == Self.storageAccessPanel { return tab?.isAutomated == true }
+        return super.responds(to: selector)
+    }
+
+    /// Nobody is there to ask; a client that wants the access sets the permission first.
+    @objc(_webView:requestStorageAccessPanelForDomain:underCurrentDomain:completionHandler:)
+    func webView(_ webView: WKWebView, requestStorageAccessPanelForDomain requesting: String, underCurrentDomain current: String,
+                 completionHandler: @escaping (Bool) -> Void) {
+        completionHandler(false)
+    }
+
     // MARK: Where the page may go
 
     func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction,
@@ -129,7 +146,8 @@ final class PageDelegate: NSObject, WKNavigationDelegate, WKUIDelegate {
     }
 
     func webViewDidClose(_ webView: WKWebView) {
-        guard let tab, tab.isOpenedByPage else { return }
+        // An automation tab is closed by the protocol this way too.
+        guard let tab, tab.isOpenedByPage || tab.isAutomated else { return }
         tab.onPageClose?(tab)
     }
 

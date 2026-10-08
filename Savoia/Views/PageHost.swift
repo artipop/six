@@ -31,7 +31,8 @@ struct PageHost: NSViewRepresentable {
         /// WebKit takes its fullscreen placeholder out and does not always put the page back.
         override func willRemoveSubview(_ subview: NSView) {
             super.willRemoveSubview(subview)
-            if subview !== page { Task { self.takeBack() } }
+            // Out of a window this may be the host's own end, where a task would hold what is going away.
+            if subview !== page, window != nil { Task { self.takeBack() } }
         }
 
         private func takeBack() {

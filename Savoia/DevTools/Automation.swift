@@ -5,6 +5,20 @@ import WebKit
 /// An automation tab's view takes a click as it comes, so the protocol's mouse lands with Savoia behind another app.
 final class AutomatedWebView: WKWebView {
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    /// ⌘C ⌘V ⌘X ⌘A as the Edit menu's actions: the menu bar leaves Paste off on a page with nothing editable.
+    private func edits(_ event: NSEvent) -> Bool {
+        guard KeyModifiers(event.modifierFlags) == .command, let action = Self.editing[event.charactersIgnoringModifiers ?? ""] else { return false }
+        return NSApp.sendAction(action, to: self, from: nil)
+    }
+
+    override func keyDown(with event: NSEvent) {
+        if !edits(event) { super.keyDown(with: event) }
+    }
+
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        event.type == .keyDown && edits(event) || super.performKeyEquivalent(with: event)
+    }
 }
 
 /// WebKit's own automation — the protocol safaridriver drives Safari with — for the tabs opened
@@ -13,7 +27,12 @@ final class AutomatedWebView: WKWebView {
 final class Automation: NSObject {
     weak var browser: BrowserState?
     /// Nothing an automation tab does is anyone's site data; a new one for every session.
-    private(set) var dataStore = WKWebsiteDataStore.nonPersistent()
+    private var ownStore = WKWebsiteDataStore.nonPersistent()
+    /// The wpt stand's tabs keep their profile's store: WebKit gives a store that is not kept no notifications.
+    var dataStore: WKWebsiteDataStore {
+        if TestDriver.isOn, let browser { return browser.dataStore(for: browser.selectedProfile) }
+        return ownStore
+    }
     private var session: NSObject?
     private var pool: NSObject?
     private var nextID = 1
@@ -29,13 +48,32 @@ final class Automation: NSObject {
         NSClassFromString("_WKAutomationSession") != nil && WKWebViewConfiguration.instancesRespond(to: controlled)
     }
 
+    /// What a WebDriver client asked of the session's tabs: `webkit:alwaysAllowAutoplay` and `webkit:WebRTC`.
+    struct Options {
+        var alwaysAllowsAutoplay = false
+        var allowsInsecureMediaCapture = false
+        var suppressesICECandidateFiltering = false
+    }
+    var options = Options()
+
     /// Puts a tab's configuration under the session, starting one if there is none.
     func prepare(_ configuration: WKWebViewConfiguration) {
-        guard let pool = start(), let setter = class_getMethodImplementation(WKWebViewConfiguration.self, Self.controlled) else { return }
+        guard let pool = start() else { return }
         configuration.perform(NSSelectorFromString("setProcessPool:"), with: pool)
-        // Through the setter itself: `setValue(_:forKey:)` for this key never returns.
+        Self.set("_setControlledByAutomation:", true, on: configuration)
+        // As Safari's automation windows: WebKit grants capture without asking anyone, so the devices are its mock ones.
+        Self.set("_setMockCaptureDevicesEnabled:", true, on: configuration.preferences)
+        if options.allowsInsecureMediaCapture { Self.set("_setMediaCaptureRequiresSecureConnection:", false, on: configuration.preferences) }
+        if options.suppressesICECandidateFiltering { Self.set("_setICECandidateFilteringEnabled:", false, on: configuration.preferences) }
+        if options.alwaysAllowsAutoplay { configuration.mediaTypesRequiringUserActionForPlayback = [] }
+    }
+
+    /// Through the setter itself: `setValue(_:forKey:)` for `_controlledByAutomation` never returns.
+    private static func set(_ name: String, _ value: Bool, on object: NSObject) {
+        let selector = NSSelectorFromString(name)
+        guard object.responds(to: selector), let setter = class_getMethodImplementation(type(of: object), selector) else { return }
         typealias Setter = @convention(c) (NSObject, Selector, Bool) -> Void
-        unsafeBitCast(setter, to: Setter.self)(configuration, Self.controlled, true)
+        unsafeBitCast(setter, to: Setter.self)(object, selector, value)
     }
 
     private func start() -> NSObject? {
@@ -61,22 +99,40 @@ final class Automation: NSObject {
     /// One command of the protocol, and its reply as WebKit wrote it. Events that arrived since the
     /// last command follow the reply.
     func send(_ method: String, params: ACPJSON?) async throws -> String {
-        guard let session else { throw BrowserTool.Failure(message: "No automation tab is open; open one with automation_open_window.") }
-        let id = nextID
-        nextID += 1
-        let message = ACPJSON.object(["id": .number(Double(id)), "method": .string(method), "params": params ?? .object([:])])
-        let text = String(decoding: try JSONEncoder().encode(message), as: UTF8.self)
-        let reply = await withCheckedContinuation { continuation in
-            waiting[id] = continuation
-            session.perform(Self.dispatch, with: text)
-            Task { [weak self] in
-                try? await Task.sleep(for: .seconds(30))
-                self?.waiting.removeValue(forKey: id)?.resume(returning: #"{"error":{"message":"No reply in 30 s"}}"#)
-            }
-        }
+        guard session != nil else { throw BrowserTool.Failure(message: "No automation tab is open; open one with automation_open_window.") }
+        let params = try params.map { try JSONSerialization.jsonObject(with: JSONEncoder().encode($0)) } ?? [String: Any]()
+        let reply = await exchange(method, params, timeout: .seconds(30))
         let seen = events
         events = []
         return seen.isEmpty ? reply : reply + "\n\nEvents since the last command:\n" + seen.joined(separator: "\n")
+    }
+
+    /// One command for the WebDriver server: its `result`, or the protocol's error in WebDriver's words.
+    func command(_ name: String, _ params: [String: Any] = [:], timeout: Duration? = .seconds(30)) async throws -> [String: Any] {
+        guard session != nil else { throw WebDriverError("no such window", "No automation tab is open.") }
+        let text = await exchange("Automation." + name, params, timeout: timeout)
+        let reply = (try? JSONSerialization.jsonObject(with: Data(text.utf8))) as? [String: Any] ?? [:]
+        if let error = reply["error"] as? [String: Any] { throw WebDriverError(protocolError: error) }
+        return reply["result"] as? [String: Any] ?? [:]
+    }
+
+    private func exchange(_ method: String, _ params: Any, timeout: Duration?) async -> String {
+        guard let session else { return #"{"error":{"message":"WindowNotFound;No automation session"}}"# }
+        let id = nextID
+        nextID += 1
+        let message: [String: Any] = ["id": id, "method": method, "params": params]
+        guard let data = try? JSONSerialization.data(withJSONObject: message) else {
+            return #"{"error":{"message":"InvalidParameter;The parameters are not JSON"}}"#
+        }
+        return await withCheckedContinuation { continuation in
+            waiting[id] = continuation
+            session.perform(Self.dispatch, with: String(decoding: data, as: UTF8.self))
+            guard let timeout else { return }
+            Task { [weak self] in
+                try? await Task.sleep(for: timeout)
+                self?.waiting.removeValue(forKey: id)?.resume(returning: #"{"error":{"message":"Timeout;No reply in \#(timeout)"}}"#)
+            }
+        }
     }
 
     private func received(_ text: String) {
@@ -90,14 +146,16 @@ final class Automation: NSObject {
 
     /// Automation is switched off: its tabs close and the session goes.
     func end() {
+        options = Options()
+        guard session != nil else { return }
         if let browser { browser.closeTabs(browser.tabs.filter(\.isAutomated).map(\.id)) }
         pool?.perform(Self.attach, with: nil)
-        waiting.values.forEach { $0.resume(returning: #"{"error":{"message":"Automation was switched off"}}"#) }
+        waiting.values.forEach { $0.resume(returning: #"{"error":{"message":"WindowNotFound;Automation was switched off"}}"#) }
         waiting = [:]
         events = []
         session = nil
         pool = nil
-        dataStore = .nonPersistent()
+        ownStore = .nonPersistent()
     }
 
     // MARK: What the session asks of the browser
@@ -136,7 +194,7 @@ final class Automation: NSObject {
 
     /// WebKit holds a command's reply while a dialog is up; it follows a later command, with the events.
     func dialogOpened() {
-        waiting.values.forEach { $0.resume(returning: #"{"error":{"message":"A JavaScript dialog opened before the reply; answer it, and the reply follows"}}"#) }
+        waiting.values.forEach { $0.resume(returning: #"{"error":{"message":"UnexpectedAlertOpen;A JavaScript dialog opened before the reply; answer it, and the reply follows"}}"#) }
         waiting = [:]
     }
 

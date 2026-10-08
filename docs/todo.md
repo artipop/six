@@ -10,10 +10,9 @@ The browser's core first, each step making the next one smaller.
 
 | | what | where |
 |---|---|---|
-| 1 | **WebDriver over HTTP**: a server of Savoia's own over WebKit's automation, so that the wpt stand runs under wptrunner as Safari's does and Selenium-style clients can drive Savoia; whether Playwright can is a question inside it | [tasks/devtools/28](tasks/devtools/28-webdriver-http.md) |
-| 2 | **Waits by the clock** replaced by the events they stand in for — what is left; the first, a load to end, is done | [tasks/browser/14](tasks/browser/14-waits-by-the-clock.md) |
-| 3 | **Small things**, seven of them: forget one site, a way home, a download that repeats, a user agent per site, every model in the welcome, a Help menu, grouping by meaning off for a new install | [tasks/browser/13](tasks/browser/13-small-things.md) |
-| 4 | **Passkeys and passwords** — as much paperwork with Apple as code | [passkeys.md](passkeys.md) |
+| 1 | **Waits by the clock** replaced by the events they stand in for — what is left; the first, a load to end, is done | [tasks/browser/14](tasks/browser/14-waits-by-the-clock.md) |
+| 2 | **Small things**, seven of them: forget one site, a way home, a download that repeats, a user agent per site, every model in the welcome, a Help menu, grouping by meaning off for a new install | [tasks/browser/13](tasks/browser/13-small-things.md) |
+| 3 | **Passkeys and passwords** — as much paperwork with Apple as code | [passkeys.md](passkeys.md) |
 
 ## Beside the order
 
@@ -23,6 +22,7 @@ Nothing here waits on the steps above, except where it says so.
 |---|---|
 | Measurements nobody has made: extensions' messaging and `scripting`, uBlock Origin Lite's control run, two WebMCP tests, fullscreen on a real site | [tasks/measure/12](tasks/measure/12-one-sitting.md) |
 | Extensions after those measurements: what is left of the list now that a tab hands out its view and extension pages are tabs | [tasks/extensions/20](tasks/extensions/20-extensions-next.md) |
+| Playwright: it speaks WebDriver BiDi, which the WebDriver server does not; three questions before a line is written | [tasks/devtools/33](tasks/devtools/33-playwright-bidi.md) |
 | A tab as a floating window | [tasks/browser/17](tasks/browser/17-floating-window.md) |
 | Apple Pay on sites: WebKit keeps `PaymentRequest` from an app's view unless an SPI switch is set; whether a payment then goes through takes a card and a hand | [tasks/browser/32](tasks/browser/32-apple-pay-switch.md) |
 | WebKit's Paste menu, which an agent's click brings up over whatever app is in front | [tasks/permissions/30](tasks/permissions/30-paste-menu-over-another-app.md) |

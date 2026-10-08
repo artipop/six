@@ -20,25 +20,9 @@ enum TestDriver {
                              .init(name: "top", description: "The top-level origin, for `storage-access`.")],
                 surfaces: .mcp,
                 run: { args in
-                    let tab = try tab(args)
-                    let name = args["permission"]?.stringValue ?? ""
-                    if name == "storage-access" {
-                        return try await setStorageAccess(args, tab: tab)
-                    }
-                    // The Permissions API's name for it.
-                    let known = name == "geolocation" ? .location : SitePermission(rawValue: name)
-                    guard let permission = known, permission != .pageTools else {
-                        throw BrowserTool.Failure(message: "Savoia keeps no answer for \(name)")
-                    }
-                    guard let origin = args["origin"]?.stringValue, let permissions = browser.permissions else {
-                        throw BrowserTool.Failure(message: "origin is required")
-                    }
-                    switch args["state"]?.stringValue {
-                    case "granted": permissions.set(true, permission, forOrigin: origin, profileID: tab.profileID)
-                    case "denied": permissions.set(false, permission, forOrigin: origin, profileID: tab.profileID)
-                    case "prompt": permissions.forget(permission, forOrigin: origin, profileID: tab.profileID)
-                    default: throw BrowserTool.Failure(message: "state must be granted, denied or prompt")
-                    }
+                    try await setPermission(args["permission"]?.stringValue ?? "", to: args["state"]?.stringValue ?? "",
+                                            origin: args["origin"]?.stringValue, top: args["top"]?.stringValue,
+                                            tab: try tab(args), browser: browser)
                     return "ok"
                 }
             ),
@@ -49,21 +33,8 @@ enum TestDriver {
                              .init(name: "error", description: "`positionUnavailable`, for a position that cannot be found.")],
                 surfaces: .mcp,
                 run: { args in
-                    if args["error"]?.stringValue != nil {
-                        Geolocation.shared.override = .unavailable
-                    } else if let text = args["coordinates"]?.stringValue {
-                        let read = (try? JSONSerialization.jsonObject(with: Data(text.utf8))) as? [String: Any]
-                        func number(_ key: String) -> Double? { (read?[key] as? NSNumber)?.doubleValue }
-                        guard let latitude = number("latitude"), let longitude = number("longitude") else {
-                            throw BrowserTool.Failure(message: "coordinates need a latitude and a longitude")
-                        }
-                        Geolocation.shared.override = .position(.init(
-                            latitude: latitude, longitude: longitude, accuracy: number("accuracy") ?? 1,
-                            altitude: number("altitude"), altitudeAccuracy: number("altitudeAccuracy"),
-                            heading: number("heading"), speed: number("speed")))
-                    } else {
-                        Geolocation.shared.override = nil
-                    }
+                    let read = args["coordinates"]?.stringValue.flatMap { try? JSONSerialization.jsonObject(with: Data($0.utf8)) }
+                    try setGeolocation(coordinates: read as? [String: Any], unavailable: args["error"]?.stringValue != nil)
                     return "ok"
                 }
             ),
@@ -86,12 +57,7 @@ enum TestDriver {
                 description: "What one test file must not leave for the next: answers about location and notifications, the stand-in position, and every notification shown.",
                 surfaces: .mcp,
                 run: { _ in
-                    for decision in browser.permissions?.decisions ?? []
-                    where decision.permission == .location || decision.permission == .notifications {
-                        browser.permissions?.forget(decision.permission, forOrigin: decision.origin, profileID: decision.profileID)
-                    }
-                    Geolocation.shared.override = nil
-                    SiteNotifications.shared.closeAll()
+                    reset(browser)
                     return "ok"
                 }
             ),
@@ -271,6 +237,58 @@ enum TestDriver {
         ]
     }
 
+    // MARK: What the WebDriver server asks for too
+
+    /// Files an answer for an origin, as the permission bar would; `storage-access` is WebKit's own.
+    static func setPermission(_ name: String, to state: String, origin: String?, top: String?, tab: BrowserTab,
+                              browser: BrowserState) async throws {
+        if name == "storage-access" {
+            return try await setStorageAccess(origin: origin, top: top, granted: state == "granted", tab: tab)
+        }
+        // The Permissions API's name for it.
+        let known = name == "geolocation" ? .location : SitePermission(rawValue: name)
+        guard let permission = known, permission != .pageTools else {
+            throw BrowserTool.Failure(message: "Savoia keeps no answer for \(name)")
+        }
+        guard let origin, let permissions = browser.permissions else {
+            throw BrowserTool.Failure(message: "origin is required")
+        }
+        switch state {
+        case "granted": permissions.set(true, permission, forOrigin: origin, profileID: tab.profileID)
+        case "denied": permissions.set(false, permission, forOrigin: origin, profileID: tab.profileID)
+        case "prompt": permissions.forget(permission, forOrigin: origin, profileID: tab.profileID)
+        default: throw BrowserTool.Failure(message: "state must be granted, denied or prompt")
+        }
+    }
+
+    /// The position pages are given in place of the Mac's own; with neither, none.
+    static func setGeolocation(coordinates: [String: Any]?, unavailable: Bool) throws {
+        if unavailable {
+            Geolocation.shared.override = .unavailable
+        } else if let coordinates {
+            func number(_ key: String) -> Double? { (coordinates[key] as? NSNumber)?.doubleValue }
+            guard let latitude = number("latitude"), let longitude = number("longitude") else {
+                throw BrowserTool.Failure(message: "coordinates need a latitude and a longitude")
+            }
+            Geolocation.shared.override = .position(.init(
+                latitude: latitude, longitude: longitude, accuracy: number("accuracy") ?? 1,
+                altitude: number("altitude"), altitudeAccuracy: number("altitudeAccuracy"),
+                heading: number("heading"), speed: number("speed")))
+        } else {
+            Geolocation.shared.override = nil
+        }
+    }
+
+    /// What one test file must not leave for the next.
+    static func reset(_ browser: BrowserState) {
+        for decision in browser.permissions?.decisions ?? []
+        where decision.permission == .location || decision.permission == .notifications {
+            browser.permissions?.forget(decision.permission, forOrigin: decision.origin, profileID: decision.profileID)
+        }
+        Geolocation.shared.override = nil
+        SiteNotifications.shared.closeAll()
+    }
+
     // MARK: Frames
 
     private struct Frame {
@@ -363,13 +381,13 @@ enum TestDriver {
 
     /// WebKit keeps this one itself. The call is the one its own automation makes for WebDriver's
     /// Set Permission, and it is in the C API only.
-    private static func setStorageAccess(_ args: ACPJSON, tab: BrowserTab) async throws -> String {
+    private static func setStorageAccess(origin: String?, top: String?, granted: Bool, tab: BrowserTab) async throws {
         typealias Text = @convention(c) (UnsafePointer<CChar>) -> UnsafeRawPointer?
         typealias Store = @convention(c) (UnsafeRawPointer?) -> UnsafeRawPointer?
         typealias Release = @convention(c) (UnsafeRawPointer?) -> Void
         typealias Set = @convention(c) (UnsafeRawPointer?, UnsafeRawPointer?, Bool, UnsafeRawPointer?, UnsafeRawPointer?,
                                         UnsafeMutableRawPointer?, Done) -> Void
-        guard let origin = args["origin"]?.stringValue, let top = args["top"]?.stringValue else {
+        guard let origin, let top else {
             throw BrowserTool.Failure(message: "origin and top are required")
         }
         let webKit = UnsafeMutableRawPointer(bitPattern: -2)
@@ -382,7 +400,6 @@ enum TestDriver {
         }
         let topFrame = unsafeBitCast(text, to: Text.self)(top)
         let subFrame = unsafeBitCast(text, to: Text.self)(origin)
-        let granted = args["state"]?.stringValue == "granted"
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             let waiting = Unmanaged.passRetained(Waiting(continuation: continuation)).toOpaque()
             unsafeBitCast(set, to: Set.self)(unsafeBitCast(store, to: Store.self)(page), page, granted, topFrame, subFrame, waiting) {
@@ -391,7 +408,6 @@ enum TestDriver {
         }
         unsafeBitCast(release, to: Release.self)(topFrame)
         unsafeBitCast(release, to: Release.self)(subFrame)
-        return "ok"
     }
 }
 

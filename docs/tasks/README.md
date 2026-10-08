@@ -25,13 +25,13 @@ The order to take them in, and what is not a task at all, is [todo.md](../todo.m
 | [assistant/24-research-without-an-agent.md](assistant/24-research-without-an-agent.md) | Deep research on a Mac with no agent |
 | [bookmarks/25-embeddinggemma-2.md](bookmarks/25-embeddinggemma-2.md) | EmbeddingGemma 2 as the embedder |
 | [assistant/26-research-as-one-file.md](assistant/26-research-as-one-file.md) | A deep research saved as one file |
-| [devtools/28-webdriver-http.md](devtools/28-webdriver-http.md) | WebDriver over HTTP, for wptrunner |
+| [devtools/33-playwright-bidi.md](devtools/33-playwright-bidi.md) | Playwright, which needs WebDriver BiDi |
 | [browser/32-apple-pay-switch.md](browser/32-apple-pay-switch.md) | Apple Pay: the switch WebKit keeps off for an app |
 | [permissions/30-paste-menu-over-another-app.md](permissions/30-paste-menu-over-another-app.md) | The Paste menu comes up over another app |
 
 ## Every task
 
-- Debug Savoia only, in a throwaway home (`CFFIXED_USER_HOME`, as `scripts/permissions-wpt.py` does). The Release
+- Debug Savoia only, in a throwaway home (`CFFIXED_USER_HOME`, as `scripts/wpt.py`'s product does). The Release
   Savoia is Artem's browser: never killed, never touched.
 - Measure before building, and say in the commit what was measured and what was only reasoned.
 - wpt tests run as they are: no edited assertions, harness or tests.

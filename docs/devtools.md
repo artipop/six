@@ -216,22 +216,138 @@ pool and this needs another look.
 
 ### Who speaks to it
 
-An MCP client, one command at a time through `automation_send`, and nothing else. Two larger things were weighed
-and declined, 7 October 2026.
+An MCP client, one command at a time through `automation_send`, and a WebDriver client, through the server below.
+The wpt stand was first kept on its own testdriver (7 October 2026) and moved to wptrunner a day later, when the
+server existed ([test-suites.md](test-suites.md#the-wpt-stand)).
 
-**The wpt stand stays on its own testdriver** ([test-suites.md](test-suites.md)). One run of the permission
-directories with `--actions`: 356 files, 749 testdriver actions, 10 of them answered "not implemented" in 10
-files — nine `bidi.permissions.set_permission` and one `add_virtual_authenticator`. The session answers
-`addVirtualAuthenticator`; its BiDi door (`processBidiMessage`) answers that the `permissions` and `emulation`
-domains were not found, which rules out the nine and the 21 `bidi.emulation.set_geolocation_override` calls in the
-sources that the run never reached. So the protocol would serve one action in one file. The other 242 failed `set_permission` actions are
-for a name Savoia keeps no answer for — `clipboard-read`, `clipboard-write`, `geolocation`,
-`notifications`, `idle-detection` — which is Savoia's to build and no protocol's; `setSessionPermissions` refuses
-`geolocation` as an unknown value too.
+## WebDriver over HTTP
 
-**WebDriver over HTTP is not built.** safaridriver does not attach to another browser, so it would be a server of
-Savoia's own turning W3C commands into the protocol's. Its client is to be wptrunner, in place of the stand's own runner:
-[tasks/devtools/28](tasks/devtools/28-webdriver-http.md).
+While Allow Remote Automation is on, Savoia answers W3C WebDriver on loopback, and each command becomes one or
+more of the protocol's — what safaridriver does for Safari, which does not attach to another browser. The
+client it was built for and measured with is wptrunner; Selenium and WebdriverIO speak the same commands and
+were not tried. There is no driver binary: the browser is its own.
+`Savoia/DevTools/WebDriverServer.swift` is the listener and the session, `WebDriverWire.swift` the half that is
+bytes and JSON (in `SavoiaCore`, with tests), and WebKit's `Source/WebDriver/Session.cpp` was the reference for
+which protocol command each one becomes.
+
+**Before writing it** a Swift WebDriver *server* was looked for and not found — the Swift packages are clients
+(thebrowsercompany/swift-webdriver, GetAutomaApp/SwiftWebDriver), and the servers are for iOS apps
+(XCTestWD, WebDriverAgent). For HTTP the candidates were FlyingFox, Hummingbird and Swifter; the listener is
+`NWListener` and a parser of sixty lines instead, because a WebDriver client sends one small JSON body with a
+`Content-Length` over a kept-alive connection and nothing else, and a package would be another pin in two graphs.
+
+**Where it listens.** `127.0.0.1`, on the port `SAVOIA_WEBDRIVER_PORT` names or one the system picks at launch,
+shown in Configuration under the switch and written to the log; only while the switch is on, and turning it off
+ends the session. There is no password, as with safaridriver: any program on the Mac can drive an automation
+tab while the switch is on. A *page* cannot — a request that carries an `Origin`, or a `Host` that is not
+`localhost`, `127.0.0.1` or `[::1]`, is answered 403, which is what stops a form posted across origins and a name
+rebound to loopback.
+
+**One session at a time.** New Session opens an automation tab; Delete Session closes every one and ends the
+protocol's session (`Automation.end`). `acceptInsecureCerts` is refused — an authority is trusted in
+Configuration ([certificates.md](certificates.md)), and a session that waved every certificate through would be
+the one place Savoia does — `setWindowRect` is false: the window is the person's, so
+Set Window Rect, Maximize, Minimize and Fullscreen answer with where the window is and move nothing.
+
+**The commands.**
+
+| WebDriver | the protocol |
+|---|---|
+| New Session, Delete Session, Status, Get and Set Timeouts | Savoia's own; `getBrowsingContexts`, `switchToBrowsingContext` |
+| Navigate To, Back, Forward, Refresh | `navigateBrowsingContext` and its siblings, with the session's page load strategy |
+| Get Current URL, Get Title, Get Page Source | `getBrowsingContext`, `evaluateJavaScriptFunction` |
+| Get Window Handle(s), Switch To Window, New Window, Close Window | `getBrowsingContexts`, `switchToBrowsingContext`, `createBrowsingContext`, `closeBrowsingContext` |
+| Switch To Frame (index, element, null), Switch To Parent Frame | `resolveChildFrameHandle`, `resolveParentFrameHandle` |
+| Get Window Rect, and the four that would move it | `getBrowsingContext` |
+| Find Element(s), from an element and from a shadow root; Get Active Element, Get Element Shadow Root | `evaluateJavaScriptFunction` |
+| Get Element Text, Tag Name, Attribute, Property, CSS Value, Rect; Is Selected, Enabled, Displayed; Computed Role and Label | `evaluateJavaScriptFunction`, `computeElementLayout`, `getComputedRole`, `getComputedLabel` |
+| Element Click | `computeElementLayout`, then `performMouseInteraction` Down and Up (or `selectOptionElement`), then `waitForNavigationToComplete` |
+| Element Clear, Element Send Keys | `evaluateJavaScriptFunction`; `performKeyboardInteractions`, or `setFilesForInputFileUpload` for a file input |
+| Execute Script, Execute Async Script | `evaluateJavaScriptFunction` |
+| Get All Cookies, Get Named Cookie, Add Cookie, Delete Cookie, Delete All Cookies | `getAllCookies`, `addSingleCookie`, `deleteSingleCookie`, `deleteAllCookies` |
+| Perform Actions, Release Actions | `performInteractionSequence`, `cancelInteractionSequence` |
+| Dismiss Alert, Accept Alert, Get Alert Text, Send Alert Text | the protocol's four dialog commands |
+| Take Screenshot, Take Element Screenshot | `takeScreenshot` |
+| Set Permission | `setStorageAccessPermissionState` for `storage-access`; `SitePermissions` for the rest — below |
+| Set Storage Access, Generate Test Report | `setStorageAccessPolicy`, `generateTestReport` |
+
+Everything else is `unknown command`: Print Page, the virtual authenticator (the protocol has it; nobody has
+asked), the sensor, device posture, FedCM, Global Privacy Control, bounce tracking,
+web extensions and the rest of what wptrunner's executor can send, and all of WebDriver BiDi
+([tasks/devtools/33](tasks/devtools/33-playwright-bidi.md)). Element Text is `innerText` and Is Displayed is
+`checkVisibility`, not the Selenium atoms.
+
+**Three things the server does that the protocol does not.**
+
+- *A window in a script's answer.* The protocol serializes a `Window` as the cyclic object it is and fails
+  (`cannot serialize cyclic structures`) — Safari's wpt runs end in ERROR on every file whose testdriver call
+  carries one. The client's script is wrapped, and a window leaves as WebDriver writes one, `window-fcc6…` for a
+  top one and `frame-075b…` for a frame, with an empty handle: the protocol names no handle for an arbitrary window.
+- *Close Window waits.* `closeBrowsingContext` answers before the tab is gone, and Close Window's answer is the
+  handles that are left; a tab still there half a second later is closed by Savoia, and its page with `_close`.
+  A `WKWebView` held anywhere is a browsing context still listed — holding the view across that wait kept every
+  closed window open, and one window that stays open fails every file after it, since wptrunner closes them all
+  before each. The other way to the same failure was Savoia's own and older than the server: a closed tab whose
+  picture was still being taken built itself a second view (`BrowserTab.page` from `rememberViewState`), a
+  browsing context with no address and no tab. A tab now closes its page with `_close` when it is an automation
+  tab, and the picture's task uses the view it started with.
+- *A new tab settles first.* A tab is made loading its blank page, and a navigation asked for at once was
+  answered by that load ending: the page read `about:blank` a moment later. New Window and New Session wait for it.
+
+**Which tab a handle is** the protocol does not say, and Set Permission needs the tab. The top frame is given a
+property with a random name through the protocol, each automation tab's view is asked for it without a gesture,
+and the one that has it deletes it.
+
+**What Safari mocks on wpt's CI, and what Savoia does the same way.** Almost nothing is set up from outside:
+wpt's workflow for Safari (`.github/workflows/safari-wptrunner.yml`) runs `sudo safaridriver --enable`, writes the
+hosts file, clears the caption profile and passes two capabilities, `acceptInsecureCerts` and
+`webkit:alwaysAllowAutoplay`. The rest is WebKit's automation session, read from its source, and three of its
+pieces are for the *browser* to apply, which Safari does out of sight and Savoia does in `Automation.prepare`:
+
+| what a test meets | in Safari under automation | in an automation tab |
+|---|---|---|
+| `getUserMedia` | no prompt: WebKit grants or denies by the session's `GetUserMedia` permission, on by default (`UserMediaPermissionRequestManagerProxy`), before any delegate is asked | the same code; Set Permission for `camera` or `microphone` also goes to `setSessionPermissions` |
+| the camera and microphone themselves | mock devices — inferred: wpt's runners have no camera and Safari passes 366 of 482 there | `_setMockCaptureDevicesEnabled:` on the tab's preferences, always; nothing real is switched on |
+| autoplay | `webkit:alwaysAllowAutoplay`, a field of `_WKAutomationSessionConfiguration` that WebKit itself never reads | the same capability, as `mediaTypesRequiringUserActionForPlayback = []` |
+| capture on plain http, ICE candidates | `webkit:WebRTC` — `DisableInsecureMediaCapture`, `DisableICECandidateFiltering` | the same capability, as the two preferences |
+| Set Permission for `storage-access` | `setStorageAccessPermissionState`, per frame; safaridriver answers `not implemented` for the other names | the same command; the other names are Savoia's, below |
+| Set Storage Access, Generate Test Report | `setStorageAccessPolicy`, `generateTestReport` | the same commands |
+| a page's dialog, a file chooser | the session's, no sheet | the same ([above](#remote-automation)) |
+
+Mock devices are an inference and not a reading: Safari's side is closed. What stands behind it: with them on,
+`MediaStreamTrack-getCapabilities` gives Safari's 80 of 112 where this Mac's camera gave 76. And for the
+protocol's storage-access command: `storage-access-api` went from 27 files of 40 the same as Safari with
+Savoia's own call and the two origins — the rest asked for a gesture after the permission was granted — to 34
+with the command, and to all 40 once the view left by a closed tab was gone
+([test-suites.md](test-suites.md#the-wpt-stand)).
+
+**Set Permission is Savoia's** for every other name, as it was the old runner's: `SitePermissions` for the origin
+of the frame the session is in, and an unknown name is `invalid argument`. For
+`camera` and `microphone` the answer also goes to `setSessionPermissions`, because under automation WebKit lets a
+page capture without asking the delegate at all — measured: with `camera` denied `getUserMedia` resolved until it
+did. Three commands are Savoia's own, under `/session/{id}/savoia/`: `permissions` (Set Permission with the
+`origin` named, which is what BiDi's takes), `geolocation` (the stand-in position) and `reset` (what one test
+file must not leave for the next) — `TestDriver.swift`'s code behind another door.
+
+**Measured**, 8 October 2026, in a throwaway home: every command in the table by hand over `curl`-like
+requests (a session, scripts with elements and windows in their answers, a click that gave the page
+`userActivation`, typed text with a held Shift, a pointer and a key sequence, frames by index and back, a second
+tab opened, switched to and closed, cookies added, read and deleted, a dialog dismissed and reported, a request
+with an `Origin` refused 403), and then wptrunner over the twelve permission directories.
+
+**What an automation tab is not, and what the stand does about it.**
+
+- *Its store is not kept, and WebKit gives such a store no notifications*: `Notification.permission` is `denied`
+  whatever was answered. Under `SAVOIA_TESTDRIVER` an automation tab is given its profile's store
+  (`Automation.dataStore`), in the throwaway home the stand runs in; without the variable it is as described above.
+- *WebKit's question about storage access has nobody to answer it.* For an automation tab `PageDelegate` answers
+  no (`_webView:requestStorageAccessPanelForDomain:…`, which it says it responds to only for such a tab); a client
+  that wants the access sets the permission. Unanswered, the alert came up over whatever was in front for the
+  whole run and kept its tab from closing.
+- *`⌘C` `⌘V` `⌘X` `⌘A` are the Edit menu's actions* in an `AutomatedWebView`, as they were in the old runner's
+  key: the menu bar leaves Paste off on a page with nothing editable.
+- `SitePermissions`, the permission bar and geolocation behave as in an ordinary tab — the profile is the one in
+  front when the tab was opened.
 
 ## What is not here
 

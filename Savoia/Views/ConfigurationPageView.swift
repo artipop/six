@@ -545,6 +545,13 @@ private struct DevelopConfiguration: View {
             if Automation.isAvailable {
                 SwiftUI.Section("Remote Automation") {
                     Toggle("Allow Remote Automation", isOn: $devTools.allowsAutomation)
+                    if let port = devTools.webDriver.port {
+                        LabeledContent {
+                            Text(verbatim: "http://127.0.0.1:\(port)").textSelection(.enabled)
+                        } label: {
+                            Text(verbatim: "WebDriver")
+                        }
+                    }
                     Text("A tab opened for it keeps no history or site data, and its page can tell.")
                         .font(.caption)
                         .foregroundStyle(.secondary)

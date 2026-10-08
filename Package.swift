@@ -81,6 +81,7 @@ let package = Package(
                 "ACP/AgentToolName.swift",
                 "Tools/ToolConsent.swift",
                 "ACP/JSONRPCError.swift",
+                "DevTools/WebDriverWire.swift",
                 "MCP/Client/MCPAppTypes.swift",
                 "MCP/Client/MCPRegistry.swift",
                 "MCP/Client/MCPOAuth.swift",

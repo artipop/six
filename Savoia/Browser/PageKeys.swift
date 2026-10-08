@@ -53,7 +53,7 @@ extension NSEvent.ModifierFlags {
 extension WKWebView {
     /// The Edit menu's keys. WebKit hands them to the menu bar, which leaves Paste greyed out on a
     /// page with nothing editable; sent as the menu's action, the page gets its `paste` either way.
-    private static let editing: [String: Selector] = [
+    static let editing: [String: Selector] = [
         "c": #selector(NSText.copy(_:)), "v": #selector(NSText.paste(_:)),
         "x": #selector(NSText.cut(_:)), "a": #selector(NSText.selectAll(_:)),
     ]

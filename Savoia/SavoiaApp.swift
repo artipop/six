@@ -117,6 +117,7 @@ struct SavoiaApp: App {
         devTools.browser = browser
         #if os(macOS)
         devTools.automation.browser = browser
+        devTools.webDriver.browser = browser
         #endif
         webMCP.browser = browser
         webMCP.permissions = permissions

@@ -694,6 +694,8 @@ final class BrowserTab: Identifiable {
         permissions?.forget(id)
         #if os(macOS)
         dialogs.dismissAll()
+        // The protocol lists a browsing context for as long as its view lives, whoever still holds it.
+        if isAutomated { livePage?.perform(NSSelectorFromString("_close")) }
         #endif
         releasePage()
         thumbnail = nil
@@ -1103,7 +1105,8 @@ final class BrowserTab: Identifiable {
         return Task {
             // Asked alongside the picture and not before it: a tab on its way off screen is mounted
             // for this turn only, and a round trip in front of the snapshot may not survive.
-            async let viewport = self.callWithoutGesture("return [window.innerWidth, window.innerHeight]")
+            // Of the view in hand: by the time this runs the tab may have closed, and `self.page` would build another.
+            async let viewport = page.callWithoutGesture("return [window.innerWidth, window.innerHeight]", in: .savoia)
             // `afterScreenUpdates: false` takes what is already rendered: a tab on its way off screen
             // will never get another screen update. 400 pt wide: a ring card is never drawn bigger.
             let configuration = WKSnapshotConfiguration()

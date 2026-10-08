@@ -66,12 +66,28 @@ field. It stands apart from everything else:
 - it has a store of its own: none of your cookies or sign-ins, and it leaves none;
 - it is not in the history, and does not come back after a relaunch or with ⌘⇧T;
 - extensions do not run in it;
+- its camera and microphone are not real: a page gets WebKit's mock devices and is not
+  asked for permission;
 - its page can tell it is being driven: `navigator.webdriver` is `true` there. In
   an ordinary tab it is `false`, whether the switch is on or not.
 
 The program can read where the window is and how large; it cannot move, resize
-or hide it. Turning the switch off closes such tabs. Only what talks to Savoia over
-[MCP](/en/agents) drives them: `safaridriver` does not attach to Savoia.
+or hide it. Turning the switch off closes such tabs.
+
+They are driven in two ways. One is [MCP](/en/agents). The other is **WebDriver**:
+while the switch is on, Savoia listens on this Mac, and only on it, at the address
+in the **WebDriver** row under the switch — `http://127.0.0.1:52644`, say. That is
+what a WebDriver client (Selenium, WebdriverIO) is given as its server:
+`safaridriver` does not attach to Savoia, and no separate driver is needed. The
+port is picked at launch; the `SAVOIA_WEBDRIVER_PORT` environment variable fixes
+it. One session at a time, and it does not accept certificates Savoia does not
+trust.
+
+::: warning Who can drive
+The address has no password: any program on this Mac can open an automation tab
+and drive it while the switch is on. Pages in browsers are not answered. Keep the
+switch off when it is not needed.
+:::
 
 ## WebMCP
 
