@@ -332,6 +332,9 @@ on the tab's view), on a stand page holding a same-origin iframe, two cross-orig
 ## What has been checked
 
 - **Mac.** Both schemes build. `SAVOIA_WEBMCP_SELFTEST` against `Tests/WebMCP/webmcp.html`: 22 checks, `PASS`.
+  On 8 October 2026, served over http, 24 checks, `PASS`; as a `file:` address in the first launch of a fresh home
+  it stopped at the first check with no tools declared, once, while the same page listed its four tools over
+  `Savoia --mcp` a launch later. Not looked into.
   `WebMCPTests` pass with the rest of `SavoiaCore`'s tests. wpt as above.
 - The self-test covers: a declaration with annotations and schema, `add(2,3)` → `5`,
   `document.modelContext === navigator.modelContext`, `getTools()` inside the page, the site asked about at the first

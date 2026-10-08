@@ -674,6 +674,8 @@ final class BrowserState {
                 self.find.forget(tab.id) // a page gone is a page whose matches went with it
                 if !profile.isPrivate, !tab.isAutomated { history.record(url, title: page.title ?? "", in: tab.profileID) }
             case .finished:
+                // An automation tab is its client's: nothing of Savoia's reads or marks its pages at a load.
+                guard !tab.isAutomated else { return }
                 // Above the private guard, deliberately. A private window keeps no history and
                 // stores no highlights, but a page in another language is still a page in another
                 // language — and translating it never leaves the machine, so there is nothing for

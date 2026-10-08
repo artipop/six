@@ -44,9 +44,53 @@ same run with the gesture put back. The rest of that self-test, and `SAVOIA_WEBM
 - **A message to an MCP app** (`MCPAppSession.deliver`). Messages arrive by themselves, and the app's frame is
   activated by the person clicking in it, as any frame is.
 
-**Remote automation is not this door.** `Automation.evaluateJavaScriptFunction` is WebKit's own, in an automation
-tab, and leaves `isActive` false ([devtools.md](devtools.md#remote-automation)). The scripts in the tables below
-run in an automation tab as in any other.
+## Every way into a page
+
+Code reaches a page in three ways — a call, a script installed ahead of a load, and WebKit's own machinery — and
+activation in one: an event. Each row is a door; nothing else runs in a page.
+
+**Calls.** All but the last two are `WKWebView.callWithoutGesture`.
+
+| door | whose code | world | frame | opened by | in which tabs |
+|---|---|---|---|---|---|
+| `savoia`, `runScript`, `BrowserTab.callWithoutGesture` | Savoia's, fixed function bodies | savoia | main | Savoia: the events in [Runs by itself](#runs-by-itself), and the tools and commands in [On request](#on-a-persons-or-an-agents-request) | every web tab |
+| `evaluate_javascript` | the caller's | the page's | main | the assistant, an ACP agent, an MCP client | every web tab |
+| `testdriver_in_context` | the caller's | the page's | any, by the name testdriver gave it | an MCP client, under `SAVOIA_TESTDRIVER` | every web tab |
+| WebMCP — `call_page_tool`, and the registry's questions | Savoia's body, calling a tool the page declared | the page's (the `allow` attribute is read in savoia) | the tool's own | an agent, after the site was allowed; the registry at each navigation | while Develop ▸ WebMCP is on |
+| the MCP app bridge — `MCPAppSession.deliver` | Savoia's body, posting one message | the page's | main, the app's shell | a message from the app's server | an MCP app's tab |
+| `Automation.evaluateJavaScriptFunction` | the client's | the page's | the protocol's choice | `automation_send`, MCP only | automation tabs, while Develop ▸ Allow Remote Automation is on |
+| Web Inspector's console | the person's | the page's | any | ⌥⌘I | every web tab |
+
+None of them is a user gesture: the first five by `withUserGesture: false`, the protocol's by WebKit (measured,
+[devtools.md](devtools.md#remote-automation)). The inspector's console is WebKit's and was not measured.
+
+**Installed ahead of a load.** User scripts on the tab's `WKUserContentController`, kept by name in
+[`PageControllers`](../Savoia/Browser/PageControllers.swift); the table is [below](#injected-ahead-of-time).
+An extension's content scripts are the extension's, in a world WebKit makes for it, and an automation tab has no
+extension controller.
+
+**Events.** What a page takes for a person: `click`, `hover`, `drag`, `press_key`, `testdriver_click` and
+`testdriver_key` hand an `NSEvent` to the view, and the protocol's `performInteractionSequence` has WebKit
+synthesize one. A click and a key activate the page (measured, above).
+
+### What overlaps, and what was closed
+
+- **Three doors run a caller's code in the page's world**: `evaluate_javascript`, `testdriver_in_context` and the
+  protocol's `evaluateJavaScriptFunction`. They are one call apart from each other in the first two cases — the
+  test driver's adds the choice of a frame — and the third is WebKit's. They stay three because they answer three
+  clients: an agent, the wpt stand, a WebDriver client. `testdriver_in_context` goes with the stand's move to
+  wptrunner ([tasks/devtools/28](tasks/devtools/28-webdriver-http.md)), where the protocol's own call does its work.
+- **Two ways to click, and two to answer a dialog**: Savoia's event and the protocol's, `handle_dialog` and the
+  protocol's dialog commands. Each pair ends in the same place — the view's `mouseDown`, the tab's pending dialog —
+  and they are compared in [agent-actions.md](agent-actions.md) and [devtools.md](devtools.md#remote-automation).
+- **An automation tab is left alone at a load.** The offer to translate, the highlights and the description for
+  groups do not run in it: the tab is its client's, and a person's highlight painted into a test's document is a
+  document the test did not load. The live-page budget still asks it about unsent input and a floating video before
+  discarding it, in Savoia's world. Measured on an address with a stored highlight: `CSS.highlights.size` 1 in an
+  ordinary tab and 0 in an automation tab, read with the protocol's own call.
+- **Closed, with no script left**: the site icon, find on page, the scroll offset, the selection for ⌘E as a user
+  script, and the media hold where the SPI is there. **Closed as a gesture**: every call. **Behind a switch that is
+  off**: the blocker's page half, and the description for groups.
 
 **What activated every page at load** was three calls, found with a page that writes
 `navigator.userActivation` into its own title, read with `list_workspaces` so that nothing is run to read it:
@@ -81,7 +125,8 @@ second window opened straight after, and on a page the budget looked at and kept
 | `AdvancedRules` — the blocker's scriptlets and extended CSS | the main frame of a page a filter list has such rules for, while Privacy ▸ Blocking ▸ Cosmetic Rules and Scriptlets is on | a setting, **off by default** ([blocking.md](blocking.md)). Scriptlets go into the page's world, by design |
 | `PageFocus` — the selection and caret for ⌘E | — | **done**: nothing is installed; `PageFocusStore.refresh` reads the page when ⌘E is pressed. A line hung on a field no longer follows it as the page scrolls |
 | `MediaHold` — holds autoplay | — | **done**: no script. A preference of the view for the one load after a tab is rebuilt; the script is left for the SPI being absent ([architecture.md](architecture.md#persistence)) |
-| DevTools capture, the WebMCP polyfill | only while switched on | stay |
+| DevTools capture, the WebMCP polyfill | only while switched on, every frame | stay |
+| the MCP app bridge | an MCP app's tab, which is no site's page | stays ([mcp-apps.md](mcp-apps.md)) |
 
 ## On a person's or an agent's request
 

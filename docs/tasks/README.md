@@ -13,7 +13,6 @@ The order to take them in, and what is not a task at all, is [todo.md](../todo.m
 
 | file | what |
 |---|---|
-| [browser/11-page-scripts-rest.md](browser/11-page-scripts-rest.md) | The rest of the scripts in pages — one pass |
 | [measure/12-one-sitting.md](measure/12-one-sitting.md) | Things nobody has watched happen — one sitting |
 | [browser/13-small-things.md](browser/13-small-things.md) | Small things — one pass |
 | [browser/14-waits-by-the-clock.md](browser/14-waits-by-the-clock.md) | Waits by the clock that have an event — one pass |

@@ -219,8 +219,9 @@ rewrite the root file. `xcodebuild` never touches it — the project holds only 
 
 - **`WKWebView.callAsyncJavaScript` is a user gesture to WebKit.** After it the page has `userActivation.isActive` and may
   read the clipboard or open a window; a test stand that polled pages with it had every page activated for a whole
-  run, and results that came and went. `BrowserTab.callWithoutGesture` is the call that is not
-  ([docs/page-scripts.md](docs/page-scripts.md)).
+  run, and results that came and went. Savoia never makes that call: `savoia`, `callJavaScript`, `runScript` and
+  `callWithoutGesture` are all the one that is not a gesture, and a page that needs activation gets a real click
+  ([docs/page-scripts.md](docs/page-scripts.md#one-door)).
 - **A page nobody can see behaves differently, and a sleeping display hides all of them.** `visibilityState` is
   `hidden`, `requestFullscreen()` is refused with a `TypeError`. A long unattended run crosses the display-sleep
   timer; `scripts/permissions-wpt.py` holds the display awake with `caffeinate -d`.
