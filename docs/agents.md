@@ -50,6 +50,13 @@ that kind, it asks. The key is the title *before* `AgentToolName.display`, so `m
 built-in tool the title carries its argument (a `Bash` command), which makes the answer that narrow. **Ask Again**
 in Configuration → Agents clears the setting.
 
+**A tool marked `asksEveryCall` takes no standing answer** — `upload_file` is the one so far. For Savoia's own
+tools the title is the bare name, so an "always" would cover every later file to every site. `requestPermission`
+recognises the tool by `AgentToolName.tool(_:of:)` and the flag on its `BrowserTool`, skips the stored answers,
+and shows the card with the once options only, when the agent offers a way to allow once; whatever is pressed,
+nothing is stored. An allow is left in `ToolConsent` with the call's `rawInput`, for the tool to find
+([agent-actions.md](agent-actions.md#who-asks-about-a-file)).
+
 ## Working directory
 
 Each profile has a folder of its own — `~/Library/Application Support/org.deffun.savoia/Profiles/<name>` — and the agent works in

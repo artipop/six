@@ -16,11 +16,12 @@ struct PermissionBar: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: question.permissions.first?.symbol ?? "wrench.and.screwdriver")
+            Image(systemName: symbol)
                 .foregroundStyle(.tint)
             sentence
                 .font(.caption)
                 .lineLimit(2)
+                .truncationMode(.middle)
             Spacer(minLength: 8)
             Button("Block") { permissions.answer(false, for: tab.id) }
             Button("Allow") { permissions.answer(true, for: tab.id) }
@@ -37,7 +38,7 @@ struct PermissionBar: View {
         .transition(.move(edge: .top).combined(with: .opacity))
     }
 
-    /// Three questions, one bar (`SitePermissions.Ask`). The call names the tool and shows the
+    /// Four questions, one bar (`SitePermissions.Ask`). The call names the tool and shows the
     /// **arguments** rather than the page's description of what they do: a description is the
     /// page's own words, and this is the one line standing between them and the session the person
     /// is signed into (docs/webmcp.md).
@@ -52,7 +53,14 @@ struct PermissionBar: View {
         case .pageToolCall(let tool, let arguments):
             Text("Let an agent call \(tool) on \(question.host) with \(arguments)?")
                 .monospacedDigit()
+        case .files(let paths):
+            Text("Give \(ListFormatter.localizedString(byJoining: paths)) to \(question.host)?")
         }
+    }
+
+    private var symbol: String {
+        if case .files = question.ask { return "doc" }
+        return question.permissions.first?.symbol ?? "wrench.and.screwdriver"
     }
 
     /// "camera and microphone" — joined the way the reader's language joins a list.

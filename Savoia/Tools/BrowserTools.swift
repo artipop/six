@@ -31,6 +31,9 @@ struct BrowserTool {
     var description: String
     var parameters: [Parameter] = []
     var surfaces: Surface = .all
+    /// A call that takes something of the person's out of the browser's hands: asked about every
+    /// time, and no "always" is kept for it (`ToolConsent`).
+    var asksEveryCall = false
     var run: (ACPJSON) async throws -> String
 
     /// Caller-facing failure: a bad window id, a missing model. Returned as a tool error, not a crash.
@@ -59,6 +62,7 @@ final class BrowserToolCatalog {
     /// than a language model — which is the free option and the common one.
     var agentSession: AgentSessionStore?
     #endif
+    let consent = ToolConsent()
 
     private static let captureTools: Set = ["list_console_messages", "list_network_requests"]
 
@@ -77,6 +81,7 @@ final class BrowserToolCatalog {
         self.bookmarks = bookmarks
         self.settings = settings
         self.highlights = highlights
+        consent.asksEveryCall = { [unowned self] name in self.tool(named: name)?.asksEveryCall == true }
     }
 
     static let instructions = """
@@ -897,13 +902,14 @@ final class BrowserToolCatalog {
             title: String(localized: "Choose File"),
             description: "Gives a file from the user's disk to a page's file input, in place of the system's file panel. `ref` is "
                 + "the file input from page_snapshot (a button with type=file), or whatever the page uses to open its "
-                + "chooser — an Upload button, a drop area. With a chooser already open, leave `ref` out. Returns the new "
-                + "snapshot, where the input reads the file's name.",
+                + "chooser — an Upload button, a drop area. With a chooser already open, leave `ref` out. The user is asked "
+                + "about every upload and may refuse it. Returns the new snapshot, where the input reads the file's name.",
             parameters: [Self.windowID,
                          .init(name: "path", description: "Absolute path of the file; several paths, one per line, for an input that takes many.", required: true),
                          .init(name: "ref", description: "Element ref that opens the file chooser. Default: the chooser already open."),
                          Self.snapshotAfter, Self.format],
             surfaces: .mcp,
+            asksEveryCall: true,
             run: { [unowned self] args in
                 let tab = try self.actingTab(args)
                 // WebKit answers an automation tab's chooser itself, and the delegate is never asked.
@@ -913,6 +919,7 @@ final class BrowserToolCatalog {
                 }
                 let urls = try Self.files(args["path"]?.stringValue ?? "")
                 let names = urls.map(\.lastPathComponent).joined(separator: ", ")
+                try await self.confirmUpload(urls, to: tab, args)
                 return try await self.aroundDialogs(tab) {
                     let refusal: String?
                     if let ref = args["ref"]?.stringValue, !ref.isEmpty {
@@ -938,6 +945,21 @@ final class BrowserToolCatalog {
             }
         ),
     ]
+
+    /// One question per upload: the agent's card when it was answered for this call, the tab's bar otherwise.
+    private func confirmUpload(_ urls: [URL], to tab: BrowserTab, _ args: ACPJSON) async throws {
+        if consent.take("upload_file", arguments: args) { return }
+        let origin = SitePermissions.origin(of: tab.currentURL) ?? ""
+        let allowed = await withCheckedContinuation { continuation in
+            guard let permissions = browser.permissions else { return continuation.resume(returning: false) }
+            permissions.confirmFiles(urls.map(\.path), origin: origin, in: tab.id, profileID: tab.profileID) {
+                continuation.resume(returning: $0)
+            }
+        }
+        guard allowed else {
+            throw BrowserTool.Failure(message: "The user did not allow \(urls.map(\.lastPathComponent).joined(separator: ", ")) to be given to \(Self.describe(tab)).")
+        }
+    }
 
     private static func files(_ paths: String) throws -> [URL] {
         let urls = try paths.split(whereSeparator: \.isNewline).map { line in

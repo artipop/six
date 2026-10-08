@@ -215,3 +215,28 @@ that an agent can answer them ([agent-actions.md](agent-actions.md#dialogs-and-f
   acceptable, or a tab under an agent should raise no sheet, is a decision and not a measurement.
 - **A dialog with no window to hang a sheet on** runs `runModal`, and an agent's answer to it was not tried.
 
+
+## Consent for a file
+
+**8 October 2026, dev build, a throwaway home.** `upload_file` is asked about on every call, on the agent's card or
+in the tab's bar ([agent-actions.md](agent-actions.md#who-asks-about-a-file)). `SAVOIA_UPLOAD_SELFTEST` and a bare
+MCP client measured it with an agent that has no model in it; these they did not.
+
+- **A real agent's card.** The stand's agent sends the call's arguments as the card's `rawInput` and then calls
+  with the same ones, which is what lets the card's answer stand for the call. Whether Claude Code and Codex do —
+  the same keys, a `window_id` they add or leave out, a path they rewrite — was not looked at. If they do not, the
+  person is asked twice, on the card and then in the bar, and never less than once. One upload from the ⌘E line
+  with `SAVOIA_ACP_TRACE=1` settles it.
+- **Whether a real agent's card arrives with its "always" gone.** The filter drops it where the agent offers a way
+  to allow once; the options a real adapter offers for an MCP tool were not read off the wire.
+- **The bar under a hand.** Its buttons were pressed in code (`SitePermissions.answer`,
+  `testdriver_answer_permission`) and it was drawn once to a PNG, in Russian. Nobody clicked Block or Allow.
+- **A long path, and several files.** The bar was seen with one short path. Two lines truncated in the middle is
+  what the code asks for; what a path of two hundred characters, or five files, looks like is not known.
+- **The bar in a tab that is not in front, and with Savoia behind another app.** It waits there unseen, and the
+  client's call waits with it; a client that gives up leaves the bar standing, and an Allow pressed later still
+  hands the file over. Whether the tab should come forward, or the question should end with the caller, is a
+  decision.
+- **The selftest after the path stopped being shortened to `~`.** The app was rebuilt and the selftest was not run
+  again; the change is in the bar's sentence alone.
+- **The guide.** Both languages were edited and the VitePress build was not run.

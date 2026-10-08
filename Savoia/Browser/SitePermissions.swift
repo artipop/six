@@ -101,6 +101,8 @@ final class SitePermissions {
         /// remembered: an answer here is about this call and nothing else, which is what makes it
         /// safe to ask it for everything a page did not mark read-only (docs/webmcp.md).
         case pageToolCall(tool: String, arguments: String)
+        /// Files an agent is about to give the page, by path. Not remembered either.
+        case files([String])
     }
 
     /// A question waiting for the user, drawn as a bar in the window that asked.
@@ -117,7 +119,7 @@ final class SitePermissions {
             switch ask {
             case .devices(let asked): asked
             case .pageTools: [.pageTools]
-            case .pageToolCall: []
+            case .pageToolCall, .files: []
             }
         }
 
@@ -142,6 +144,8 @@ final class SitePermissions {
                 "Let agents use the tools \(host) offers them?"
             case .pageToolCall(let tool, let arguments):
                 "Let an agent call \(tool) on \(host) with \(arguments)?"
+            case .files(let paths):
+                "Give \(paths.joined(separator: ", ")) to \(host)?"
             }
         }
     }
@@ -248,6 +252,12 @@ final class SitePermissions {
                 origin: origin, in: windowID, profileID: profileID, then: answer)
     }
 
+    /// These files, to this site, now. Never remembered, like a page tool's call.
+    func confirmFiles(_ paths: [String], origin: String, in windowID: UUID, profileID: UUID,
+                      then answer: @escaping (Bool) -> Void) {
+        enqueue(.files(paths), origin: origin, in: windowID, profileID: profileID, then: answer)
+    }
+
     private func enqueue(_ ask: Ask, origin: String, in windowID: UUID, profileID: UUID,
                          then answer: @escaping (Bool) -> Void) {
         let pending = Pending()
@@ -263,6 +273,7 @@ final class SitePermissions {
         case .devices(let asked): asked.map(\.rawValue).joined(separator: "+")
         case .pageTools: "pageTools"
         case .pageToolCall(let tool, _): "call \(tool)"
+        case .files(let paths): "files \(paths.count)"
         }
     }
 

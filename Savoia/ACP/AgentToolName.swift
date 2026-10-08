@@ -12,6 +12,12 @@ import Foundation
 nonisolated enum AgentToolName {
     static let mcpPrefix = "mcp__"
 
+    /// The tool's own name when `raw` is exactly a tool of `server` as an agent mangles it.
+    static func tool(_ raw: String, of server: String) -> String? {
+        let prefix = mcpPrefix + server + "__"
+        return raw.hasPrefix(prefix) && raw.count > prefix.count ? String(raw.dropFirst(prefix.count)) : nil
+    }
+
     static func display(_ raw: String) -> String {
         guard raw.contains(mcpPrefix) else { return raw }
         // Word by word: a title may be the bare name, or the name inside a sentence the agent wrote.

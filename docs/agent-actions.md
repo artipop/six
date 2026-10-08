@@ -134,7 +134,8 @@ are requests to the tab's UI delegate (`PageDelegate`), and the tab keeps each o
 - **A dialog is the person's and the agent's at once.** It is still a sheet that names its site; what changed is
   that the answer belongs to the `PageDialog` and not to the sheet, so whoever answers first wins and the sheet is
   taken down after an agent's answer. A dialog nobody is driving is answered by the person, as before. An agent may
-  answer one it did not cause — through its own permission prompt, like every acting tool.
+  answer one it did not cause — through its own permission prompt, like every acting tool but `upload_file`
+  ([below](#who-asks-about-a-file)).
 - **A page held by `alert`, `confirm` or `prompt` runs no script**, so a tool that reads the page would wait as
   long as the dialog does. `page_snapshot`, the acting tools, `wait_for` and `evaluate_javascript` race their work
   against a dialog opening (`PendingDialogs.racing`) and answer with the dialog instead — kind, message, site, and
@@ -153,6 +154,37 @@ are requests to the tab's UI delegate (`PageDelegate`), and the tab keeps each o
   refused by name and the page is told the chooser was cancelled.
   An automation tab is the exception: WebKit answers its chooser itself and the delegate is never asked, so the
   tool refuses there and names the protocol's command ([devtools.md](devtools.md#remote-automation)).
+
+### Who asks about a file
+
+A file is the one thing here that leaves the disk, so `upload_file` is declared `asksEveryCall` on its
+`BrowserTool`, and the rule is read from that flag and not from the tool's name:
+
+- **An agent's card has no "always" for it**, and a stored one is not honoured ([agents.md](agents.md#permission-prompts)).
+- **One question per upload, and Savoia asks it when nobody else did.** An allow on the card is left in
+  `ToolConsent` — the tool's name and the card's `rawInput`, for thirty seconds, taken once. `upload_file` looks
+  for it with its own arguments before anything is clicked; with none there it asks in the tab's bar
+  (`SitePermissions.confirmFiles`, `Ask.files`): the whole absolute path, not shortened to `~`, and the site, **Block** and **Allow**,
+  never remembered. So a client outside Savoia, an agent in a mode that asks nothing, and an agent whose card did
+  not carry the call's arguments are all asked in the tab; a refusal is the tool's failure and nothing is clicked.
+- The bar waits for as long as the tab lives and has no timeout, like a page tool's call; a tab in the background
+  is not brought forward for it.
+
+`SAVOIA_UPLOAD_SELFTEST=<path to scripts/agent-stand/consent-agent.py>` runs it with an ACP agent that has no model
+in it: two files in a turn that asks on a card first, answered "always" wherever that is offered, and two in a turn
+that asks nothing, the bar answered Block and then Allow. Give it a throwaway home with a short path — the socket's
+path has 104 bytes. On 8 October 2026, before the change: one card for two files, and with no card both files
+went with nobody asked; a bare MCP client's `upload_file` returned in 0.4 s with the file in the page. After it:
+two cards, each offering allow once and reject once, no bar; then no card and two bars, the first file refused
+and the second in the page; the bare client's call waited on the bar, failed on Block with nothing in the input,
+and gave the file on Allow. The bar was drawn with `testdriver_window_image` and read in Russian. What nobody has seen is in
+[unmeasured.md](unmeasured.md#consent-for-a-file).
+
+The other acting tools — `click`, `fill`, `press_key`, `drag`, `handle_dialog`, `evaluate_javascript` — still take a
+standing answer and are not asked about in the tab. `evaluate_javascript` is the one that deserves the same next: a
+script in the page reads everything the session there can and sends it anywhere, and one "always" covers every later
+script. `click` and `handle_dialog` are what pays, sends and deletes, but a question per click is a question nobody
+reads; what they want is a narrower "always" — per site — rather than none.
 
 Measured over `Savoia --mcp` in a throwaway home, 7 October 2026, on a page of four buttons and three file inputs:
 `confirm` accepted and dismissed read `true` and `false` in the page; `prompt` answered with a text, with its

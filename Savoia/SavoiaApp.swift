@@ -203,6 +203,7 @@ struct SavoiaApp: App {
             return try await errands.ask(question, agent: agentSession.toolchain.launchDefinition(for: agent))
         }
         tools.agentSession = agentSession
+        agentSession.consent = tools.consent
         assistant.research = research
         let mcp = MCPHost(server: MCPServer(catalog: tools))
         // Always listening, whatever the assistant switch says. This is Savoia offering *itself* to

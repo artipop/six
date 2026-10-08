@@ -8667,6 +8667,16 @@
           }
         }
       }
+    },
+    "Give %@ to %@?" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отдать %1$@ сайту %2$@?"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

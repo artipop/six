@@ -61,7 +61,8 @@ each: name and value.
 An "always" answer (allow or reject) is remembered for that agent and that tool —
 across a model switch and a relaunch of Savoia. That call never asks again. How many
 of them there are is on the **Agents** tab under **Tool Calls**; **Ask Again**
-forgets them all.
+forgets them all. A file from your disk is the exception: it is asked about every
+time, and its card has no "always" button.
 
 ## Where the agent works
 
@@ -135,8 +136,11 @@ the ⌘E line gets none of these tools; the [do command](/en/assistant#the-do-co
 is how it is asked to act.
 
 Two cases are worth knowing beforehand. A **file** is attached from your disk by its path —
-no file panel opens, and permission is asked as for any action: the card shows which file
-and where it goes. A **page's dialog** — `alert`, `confirm`, `prompt` — appears as usual, and
+no file panel opens, and permission is asked every time, for every file: the card shows which
+file and where it goes, and there is no "always" to answer with. When the file is attached by a
+program outside, connected through `Savoia --mcp`, or by an agent that asked nothing itself, the
+question is a bar in the tab — the file's path, the site, and **Block** and **Allow**; that
+answer is not remembered either. A **page's dialog** — `alert`, `confirm`, `prompt` — appears as usual, and
 either you or the agent may answer it: whoever is first. When the agent answers, the dialog
 closes by itself.
 
@@ -153,5 +157,6 @@ claude mcp add savoia -- /Applications/Savoia.app/Contents/MacOS/Savoia --mcp
 ::: warning Who can connect
 Any process running as your user can connect to the socket; there is no
 authentication beyond the file's permissions. The agents themselves still ask
-before calling a tool.
+before calling a tool. A file from your disk reaches a page only on your answer,
+whoever connected: the tab asks.
 :::

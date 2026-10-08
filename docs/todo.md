@@ -10,11 +10,10 @@ The browser's core first, each step making the next one smaller.
 
 | | what | where |
 |---|---|---|
-| 1 | **A file leaves the disk only when a person said so**: an agent's "always" must not cover every later upload, and a client outside Savoia must be asked in the tab | [tasks/agents/29](tasks/agents/29-consent-for-a-file.md) |
-| 2 | **WebDriver over HTTP**: a server of Savoia's own over WebKit's automation, so that the wpt stand runs under wptrunner as Safari's does and Selenium-style clients can drive Savoia; whether Playwright can is a question inside it | [tasks/devtools/28](tasks/devtools/28-webdriver-http.md) |
-| 3 | **Waits by the clock** replaced by the events they stand in for — what is left; the first, a load to end, is done | [tasks/browser/14](tasks/browser/14-waits-by-the-clock.md) |
-| 4 | **Small things**, seven of them: forget one site, a way home, a download that repeats, a user agent per site, every model in the welcome, a Help menu, grouping by meaning off for a new install | [tasks/browser/13](tasks/browser/13-small-things.md) |
-| 5 | **Passkeys and passwords** — as much paperwork with Apple as code | [passkeys.md](passkeys.md) |
+| 1 | **WebDriver over HTTP**: a server of Savoia's own over WebKit's automation, so that the wpt stand runs under wptrunner as Safari's does and Selenium-style clients can drive Savoia; whether Playwright can is a question inside it | [tasks/devtools/28](tasks/devtools/28-webdriver-http.md) |
+| 2 | **Waits by the clock** replaced by the events they stand in for — what is left; the first, a load to end, is done | [tasks/browser/14](tasks/browser/14-waits-by-the-clock.md) |
+| 3 | **Small things**, seven of them: forget one site, a way home, a download that repeats, a user agent per site, every model in the welcome, a Help menu, grouping by meaning off for a new install | [tasks/browser/13](tasks/browser/13-small-things.md) |
+| 4 | **Passkeys and passwords** — as much paperwork with Apple as code | [passkeys.md](passkeys.md) |
 
 ## Beside the order
 

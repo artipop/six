@@ -29,7 +29,6 @@ The order to take them in, and what is not a task at all, is [todo.md](../todo.m
 | [browser/32-apple-pay-switch.md](browser/32-apple-pay-switch.md) | Apple Pay: the switch WebKit keeps off for an app |
 | [permissions/30-paste-menu-over-another-app.md](permissions/30-paste-menu-over-another-app.md) | The Paste menu comes up over another app |
 | [permissions/31-service-worker-notifications.md](permissions/31-service-worker-notifications.md) | What a service worker's notification still lacks |
-| [agents/29-consent-for-a-file.md](agents/29-consent-for-a-file.md) | A file leaves the disk only when a person said so, this time |
 
 ## Every task
 

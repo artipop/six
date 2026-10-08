@@ -78,6 +78,8 @@ let package = Package(
                 "Translation/Bergamot/BergamotTranslator.swift",
                 "ACP/ACPJSON.swift",
                 "ACP/AgentModels.swift",
+                "ACP/AgentToolName.swift",
+                "Tools/ToolConsent.swift",
                 "ACP/JSONRPCError.swift",
                 "MCP/Client/MCPAppTypes.swift",
                 "MCP/Client/MCPRegistry.swift",

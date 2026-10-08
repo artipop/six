@@ -8,6 +8,8 @@ struct AgentPermissionPrompt: Identifiable {
     /// The tool as the agent named it, before `AgentToolName` made it readable: what an "always"
     /// answer is remembered under.
     let rawTitle: String?
+    /// Savoia's tool behind the call when it is one asked about every time (`BrowserTool.asksEveryCall`).
+    var everyCall: String? = nil
     let respond: @Sendable (ACP.RequestPermissionOutcome) -> Void
 }
 
@@ -278,6 +280,9 @@ final class AgentSessionStore {
     private(set) var agentInfo: ACP.Implementation?
     private(set) var sessionId: String?
 
+    /// Where an allowed call of an every-time tool is left for the tool to find (`ToolConsent`).
+    @ObservationIgnored var consent: ToolConsent?
+
     let toolchain = AgentToolchain()
     let modelDiscovery: AgentModelDiscovery
     private var sessionModels: AgentModels? {
@@ -505,7 +510,11 @@ final class AgentSessionStore {
     }
 
     func resolvePermission(with option: ACP.PermissionOption) {
-        if option.kind == .allowAlways || option.kind == .rejectAlways, let tool = permissionPrompt?.rawTitle {
+        if let prompt = permissionPrompt, let tool = prompt.everyCall {
+            if option.kind == .allowOnce || option.kind == .allowAlways {
+                consent?.allowed(tool, arguments: prompt.request.toolCall.rawInput)
+            }
+        } else if option.kind == .allowAlways || option.kind == .rejectAlways, let tool = permissionPrompt?.rawTitle {
             settings.setStandingAnswer(option.kind, agent: agent.id, tool: tool)
         }
         resolvePermission(.selected(optionId: option.optionId))
@@ -576,15 +585,21 @@ final class AgentSessionStore {
     }
 
     fileprivate func requestPermission(_ raw: ACP.RequestPermissionRequest) async -> ACP.RequestPermissionOutcome {
-        if let tool = raw.toolCall.title, let kind = settings.standingAnswer(agent: agent.id, tool: tool),
+        let everyCall = raw.toolCall.title.flatMap { AgentToolName.tool($0, of: MCPStdioBridge.acpServer.name) }
+            .flatMap { consent?.asksEveryCall($0) == true ? $0 : nil }
+        if everyCall == nil, let tool = raw.toolCall.title, let kind = settings.standingAnswer(agent: agent.id, tool: tool),
            let option = raw.options.first(where: { $0.kind == kind }) {
             return .selected(optionId: option.optionId)
         }
         var request = raw
         request.toolCall = Self.renamed(raw.toolCall)
+        // No "always" on the card of a call that is asked about every time, where the agent leaves a way to allow once.
+        if everyCall != nil, raw.options.contains(where: { $0.kind == .allowOnce }) {
+            request.options = raw.options.filter { $0.kind == .allowOnce || $0.kind == .rejectOnce }
+        }
         return await withCheckedContinuation { continuation in
             let resumed = LockedFlag()
-            permissionPrompt = AgentPermissionPrompt(request: request, rawTitle: raw.toolCall.title) { outcome in
+            permissionPrompt = AgentPermissionPrompt(request: request, rawTitle: raw.toolCall.title, everyCall: everyCall) { outcome in
                 guard resumed.trySet() else { return }
                 continuation.resume(returning: outcome)
             }
