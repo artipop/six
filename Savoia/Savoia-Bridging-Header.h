@@ -4,6 +4,7 @@
 // Apple's WebKit only: WebKitGTK has API of its own for all of this.
 #if defined(__APPLE__)
 
+#import <WebKit/WebKit.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <CoreFoundation/CoreFoundation.h>
@@ -116,6 +117,23 @@ WKStringRef WKNotificationCopyBody(WKNotificationRef notification);
 WKStringRef WKNotificationCopyTag(WKNotificationRef notification);
 WKSecurityOriginRef WKNotificationGetSecurityOrigin(WKNotificationRef notification);
 uint64_t WKNotificationGetID(WKNotificationRef notification);
+WKStringRef WKNotificationCopyIconURL(WKNotificationRef notification);
+WKStringRef WKNotificationCopyDataStoreIdentifier(WKNotificationRef notification);
 bool WKNotificationGetIsPersistent(WKNotificationRef notification);
+
+// The data store's private half, from _WKWebsiteDataStoreDelegate.h and WKWebsiteDataStorePrivate.h.
+
+NS_ASSUME_NONNULL_BEGIN
+
+@protocol _WKWebsiteDataStoreDelegate <NSObject>
+@optional
+- (void)websiteDataStore:(WKWebsiteDataStore *)dataStore openWindow:(NSURL *)url fromServiceWorkerOrigin:(WKSecurityOrigin *)serviceWorkerOrigin completionHandler:(void (^)(WKWebView * _Nullable newWebView))completionHandler;
+@end
+
+@interface WKWebsiteDataStore (SavoiaPrivate)
+@property (nullable, nonatomic, weak) id <_WKWebsiteDataStoreDelegate> _delegate;
+@end
+
+NS_ASSUME_NONNULL_END
 
 #endif

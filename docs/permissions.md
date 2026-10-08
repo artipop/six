@@ -331,10 +331,16 @@ everything. And a `PermissionStatus` a page holds hears `change` when an answer 
 
 **A service worker's notifications** (`registration.showNotification`) go through a manager of their own, one for
 the process (`WKNotificationManagerGetSharedServiceWorkerNotificationManager`), with no page. The provider is
-installed there too and shows them when the origin is allowed in some profile; a click brings forward a tab of that
-site if there is one, and the worker hears `notificationclick`. What a worker then asks for —
-`clients.openWindow` — is not answered, and the profile is not known. That, icons, and action buttons are
-[tasks/permissions/31](tasks/permissions/31-service-worker-notifications.md).
+installed there too. With no tab to ask, the profile is the one whose data store the notification names
+(`WKNotificationCopyDataStoreIdentifier`; a profile's store is made from an identifier), and that profile's answer
+decides. A click brings forward a tab of the site in that profile if there is one, and the worker hears
+`notificationclick`; when it then calls `clients.openWindow`, WebKit asks the data store's delegate
+(`_WKWebsiteDataStoreDelegate`, set on every profile's store by `SiteNotifications.store(for:)`) and gets a new tab
+in that profile.
+
+The icon (`WKNotificationCopyIconURL`) is downloaded by Savoia and attached to the banner, for a page's notification
+and a worker's alike — with `URLSession`, not through the page, so a worker's `fetch` handler does not see the
+request. Action buttons are not in WebKit at all.
 
 Under `SAVOIA_TESTDRIVER` nothing is posted to the system: the provider reports "shown" at once, and a run leaves no
 banners behind.
@@ -356,10 +362,10 @@ What fails, by cause:
 |---|---|---|
 | 72: `idlharness` (four globals), 21: `lang` | the same as Safari | WebKit's: `actions`, `image`, `badge`, `vibrate`, `requireInteraction`, `maxActions`, no `Notification` in a shared worker, `lang` not validated |
 | 6: `instance` | `requireInteraction` and `actions` are `undefined` | the same missing attributes |
-| 9: `shownotification` (6), `registration-association` (2), `getnotifications-across-processes` (1) | `getNotifications()` returns more than the test showed | WebKit refuses to `close()` a persistent notification younger than its minimum lifetime, so the tests' own cleanup does nothing. Measured: no `cancel` reaches the provider for them. That the lifetime is the reason is read from WebCore's `Notification::close`, not measured; WebKit's own runner overrides it through the data store's configuration |
+| 9: `shownotification` (6), `registration-association` (2), `getnotifications-across-processes` (1) | `getNotifications()` returns more than the test showed | WebKit refuses to `close()` a persistent notification younger than its minimum lifetime, so the tests' own cleanup does nothing. Measured both ways: no `cancel` reaches the provider for them, and with the lifetime set to 0 (`_WKWebsiteDataStoreConfiguration.overridePersistentNotificationMinimumLifetimeForTesting`) `shownotification` alone is 11 of 11. The override is not in the stand: in a full run it held for the first files and not the later ones, and the count came out lower (218) than without it |
 | 5: `cross-origin-nested` (4), `cross-origin-serviceworker` (1), both tentative | a third-party frame or worker is `granted` | WebKit decides by the frame's own origin; the tests want a partitioned frame refused, as Firefox and Chrome do |
 | 1: `event-onclose`, immediate close | no `close` for a notification closed before it was shown | read from WebCore: `close()` in the idle state stops the icon's loader and reports nothing |
-| 1: `icon-fetch`, tentative | no fetch event for the icon | Savoia shows no icon and asks for none |
+| 1: `icon-fetch`, tentative | no fetch event for the icon | under the test driver nothing is posted and no icon is fetched; outside it Savoia fetches the icon itself, past the worker |
 
 ## What Savoia still cannot ask for
 

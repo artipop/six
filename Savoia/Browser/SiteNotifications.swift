@@ -5,7 +5,7 @@ import WebKit
 
 /// What `new Notification()` on a page becomes: WebKit hands it over and expects to hear how it went.
 /// [permissions.md](../../docs/permissions.md#notifications) has the C API this stands on.
-final class SiteNotifications: NSObject, UNUserNotificationCenterDelegate {
+final class SiteNotifications: NSObject, UNUserNotificationCenterDelegate, _WKWebsiteDataStoreDelegate {
     static let shared = SiteNotifications()
 
     weak var browser: BrowserState?
@@ -82,12 +82,10 @@ final class SiteNotifications: NSObject, UNUserNotificationCenterDelegate {
         // WebKit's own list of answers is per origin; Savoia's is per profile too, and is asked again here.
         // A service worker's comes with no page, and a tab with no page must not answer for it.
         let tab = page.flatMap { page in browser?.tabs.first(where: { Self.page(of: $0) == page }) }
-        let allowed = if let tab {
-            permissions?.decision(for: .notifications, origin: origin, profileID: tab.profileID) == true
-        } else {
-            WKNotificationGetIsPersistent(notification) && answers()[origin] == true
+        let profile = tab?.profileID ?? Self.profile(of: notification, in: browser)
+        guard let profile, permissions?.decision(for: .notifications, origin: origin, profileID: profile) == true else {
+            return closed([id])
         }
-        guard allowed else { return closed([id]) }
         let tag = Self.text(WKNotificationCopyTag(notification))
         if !tag.isEmpty {
             let replaced = shown.filter { $0.value.origin == origin && $0.value.tag == tag }.map(\.key)
@@ -95,6 +93,7 @@ final class SiteNotifications: NSObject, UNUserNotificationCenterDelegate {
             closed(replaced)
         }
         shown[id] = Shown(tab: tab?.id, origin: origin, tag: tag)
+        let icon = URL(string: Self.text(WKNotificationCopyIconURL(notification)))
         Log.info(.pages, "notification \(id) from \(origin)\(tab == nil ? ", a service worker's" : "")")
         // The test driver posts nothing to the system: a run would bury the desk.
         guard !TestDriver.isOn else { return each { WKNotificationManagerProviderDidShowNotification($0, id) } }
@@ -104,11 +103,16 @@ final class SiteNotifications: NSObject, UNUserNotificationCenterDelegate {
         content.body = Self.text(WKNotificationCopyBody(notification))
         content.subtitle = URL(string: origin)?.host() ?? origin
         content.threadIdentifier = origin
-        content.userInfo = ["id": String(id), "tab": tab?.id.uuidString ?? "", "origin": origin]
-        let request = UNNotificationRequest(identifier: Self.identifier(id), content: content, trigger: nil)
+        content.userInfo = ["id": String(id), "tab": tab?.id.uuidString ?? "", "origin": origin,
+                            "profile": profile.uuidString]
         Task {
             let center = UNUserNotificationCenter.current()
             let allowed = (try? await center.requestAuthorization(options: [.alert, .sound])) ?? false
+            if allowed, let icon, let file = await Self.download(icon),
+               let attachment = try? UNNotificationAttachment(identifier: "icon", url: file) {
+                content.attachments = [attachment]
+            }
+            let request = UNNotificationRequest(identifier: Self.identifier(id), content: content, trigger: nil)
             guard allowed, (try? await center.add(request)) != nil, self.shown[id] != nil else {
                 self.shown[id] = nil
                 return self.closed([id])
@@ -225,12 +229,15 @@ final class SiteNotifications: NSObject, UNUserNotificationCenterDelegate {
         let id = (info["id"] as? String).flatMap(UInt64.init)
         let tab = (info["tab"] as? String).flatMap(UUID.init(uuidString:))
         let origin = info["origin"] as? String
+        let profile = (info["profile"] as? String).flatMap(UUID.init(uuidString:))
         guard response.actionIdentifier == UNNotificationDefaultActionIdentifier else { return }
         await MainActor.run {
             NSApp.activate()
             // The tab that showed it, or for a service worker's any tab of its site.
             if let browser = SiteNotifications.shared.browser,
-               let found = tab.flatMap(browser.tab) ?? browser.tabs.first(where: { SitePermissions.origin(of: $0.currentURL) == origin }) {
+               let found = tab.flatMap(browser.tab) ?? browser.tabs.first(where: {
+                   $0.profileID == profile && SitePermissions.origin(of: $0.currentURL) == origin
+               }) {
                 browser.selectTab(found.id)
                 found.livePage?.window?.makeKeyAndOrderFront(nil)
             }
@@ -241,7 +248,46 @@ final class SiteNotifications: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
+    // MARK: A service worker's window
+
+    /// `clients.openWindow`, which a worker calls from `notificationclick`: a tab in the store's profile.
+    func websiteDataStore(_ dataStore: WKWebsiteDataStore, openWindow url: URL,
+                          fromServiceWorkerOrigin serviceWorkerOrigin: WKSecurityOrigin,
+                          completionHandler: @escaping (WKWebView?) -> Void) {
+        guard let browser, let identifier = dataStore.identifier,
+              let profile = browser.profiles.first(where: { $0.dataStoreID == identifier }) else {
+            return completionHandler(nil)
+        }
+        completionHandler(browser.newTab(url: url, in: profile.id).page)
+    }
+
+    /// A profile's store, with the worker's window answered.
+    static func store(for identifier: UUID) -> WKWebsiteDataStore {
+        let store = WKWebsiteDataStore(forIdentifier: identifier)
+        store._delegate = shared
+        return store
+    }
+
     // MARK: Reading WebKit's values
+
+    private static func profile(of notification: OpaquePointer, in browser: BrowserState?) -> UUID? {
+        guard WKNotificationGetIsPersistent(notification),
+              let store = UUID(uuidString: text(WKNotificationCopyDataStoreIdentifier(notification))) else { return nil }
+        return browser?.profiles.first(where: { $0.dataStoreID == store })?.id
+    }
+
+    /// The icon as a file, which is the only form a banner takes one in.
+    private nonisolated static func download(_ url: URL) async -> URL? {
+        guard url.scheme == "https" || url.scheme == "http" else { return nil }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 5
+        guard let (data, response) = try? await URLSession.shared.data(for: request),
+              let kind = response.mimeType.flatMap({ ["image/png": "png", "image/jpeg": "jpg", "image/gif": "gif"][$0] }) else {
+            return nil
+        }
+        let file = FileManager.default.temporaryDirectory.appending(path: "\(UUID().uuidString).\(kind)")
+        return (try? data.write(to: file)) != nil ? file : nil
+    }
 
     private nonisolated static func identifier(_ id: UInt64) -> String { "site.\(id)" }
 

@@ -192,10 +192,20 @@ Both were built and measured under `SAVOIA_TESTDRIVER`, where neither system ser
   tab's own profile is asked again before anything is shown — was not run with two profiles.
 - **A private profile** is said to be refused inside WebKit; that is from the throwaway app of September, not from
   Savoia.
-- **A service worker's notification** outside wpt, and its click, on a real site.
-- **Why nine wpt subtests count too many notifications.** No `cancel` reaches the provider for a persistent
-  notification — seen. That WebKit's minimum lifetime is why — read from `Notification::close`
-  ([tasks/permissions/31](tasks/permissions/31-service-worker-notifications.md)).
+- **A service worker's notification** outside wpt. Seen under the test driver: it arrives with no page and names
+  its data store, and the profile is found from that. Not seen: the banner, a click, `clients.openWindow` opening
+  a tab through the store's delegate — that method was never called — and a worker of a second profile.
+- **The icon.** The download and the attachment were never run; nothing is posted under the test driver.
+- **`instance.https.window.html` in a full run.** On a stand with nothing else running, three full runs of
+  `notifications` gave 221 of 369 where the baseline says 231: this one file's service-worker half timed out in
+  "Service worker test setup" (18 of 34), and gave the baseline's 28 when run with three neighbours. Not the store's
+  delegate — the same with it off. Which earlier file does it was not found, and neither was whether the committed
+  build still gives 231 today; the baseline was left as it is. Its ten `notificationclose` subtests pass by a
+  coincidence in any case: the test's own `close()` is refused, and the event it waits for is the one a same-tagged
+  notification from the next step causes.
+- **Every run of 7 and 8 October reused one orphaned `wpt serve`** from an earlier session, and some overlapped
+  another session's stand on the same ports. The numbers repeated across runs, so they are believed; the three
+  runs above are the only ones known to be alone.
 - **`MediaDevices-enumerateDevices-per-origin-ids`** gave 1/3 once and 2/3 on the next run of the same build; see
   the Continuity Camera line above.
 - **The guide** was edited in both languages and not built.

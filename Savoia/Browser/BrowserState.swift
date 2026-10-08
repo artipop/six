@@ -449,7 +449,11 @@ final class BrowserState {
     /// profile, so a login made in one private window holds in the next, and gone with the profile.
     func dataStore(for profile: Profile) -> WKWebsiteDataStore {
         if let store = dataStores[profile.dataStoreID] { return store }
+        #if os(macOS)
+        let store = profile.isPrivate ? WKWebsiteDataStore.nonPersistent() : SiteNotifications.store(for: profile.dataStoreID)
+        #else
         let store = profile.isPrivate ? WKWebsiteDataStore.nonPersistent() : WKWebsiteDataStore(forIdentifier: profile.dataStoreID)
+        #endif
         dataStores[profile.dataStoreID] = store
         return store
     }
