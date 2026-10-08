@@ -176,6 +176,11 @@ failure Safari shares is WebKit's. It prints the Safari version of the run besid
 (27.0 on wpt.fyi against 27.2 here). testdriver is carried the way wptrunner carries it to Safari
 ([test-suites.md](test-suites.md#what-unlocks-most-of-the-rest-testdriver)).
 
+Since 8 October 2026 the same directories also run under wpt's own runner, `scripts/wpt.py`, against the same
+pinned Safari run and with a baseline of its own, `scripts/wpt-baseline.json`: 338 of the 356 files give this
+runner's result, 6 a better one, and the 12 that differ are listed with their causes in
+[test-suites.md](test-suites.md#the-wpt-stand). The numbers below are this runner's.
+
 **The run is pinned because Safari moves between its own runs.** `--newest-safari` compares with the newest one
 and prints what moved in Safari apart from what moved in Savoia; `--safari-run <id>` names one; either with
 `--write-baseline` re-pins, and every row of the baseline is then restamped with that run, the rows of directories
@@ -348,9 +353,10 @@ banners behind.
 ### Notifications in the suite
 
 As with geolocation, Safari's row is no bar — safaridriver cannot `set_permission` — and the number is absolute:
-**221 of 369 subtests, no file in harness error**, where it was 187 of 343 with sixteen. That is three runs of
-8 October on a stand with nothing else running; two runs the day before gave 231, and the ten between are one file
-(the table). `permissions`, with its `-request` and `-revoke`, went from 150 of 206 to 175 of 234 on the same change: its
+**231 of 369 subtests, no file in harness error**, where it was 187 of 343 with sixteen — in a run that takes
+`permissions` and `geolocation` first, which is how the baseline is written: two such runs on 7 October and one on
+a quiet stand on 8 October. Run alone, the directory gives 221, three times out of three; the ten are one file (the
+table). `permissions`, with its `-request` and `-revoke`, went from 150 of 206 to 175 of 234 on the same change: its
 tests set `geolocation` and wait for `change`.
 
 The stand resets between files now (`testdriver_reset`): answers about location and notifications, the stand-in
@@ -363,7 +369,7 @@ What fails, by cause:
 |---|---|---|
 | 72: `idlharness` (four globals), 21: `lang` | the same as Safari | WebKit's: `actions`, `image`, `badge`, `vibrate`, `requireInteraction`, `maxActions`, no `Notification` in a shared worker, `lang` not validated |
 | 6: `instance` | `requireInteraction` and `actions` are `undefined` | the same missing attributes |
-| 10: `instance`, its service-worker half | "Service worker test setup" times out in a full run; beside three neighbours the file gives 28 of 34 | not established: not the data store's delegate, and which earlier file does it was not found ([unmeasured.md](unmeasured.md)). The ten passed the day before by a coincidence — the `notificationclose` they wait for came from a same-tagged notification, not from their own `close()` |
+| 10: `instance`, its service-worker half, **only when `notifications` is run alone** | "Service worker test setup" times out; after `permissions` and `geolocation`, or beside three neighbours, the file gives 28 of 34 | not established: it depends on what ran before, it is not the data store's delegate, and which file does it was not found ([unmeasured.md](unmeasured.md)). Where the ten pass it is by a coincidence — the `notificationclose` they wait for comes from a same-tagged notification, not from their own `close()` |
 | 9: `shownotification` (6), `registration-association` (2), `getnotifications-across-processes` (1) | `getNotifications()` returns more than the test showed | WebKit refuses to `close()` a persistent notification younger than its minimum lifetime, so the tests' own cleanup does nothing. Measured both ways: no `cancel` reaches the provider for them, and with the lifetime set to 0 (`_WKWebsiteDataStoreConfiguration.overridePersistentNotificationMinimumLifetimeForTesting`) `shownotification` alone is 11 of 11. The override is not in the stand: in a full run it held for the first files and not the later ones, and the count came out lower (218) than without it |
 | 5: `cross-origin-nested` (4), `cross-origin-serviceworker` (1), both tentative | a third-party frame or worker is `granted` | WebKit decides by the frame's own origin; the tests want a partitioned frame refused, as Firefox and Chrome do |
 | 1: `event-onclose`, immediate close | no `close` for a notification closed before it was shown | read from WebCore: `close()` in the idle state stops the icon's loader and reports nothing |

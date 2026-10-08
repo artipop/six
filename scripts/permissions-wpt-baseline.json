@@ -7867,7 +7867,7 @@
    }
   },
   "/notifications/instance.https.window.html": {
-   "harness": "Timeout",
+   "harness": "OK",
    "rows": [
     {
      "name": "new Notification(): Setup",
@@ -7915,7 +7915,7 @@
     },
     {
      "name": "Service worker test setup",
-     "status": "Timeout"
+     "status": "Pass"
     },
     {
      "name": "getNotifications(): Setup",
@@ -7963,47 +7963,47 @@
     },
     {
      "name": "notificationclose: Setup",
-     "status": "Timeout"
+     "status": "Pass"
     },
     {
      "name": "notificationclose: Attribute exists with expected value: title",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "notificationclose: Attribute exists with expected value: dir",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "notificationclose: Attribute exists with expected value: lang",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "notificationclose: Attribute exists with expected value: body",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "notificationclose: Attribute exists with expected value: tag",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "notificationclose: Attribute exists with expected value: icon",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "notificationclose: Attribute exists with expected value: requireInteraction",
-     "status": "Not Run"
+     "status": "Fail"
     },
     {
      "name": "notificationclose: Attribute exists with expected value: silent",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "notificationclose: Attribute exists with expected value: data",
-     "status": "Not Run"
+     "status": "Pass"
     },
     {
      "name": "notificationclose: Attribute exists with expected value: actions",
-     "status": "Not Run"
+     "status": "Fail"
     }
    ],
    "safari": {
@@ -8015,10 +8015,10 @@
    },
    "savoia": {
     "c": [
-     18,
+     28,
      34
     ],
-    "s": "T"
+    "s": "O"
    }
   },
   "/notifications/lang.https.html": {

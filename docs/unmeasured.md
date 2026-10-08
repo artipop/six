@@ -196,13 +196,13 @@ Both were built and measured under `SAVOIA_TESTDRIVER`, where neither system ser
   its data store, and the profile is found from that. Not seen: the banner, a click, `clients.openWindow` opening
   a tab through the store's delegate — that method was never called — and a worker of a second profile.
 - **The icon.** The download and the attachment were never run; nothing is posted under the test driver.
-- **`instance.https.window.html` in a full run.** On a stand with nothing else running, three full runs of
-  `notifications` gave 221 of 369 where the day before gave 231: this one file's service-worker half timed out in
-  "Service worker test setup" (18 of 34), and gave 28 when run with three neighbours. Not the store's
-  delegate — the same with it off. Which earlier file does it was not found, and neither was whether the committed
-  build still gives 231 today; the baseline says 221. Its ten `notificationclose` subtests pass by a
-  coincidence in any case: the test's own `close()` is refused, and the event it waits for is the one a same-tagged
-  notification from the next step causes.
+- **`instance.https.window.html` depends on what ran before it.** On a quiet stand, 8 October: three runs of
+  `notifications` alone gave 221 of 369, this file's service-worker half timing out in "Service worker test setup"
+  (18 of 34); one run of `permissions`, `geolocation` and `notifications` together gave 231, the file at 28 — as
+  the two runs of 7 October had, and as it gives beside three neighbours. Not the store's delegate: the same with
+  it off. Which file before it decides was not found. The baseline holds the 231 of the longer run. Its ten
+  `notificationclose` subtests pass by a coincidence where they pass: the test's own `close()` is refused, and the
+  event it waits for is the one a same-tagged notification from the next step causes.
 - **Every run of 7 and 8 October reused one orphaned `wpt serve`** from an earlier session, and some overlapped
   another session's stand on the same ports. The numbers repeated across runs, so they are believed; the three
   runs above are the only ones known to be alone.
