@@ -199,7 +199,12 @@ Savoia's own `NSPanel` and therefore Savoia's to parent and to place. It is not 
 **Sorted by meaning** (`TabSorter`, `TabTopics`, `ConfigurationStore.sortsTabsByMeaning`, off by default and
 outside the AI switch). A web tab that finishes loading is embedded — its title with the site's name taken off, plus
 the first sentence of its meta description or first real paragraph, cut to 120 characters — by the bookmark index's
-own e5, with `query:` on both sides. Only a tab opened since the sorter last looked, or one that has gone to another
+own e5, with `query:` on both sides. The description is read by a script in the page, the one Savoia runs on
+every load while this is on, and it is what makes a group out of short titles: `SAVOIA_TOPICS_SELFTEST=live` on
+nineteen Wikipedia articles, 8 October 2026, once as built and once with the description left empty. With it the
+four dishes became a group, a fifth joined, three more stood between, and the three strays stayed loose. On titles
+alone no food group formed at all — the eight dishes were left loose or beside football — and *Rail transport* and
+*Sports nutrition* went into the football group. Only a tab opened since the sorter last looked, or one that has gone to another
 site, is placed; a tab restored at launch is only noted. `TabTopics.classify` then asks how far the best group is
 *ahead*: of the second group, of the tab's median similarity to every tab (`background`), and of its nearest
 ungrouped tab (`loose`). Ahead by `joins` (0.035) it goes in, focus following (`placeTab`); two groups within `tie`
