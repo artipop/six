@@ -88,7 +88,7 @@ even when you switch to another.
 
 - **web push** — Apple opens it only to its own apps;
 - **Apple Pay on sites** — the Apple Pay button is missing or does nothing: a
-  page in Savoia is not given the functions it needs. Why is not yet known.
+  WebKit does not by itself give the functions it needs to pages outside Safari.
 
 Location and notifications are built on undocumented WebKit functions that any
 macOS update could change.

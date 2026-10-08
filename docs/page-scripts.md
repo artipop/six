@@ -13,9 +13,9 @@ showed two things about `WKWebView.callAsyncJavaScript`, the public call into a 
   belongs to the window and not to the world (measured in a bare `WKWebView`, where a load alone, a load with a
   user script, and the gesture-free call all leave it false).
 - **A script that moves the page moves it when nobody asked.** Two of them scroll.
-- **A user script on every page is a condition WebKit can see.** `PaymentRequest` and `ApplePaySession` are
-  `undefined` in Savoia (measured), and still are with the blocker's page scripts off. The cause was not
-  established ([todo.md](tasks/browser/11-page-scripts-rest.md)).
+- **A user script is in every frame of every page it is installed for**, and is one more thing between a page
+  and the browser it expects. It is not why `PaymentRequest` is `undefined`: a bare `WKWebView` has none either
+  ([tasks/browser/32](tasks/browser/32-apple-pay-switch.md)).
 
 ## One door
 

@@ -26,6 +26,7 @@ Nothing here waits on the steps above, except where it says so.
 | Measurements nobody has made: extensions' messaging and `scripting`, uBlock Origin Lite's control run, two WebMCP tests, fullscreen on a real site | [tasks/measure/12](tasks/measure/12-one-sitting.md) |
 | Extensions after those measurements: what is left of the list now that a tab hands out its view and extension pages are tabs | [tasks/extensions/20](tasks/extensions/20-extensions-next.md) |
 | A tab as a floating window | [tasks/browser/17](tasks/browser/17-floating-window.md) |
+| Apple Pay on sites: WebKit keeps `PaymentRequest` from an app's view unless an SPI switch is set; whether a payment then goes through takes a card and a hand | [tasks/browser/32](tasks/browser/32-apple-pay-switch.md) |
 | What a service worker's notification still lacks: its profile, `clients.openWindow`, the icon | [tasks/permissions/31](tasks/permissions/31-service-worker-notifications.md) |
 | WebKit's Paste menu, which an agent's click brings up over whatever app is in front | [tasks/permissions/30](tasks/permissions/30-paste-menu-over-another-app.md) |
 | The assistant: a verb of one's own, an answer shown in the field | [tasks/assistant/18](tasks/assistant/18-ghost-text-and-own-verbs.md) |
@@ -40,8 +41,6 @@ Nothing here waits on the steps above, except where it says so.
 
 ## Not built, and not planned
 
-- **Apple Pay on sites.** A page has no `PaymentRequest`; it is not the Apple ID's region, and the cause is one
-  experiment away ([tasks/browser/11](tasks/browser/11-page-scripts-rest.md), item 3).
 - **Web Push.** `webpushd` serves only apps with a private entitlement
   ([permissions.md](permissions.md#what-savoia-still-cannot-ask-for)).
 - **Cosmetic blocking rules inside frames** ([blocking.md](blocking.md#not-built-cosmetic-rules-inside-a-frame)).

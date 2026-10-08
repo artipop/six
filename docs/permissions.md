@@ -208,7 +208,7 @@ The 25 of the full run, by cause (geolocation's sixteen are [below](#geolocation
 
 | files | what differs | why | state |
 |---|---|---|---|
-| 6: `permissions-policy/payment-*` (5), `reporting/payment-reporting` | Safari passes the "allowed" cases | `PaymentRequest` and `ApplePaySession` are `undefined` in Savoia — measured, and still so with the blocker's page scripts off. Why was not established ([todo.md](tasks/browser/11-page-scripts-rest.md)) | not supported |
+| 6: `permissions-policy/payment-*` (5), `reporting/payment-reporting` | Safari passes the "allowed" cases | `PaymentRequest` and `ApplePaySession` are `undefined` in Savoia, as in a bare `WKWebView`: WebKit keeps them from an app's view unless it sets an SPI switch ([tasks/browser/32](tasks/browser/32-apple-pay-switch.md)) | not supported |
 | 4: `idle-detection-*-permissions-policy*` | Savoia times out with no result, Safari errors | not established; neither passes | open |
 | 3: `async-unsanitized-standard-html-read-fail`, `clipboard-read-enabled-by-permissions-policy`, `readText-granted` | Safari's row is a crash | nothing to compare with | — |
 | 4: `GUM-deny`, `MediaDevices-SecureContext`, `enumerateDevices-per-origin-ids`, `focus-…-target-frame-state-ignored` | Savoia passes more than Safari | Safari's own report says why for one: "Unable to set permission to denied for this test" — safaridriver cannot, the runner can | — |

@@ -26,7 +26,7 @@ is the SDK to read.
 | **What is under the pointer, for the context menu** | SPI in use: `_webView:getContextMenuFromProposedMenu:forElement:userInfo:completionHandler:` and `_WKContextMenuElementInfo.hitTestResult.absoluteLinkURL` — `PageDelegate`; without it WebKit's own menu shows | a public delegate method that hands over the element | the SPI goes |
 | **The motion sensors' question** | none on macOS: `requestDeviceOrientationAndMotionPermissionFor` is iOS only, and `SitePermission.motion` is never asked | the method declared for macOS | route it into `SitePermissions` as on iOS |
 | **A count of find matches** | none: `WKWebView.find` says only whether there is one | `_countStringMatches:options:maxCount:` made public, or a count on `WKFindResult` | "2 of 5" in the find bar |
-| **Apple Pay for pages** | `PaymentRequest` is `undefined`, cause not established ([todo.md](tasks/browser/11-page-scripts-rest.md)) | — | — |
+| **Apple Pay for pages** | none: `PaymentRequest` and `ApplePaySession` are `undefined` in any app's `WKWebView`, a bare one included. SPI turns them on — `_setApplePayEnabled:` on the configuration or its preferences — and is not used: whether a payment goes through is not measured ([tasks/browser/32](tasks/browser/32-apple-pay-switch.md)) | a public `isApplePayEnabled`, or the interfaces there by default | switch it on, after the payment sheet has been seen to work |
 
 ## What stopped being a wait
 
