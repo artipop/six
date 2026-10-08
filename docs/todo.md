@@ -10,10 +10,11 @@ The browser's core first, each step making the next one smaller.
 
 | | what | where |
 |---|---|---|
-| 1 | **The rest of the scripts in pages**: the calls that are still a user gesture, the last script on every page, the blocker's page half as a setting that is off by default, and one experiment about Apple Pay | [tasks/browser/11](tasks/browser/11-page-scripts-rest.md) |
-| 2 | **Waits by the clock** replaced by the events they stand in for — what is left; the first, a load to end, is done | [tasks/browser/14](tasks/browser/14-waits-by-the-clock.md) |
-| 3 | **Small things**, seven of them: forget one site, a way home, a download that repeats, a user agent per site, every model in the welcome, a Help menu, grouping by meaning off for a new install | [tasks/browser/13](tasks/browser/13-small-things.md) |
-| 4 | **Passkeys and passwords** — as much paperwork with Apple as code | [passkeys.md](passkeys.md) |
+| 1 | **A file leaves the disk only when a person said so**: an agent's "always" must not cover every later upload, and a client outside Savoia must be asked in the tab | [tasks/agents/29](tasks/agents/29-consent-for-a-file.md) |
+| 2 | **The rest of the scripts in pages**: the calls that are still a user gesture, the last script on every page, the blocker's page half as a setting that is off by default, and one experiment about Apple Pay | [tasks/browser/11](tasks/browser/11-page-scripts-rest.md) |
+| 3 | **Waits by the clock** replaced by the events they stand in for — what is left; the first, a load to end, is done | [tasks/browser/14](tasks/browser/14-waits-by-the-clock.md) |
+| 4 | **Small things**, seven of them: forget one site, a way home, a download that repeats, a user agent per site, every model in the welcome, a Help menu, grouping by meaning off for a new install | [tasks/browser/13](tasks/browser/13-small-things.md) |
+| 5 | **Passkeys and passwords** — as much paperwork with Apple as code | [passkeys.md](passkeys.md) |
 
 ## Beside the order
 
@@ -26,7 +27,7 @@ Nothing here waits on the steps above, except where it says so.
 | A tab as a floating window | [tasks/browser/17](tasks/browser/17-floating-window.md) |
 | What a service worker's notification still lacks: its profile, `clients.openWindow`, the icon | [tasks/permissions/31](tasks/permissions/31-service-worker-notifications.md) |
 | WebKit's Paste menu, which an agent's click brings up over whatever app is in front | [tasks/permissions/30](tasks/permissions/30-paste-menu-over-another-app.md) |
-| WebDriver over HTTP, so that the wpt stand runs under wptrunner | [tasks/devtools/28](tasks/devtools/28-webdriver-http.md) |
+| WebDriver over HTTP, so that the wpt stand runs under wptrunner and Selenium-style clients can drive Savoia; whether Playwright can is a question inside it | [tasks/devtools/28](tasks/devtools/28-webdriver-http.md) |
 | The assistant: a verb of one's own, an answer shown in the field | [tasks/assistant/18](tasks/assistant/18-ghost-text-and-own-verbs.md) |
 | A deep research saved as one self-contained file, sources and highlights inside | [tasks/assistant/26](tasks/assistant/26-research-as-one-file.md) |
 | Deep research on a Mac with no agent: Savoia's own loop over the ⌘E model | [tasks/assistant/24](tasks/assistant/24-research-without-an-agent.md) |

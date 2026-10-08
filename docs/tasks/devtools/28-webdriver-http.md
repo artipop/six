@@ -46,3 +46,29 @@ written down there — a server has to get them right for Element Click and Perf
 wptrunner runs the permission directories against Savoia with the results `permissions-wpt.py` gives or better,
 the commands it does not get are listed in devtools.md, test-suites.md describes the stand as it then is, and the
 old runner is gone or its reason for staying is written down.
+
+## Playwright is a different client, and a second question
+
+Asked by Artem on 8 October 2026: could Playwright drive Savoia through this? **Not through this server as
+described.** Playwright does not speak WebDriver over HTTP. For WebKit it ships a patched build with a protocol of
+its own; what it speaks to browsers it does not patch is **WebDriver BiDi**, over a WebSocket — by 2026 its Firefox
+runs that way, and its BiDi backend is reported as passing about nine tests in ten on browsers that implement the
+protocol (read from coverage of it, not tried).
+
+So Playwright needs a BiDi endpoint, and this task builds the classic one. What would have to be found out before
+a line is written, in this order:
+
+1. **Whether WebKit's automation session carries BiDi at all on macOS 27.** The classic commands go through
+   `_WKAutomationSession`; WebKit has been adding BiDi beside them. Read `Source/WebKit/UIProcess/Automation/` on
+   WebKit's `main` and the exports of the system's WebKit (`dyld_info -exports`), as
+   [api-watch.md](../../api-watch.md) describes. Above it was noted that the protocol has no BiDi `permissions` or
+   `emulation` domain; find out which domains it has.
+2. **Which BiDi modules Playwright's backend cannot do without** — `session`, `browsingContext`, `script`,
+   `network`, `input` at least — and which of them WebKit answers.
+3. **Whether Playwright will connect to an endpoint it did not launch.** It expects to start the browser itself;
+   an attach-over-WebSocket path may exist only for some browser types.
+
+If 1 says no, Playwright is out of reach until WebKit carries BiDi, and that goes into
+[todo.md](../../todo.md)'s "not planned" with the reason. If it says yes, this is a task of its own after the
+classic server, not a part of it. Selenium and WebdriverIO, which do speak classic WebDriver, come with the server
+as described.
