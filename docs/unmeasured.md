@@ -8,7 +8,7 @@ A line leaves this file by being measured, in either direction, and by the page 
 what was seen. Say when it was measured and on what.
 
 **Most of what waits for a hand has a page to do it on.** `./scripts/walk.sh` serves `scripts/walk/` on localhost
-and opens it in the Debug Savoia: eleven stations, fifty-nine checks, each saying what to press and what should
+and opens it in the Debug Savoia: twelve stations, sixty-nine checks, each saying what to press and what should
 happen, with the buttons, lists, video and file fields it needs on the page. Answers are kept in the browser, and
 **Copy the report** on the first page gives them as text to paste back — which is how lines leave this file. The
 stations follow the sections below; what has no station is what needs no hand (the wpt lines).

@@ -1,0 +1,39 @@
+<!doctype html><meta charset=utf-8><title>Walk — extensions</title>
+<link rel=stylesheet href=walk.css><script src=walk.js></script>
+<h1>Extensions, and uBlock Origin Lite</h1>
+<p class=why>Messaging, <code>scripting</code> and uBOL's blocking were measured through the extension's own messages. Its
+popup, the badge on its button and Savoia's own controls for an extension were never pressed. Needs uBlock Origin
+Lite installed; skip the station otherwise.</p>
+
+<div class=stage>
+<p>Three blocks an ad blocker's cosmetic rules usually hide. In uBOL's <b>complete</b> mode they should vanish; in
+<b>optimal</b> or with no filtering they stay.</p>
+<div class="adsbygoogle ad-banner" style="background:#c33;color:white;padding:.5rem;margin:.3rem 0">class="adsbygoogle ad-banner"</div>
+<div id="ad-container" class="advertisement" style="background:#c63;color:white;padding:.5rem;margin:.3rem 0">id="ad-container" class="advertisement"</div>
+<div class="ad-slot sponsored-content" style="background:#a36;color:white;padding:.5rem;margin:.3rem 0">class="ad-slot sponsored-content"</div>
+<button onclick="log('o', 'visible blocks:', [...document.querySelectorAll('.stage > div')].filter(d => d.offsetHeight > 0).length, 'of 3')">Count the visible blocks</button>
+<pre class=out id=o></pre></div>
+
+<section class=check id=x-popup><h2>The popup and its slider</h2>
+<ol><li>Click uBOL's button in the toolbar.</li><li>Move the filtering slider to <b>complete</b>, reload, press "Count the visible blocks". Then to <b>optimal</b>, reload, count again.</li></ol>
+<p class=expect>the popup hangs from its button and the slider moves; complete hides the blocks (0 of 3, or fewer than 3), optimal shows them. These blocks are ours, not from a filter list — if complete hides none, say so and judge on a real site instead.</p></section>
+
+<section class=check id=x-newtab><h2>A tab opened after the mode changed</h2>
+<ol><li>Set <b>complete</b>, reload here. Set <b>optimal</b>. Now open this page in a <em>new</em> tab and count there; then reload this tab and count here.</li></ol>
+<p class=expect>both tabs agree. A new tab that still hid the block while the old one showed it was seen once and not explained.</p></section>
+
+<section class=check id=x-badge><h2>The number on the button</h2>
+<ol><li>Open a news site with ads. Look at uBOL's button, then switch to another tab and back.</li></ol>
+<p class=expect>a count on the button that belongs to the tab in front and changes when you switch tabs.</p></section>
+
+<section class=check id=x-disable><h2>Off for one site</h2>
+<ol><li>In the popup, switch filtering off for this site. Reload. Close and reopen the tab.</li></ol>
+<p class=expect>the site stays unfiltered after the reload and in the new tab; other sites are filtered as before.</p></section>
+
+<section class=check id=x-options><h2>Savoia's own controls for an extension</h2>
+<ol><li>Configuration ▸ Extensions: press <b>Open Options Page</b> for uBOL.</li><li>For an extension that offers a new-tab page, switch on the toggle that lets it stand in for the start page, open a new tab, and switch it off again.</li></ol>
+<p class=expect>the options page opens as a tab; with the toggle on, a new tab shows the extension's page, and Savoia's start page is back when it is off. Skip the second if no extension offers one.</p></section>
+
+<section class=check id=x-verdict><h2>What the install dialog says</h2>
+<ol><li>Install any extension from a folder or an archive and read the list in the dialog before agreeing.</li></ol>
+<p class=expect><code>scripting</code> and content scripts are listed as working — not "unchecked", which was true until 8 October.</p></section>

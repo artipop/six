@@ -4,9 +4,20 @@
 <p class=why>Built and measured without ever calling the system: no banner has been seen.</p>
 <div class=stage><button onclick="Notification.requestPermission().then(s => log('o', 'requestPermission →', s))">Ask permission</button>
 <button onclick="show()">Show one</button> <button onclick="setTimeout(show, 5000); log('o', 'in five seconds…')">Show one in 5 s</button>
-<button onclick="last && last.close()">Close the last</button> <button onclick="log('o', 'permission:', Notification.permission)">permission?</button>
+<button onclick="last && last.close()">Close the last</button> <button onclick="showWithIcon()">Show one with an icon</button>
+<button onclick="fromWorker()">Show one from the service worker</button> <button onclick="log('o', 'permission:', Notification.permission)">permission?</button>
 <pre class=out id=o></pre></div>
 <script>let last, n = 0;
+function showWithIcon() { try { last = new Notification("With an icon", { body: "An orange square should be beside this.", icon: "icon.png", tag: "walk-icon" }); last.onshow = () => log("o", "with an icon: show"); } catch (e) { log("o", "threw:", e.name); } }
+async function fromWorker() {
+  try {
+    const registration = await navigator.serviceWorker.register("sw.js");
+    await navigator.serviceWorker.ready;
+    (registration.active || registration.waiting || registration.installing).postMessage({ show: true });
+    log("o", "asked the service worker");
+  } catch (e) { log("o", "service worker:", e.name, e.message); }
+}
+navigator.serviceWorker && navigator.serviceWorker.addEventListener("message", e => log("o", "the worker says:", e.data));
 function show() {
   try { last = new Notification("Savoia walk " + (++n), { body: "The body of notification " + n + ".", tag: "walk-" + n }); }
   catch (e) { return log("o", "threw:", e.name, e.message); }
@@ -28,6 +39,18 @@ function show() {
 <section class=check id=n-close><h2>Closing</h2>
 <ol><li>Show one, then press "Close the last".</li><li>Show one and dismiss the banner yourself.</li></ol>
 <p class=expect>the banner goes when the page closes it; say whether <code>close</code> is written in each case.</p></section>
+
+<section class=check id=n-icon><h2>An icon</h2>
+<ol><li>Press "Show one with an icon".</li></ol>
+<p class=expect>the banner carries an orange square with a dark border.</p></section>
+
+<section class=check id=n-worker><h2>From a service worker, and a click that opens a tab</h2>
+<ol><li>Press "Show one from the service worker".</li><li>Click the banner.</li><li>Then once more: press it, quit nothing, but close this tab before clicking the banner.</li></ol>
+<p class=expect>a banner titled "From the service worker" with the orange icon; the click opens a new tab on the history station, and this page logs what the worker says. With this tab closed the click still opens the tab.</p></section>
+
+<section class=check id=n-worker-profile><h2>The worker of another profile</h2>
+<ol><li>Open this page in your other profile, allow there too, and press "Show one from the service worker". Click the banner.</li></ol>
+<p class=expect>the tab opens in the profile the notification came from, not in the one that happens to be in front.</p></section>
 
 <section class=check id=n-denied><h2>Refused, and a private window</h2>
 <ol><li>Switch notifications off for this site in the menu under the lock; press "Show one".</li><li>Open this page in a private window; press "Ask permission".</li></ol>

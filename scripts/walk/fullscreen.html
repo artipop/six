@@ -15,7 +15,8 @@ const g = canvas.getContext("2d"); let t = 0;
 setInterval(() => { t++; g.fillStyle = `hsl(${t % 360} 60% 40%)`; g.fillRect(0, 0, 480, 270); g.fillStyle = "white"; g.font = "28px system-ui";
   g.fillText("frame " + t, 20, 50); g.fillRect((t * 4) % 480, 150, 40, 40); }, 40);
 v.srcObject = canvas.captureStream(25);
-document.addEventListener("fullscreenchange", () => log("o", "fullscreen:", document.fullscreenElement ? document.fullscreenElement.tagName : "none"));
+document.addEventListener("fullscreenchange", () => log("o", "fullscreen:", document.fullscreenElement ? document.fullscreenElement.tagName : "none", "— the page is", document.visibilityState));
+document.addEventListener("visibilitychange", () => log("o", "visibility:", document.visibilityState));
 v.addEventListener("enterpictureinpicture", () => log("o", "picture in picture: entered"));
 v.addEventListener("leavepictureinpicture", () => log("o", "picture in picture: left"));
 </script>
@@ -23,6 +24,10 @@ v.addEventListener("leavepictureinpicture", () => log("o", "picture in picture: 
 <section class=check id=fs-drawn><h2>The picture in fullscreen</h2>
 <ol><li>Press Play, then Fullscreen.</li><li>Leave with <kbd>Esc</kbd>.</li></ol>
 <p class=expect>the moving picture fills the screen — not black — and the page is back as it was after Esc.</p></section>
+
+<section class=check id=fs-visible><h2>The page knows it is visible</h2>
+<ol><li>Enter fullscreen, wait three seconds, leave, and read the lines under the buttons.</li></ol>
+<p class=expect>every line says <code>visible</code>. A page that reads <code>hidden</code> while it fills the screen was seen once, with Savoia behind another app.</p></section>
 
 <section class=check id=fs-box><h2>Fullscreen of something that is not a video</h2>
 <ol><li>Press "Fullscreen of the whole box", then <kbd>Esc</kbd>.</li></ol>

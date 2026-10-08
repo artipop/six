@@ -9,6 +9,7 @@ const STATIONS = [
   ["capture.html", "Camera, microphone, screen"],
   ["history.html", "Back and forward, and a web archive"],
   ["agent.html", "An agent's hand: hover, drag, a dialog, a file"],
+  ["extensions.html", "Extensions, and uBlock Origin Lite"],
   ["settings.html", "Switches nobody has pressed"],
   ["elsewhere.html", "On real sites"],
 ];
