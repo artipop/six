@@ -280,7 +280,9 @@ What the runs turned up that is in no test's assertion:
   the `WKWebView` in no window: the tab went blank and the page reported `hidden`. That was SwiftUI's `WebView` and
   WebKit between them, and Savoia left fullscreen by script before a main-frame navigation to get round it. On a
   tab's own `WKWebView` the view comes home by itself — measured on the stand with a real click into fullscreen and
-  a navigation out — and the workaround is gone.
+  a navigation out, and on 8 October 2026 on YouTube: a click on the player's own fullscreen button put the view
+  in `WebCoreFullScreenWindow`, a navigation to another video brought it back to the tab's window, and the new
+  video was playing there with the page drawn around it — and the workaround is gone.
   **Not always**, it turned out a day later: after `permissions-policy/reporting/fullscreen-report-only`, which sits
   in fullscreen until its timeout and is then navigated away, WebKit took its placeholder out of the tab's host
   (`completeFinishExitFullScreenAnimation`) and put no view back; the view was in no window, and every later click of

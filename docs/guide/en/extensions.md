@@ -3,19 +3,8 @@
 Savoia can install browser extensions — from a folder, a `.zip`, a `.crx` or an
 `.xpi`. **Configuration ▸ Extensions**
 
-::: warning Read this before installing
-It all comes down to one thing: WebKit could not map a page's frame back to a
-tab, so a content script could neither message its own extension nor hear from
-it. On the Mac that link exists now, but it has not been measured again — so the
-honest word for such extensions here is "should work", not "works".
-
-An extension whose content script is self-contained (a stylesheet, a script
-carrying its own data, anything that acts on the page and reports to nobody)
-works either way.
-
-The install dialog says this about the **particular** extension, before it runs,
-and the verdict stays on its row afterwards.
-:::
+The install dialog says what will and will not work for the **particular**
+extension, before it runs, and the verdict stays on its row afterwards.
 
 ## What works
 
@@ -26,22 +15,11 @@ and the verdict stays on its row afterwards.
 | `tabs.query`, `tabs.onUpdated` | work: an extension sees Savoia's tabs with their addresses and titles |
 | content scripts from the manifest | **run**, the DOM is theirs |
 | dynamically registered scripts | run |
+| `runtime.sendMessage` from a content script, `tabs.sendMessage` to one | work, in both directions |
+| `scripting.executeScript`, `scripting.insertCSS` | work |
 | `declarativeNetRequest` | **blocks for real** — subresources and navigations alike |
 | the action popup | works; its button lives in the top bar |
-| an extension's settings page and its other pages | open as tabs |
-
-## What has not been measured again
-
-| | |
-|---|---|
-| `runtime.sendMessage` from a content script | should work |
-| `tabs.sendMessage` to a content script | the same |
-| `scripting.executeScript`, `scripting.insertCSS` | the same |
-
-It is all one failure, and it is not about Savoia in general but about the way pages
-are drawn here. It was measured once: "Tab not found" from a content script, and
-nothing delivered back. Then WebKit got from Savoia what it had been missing — and
-these four calls have not been measured since.
+| an extension's settings page, its other pages, its new-tab page | open as tabs |
 
 ## What does not work
 
@@ -51,15 +29,14 @@ these four calls have not been measured since.
 
 ## uBlock Origin Lite
 
-The interesting case: it is the MV3 ad blocker, and it ships a build meant for
-exactly this API. It installs, enables its rule sets, produces no errors — **and
-blocks nothing**, because its logic decides per tab, and a tab is what it could
-not see here. That was measured before the tab-to-frame link existed, and has not
-been repeated since.
+The MV3 ad blocker, with a build meant for exactly this API. It installs and
+**blocks**: on adblock-tester.com a profile with nothing switched on scores 43–48
+of 100, and the same profile with uBOL scores 91. The count on its button is
+per tab, a site switched off in it stays off after a reload, and in its complete
+mode ad blocks disappear from the page.
 
-That is why [Savoia's own blocking is native](/en/blocking) and depends on no
-extension. uBOL installs and shows its verdict like any other; it simply does not
-block.
+[Savoia's own blocking](/en/blocking) scores 92 on the same page and depends on
+no extension.
 
 ## The rules
 

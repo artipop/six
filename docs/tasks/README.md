@@ -13,19 +13,18 @@ The order to take them in, and what is not a task at all, is [todo.md](../todo.m
 
 | file | what |
 |---|---|
-| [measure/12-one-sitting.md](measure/12-one-sitting.md) | Things nobody has watched happen — one sitting |
 | [browser/13-small-things.md](browser/13-small-things.md) | Small things — one pass |
 | [browser/14-waits-by-the-clock.md](browser/14-waits-by-the-clock.md) | Waits by the clock that have an event — one pass |
 | [bookmarks/16-images-in-bookmarks.md](bookmarks/16-images-in-bookmarks.md) | Finding a bookmark by what is in its pictures |
 | [browser/17-floating-window.md](browser/17-floating-window.md) | A tab as a small window that floats |
 | [assistant/18-ghost-text-and-own-verbs.md](assistant/18-ghost-text-and-own-verbs.md) | The assistant: an answer in place, and a verb of one's own |
 | [storage/19-history-pages.md](storage/19-history-pages.md) | Search over what was read, not only what was saved |
-| [extensions/20-extensions-next.md](extensions/20-extensions-next.md) | Extensions: after the measurement |
 | [design/21-open-design-questions.md](design/21-open-design-questions.md) | Two questions with no answer chosen |
 | [assistant/24-research-without-an-agent.md](assistant/24-research-without-an-agent.md) | Deep research on a Mac with no agent |
 | [bookmarks/25-embeddinggemma-2.md](bookmarks/25-embeddinggemma-2.md) | EmbeddingGemma 2 as the embedder |
 | [assistant/26-research-as-one-file.md](assistant/26-research-as-one-file.md) | A deep research saved as one file |
 | [devtools/33-playwright-bidi.md](devtools/33-playwright-bidi.md) | Playwright, which needs WebDriver BiDi |
+| [devtools/34-hover-under-webdriver.md](devtools/34-hover-under-webdriver.md) | A pointer move under WebDriver that hovers nothing |
 | [browser/32-apple-pay-switch.md](browser/32-apple-pay-switch.md) | Apple Pay: the switch WebKit keeps off for an app |
 | [permissions/30-paste-menu-over-another-app.md](permissions/30-paste-menu-over-another-app.md) | The Paste menu comes up over another app |
 

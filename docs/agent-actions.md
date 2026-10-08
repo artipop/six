@@ -122,8 +122,22 @@ each list behind the third, and put an item's `dataTransfer` text into the drop 
 0.4–0.8 s. The first run in front, before sessions were declined, is where the two drag-and-drop cases failed. Artem
 watched a later run in front: it went by fast, and nothing was left on screen.
 The same destination calls with a pasteboard of two file URLs gave the page both files with their contents —
-measured from the test driver, in the background, and not a tool. Not measured: a page inside a frame, and a
-window known to be key — `document.hasFocus()` answered false in both runs.
+measured from the test driver, in the background, and not a tool. Not measured: a window known to be key —
+`document.hasFocus()` answered false in both runs.
+
+Measured again on 8 October 2026, in a throwaway home, and drawn with `testdriver_window_image`: after `hover`
+the menu is open under its button, and after a refused `drag` nothing is left on the page. What that sitting
+found the tools cannot do:
+
+- **An element inside a frame has no ref.** The snapshot of a page holding the same stand in an `iframe` listed
+  the outer page's one button and nothing of the frame, so there is no refusal to read: the agent cannot name
+  the element at all.
+- **Neither has an item of a SortableJS list.** On `sortablejs.github.io/Sortable` no element is `draggable`
+  until it is pressed and no item holds a control, so the snapshot gives the items no refs.
+- **A page that reads `event.buttons` lets go, and `drag` still says it is done.** The buttons come from the
+  system and were 0 on every `mousemove`; the list stayed as it was and the tool answered `Done`.
+- **The list sorted on `mousemove`** ended as Bravo, Alpha, Charlie when Alpha was dragged onto Charlie — one
+  place down, not behind it.
 
 ## Dialogs and files: the delegate's door
 

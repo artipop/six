@@ -1149,7 +1149,7 @@ extension URL {
         let text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return nil }
         if let url = URL(string: text), let scheme = url.scheme,
-           ["http", "https", "file", "about", "savoia"].contains(scheme) {
+           ["http", "https", "file", "about", "savoia", "webkit-extension"].contains(scheme) {
             return url
         }
         let looksLikeHost = !text.contains(" ") && (text.contains(".") || text.hasPrefix("localhost"))
@@ -1163,7 +1163,7 @@ extension URL {
     static func looksLikeAddress(_ raw: String) -> Bool {
         let text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, !text.contains(" ") else { return false }
-        if let scheme = URL(string: text)?.scheme, ["http", "https", "file", "about"].contains(scheme) { return true }
+        if let scheme = URL(string: text)?.scheme, ["http", "https", "file", "about", "webkit-extension"].contains(scheme) { return true }
         // `magnet:?xt=…` is an address on a machine with a torrent client and a search query on one
         // without — which is also what keeps «note: buy milk» out of the address row.
         if let url = URL(string: text), ExternalScheme.isExternal(url), ExternalScheme.hasHandler(for: url) { return true }

@@ -198,10 +198,8 @@ enum ExtensionInstaller {
             // Savoia hosts no native messaging application, and nothing has been tried against one.
             .nativeMessaging: .unchecked,
         ]
-        // `WKWebExtensionTab.webView(for:)` answers with the tab's view, which is what `scripting.*`
-        // and content-script messaging were missing; not measured end to end (docs/extensions.md).
         #if os(macOS)
-        table[.scripting] = .unchecked
+        table[.scripting] = .works
         #else
         table[.scripting] = .missing
         #endif
@@ -228,11 +226,14 @@ enum ExtensionInstaller {
             guard let support = permissionSupport[permission] else { continue }
             bySupport[support, default: []].append(Named(text: permission.rawValue, isAPI: true))
         }
-        // What the manifest carries rather than asks for. Content scripts reach their extension on
-        // the Mac (the tab→`WKWebView` map keyboard focus needed, reused here) and that has been
-        // watched; messaging end to end has not, on any platform.
+        // What the manifest carries rather than asks for.
         if ext.hasInjectedContent {
-            bySupport[.unchecked, default: []].append(Named(text: String(localized: "content scripts"), isAPI: false))
+            #if os(macOS)
+            let support = Support.works
+            #else
+            let support = Support.unchecked
+            #endif
+            bySupport[support, default: []].append(Named(text: String(localized: "content scripts"), isAPI: false))
         }
         if ext.hasBackgroundContent {
             bySupport[.works, default: []].append(Named(text: String(localized: "background page"), isAPI: false))

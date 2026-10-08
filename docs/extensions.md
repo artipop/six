@@ -9,16 +9,9 @@ for its tabs and windows through `WKWebExtensionTab` / `WKWebExtensionWindow`.
 tab has been on screen. When a tab was SwiftUI's `WebPage`, which hands out no view, the method answered `nil`, and
 then with a view found by searching the window; both are history.
 
-**What that closes is not yet re-measured.** The table below is the state from when the method answered `nil`, and a fresh MV3 test
-extension built to re-run it hit a wall one step short of the tables' own tests — `content_scripts` never fired in
-this environment for a reason that looks environmental rather than about `webView(for:)` (content-script injection
-is WebKit's own static match against a manifest and never calls this method at all), but it means the specific
-"works now" claims below are a prediction from what `webView(for:)` returning correctly implies, not yet a
-measurement with the same rigor as the rest of this page. Whoever re-runs it: confirm `runtime.sendMessage` /
-`tabs.sendMessage` / `scripting.executeScript` / `scripting.insertCSS` and uBlock Origin Lite's per-tab logic again,
-each on its own, before moving this out of "believed fixed." What each of those runs would have to show, and the
-one reading that already disagrees with this page — uBOL scoring 96/100 on a request-counting test with Savoia's own
-blocking switched off — are in [unmeasured.md](unmeasured.md).
+**What that closed was measured on 8 October 2026** (macOS 27.2, dev build, throwaway homes): messaging between a
+content script and its extension in both directions, `scripting.executeScript` and `scripting.insertCSS`, and
+uBlock Origin Lite's per-tab logic. The tables below say what was seen.
 
 **Install** from **Extensions › Manage Extensions…**: a folder, a `.zip`, a `.crx` or an `.xpi`. Before anything
 runs, the dialog says what the extension is, what it will be granted, and — from its manifest alone — what will not
@@ -47,6 +40,10 @@ ExtensionAdapters    a column as WKWebExtensionTab, a profile's strip as WKWebEx
 | `cookies` | present and answers |
 | **content scripts declared in the manifest** | **run** — `document_start`, DOM touched, `browser.*` available inside them |
 | **`scripting.registerContentScripts`** | **works** — dynamically registered scripts run in pages |
+| **`runtime.sendMessage` from a content script** | **works** — the background answers, and `sender.tab` carries the tab's id and address |
+| **`tabs.sendMessage` to a content script** | **works** — delivered, and the script's reply comes back |
+| **`scripting.executeScript`** | **works** — a function in the isolated world, a function in `world: "MAIN"`, and `files` |
+| **`scripting.insertCSS`** | **works** — the page's computed style changes |
 | **`declarativeNetRequest`** | **blocks** — subresources *and* main-frame navigations, static rulesets and dynamic rules alike, including rules conditioned on `initiatorDomains`, `excludedInitiatorDomains` and `requestDomains` |
 | action popup | works — WebKit hands over its own `NSPopover` (and a live `WKWebView` on `webkit-extension://…/popup.html`), which Savoia points at the toolbar button that was clicked, through that button's own AppKit view |
 | extension pages (options, dashboards, `tabs.create` of its own pages, the new-tab override) | **tabs** — see below |
@@ -75,9 +72,14 @@ Two things a tab needs that a throwaway window did not:
 
 Seen with a throwaway extension in a throwaway home: the page its background opened with `tabs.create` is a tab,
 loads, has `browser.runtime`, and loads again after the page budget took it and after a relaunch — behind, and in
-front, where the log shows the first attempt's -1008 before the rebuild. The options page and the new-tab override
-were not opened. When these pages were windows, uBOL Lite's dashboard loaded and its background answered
-`getOptionsPageData`; that has not been repeated in a tab.
+front, where the log shows the first attempt's -1008 before the rebuild. On 8 October 2026 the same extension's
+options page, opened by its background's `runtime.openOptionsPage()`, and its new-tab override, opened by `⌘T`
+with `extensions.newTabOverride` naming it, were both tabs with `browser.runtime` in them; and uBOL Lite's
+dashboard loaded in a tab and its background answered every message sent from it. "Open Options Page" in the
+Extensions list ends in the same `newTab(url:)` and was not clicked.
+
+An extension page's address is one the address field and `open_window` keep as it is (`URL.fromUserInput`); until
+that day it became `https://webkit-extension://…`.
 
 ### Each profile's copy of an extension sees only its own tabs
 
@@ -135,43 +137,55 @@ starts its tests by itself.
 Outside testing mode WebKit holds every alarm for at least 30 seconds: one created with `when: now + 1 s` fired at
 30.0 s, where the same test passes in testing mode within a second or two.
 
-## What does not work, and why it is all one thing
+## What does not work
 
 | surface | result |
 |---|---|
-| `runtime.sendMessage` **from a content script** | `Invalid call to runtime.sendMessage(). Tab not found.` |
-| `tabs.sendMessage` **to a content script** | silently delivers nothing |
-| `scripting.executeScript` | `Could not execute script on this tab.` |
-| `scripting.insertCSS` | `Could not inject stylesheet on this tab.` |
 | `declarativeNetRequest.onRuleMatchedDebug` | not implemented by WebKit at all — not Savoia's gap |
+| `webRequest` | not in WebKit |
 
-Every failure but the last is the same failure: **WebKit cannot map a frame back to a tab without the tab's web
-view**. So content scripts run, but they are *deaf* — they cannot talk to their own background, and the background
-cannot reach into them or inject anything new.
+While a tab was SwiftUI's `WebPage`, four more rows stood here — `runtime.sendMessage` from a content script
+("Tab not found"), `tabs.sendMessage` to one, `scripting.executeScript` and `scripting.insertCSS` — and all four
+were one failure: WebKit cannot map a frame back to a tab without the tab's web view.
 
-That is a sharper line than "content injection does not work". An extension whose content script is self-contained
-(a stylesheet, a scriptlet carrying its own data, anything that acts on the DOM and reports to nobody) works. An
-extension whose content script is a client of its background — which is most of them — does not.
+The instrument that measured them working is a throwaway MV3 extension loaded with `SAVOIA_EXTENSION`: a content
+script that messages its background and keeps the reply, a background that answers, messages the tab back, and
+calls `insertCSS` and `executeScript` at it, and one read of the page over `Savoia --mcp`. A script injected into
+the isolated world leaves its mark in the DOM, since `evaluate_javascript` reads the page's world.
 
 ## uBlock Origin Lite
 
-The interesting case, since it is the MV3 ad blocker and it ships a **Safari** build meant for exactly this API.
-Loaded into Savoia it starts, enables its rule sets (`ublock-filters`, `easylist`, `easyprivacy`, `rus-0`), reports
-`hasBroadHostPermissions: true`, produces no context errors — **and blocks nothing.**
+The MV3 ad blocker, which ships a **Safari** build meant for exactly this API. It blocks here.
 
-What was ruled out, one at a time: rule-set enablement (they are enabled), permissions (`<all_urls>` granted,
-`permissions.getAll()` confirms), compile errors (`WKWebExtensionContext.errors` stays empty after the rule sets
-load), WebKit's own DNR (a controlled extension blocks with every rule flavour uBOL uses), rule limits (WebKit
-allows 50 enabled rule sets and 30 000 dynamic rules; uBOL enables four and adds none), and scale (disabling all its
-static rule sets does not make a fresh dynamic rule work either).
+Measured on 8 October 2026 with uBOL Lite 2026.914.1325 and its default rule sets (`ublock-filters`, `easylist`,
+`easyprivacy`, `rus-0`), on `https://adblock-tester.com` (22 checks), three loads a run, each run in a home of its
+own:
 
-What is left is uBOL's own per-tab logic: its filtering mode is decided per site and per tab, and its popup renders
-empty in Savoia — the same symptom as everything else in the table above. Best read: **uBOL cannot see a tab, so it
-filters nothing.**
+| | score of 100 |
+|---|---|
+| no extension, **Block Ads and Trackers** off | 43, 48, 43 |
+| uBOL in its default mode (optimal), **Block Ads and Trackers** off | 91, 91, 91 — and the same in a second run |
+| uBOL in complete mode, **Block Ads and Trackers** off | 91 |
+| uBOL with filtering switched off for that site | 43, 43 |
+| no extension, **Block Ads and Trackers** on, the page half off | 92, 92, 92 |
 
-So the answer to "can Savoia's ad blocking be an extension" is, today, *no* — which is why blocking is native
-(see [blocking.md](blocking.md)) and does not depend on any of this. uBOL installs and shows its verdict like any
-other extension; it simply does not block.
+So the switch is a switch, the blocking is uBOL's, and Savoia's own lists do about as well by themselves. The 96 of
+22 September was not repeated; the page's own rows move between loads.
+
+Its per-tab half, each read through `browser.*` from uBOL's dashboard open in a tab:
+
+- **The count on the button is per tab.** With the count switched on, `action.getBadgeText` answered 52 for the
+  tester's tab and nothing for the four tabs beside it, 38 after a reload, and nothing once the site was switched
+  off.
+- **A site switched off stays off.** `setFilteringMode` for the host — the message the popup's slider sends —
+  held through two reloads, score and mode both.
+- **Elements disappear.** On a page with a `.sponsored-ad` block, the block was there in optimal mode and gone
+  within a second of every navigation in complete mode, in the tab that was open when the mode changed and in a
+  new one, and for a node added to `example.com` after it loaded. Back in optimal, the open tab showed it again.
+
+What that leaves is in [unmeasured.md](unmeasured.md#ubol-what-was-not-pressed).
+
+Blocking stays native all the same ([blocking.md](blocking.md)): it is on before anything is installed.
 
 ## How it is put together
 
@@ -204,8 +218,10 @@ other extension; it simply does not block.
   storage is a record.
 - **A tab is a column, a window is a profile's strip.** The adapters read the *window* — `tab.currentURL`,
   `tab.title` — never its page, because asking `BrowserTab` for a page builds one, and an extension listing tabs
-  must not wake a hundred discarded windows. Workspaces are not separate windows; when something actually needs to
-  move a tab between windows, that is the moment to map them onto workspaces.
+  must not wake a hundred discarded windows. **A tab group is not a window to an extension, and will not be**:
+  `windows.remove` would close a group nobody asked to close, `windows.create` would make groups, and "the
+  focused window" would change with every group picked — while nothing installed so far asks for more than one
+  window.
 - **The browser tells the extensions what happened.** WebKit does not watch the app's model: `didOpenTab`,
   `didCloseTab`, `didActivateTab` and `didChangeTabProperties` are called from `BrowserState` and from what the
   tab's navigation delegate reports — without the last one, `tabs.onUpdated` never fires.
@@ -229,13 +245,6 @@ to answer for Savoia's own bindings ([hotkeys.md](hotkeys.md)), here on WebKit's
 declines, `ExtensionStore.performCommand(for:in:)` checks each of the extension's `commands` again itself, this
 time by the event's physical key code against a small US-ANSI letter table — the same "code or character" shape,
 independently arrived at for a type Savoia does not otherwise touch.
-
-## To revisit
-
-The whole "does not work" table was one missing method, and a tab answers it with its own view now — re-measure
-before trusting the table below ([tasks/measure/12](tasks/measure/12-one-sitting.md)). A `WKWebView` per tab is what
-every other WebKit browser with extension support does, and since October 2026 what Savoia does. A WebKit build of
-Savoia's own stays ruled out: system WebKit, used as far as it goes.
 
 ## Installing from a file
 

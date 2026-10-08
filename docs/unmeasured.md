@@ -11,62 +11,26 @@ what was seen. Say when it was measured and on what.
 and opens it in the Debug Savoia: eleven stations, fifty-nine checks, each saying what to press and what should
 happen, with the buttons, lists, video and file fields it needs on the page. Answers are kept in the browser, and
 **Copy the report** on the first page gives them as text to paste back — which is how lines leave this file. The
-stations follow the sections below; what has no station is what needs no hand (the wpt lines, the extension probe).
+stations follow the sections below; what has no station is what needs no hand (the wpt lines).
 
-## uBlock Origin Lite scored 96/100, and the control run is missing
+## uBOL: what was not pressed
 
-**2026-09-22, macOS, dev build.** uBOL at its strictest setting scored **96 of 100** on
-`https://adblock-tester.com`, with Savoia's own **Block Ads and Trackers** switch off in that profile. Script-loading
-rows came back yellow on some runs and green on others.
+**2026-10-08, macOS 27.2, dev build, throwaway homes.** The control runs, the per-tab half and the four calls
+behind the verdict were measured and are in [extensions.md](extensions.md#ublock-origin-lite). What they left:
 
-[extensions.md](extensions.md) says uBOL **blocks nothing here** — measured before `WKWebExtensionTab.webView(for:)`
-started answering. Those two cannot both be true, and the guide repeats the old one in
-[ru](guide/extensions.md) and [en](guide/en/extensions.md).
-
-What is missing before the old claim is struck out:
-
-- **The control run.** Same profile, uBOL switched off, page reloaded. If the score barely moves, the blocking was
-  never uBOL's.
-- **Whether that switch is a switch.** The Blocking toggle was *off* in the UI; that Savoia then applies no rule list of
-  its own is exactly the kind of thing this file exists for. Same page with uBOL off and blocking off is the
-  measurement: a high score with both off means something else is blocking and neither result means anything yet.
-- **What kind of blocking it is.** `adblock-tester.com` counts requests, and `declarativeNetRequest` — which WebKit
-  implements and Savoia has watched blocking — is enough to score well. The part that was never in doubt is not the
-  part that is in doubt.
-
-## uBOL's per-tab half
-
-Its badge count, its per-site disable, and its cosmetic filtering all decide by tab, which is what the
-`webView(for:)` gap took away. The score above says nothing about any of them, and the yellow script-loading rows
-are where they would show.
-
-- Does the badge number change as the row moves between sites?
-- Does "disable on this site" in uBOL's own popup survive a reload?
-- Do elements *disappear* rather than merely fail to load —
-  `https://testpages.adblockplus.org/en/filters/element-hiding` and its neighbours.
-
-## The four calls behind the verdict
-
-[extensions.md](extensions.md) records these as broken, measured before the fix, and says outright that the re-test
-hit a wall one step short of proving anything. `ExtensionInstaller.permissionSupport` therefore calls `scripting`
-**unchecked** on the Mac rather than working, and the install dialog says so about every extension that asks for it.
-
-- `runtime.sendMessage` from a content script
-- `tabs.sendMessage` to a content script
-- `scripting.executeScript`
-- `scripting.insertCSS`
-
-The instrument is a three-file MV3 extension of our own, loaded with `SAVOIA_EXTENSION=/path/to/unpacked`: a content
-script that messages its background and writes the reply into `document.title`, a background that answers and then
-calls `insertCSS` and `executeScript` at the same tab, and one read through `Savoia --mcp`:
-
-```js
-return [document.title, window.__probe, getComputedStyle(document.body).backgroundColor]
-```
-
-Three values, four calls, one page. Errors land in `list_console_messages` and in the app's own log as
-`[extensions] <name> reports …`. It has to be an ordinary page in an ordinary window: extensions do not run in
-private browsing, and `savoia://` pages have no content scripts.
+- **uBOL's popup.** Every mode change was the popup's own message, sent from the dashboard open in a tab. The
+  slider was not moved, and the count was read from `action.getBadgeText`, not seen on the button.
+- **Two readings of the hidden block that disagree with the rest.** A new tab opened after the mode went back
+  from complete to optimal still hid the block, where the tab that was already open showed it; and once, in
+  complete mode, a tab showed the block twelve seconds after a navigation. Neither was repeated or explained.
+- **`testpages.adblockplus.org`** answers 301 to the home page of `abptestpages.org`, and its filters are a test
+  subscription of Adblock Plus that uBOL does not carry. Element hiding was measured on a page of our own.
+- **The 96 of 22 September** was 91 on every load of this day, in optimal and in complete mode.
+- **"Open Options Page" in the Extensions list, and the toggle that lets an extension stand in for the start
+  page.** The options page was opened by the extension itself and the override by a setting written between two
+  launches; neither control was clicked.
+- **The verdict in the install dialog** says `scripting` and content scripts work now. The dialog was not opened
+  after the change.
 
 ## An agent's hover and drag, past the stand page
 
@@ -74,19 +38,19 @@ private browsing, and `savoia://` pages have no content scripts.
 them, with Savoia in the background and launched in front ([agent-actions.md](agent-actions.md#hover-and-drag-the-pointer)).
 What that leaves:
 
-- **A window known to be key.** `document.hasFocus()` answered false in every run, the ones in front too, so
-  nobody knows the page was in the key window. The first fault found — a dragging session following the person's
-  pointer — showed only with Savoia in front, so this is the case most likely to hide another.
-- **What a person sees.** Artem watched one run and it went by too fast to judge. Slow it down, or draw the window
-  with `testdriver_window_image` after `hover` and after a refused `drag`: is the menu open, is anything left on
-  screen.
-- **A page inside a frame.** The acting tools are main frame only; nobody has run `hover` or `drag` at an element
-  in an `iframe` to see what the refusal says.
-- **A real site.** A Trello-like board, a SortableJS list, a page that checks `event.buttons` on `mousemove` — the
-  last is expected to let go, since the page reads the buttons from the system.
-- **Hover in wpt.** The runner's `pointerMove` reached no page until this day. 109 files with testdriver under
-  `pointerevents`, `uievents` and `css/selectors` name `mouseover`, `mouseenter`, `:hover` or their pointer
-  twins, and none has been run since; the permission baseline was not rerun either.
+- **A window known to be key.** `document.hasFocus()` answered false in every run, the ones in front too, and
+  again on 8 October with Savoia started by `open`: the Release Savoia was the front app by then. The first fault
+  found — a dragging session following the person's pointer — showed only with Savoia in front, so this is the
+  case most likely to hide another. It takes a Mac nobody is working at.
+- **What a person sees, in motion.** Drawn with `testdriver_window_image` on 8 October: the menu open under its
+  button after `hover`, and nothing left on the page after a refused `drag`
+  ([agent-actions.md](agent-actions.md#hover-and-drag-the-pointer)). A drawing is one frame; the walk's "An
+  agent's hand" is for the eye.
+- **A Trello-like board**, or any real site whose items do have a control in them. SortableJS's own page has
+  none, and the agent cannot name an item there.
+- **Hover in wpt** was run on 8 October 2026 and is a fault, not a question: 24 of 85 addresses below Safari's
+  row ([tasks/devtools/34](tasks/devtools/34-hover-under-webdriver.md)). Not run: the thirteen hover files that
+  also name a drag, and the permission baseline after the runner changed.
 - **Drag-and-drop in wpt measures nothing yet.** A run of `html/editing/dnd` stopped at 50 files: 18 passed, 31
   timed out, every one the same as Safari's row. The runner sends down, move, up past `PageActions.drag`, so
   those are the raw path's timeouts and not the tool's. Before they mean anything the press has to be kept at the
@@ -124,8 +88,11 @@ left by navigating. What nobody has watched:
 - **A web archive opened again.** Save As answers `bplist00` bytes of a plausible size; the file was never written
   through the panel or loaded back into a tab.
 - **Back and forward by swipe.** `allowsBackForwardNavigationGestures` is set; no gesture can be sent from here.
-- **The picture in fullscreen, and picture-in-picture.** The state, the size and the way home are measured; whether
-  anything is drawn is not, and a black screen was the fault the removed workaround was for.
+- **The picture in fullscreen, and picture-in-picture.** The state, the size and the way home are measured, on
+  YouTube too ([permissions.md](permissions.md#compatibility-web-platform-tests)); whether anything is drawn is
+  not, and a black screen was the fault the removed workaround was for. A drawing of the fullscreen window shows
+  the page laid out at the screen's size and no video frame, which is what a drawing gives for video anywhere;
+  and the page read `hidden` while in fullscreen, with Savoia behind another app.
 - **A call.** The camera's question passes in wpt on a stand page; a real call, screen sharing with its picker and
   the mute buttons in the address field were not tried.
 - **A sign-in through a window the site opens** — Sign in with Google, Telegram's widget. It is a tab now, and
@@ -153,8 +120,8 @@ say after that day's work, and the part of it nobody watched.
   source, an `Element` origin. Why `SingleClick` sends two mouse-downs is not known.
 - **The page that does not come home from fullscreen.** The host takes it back, and that was measured on the one
   wpt file that showed it. A page of the same shape made by hand came home by itself, so what sets the wpt file
-  apart is not known — and a real site in fullscreen, entered and left by a person after this change, was not
-  watched ([tasks/measure/12](tasks/measure/12-one-sitting.md) has that sitting).
+  apart is not known. A real site came home on 8 October, entered by the test driver's click; a person has not
+  entered and left one since (the walk's "Fullscreen and picture-in-picture").
 - **The Continuity Camera and `enumerateDevices-per-origin-ids`.** Seen: with an iPhone in reach its camera's
   `deviceId` differs between a page and its same-origin frame, and the subtest fails. Inferred: that the baseline's
   pass was a run without the phone. One run with the iPhone out of reach settles it.
