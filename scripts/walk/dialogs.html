@@ -1,0 +1,37 @@
+<!doctype html><meta charset=utf-8><title>Walk — dialogs</title>
+<link rel=stylesheet href=walk.css><script src=walk.js></script>
+<h1>A page's dialogs, under a hand</h1>
+<p class=why>The sheets behind alert, confirm, prompt and the file chooser were rebuilt so that an agent can answer them.
+A self-test presses their buttons; it cannot press a real key or pick a file.</p>
+
+<section class=check id=escape-confirm><h2>Escape on a confirm</h2>
+<ol><li>Press the button.</li><li>When the sheet is up, press <kbd>Esc</kbd>.</li></ol>
+<p class=expect>the sheet goes away and the line below reads <code>false</code>.</p>
+<div class=stage><button onclick="log('o1', 'confirm →', confirm('Leave this as it is?'))">confirm()</button><pre class=out id=o1></pre></div></section>
+
+<section class=check id=return-confirm><h2>Return on a confirm and on an alert</h2>
+<ol><li>Press each button, then <kbd>Return</kbd>.</li></ol>
+<p class=expect>confirm reads <code>true</code>; the alert just closes.</p>
+<div class=stage><button onclick="log('o2', 'confirm →', confirm('Go on?'))">confirm()</button>
+<button onclick="alert('An alert, and nothing more.'); log('o2', 'alert closed')">alert()</button><pre class=out id=o2></pre></div></section>
+
+<section class=check id=prompt-keys><h2>Typing in a prompt</h2>
+<ol><li>Press the button.</li><li>Type a word into the field — in Latin letters, then again in Russian.</li><li><kbd>Return</kbd>. Then once more, and <kbd>Esc</kbd> instead.</li></ol>
+<p class=expect>what you typed appears below; after Esc it reads <code>null</code>. The letters go into the field, not into the page or the tab bar.</p>
+<div class=stage><button onclick="log('o3', 'prompt →', prompt('A word, please', 'default'))">prompt()</button><pre class=out id=o3></pre></div></section>
+
+<section class=check id=file-by-hand><h2>A file picked by hand</h2>
+<ol><li>Press <b>Choose File</b>, pick any small text file, press the panel's own button.</li><li>Again, and press Cancel. Again, and press <kbd>Esc</kbd>.</li></ol>
+<p class=expect>the name and the first line of the file appear; Cancel and Esc leave it as it was.</p>
+<div class=stage><input type=file id=f multiple><pre class=out id=o4></pre></div>
+<script>f.onchange = async () => { for (const file of f.files) log('o4', file.name, file.size + ' bytes:', (await file.text()).split('\n')[0].slice(0, 60)); if (!f.files.length) log('o4', 'nothing chosen'); };</script></section>
+
+<section class=check id=other-tab><h2>A dialog from a tab that is not in front</h2>
+<ol><li>Press the button, then switch to another tab within five seconds.</li></ol>
+<p class=expect>this is a question, not a test: say what happened — did a sheet cover the window while you were in the other tab, and is that what you want?</p>
+<div class=stage><button onclick="setTimeout(() => log('o5', 'confirm →', confirm('Asked from a tab you were not looking at.')), 5000); log('o5', 'in five seconds…')">confirm() in 5 s</button><pre class=out id=o5></pre></div></section>
+
+<section class=check id=close-with-dialog><h2>Closing a tab with a dialog up</h2>
+<ol><li>Open this page in a second tab. There, press the button and, with the sheet up, close that tab (<kbd>⌘W</kbd> may be taken by the sheet — use the tab's ×).</li></ol>
+<p class=expect>the sheet goes with its tab; nothing is left hanging over the window.</p>
+<div class=stage><button onclick="alert('Close my tab now.')">alert()</button></div></section>

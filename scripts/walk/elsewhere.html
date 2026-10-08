@@ -1,0 +1,36 @@
+<!doctype html><meta charset=utf-8><title>Walk — on real sites</title>
+<link rel=stylesheet href=walk.css><script src=walk.js></script>
+<h1>On real sites</h1>
+<p class=why>Stand pages are written by the people who wrote the code. These need pages that were not.</p>
+
+<section class=check id=e-signin><h2>Signing in through a window the site opens</h2>
+<ol><li>On a site you have an account on, use "Sign in with Google" (or Apple, or Telegram's widget).</li></ol>
+<p class=expect>the sign-in opens as a tab, finishes, closes itself, and the first site knows who you are.</p></section>
+
+<section class=check id=e-video><h2>A video site in fullscreen</h2>
+<ol><li>YouTube or the like: play, go fullscreen, then press "next" or let autoplay move on. Press <kbd>Esc</kbd>.</li></ol>
+<p class=expect>a picture throughout, never black; after Esc the tab shows the page, not nothing.</p></section>
+
+<section class=check id=e-map><h2>A map</h2>
+<ol><li>Open a maps site and press its "my location" button.</li></ol>
+<p class=expect>the bar asks, and the dot lands where you are; the map does not jitter while you sit still.</p></section>
+
+<section class=check id=e-chat><h2>A chat that notifies</h2>
+<ol><li>Mattermost, or any web chat: allow notifications, switch to another app, have a message arrive.</li><li>Click the banner.</li></ol>
+<p class=expect>a banner with the message; the click brings Savoia forward on the chat's tab and the chat opens the conversation.</p></section>
+
+<section class=check id=e-call><h2>A call</h2>
+<ol><li>Join a test call (Meet, Jitsi, Telemost). Mute the microphone from the address field, then from the site's own button. Share a window.</li></ol>
+<p class=expect>the others see and hear you; both mutes work and agree with each other; sharing shows the window you picked.</p></section>
+
+<section class=check id=e-board><h2>A board an agent can move things on</h2>
+<ol><li>On a Trello-like board, ask the agent on <kbd>⌘E</kbd> to move a card to another column.</li></ol>
+<p class=expect>the card moves and stays moved after a reload. If it lets go halfway, say on which site.</p></section>
+
+<section class=check id=e-extension><h2>An extension's popup and menu</h2>
+<ol><li>Click an installed extension's button in the toolbar; use its popup. Open its options page.</li></ol>
+<p class=expect>the popup hangs from its button and works; the options page opens as a tab.</p></section>
+
+<section class=check id=e-cert><h2>A site with a broken certificate</h2>
+<ol><li>Open <code>https://expired.badssl.com</code> and <code>https://self-signed.badssl.com</code>.</li></ol>
+<p class=expect>Savoia's own page about the certificate, and no lock in the address field — or a struck one — while it is shown.</p></section>

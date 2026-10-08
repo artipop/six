@@ -1,0 +1,28 @@
+<!doctype html><meta charset=utf-8><title>Walk — back, forward, a web archive</title>
+<link rel=stylesheet href=walk.css><script src=walk.js></script>
+<h1>Back and forward, and a web archive</h1>
+<p class=why>No gesture can be sent from a script, and a saved archive was never opened again.</p>
+<p>You are on step <b id=step></b>. <a id=nextstep href="#">Go to the next step →</a></p>
+<script>
+const n = Number(new URLSearchParams(location.search).get("step") || 1);
+document.getElementById("step").textContent = n;
+document.getElementById("nextstep").href = "history.html?step=" + (n + 1);
+</script>
+
+<section class=check id=swipe><h2>Back and forward by swipe</h2>
+<ol><li>Follow the link above three times.</li><li>Swipe back with two fingers on the trackpad, twice; then forward once.</li></ol>
+<p class=expect>the page slides under your fingers and the step number above follows: 4 → 3 → 2 → 3.</p></section>
+
+<section class=check id=scroll-back><h2>The scroll position comes back</h2>
+<ol><li>Scroll to the bottom of this page, follow <a href="menu.html">this link</a>, then go back (<kbd>⌘[</kbd>).</li></ol>
+<p class=expect>you land where you were, at the bottom, not at the top.</p></section>
+
+<section class=check id=archive><h2>A web archive, saved and opened again</h2>
+<ol><li>File ▸ Save As, choose the web archive format, save to the Desktop.</li><li>Open the saved file in Savoia (drag it to the tab bar or File ▸ Open).</li></ol>
+<p class=expect>this page, with its styles and the teal picture below, from a <code>file:</code> address — with the network off it still looks the same.</p>
+<div class=stage><svg width=200 height=60><rect width=200 height=60 fill=teal /><text x=100 y=37 fill=white text-anchor=middle>I should survive</text></svg></div></section>
+
+<section class=check id=discard><h2>A tab that was put to sleep</h2>
+<ol><li>Scroll somewhere in the middle of this page. Open ten other tabs and use them for a few minutes, or quit and reopen Savoia.</li><li>Come back to this tab.</li></ol>
+<p class=expect>the same step number, the same scroll position, and Back still goes back.</p></section>
+<div style="height:70vh"></div><p>The bottom of the page.</p>

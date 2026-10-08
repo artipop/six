@@ -1,0 +1,28 @@
+<!doctype html><meta charset=utf-8><title>Walk — windows a page opens</title>
+<link rel=stylesheet href=walk.css><script src=walk.js></script>
+<h1>Windows a page opens</h1>
+<p class=why>A window opened with window.open is a tab with its opener now. Only the mechanics were measured, on a stand page.</p>
+<script>
+addEventListener("message", e => { if (e.data && e.data.walk) log("o1", "the opened window says:", e.data.walk); });
+if (location.search === "?child") {
+  document.addEventListener("DOMContentLoaded", () => {
+    document.body.innerHTML = `<h1>I was opened by a page</h1><p>opener: <b>${opener ? "present" : "none"}</b>, my size: ${innerWidth}×${innerHeight}</p><button id=b>Say hello to my opener and close</button>`;
+    b.onclick = () => { opener && opener.postMessage({ walk: "hello from " + innerWidth + "×" + innerHeight }, "*"); close(); };
+  });
+}
+</script>
+
+<section class=check id=open-plain><h2>window.open with no size</h2>
+<ol><li>Press the button.</li><li>In what opens, press its button.</li></ol>
+<p class=expect>a tab opens saying its opener is present; its button writes a line below and the tab closes by itself.</p>
+<div class=stage><button onclick="open('windows.html?child')">window.open(url)</button><pre class=out id=o1></pre></div></section>
+
+<section class=check id=open-sized><h2>window.open asking for a size</h2>
+<ol><li>Press the button, then the button in what opens.</li></ol>
+<p class=expect>the same, with an opener. Say whether it came as a tab or a window, and what size it reports — the asked size is known not to be honoured.</p>
+<div class=stage><button onclick="open('windows.html?child', 'walk', 'width=480,height=360')">window.open(url, name, 'width=480,height=360')</button></div></section>
+
+<section class=check id=open-blocked><h2>A window nobody asked for</h2>
+<ol><li>Press the button and wait three seconds without touching anything.</li></ol>
+<p class=expect>nothing opens: a window with no click behind it is blocked. The line says <code>null</code>.</p>
+<div class=stage><button onclick="setTimeout(() => log('o3', 'window.open after 3 s →', String(open('windows.html?child'))), 3000)">open in 3 s</button><pre class=out id=o3></pre></div></section>

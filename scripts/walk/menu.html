@@ -1,0 +1,26 @@
+<!doctype html><meta charset=utf-8><title>Walk — context menu</title>
+<link rel=stylesheet href=walk.css><script src=walk.js></script>
+<h1>The context menu and a ⌘-click</h1>
+<p class=why>The page's menu is an NSMenu built by Savoia since the move to WKWebView. Nobody has opened it in Savoia.</p>
+
+<section class=check id=menu-link><h2>On a link</h2>
+<ol><li>Right-click <a href="history.html?from=menu">this link</a>.</li><li>Try each item once: open in a new tab, open behind, copy the link.</li></ol>
+<p class=expect>items for a link, in your interface language; "behind" opens a tab without leaving this one; the copied address pastes.</p></section>
+
+<section class=check id=menu-page><h2>On the page, on a selection, on a picture</h2>
+<ol><li>Right-click empty space.</li><li>Select this sentence and right-click the selection.</li><li>Right-click the picture.</li></ol>
+<p class=expect>three different menus: the page's (back, reload, Save As, Inspect Element when Develop is on), the selection's (copy, look up, the assistant's verbs if any), the picture's.</p>
+<div class=stage><svg width=160 height=90 role=img aria-label="a test picture"><rect width=160 height=90 fill=teal /><text x=80 y=52 fill=white text-anchor=middle font-size=16>picture</text></svg>
+<img alt="a real image" width=90 height=90 src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Ccircle cx='45' cy='45' r='40' fill='orange'/%3E%3C/svg%3E"></div></section>
+
+<section class=check id=menu-share><h2>Share, and an extension's items</h2>
+<ol><li>In the page's menu find Share and open it.</li><li>If an extension that adds menu items is installed, look for them.</li></ol>
+<p class=expect>the system's share list; an extension's items under its name. Skip the second if you have no such extension.</p></section>
+
+<section class=check id=cmd-click><h2>⌘-click, and a plain click on target=_blank</h2>
+<ol><li><kbd>⌘</kbd>-click <a href="history.html?from=cmd">this link</a>.</li><li>Plain-click <a href="history.html?from=blank" target=_blank>this one</a>, which asks for a new window.</li></ol>
+<p class=expect>the first opens a tab behind and you stay here; the second opens a tab and takes you there.</p></section>
+
+<section class=check id=inspect><h2>Inspect Element</h2>
+<ol><li>With Configuration ▸ Develop on, right-click the heading of this page and choose Inspect Element.</li><li>Close the inspector with <kbd>⌥⌘I</kbd>.</li></ol>
+<p class=expect>the inspector opens on that element and closes; the page keeps its size afterwards.</p></section>

@@ -1,0 +1,65 @@
+<!doctype html><meta charset=utf-8><title>Walk — an agent's hand</title>
+<link rel=stylesheet href=walk.css><script src=walk.js></script>
+<style>
+.menu { position: relative; display: inline-block; } .menu ul { display: none; position: absolute; margin: 0; padding: .4rem .8rem; list-style: none; background: Canvas; border: 1px solid var(--line); border-radius: 8px; white-space: nowrap; }
+.menu:hover ul { display: block; }
+#sort li, #drag li { padding: .25rem .6rem; margin: .2rem 0; border: 1px solid var(--line); border-radius: 6px; cursor: grab; list-style: none; user-select: none; }
+#sort, #drag { padding: 0; width: 12rem; display: inline-block; vertical-align: top; margin-right: 1rem; }
+.drop { display: inline-block; width: 9rem; height: 5rem; border: 2px dashed var(--line); border-radius: 8px; vertical-align: top; padding: .4rem; }
+.drop.over { border-color: var(--ok); }
+</style>
+<h1>An agent's hand</h1>
+<p class=why>Hover, drag, dialogs and files were measured through tools, with nobody watching the screen. Here you watch.
+Each check has a sentence to give the agent on the <kbd>⌘E</kbd> line, with this tab in front.</p>
+
+<div class=stage>
+<div class=menu><button id=menubutton>Menu (hover me)</button><ul><li><a href="#picked" onclick="log('o', 'menu item clicked')">An item inside the menu</a></li></ul></div>
+<button id=tip onmouseenter="log('o', 'mouseenter on the tooltip button')" onmouseleave="log('o', 'mouseleave')">Tooltip button</button>
+<button onclick="log('o', 'confirm →', confirm('The agent should answer this.'))">Raise a confirm</button>
+<input type=file id=f aria-label="Attach a file"><br><br>
+<ul id=sort aria-label="Sorted by the pointer"><li><button>Alpha</button></li><li><button>Bravo</button></li><li><button>Charlie</button></li></ul>
+<ul id=drag aria-label="Draggable items"><li draggable=true>One</li><li draggable=true>Two</li><li draggable=true>Three</li></ul>
+<div class=drop id=yes><button>Drop here</button></div> <div class=drop id=no><button>No drops here</button></div>
+<pre class=out id=o></pre></div>
+<script>
+// A list sorted on mousemove, the way a hand-rolled sortable does it.
+let held = null;
+sort.addEventListener("mousedown", e => { held = e.target.closest("li"); });
+addEventListener("mousemove", e => { if (!held) return; const over = document.elementFromPoint(e.clientX, e.clientY)?.closest("#sort li");
+  if (over && over !== held) { const r = over.getBoundingClientRect(); over.parentNode.insertBefore(held, e.clientY > r.top + r.height / 2 ? over.nextSibling : over); } });
+addEventListener("mouseup", () => { if (held) log("o", "sorted:", [...sort.children].map(li => li.textContent).join(", ")); held = null; });
+// HTML drag and drop.
+let dragged = null;
+drag.addEventListener("dragstart", e => { dragged = e.target; e.dataTransfer.setData("text/plain", e.target.textContent); log("o", "dragstart", e.target.textContent); });
+drag.addEventListener("dragover", e => e.preventDefault());
+drag.addEventListener("drop", e => { e.preventDefault(); const over = e.target.closest("li"); if (over && dragged && over !== dragged) over.after(dragged); log("o", "list is now:", [...drag.children].map(li => li.textContent).join(", ")); });
+yes.addEventListener("dragover", e => { e.preventDefault(); yes.classList.add("over"); });
+yes.addEventListener("dragleave", () => yes.classList.remove("over"));
+yes.addEventListener("drop", e => { e.preventDefault(); yes.classList.remove("over"); log("o", "dropped on the target:", e.dataTransfer.getData("text/plain")); });
+addEventListener("dragend", () => log("o", "dragend"));
+f.onchange = async () => log("o", "file:", f.files[0]?.name, "—", (await f.files[0]?.text() || "").slice(0, 40));
+</script>
+
+<section class=check id=a-hover><h2>Hover</h2>
+<ol><li>Ask: <em>"Hover over the Menu button on this page and tell me what appears."</em></li></ol>
+<p class=expect>you see the menu open under the button and stay while the agent reads it; the agent names the item. Nothing is left open or stuck afterwards — move your own pointer over the page to check.</p></section>
+
+<section class=check id=a-sort><h2>A list sorted by the pointer</h2>
+<ol><li>Ask: <em>"Drag Alpha below Charlie in the first list."</em></li></ol>
+<p class=expect>the order becomes Bravo, Charlie, Alpha and the line below says so. Your own pointer is not carried away.</p></section>
+
+<section class=check id=a-drop><h2>Drag and drop</h2>
+<ol><li>Ask: <em>"Drag One onto the 'Drop here' box."</em> Then: <em>"Drag Two onto 'No drops here'."</em></li><li>Do the first one yourself, by hand, afterwards.</li></ol>
+<p class=expect>the first writes <code>dropped on the target: One</code>; the second fails and the agent says the element takes no drop; your own drag works as it always did, and no ghost image is left on screen.</p></section>
+
+<section class=check id=a-dialog><h2>A dialog the agent answers</h2>
+<ol><li>Ask: <em>"Press 'Raise a confirm' and accept what it asks."</em></li></ol>
+<p class=expect>the sheet goes up and comes down by itself; the line reads <code>true</code>. Say whether it reads as a flicker.</p></section>
+
+<section class=check id=a-file><h2>A file the agent attaches</h2>
+<ol><li>Make a file: <code>echo walk &gt; /tmp/walk.txt</code>. Ask: <em>"Attach /tmp/walk.txt to the file field on this page."</em></li><li>Ask again with another file, having answered "always" the first time if the card offers it.</li></ol>
+<p class=expect>a card naming the file each time — also the second time; no file panel; the line shows the file's name and content.</p></section>
+
+<section class=check id=a-front><h2>The same with Savoia behind another app</h2>
+<ol><li>Give any of the requests above, then switch to another app and work there for a minute.</li></ol>
+<p class=expect>the agent finishes without pulling Savoia to the front, without moving your pointer, and nothing pops up over the app you are in. A Paste menu appearing over it is a known fault — say if you see it.</p></section>

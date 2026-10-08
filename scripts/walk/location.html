@@ -1,0 +1,33 @@
+<!doctype html><meta charset=utf-8><title>Walk — where you are</title>
+<link rel=stylesheet href=walk.css><script src=walk.js></script>
+<h1>Where you are</h1>
+<p class=why>Geolocation was built and measured with a stand-in position. No position from this Mac has reached a page yet.</p>
+<div class=stage><button onclick="navigator.geolocation.getCurrentPosition(show, fail)">getCurrentPosition</button>
+<button onclick="navigator.geolocation.getCurrentPosition(show, fail, {enableHighAccuracy: true, timeout: 15000})">…with high accuracy</button>
+<button onclick="watch = navigator.geolocation.watchPosition(show, fail); log('o', 'watching')">watchPosition</button>
+<button onclick="navigator.geolocation.clearWatch(watch); log('o', 'stopped')">stop</button>
+<button onclick="navigator.permissions.query({name: 'geolocation'}).then(s => log('o', 'permission:', s.state))">permission?</button>
+<pre class=out id=o></pre></div>
+<script>let watch;
+const show = p => log("o", `${p.coords.latitude.toFixed(5)}, ${p.coords.longitude.toFixed(5)} ±${Math.round(p.coords.accuracy)} m`);
+const fail = e => log("o", "error", e.code, ["", "PERMISSION_DENIED", "POSITION_UNAVAILABLE", "TIMEOUT"][e.code], e.message);</script>
+
+<section class=check id=geo-first><h2>The first question</h2>
+<ol><li>Press getCurrentPosition.</li><li>Answer macOS's own prompt if it comes, then Savoia's bar.</li></ol>
+<p class=expect>macOS asks once for the app; Savoia's bar asks for this site; then coordinates that are really where you are.</p></section>
+
+<section class=check id=geo-remembered><h2>The answer is remembered, and can be taken back</h2>
+<ol><li>Reload, press getCurrentPosition again.</li><li>Open the site menu under the lock and switch location off; press again.</li></ol>
+<p class=expect>no bar the second time; after switching off, <code>PERMISSION_DENIED</code> at once.</p></section>
+
+<section class=check id=geo-watch><h2>Watching</h2>
+<ol><li>Allow again, press watchPosition, leave it for half a minute, press stop.</li></ol>
+<p class=expect>say what you see: how often a line arrives on a Mac that is not moving. Once a second is what was built for the stand, and may be too much.</p></section>
+
+<section class=check id=geo-off><h2>With Location Services off for Savoia</h2>
+<ol><li>System Settings ▸ Privacy &amp; Security ▸ Location Services: switch Savoia off. Press getCurrentPosition.</li><li>Switch it back on.</li></ol>
+<p class=expect><code>POSITION_UNAVAILABLE</code>, promptly — not a page left waiting.</p></section>
+
+<section class=check id=geo-private><h2>In a private window</h2>
+<ol><li>Open this page in a private window and press getCurrentPosition.</li></ol>
+<p class=expect>the bar asks; the answer is gone when the private window closes.</p></section>

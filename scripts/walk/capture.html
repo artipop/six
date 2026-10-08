@@ -1,0 +1,34 @@
+<!doctype html><meta charset=utf-8><title>Walk — camera, microphone, screen</title>
+<link rel=stylesheet href=walk.css><script src=walk.js></script>
+<h1>Camera, microphone, screen</h1>
+<p class=why>The camera's question passes in wpt on a stand page. A real call, the screen picker and the mute buttons in the address field were not tried since the move to WKWebView.</p>
+<div class=stage><video id=v width=320 height=180 autoplay muted playsinline></video> <video id=s width=320 height=180 autoplay muted playsinline></video><br>
+<button onclick="get({video: true})">Camera</button> <button onclick="get({audio: true})">Microphone</button> <button onclick="get({video: true, audio: true})">Both</button>
+<button onclick="navigator.mediaDevices.getDisplayMedia({video: true}).then(st => { s.srcObject = st; watch(st, 'screen'); }, e => log('o', 'screen refused:', e.name))">Share the screen</button>
+<button onclick="for (const el of [v, s]) { el.srcObject && el.srcObject.getTracks().forEach(t => t.stop()); el.srcObject = null; } log('o', 'stopped everything')">Stop everything</button>
+<button onclick="navigator.mediaDevices.enumerateDevices().then(d => log('o', d.map(x => x.kind + ': ' + (x.label || '(no label)')).join(' | ')))">Devices</button>
+<pre class=out id=o></pre></div>
+<script>
+function watch(stream, what) { for (const t of stream.getTracks()) { log("o", what, t.kind, "live:", t.label); t.onmute = () => log("o", t.kind, "muted"); t.onunmute = () => log("o", t.kind, "unmuted"); t.onended = () => log("o", t.kind, "ended"); } }
+function get(c) { navigator.mediaDevices.getUserMedia(c).then(st => { if (c.video) v.srcObject = st; watch(st, "capture"); }, e => log("o", "refused:", e.name)); }
+</script>
+
+<section class=check id=cam><h2>The camera</h2>
+<ol><li>Press Camera and allow in the bar.</li></ol>
+<p class=expect>your picture on the left, and a camera button in the address field, red while live.</p></section>
+
+<section class=check id=mute><h2>Mute from the address field</h2>
+<ol><li>Press Both. Click the camera button in the address field, then the microphone one.</li><li>Click each again.</li></ol>
+<p class=expect>each mutes on its own — the picture freezes or goes dark, the lines <code>muted</code> and <code>unmuted</code> appear — and the call is not dropped.</p></section>
+
+<section class=check id=block-live><h2>Blocking while live</h2>
+<ol><li>With the camera on, open the menu under the lock and switch the camera off for this site.</li></ol>
+<p class=expect>the camera stops at once: <code>ended</code> below, and the light on the Mac goes out.</p></section>
+
+<section class=check id=screen><h2>Sharing the screen</h2>
+<ol><li>Press "Share the screen" and pick a window in macOS's picker.</li><li>Then "Stop everything".</li></ol>
+<p class=expect>the picked window on the right, a screen indicator in the address field while it lasts, gone after stopping.</p></section>
+
+<section class=check id=continuity><h2>An iPhone nearby</h2>
+<ol><li>Press Devices with your iPhone in reach, and again with it out of reach (or Continuity Camera off).</li></ol>
+<p class=expect>say which cameras are listed each time — one wpt test changes its answer with the phone, and this settles why.</p></section>

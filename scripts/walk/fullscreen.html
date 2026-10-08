@@ -1,0 +1,37 @@
+<!doctype html><meta charset=utf-8><title>Walk — fullscreen and picture-in-picture</title>
+<link rel=stylesheet href=walk.css><script src=walk.js></script>
+<h1>Fullscreen and picture-in-picture</h1>
+<p class=why>The state, the size and the way home are measured. Whether anything is <em>drawn</em> is not — and a black screen was the fault the old workaround existed for.</p>
+<div class=stage><video id=v width=480 height=270 controls muted playsinline></video><br>
+<button onclick="v.play()">Play</button> <button onclick="v.requestFullscreen().catch(e => log('o', 'refused:', e.name))">Fullscreen</button>
+<button onclick="document.querySelector('.stage').requestFullscreen()">Fullscreen of the whole box</button>
+<button onclick="v.requestFullscreen().then(() => setTimeout(() => location.href = 'history.html?from=fullscreen', 4000))">Fullscreen, then leave in 4 s</button>
+<button onclick="v.requestPictureInPicture().catch(e => log('o', 'refused:', e.name))">Picture in picture</button>
+<pre class=out id=o></pre></div>
+<script>
+// A moving picture made here, so the station needs no file and no network.
+const canvas = document.createElement("canvas"); canvas.width = 480; canvas.height = 270;
+const g = canvas.getContext("2d"); let t = 0;
+setInterval(() => { t++; g.fillStyle = `hsl(${t % 360} 60% 40%)`; g.fillRect(0, 0, 480, 270); g.fillStyle = "white"; g.font = "28px system-ui";
+  g.fillText("frame " + t, 20, 50); g.fillRect((t * 4) % 480, 150, 40, 40); }, 40);
+v.srcObject = canvas.captureStream(25);
+document.addEventListener("fullscreenchange", () => log("o", "fullscreen:", document.fullscreenElement ? document.fullscreenElement.tagName : "none"));
+v.addEventListener("enterpictureinpicture", () => log("o", "picture in picture: entered"));
+v.addEventListener("leavepictureinpicture", () => log("o", "picture in picture: left"));
+</script>
+
+<section class=check id=fs-drawn><h2>The picture in fullscreen</h2>
+<ol><li>Press Play, then Fullscreen.</li><li>Leave with <kbd>Esc</kbd>.</li></ol>
+<p class=expect>the moving picture fills the screen — not black — and the page is back as it was after Esc.</p></section>
+
+<section class=check id=fs-box><h2>Fullscreen of something that is not a video</h2>
+<ol><li>Press "Fullscreen of the whole box", then <kbd>Esc</kbd>.</li></ol>
+<p class=expect>the box with its buttons fills the screen and comes back.</p></section>
+
+<section class=check id=fs-leave><h2>Leaving the page while in fullscreen</h2>
+<ol><li>Press "Fullscreen, then leave in 4 s" and wait.</li></ol>
+<p class=expect>fullscreen ends, and the tab shows the next page — not a blank tab. Go back afterwards: this page is drawn.</p></section>
+
+<section class=check id=pip><h2>Picture in picture</h2>
+<ol><li>Press Play, then "Picture in picture" (or <kbd>⌥⇧P</kbd>).</li><li>Switch to another tab, then close this one.</li></ol>
+<p class=expect>a small floating player with the moving picture; it survives the tab switch, and goes away with the tab.</p></section>

@@ -7,6 +7,12 @@ in six places is a page nobody trusts and nobody fixes.
 A line leaves this file by being measured, in either direction, and by the page it came from being rewritten to say
 what was seen. Say when it was measured and on what.
 
+**Most of what waits for a hand has a page to do it on.** `./scripts/walk.sh` serves `scripts/walk/` on localhost
+and opens it in the Debug Savoia: eleven stations, fifty-nine checks, each saying what to press and what should
+happen, with the buttons, lists, video and file fields it needs on the page. Answers are kept in the browser, and
+**Copy the report** on the first page gives them as text to paste back — which is how lines leave this file. The
+stations follow the sections below; what has no station is what needs no hand (the wpt lines, the extension probe).
+
 ## uBlock Origin Lite scored 96/100, and the control run is missing
 
 **2026-09-22, macOS, dev build.** uBOL at its strictest setting scored **96 of 100** on
@@ -240,3 +246,11 @@ MCP client measured it with an agent that has no model in it; these they did not
 - **The selftest after the path stopped being shortened to `~`.** The app was rebuilt and the selftest was not run
   again; the change is in the bar's sentence alone.
 - **The guide.** Both languages were edited and the VitePress build was not run.
+
+## Switches set through the database, never pressed
+
+- **The blocker's page half** (Configuration ▸ Privacy ▸ Blocking, 8 October 2026). The switch was drawn in a
+  picture of the window, in Russian, in the on position; the setting itself was written between two launches. No
+  one has clicked it, or looked at a page with it on and off.
+- **Find on the page, the ⌘E line at a selection, the inspector's `⌥⌘I`** were each tried by Artem once on the day
+  they were made and not since the move to `WKWebView`. The walk's "Switches nobody has pressed" has all three.

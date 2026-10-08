@@ -1,0 +1,33 @@
+<!doctype html><meta charset=utf-8><title>Walk — switches nobody has pressed</title>
+<link rel=stylesheet href=walk.css><script src=walk.js></script>
+<h1>Switches nobody has pressed</h1>
+<p class=why>Each of these was set through the database or a tool and read back, never clicked. No widgets here — the work is in Configuration and the menus.</p>
+
+<section class=check id=s-blocker><h2>The blocker's page half</h2>
+<ol><li>Configuration ▸ Privacy ▸ Blocking: find the switch for scriptlets and extended CSS. It should be off.</li><li>Switch it on, reload a site with stubborn ads, switch it off again.</li></ol>
+<p class=expect>off by default; on, the page changes (fewer leftovers of blocked ads); the label reads sensibly in your language and does not describe Savoia in the third person.</p></section>
+
+<section class=check id=s-automation><h2>Allow Remote Automation</h2>
+<ol><li>Configuration ▸ Develop: press the switch on, then off.</li><li>With it on, hover over the orange mark of an automation tab if you have one.</li></ol>
+<p class=expect>off by default; the switch stays where you put it after a relaunch. Skip the mark if no automation tab is open.</p></section>
+
+<section class=check id=s-inspector><h2>The Web Inspector</h2>
+<ol><li><kbd>⌥⌘I</kbd> on this tab. Dock it, undock it, close it.</li><li>Open it, then leave this tab alone until it is put to sleep (or relaunch), and come back.</li></ol>
+<p class=expect>it opens on this page; the page keeps its size after closing; a tab that slept does not come back broken.</p></section>
+
+<section class=check id=s-find><h2>Find on the page</h2>
+<ol><li><kbd>⌘F</kbd>, type "nobody" one letter at a time, <kbd>Return</kbd> twice, <kbd>⇧Return</kbd>, <kbd>Esc</kbd>.</li><li>Type something that is not here.</li></ol>
+<p class=expect>the match is selected and scrolled to as you type, Return walks forward and wraps, and "No Results" shows in red for the second.</p></section>
+
+<section class=check id=s-assistant><h2>⌘E on a selection and in a field</h2>
+<ol><li>Select this sentence and press <kbd>⌘E</kbd>.</li><li>Click into the field below, type a few words, select two of them, press <kbd>⌘E</kbd>.</li></ol>
+<p class=expect>the line appears at the selection each time and is about what you selected.</p>
+<div class=stage><textarea rows=3 cols=50 aria-label="A comment">The quick brown fox jumps over the lazy dog.</textarea></div></section>
+
+<section class=check id=s-keys><h2>The key self-test, on a Mac with nothing in front</h2>
+<ol><li>Quit the dev Savoia. In a terminal: <code>SAVOIA_KEY_SELFTEST=1 &lt;path to Debug Savoia&gt;/Contents/MacOS/Savoia</code>, and do not touch the Mac until it stops printing.</li></ol>
+<p class=expect>no line reads "no key window"; paste the last lines to the session if any does.</p></section>
+
+<section class=check id=s-translate><h2>Translation</h2>
+<ol><li>Open a long page in a language you do not read and accept the offer to translate, or use the menu.</li><li>Scroll up and down while it works.</li></ol>
+<p class=expect>text is replaced outward from what is on screen, in both directions, and the original comes back when you ask.</p></section>

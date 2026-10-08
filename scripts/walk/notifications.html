@@ -1,0 +1,38 @@
+<!doctype html><meta charset=utf-8><title>Walk — notifications</title>
+<link rel=stylesheet href=walk.css><script src=walk.js></script>
+<h1>Notifications</h1>
+<p class=why>Built and measured without ever calling the system: no banner has been seen.</p>
+<div class=stage><button onclick="Notification.requestPermission().then(s => log('o', 'requestPermission →', s))">Ask permission</button>
+<button onclick="show()">Show one</button> <button onclick="setTimeout(show, 5000); log('o', 'in five seconds…')">Show one in 5 s</button>
+<button onclick="last && last.close()">Close the last</button> <button onclick="log('o', 'permission:', Notification.permission)">permission?</button>
+<pre class=out id=o></pre></div>
+<script>let last, n = 0;
+function show() {
+  try { last = new Notification("Savoia walk " + (++n), { body: "The body of notification " + n + ".", tag: "walk-" + n }); }
+  catch (e) { return log("o", "threw:", e.name, e.message); }
+  for (const type of ["show", "click", "close", "error"]) last.addEventListener(type, () => log("o", "notification " + n + ":", type));
+}</script>
+
+<section class=check id=n-ask><h2>Asking</h2>
+<ol><li>Press "Ask permission". Answer macOS's own prompt if it comes, then Savoia's bar.</li></ol>
+<p class=expect>macOS asks once for the app, Savoia's bar asks for this site, and the line reads <code>granted</code>.</p></section>
+
+<section class=check id=n-banner><h2>A banner</h2>
+<ol><li>Press "Show one".</li></ol>
+<p class=expect>a system banner with the title, the body and this site's name; the line <code>show</code> below.</p></section>
+
+<section class=check id=n-click><h2>A click on it</h2>
+<ol><li>Press "Show one in 5 s" and switch to another tab — or another app.</li><li>Click the banner.</li></ol>
+<p class=expect>Savoia comes forward on this tab, and the line <code>click</code> is below.</p></section>
+
+<section class=check id=n-close><h2>Closing</h2>
+<ol><li>Show one, then press "Close the last".</li><li>Show one and dismiss the banner yourself.</li></ol>
+<p class=expect>the banner goes when the page closes it; say whether <code>close</code> is written in each case.</p></section>
+
+<section class=check id=n-denied><h2>Refused, and a private window</h2>
+<ol><li>Switch notifications off for this site in the menu under the lock; press "Show one".</li><li>Open this page in a private window; press "Ask permission".</li></ol>
+<p class=expect>no banner, and <code>error</code> or nothing; in the private window <code>denied</code> with no question, as in Safari.</p></section>
+
+<section class=check id=n-profiles><h2>Two profiles, two answers</h2>
+<ol><li>Allow here. Open this page in your other profile and refuse there. Press "Show one" in each.</li></ol>
+<p class=expect>a banner from the profile that allowed, none from the one that refused.</p></section>

@@ -1,0 +1,37 @@
+<!doctype html><meta charset=utf-8><title>Savoia — the walk</title>
+<link rel=stylesheet href=walk.css><script src=walk.js></script>
+<h1>The walk</h1>
+<p class=why>What nobody has watched happen, one station per kind of thing. Each check says what to do and what
+should happen; press <b>Works</b>, <b>Broken</b> or <b>Skipped</b> and write a word about what you saw. Answers stay in this
+browser. When you are done, copy the report and paste it to the session — it goes into <code>docs/unmeasured.md</code>.</p>
+<ul class=stations id=list></ul>
+<p><button id=copy>Copy the report</button> <button id=clear>Forget every answer</button></p>
+<pre class=out id=preview></pre>
+<script>
+const list = document.getElementById("list");
+function draw() {
+  list.textContent = "";
+  for (const [file, title] of STATIONS) {
+    const tally = { ok: 0, bad: 0, skip: 0 };
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k.startsWith(`walk:${file}:`)) { const v = read(file, k.split(":").slice(2).join(":")).v; if (v) tally[v]++; }
+    }
+    const li = document.createElement("li");
+    li.innerHTML = `<a href="${file}">${title}</a><span class=count>${tally.ok} works · ${tally.bad} broken · ${tally.skip} skipped</span>`;
+    list.append(li);
+  }
+  document.getElementById("preview").textContent = report();
+}
+document.getElementById("copy").onclick = async () => {
+  const text = report();
+  try { await navigator.clipboard.writeText(text); document.getElementById("copy").textContent = "Copied"; }
+  catch { getSelection().selectAllChildren(document.getElementById("preview")); }
+};
+document.getElementById("clear").onclick = () => {
+  if (!confirm("Forget every answer of the walk?")) return;
+  Object.keys(localStorage).filter(k => k.startsWith("walk:")).forEach(k => localStorage.removeItem(k));
+  draw();
+};
+addEventListener("DOMContentLoaded", draw); addEventListener("pageshow", draw);
+</script>
