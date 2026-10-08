@@ -11,6 +11,26 @@
         }
       }
     },
+    "A script in every page a filter list has such rules for." : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скрипт на каждой странице, для которой в списках есть такие правила."
+          }
+        }
+      }
+    },
+    "Cosmetic Rules and Scriptlets" : {
+      "localizations" : {
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Косметические правила и скриптлеты"
+          }
+        }
+      }
+    },
     "Loaded Tabs" : {
       "localizations" : {
         "ru" : {

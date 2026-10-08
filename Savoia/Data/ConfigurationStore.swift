@@ -90,6 +90,8 @@ final class ConfigurationStore {
         case researchTemplate = "research.template"
         case researchSources = "research.sources"
         case blockingEnabled = "blocking.enabled"
+        /// Scriptlets and cosmetic rules, run inside the page (`AdvancedRules`).
+        case blockingPageRules = "blocking.pageRules"
         case blockingLists = "blocking.lists"
         case blockingAllowlist = "blocking.allowlist"
         case blockingRefreshDays = "blocking.refreshDays"
@@ -244,6 +246,11 @@ final class ConfigurationStore {
     var blockingEnabled: Bool {
         get { self[.blockingEnabled].map { $0 == "1" } ?? true }
         set { self[.blockingEnabled] = newValue ? "1" : "0" }
+    }
+
+    var blockingPageRules: Bool {
+        get { self[.blockingPageRules] == "1" }
+        set { self[.blockingPageRules] = newValue ? "1" : "0" }
     }
 
     /// Sites the user asked Savoia to leave alone, as bare hostnames.

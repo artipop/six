@@ -78,7 +78,7 @@ second window opened straight after, and on a page the budget looked at and kept
 
 | what | where | decision |
 |---|---|---|
-| `AdvancedRules` — the blocker's scriptlets and extended CSS | every page while blocking is on | **off for now**, back with `SAVOIA_ADVANCED_RULES=1`. `PaymentRequest` is still `undefined` without them, so they are not why |
+| `AdvancedRules` — the blocker's scriptlets and extended CSS | the main frame of a page a filter list has such rules for, while Privacy ▸ Blocking ▸ Cosmetic Rules and Scriptlets is on | a setting, **off by default** ([blocking.md](blocking.md)). Scriptlets go into the page's world, by design |
 | `PageFocus` — the selection and caret for ⌘E | — | **done**: nothing is installed; `PageFocusStore.refresh` reads the page when ⌘E is pressed. A line hung on a field no longer follows it as the page scrolls |
 | `MediaHold` — holds autoplay | — | **done**: no script. A preference of the view for the one load after a tab is rebuilt; the script is left for the SPI being absent ([architecture.md](architecture.md#persistence)) |
 | DevTools capture, the WebMCP polyfill | only while switched on | stay |

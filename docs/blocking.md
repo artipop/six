@@ -1,8 +1,13 @@
 # Content blocking
 
-**October 2026: the page half — scriptlets and extended CSS, `AdvancedRules` — is switched off**, back with
-`SAVOIA_ADVANCED_RULES=1`, while the scripts Savoia runs in pages are being cut down ([page-scripts.md](page-scripts.md)).
-The network half is unchanged.
+**The page half — scriptlets, extended CSS and CSS injection, `AdvancedRules` — is a setting, off unless switched
+on**: Configuration ▸ Privacy ▸ Blocking ▸ **Cosmetic Rules and Scriptlets** (`ContentBlocker.usesPageRules`,
+`blocking.pageRules`), off for a new install and for one that had it before, decided on 7 October 2026 as the scripts
+Savoia runs in pages were cut down ([page-scripts.md](page-scripts.md)). While it is off no page is given a script
+and the engine over those rules is not built; the lists' advanced halves are still kept on disk and counted in the
+panel. Seen in a throwaway home with `SAVOIA_UI_DEBUG=1`: off, no engine and no line for the page; with the setting
+on, `advanced rules ready: 14699 rules` and `127.0.0.1: 0 css, 0 extended, 4 scripts`. The network half does not
+depend on it.
 
 Ads and trackers are dropped by WebKit's own network layer, before a request leaves the content process. No
 extension, no proxy, no script in the page: filter lists are compiled once into a `WKContentRuleList` and handed to

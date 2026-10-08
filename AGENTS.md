@@ -282,7 +282,7 @@ rewrite the root file. `xcodebuild` never touches it — the project holds only 
 Built: tabs with groups, folding, pinning, picking and two tabs side by side, groups by meaning, the ⌃Tab ring,
 profiles with isolated data stores, persistence (a SQLite system of record plus a versioned JSON snapshot), history and
 bookmarks with on-device multilingual embeddings and personal search on the start page, ad/tracker blocking (its
-page half, scriptlets and extended CSS, switched off for now), extra certificate authorities, `WKWebExtension` hosting, site permissions, geolocation, site notifications, downloads,
+page half, scriptlets and extended CSS, a setting that is off by default), extra certificate authorities, `WKWebExtension` hosting, site permissions, geolocation, site notifications, downloads,
 page translation, find on page (⌘F), windows a page opens as tabs that keep their opener, extension pages as tabs, Save As with web archives, picture-in-picture, the ⌘E assistant, ACP agents and chats, `Savoia --mcp`, MCP
 apps (SEP-1865) with OAuth, deep research with document tabs and highlights, DevTools capture, remote automation, dictation, localization.
 

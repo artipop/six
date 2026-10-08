@@ -67,6 +67,16 @@ final class ContentBlocker {
         }
     }
 
+    /// The half that runs inside pages: scriptlets and cosmetic rules. Off unless switched on.
+    var usesPageRules: Bool {
+        didSet {
+            guard usesPageRules != oldValue else { return }
+            settings.blockingPageRules = usesPageRules
+            applyToAllWindows()
+            if usesPageRules, isEnabled { Task { await rebuildAdvanced() } }
+        }
+    }
+
     /// Compiled lists, by list id.
     @ObservationIgnored private var compiled: [String: WKContentRuleList] = [:]
     /// The windows' controllers, and what each window is showing — the pair decides what is attached.
@@ -96,6 +106,7 @@ final class ContentBlocker {
         self.settings = settings
         self.controllers = controllers
         self.isEnabled = settings.blockingEnabled
+        self.usesPageRules = settings.blockingPageRules
         self.lists = FilterList.merge(stored: settings.blockingLists)
         self.allowlist = Set(settings.blockingAllowlist)
         controllers.onController { [weak self] windowID, _ in self?.apply(to: windowID) }
@@ -234,6 +245,7 @@ final class ContentBlocker {
     /// another. There is only one engine, so `@@||example.com^$elemhide` in a regional list does
     /// cancel a cosmetic rule from the base list — which is what its author meant.
     private func rebuildAdvanced() async {
+        guard usesPageRules else { return }
         var texts: [String] = []
         for list in lists where list.isEnabled {
             if let text = await store.advancedRules(for: list) { texts.append(text) }
@@ -325,7 +337,7 @@ final class ContentBlocker {
 
     /// A page's cosmetic rules and scriptlets, as the user scripts that carry them.
     private func advancedScripts(for url: URL?) -> [WKUserScript] {
-        guard let url, let scheme = url.scheme, scheme == "http" || scheme == "https" else { return [] }
+        guard usesPageRules, let url, let scheme = url.scheme, scheme == "http" || scheme == "https" else { return [] }
         let rules = advanced.rules(for: url)
         if ProcessInfo.processInfo.environment["SAVOIA_UI_DEBUG"] != nil {
             Self.log("\(url.host() ?? "?"): \(rules.css.count) css, \(rules.extendedCSS.count) extended, \(rules.scripts.count) scripts")

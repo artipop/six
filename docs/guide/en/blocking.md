@@ -55,7 +55,9 @@ lookups.
 
 WebKit's rules are a table: block a request, upgrade it to HTTPS, strip a
 header, hide an element by CSS selector. A filter list says more than that, and
-Savoia runs the remainder itself, inside the page:
+Savoia can run the remainder itself, inside the page. It is off until you switch
+on **Cosmetic Rules and Scriptlets** in **Configuration ▸ Privacy ▸ Blocking**:
+then a script runs in every page a filter list has such rules for.
 
 | what it is | example | what it is for |
 |---|---|---|
@@ -64,8 +66,8 @@ Savoia runs the remainder itself, inside the page:
 | **CSS injection** | `#$#.page { padding-top: 0 !important; }` | remove the banner and the hole it left |
 
 That is 14,676 rules across the three default lists, and it is where
-**anti-adblock circumvention** lives: sites that used to say "turn off your
-blocker" now simply open.
+**anti-adblock circumvention** lives: with the switch on, sites that say "turn
+off your blocker" more often simply open.
 
 ::: tip Why this works better than an extension can
 A scriptlet is only any use if it got there before the site's own scripts. An
@@ -76,8 +78,8 @@ else on the page. Extended CSS runs in a world of its own, where the site can
 see neither the library nor what it is doing.
 :::
 
-All of it obeys the same switch and the same allowlist: a shield taken off a
-site takes this off too.
+All of it obeys the main blocking switch and the allowlist as well: a shield
+taken off a site takes this off too.
 
 What is missing: the rules apply to the page itself but not to frames embedded
 in it — ads inside a frame are caught by the network half of blocking.

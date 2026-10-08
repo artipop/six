@@ -59,6 +59,12 @@ struct BlockingConfiguration: View {
                 // Greyed by the switch above, which is not itself — a disabled master switch is one
                 // nobody can switch back on.
                 Group {
+                Section {
+                    Toggle("Cosmetic Rules and Scriptlets", isOn: $blocker.usesPageRules)
+                        .toggleStyle(.switch)
+                    Text("A script in every page a filter list has such rules for.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
                 Section("Filter Lists") {
                     ForEach(blocker.lists) { list in
                         FilterListRow(list: list, status: blocker.status[list.id])
