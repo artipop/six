@@ -936,11 +936,16 @@ final class BrowserTab: Identifiable {
         pendingURL = nil
         isResuming = true
         if isWebPage {
-            pageControllers?.setUserScripts([MediaHold.script], named: MediaHold.scriptName, for: id)
+            if !MediaHold.isPreference {
+                pageControllers?.setUserScripts([MediaHold.script], named: MediaHold.scriptName, for: id)
+            }
             mediaHold = .loading
         }
         loadStartedAt = Date()
-        return materialize()
+        let view = materialize()
+        // An extension's pages share their preferences.
+        if mediaHold != nil, !showsExtensionPage { MediaHold.set(true, in: view) }
+        return view
     }
 
     func load(_ url: URL) {
@@ -1035,6 +1040,7 @@ final class BrowserTab: Identifiable {
     private func releaseMediaHold() {
         guard mediaHold != nil else { return }
         mediaHold = nil
+        if let livePage, !showsExtensionPage { MediaHold.set(false, in: livePage) }
         pageControllers?.setUserScripts([], named: MediaHold.scriptName, for: id)
     }
 

@@ -257,11 +257,20 @@ rather than left to be overwritten by the fresh one.
 page's URL, a column moving, a chat line — schedules a debounced (1 s) write off the main thread; `NSApplication`'s
 `willTerminate` flushes synchronously. On restore, a `BrowserTab` is created with its saved URL but doesn't load until
 it first comes on screen (or a tool looks at it) — relaunching with a hundred tabs fires no requests.
-That first load — and the one that rebuilds a discarded window — does not start media by itself: `MediaHold` puts a
-script in Savoia's world that pauses any `play` until a trusted click or key press in that frame.
-`mediaTypesRequiringUserActionForPlayback` does hold media on macOS — measured on an autoplaying audio element — but
-a configuration is for the life of its view, so it holds every later navigation too; the script
-is dropped as soon as the next navigation starts, so a reload or a link plays as usual.
+That first load — and the one that rebuilds a discarded window — does not start media by itself (`MediaHold`):
+`play()` is refused with `NotAllowedError` until a click or a key press in the page, the way Safari refuses autoplay.
+`mediaTypesRequiringUserActionForPlayback` is that refusal, but a configuration is for the life of its view, and it
+holds every later navigation too — measured in a bare `WKWebView`: the next load was refused even after a click had
+played the first. The preference behind it is live on the view's `WKPreferences`
+(`_setRequiresUserGestureForAudioPlayback:` and `…ForVideoPlayback:`, SPI behind `instancesRespond(to:)`), so it is
+switched on as the tab resumes and off as soon as the next navigation starts, and a reload or a link plays as
+usual. Where the SPI is absent, a user script in Savoia's world pauses any `play` until a trusted click or key in
+that frame, as it did before. An extension's page is not held: its views share one `WKPreferences`.
+
+Measured over `Savoia --mcp` in a throwaway home, 8 October 2026, on a page that plays a sound as it loads and
+writes the outcome into its title: a new tab played; the same tab discarded and brought back answered
+`NotAllowedError`; a click played; the next page in the tab played by itself; brought back once more and sent on by
+the page's own `location.href`, the next page played.
 The window itself — frame and fullscreen — is in the snapshot too (`WindowState`, fed by `NSWindow`
 notifications and applied once when the content view lands in its window; a saved frame off every screen is
 ignored). Restore drops anything that doesn't line up (a column whose tab is gone, a tab no column points at).
@@ -391,7 +400,7 @@ column was written from memory of its API and not compiled.
 | `interactionState` given to the view a pane mounts, a one-second wait for it, and address lists beside it | gone: the state is set as the tab resumes, on screen or not | `webkit_web_view_get_session_state`, `_restore_session_state` |
 | `callWithoutGesture` falling back to the ordinary call off screen | gone; the ordinary call is left for the SPI being absent | the call there is not a gesture |
 | `PageElementFullscreen`'s swap of the hold, `leaveElementFullscreen` before a navigation | both gone: `PageHost` holds the view by frame, and a navigation out of fullscreen puts the view back by itself | none |
-| `MediaHold`, a user script | **stays**: `mediaTypesRequiringUserActionForPlayback` holds every later navigation in the view too | `webkit_settings_set_media_playback_requires_user_gesture` |
+| `MediaHold`, a user script | a preference of the view, switched on for the one load (SPI); the script is the fallback. `mediaTypesRequiringUserActionForPlayback` holds every later navigation in the view too | `webkit_settings_set_media_playback_requires_user_gesture` |
 | picture-in-picture and screen sharing switched on as a pane claims a view | as the view is made | `display-capture-state` |
 | extension pages in a window (`ExtensionStore.openExtensionPage`) | gone: a tab built on `WKWebExtensionContext.webViewConfiguration` | none |
 | no automation of a tab | a mode of its own: tabs opened for remote automation carry the flag and a session, ordinary tabs never do ([devtools.md](devtools.md#remote-automation)) | `is-controlled-by-automation`, `WebKitAutomationSession` |

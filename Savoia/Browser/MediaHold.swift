@@ -1,15 +1,25 @@
 import WebKit
 
 /// A window brought back by a relaunch — or rebuilt after a discard — does not start playing on its
-/// own. The page asked for playback of a video nobody pressed play on this time; the answer is a
-/// pause, until the first real click or key press in that frame.
+/// own: until the first click or key press in it, the page's `play()` is refused as Safari refuses autoplay.
 ///
 /// Not `mediaTypesRequiringUserActionForPlayback`: a configuration is for the life of its view, and
-/// that holds every later navigation too; this is one script, on one load.
-/// It runs in Savoia's world: `play` is a DOM event and reaches every world, and the page can neither
-/// see the listener nor take it down.
+/// that holds every later navigation too. The preference behind it can be changed while the view lives. SPI;
+/// without it a user script pauses what starts, in Savoia's world, where the page can neither see nor remove it.
 enum MediaHold {
     static let scriptName = "media-hold"
+
+    static var isPreference: Bool {
+        WKPreferences.instancesRespond(to: #selector(GesturePreferences.requireGestureForAudio(_:)))
+            && WKPreferences.instancesRespond(to: #selector(GesturePreferences.requireGestureForVideo(_:)))
+    }
+
+    static func set(_ held: Bool, in view: WKWebView) {
+        guard isPreference else { return }
+        let preferences = unsafeBitCast(view.configuration.preferences, to: GesturePreferences.self)
+        preferences.requireGestureForAudio(held)
+        preferences.requireGestureForVideo(held)
+    }
 
     static var script: WKUserScript {
         WKUserScript(source: source, injectionTime: .atDocumentStart, forMainFrameOnly: false, in: .savoia)
@@ -27,4 +37,9 @@ enum MediaHold {
       }, true);
     })();
     """
+}
+
+@objc private protocol GesturePreferences {
+    @objc(_setRequiresUserGestureForAudioPlayback:) func requireGestureForAudio(_ required: Bool)
+    @objc(_setRequiresUserGestureForVideoPlayback:) func requireGestureForVideo(_ required: Bool)
 }

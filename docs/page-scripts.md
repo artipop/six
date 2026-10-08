@@ -68,7 +68,7 @@ second window opened straight after, and on a page the budget looked at and kept
 |---|---|---|---|---|
 | the page's size, for its picture — `BrowserTab.rememberViewState` | a tab leaving the screen, at most every 3 s | savoia | reads `innerWidth` and `innerHeight` | stays. The scroll offset is no longer read here, nor put back by a script — below |
 | site icon | — | — | — | **done**: no script. WebKit names and fetches the icons, `SiteIcons` is the view's icon-loading delegate ([architecture.md](architecture.md)) |
-| description for groups — `TabSorter.pageFinished` | every `.finished` | savoia | reads the meta description or the first paragraph | stays |
+| description for groups — `TabSorter.pageFinished` | every `.finished`, while Tabs ▸ groups by meaning is on (off by default) | savoia | reads the meta description or the first paragraph | stays: on titles alone the groups are worse ([layout.md](layout.md#groups-by-meaning)) |
 | highlights — `HighlightStore.apply` | a load of an address that has highlights | savoia | edits the DOM, watches it for 5 s | stays; below |
 | the offer to translate — `BrowserState.offerTranslation` | every `.finished` | savoia | reads the page's language and a sample of its text | stays |
 | unsent input — `BrowserTab.hasUserInput` | the live-page budget choosing what to discard | savoia | reads `textarea` and password fields | stays |
@@ -80,7 +80,7 @@ second window opened straight after, and on a page the budget looked at and kept
 |---|---|---|
 | `AdvancedRules` — the blocker's scriptlets and extended CSS | every page while blocking is on | **off for now**, back with `SAVOIA_ADVANCED_RULES=1`. `PaymentRequest` is still `undefined` without them, so they are not why |
 | `PageFocus` — the selection and caret for ⌘E | — | **done**: nothing is installed; `PageFocusStore.refresh` reads the page when ⌘E is pressed. A line hung on a field no longer follows it as the page scrolls |
-| `MediaHold` — holds autoplay | one load after a tab is rebuilt, every frame | stays |
+| `MediaHold` — holds autoplay | — | **done**: no script. A preference of the view for the one load after a tab is rebuilt; the script is left for the SPI being absent ([architecture.md](architecture.md#persistence)) |
 | DevTools capture, the WebMCP polyfill | only while switched on | stay |
 
 ## On a person's or an agent's request
