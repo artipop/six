@@ -348,8 +348,9 @@ banners behind.
 ### Notifications in the suite
 
 As with geolocation, Safari's row is no bar — safaridriver cannot `set_permission` — and the number is absolute:
-**231 of 369 subtests, no file in harness error**, where it was 187 of 343 with sixteen. Two runs agree file for
-file. `permissions`, with its `-request` and `-revoke`, went from 150 of 206 to 175 of 234 on the same change: its
+**221 of 369 subtests, no file in harness error**, where it was 187 of 343 with sixteen. That is three runs of
+8 October on a stand with nothing else running; two runs the day before gave 231, and the ten between are one file
+(the table). `permissions`, with its `-request` and `-revoke`, went from 150 of 206 to 175 of 234 on the same change: its
 tests set `geolocation` and wait for `change`.
 
 The stand resets between files now (`testdriver_reset`): answers about location and notifications, the stand-in
@@ -362,6 +363,7 @@ What fails, by cause:
 |---|---|---|
 | 72: `idlharness` (four globals), 21: `lang` | the same as Safari | WebKit's: `actions`, `image`, `badge`, `vibrate`, `requireInteraction`, `maxActions`, no `Notification` in a shared worker, `lang` not validated |
 | 6: `instance` | `requireInteraction` and `actions` are `undefined` | the same missing attributes |
+| 10: `instance`, its service-worker half | "Service worker test setup" times out in a full run; beside three neighbours the file gives 28 of 34 | not established: not the data store's delegate, and which earlier file does it was not found ([unmeasured.md](unmeasured.md)). The ten passed the day before by a coincidence — the `notificationclose` they wait for came from a same-tagged notification, not from their own `close()` |
 | 9: `shownotification` (6), `registration-association` (2), `getnotifications-across-processes` (1) | `getNotifications()` returns more than the test showed | WebKit refuses to `close()` a persistent notification younger than its minimum lifetime, so the tests' own cleanup does nothing. Measured both ways: no `cancel` reaches the provider for them, and with the lifetime set to 0 (`_WKWebsiteDataStoreConfiguration.overridePersistentNotificationMinimumLifetimeForTesting`) `shownotification` alone is 11 of 11. The override is not in the stand: in a full run it held for the first files and not the later ones, and the count came out lower (218) than without it |
 | 5: `cross-origin-nested` (4), `cross-origin-serviceworker` (1), both tentative | a third-party frame or worker is `granted` | WebKit decides by the frame's own origin; the tests want a partitioned frame refused, as Firefox and Chrome do |
 | 1: `event-onclose`, immediate close | no `close` for a notification closed before it was shown | read from WebCore: `close()` in the idle state stops the icon's loader and reports nothing |

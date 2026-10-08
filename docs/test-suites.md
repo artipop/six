@@ -167,7 +167,7 @@ Safari column is 27.0 on wpt.fyi, 2 October 2026 (Technology Preview 253 scores 
 | `screen-capture` | 15 | 4 | 25/186 | `bless`, `click`, `set_permission` |
 | `mediacapture-handle` | 1 | 1 | 0/5 | — |
 | `geolocation` | 22 | 5 | 124/131, no file in error ([permissions.md](permissions.md#geolocation-in-the-suite)) | `set_permission`, WebDriver BiDi emulation |
-| `notifications` | 29 | 16 | 231/369, no file in error ([permissions.md](permissions.md#notifications-in-the-suite)) | `set_permission` |
+| `notifications` | 29 | 16 | 221/369, no file in error ([permissions.md](permissions.md#notifications-in-the-suite)) | `set_permission` |
 | `clipboard-apis` | 58 | 7 | 181/245 | `click`, `set_permission` |
 | `storage-access-api` | 40 | 2 | 117/149 | `delete_all_cookies`, `set_permission` |
 | `idle-detection` | 12 | 1 | 1/63 | `set_permission` |
